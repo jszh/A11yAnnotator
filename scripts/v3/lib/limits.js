@@ -36,7 +36,7 @@ const LIMITS = Object.freeze({
     // (model NAMES are config, not budgets — they stay inline in the adapter / entry points)
     httpTimeoutMs: 60000,             // makeAnthropicTransport timeoutMs (dormant API-key path)
     perTurnTimeoutMs: 60000,          // SDK per-turn stall timeout
-    runTimeoutMs: 120000,             // whole single-shot call deadline
+    runTimeoutMs: 200000,             // whole single-shot call deadline (raised 120→200s; tool path uses toolRunTimeoutMs)
     maxTurns: 1,                      // single-shot default (the tool path raises it — see toolMaxTurns)
     maxRetries: 4,                    // 429/overloaded retries
     baseBackoffMs: 1000,              // exponential backoff floor (1s → … )
@@ -49,7 +49,10 @@ const LIMITS = Object.freeze({
   concurrency: Object.freeze({
     experiment: 5,                    // V3_EXPERIMENT_CONCURRENCY default (1 = byte-identical serial)
     experimentCap: 6,                 // hard ceiling on V3_EXPERIMENT_CONCURRENCY
-    llm: 40,                          // V3_LLM_CONCURRENCY default (429-backoff is the real governor)
+    llm: 16,                          // V3_LLM_CONCURRENCY default. Lowered 30→16: at ~19 in-flight the API rate-limits
+                                      //   + per-turn latency degrades, ballooning multi-turn tool calls (66→116s) past
+                                      //   the deadline. Capping below the natural peak AVOIDS the 429s instead of
+                                      //   relying on backoff to govern (backoff is now credited to the deadline too).
     llmTool: 8,                       // V3_LLM_TOOL_CONCURRENCY — with tools ON this is the PER-PAGE LLM concurrency
                                       // (orchestrator min(llmConcurrency, llmTool)); at 4 it starved the global llm=40
                                       // cap (a tools-ON FN run peaked ~16 in-flight, tabs 9/50, 0 tab contention). 8

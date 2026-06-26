@@ -881,14 +881,25 @@ async function runRubricJudgments(rubricSubjects, opts = {}) {
     // ANY declared frame is missing — capture skipped the element (off-viewport / <6px / hidden), or the
     // transition isn't driven yet (the form-submit pair for 3.3.1/3.3.3 is not produced) — ABSTAIN rather
     // than judge BLIND. Missing declared evidence ⇒ the obligation simply stays auto-PARTIAL (honest "could not decide").
+    // NON-VISUAL EXCEPTION (avail.__nonVisual): when capture flagged the element as having NO perceivable visual box
+    // (off-screen / sr-only / <6px / hidden — a common WCAG test pattern like `.notInPage{left:-9999px}`), its crop
+    // CANNOT exist, but the barrier (programmatic name/role) IS judgeable from the structured signals. So judge
+    // TEXT-ONLY rather than silently abstaining — a real recall loss otherwise. This fires ONLY on a legitimately
+    // non-visual element (capture set the flag), NOT on a transient capture FAILURE (flag absent ⇒ still abstain), so
+    // it is not the FP-inflating blanket no-vision bypass. A signal tells the rubric the element is not perceivable.
+    if (avail.__nonVisual === '1') signals.elementNotPerceivable = true;
     // NO-VISION ablation fairness (V3_NO_VISION_RUBRIC): BYPASS the gate so the LLM is actually CALLED without the
     // crops — otherwise a no-vision run abstains here before the model ever runs, and its 0 recall is a gate
     // artifact, not a measurement of what the model can do from text. (Paired with the de-visioned rubric note.)
-    if (declaredVision.length && frames.length < declaredVision.length && process.env.V3_NO_VISION_RUBRIC !== '1') return null;
+    if (declaredVision.length && frames.length < declaredVision.length && avail.__nonVisual !== '1' && process.env.V3_NO_VISION_RUBRIC !== '1') return null;
     const checkerHint = (checkerHintsByXpath[subj.xpath] || []).find((h) => h.sc === subj.sc) || null;
     const messages = buildMessages({ xpath: subj.xpath, skill: subj.skill, sc: subj.sc, claimFamily: subj.claimFamily }, signals, transcriptByXpath[subj.xpath], frames, { rubric: rub.text, checkerHint, toolsEnabled: opts.toolsEnabled });
     let out; const t0 = Date.now();
     try { out = await judgeWithMethod(runAgent, messages, subj); } catch (e) { out = null; }
+    // COMPLETENESS RETRY: a null here is a TRANSIENT agent failure (timeout / abort / empty under load) — NOT an
+    // abstain (the required-evidence gate above already returned null and never reaches this point). Re-run ONCE so a
+    // load-shed subject (e.g. a slow multi-turn page-level call) is recovered instead of becoming a silent noVerdict.
+    if (!out && process.env.V3_LLM_NO_RETRY !== '1') { try { out = await judgeWithMethod(runAgent, messages, subj); } catch (e) { out = null; } }
     const latencyMs = Date.now() - t0;
     return { subj, i, frames, out, latencyMs };
   }, stop, opts.afterEach);

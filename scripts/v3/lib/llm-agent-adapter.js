@@ -207,7 +207,12 @@ function makeClaudeSdkTransport(opts = {}) {
     // a tool spent PARKED waiting for a shared tab is never charged to the model's budget — timer-pause-while-queued
     // extended to the tool lane. The single-shot path (no tool session) keeps the exact prior setTimeout behavior.
     const deadline = Date.now() + runTimeoutMs;
-    const dueAt = () => deadline + (getExtraDeadlineMs ? (Number(getExtraDeadlineMs()) || 0) : 0);
+    // RATE-LIMIT / BACKOFF CREDIT: time parked on a 429/overloaded backoff sleep (this lane's retry) or inside an SDK
+    // rate_limit_event is THROTTLE WAIT, not model work — credit it back to the deadline so a throttled call is never
+    // aborted for time it spent parked, exactly like the tab-queue credit (getExtraDeadlineMs). A slow-but-progressing
+    // turn is real work and is NOT credited.
+    let backoffCreditMs = 0;
+    const dueAt = () => deadline + (getExtraDeadlineMs ? (Number(getExtraDeadlineMs()) || 0) : 0) + backoffCreditMs;
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       if (dueAt() - Date.now() <= 0) return null; // whole-run budget (excluding queue-wait) exhausted before this attempt
       const ctrl = new AbortController();
@@ -216,7 +221,7 @@ function makeClaudeSdkTransport(opts = {}) {
       if (getExtraDeadlineMs) { guard = setInterval(() => { if (Date.now() >= dueAt()) ctrl.abort(); }, Math.max(5, Math.min(250, Math.floor(runTimeoutMs / 8)))); if (guard.unref) guard.unref(); }
       else { timer = setTimeout(() => ctrl.abort(), deadline - Date.now()); }
       const clearGuards = () => { if (timer) clearTimeout(timer); if (guard) clearInterval(guard); };
-      let text = '', overloaded = false;
+      let text = '', overloaded = false, rlStart = 0;
       try {
         const env = { ...process.env, CLAUDE_CODE_OAUTH_TOKEN: oauthToken || process.env.CLAUDE_CODE_OAUTH_TOKEN || '', CLAUDE_ASYNC_AGENT_STALL_TIMEOUT_MS: String(perTurnTimeoutMs) };
         delete env.ANTHROPIC_API_KEY; delete env.ANTHROPIC_AUTH_TOKEN; // never let a metered key into the child
@@ -228,6 +233,8 @@ function makeClaudeSdkTransport(opts = {}) {
         if (mcpServers) options.mcpServers = mcpServers;
         if (effort) options.effort = effort; // SDK guides thinking depth by effort (works with adaptive thinking)
         for await (const msg of q({ prompt: input(), options })) {
+          if (msg && msg.type === 'rate_limit_event') { if (!rlStart) rlStart = Date.now(); }   // SDK throttle began → start crediting the wait
+          else if (rlStart) { backoffCreditMs += Date.now() - rlStart; rlStart = 0; }            // throttle ended → credit the parked wall-clock back
           if (onTrace || onTraceSink) { const ev = summarizeSdkMessage(msg); // FULL trace: text/thinking/tool_use/tool_result/result
             if (onTrace) { try { onTrace(ev); } catch (e) {} }            // per-call sink → the verdict's attached trace
             if (onTraceSink) { try { onTraceSink(ev); } catch (e) {} } }  // persistent sink → live token/usage telemetry
@@ -244,7 +251,7 @@ function makeClaudeSdkTransport(opts = {}) {
       } finally { clearGuards(); }
 
       if (text && !overloaded) return { content: [{ type: 'text', text }] };
-      if (overloaded && attempt < maxRetries) { await sleep(backoffMs(attempt)); continue; }
+      if (overloaded && attempt < maxRetries) { const b = backoffMs(attempt); backoffCreditMs += b; await sleep(b); continue; } // credit the backoff sleep to the deadline (throttle wait, not model work)
       return text ? { content: [{ type: 'text', text }] } : null; // exhausted / fatal / empty ⇒ degrade
     }
     return null;

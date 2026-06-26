@@ -56,21 +56,26 @@ async function captureVision(page, xpaths, opts = {}) {
     // on the corpus). scrollIntoView centres it; getBoundingClientRect is then viewport-relative and clips.
     await page.evaluate((x) => { const el = document.evaluate(x, document, null, 9, null).singleNodeValue; if (el && el.scrollIntoView) try { el.scrollIntoView({ block: 'center', inline: 'center' }); } catch (e) { el.scrollIntoView(); } }, xp).catch(() => {});
     await require('./settle.js').awaitSettle(page); // gated V3_SETTLE_WAIT — settle the post-scroll reflow/repaint before the crop
-    const rect = await page.evaluate((x) => {
+    // probe returns { box } (box=null ⇒ the probe RAN and the element has no perceivable visual box); a THROW ⇒
+    // .catch ⇒ null (the probe itself failed — a transient, NOT "non-visual"). This distinction lets the rubric gate
+    // judge a genuinely-non-visual element text-only instead of silently abstaining (off-screen sr-only controls).
+    const probe = await page.evaluate((x) => {
       const el = document.evaluate(x, document, null, 9, null).singleNodeValue;
-      if (!el || !el.getBoundingClientRect) return null;
+      if (!el || !el.getBoundingClientRect) return { box: null };
       // an AT-imperceivable element (visibility:hidden / opacity:0) keeps a layout box but a crop of it is
       // a BLANK rectangle — a misleading "no visible content" signal to the agent. Skip it (adversarial).
       const cs = getComputedStyle(el);
-      if (cs.visibility === 'hidden' || cs.visibility === 'collapse' || parseFloat(cs.opacity) === 0) return null;
+      if (cs.visibility === 'hidden' || cs.visibility === 'collapse' || parseFloat(cs.opacity) === 0) return { box: null };
       const r = el.getBoundingClientRect();
       // a DEGENERATE box (either dim < 6px — a collapsed layout artifact or a hairline element) yields a
       // near-blank crop that misleads the agent (corpus probe: Domino's 5x5, Amazon's 200x2 link). Skip
       // it — a <6px element is not a meaningful visual target anyway.
-      if (!(r.width >= 6) || !(r.height >= 6)) return null;
-      return { x: r.left, y: r.top, w: r.width, h: r.height, vw: window.innerWidth, vh: window.innerHeight };
+      if (!(r.width >= 6) || !(r.height >= 6)) return { box: null };
+      return { box: { x: r.left, y: r.top, w: r.width, h: r.height, vw: window.innerWidth, vh: window.innerHeight } };
     }, xp).catch(() => null);
+    const rect = probe && probe.box;
     const frames = {};
+    let inView = false;
     if (rect) {
       // clamp the clip fully inside the viewport (page.screenshot errors on an out-of-bounds clip).
       const clip = (p) => {
@@ -78,14 +83,19 @@ async function captureVision(page, xpaths, opts = {}) {
         const y = Math.max(0, Math.min(rect.y - p, rect.vh - 1));
         return { x, y, width: Math.max(1, Math.min(rect.w + 2 * p, rect.vw - x)), height: Math.max(1, Math.min(rect.h + 2 * p, rect.vh - y)) };
       };
-      const inView = rect.x < rect.vw && rect.y < rect.vh && rect.x + rect.w > 0 && rect.y + rect.h > 0;
+      inView = rect.x < rect.vw && rect.y < rect.vh && rect.x + rect.w > 0 && rect.y + rect.h > 0;
       if (inView && want.has('element-crop')) frames['element-crop'] = await shot(clip(2));
       if (inView && want.has('surrounding-region')) frames['surrounding-region'] = await shot(clip(pad));
     }
     if (viewport && want.has('viewport')) frames['viewport'] = viewport;
     if (viewport320 && want.has('viewport-320')) frames['viewport-320'] = viewport320;
+    // NON-VISUAL: the probe RAN (probe != null) and the element has no perceivable box OR sits off-screen (no inView) —
+    // its element-crop legitimately cannot exist. Flagged as a STRING so it survives mergeVision's string-only filter
+    // and is never mistaken for a declared crop (it is not a vision state). probe===null (probe failed) is NOT flagged.
+    const nonVisual = probe != null && (!rect || !inView);
     const clean = {};
     for (const [k, v] of Object.entries(frames)) if (typeof v === 'string' && v.length) clean[k] = v;
+    if (nonVisual) clean.__nonVisual = '1';
     if (Object.keys(clean).length) out[xpRaw] = clean;
   }
   return out;
