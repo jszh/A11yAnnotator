@@ -124,6 +124,43 @@ function makeAnthropicTransport({ apiKey, fetchImpl, baseUrl = 'https://api.anth
   };
 }
 
+// CROSS-FAMILY transport: Google Gemini (generateContent REST), keyed from GEMINI_API_KEY. Maps our Anthropic-format
+// `request` (text + base64-image content blocks) → Gemini `contents[].parts[]` ({text} / {inlineData}) and returns the
+// `{ content:[{type:'text',text}] }` shape makeRunAgent expects (or null to degrade). Used for the "entire LLM lane on
+// Gemini" comparison experiment (single-shot judge; no tools). NOTE: gemini-3.5-flash is a THINKING model that spends
+// ~600-900 output tokens on internal reasoning BEFORE the verdict — a small maxOutputTokens truncates to MAX_TOKENS
+// (empty output), so the default budget is generous. fetchImpl injectable for tests.
+function makeGeminiTransport({ apiKey, model = 'gemini-3.5-flash', fetchImpl, maxOutputTokens = 4096, temperature = 0,
+  baseUrl = 'https://generativelanguage.googleapis.com/v1beta', timeoutMs = LIMITS.llm.httpTimeoutMs,
+  maxRetries = LIMITS.llm.maxRetries, baseBackoffMs = LIMITS.llm.baseBackoffMs } = {}) {
+  const f = fetchImpl || (typeof fetch === 'function' ? fetch : null);
+  if (!apiKey) throw new Error('makeGeminiTransport: apiKey required (set GEMINI_API_KEY in .env)');
+  if (!f) throw new Error('makeGeminiTransport: no fetch available');
+  const toParts = (content) => (content || []).map((b) => (b && b.type === 'image' && b.source)
+    ? { inlineData: { mimeType: b.source.media_type || 'image/png', data: b.source.data } }
+    : { text: (b && b.text) || '' });
+  return async function transport(request, callOpts = {}) {
+    const msg = (request.messages && request.messages[0]) || { content: [] };
+    const body = { contents: [{ role: 'user', parts: toParts(msg.content) }], generationConfig: { temperature, maxOutputTokens } };
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), timeoutMs);
+      try {
+        const r = await f(`${baseUrl}/models/${model}:generateContent?key=${apiKey}`, { method: 'POST', signal: ctrl.signal, headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+        if (r.status === 429 || r.status >= 500) { clearTimeout(t); await new Promise((res) => setTimeout(res, baseBackoffMs * (attempt + 1))); continue; }
+        if (!r.ok) { clearTimeout(t); return null; }
+        const j = await r.json();
+        const cand = j && j.candidates && j.candidates[0];
+        const text = cand && cand.content && Array.isArray(cand.content.parts) ? cand.content.parts.map((p) => p.text || '').join('') : null;
+        if (typeof callOpts.onTrace === 'function' && j.usageMetadata) callOpts.onTrace({ type: 'result', usage: { input_tokens: j.usageMetadata.promptTokenCount, output_tokens: j.usageMetadata.candidatesTokenCount } });
+        return text ? { content: [{ type: 'text', text }] } : null;
+      } catch (e) { await new Promise((res) => setTimeout(res, baseBackoffMs * (attempt + 1))); }
+      finally { clearTimeout(t); }
+    }
+    return null;
+  };
+}
+
 // Production transport via the Claude Agent SDK + the Claude Code SUBSCRIPTION (OAuth, NO metered key).
 // Maps our Anthropic-format `request` → an SDK streaming-input `query()` and returns the same
 // `{ content:[{type:'text',text}] }` shape `makeRunAgent` expects (or null to degrade). Verified empirically:
@@ -214,4 +251,4 @@ function makeClaudeSdkTransport(opts = {}) {
   };
 }
 
-module.exports = { makeRunAgent, makeAnthropicTransport, makeClaudeSdkTransport, parseAgentReply, toAnthropicContent };
+module.exports = { makeRunAgent, makeAnthropicTransport, makeClaudeSdkTransport, makeGeminiTransport, parseAgentReply, toAnthropicContent };

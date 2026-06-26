@@ -507,10 +507,16 @@ function precomputeSignals(element, skill, sc) {
 // evidenceRefs}. Pure string assembly — no I/O beyond an optional rubric read passed in via opts.
 function buildPrompt(subject, signals, transcriptExcerpt, opts = {}) {
   const rubric = opts.rubric || `(rubric for skill "${subject.skill}" — judge whether a WCAG ${subject.sc} barrier is present)`;
+  const fpStrip = process.env.V3_FP_STRIP_QUESTION === '1';
   return [
-    `You are the ${subject.skill} skill evaluating WCAG ${subject.sc} for one element.`,
-    `Element xpath: ${subject.xpath}`,
-    `Claim family (bind your verdict to this): ${subject.claimFamily}`,
+    // DISTRACTOR-STRIP lever (V3_FP_STRIP_QUESTION, inert by default): drop the task framing + claim-family
+    // priming that can nudge the judge toward over-flagging (the "One Token to Fool" finding: the restated
+    // question can raise judge FP). The rubric + grounded evidence remain — only the priming framing is removed.
+    ...(fpStrip
+      ? ['You are evaluating one element. Judge ONLY from the rubric and the evidence provided below.']
+      : [`You are the ${subject.skill} skill evaluating WCAG ${subject.sc} for one element.`,
+         `Element xpath: ${subject.xpath}`,
+         `Claim family (bind your verdict to this): ${subject.claimFamily}`]),
     '--- rubric ---',
     rubric,
     // NO-VISION ablation fairness (V3_NO_VISION_RUBRIC): neutralize the rubric's visual-examination instructions so a
@@ -533,6 +539,29 @@ function buildPrompt(subject, signals, transcriptExcerpt, opts = {}) {
     // subject's SC, each with params + when-to-use + a directive to call them when the evidence is insufficient.
     // Without this the model was offered tools but never told it had them ⇒ 0 tool calls (the FN×LLM finding).
     ...(opts.toolsEnabled ? (() => { const g = renderToolGuidance(toolsForSubject(subject.sc, subject.skill)); return g ? [g] : []; })() : []),
+    // POSITIVE-CLASS BOUNDARY lever (V3_FP_BOUNDARY, inert by default): GENERAL WCAG-judging guardrails (derived
+    // from the WCAG spec, NOT from any test fixture) that define when a barrier does NOT exist. Targets
+    // over-flagging on exceptions / quality-not-conformance / out-of-AT-tree / context-resolved / checker-owned facets.
+    ...(process.env.V3_FP_BOUNDARY === '1' ? ['--- when NOT to flag a barrier ---',
+      ['A WCAG barrier exists ONLY if a real user is ACTUALLY blocked. Return NOT REPRODUCED when ANY of these holds:',
+       '• the SC\'s literal requirement IS met and the issue is merely sub-optimal quality/style/wording — e.g. an accessible name that is PRESENT and matches the role satisfies an SC that only requires a name to EXIST; un-descriptive ≠ absent;',
+       '• a recognized WCAG exception applies — e.g. images of text that are ESSENTIAL (the visual presentation itself conveys the information), or decorative/incidental content;',
+       '• the element is removed from the accessibility tree (aria-hidden=true / role=presentation / alt="" on a rendering image) and so exposes nothing to assistive tech;',
+       '• the programmatically-determined CONTEXT (enclosing list item, table cell, row/column header, owning paragraph) already resolves the concern, even when the element\'s own name is generic or format-only;',
+       '• a deterministic checker owns the facet and the provided evidence does not show it FAILING — do NOT re-derive a contrast ratio, target size, or computed role yourself to manufacture a failure.',
+       'If the requirement is literally satisfied, do NOT escalate a preference or a stylistic concern into a barrier.'].join('\n')] : []),
+    // 4.1.2 NAME-SCOPE SHARPENER (V3_FP_412_SHARPEN, inert; sc 4.1.2 only): a tight DECISION PROCEDURE that
+    // sharpens the rubric's existing (but LLM-ignored) "type-words are not placeholders" clause — an empirical test
+    // of whether a procedural phrasing lands where prose did not. 4.1.2 = name presence + identity, NOT descriptiveness.
+    ...((process.env.V3_FP_412_SHARPEN === '1' && subject.sc === '4.1.2') ? ['--- 4.1.2 name decision procedure (follow in order) ---',
+      ['1. Is the accessible name an UN-SUBSTITUTED CODE TOKEN ({{...}}, %LABEL%, raw markup) or the BARE literal "undefined"/"null"/"aria-label"/"role"? If yes → REPRODUCED. If no → continue.',
+       '2. Does the name describe a DIFFERENT control than the one rendered (e.g. "Search" on a Menu icon), or name only the ICON/file for an icon-only control? If yes → REPRODUCED. If no → continue.',
+       '3. Is a prohibited/invalid ARIA attribute the routed concern (checkerHint = aria-prohibited-attr etc.)? If yes → judge ARIA legality (REPRODUCED if prohibited). If no → continue.',
+       '4. Otherwise the name is PRESENT and real → NOT REPRODUCED. A name made of real words — INCLUDING words that name the control TYPE ("button", "link", "button/link", "menu") or that are terse/generic — satisfies 4.1.2. "Could be more descriptive" is 2.4.6, which you DEFER. Do NOT call a real, type-naming name a "placeholder/filler".'].join('\n')] : []),
+    // GROUNDED-VERDICT lever (V3_FP_GROUNDED, inert by default): a positive verdict must cite concrete provided
+    // evidence AND rule out the benign explanation; otherwise abstain. Targets ungrounded inference / hallucinated facts.
+    ...(process.env.V3_FP_GROUNDED === '1' ? ['--- grounding requirement (applies before any REPRODUCED verdict) ---',
+      'Before returning REPRODUCED you MUST (a) cite the SPECIFIC provided evidence field or visible region that establishes the barrier, and (b) state the most likely benign explanation and rule it out using that same evidence. If you cannot do BOTH from the evidence ACTUALLY provided — without assuming facts not in evidence — return PARTIAL, not REPRODUCED.'] : []),
     '--- output ---',
     'Return STRICT JSON: {"verdict": "REPRODUCED"|"NOT REPRODUCED"|"PARTIAL"|"N/A", "confidence":"low"|"medium"|"high", "summary": string, "reasoning": string, "evidenceRefs": string[]}.',
     'REPRODUCED = a barrier is present; NOT REPRODUCED = no barrier; PARTIAL = cannot decide; N/A = abstain (do NOT use for "out of scope" — that is the oracle\'s job).',
@@ -549,6 +578,81 @@ function buildMessages(subject, signals, transcriptExcerpt, frames, opts = {}) {
   if (frames && frames.length) blocks.push({ type: 'text', text: `--- vision evidence (${frames.map((f) => f.state).join(', ')}) ---` });
   for (const f of frames || []) blocks.push({ type: 'image', id: f.id, state: f.state, mediaType: f.mediaType || 'image/png', data: f.data });
   return blocks;
+}
+
+// ===================== FP-reduction judge-design levers (all inert unless V3_FP_* env is set) =====================
+// Structural levers that wrap the raw agent call. A normal run sets none of these ⇒ judgeWithMethod is a single
+// runAgent call, byte-identical to before. Used by the FP-reduction experiments (eval/checker-comparison/fp-experiments)
+// and toggleable in a live run the SAME way, so a replay win transfers to a full run without a code change.
+const CONF_RANK = { low: 0, medium: 1, high: 2 };
+const isBarrierVerdict = (v) => v === 'REPRODUCED';
+
+// CONFIDENCE-GATED ABSTENTION (V3_FP_ABSTAIN=high|medium): downgrade a BARRIER below the bar to PARTIAL (abstain).
+function applyAbstain(out) {
+  const bar = process.env.V3_FP_ABSTAIN;
+  if (!bar || !out || !isBarrierVerdict(out.verdict)) return out;
+  const need = CONF_RANK[bar] != null ? CONF_RANK[bar] : 2;
+  const have = CONF_RANK[out.confidence] != null ? CONF_RANK[out.confidence] : 0;
+  return have < need ? { ...out, verdict: 'PARTIAL', _abstainedFrom: out.verdict } : out;
+}
+
+// SELF-CONSISTENCY (V3_FP_VOTES=N, V3_FP_VOTE_BAR=unanimous|majority): sample N, keep BARRIER only above the bar.
+async function applyVotes(runAgent, messages, subj, firstOut) {
+  const n = Math.max(1, Number(process.env.V3_FP_VOTES) || 1);
+  if (n <= 1) return firstOut;
+  const outs = [firstOut];
+  for (let k = 1; k < n; k++) { let o; try { o = await runAgent(messages, subj); } catch (e) { o = null; } outs.push(o); }
+  const valid = outs.filter((o) => o && V2_9_VERDICTS.includes(o.verdict));
+  if (!valid.length) return firstOut;
+  const barrierVotes = valid.filter((o) => isBarrierVerdict(o.verdict)).length;
+  const need = process.env.V3_FP_VOTE_BAR === 'majority' ? Math.ceil(valid.length / 2) : valid.length; // unanimous default
+  if (barrierVotes >= need) return valid.find((o) => isBarrierVerdict(o.verdict));
+  return valid.find((o) => o.verdict === 'NOT REPRODUCED') || valid.find((o) => o.verdict === 'PARTIAL') || { ...firstOut, verdict: 'PARTIAL' };
+}
+
+// REFUTATION CASCADE (V3_FP_REFUTE=1): a distinct skeptical 2nd pass must OVERTURN each BARRIER; survives only if
+// the refuter cannot. Fail-closed on recall: a refutation that yields no verdict keeps the original BARRIER.
+async function applyRefute(runAgent, messages, subj, out) {
+  if (process.env.V3_FP_REFUTE !== '1' || !out || !isBarrierVerdict(out.verdict)) return out;
+  const refuteBlock = { type: 'text', text: [
+    '--- ADVERSARIAL REVIEW: you are now a SKEPTIC whose job is to OVERTURN the verdict ---',
+    `A first-pass judge returned REPRODUCED (a WCAG ${subj.sc} barrier). Its reasoning: ${JSON.stringify(oneSentence(out.reasoning) || oneSentence(out.summary) || '')}.`,
+    'Argue why this is NOT a violation. Keep REPRODUCED ONLY if, using the CONCRETE evidence already provided, you cannot refute it: a real user must be ACTUALLY blocked, the SC\'s literal requirement must be UNMET, no recognized exception applies, the element is exposed to assistive tech, programmatic context does not already resolve it, and no deterministic checker owns the facet. Do NOT invent evidence not provided.',
+    'Return STRICT JSON {"verdict":"REPRODUCED"|"NOT REPRODUCED"|"PARTIAL","confidence":"low"|"medium"|"high","summary":string,"reasoning":string,"evidenceRefs":string[]}. If you can refute it, return NOT REPRODUCED; if genuinely undecidable, PARTIAL.',
+  ].join('\n') };
+  let r; try { r = await runAgent([...messages, refuteBlock], subj); } catch (e) { r = null; }
+  if (r && V2_9_VERDICTS.includes(r.verdict)) return { ...r, _refutedFrom: out.verdict };
+  return out; // refuter produced nothing usable → keep the original barrier (do not silently drop recall)
+}
+
+// DECOMPOSED APPLICABILITY GATE (V3_FP_APPLY_GATE=1): a FOCUSED step-1 judgment on applicability/exemption BEFORE
+// the barrier framing primes over-flagging (FLASK-style decomposition, NOT the refuted in-rubric prose — the
+// exemption clause is asked as its OWN narrow decision). Returns a NOT-REPRODUCED verdict to short-circuit when the
+// SC does not apply / an exemption holds; otherwise `undefined` to proceed to the normal barrier judgment.
+async function applyApplicabilityGate(runAgent, messages, subj) {
+  if (process.env.V3_FP_APPLY_GATE !== '1') return undefined;
+  const gateBlock = { type: 'text', text: [
+    '--- STEP 1 of 2: APPLICABILITY / EXEMPTION CHECK ONLY (do NOT assess barrier quality yet) ---',
+    `Decide ONLY whether WCAG ${subj.sc} genuinely applies to THIS element as presented, and whether a recognized WCAG EXEMPTION removes the obligation. Do not look for a barrier.`,
+    'Return NOT REPRODUCED if the SC does NOT apply OR a recognized exemption holds — e.g. an image of text that is ESSENTIAL (the visual presentation itself conveys the information); decorative or incidental content; an element removed from the accessibility tree (aria-hidden=true / role=presentation / empty alt on a rendering image); or content that is not human-language text.',
+    'Return PARTIAL if the SC DOES apply and no exemption holds (a barrier assessment is still required).',
+    'Return STRICT JSON {"verdict":"NOT REPRODUCED"|"PARTIAL","confidence":"low"|"medium"|"high","summary":string,"reasoning":string,"evidenceRefs":string[]}.',
+  ].join('\n') };
+  let g; try { g = await runAgent([...messages, gateBlock], subj); } catch (e) { g = null; }
+  if (g && g.verdict === 'NOT REPRODUCED') return { ...g, _gatedInapplicable: true }; // short-circuit: no barrier
+  return undefined; // applies (or the gate produced nothing usable) → proceed to the barrier judgment
+}
+
+// the single seam both producers call instead of the raw runAgent: applicability-gate → judge → consensus → skeptic → abstain.
+async function judgeWithMethod(runAgent, messages, subj) {
+  const gated = await applyApplicabilityGate(runAgent, messages, subj);
+  if (gated !== undefined) return gated;
+  let out; try { out = await runAgent(messages, subj); } catch (e) { out = null; }
+  if (!out) return out;
+  out = await applyVotes(runAgent, messages, subj, out);
+  out = await applyRefute(runAgent, messages, subj, out);
+  out = applyAbstain(out);
+  return out;
 }
 
 // ONE sentence, normalized + bounded — for the human-readable annotation companion (NOT scored).
@@ -635,7 +739,7 @@ async function runAdjudication(subjects, opts = {}) {
     const checkerHint = (checkerHintsByXpath[subj.xpath] || []).find((h) => h.sc === subj.sc) || null;
     const messages = buildMessages(subj, signals, transcriptExcerpt, frames, { rubric: rubricText, checkerHint, toolsEnabled: opts.toolsEnabled });
     let out; const t0 = Date.now();
-    try { out = await runAgent(messages, subj); } catch (e) { out = null; }
+    try { out = await judgeWithMethod(runAgent, messages, subj); } catch (e) { out = null; }
     const latencyMs = Date.now() - t0;
     return { subj, frames, out, signals, transcriptExcerpt, latencyMs };
   }, stop, opts.afterEach);
@@ -784,7 +888,7 @@ async function runRubricJudgments(rubricSubjects, opts = {}) {
     const checkerHint = (checkerHintsByXpath[subj.xpath] || []).find((h) => h.sc === subj.sc) || null;
     const messages = buildMessages({ xpath: subj.xpath, skill: subj.skill, sc: subj.sc, claimFamily: subj.claimFamily }, signals, transcriptByXpath[subj.xpath], frames, { rubric: rub.text, checkerHint, toolsEnabled: opts.toolsEnabled });
     let out; const t0 = Date.now();
-    try { out = await runAgent(messages, subj); } catch (e) { out = null; }
+    try { out = await judgeWithMethod(runAgent, messages, subj); } catch (e) { out = null; }
     const latencyMs = Date.now() - t0;
     return { subj, i, frames, out, latencyMs };
   }, stop, opts.afterEach);
