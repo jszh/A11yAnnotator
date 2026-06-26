@@ -1,0 +1,157 @@
+{
+  "aspect": "status-announcement",
+  "status": "sidecar-remediated-with-independent-review",
+  "updatedAt": "2026-06-24",
+  "normativeScope": [
+    "WCAG 2.2 SC 4.1.3 Status Messages",
+    "Barrier candidates require a status message about success, results, waiting state, progress, or errors that is not delivered via a change of context",
+    "The status information must be programmatically determinable through role or properties so assistive technologies can present it without receiving focus",
+    "Dialogs, focus movement, disclosure state changes, role=status, role=alert, role=log, aria-live, and direct announcement channels are scoped control evidence in this lane"
+  ],
+  "summary": {
+    "generatedRows": 20,
+    "positiveRows": 10,
+    "negativeRows": 10,
+    "fixtureValidation": {
+      "positive": "10/10 pass",
+      "negative": "10/10 pass"
+    },
+    "promptPacketRows": 20,
+    "noPacketRows": 0,
+    "structuralBarrierReadyRows": 10,
+    "barrierBridgeableRows": 0,
+    "clearBridgeableRows": 0,
+    "convertedJudgments": 0,
+    "verdicts": {
+      "LIKELY_BARRIER": 10,
+      "UNCERTAIN": 10
+    },
+    "expectedDirections": {
+      "LIKELY_BARRIER": 10,
+      "SCOPED_STATUS_ANNOUNCEMENT_CONTROL": 10
+    }
+  },
+  "coverage": {
+    "positivePredicate": [
+      "trusted activation changes visible status information",
+      "status information is about success, results, waiting, progress, queue state, completion, or errors",
+      "focus is not moved to the message",
+      "no dialog, native alert, disclosure context, role=status, role=alert, role=log, aria-live, or direct programmatic announcement channel is observed"
+    ],
+    "controlClasses": [
+      "role=status",
+      "role=alert",
+      "aria-live=polite",
+      "aria-live=assertive",
+      "focus moved to the status message",
+      "direct programmatic status announcement",
+      "HTML dialog context",
+      "native browser alert",
+      "disclosure or expanded-content context",
+      "role=log"
+    ],
+    "edgeCaseClasses": [
+      "removed waiting/status text, where absence itself may convey availability",
+      "non-text/icon status cue, where fixture intent metadata must not be mistaken for an accessibility API channel",
+      "native alert control that produces no status candidate because it changes context"
+    ]
+  },
+  "safetyInvariants": [
+    "Status-announcement packets allow only LIKELY_BARRIER or UNCERTAIN.",
+    "The lane has no registered v3 publication claim family, so no status-announcement packet currently converts to an authoritative v3 judgment.",
+    "Controls and absence never become clears; clearBridgeableRows remains 0.",
+    "Visual screenshots are contextual only for 4.1.3; trusted activation, focus/context state, and programmatic channel evidence are load-bearing.",
+    "Role/live/direct announcement evidence is treated as scoped control evidence, not as proof of global conformance.",
+    "Dialogs, native alerts, focus movement, and disclosure expansion are not status-message failures in this lane because they change context or expose component state through other requirements."
+  ],
+  "independentCritic": {
+    "reviewFile": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-subagent-prompt-pack/status-announcement-subagent-review.json",
+    "verdict": "PASS_WITH_EDGE_CONCERNS",
+    "findingsCarriedForward": [
+      "status-p5 status-removal evidence is plausible only when the removed text itself conveys waiting/completion/availability status.",
+      "status-p6 non-text/icon status evidence is fixture-scoped and must label data-v3-status-meaning as fixture intent metadata, not a programmatic status channel.",
+      "status-n8 native-alert controls are acceptable because native alert context changes are outside the status-message failure pattern; future variants that also mutate visible status text should keep the dialog disqualifier visible.",
+      "Control packets remain non-clear evidence; no consumer may treat absence of a status packet as a pass."
+    ]
+  },
+  "commands": [
+    {
+      "command": "node scripts/v3/tests/manual/validate-broad-scope-ni-interaction-fixtures.js",
+      "result": "300/300 pass; status-announcement 10 positives / 10 negatives"
+    },
+    {
+      "command": "node scripts/v3/tests/manual/build-broad-scope-subagent-prompt-pack.js --sample-per-class 10",
+      "result": "regenerated prompt pack and answer key"
+    },
+    {
+      "command": "node scripts/v3/tests/manual/validate-broad-scope-llm-packets.js",
+      "result": "status-announcement 20 packets; positives converted to 0 judgments; controls converted to 0 judgments"
+    },
+    {
+      "command": "node scripts/v3/tests/manual/run-broad-scope-stratified-packet-pressure.js",
+      "result": "status-announcement 20 packets; verdicts {LIKELY_BARRIER:10, UNCERTAIN:10}; convertedJudgments:0"
+    },
+    {
+      "command": "node scripts/v3/tests/manual/audit-broad-scope-prompt-pack.js",
+      "result": "status-announcement 20 packet entries, 10 structural positives, 0 barrier-bridgeable rows, 0 clear-bridgeable rows"
+    },
+    {
+      "command": "node scripts/v3/tests/manual/capture-broad-scope-ni-visuals.js",
+      "result": "representative status screenshots refreshed and visually inspected"
+    },
+    {
+      "command": "node --test scripts/v3/tests/broad-scope-llm-review.test.js",
+      "result": "34/34 pass"
+    },
+    {
+      "command": "node --test scripts/v3/tests/broad-scope-probes.test.js",
+      "result": "39/39 pass"
+    },
+    {
+      "command": "node --test scripts/tests/result.test.js scripts/tests/docs.test.js scripts/tests/meta.test.js",
+      "result": "99/99 pass"
+    }
+  ],
+  "visualInspection": [
+    {
+      "id": "status-p1",
+      "file": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/status-p1-after-status-page.png",
+      "observation": "visible status text appears after a trusted action; screenshot context agrees with the positive fixture but programmatic-channel absence is load-bearing"
+    },
+    {
+      "id": "status-n1",
+      "file": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/status-n1-after-status-page.png",
+      "observation": "visual appearance is similar to status-p1, but role=status makes this a scoped control; vision alone would be misleading"
+    },
+    {
+      "id": "status-n5",
+      "file": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/status-n5-after-status-page.png",
+      "observation": "visible message exists but focus/context movement is the disqualifying control evidence"
+    },
+    {
+      "id": "status-n6",
+      "file": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/status-n6-after-status-page.png",
+      "observation": "visual status appears ordinary, but direct programmatic announcement evidence makes it a scoped control"
+    },
+    {
+      "id": "status-n7",
+      "file": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/status-n7-after-status-page.png",
+      "observation": "message appears in an open dialog context and is therefore outside the status-message failure pattern"
+    },
+    {
+      "id": "status-n9",
+      "file": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/status-n9-after-status-page.png",
+      "observation": "new content is disclosure/expanded-content context; treated as scoped control rather than a status-message barrier"
+    }
+  ],
+  "remainingLimitations": [
+    "The lane remains sidecar-only until a registered status-message claim family and publication derivation are added.",
+    "The generated fixture slice does not prove real assistive-technology announcement behavior; it records role/live/direct-announcement/focus/context channels.",
+    "Removal of status text and non-text/icon status cues need explicit semantic review and should not generalize from fixture metadata alone.",
+    "Saved websites may require longer settle windows and state-machine exploration for delayed, debounced, or multi-step status updates."
+  ],
+  "sources": [
+    "https://www.w3.org/TR/WCAG22/#status-messages",
+    "https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html"
+  ]
+}

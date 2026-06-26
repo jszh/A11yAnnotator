@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, maximum-scale=1">
+  <title>Scope and Adaptation Prototype Fixture</title>
+  <style>
+    #pseudo::before {
+      content: "";
+      display: block;
+      width: 20px;
+      height: 20px;
+      background-image: url(data:image/gif;base64,R0lGODlhAQABAIAAAAUEBA==);
+    }
+    #fragile {
+      font: 16px Arial, sans-serif;
+      width: 139px;
+      height: 24px;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+    #flex {
+      font: 16px Arial, sans-serif;
+      max-width: 420px;
+      white-space: normal;
+    }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    @keyframes pulse { from { opacity: .4; } to { opacity: 1; } }
+    #bad-motion { animation: spin 10s linear infinite; }
+    #good-motion { animation: pulse 10s linear infinite; }
+    @media (prefers-reduced-motion: reduce) { #good-motion { animation: none !important; } }
+    #bad-forced {
+      forced-color-adjust: none;
+      color: #777;
+      background: #777;
+      border: 2px solid #777;
+    }
+    #good-forced {
+      color: ButtonText;
+      background: ButtonFace;
+      border: 2px solid ButtonText;
+    }
+  </style>
+</head>
+<body>
+  <h1>Scope and Adaptation</h1>
+  <iframe srcdoc="<button>same origin frame button</button>"></iframe>
+  <iframe sandbox srcdoc="<button>opaque frame button</button>"></iframe>
+  <div id="pseudo" aria-label="pseudo background icon"></div>
+  <div id="host"></div>
+  <video id="movie" autoplay><track kind="captions" src=""></video>
+  <div id="fragile">Spacing sensitive</div>
+  <div id="flex">This flexible block has enough room to wrap under text spacing changes.</div>
+  <div id="bad-motion">Persistent motion ignores reduced motion.</div>
+  <div id="good-motion">Persistent motion stops under reduced motion.</div>
+  <button id="bad-forced">Forced color opt-out</button>
+  <button id="good-forced">System color button</button>
+  <script>
+    host.attachShadow({ mode: 'open' }).innerHTML = '<button>Shadow button</button>';
+  </script>
+</body>
+</html>

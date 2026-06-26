@@ -1,0 +1,46 @@
+{
+  "reviewedAt": "2026-06-21",
+  "reviewer": "subagent-audio-control-adversarial",
+  "findings": [
+    {
+      "severity": "high",
+      "finding": "Dynamic audio detection treated playback advancement as audible autoplay without proving audibility.",
+      "resolution": "Partially addressed. Generated positive fixtures now mark only the harness-generated non-silent WAV tone as known non-silent. Arbitrary saved-site media no longer receives the audible-autoplay evidence token from playback advancement alone."
+    },
+    {
+      "severity": "high",
+      "finding": "The probe did not observe audio continuing for more than 3 seconds.",
+      "resolution": "Addressed for the generated fixture lane. The dynamic probe and validator now sample for 3300ms and require currentTime advancement across that window plus a loop/duration basis over three seconds."
+    },
+    {
+      "severity": "high",
+      "finding": "Script-started or Web Audio autoplay is a false-negative gap because detection requires autoplay media elements.",
+      "resolution": "Not addressed in this slice. Remains future work: instrument HTMLMediaElement.play and AudioContext starts before page load."
+    },
+    {
+      "severity": "high",
+      "finding": "External/custom audio controls are not exercised, so no-independent-control can be overclaimed.",
+      "resolution": "Partially addressed. The probe now searches for plausible native/custom independent controls and refuses no-independent-control when a plausible control is present. It does not yet exercise custom controls."
+    },
+    {
+      "severity": "medium",
+      "finding": "Static markup-only lanes still emit audio-control findings that can be mistaken for audible autoplay evidence.",
+      "resolution": "Partially addressed by packet discipline. Static findings remain applicability/review surfaces without the required dynamic evidence claims; naming cleanup remains future work."
+    },
+    {
+      "severity": "high",
+      "finding": "Generated validation rows collapsed dynamic audio evidence to hits, then prompt-pack builders synthesized required claims from expected labels.",
+      "resolution": "Addressed for audio-control. The validator now persists measured audio candidate fields and evidenceClaims; prompt-pack builders prefer row-level measured evidence claims and include measuredEvidence in packet detail."
+    },
+    {
+      "severity": "medium",
+      "finding": "Visual prompt packs omitted audio-control SC and required evidence.",
+      "resolution": "Addressed. The vision prompt pack now includes SC 1.4.2 and required evidence for audio-control while preserving screenshot-only uncertainty."
+    },
+    {
+      "severity": "medium",
+      "finding": "Audio visual evidence was marked as visualAgreement=true even though screenshots cannot prove audio playback.",
+      "resolution": "Addressed. Audio-control visual checks are now contextual, not positive visual agreement evidence."
+    }
+  ]
+}

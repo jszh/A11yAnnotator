@@ -1,0 +1,39 @@
+{
+  "generatedAt": "2026-06-21T23:29:30.000Z",
+  "reviewer": "local-subagent-blind-packet-judge",
+  "inputPolicy": "Used only the judge-facing packet content for motion-p1, context-p1, context-p2, and pointer-p1; no answer key or fixture labels.",
+  "results": [
+    {
+      "id": "motion-p1",
+      "verdict": "LIKELY_BARRIER",
+      "evidence_ok": true,
+      "sc": "2.2.2",
+      "reasoning": "Observed measured evidence supports all required claims: automatic motion persists via an 8000ms infinite active ticker, content is parallel and non-essential, and no working pause/stop/hide control was found. Temporal evidence is load-bearing, but sufficient for a likely SC 2.2.2 barrier."
+    },
+    {
+      "id": "context-p1",
+      "verdict": "LIKELY_BARRIER",
+      "evidence_ok": true,
+      "sc": "3.2.2",
+      "reasoning": "Observed input action on #target changed the page title and body text without prior advice, supporting input-triggered context/content change and not-advised-beforehand claims. Because this is sidecar/unregistered, publication should remain provisional."
+    },
+    {
+      "id": "context-p2",
+      "verdict": "LIKELY_BARRIER",
+      "evidence_ok": true,
+      "sc": "3.2.2",
+      "reasoning": "Observed change action on #target changed the page title and body text without prior advice, supporting the required trusted input action, context-change-observed, and not-advised-beforehand claims. Because this is sidecar/unregistered, publication should remain provisional."
+    },
+    {
+      "id": "pointer-p1",
+      "verdict": "LIKELY_BARRIER",
+      "evidence_ok": true,
+      "sc": "2.5.2",
+      "reasoning": "The supported barrier is pointer cancellation: the action completes on pointer down, no abort/undo/reversal or up-event completion was observed, and the cancel-like attempt left it activated. The evidence fits SC 2.5.2 rather than pointer gestures. Because this is sidecar/unregistered, publication should remain provisional."
+    }
+  ],
+  "implementationFollowUp": {
+    "issue": "The generated prompt packet previously fell back to the broader pointer-operation SC string, which made the concrete pointer-cancellation evidence appear under primary SC 2.5.1.",
+    "fix": "The NI/interaction validator now writes sc: 2.5.2 for pointer-operation rows only when pointerdown completion plus failed cancellation/reversal is observed. The regenerated prompt pack now exposes pointer-p1 as SC 2.5.2 with rawSc 2.5.2."
+  }
+}

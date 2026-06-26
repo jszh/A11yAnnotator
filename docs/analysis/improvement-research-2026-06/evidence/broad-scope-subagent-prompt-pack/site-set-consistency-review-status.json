@@ -1,0 +1,62 @@
+{
+  "aspect": "site-set-consistency",
+  "status": "local-and-independent-review-remediated",
+  "updatedAt": "2026-06-23",
+  "summary": {
+    "generatedRows": 20,
+    "positiveRows": 10,
+    "negativeRows": 10,
+    "promptPacketRows": 20,
+    "noPacketRows": 0,
+    "structuralBarrierReadyRows": 10,
+    "scopedControlRows": 10,
+    "convertedJudgments": 0
+  },
+  "safetyInvariants": [
+    "Site-set packets allow only LIKELY_BARRIER or UNCERTAIN.",
+    "Clean generated controls intentionally lack site-set-inconsistency-observed.",
+    "Scope gaps use site-set-scope-gap-observed and are not structurally barrier-ready.",
+    "Site-set scope gaps are disqualifying even when another inconsistency is observed in the same packet.",
+    "Same-name link href variance without explicit purpose/context difference is review evidence, not different-purpose proof.",
+    "Review-time LIKELY_BARRIER overclaims are clamped to UNCERTAIN when required structural evidence is missing.",
+    "Clean controls are review controls, not passes.",
+    "Site-set packets do not convert into authoritative v3 judgments."
+  ],
+  "commands": [
+    {
+      "command": "node --test scripts/v3/tests/broad-scope-llm-review.test.js",
+      "result": "24/24 pass"
+    },
+    {
+      "command": "node scripts/v3/tests/manual/validate-broad-scope-media-process-auth-fixtures.js --json-only-merge",
+      "result": "JSON process/site-set rows refreshed without launching Chrome; aggregate validation remains 120/120; site-set 10 positives / 10 negatives"
+    },
+    {
+      "command": "node scripts/v3/tests/manual/validate-broad-scope-llm-packets.js",
+      "result": "site-set 20 packets; verdicts {LIKELY_BARRIER:10, UNCERTAIN:10}; 0 converted judgments"
+    },
+    {
+      "command": "node scripts/v3/tests/manual/run-broad-scope-stratified-packet-pressure.js",
+      "result": "site-set 20 packets; verdicts {LIKELY_BARRIER:10, UNCERTAIN:10}; 0 converted judgments"
+    },
+    {
+      "command": "node scripts/v3/tests/manual/audit-broad-scope-prompt-pack.js",
+      "result": "site-set 20 rows, 20 packet entries, 10 scoped site-set controls, 0 clear-bridgeable"
+    }
+  ],
+  "artifacts": [
+    "scripts/v3/tests/generated/broad-scope/media-process-auth/validation.json",
+    "scripts/v3/tests/generated/broad-scope/llm-packet-validation.json",
+    "docs/analysis/improvement-research-2026-06/evidence/broad-scope-subagent-prompt-pack/prompts.json",
+    "docs/analysis/improvement-research-2026-06/evidence/broad-scope-subagent-prompt-pack/answer-key.json",
+    "docs/analysis/improvement-research-2026-06/evidence/broad-scope-subagent-prompt-pack/integration-audit.json",
+    "docs/analysis/improvement-research-2026-06/evidence/broad-scope-stratified-packet-pressure/results.json"
+  ],
+  "remainingLimits": [
+    "Manifest-driven evidence does not prove that a real-world page set boundary is complete.",
+    "Scope gaps are scoped uncertainty, not barrier evidence.",
+    "No real crawler/session trace, same-locale normalization, breakpoint comparison, or multi-page replay has been implemented.",
+    "The full browser-backed media/process/auth fixture validator still needs a fresh run after browser escalation is available again.",
+    "Site-set evidence is procedural JSON, so visual screenshot inspection is not applicable to this lane."
+  ]
+}

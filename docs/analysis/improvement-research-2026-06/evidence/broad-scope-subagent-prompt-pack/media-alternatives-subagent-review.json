@@ -1,0 +1,124 @@
+{
+  "reviewedAt": "2026-06-23",
+  "aspect": "media-alternatives",
+  "reviewers": [
+    "subagent-kierkegaard",
+    "subagent-ramanujan"
+  ],
+  "normativeScope": [
+    "WCAG 2.2 SC 1.2.1 Audio-only and Video-only (Prerecorded)",
+    "WCAG 2.2 SC 1.2.2 Captions (Prerecorded)",
+    "WCAG 2.2 SC 1.2.3 Audio Description or Media Alternative (Prerecorded)",
+    "WCAG 2.2 SC 1.2.5 Audio Description (Prerecorded)",
+    "Trusted Tester-style ownership, applicability, and adequacy checks",
+    "EN 301 549 web Annex C as WCAG pass-through context"
+  ],
+  "currentVerdict": "Remediated for the generated fixture/prompt path and the live broad-scope sidecar path. The lane remains sidecar-only and cannot clear conformance.",
+  "findings": [
+    {
+      "severity": "high",
+      "id": "MEDIA-H1",
+      "finding": "Earlier media control rows produced no packets and could be misread as scoped OK results.",
+      "remediation": "Media controls now emit explicit SCOPED_MEDIA_CONTROL/UNCERTAIN packets with adequate-alternative-or-exception-observed, not clears or no-review passes."
+    },
+    {
+      "severity": "high",
+      "id": "MEDIA-H2",
+      "finding": "Several control outcomes relied on synthetic metadata rather than extracted transcript/description content.",
+      "remediation": "Generated fixtures include inline transcript/description content, and the media inventory extracts [data-v3-transcript], details, and [data-v3-description-text] content for adequacy scoring."
+    },
+    {
+      "severity": "high",
+      "id": "MEDIA-LIVE-H1",
+      "finding": "Live media findings discarded load-bearing evidence claims and extracted media metadata/details, so live positives could not support LIKELY_BARRIER even when the fixture path could.",
+      "remediation": "runBroadScopeForUrl now emits owned-media-element, media-content-model-observed when a content model exists, alternative-missing-or-inadequate-observed for missing/inadequate alternatives, and media evidenceDetails. buildReviewPacketsFromBroadScope preserves evidenceDetails/facts into observed."
+    },
+    {
+      "severity": "high",
+      "id": "MEDIA-LIVE-H2",
+      "finding": "Live video media findings were hard-coded to SC 1.2.2 regardless of 1.2.1 video-only, 1.2.3, or 1.2.5 scope.",
+      "remediation": "mediaWarningSc now preserves fixture-scoped 1.2.1/1.2.2/1.2.3/1.2.5 and falls back to warning-specific scoped SCs."
+    },
+    {
+      "severity": "medium",
+      "id": "MEDIA-M1",
+      "finding": "Scoped media SC results could be misread as all-1.2.x conformance.",
+      "remediation": "Prompts instruct the judge to assess only packet.sc/rawSc and not infer pass/fail for adjacent 1.2.x SCs."
+    },
+    {
+      "severity": "medium",
+      "id": "MEDIA-M2",
+      "finding": "The prompt did not encode the SC-specific alternative matrix strongly enough.",
+      "remediation": "Prompts include explicit rules for 1.2.1, 1.2.2, 1.2.3, and 1.2.5, including captions vs transcripts/media alternatives vs audio description."
+    },
+    {
+      "severity": "medium",
+      "id": "MEDIA-M3",
+      "finding": "Visual references could be misread as proving caption/transcript/description adequacy.",
+      "remediation": "Media visual checks use visualAgreement:null and describe screenshots as target/context corroboration only."
+    },
+    {
+      "severity": "medium",
+      "id": "MEDIA-M4",
+      "finding": "LIKELY_OK was allowed in sidecar prompts despite no registered media claim family.",
+      "remediation": "media-alternative-inventory allows only LIKELY_BARRIER and UNCERTAIN; controls and exceptions remain sidecar evidence only."
+    },
+    {
+      "severity": "medium",
+      "id": "MEDIA-LIVE-M1",
+      "finding": "Caption adequacy could fall back to nearby transcript text, falsely suppressing scoped 1.2.2 caption failures.",
+      "remediation": "captionAdequacy now uses caption text only. Transcript text may support media alternatives, but not the captions SC."
+    }
+  ],
+  "postRemediationVerification": {
+    "fixtureValidation": {
+      "command": "node scripts/v3/tests/manual/validate-broad-scope-media-process-auth-fixtures.js",
+      "total": 120,
+      "pass": 120,
+      "fail": 0,
+      "mediaPositivePass": 10,
+      "mediaNegativePass": 10
+    },
+    "browserProbeTests": {
+      "command": "node --test scripts/v3/tests/broad-scope-probes.test.js",
+      "pass": 39,
+      "fail": 0,
+      "newMediaRegressions": [
+        "media inventory does not let transcript text satisfy scoped 1.2.2 captions",
+        "live broad-scope media packets preserve SC, structural evidence, and media details"
+      ]
+    },
+    "promptContract": {
+      "command": "node --test scripts/v3/tests/broad-scope-llm-review.test.js",
+      "pass": 25,
+      "fail": 0,
+      "mediaAllowedVerdicts": [
+        "LIKELY_BARRIER",
+        "UNCERTAIN"
+      ],
+      "mediaVisualAgreement": null
+    },
+    "promptPackAudit": {
+      "rows": 20,
+      "packetEntries": 20,
+      "noPacketEntries": 0,
+      "structuralBarrierReady": 10,
+      "scopedMediaControls": 10,
+      "barrierBridgeable": 0,
+      "clearBridgeable": 0
+    },
+    "promptPressure": {
+      "verdicts": {
+        "LIKELY_BARRIER": 10,
+        "UNCERTAIN": 10
+      },
+      "convertedJudgments": 0
+    }
+  },
+  "remainingLimitations": [
+    "This lane is still a sidecar, not an authoritative 1.2.x publication path.",
+    "The generated content model is fixture-provided; real media requires caption/transcript/description file retrieval, ASR or media-content modelling, and adequacy review.",
+    "Screenshots corroborate target/context only unless a future packet explicitly says the media content model was derived from those pixels.",
+    "Each packet scopes one SC. Adjacent 1.2.x obligations remain not assessed unless separately enumerated."
+  ]
+}

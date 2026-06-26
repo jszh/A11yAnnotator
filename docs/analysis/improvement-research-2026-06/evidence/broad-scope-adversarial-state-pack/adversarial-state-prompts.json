@@ -1,0 +1,268 @@
+{
+  "summary": {
+    "generatedAt": "2026-06-21T21:42:44.304Z",
+    "total": 8,
+    "byAspect": {
+      "pause-stop-hide": {
+        "total": 2,
+        "barrier": 1,
+        "ok": 1
+      },
+      "context-change": {
+        "total": 2,
+        "barrier": 1,
+        "ok": 1
+      },
+      "pointer-operation": {
+        "total": 2,
+        "barrier": 1,
+        "ok": 1
+      },
+      "keyboard-trap": {
+        "total": 2,
+        "barrier": 1,
+        "ok": 1
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "adv-motion-barrier",
+      "aspect": "pause-stop-hide",
+      "sc": "2.2.2",
+      "expected": "LIKELY_BARRIER",
+      "requiredEvidence": [
+        "auto-motion-persists",
+        "duration-or-looping",
+        "no-working-pause-stop-hide",
+        "parallel-non-essential-content"
+      ],
+      "observations": {
+        "target": {
+          "text": "Stock ticker",
+          "animationDuration": "8s",
+          "animationIterationCount": "infinite",
+          "transformDeltaPx": 14
+        },
+        "controlsSearched": [
+          "button",
+          "[aria-label*=pause]",
+          "[aria-label*=stop]",
+          "[aria-label*=hide]",
+          "video[controls]",
+          "audio[controls]"
+        ],
+        "controlsFound": [],
+        "pageContext": "decorative/secondary ticker shown alongside main article content",
+        "evidenceClaims": [
+          "auto-motion-persists",
+          "duration-or-looping",
+          "no-working-pause-stop-hide",
+          "parallel-non-essential-content"
+        ]
+      }
+    },
+    {
+      "id": "adv-motion-controlled",
+      "aspect": "pause-stop-hide",
+      "sc": "2.2.2",
+      "expected": "LIKELY_OK",
+      "requiredEvidence": [
+        "auto-motion-persists",
+        "duration-or-looping",
+        "working-pause-stop-hide"
+      ],
+      "observations": {
+        "target": {
+          "text": "Carousel",
+          "animationDuration": "8s",
+          "animationIterationCount": "infinite",
+          "transformDeltaPx": 10
+        },
+        "controlExercised": {
+          "label": "Pause animation",
+          "beforeAnimationPlayState": "running",
+          "afterClickAnimationPlayState": "paused"
+        },
+        "evidenceClaims": [
+          "auto-motion-persists",
+          "duration-or-looping",
+          "working-pause-stop-hide"
+        ]
+      }
+    },
+    {
+      "id": "adv-context-barrier",
+      "aspect": "context-change",
+      "sc": "3.2.1",
+      "expected": "LIKELY_BARRIER",
+      "requiredEvidence": [
+        "trusted-focus-or-input-action",
+        "context-change-observed",
+        "not-advised-beforehand"
+      ],
+      "observations": {
+        "beforeFocus": {
+          "url": "/checkout",
+          "hash": "",
+          "activeElement": ""
+        },
+        "afterFocus": {
+          "url": "/checkout#shipping",
+          "hash": "#shipping",
+          "activeElement": "shipping-postal-code"
+        },
+        "labelAndInstructions": "Postal code",
+        "nearbyAdviceText": "",
+        "evidenceClaims": [
+          "trusted-focus-or-input-action",
+          "context-change-observed",
+          "not-advised-beforehand"
+        ]
+      }
+    },
+    {
+      "id": "adv-context-advised",
+      "aspect": "context-change",
+      "sc": "3.2.1",
+      "expected": "LIKELY_OK",
+      "requiredEvidence": [
+        "trusted-focus-or-input-action",
+        "context-change-observed",
+        "advised-beforehand"
+      ],
+      "observations": {
+        "beforeFocus": {
+          "url": "/checkout",
+          "hash": "",
+          "activeElement": ""
+        },
+        "afterFocus": {
+          "url": "/checkout#shipping-help",
+          "hash": "#shipping-help",
+          "activeElement": "shipping-postal-code"
+        },
+        "labelAndInstructions": "Postal code. Focusing this field opens shipping help below.",
+        "nearbyAdviceText": "Focusing this field opens shipping help below.",
+        "evidenceClaims": [
+          "trusted-focus-or-input-action",
+          "context-change-observed",
+          "advised-beforehand"
+        ]
+      }
+    },
+    {
+      "id": "adv-pointer-barrier",
+      "aspect": "pointer-operation",
+      "sc": "2.5.2",
+      "expected": "LIKELY_BARRIER",
+      "requiredEvidence": [
+        "trusted-pointer-sequence",
+        "down-event-completes-action",
+        "no-abort-undo-reversal-or-up-event-completion"
+      ],
+      "observations": {
+        "before": {
+          "activated": false,
+          "value": "not submitted"
+        },
+        "afterPointerDown": {
+          "activated": true,
+          "value": "submitted"
+        },
+        "afterMoveAwayAndPointerUp": {
+          "activated": true,
+          "value": "submitted"
+        },
+        "undoOrCancelControlsFound": [],
+        "evidenceClaims": [
+          "trusted-pointer-sequence",
+          "down-event-completes-action",
+          "no-abort-undo-reversal-or-up-event-completion"
+        ]
+      }
+    },
+    {
+      "id": "adv-pointer-up-event",
+      "aspect": "pointer-operation",
+      "sc": "2.5.2",
+      "expected": "LIKELY_OK",
+      "requiredEvidence": [
+        "trusted-pointer-sequence",
+        "up-event-completion-or-abort"
+      ],
+      "observations": {
+        "before": {
+          "activated": false
+        },
+        "afterPointerDown": {
+          "activated": false
+        },
+        "afterMoveAwayAndPointerUp": {
+          "activated": false
+        },
+        "afterSecondPointerUpOnTarget": {
+          "activated": true
+        },
+        "evidenceClaims": [
+          "trusted-pointer-sequence",
+          "up-event-completion-or-abort"
+        ]
+      }
+    },
+    {
+      "id": "adv-trap-barrier",
+      "aspect": "keyboard-trap",
+      "sc": "2.1.2",
+      "expected": "LIKELY_BARRIER",
+      "requiredEvidence": [
+        "trusted-tab-or-shift-tab-trap",
+        "focus-cannot-leave-region-or-element",
+        "no-advised-keyboard-exit"
+      ],
+      "observations": {
+        "focusSequence": [
+          "before-link",
+          "target",
+          "target",
+          "target"
+        ],
+        "shiftTabSequence": [
+          "target",
+          "target"
+        ],
+        "advisedExitText": "",
+        "evidenceClaims": [
+          "trusted-tab-or-shift-tab-trap",
+          "focus-cannot-leave-region-or-element",
+          "no-advised-keyboard-exit"
+        ]
+      }
+    },
+    {
+      "id": "adv-trap-advised-exit",
+      "aspect": "keyboard-trap",
+      "sc": "2.1.2",
+      "expected": "LIKELY_OK",
+      "requiredEvidence": [
+        "trusted-tab-or-shift-tab-trap",
+        "focus-cannot-leave-region-or-element",
+        "advised-keyboard-exit-works"
+      ],
+      "observations": {
+        "focusSequence": [
+          "before-link",
+          "target",
+          "target"
+        ],
+        "advisedExitText": "Press Escape to leave the widget.",
+        "afterEscapeFocus": "after-link",
+        "evidenceClaims": [
+          "trusted-tab-or-shift-tab-trap",
+          "focus-cannot-leave-region-or-element",
+          "advised-keyboard-exit-works"
+        ]
+      }
+    }
+  ]
+}

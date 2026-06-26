@@ -1,0 +1,113 @@
+{
+  "reviewedAspect": "broad-scope non-interference-interaction dragging-movement harness slice final re-check",
+  "sc": "WCAG 2.2 SC 2.5.7 Dragging Movements",
+  "casesReviewed": {
+    "total": 20,
+    "positive": ["drag-p1", "drag-p2", "drag-p3", "drag-p4", "drag-p5", "drag-p6", "drag-p7", "drag-p8", "drag-p9", "drag-p10"],
+    "negative": ["drag-n1", "drag-n2", "drag-n3", "drag-n4", "drag-n5", "drag-n6", "drag-n7", "drag-n8", "drag-n9", "drag-n10"],
+    "validation": {
+      "generatedAt": "2026-06-22T01:40:52.767Z",
+      "sha256": "d7c31837aff095a8d04b798e18c138b8ab3afa7d22da9c64395d8ad892ca158e",
+      "draggingMovementPass": "20/20"
+    },
+    "audit": {
+      "packetEntries": 10,
+      "noPacketEntries": 10,
+      "structuralBarrierReady": 10,
+      "missingEvidence": {}
+    }
+  },
+  "verdictSummary": {
+    "verdict": "improved-scoped-fixture-evidence-supported-with-remaining-exception-and-scope-caveats",
+    "summary": "The regenerated artifacts address the prior overclaiming around the alternative-evidence token and improve equivalence checking. Positive packets now claim scoped-no-target-click-or-marked-alternative-observed, and validation traces show clickEquivalent=false / workingAlternative=false for positives. Negative alternatives now require the marked alternative or target click to reach the same observed targetState when available. This supports the generated fixture harness claims more cleanly than the prior slice, but still should not be treated as page-wide SC 2.5.7 conformance or exhaustive alternative discovery.",
+    "previousConcernStatus": {
+      "alternative-search-too-narrow": "downgraded: the claim token is now scoped, so the artifact no longer overstates exhaustive alternative search; real-page false positives remain possible for unmarked/offscreen/dynamic alternatives.",
+      "exception-evidence-is-annotation-only": "still-present: essential and user-agent negatives still rely on fixture data attributes, not independent exception proof.",
+      "alternative-equivalence-not-proven": "mostly-resolved-for-generated-fixtures: click/alternative equivalence now requires the same observed targetState when available; fallback behavior remains coarser if no targetState exists.",
+      "visual-state-coverage-mismatch": "still-present: regenerated vision/state packs still cover only drag-p1 and drag-n1 through drag-n4.",
+      "single-rendered-state-scope": "downgraded-to-scope-limitation: acceptable because the evidence token and probe scope are now explicit.",
+      "hard-coded-target-state": "resolved: probeDraggingMovements reads targetState from the current target selector, with #target only as fallback."
+    },
+    "mustNotClaim": [
+      "Do not claim exhaustive discovery of all simple-pointer alternatives.",
+      "Do not claim independent proof of essential or unmodified-user-agent exceptions.",
+      "Do not claim visual/state prompt-pack coverage for all 20 dragging cases."
+    ]
+  },
+  "visualInspection": {
+    "coverage": "partial-representative",
+    "coveredDraggingCases": ["drag-p1", "drag-n1", "drag-n2", "drag-n3", "drag-n4"],
+    "missingVisualOrStatePromptCases": ["drag-p2", "drag-p3", "drag-p4", "drag-p5", "drag-p6", "drag-p7", "drag-p8", "drag-p9", "drag-p10", "drag-n5", "drag-n6", "drag-n7", "drag-n8", "drag-n9", "drag-n10"],
+    "assessment": "No stale mismatch found in the regenerated prompt/audit artifacts for the core validation claim. Visual/state evidence remains representative, not exhaustive. For SC 2.5.7, the load-bearing evidence remains the Chrome state trace, not screenshot appearance."
+  },
+  "concerns": [
+    {
+      "severity": "medium",
+      "type": "scoped-alternative-search-not-exhaustive",
+      "status": "downgraded",
+      "detail": "The new token scoped-no-target-click-or-marked-alternative-observed accurately limits the claim to target click plus target-scoped marked alternatives. The harness still does not discover unmarked controls, menus, text inputs, dynamic alternatives, or offscreen alternatives."
+    },
+    {
+      "severity": "high",
+      "type": "exception-evidence-is-annotation-only",
+      "status": "still-present",
+      "detail": "Essential and user-agent negative cases are still cleared by data-v3-essential-drag and data-v3-ua-drag annotations. This is fine for fixture routing but not independent exception adjudication."
+    },
+    {
+      "severity": "low",
+      "type": "alternative-equivalence-fallback-is-coarse",
+      "status": "mostly-resolved",
+      "detail": "For these fixtures, alternatives/clicks now reach the same targetState as drag. If no targetState is available, equivalence falls back to coarse completion flags, so richer real pages still need review."
+    },
+    {
+      "severity": "medium",
+      "type": "visual-state-coverage-is-representative",
+      "status": "still-present",
+      "detail": "Vision/state packs still include only 5 dragging entries. The validation and prompt packets cover all cases, but visual/state prompts should be described as samples."
+    },
+    {
+      "severity": "low",
+      "type": "single-rendered-state-scope",
+      "status": "downgraded",
+      "detail": "The probe still covers a single rendered state and initial URL reload path, but the scoped evidence wording now makes that limitation acceptable for this generated-fixture harness."
+    }
+  ],
+  "recommendedHarnessChanges": [
+    "Keep SC 2.5.7 output as scoped review evidence, not page-wide conformance.",
+    "Retain the scoped evidence token; it materially fixes the prior overclaim.",
+    "For exception negatives, emit or preserve explicit exceptionAnnotationOnly metadata if these packets are later used outside generated fixtures.",
+    "If visual/state prompts are used for adjudication rather than sampling, regenerate them for all 20 dragging cases."
+  ],
+  "caseVerdicts": [
+    {
+      "cases": ["drag-p1", "drag-p2", "drag-p3", "drag-p4", "drag-p5", "drag-p6", "drag-p7", "drag-p8", "drag-p9", "drag-p10"],
+      "reviewVerdict": "fixture-supported-scoped-barrier-candidates",
+      "evidenceSupport": "Each positive trace shows dragChanged=true, clickEquivalent=false, workingAlternative=false, and the scoped evidence token is present.",
+      "remainingLimitations": "Only target click and target-scoped marked alternatives are ruled out."
+    },
+    {
+      "cases": ["drag-n1", "drag-n5", "drag-n9"],
+      "reviewVerdict": "fixture-supported-no-packet-via-equivalent-marked-alternative",
+      "evidenceSupport": "Marked alternatives changed state and reached the same observed targetState as the drag action.",
+      "remainingLimitations": "Equivalence is based on observed targetState, not full semantic comparison."
+    },
+    {
+      "cases": ["drag-n4", "drag-n8"],
+      "reviewVerdict": "fixture-supported-no-packet-via-equivalent-target-click",
+      "evidenceSupport": "Target click changed state and reached the same observed targetState as drag.",
+      "remainingLimitations": "Only the target click path is demonstrated."
+    },
+    {
+      "cases": ["drag-n2", "drag-n6", "drag-n10"],
+      "reviewVerdict": "no-packet-via-essential-annotation",
+      "evidenceSupport": "The probe suppresses candidates where data-v3-essential-drag=true.",
+      "remainingLimitations": "Essentiality is fixture-authored and not independently proven."
+    },
+    {
+      "cases": ["drag-n3", "drag-n7"],
+      "reviewVerdict": "no-packet-via-user-agent-annotation",
+      "evidenceSupport": "The probe suppresses candidates where data-v3-ua-drag=true.",
+      "remainingLimitations": "User-agent exception status is fixture-authored and not independently proven."
+    }
+  ]
+}

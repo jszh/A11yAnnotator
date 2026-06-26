@@ -1,0 +1,57 @@
+{
+  "generatedAt": "2026-06-21T23:05:00.000Z",
+  "reviewer": "local subagent adversarial review",
+  "scope": "flash-risk broad-scope lane after generated-fixture temporal sampling",
+  "findings": [
+    {
+      "severity": "high",
+      "finding": "The temporal flash probe is opacity-only, so it can miss real WCAG 2.3.1 flashes caused by color, background-image, canvas/video, class swaps, or CSS keyframes whose computed opacity never changes.",
+      "recommendation": "Measure rendered frame deltas, calculate relative luminance/red transitions, and discover candidates independently of fixture-only data attributes or animation-name heuristics."
+    },
+    {
+      "severity": "high",
+      "finding": "The sampler is vulnerable to aliasing and rate mismeasurement, especially in the runtime path where it samples for only 1000ms at 100ms intervals.",
+      "recommendation": "Use requestAnimationFrame or screenshot/video-frame timestamps, sample at display cadence for multiple sliding one-second windows, store actual timestamps, and add phase/adversarial tests."
+    },
+    {
+      "severity": "high",
+      "finding": "The area/red threshold approximation can produce false positives and false negatives because it uses element bounding-box area and a simple red-like color check instead of WCAG rendered concurrent flash area and red-flash definitions.",
+      "recommendation": "Compute a rendered flash mask per frame, group concurrent contiguous flashing pixels, and implement sRGB relative luminance plus saturated-red transition checks before any definite 2.3.1 judgment."
+    },
+    {
+      "severity": "medium",
+      "finding": "Computed opacity change can be accepted without rendered visual agreement, so the fixture lane can flag a flash where pixels do not visibly change.",
+      "recommendation": "Require pixel-level temporal agreement, viewport intersection, occlusion/clipping checks, and a minimum rendered luminance/chromaticity delta."
+    },
+    {
+      "severity": "medium",
+      "finding": "The static CSS flash-risk detector is name-based and can both miss real flashes and nominate non-flashes.",
+      "recommendation": "Treat static CSS names as discovery-only; inspect CSSOM keyframes for actual visual changes before attaching SC-specific risk evidence."
+    },
+    {
+      "severity": "medium",
+      "finding": "The generated flash fixtures validate one narrow happy path: a large red JS opacity toggle every 100ms versus a slow control.",
+      "recommendation": "Expand fixtures by adversarial class: color-only, keyframes with non-flash names, JS without markers, tiny red, multi-region, occluded, same-background, and aliasing phase cases."
+    },
+    {
+      "severity": "medium",
+      "finding": "Prompt-pack evidence claims were previously synthesized from expected labels when row-level evidenceClaims were absent.",
+      "recommendation": "Populate evidence claims only from measured validator fields, keep fixture expected labels in a separate answer key, and fail or surface missing structural evidence rather than backfilling from labels."
+    },
+    {
+      "severity": "medium",
+      "finding": "Generated prompt artifacts can become stale or inconsistent with validation and visual manifests.",
+      "recommendation": "Embed source manifest/validation hashes or freshness checks before using prompt artifacts for review."
+    }
+  ],
+  "implementedThisPass": [
+    "Removed expected-label fallback for evidenceClaims from subagent prompt, stratified pressure, and LLM-packet validation builders.",
+    "Split prompt-pack answer labels into answer-key.json so judge-facing prompts do not expose expected or expectedDirection.",
+    "Threaded measured evidenceClaims through adaptation, keyboard-trap, and character-shortcut fixture validators.",
+    "Regenerated prompt, audit, stratified pressure, and LLM-packet validation artifacts."
+  ],
+  "remaining": [
+    "Flash remains fixture-scoped temporal evidence, not a general WCAG 2.3.1 implementation.",
+    "A full flash lane needs rendered frame sampling, timestamped sliding windows, visual agreement, viewport/occlusion checks, and WCAG area/red-threshold math."
+  ]
+}

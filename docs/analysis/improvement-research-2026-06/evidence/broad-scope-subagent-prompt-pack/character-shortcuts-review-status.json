@@ -1,0 +1,153 @@
+{
+  "aspect": "character-shortcuts",
+  "status": "local-remediated-subagent-review-unavailable",
+  "updatedAt": "2026-06-24",
+  "normativeScope": [
+    "WCAG 2.2 SC 2.1.4 Character Key Shortcuts",
+    "Barrier only when content implements a shortcut using only letter, punctuation, number, or symbol characters and no turn-off, non-printable-key remap, or focus-only exception is observed",
+    "EN 301 549 web Annex C as WCAG pass-through context"
+  ],
+  "summary": {
+    "generatedRows": 20,
+    "positiveRows": 10,
+    "negativeRows": 10,
+    "fixtureValidation": {
+      "positive": "10/10 pass",
+      "negative": "10/10 pass"
+    },
+    "promptPacketRows": 20,
+    "noPacketRows": 0,
+    "structuralBarrierReadyRows": 10,
+    "barrierBridgeableRows": 10,
+    "clearBridgeableRows": 0,
+    "convertedJudgments": 10,
+    "verdicts": {
+      "LIKELY_BARRIER": 10,
+      "UNCERTAIN": 10
+    }
+  },
+  "coverage": {
+    "positivePredicate": [
+      "trusted keyboard action presses a single printable character",
+      "page state changes outside a focused component",
+      "state delta is detected beyond fixture-only #status/#target globals using a DOM signature",
+      "no working off/remap control is observed after trusted click-and-retry",
+      "shortcut is not focus-scoped"
+    ],
+    "controlClasses": [
+      "no shortcut surface",
+      "focus-only shortcut",
+      "working turn-off control",
+      "working remap-to-modifier control",
+      "modified-key shortcut using Control+key",
+      "modified-key shortcut using Alt+key"
+    ],
+    "adversarialFixtureClasses": [
+      "positive with inert visible off control",
+      "positive whose activation changes a non-status region",
+      "negative remap control that changes aria-keyshortcuts to Control+key and prevents single-key activation"
+    ]
+  },
+  "safetyInvariants": [
+    "Character-shortcut packets allow only LIKELY_BARRIER or UNCERTAIN.",
+    "The v3 bridge is barrier-only; LIKELY_OK never becomes a judgment.",
+    "Controls, absence, focus-only shortcuts, and modified-key shortcuts remain UNCERTAIN and have zero clear-bridgeable rows.",
+    "Visible off/remap controls count only after a trusted browser click followed by a single-key retry shows no state change.",
+    "Static screenshots are contextual only; trusted keyboard/click state traces are load-bearing.",
+    "The family registry maps character-key-shortcut to SC 2.1.4; the registry marks both clear and barrier directions open-scope-never-clearable, with only positive barriers permitted through the broad-scope LLM bridge."
+  ],
+  "independentCritic": {
+    "previousReviewer": "subagent-galileo",
+    "previousFindingsRemediated": [
+      "Added registered claim family character-key-shortcut so generated positives can bridge to v3 judgments.",
+      "Kept the bridge barrier-only so controls and absence cannot clear.",
+      "Broadened the state oracle to include visible DOM text/attribute signatures.",
+      "Added true remap and inert-control adversarial coverage.",
+      "Changed shortcut control evidence strength to fixture-validator-control-proof."
+    ],
+    "freshReviewerAttempt": {
+      "reviewer": "subagent-averroes",
+      "result": "unavailable",
+      "reason": "usage limit reached before final review"
+    }
+  },
+  "commands": [
+    {
+      "command": "node scripts/v3/tests/manual/generate-broad-scope-ni-interaction-fixtures.js",
+      "result": "regenerated non-interference/interaction manifest and character-shortcut fixtures"
+    },
+    {
+      "command": "node scripts/v3/tests/manual/validate-broad-scope-ni-interaction-fixtures.js",
+      "result": "300/300 pass; character-shortcuts 10 positives / 10 negatives"
+    },
+    {
+      "command": "node scripts/v3/tests/manual/build-broad-scope-subagent-prompt-pack.js --sample-per-class 10",
+      "result": "regenerated prompt pack and answer key"
+    },
+    {
+      "command": "node scripts/v3/tests/manual/validate-broad-scope-llm-packets.js",
+      "result": "character-shortcuts 20 packets; positives converted to 10 barrier-only judgments; controls converted to 0 judgments"
+    },
+    {
+      "command": "node scripts/v3/tests/manual/run-broad-scope-stratified-packet-pressure.js",
+      "result": "character-shortcuts 20 packets; verdicts {LIKELY_BARRIER:10, UNCERTAIN:10}; convertedJudgments:10"
+    },
+    {
+      "command": "node scripts/v3/tests/manual/audit-broad-scope-prompt-pack.js",
+      "result": "character-shortcuts 20 packet entries, 10 structural positives, 10 barrier-bridgeable positives, 0 clear-bridgeable rows"
+    },
+    {
+      "command": "node scripts/v3/tests/manual/capture-broad-scope-ni-visuals.js",
+      "result": "representative shortcut screenshots refreshed and visually inspected"
+    },
+    {
+      "command": "node --test scripts/v3/tests/broad-scope-llm-review.test.js",
+      "result": "32/32 pass"
+    },
+    {
+      "command": "node --test scripts/v3/tests/broad-scope-probes.test.js",
+      "result": "39/39 pass"
+    },
+    {
+      "command": "node --test scripts/v3/tests/coverage/fifth-pass.test.js scripts/v3/tests/coverage/trusted-tester-gaps.test.js",
+      "result": "27/27 pass"
+    }
+  ],
+  "visualInspection": [
+    {
+      "id": "shortcut-p1",
+      "file": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/shortcut-p1-before-page.png",
+      "observation": "ordinary visible shortcut button and waiting status; screenshot alone does not prove SC 2.1.4, trusted key trace is load-bearing"
+    },
+    {
+      "id": "shortcut-p2",
+      "file": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/shortcut-p2-before-page.png",
+      "observation": "separate activity region is visible; widened DOM signature, not fixture globals alone, detects activation"
+    },
+    {
+      "id": "shortcut-p3",
+      "file": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/shortcut-p3-before-page.png",
+      "observation": "visible off control is inert; trusted click-and-retry evidence prevents treating the label as an exception"
+    },
+    {
+      "id": "shortcut-n2",
+      "file": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/shortcut-n2-before-page.png",
+      "observation": "remap control is visible; trusted control exercise proves single-key activation is suppressed"
+    },
+    {
+      "id": "shortcut-n3",
+      "file": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/shortcut-n3-before-page.png",
+      "observation": "modified shortcut case; declared shortcut requires a modifier and remains a scoped control"
+    }
+  ],
+  "remainingLimitations": [
+    "Real saved-page discovery is still incomplete for document/window listeners added only through addEventListener unless the page exposes a declared shortcut surface.",
+    "The DOM signature is broader than the old fixture globals but is still not a full semantic state model and can miss canvas-only, network-only, storage-only, or offscreen effects.",
+    "Exception adequacy is behaviorally tested for visible controls in the fixture lane, but arbitrary settings dialogs, persisted preferences, and remap workflows need deeper state-machine exploration.",
+    "Fresh independent subagent review could not complete because the available agent quota was exhausted."
+  ],
+  "sources": [
+    "https://www.w3.org/TR/WCAG22/#character-key-shortcuts",
+    "https://www.w3.org/WAI/WCAG22/Understanding/character-key-shortcuts.html"
+  ]
+}

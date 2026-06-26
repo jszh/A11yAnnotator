@@ -1,0 +1,131 @@
+{
+  "aspect": "keyboard-trap",
+  "status": "local-and-independent-review-remediated",
+  "updatedAt": "2026-06-23",
+  "normativeScope": [
+    "WCAG 2.2 SC 2.1.2 No Keyboard Trap",
+    "Trusted Tester-style keyboard focus traversal and escape procedure",
+    "EN 301 549 web Annex C as WCAG pass-through context"
+  ],
+  "summary": {
+    "generatedRows": 20,
+    "positiveRows": 10,
+    "negativeRows": 10,
+    "promptPacketRows": 20,
+    "noPacketRows": 0,
+    "structuralBarrierReadyRows": 10,
+    "scopedControlRows": 10,
+    "convertedJudgments": 10,
+    "clearBridgeableRows": 0
+  },
+  "coverage": {
+    "positiveDetectorMix": {
+      "focus-retention": 4,
+      "region-escape": 3,
+      "fixed-set-confinement": 3
+    },
+    "controlClasses": [
+      "ordinary keyboard navigation",
+      "single-focusable non-proof",
+      "Escape release with visible advice",
+      "keyboard-operable close control",
+      "advised Escape exit",
+      "natural modal focus escape",
+      "one-way directional confinement",
+      "focus redirect to another usable control"
+    ]
+  },
+  "safetyInvariants": [
+    "Keyboard-trap packets allow only LIKELY_BARRIER or UNCERTAIN.",
+    "Barrier-ready positives require trusted-tab-or-shift-tab-trap, focus-cannot-leave-region-or-element, and no-advised-keyboard-exit.",
+    "Controls carry trusted-keyboard-navigation-observed and focus-escape-or-advised-exit-observed and intentionally miss all barrier-required claims.",
+    "Review-time LIKELY_BARRIER overclaims on controls are clamped to UNCERTAIN.",
+    "LIKELY_OK is not allowed for this sidecar, and reviewToJudgment remains barrier-only.",
+    "Single-focusable pages, Escape/advised-exit controls, and one-way traps are scoped controls, not conformance passes."
+  ],
+  "independentCritic": {
+    "reviewer": "subagent-schrodinger",
+    "findings": [
+      {
+        "severity": "medium",
+        "id": "TRAP-M1",
+        "finding": "Generated keyboard-control packets synthesized control evidence that was absent from validation.json.",
+        "remediation": "validate-broad-scope-ni-interaction-fixtures.js now writes control evidence claims and detector details into the source validation ledger."
+      },
+      {
+        "severity": "medium",
+        "id": "TRAP-M2",
+        "finding": "Generated keyboard-trap validation exercised only the self-refocus trap detector.",
+        "remediation": "Generated positives now cover focus-retention, region-escape, and fixed-set-confinement detectors, and validation combines all three detector outputs."
+      },
+      {
+        "severity": "low",
+        "id": "TRAP-L1",
+        "finding": "Generated controls did not materially exercise Escape/advised-exit or single-focusable false-positive guards.",
+        "remediation": "Negative controls now include single-focusable non-proof, Escape release, close/advised exits, natural escape, one-way confinement, and focus redirection."
+      },
+      {
+        "severity": "high",
+        "id": "TRAP-LIVE-H1",
+        "finding": "The generated keyboard-trap prompt path was wired, but live runBroadScopeForUrl did not execute the keyboard-trap detectors.",
+        "remediation": "runBroadScopeForUrl now runs focus-retention, region-escape, and fixed-set-confinement detectors and emits keyboard-trap findings with structural evidence and detector details."
+      }
+    ]
+  },
+  "commands": [
+    {
+      "command": "node scripts/v3/tests/manual/generate-broad-scope-ni-interaction-fixtures.js",
+      "result": "regenerated non-interference/interaction manifest and keyboard-trap fixtures"
+    },
+    {
+      "command": "node scripts/v3/tests/manual/validate-broad-scope-ni-interaction-fixtures.js",
+      "result": "300/300 pass; keyboard-trap 10 positives / 10 negatives"
+    },
+    {
+      "command": "node --test scripts/v3/tests/broad-scope-llm-review.test.js",
+      "result": "27/27 pass"
+    },
+    {
+      "command": "node --test scripts/v3/tests/broad-scope-probes.test.js",
+      "result": "39/39 pass; includes live runBroadScopeForUrl keyboard-trap packet emission"
+    },
+    {
+      "command": "node scripts/v3/tests/manual/validate-broad-scope-llm-packets.js",
+      "result": "keyboard-trap 20 packets; verdicts {LIKELY_BARRIER:10, UNCERTAIN:10}; 10 converted positive barrier judgments"
+    },
+    {
+      "command": "node scripts/v3/tests/manual/run-broad-scope-stratified-packet-pressure.js",
+      "result": "keyboard-trap 20 packets; verdicts {LIKELY_BARRIER:10, UNCERTAIN:10}; 0 clear-bridgeable controls"
+    },
+    {
+      "command": "node scripts/v3/tests/manual/audit-broad-scope-prompt-pack.js",
+      "result": "keyboard-trap 20 rows, 20 packet entries, 10 structural positives, 10 scoped controls, 0 clear-bridgeable"
+    },
+    {
+      "command": "node scripts/v3/tests/manual/capture-broad-scope-ni-visuals.js plus targeted trap screenshots",
+      "result": "representative fixed-set, Escape/advised-exit, and single-focusable screenshots captured and visually inspected"
+    }
+  ],
+  "visualInspection": [
+    {
+      "id": "trap-p8",
+      "file": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/trap-p8-targeted-after-keys-page.png",
+      "observation": "focus is inside the fixed two-button set after repeated Tab presses while an outside Before link remains visible"
+    },
+    {
+      "id": "trap-n3",
+      "file": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/trap-n3-targeted-after-keys-page.png",
+      "observation": "after Tab/Tab/Escape, focus is on the Before link, corroborating an advised Escape exit"
+    },
+    {
+      "id": "trap-n2",
+      "file": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/trap-n2-targeted-after-keys-page.png",
+      "observation": "the only focusable control retains focus, which is explicitly a non-proof rather than a 2.1.2 barrier"
+    }
+  ],
+  "remainingLimits": [
+    "Generated coverage is stronger but still fixture-scoped; saved websites need bounded region discovery, state isolation, and replayable keyboard traces.",
+    "Positive keyboard-trap judgments convert through the existing barrier-only bridge; controls remain sidecar rationale and cannot clear conformance.",
+    "One-way directional traps remain scoped review controls unless future policy decides they should be surfaced separately."
+  ]
+}

@@ -1,0 +1,140 @@
+{
+  "aspect": "audio-control",
+  "status": "local-and-independent-review-remediated",
+  "updatedAt": "2026-06-24",
+  "normativeScope": [
+    "WCAG 2.2 SC 1.4.2 Audio Control",
+    "Trusted Tester-style non-interference review: audio that starts automatically and continues for more than three seconds requires an available stop/pause or volume control",
+    "EN 301 549 web Annex C as WCAG pass-through context"
+  ],
+  "summary": {
+    "generatedRows": 20,
+    "positiveRows": 10,
+    "negativeRows": 10,
+    "promptPacketRows": 20,
+    "noPacketRows": 0,
+    "structuralBarrierReadyRows": 10,
+    "scopedControlRows": 10,
+    "convertedJudgments": 0,
+    "clearBridgeableRows": 0
+  },
+  "coverage": {
+    "positivePredicate": [
+      "autoplay media observed advancing across a 3300 ms window",
+      "known generated non-silent tone",
+      "duration over three seconds or looping",
+      "not muted",
+      "no native controls",
+      "no working independent pause, mute, or volume control observed"
+    ],
+    "controlClasses": [
+      "muted autoplay",
+      "native controls with autoplay",
+      "working custom pause control",
+      "native controls without autoplay",
+      "no autoplay",
+      "muted native controls",
+      "audibility not established",
+      "muted autoplay video",
+      "working custom volume control",
+      "working custom mute control"
+    ]
+  },
+  "safetyInvariants": [
+    "Audio-control packets allow only LIKELY_BARRIER or UNCERTAIN.",
+    "Controls are explicit SCOPED_AUDIO_CONTROL packets, not NO_REVIEW and not LIKELY_OK.",
+    "Negative/control rows do not convert to final judgments.",
+    "Custom controls count only after a trusted browser action produces an observed media effect: pause, mute, or volume reduction.",
+    "Static screenshots are contextual only; measured media state and control-effect evidence are load-bearing.",
+    "Real saved pages without a generated non-silent marker remain audibility-unproven unless a future live audibility signal is added."
+  ],
+  "independentCritic": {
+    "reviewer": "subagent-harvey",
+    "findings": [
+      {
+        "severity": "high",
+        "id": "AUDIO-H1",
+        "finding": "Custom pause/mute/volume controls were previously treated as valid by label or aria-controls alone.",
+        "remediation": "probeAudioAutoplay now exercises plausible custom controls and requires an observed pause, mute, or volume-reduction effect before treating them as independent controls."
+      },
+      {
+        "severity": "high",
+        "id": "AUDIO-H2",
+        "finding": "Generated-fixture evidence and live browser policy could diverge on autoplay behavior.",
+        "remediation": "orchestrator and saved-pressure browser launches now include --autoplay-policy=no-user-gesture-required, matching the fixture validator and capture lanes."
+      },
+      {
+        "severity": "medium",
+        "id": "AUDIO-M1",
+        "finding": "Live saved-page audibility remains fixture-marker dependent.",
+        "remediation": "Disclosed as a remaining limitation; arbitrary saved pages without generated non-silent evidence stay UNCERTAIN rather than becoming definite barriers."
+      }
+    ]
+  },
+  "commands": [
+    {
+      "command": "node scripts/v3/tests/manual/generate-broad-scope-ni-interaction-fixtures.js",
+      "result": "regenerated non-interference/interaction manifest and audio-control fixtures"
+    },
+    {
+      "command": "node scripts/v3/tests/manual/validate-broad-scope-ni-interaction-fixtures.js",
+      "result": "300/300 pass; audio-control 10 positives / 10 negatives"
+    },
+    {
+      "command": "node scripts/v3/tests/manual/validate-broad-scope-llm-packets.js",
+      "result": "audio-control 20 packets; verdicts {LIKELY_BARRIER:10, UNCERTAIN:10}; 0 converted judgments"
+    },
+    {
+      "command": "node scripts/v3/tests/manual/run-broad-scope-stratified-packet-pressure.js",
+      "result": "audio-control 20 packets; 10 LIKELY_BARRIER positives and 10 UNCERTAIN controls"
+    },
+    {
+      "command": "node scripts/v3/tests/manual/audit-broad-scope-prompt-pack.js",
+      "result": "audio-control 20 packet entries, 10 structural positives, 10 scoped controls, 0 clear-bridgeable"
+    },
+    {
+      "command": "node scripts/v3/tests/manual/capture-broad-scope-ni-visuals.js",
+      "result": "representative audio-control screenshots refreshed and visually inspected"
+    },
+    {
+      "command": "node --test scripts/v3/tests/broad-scope-llm-review.test.js",
+      "result": "29/29 pass"
+    },
+    {
+      "command": "node --test scripts/v3/tests/broad-scope-probes.test.js",
+      "result": "39/39 pass"
+    }
+  ],
+  "visualInspection": [
+    {
+      "id": "audio-p1",
+      "file": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/audio-p1-after-3300ms-page.png",
+      "observation": "positive autoplay audio has no visible controls; measured media state supplies playback and audibility evidence"
+    },
+    {
+      "id": "audio-n2",
+      "file": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/audio-n2-after-3300ms-page.png",
+      "observation": "native audio controls are visibly present"
+    },
+    {
+      "id": "audio-n3",
+      "file": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/audio-n3-after-3300ms-page.png",
+      "observation": "custom Pause audio control is visible and validation records a working pause effect"
+    },
+    {
+      "id": "audio-n9",
+      "file": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/audio-n9-after-3300ms-page.png",
+      "observation": "custom volume slider is visible and validation records a working volume-reduction effect"
+    },
+    {
+      "id": "audio-n10",
+      "file": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/audio-n10-after-3300ms-page.png",
+      "observation": "custom Mute sound control is visible and validation records a working mute effect"
+    }
+  ],
+  "remainingLimitations": [
+    "Arbitrary saved-page audibility is not proven without generated non-silent evidence or a future audio-output side signal.",
+    "The autoplay policy is deliberately permissive for discovery; generated outcomes are annotation candidates, not final conformance publication.",
+    "Still screenshots cannot prove audio playback or audibility and are used only as corroborating context."
+  ]
+}

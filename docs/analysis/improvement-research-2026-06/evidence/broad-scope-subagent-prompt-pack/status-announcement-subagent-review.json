@@ -1,0 +1,56 @@
+{
+  "reviewedAspect": "status-announcement",
+  "verdict": "PASS_WITH_EDGE_CONCERNS",
+  "supports": [
+    "The current 10 positive generated cases are normatively plausible as fixture-scoped WCAG 2.2 SC 4.1.3 evidence: trusted activation changes visible or visually conveyed status information about success, errors/results, progress, waiting state, completion, empty results, or queue state, without focus moving to the message and without role=status, role=alert, role=log, aria-live, or direct announcement evidence.",
+    "The current 10 negative generated cases are plausible out-of-scope or sufficient-channel controls: status-n1 role=status, status-n2 role=alert, status-n3 aria-live=polite, status-n4 aria-live=assertive, status-n5 focus moved to #status, status-n6 direct programmatic status announcement, status-n7 HTML dialog context, status-n8 native browser alert, status-n9 disclosure expansion, and status-n10 role=log.",
+    "probeStatusMessages avoids the main false positives in the requested slice: it treats role=status/alert/log and aria-live polite/assertive as programmatic status channels, recognizes focus moved to the message, records direct page announcements through __v3AnnounceStatus and document.ariaNotify when available, records native dialogs, treats open dialog context as disqualifying, and treats disclosure/expanded-content context as disqualifying.",
+    "The validator requires the positive status candidate to be #status with trustedActivationObserved, noLiveRegionOrProgrammaticStatusRole, and focusNotMovedToMessage before assigning SC 4.1.3 evidence claims.",
+    "The prompt-pack keeps status-announcement packets sidecar/review-only: packet claimFamily is null, limitations say not to infer a clear from absence and not to use detector labels as conformance verdicts, and integration-audit reports status-announcement clearBridgeable=0 with 10 packet positives and 10 no-packet negatives.",
+    "The visual manifest aligns with current status cases and includes observations for key controls, including programmaticStatusAnnouncement for status-n6, inOpenDialog for status-n7, nativeDialogs alert for status-n8, and inDisclosureContent for status-n9."
+  ],
+  "concerns": [
+    {
+      "severity": "medium",
+      "case": "status-p5",
+      "issue": "Status removal is plausible but easy to overclaim.",
+      "detail": "Removing 'Application busy 5' after a trusted Finish task activation can convey that a waiting state ended, which falls within status-message semantics. It should remain scoped to cases where the removed status itself conveys completion or availability; generic removal of text should not be promoted as a 4.1.3 barrier without that interpretation."
+    },
+    {
+      "severity": "medium",
+      "case": "status-p6",
+      "issue": "The non-text/icon status case is plausible but depends on fixture intent.",
+      "detail": "A green icon state can be a status message if it is the user-facing status cue. However, data-v3-status-meaning is harness metadata, not an accessibility API channel or visible text. The packet is acceptable as fixture-scoped barrier evidence only because the visual state changes and the private metadata records intended meaning; it should not be generalized to arbitrary data-* changes."
+    },
+    {
+      "severity": "low",
+      "case": "status-n8",
+      "issue": "Native alert negative produces no status candidate in validation.",
+      "detail": "That is acceptable because a browser alert changes context and is outside the status-message failure pattern, and the visual manifest records nativeDialogs. If future native-alert controls also mutate visible #status text, validation should ensure contextChangedByDialog remains visible in the row evidence."
+    },
+    {
+      "severity": "low",
+      "case": "all negative no-packet rows",
+      "issue": "No-packet negatives are safe in the current pack but are not conformance clears.",
+      "detail": "Prompts correctly say no LLM review should run and no clear should be inferred. Consumers must preserve that no-packet/no-clear meaning rather than treating absence of a status packet as a pass."
+    }
+  ],
+  "blockers": [],
+  "recommendations": [
+    "Keep status-p5's explicit review question about removed waiting/status text; it is the right guardrail for avoiding overclaim.",
+    "For status-p6, label data-v3-status-meaning as fixture intent metadata in any downstream explanation, not as a programmatic status channel.",
+    "If this slice graduates from sidecar research, register a real claim family and add an explicit non-clear negative evidence object rather than relying only on no-packet rows.",
+    "Consider adding one future native-alert negative that also changes #status text, to exercise the probe's dialogsDuringActivation disqualifier directly."
+  ],
+  "testedArtifacts": [
+    "scripts/v3/lib/broad-scope-probes.js#probeStatusMessages",
+    "scripts/v3/tests/manual/generate-broad-scope-ni-interaction-fixtures.js#status-announcement cases",
+    "scripts/v3/tests/manual/validate-broad-scope-ni-interaction-fixtures.js#status-announcement validation",
+    "scripts/v3/tests/generated/broad-scope/non-interference-interaction/validation.json#status-announcement rows",
+    "scripts/v3/tests/generated/broad-scope/non-interference-interaction/status-announcement/positive/status-p1.html through status-p10.html",
+    "scripts/v3/tests/generated/broad-scope/non-interference-interaction/status-announcement/negative/status-n1.html through status-n10.html",
+    "docs/analysis/improvement-research-2026-06/evidence/broad-scope-subagent-prompt-pack/prompts.json#status-announcement entries",
+    "docs/analysis/improvement-research-2026-06/evidence/broad-scope-subagent-prompt-pack/integration-audit.json#status-announcement rows",
+    "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/manifest.json#status-announcement captures"
+  ]
+}

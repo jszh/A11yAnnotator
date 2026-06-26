@@ -1,0 +1,350 @@
+{
+  "reviewedAspect": "pointer-gesture",
+  "sc": "WCAG 2.2 SC 2.5.1 Pointer Gestures",
+  "casesReviewed": {
+    "manifest": {
+      "file": "scripts/v3/tests/generated/broad-scope/non-interference-interaction/manifest.json",
+      "generatedAt": "2026-06-22T01:56:58.178Z",
+      "pointerGestureCases": 20,
+      "positive": 10,
+      "negative": 10
+    },
+    "validation": {
+      "file": "scripts/v3/tests/generated/broad-scope/non-interference-interaction/validation.json",
+      "generatedAt": "2026-06-22T02:00:24.761Z",
+      "pointerGestureTotal": 20,
+      "pointerGesturePass": 20,
+      "pointerGestureFail": 0,
+      "positiveObservedPackets": 10,
+      "negativeObservedPackets": 0
+    },
+    "promptPackets": {
+      "file": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-subagent-prompt-pack/prompts.json",
+      "generatedAt": "2026-06-22T02:00:55.315Z",
+      "pointerGestureRows": 20,
+      "packetRows": 10,
+      "noPacketRows": 10
+    },
+    "integrationAudit": {
+      "file": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-subagent-prompt-pack/integration-audit.json",
+      "generatedAt": "2026-06-22T02:01:02.496Z",
+      "pointerGestureStructuralBarrierReady": 10,
+      "clearBridgeable": 0,
+      "promptMissingProcedureRules": 0
+    },
+    "visualAndStateSamples": {
+      "visualManifest": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/manifest.json",
+      "visualPromptPack": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-vision-prompt-pack/vision-prompts.json",
+      "statePromptPack": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-state-prompt-pack/state-prompts.json",
+      "sampledPointerGestureCases": [
+        "gesture-p1",
+        "gesture-n1",
+        "gesture-n2",
+        "gesture-n3",
+        "gesture-n4"
+      ],
+      "coverageNote": "Visual/state capture coverage is representative only: 5 of 20 pointer-gesture fixtures are sampled, and only one sampled case is a positive."
+    }
+  },
+  "verdictSummary": {
+    "verdict": "PARTIALLY_SUPPORTED_WITH_OVERCLAIM_RISK",
+    "summary": "Repo evidence supports the generated fixture claim that the trusted pointer probe can distinguish the positive path-only fixtures from the negative controls in this synthetic slice. It does not support a page-wide or production conformance verdict. The strongest supported claim is scoped candidate evidence: a marked target changed state after the harness path gesture, target click did not reach the same state, and no target-scoped marked alternative reached the same state in that rendered fixture state.",
+    "supportedClaims": [
+      "The positive generated fixtures produce pointer-gesture packets for SC 2.5.1 with trusted-path-gesture-operation, path-based-functionality-observed, and scoped-no-target-click-or-marked-alternative-observed evidence claims.",
+      "The negative generated fixtures produce no packet and the prompt pack explicitly says no LLM review should run and absence must not be treated as a conformance clear.",
+      "The prompt packet rules include safeguards against treating broad-scope clean results as page-wide conformance."
+    ],
+    "unsupportedOrOverbroadClaims": [
+      "The evidence does not prove all simple-pointer alternatives were absent; it only tests target click and alternatives marked with data-v3-pointer-gesture-alternative in one rendered state.",
+      "The evidence does not independently prove essential or unmodified-user-agent exceptions; the negative fixtures assert those exceptions through data-v3-essential-pointer-gesture and data-v3-ua-pointer-gesture attributes.",
+      "The evidence does not prove multipoint gesture coverage. The implemented probe exercises one synthetic single-pointer zigzag-like path.",
+      "The visual/state samples do not cover all 20 pointer-gesture fixtures and should not be cited as full-slice visual proof."
+    ]
+  },
+  "visualInspection": {
+    "verdict": "CONTEXT_ONLY_NOT_LOAD_BEARING_FOR_FULL_SLICE",
+    "findings": [
+      "The non-adaptation visual manifest contains pointer-gesture captures for gesture-p1 and gesture-n1 through gesture-n4 only.",
+      "The screenshots and state prompt pack corroborate visible/status state changes for sampled fixtures, but the determinative evidence is the state trace, not visual interpretation.",
+      "The prompt packs correctly warn vision/state judges to return UNCERTAIN when screenshots are merely contextual or required evidence is missing.",
+      "There is no visual/state sample for positive fixtures gesture-p2 through gesture-p10 or negative fixtures gesture-n5 through gesture-n10."
+    ],
+    "risk": "A downstream summary could overstate visual support by saying captured visual evidence exists for pointer gestures generally; repo evidence only supports captured representative samples."
+  },
+  "concerns": [
+    {
+      "severity": "medium",
+      "title": "Alternative search remains intentionally fixture-scoped",
+      "evidence": "probePointerGestures tests a target click and visible elements with data-v3-pointer-gesture-alternative, filtered by target id/path/selector or single-target fallback. The regenerated pointer-gesture evidence token now says target-click-and-marked-alternatives-only-no-equivalent-observed.",
+      "risk": "The renamed token resolves the original wording overclaim for generated fixture evidence. A real page may still provide an unmarked button, menu item, text input, keyboard-operable control, or workflow alternative that satisfies SC 2.5.1 but is invisible to this harness."
+    },
+    {
+      "severity": "high",
+      "title": "Essential and UA exceptions are trusted from fixture attributes",
+      "evidence": "Negative cases gesture-n2, gesture-n6, and gesture-n10 use data-v3-essential-pointer-gesture=true; gesture-n3 and gesture-n7 use data-v3-ua-pointer-gesture=true.",
+      "risk": "The generated evidence can verify that the harness suppresses candidates when those flags exist, but it cannot independently judge whether a signature/drawing operation is essential or whether behavior is actually unmodified user-agent/assistive-technology behavior."
+    },
+    {
+      "severity": "medium",
+      "title": "Path-vs-drag boundary remains thin",
+      "evidence": "probePointerGestures performs mouse down, a multi-step movement with horizontal and vertical displacement, then mouse up. The separate drag probe performs a mostly horizontal movement. Both use similar state-delta logic and similar 'no target click or marked alternative' evidence wording.",
+      "risk": "Some real drag operations may be misclassified as pointer gestures or vice versa. The broad pointer-operation fallback also labels generic pointer surfaces as 2.5.1/2.5.2/2.5.7, which can blur packet triage if downstream consumers ignore the specific detector."
+    },
+    {
+      "severity": "medium",
+      "title": "Multipoint coverage is claimed in the review questions but not exercised",
+      "evidence": "The pointer-gesture aspect asks whether a trusted path-based or multipoint-like gesture operated functionality, but probePointerGestures only drives a single mouse pointer path.",
+      "risk": "The harness should not claim validation of pinch, rotate, two-finger, or other multipoint gestures from this slice."
+    },
+    {
+      "severity": "medium",
+      "title": "Fixture positives are homogeneous",
+      "evidence": "All ten positive fixtures are path-only 'Draw zigzag N' controls with no click handler and no marked alternative.",
+      "risk": "The generated set verifies repeated detection stability, but it does not stress varied author patterns such as canvas drawing, map panning, slider alternatives, hidden controls, custom elements, nested targets, transformed coordinates, touch-only listeners, or responsive alternatives."
+    },
+    {
+      "severity": "medium",
+      "title": "State equivalence heuristic is shallow",
+      "evidence": "Equivalence is determined by matching targetState or matching pathGestureCompleted/clickCompleted/alternativeCompleted booleans after a single action.",
+      "risk": "A false negative is possible when a non-equivalent alternative happens to set the same targetState. A false positive is possible when an equivalent alternative changes a different part of the UI that the state reader does not capture."
+    },
+    {
+      "severity": "medium",
+      "title": "Prompt packet evidence detail embeds generated measurement as prose",
+      "evidence": "The prompt packet observed.detail field includes serialized measuredEvidence inside a string rather than as structured packet fields.",
+      "risk": "A subagent can read it, but validators and reviewers have less reliable access to individual trace fields. This raises mismatch risk between packet text, requiredEvidence, and actual state captures."
+    },
+    {
+      "severity": "low",
+      "title": "No-packet negative rows are safe but easy to misread",
+      "evidence": "Prompts.json says negative pointer-gesture rows have no packet and must not be treated as a conformance clear; integration-audit expectedDirection labels them NO_PACKET_SCOPED_OK.",
+      "risk": "The phrase NO_PACKET_SCOPED_OK is safe in audit context but could be copied as a scoped pass/clear without the adjacent warning."
+    },
+    {
+      "severity": "low",
+      "title": "Only one positive has visual evidence attached in the subagent prompt pack",
+      "evidence": "gesture-p1 evidenceRefs include visual:gesture-p1; gesture-p2 through gesture-p10 only cite broadScope.findings[0].",
+      "risk": "This is acceptable for a state-driven pointer probe, but a visual-review summary should not imply every positive packet has attached visual evidence."
+    }
+  ],
+  "recommendedHarnessChanges": [
+    {
+      "priority": "completed",
+      "change": "Pointer-gesture evidence was renamed to target-click-and-marked-alternatives-only-no-equivalent-observed.",
+      "reason": "This resolves the earlier evidence-token wording overclaim for the generated fixture slice by making the limited alternative search explicit."
+    },
+    {
+      "priority": "high",
+      "change": "Do not let data-v3-essential-pointer-gesture or data-v3-ua-pointer-gesture suppress production findings without emitting an exception-needs-human-review trace.",
+      "reason": "Generated fixtures can assert exceptions, but real exception analysis requires content/function semantics that this probe does not measure."
+    },
+    {
+      "priority": "high",
+      "change": "Keep pointer-gesture packet verdict defaults conservative unless an independent review confirms functionality, author scope, alternative absence, and exception inapplicability.",
+      "reason": "The current fixtures support candidate evidence, not authoritative SC 2.5.1 failure claims."
+    },
+    {
+      "priority": "medium",
+      "change": "Serialize measuredEvidence as structured packet data instead of embedding it in observed.detail.",
+      "reason": "Structured traces would reduce prompt-pack mismatch risk and make automated audits less dependent on parsing prose."
+    },
+    {
+      "priority": "medium",
+      "change": "Add adversarial negative fixtures with unmarked but visible alternatives, alternatives outside the target container, menu/text-input alternatives, and responsive alternatives.",
+      "reason": "These cases would document the intentional limits of the current alternative detector and catch accidental overclaiming."
+    },
+    {
+      "priority": "medium",
+      "change": "Add path-vs-drag boundary fixtures and packet wording that distinguishes SC 2.5.1 path gestures from SC 2.5.7 dragging movements.",
+      "reason": "Both probes currently use similar trusted pointer motion plus state-delta logic, so downstream triage needs sharper evidence labels."
+    },
+    {
+      "priority": "medium",
+      "change": "Add explicit multipoint noncoverage wording to the pointer-gesture prompt packet unless a real multipoint driver is added.",
+      "reason": "The review question mentions multipoint-like gestures, but the harness only exercises a single pointer path."
+    },
+    {
+      "priority": "low",
+      "change": "Align visual/state sample summaries with actual sample coverage, especially that only gesture-p1 is a sampled positive.",
+      "reason": "Avoids turning representative visual captures into an implied full-slice visual proof."
+    }
+  ],
+  "finalRecheck": {
+    "date": "2026-06-22",
+    "result": "RENAME_RESOLVES_FIXTURE_SCOPED_WORDING_CONCERN",
+    "checks": [
+      "Regenerated pointer-gesture prompt packets use target-click-and-marked-alternatives-only-no-equivalent-observed in observed.evidenceClaims and requiredEvidence for all 10 positive pointer-gesture packets.",
+      "Regenerated pointer-gesture validation rows use the renamed token for all 10 positive pointer-gesture cases.",
+      "Dragging-movement evidence remains intentionally unchanged and still uses scoped-no-target-click-or-marked-alternative-observed for SC 2.5.7 packets.",
+      "No negative pointer-gesture row produces a packet; the prompt pack still warns that no packet must not be treated as a conformance clear."
+    ],
+    "blockerAssessment": "No remaining high-priority issue should block documenting this as fixture-scoped WCAG 2.2 SC 2.5.1 path-gesture evidence, provided the documentation says the evidence is limited to trusted single-pointer path movement on generated fixtures, target-click equivalence, marked simple-pointer alternatives, and asserted fixture exception flags. It should still not be documented as page-wide conformance evidence, multipoint coverage, exhaustive alternative discovery, or independent essential/UA exception proof.",
+    "remainingCaveats": [
+      "Essential and UA exceptions are still asserted by generated fixture attributes rather than independently proven.",
+      "The probe still exercises a single-pointer path, not multipoint gestures.",
+      "Visual/state captures remain representative rather than full-slice coverage."
+    ]
+  },
+  "caseVerdicts": [
+    {
+      "caseId": "gesture-p1",
+      "expected": "positive",
+      "harnessVerdict": "supported-scoped-candidate",
+      "reviewVerdict": "supported as generated candidate only",
+      "evidence": "Path gesture changed state to advanced/status gesture completed 1; click did not; no marked alternative; packet includes visual:gesture-p1.",
+      "caveat": "Does not prove no unmarked or out-of-scope alternative."
+    },
+    {
+      "caseId": "gesture-p2",
+      "expected": "positive",
+      "harnessVerdict": "supported-scoped-candidate",
+      "reviewVerdict": "supported as generated candidate only",
+      "evidence": "Path gesture changed state; click did not; no marked alternative.",
+      "caveat": "No visual/state sample beyond validation row."
+    },
+    {
+      "caseId": "gesture-p3",
+      "expected": "positive",
+      "harnessVerdict": "supported-scoped-candidate",
+      "reviewVerdict": "supported as generated candidate only",
+      "evidence": "Path gesture changed state; click did not; no marked alternative.",
+      "caveat": "Homogeneous with other positive fixtures."
+    },
+    {
+      "caseId": "gesture-p4",
+      "expected": "positive",
+      "harnessVerdict": "supported-scoped-candidate",
+      "reviewVerdict": "supported as generated candidate only",
+      "evidence": "Path gesture changed state; click did not; no marked alternative.",
+      "caveat": "No evidence of broader alternative search."
+    },
+    {
+      "caseId": "gesture-p5",
+      "expected": "positive",
+      "harnessVerdict": "supported-scoped-candidate",
+      "reviewVerdict": "supported as generated candidate only",
+      "evidence": "Path gesture changed state; click did not; no marked alternative.",
+      "caveat": "No visual/state sample beyond validation row."
+    },
+    {
+      "caseId": "gesture-p6",
+      "expected": "positive",
+      "harnessVerdict": "supported-scoped-candidate",
+      "reviewVerdict": "supported as generated candidate only",
+      "evidence": "Path gesture changed state; click did not; no marked alternative.",
+      "caveat": "Generated proof is repetitive rather than broad pattern coverage."
+    },
+    {
+      "caseId": "gesture-p7",
+      "expected": "positive",
+      "harnessVerdict": "supported-scoped-candidate",
+      "reviewVerdict": "supported as generated candidate only",
+      "evidence": "Path gesture changed state; click did not; no marked alternative.",
+      "caveat": "No independent visual proof in prompt packet."
+    },
+    {
+      "caseId": "gesture-p8",
+      "expected": "positive",
+      "harnessVerdict": "supported-scoped-candidate",
+      "reviewVerdict": "supported as generated candidate only",
+      "evidence": "Path gesture changed state; click did not; no marked alternative.",
+      "caveat": "Same path-only synthetic control pattern."
+    },
+    {
+      "caseId": "gesture-p9",
+      "expected": "positive",
+      "harnessVerdict": "supported-scoped-candidate",
+      "reviewVerdict": "supported as generated candidate only",
+      "evidence": "Path gesture changed state; click did not; no marked alternative.",
+      "caveat": "No unscoped alternative discovery."
+    },
+    {
+      "caseId": "gesture-p10",
+      "expected": "positive",
+      "harnessVerdict": "supported-scoped-candidate",
+      "reviewVerdict": "supported as generated candidate only",
+      "evidence": "Path gesture changed state; click did not; no marked alternative.",
+      "caveat": "Does not support authoritative SC failure without human review."
+    },
+    {
+      "caseId": "gesture-n1",
+      "expected": "negative",
+      "harnessVerdict": "supported-no-packet",
+      "reviewVerdict": "supported as negative control",
+      "evidence": "Marked alternative #alternative reached equivalent advanced state; visual/state captures include before, after gesture, after click, and after alternative.",
+      "caveat": "Only proves marked-alternative handling."
+    },
+    {
+      "caseId": "gesture-n2",
+      "expected": "negative",
+      "harnessVerdict": "supported-no-packet",
+      "reviewVerdict": "mechanically supported, exception overclaim risk",
+      "evidence": "Path gesture changed state but target has data-v3-essential-pointer-gesture=true.",
+      "caveat": "Essential exception is asserted by fixture metadata, not independently established."
+    },
+    {
+      "caseId": "gesture-n3",
+      "expected": "negative",
+      "harnessVerdict": "supported-no-packet",
+      "reviewVerdict": "mechanically supported, UA overclaim risk",
+      "evidence": "Path gesture changed state but target has data-v3-ua-pointer-gesture=true.",
+      "caveat": "Fixture text says UA gesture, but page script is author content; unmodified-UA exception is not independently proven."
+    },
+    {
+      "caseId": "gesture-n4",
+      "expected": "negative",
+      "harnessVerdict": "supported-no-packet",
+      "reviewVerdict": "supported as negative control",
+      "evidence": "Target click reached advanced state while gesture did not change state in validation/state capture.",
+      "caveat": "This is a click-only control marked as a gesture target, so it mainly tests non-path filtering."
+    },
+    {
+      "caseId": "gesture-n5",
+      "expected": "negative",
+      "harnessVerdict": "supported-no-packet",
+      "reviewVerdict": "supported as negative control",
+      "evidence": "Marked alternative reached equivalent state.",
+      "caveat": "No visual/state sample; only validation row evidence reviewed."
+    },
+    {
+      "caseId": "gesture-n6",
+      "expected": "negative",
+      "harnessVerdict": "supported-no-packet",
+      "reviewVerdict": "mechanically supported, exception overclaim risk",
+      "evidence": "Path gesture changed state but target has data-v3-essential-pointer-gesture=true.",
+      "caveat": "Essential exception is asserted by fixture metadata."
+    },
+    {
+      "caseId": "gesture-n7",
+      "expected": "negative",
+      "harnessVerdict": "supported-no-packet",
+      "reviewVerdict": "mechanically supported, UA overclaim risk",
+      "evidence": "Path gesture changed state but target has data-v3-ua-pointer-gesture=true.",
+      "caveat": "UA exception is asserted by fixture metadata."
+    },
+    {
+      "caseId": "gesture-n8",
+      "expected": "negative",
+      "harnessVerdict": "supported-no-packet",
+      "reviewVerdict": "supported as negative control",
+      "evidence": "Target click reached equivalent advanced state; gesture did not produce the path-completion state.",
+      "caveat": "No visual/state sample listed for n8; validation row evidence only."
+    },
+    {
+      "caseId": "gesture-n9",
+      "expected": "negative",
+      "harnessVerdict": "supported-no-packet",
+      "reviewVerdict": "supported as negative control",
+      "evidence": "Marked alternative reached equivalent advanced state.",
+      "caveat": "Only marked alternative handling is covered."
+    },
+    {
+      "caseId": "gesture-n10",
+      "expected": "negative",
+      "harnessVerdict": "supported-no-packet",
+      "reviewVerdict": "mechanically supported, exception overclaim risk",
+      "evidence": "Path gesture changed state but target has data-v3-essential-pointer-gesture=true.",
+      "caveat": "Essential exception is asserted by fixture metadata and not independently reviewed."
+    }
+  ]
+}

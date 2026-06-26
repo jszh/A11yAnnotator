@@ -1,0 +1,106 @@
+{
+  "aspect": "media-alternatives",
+  "status": "local-and-independent-review-remediated",
+  "updatedAt": "2026-06-23",
+  "summary": {
+    "generatedRows": 20,
+    "positiveRows": 10,
+    "negativeRows": 10,
+    "promptPacketRows": 20,
+    "noPacketRows": 0,
+    "structuralBarrierReadyRows": 10,
+    "scopedControlRows": 10,
+    "convertedJudgments": 0
+  },
+  "safetyInvariants": [
+    "Media packets allow only LIKELY_BARRIER or UNCERTAIN.",
+    "Positive fixtures require alternative-missing-or-inadequate-observed.",
+    "Adequate alternatives and media-alternative-for-text exceptions use adequate-alternative-or-exception-observed and are not structurally barrier-ready.",
+    "Live media packets carry structural evidence and extracted media details only when the probe has an observed media content model; otherwise barriers clamp to UNCERTAIN.",
+    "Scoped 1.2.x warnings preserve their SC instead of treating every video warning as 1.2.2.",
+    "Transcript text does not satisfy scoped 1.2.2 caption adequacy.",
+    "Review-time LIKELY_BARRIER overclaims are clamped to UNCERTAIN when required structural evidence is missing.",
+    "Clean controls are review controls, not passes.",
+    "Media packets do not convert into authoritative v3 judgments."
+  ],
+  "independentCritic": {
+    "reviewer": "subagent-ramanujan",
+    "findings": [
+      {
+        "severity": "high",
+        "id": "MEDIA-LIVE-H1",
+        "finding": "Live media findings discarded load-bearing structural evidence and media details, so fixture positives could pass while live positives clamped to UNCERTAIN.",
+        "remediation": "runBroadScopeForUrl now emits media evidenceClaims, evidenceStrength, and evidenceDetails; buildReviewPacketsFromBroadScope preserves evidenceDetails/facts into observed."
+      },
+      {
+        "severity": "high",
+        "id": "MEDIA-LIVE-H2",
+        "finding": "Live video media findings were hard-coded to SC 1.2.2 regardless of 1.2.1 video-only, 1.2.3, or 1.2.5 scope.",
+        "remediation": "mediaWarningSc now preserves fixture-scoped 1.2.1/1.2.2/1.2.3/1.2.5 and falls back to warning-specific scoped SCs."
+      },
+      {
+        "severity": "medium",
+        "id": "MEDIA-LIVE-M1",
+        "finding": "Caption adequacy could use nearby transcript text, falsely suppressing scoped 1.2.2 caption failures.",
+        "remediation": "captionAdequacy now uses caption text only; transcripts remain available for media-alternative/transcript checks but not for 1.2.2 captions."
+      }
+    ]
+  },
+  "commands": [
+    {
+      "command": "node scripts/v3/tests/manual/validate-broad-scope-media-process-auth-fixtures.js",
+      "result": "120/120 pass; media 10 positives / 10 negatives"
+    },
+    {
+      "command": "node --test scripts/v3/tests/broad-scope-llm-review.test.js",
+      "result": "25/25 pass"
+    },
+    {
+      "command": "node --test scripts/v3/tests/broad-scope-probes.test.js",
+      "result": "39/39 pass; includes live media evidence propagation, SC mapping, and transcript-not-caption regressions"
+    },
+    {
+      "command": "node scripts/v3/tests/manual/validate-broad-scope-llm-packets.js",
+      "result": "media 20 packets; verdicts {LIKELY_BARRIER:10, UNCERTAIN:10}; 0 converted judgments"
+    },
+    {
+      "command": "node scripts/v3/tests/manual/run-broad-scope-stratified-packet-pressure.js",
+      "result": "media 20 packets; verdicts {LIKELY_BARRIER:10, UNCERTAIN:10}; 0 converted judgments"
+    },
+    {
+      "command": "node scripts/v3/tests/manual/audit-broad-scope-prompt-pack.js",
+      "result": "media 20 rows, 20 packet entries, 10 scoped media controls, 0 clear-bridgeable"
+    }
+  ],
+  "visualInspection": [
+    {
+      "id": "media-p1",
+      "file": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/media-p1-media-page.png",
+      "observation": "single visible video; no visible transcript/caption text near the target"
+    },
+    {
+      "id": "media-n1",
+      "file": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/media-n1-media-page.png",
+      "observation": "single visible video in equivalent context; adequacy is from extracted caption metadata, not pixels"
+    },
+    {
+      "id": "media-n2",
+      "file": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/media-n2-media-page.png",
+      "observation": "source text is visible and the video is explicitly labelled as a media alternative for page text"
+    }
+  ],
+  "artifacts": [
+    "scripts/v3/tests/generated/broad-scope/media-process-auth/validation.json",
+    "scripts/v3/tests/generated/broad-scope/llm-packet-validation.json",
+    "docs/analysis/improvement-research-2026-06/evidence/broad-scope-subagent-prompt-pack/prompts.json",
+    "docs/analysis/improvement-research-2026-06/evidence/broad-scope-subagent-prompt-pack/answer-key.json",
+    "docs/analysis/improvement-research-2026-06/evidence/broad-scope-subagent-prompt-pack/integration-audit.json",
+    "docs/analysis/improvement-research-2026-06/evidence/broad-scope-stratified-packet-pressure/results.json"
+  ],
+  "remainingLimits": [
+    "Fixture media content models are synthetic oracle labels, not real ASR/caption/transcript/audio-description extraction.",
+    "Real saved websites need caption/transcript/description file retrieval and media content modeling.",
+    "Screenshots are target/context corroboration only; semantic adequacy is not decided from pixels.",
+    "Separate obligations are still needed for every applicable 1.2.x SC on a real media item."
+  ]
+}

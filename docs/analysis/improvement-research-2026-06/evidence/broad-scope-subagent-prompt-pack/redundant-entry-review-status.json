@@ -1,0 +1,101 @@
+{
+  "generatedAt": "2026-06-23T00:25:51.593Z",
+  "aspect": "redundant-entry",
+  "status": "local-and-independent-review-complete",
+  "scope": "Generated fixture, browser validation, prompt-pack pressure, and representative visual inspection only. This is not saved-site validation and not a conformance publication lane.",
+  "wcag": {
+    "primarySc": "3.3.7",
+    "interpretation": "Barrier-side packets require same-process evidence, same information previously provided, required re-entry, and no auto-populate/selection/exception evidence. Control packets expose exception or non-applicability evidence and must resolve to UNCERTAIN, not a pass."
+  },
+  "localEvidence": {
+    "fixtureValidation": {
+      "command": "node scripts/v3/tests/manual/validate-broad-scope-media-process-auth-fixtures.js",
+      "result": "120/120 pass; redundant-entry 10/10 positive and 10/10 negative controls observed as expected"
+    },
+    "promptTests": {
+      "command": "node --test scripts/v3/tests/broad-scope-llm-review.test.js",
+      "result": "18/18 pass"
+    },
+    "browserProbeTests": {
+      "command": "node --test scripts/v3/tests/broad-scope-probes.test.js",
+      "result": "35/35 pass; includes real runBroadScopeForUrl claim-propagation assertion and postal-code non-auth regression"
+    },
+    "packetValidation": {
+      "command": "node scripts/v3/tests/manual/validate-broad-scope-llm-packets.js",
+      "result": "redundant-entry 20 packets; 10 LIKELY_BARRIER positives, 10 UNCERTAIN controls; 0 converted judgments"
+    },
+    "promptPackAudit": {
+      "command": "node scripts/v3/tests/manual/audit-broad-scope-prompt-pack.js",
+      "result": {
+        "rows": 20,
+        "positives": 10,
+        "negatives": 10,
+        "packetEntries": 20,
+        "noPacketEntries": 0,
+        "structuralBarrierReady": 10,
+        "barrierBridgeable": 0,
+        "clearBridgeable": 0,
+        "expectedDirections": {
+          "LIKELY_BARRIER": 10,
+          "SCOPED_REDUNDANT_ENTRY_CONTROL": 10
+        }
+      }
+    },
+    "promptPressure": {
+      "command": "node scripts/v3/tests/manual/run-broad-scope-stratified-packet-pressure.js",
+      "result": {
+        "rows": 20,
+        "verdicts": {
+          "LIKELY_BARRIER": 10,
+          "UNCERTAIN": 10
+        },
+        "convertedJudgments": 0
+      }
+    },
+    "visualInspection": {
+      "command": "node scripts/v3/tests/manual/capture-broad-scope-ni-visuals.js",
+      "result": "visual manifest includes 20 redundant-entry captures",
+      "inspected": [
+        {
+          "id": "redundant-p1",
+          "file": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/redundant-p1-before-page.png",
+          "finding": "Visible text asks for email again and states it was entered on the previous step."
+        },
+        {
+          "id": "redundant-n1",
+          "file": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/redundant-n1-before-page.png",
+          "finding": "Visible control shows the repeated email value reused automatically."
+        },
+        {
+          "id": "redundant-n10",
+          "file": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/redundant-n10-before-page.png",
+          "finding": "Visible control provides a user-confirmed reuse mechanism: Use same as shipping."
+        }
+      ]
+    }
+  },
+  "remediationsFromThisPass": [
+    "Generated redundant-entry fixtures now cover ten barrier variants and ten control/exception variants.",
+    "The collector emits SC 3.3.7 predicate claims instead of relying on duplicate field names alone.",
+    "Prompt rules allow only LIKELY_BARRIER or UNCERTAIN and explicitly encode auto-populate, selection, optional, security, invalid-data, and essential exceptions.",
+    "Prompt-pack, packet-validation, and pressure scripts now emit redundant-entry control packets instead of silently routing them to NO_REVIEW.",
+    "The auth detector no longer treats generic postal code fields as authentication code fields.",
+    "The real runBroadScopeForUrl path now preserves evidenceClaims/evidenceStrength from non-interference, interaction, authentication, and redundant-entry candidates.",
+    "Broad-scope review now clamps judge outputs to per-aspect allowedVerdicts, so redundant-entry/media/auth sidecar packets cannot retain a disallowed LIKELY_OK even if an injected judge and critic agree."
+  ],
+  "independentReview": {
+    "status": "complete",
+    "agent": "019ef1e9-ac49-7b20-a773-51c27cd83c86",
+    "summary": "Independent review accepted the generated 10/10 fixture semantics as controls, but found three issues: real runBroadScopeForUrl dropped evidence claims, sidecar review did not hard-clamp disallowed LIKELY_OK verdicts, and fixture metadata is not real process proof. The first two were fixed and regression-tested; the third remains an explicit scope limitation.",
+    "remainingReviewerCaveats": [
+      "Generated data-v3 attributes are valid fixture controls but not Trusted Tester-style real process evidence unless backed by prior-step traces, manifests, saved values, or observed reuse mechanisms.",
+      "EN 301 549 references for SC 3.3.7 should be treated as future/applicable-WCAG pass-through context, not as an independent EN 301 549 V3.2.1 clause."
+    ]
+  },
+  "remainingLimits": [
+    "The lane still uses generated fixture metadata for same-process and previously-provided facts; real saved sites need process/session traces or manifests.",
+    "The lane does not prove complete process conformance.",
+    "Exception adequacy remains semantic and process-scoped.",
+    "Absence of a redundant-entry packet must never be read as a pass."
+  ]
+}

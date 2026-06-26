@@ -1,0 +1,386 @@
+{
+  "reviewedAspect": "label-in-name",
+  "sc": "WCAG 2.2 SC 2.5.3 Label in Name",
+  "casesReviewed": {
+    "total": 20,
+    "positiveRows": 10,
+    "negativeRows": 10,
+    "positivePackets": 10,
+    "negativeNoPacketRows": 10,
+    "fixtureIds": [
+      "label-p1",
+      "label-p2",
+      "label-p3",
+      "label-p4",
+      "label-p5",
+      "label-p6",
+      "label-p7",
+      "label-p8",
+      "label-p9",
+      "label-p10",
+      "label-n1",
+      "label-n2",
+      "label-n3",
+      "label-n4",
+      "label-n5",
+      "label-n6",
+      "label-n7",
+      "label-n8",
+      "label-n9",
+      "label-n10"
+    ],
+    "localEvidenceReviewed": [
+      "docs/analysis/improvement-research-2026-06/evidence/broad-scope-subagent-prompt-pack/prompts.json",
+      "docs/analysis/improvement-research-2026-06/evidence/broad-scope-subagent-prompt-pack/answer-key.json",
+      "scripts/v3/tests/generated/broad-scope/non-interference-interaction/validation.json",
+      "scripts/v3/tests/generated/broad-scope/non-interference-interaction/label-in-name/",
+      "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/manifest.json",
+      "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/label-p1-before-target.png",
+      "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/label-n1-before-target.png",
+      "scripts/v3/lib/broad-scope-probes.js"
+    ],
+    "wcagReviewRuleApplied": "Positive rows were treated as likely barriers only when the local evidence proves a UI component with visible text, an observed accessible name, and normalized accessible name text that does not contain the normalized visible text. Negative rows were treated as scoped OK only when validation positively shows the normalized accessible name contains the normalized visible text."
+  },
+  "verdictSummary": {
+    "overall": "The generated evidence is now clean for this bounded review. All ten positive cases are supported likely SC 2.5.3 barriers because validation and fixture HTML show a UI component with visible text, an observed accessible name from aria-label or aria-labelledby, and normalized accessible name text that does not contain the normalized visible label. All ten negatives are scoped OK because validation positively reports visible text, accessible name, normalized forms, and containsVisibleText=true. The previous uncertainty for label-p2, label-p6, and label-p10 is resolved: those fixtures now use explicit aria-label mismatches rather than title-derived names.",
+    "positiveVerdicts": {
+      "LIKELY_BARRIER": 10,
+      "UNCERTAIN": 0,
+      "DISPUTED": 0
+    },
+    "negativeVerdicts": {
+      "SCOPED_OK": 10,
+      "UNCERTAIN": 0,
+      "DISPUTED": 0
+    },
+    "answerKeyMismatch": "None observed. answer-key.json expects LIKELY_BARRIER for all 10 positive rows and NO_PACKET_SCOPED_OK for all 10 negative rows; current validation evidence supports those directions for the scoped fixtures.",
+    "previousUncertaintyResolved": [
+      "label-p2",
+      "label-p6",
+      "label-p10"
+    ]
+  },
+  "visualInspection": {
+    "availableLabelCaptures": [
+      "label-p1-before-target.png",
+      "label-p1-before-page.png",
+      "label-n1-before-target.png",
+      "label-n1-before-page.png"
+    ],
+    "label-p1-before-target.png": "The target crop visibly shows the link text 'Review cart 1'. This agrees with the manifest observation and validation visibleText for label-p1. The prompt/validation evidence reports the accessible name as 'Continue checkout 1' from aria-label, so the visible text is not contained in the observed name after normalization.",
+    "label-n1-before-target.png": "The target crop visibly shows the button text 'Pay now 1'. This agrees with the manifest observation and validation visibleText for label-n1. Validation reports the accessible name as 'Pay now 1' from contents, so the visible text is contained in the observed name after normalization.",
+    "loadBearingUse": "The visual captures corroborate visible text for label-p1 and label-n1 only. The label-p1 prompt packet now reports hasVisualRef=true, but accessible-name proof still comes from validation/probe output and fixture HTML rather than screenshots.",
+    "coverageGap": "No visual captures were found in the non-adaptation visual manifest for label-p2 through label-p10 or label-n2 through label-n10."
+  },
+  "concerns": [
+    {
+      "severity": "resolved",
+      "summary": "Previous title-based button uncertainty is resolved.",
+      "detail": "label-p2, label-p6, and label-p10 now use explicit aria-label values ('Delete item 2', 'Delete item 6', and 'Delete item 10') that do not contain their visible labels ('Remove 2', 'Remove 6', and 'Remove 10'). Current validation reports nameSource='aria-label' for all three, so they now meet the positive barrier evidence rule."
+    },
+    {
+      "severity": "medium",
+      "summary": "Negative prompt-pack rows are no-packet rows.",
+      "detail": "The no-packet entries correctly warn that they must not be treated as conformance clears. They are scoped OK in this review only because validation.json separately provides affirmative observations showing containsVisibleText=true for every negative fixture."
+    },
+    {
+      "severity": "medium",
+      "summary": "Visual references remain sparse.",
+      "detail": "The visual manifest has p1/n1 captures and the current label-p1 packet exposes hasVisualRef=true. Other label-in-name packets still lack visual references, so validation and fixture HTML remain load-bearing for the visible-label and accessible-name evidence."
+    },
+    {
+      "severity": "low",
+      "summary": "The packet still has claimFamily:null.",
+      "detail": "The prompt limitations state that no registered v3 claim family exists and the packet remains sidecar/review. This is acceptable for research evidence but should be resolved before promotion into normal harness outputs."
+    }
+  ],
+  "recommendedHarnessChanges": [
+    "Keep the regenerated aria-label mismatch fixtures for label-p2, label-p6, and label-p10; they resolve the previous title-derived accessible-name uncertainty.",
+    "Keep the updated label-in-name probe order that uses visible contents before title fallback. A platform/accname implementation would still be preferable for long-term robustness.",
+    "For negative rows, include compact affirmative scoped-OK evidence in prompts.json or a companion no-barrier packet: visibleText, accessibleName, visibleNorm, nameNorm, and containsVisibleText=true.",
+    "Attach available visual references to the prompt packets, and capture target/page screenshots for the remaining label-in-name fixtures if visual confirmation of visible text is intended to support subagent review.",
+    "Register a v3 claim family for label-in-name before treating these sidecar packets as first-class harness claims."
+  ],
+  "caseVerdicts": {
+    "label-p1": {
+      "expected": "positive",
+      "verdict": "LIKELY_BARRIER",
+      "reason": "Validation and fixture HTML prove a link with visible text 'Review cart 1' and aria-label accessible name 'Continue checkout 1'. Normalized name 'continue checkout 1' does not contain normalized visible label 'review cart 1'.",
+      "evidence": {
+        "packetPresent": true,
+        "component": "a[href]",
+        "visibleText": "Review cart 1",
+        "accessibleName": "Continue checkout 1",
+        "nameSource": "aria-label",
+        "containsVisibleText": false,
+        "visualChecked": true
+      }
+    },
+    "label-p2": {
+      "expected": "positive",
+      "verdict": "LIKELY_BARRIER",
+      "reason": "Validation and fixture HTML prove a button with visible text 'Remove 2' and aria-label accessible name 'Delete item 2'. Normalized name 'delete item 2' does not contain normalized visible label 'remove 2'. This resolves the prior title-derived uncertainty.",
+      "evidence": {
+        "packetPresent": true,
+        "component": "button",
+        "visibleText": "Remove 2",
+        "accessibleName": "Delete item 2",
+        "nameSource": "aria-label",
+        "containsVisibleText": false,
+        "visualChecked": false
+      }
+    },
+    "label-p3": {
+      "expected": "positive",
+      "verdict": "LIKELY_BARRIER",
+      "reason": "Validation and fixture HTML prove a button with visible text 'Save message 3' and aria-labelledby accessible name 'Archive message 3'. Normalized name does not contain normalized visible label.",
+      "evidence": {
+        "packetPresent": true,
+        "component": "button",
+        "visibleText": "Save message 3",
+        "accessibleName": "Archive message 3",
+        "nameSource": "aria-labelledby",
+        "containsVisibleText": false,
+        "visualChecked": false
+      }
+    },
+    "label-p4": {
+      "expected": "positive",
+      "verdict": "LIKELY_BARRIER",
+      "reason": "Validation and fixture HTML prove a button with visible text 'Pay now 4' and aria-label accessible name 'Submit order 4'. Normalized name does not contain normalized visible label.",
+      "evidence": {
+        "packetPresent": true,
+        "component": "button",
+        "visibleText": "Pay now 4",
+        "accessibleName": "Submit order 4",
+        "nameSource": "aria-label",
+        "containsVisibleText": false,
+        "visualChecked": false
+      }
+    },
+    "label-p5": {
+      "expected": "positive",
+      "verdict": "LIKELY_BARRIER",
+      "reason": "Validation and fixture HTML prove a link with visible text 'Review cart 5' and aria-label accessible name 'Continue checkout 5'. Normalized name does not contain normalized visible label.",
+      "evidence": {
+        "packetPresent": true,
+        "component": "a[href]",
+        "visibleText": "Review cart 5",
+        "accessibleName": "Continue checkout 5",
+        "nameSource": "aria-label",
+        "containsVisibleText": false,
+        "visualChecked": false
+      }
+    },
+    "label-p6": {
+      "expected": "positive",
+      "verdict": "LIKELY_BARRIER",
+      "reason": "Validation and fixture HTML prove a button with visible text 'Remove 6' and aria-label accessible name 'Delete item 6'. Normalized name does not contain normalized visible label. This resolves the prior title-derived uncertainty.",
+      "evidence": {
+        "packetPresent": true,
+        "component": "button",
+        "visibleText": "Remove 6",
+        "accessibleName": "Delete item 6",
+        "nameSource": "aria-label",
+        "containsVisibleText": false,
+        "visualChecked": false
+      }
+    },
+    "label-p7": {
+      "expected": "positive",
+      "verdict": "LIKELY_BARRIER",
+      "reason": "Validation and fixture HTML prove a button with visible text 'Save message 7' and aria-labelledby accessible name 'Archive message 7'. Normalized name does not contain normalized visible label.",
+      "evidence": {
+        "packetPresent": true,
+        "component": "button",
+        "visibleText": "Save message 7",
+        "accessibleName": "Archive message 7",
+        "nameSource": "aria-labelledby",
+        "containsVisibleText": false,
+        "visualChecked": false
+      }
+    },
+    "label-p8": {
+      "expected": "positive",
+      "verdict": "LIKELY_BARRIER",
+      "reason": "Validation and fixture HTML prove a button with visible text 'Pay now 8' and aria-label accessible name 'Submit order 8'. Normalized name does not contain normalized visible label.",
+      "evidence": {
+        "packetPresent": true,
+        "component": "button",
+        "visibleText": "Pay now 8",
+        "accessibleName": "Submit order 8",
+        "nameSource": "aria-label",
+        "containsVisibleText": false,
+        "visualChecked": false
+      }
+    },
+    "label-p9": {
+      "expected": "positive",
+      "verdict": "LIKELY_BARRIER",
+      "reason": "Validation and fixture HTML prove a link with visible text 'Review cart 9' and aria-label accessible name 'Continue checkout 9'. Normalized name does not contain normalized visible label.",
+      "evidence": {
+        "packetPresent": true,
+        "component": "a[href]",
+        "visibleText": "Review cart 9",
+        "accessibleName": "Continue checkout 9",
+        "nameSource": "aria-label",
+        "containsVisibleText": false,
+        "visualChecked": false
+      }
+    },
+    "label-p10": {
+      "expected": "positive",
+      "verdict": "LIKELY_BARRIER",
+      "reason": "Validation and fixture HTML prove a button with visible text 'Remove 10' and aria-label accessible name 'Delete item 10'. Normalized name does not contain normalized visible label. This resolves the prior title-derived uncertainty.",
+      "evidence": {
+        "packetPresent": true,
+        "component": "button",
+        "visibleText": "Remove 10",
+        "accessibleName": "Delete item 10",
+        "nameSource": "aria-label",
+        "containsVisibleText": false,
+        "visualChecked": false
+      }
+    },
+    "label-n1": {
+      "expected": "negative",
+      "verdict": "SCOPED_OK",
+      "reason": "Validation positively shows a button with visible text 'Pay now 1' and accessible name 'Pay now 1' from contents; normalized name contains normalized visible label.",
+      "evidence": {
+        "packetPresent": false,
+        "component": "button",
+        "visibleText": "Pay now 1",
+        "accessibleName": "Pay now 1",
+        "nameSource": "contents",
+        "containsVisibleText": true,
+        "visualChecked": true
+      }
+    },
+    "label-n2": {
+      "expected": "negative",
+      "verdict": "SCOPED_OK",
+      "reason": "Validation positively shows a link with visible text 'Review cart 2' and aria-labelledby accessible name 'Review cart 2, continue checkout'; normalized name contains normalized visible label.",
+      "evidence": {
+        "packetPresent": false,
+        "component": "a[href]",
+        "visibleText": "Review cart 2",
+        "accessibleName": "Review cart 2, continue checkout",
+        "nameSource": "aria-labelledby",
+        "containsVisibleText": true,
+        "visualChecked": false
+      }
+    },
+    "label-n3": {
+      "expected": "negative",
+      "verdict": "SCOPED_OK",
+      "reason": "Validation positively shows a submit input with visible value 'Search catalog 3' and aria-label accessible name 'Search catalog 3 submit'; normalized name contains normalized visible label.",
+      "evidence": {
+        "packetPresent": false,
+        "component": "input[type=submit]",
+        "visibleText": "Search catalog 3",
+        "accessibleName": "Search catalog 3 submit",
+        "nameSource": "aria-label",
+        "containsVisibleText": true,
+        "visualChecked": false
+      }
+    },
+    "label-n4": {
+      "expected": "negative",
+      "verdict": "SCOPED_OK",
+      "reason": "Validation positively shows a button with visible text 'Remove 4' and aria-label accessible name 'Remove 4 from cart'; normalized name contains normalized visible label.",
+      "evidence": {
+        "packetPresent": false,
+        "component": "button",
+        "visibleText": "Remove 4",
+        "accessibleName": "Remove 4 from cart",
+        "nameSource": "aria-label",
+        "containsVisibleText": true,
+        "visualChecked": false
+      }
+    },
+    "label-n5": {
+      "expected": "negative",
+      "verdict": "SCOPED_OK",
+      "reason": "Validation positively shows a button with visible text 'Pay now 5' and aria-label accessible name 'Pay now 5, submit order'; normalized name contains normalized visible label.",
+      "evidence": {
+        "packetPresent": false,
+        "component": "button",
+        "visibleText": "Pay now 5",
+        "accessibleName": "Pay now 5, submit order",
+        "nameSource": "aria-label",
+        "containsVisibleText": true,
+        "visualChecked": false
+      }
+    },
+    "label-n6": {
+      "expected": "negative",
+      "verdict": "SCOPED_OK",
+      "reason": "Validation positively shows a button with visible text 'Pay now 6' and accessible name 'Pay now 6' from contents; normalized name contains normalized visible label.",
+      "evidence": {
+        "packetPresent": false,
+        "component": "button",
+        "visibleText": "Pay now 6",
+        "accessibleName": "Pay now 6",
+        "nameSource": "contents",
+        "containsVisibleText": true,
+        "visualChecked": false
+      }
+    },
+    "label-n7": {
+      "expected": "negative",
+      "verdict": "SCOPED_OK",
+      "reason": "Validation positively shows a link with visible text 'Review cart 7' and aria-labelledby accessible name 'Review cart 7, continue checkout'; normalized name contains normalized visible label.",
+      "evidence": {
+        "packetPresent": false,
+        "component": "a[href]",
+        "visibleText": "Review cart 7",
+        "accessibleName": "Review cart 7, continue checkout",
+        "nameSource": "aria-labelledby",
+        "containsVisibleText": true,
+        "visualChecked": false
+      }
+    },
+    "label-n8": {
+      "expected": "negative",
+      "verdict": "SCOPED_OK",
+      "reason": "Validation positively shows a submit input with visible value 'Search catalog 8' and aria-label accessible name 'Search catalog 8 submit'; normalized name contains normalized visible label.",
+      "evidence": {
+        "packetPresent": false,
+        "component": "input[type=submit]",
+        "visibleText": "Search catalog 8",
+        "accessibleName": "Search catalog 8 submit",
+        "nameSource": "aria-label",
+        "containsVisibleText": true,
+        "visualChecked": false
+      }
+    },
+    "label-n9": {
+      "expected": "negative",
+      "verdict": "SCOPED_OK",
+      "reason": "Validation positively shows a button with visible text 'Remove 9' and aria-label accessible name 'Remove 9 from cart'; normalized name contains normalized visible label.",
+      "evidence": {
+        "packetPresent": false,
+        "component": "button",
+        "visibleText": "Remove 9",
+        "accessibleName": "Remove 9 from cart",
+        "nameSource": "aria-label",
+        "containsVisibleText": true,
+        "visualChecked": false
+      }
+    },
+    "label-n10": {
+      "expected": "negative",
+      "verdict": "SCOPED_OK",
+      "reason": "Validation positively shows a button with visible text 'Pay now 10' and aria-label accessible name 'Pay now 10, submit order'; normalized name contains normalized visible label.",
+      "evidence": {
+        "packetPresent": false,
+        "component": "button",
+        "visibleText": "Pay now 10",
+        "accessibleName": "Pay now 10, submit order",
+        "nameSource": "aria-label",
+        "containsVisibleText": true,
+        "visualChecked": false
+      }
+    }
+  }
+}

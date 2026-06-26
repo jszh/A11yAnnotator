@@ -1,0 +1,265 @@
+{
+  "reviewedAspect": "target-size-minimum",
+  "sc": {
+    "id": "2.5.8",
+    "name": "Target Size (Minimum)",
+    "standard": "WCAG 2.2",
+    "reviewRule": "A positive target-size barrier needs evidence of a rendered pointer target, measured target size below 24 by 24 CSS px, and target-spacing intersection, with Equivalent, Essential, Inline, and User Agent control exceptions considered. A negative/scoped OK case needs positive evidence of a 24 by 24 pass, spacing/no-intersection exception, inline/prose exception or needs-judgment non-barrier, essential/equivalent/UA exception, or no target-spacing intersection."
+  },
+  "casesReviewed": {
+    "count": 20,
+    "positive": [
+      "targetsize-p1",
+      "targetsize-p2",
+      "targetsize-p3",
+      "targetsize-p4",
+      "targetsize-p5",
+      "targetsize-p6",
+      "targetsize-p7",
+      "targetsize-p8",
+      "targetsize-p9",
+      "targetsize-p10"
+    ],
+    "negative": [
+      "targetsize-n1",
+      "targetsize-n2",
+      "targetsize-n3",
+      "targetsize-n4",
+      "targetsize-n5",
+      "targetsize-n6",
+      "targetsize-n7",
+      "targetsize-n8",
+      "targetsize-n9",
+      "targetsize-n10"
+    ],
+    "localEvidenceReviewed": [
+      "docs/analysis/improvement-research-2026-06/evidence/broad-scope-subagent-prompt-pack/prompts.json",
+      "docs/analysis/improvement-research-2026-06/evidence/broad-scope-subagent-prompt-pack/answer-key.json",
+      "scripts/v3/tests/generated/broad-scope/non-interference-interaction/validation.json",
+      "scripts/v3/tests/generated/broad-scope/non-interference-interaction/target-size-minimum/",
+      "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/manifest.json",
+      "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/targetsize-p1-before-page.png",
+      "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/targetsize-n1-before-page.png",
+      "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/targetsize-n2-before-page.png",
+      "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/targetsize-n5-before-page.png"
+    ]
+  },
+  "verdictSummary": {
+    "overall": "The current target-size-minimum harness evidence is fit for the intended broad-scope prompt-pack review. All ten positive packets support LIKELY_BARRIER under SC 2.5.8 because they expose rendered button targets measured at 18 by 18 CSS px with adjacent target intersection and no exception flags. All ten negative cases are scoped OK when read with validation.json, now including explicit equivalent, inline/prose, essential, spacing/no-intersection, 24 by 24 pass, and UA-control exception evidence.",
+    "positiveCases": "Supported as likely barriers: rendered #target buttons, 18 by 18 CSS px, adjacent controls, target-spacing intersection, no equivalent/essential/inline/UA exception.",
+    "negativeCases": "Scoped OK with current validation evidence: spacing/no-intersection cases n1 and n7; inline/prose exception cases n2 and n8 with inlineException=true and pass reason generated inline/in-sentence exception; essential cases n3 and n9; equivalent cases n4 and n10 with pass reason generated equivalent-target exception; UA-control case n5 with uaControl=true on a measured native checkbox; 32 by 32 pass case n6.",
+    "answerKeyAlignment": "answer-key.json continues to separate expected labels from judge prompts and marks positives as LIKELY_BARRIER and negatives as NO_PACKET_SCOPED_OK.",
+    "promptPackAlignment": "prompts.json gives positives complete requiredEvidence/questions/limitations. Negative entries remain no-packet rows that warn no LLM review should run and that they must not be treated as conformance clears. Positive targetsize-p1 now carries hasVisualRef=true and visualAgreement=true; other positive packets remain geometry-driven without visual refs."
+  },
+  "visualInspection": {
+    "availableTargetSizeCaptures": [
+      "targetsize-p1-before-target.png",
+      "targetsize-p1-before-page.png",
+      "targetsize-n1-before-target.png",
+      "targetsize-n1-before-page.png",
+      "targetsize-n2-before-target.png",
+      "targetsize-n2-before-page.png",
+      "targetsize-n5-before-target.png",
+      "targetsize-n5-before-page.png"
+    ],
+    "targetsize-p1-before-page.png": {
+      "observed": "The page capture shows two small square controls immediately adjacent under the Target size positive 1 heading.",
+      "agreement": "Agrees with measured evidence that #target is an 18 by 18 rendered button beside another target with insufficient spacing.",
+      "roleInVerdict": "Corroborates the positive packet; prompts.json now also records hasVisualRef=true and visualAgreement=true for targetsize-p1."
+    },
+    "targetsize-n1-before-page.png": {
+      "observed": "The page capture shows two small square controls separated by a large visible horizontal gap.",
+      "agreement": "Agrees with validation evidence for the spacing/no target-spacing-intersection exception despite the 18 by 18 target size.",
+      "roleInVerdict": "Supports scoped OK for this fixture when combined with validation geometry."
+    },
+    "targetsize-n2-before-page.png": {
+      "observed": "The page capture shows a sentence with a very small inline target link 'go' followed immediately by another inline prose link.",
+      "agreement": "Agrees with current validation flags inlineCandidate=true, inSentence=true, inlineException=true, and pass reason generated inline/in-sentence exception.",
+      "roleInVerdict": "Supports scoped OK for this fixture as an explicit inline/prose exception."
+    },
+    "targetsize-n5-before-page.png": {
+      "observed": "The refreshed page capture shows two small native checkbox controls under the Target size negative 5 heading.",
+      "agreement": "Agrees with validation evidence that #target is an input measured 13 by 13 CSS px with uaControl=true and pass reason user-agent control exception.",
+      "roleInVerdict": "Supports scoped OK for the unmodified native user-agent control exception."
+    },
+    "coverageNote": "No page captures were available in the reviewed manifest for targetsize-p2 through p10 or for negative cases n3, n4, n6, n7, n8, n9, and n10."
+  },
+  "concerns": [
+    {
+      "severity": "medium",
+      "status": "open",
+      "summary": "Negative prompt entries still do not carry their positive exception evidence.",
+      "detail": "prompts.json represents all target-size negative fixtures as no-packet rows. That is consistent with NO_PACKET_SCOPED_OK and safer than asking an LLM to clear conformance, but a reviewer reading only prompts.json still cannot independently verify spacing, inline, essential, equivalent, UA-control, or 24 by 24 pass evidence."
+    },
+    {
+      "severity": "medium",
+      "status": "resolved",
+      "summary": "Equivalent exception cases now report explicit pass reasons.",
+      "detail": "Earlier equivalent cases had equivalent=true but nested fail text. Current targetsize-n4 and targetsize-n10 report verdict=pass with reason generated equivalent-target exception."
+    },
+    {
+      "severity": "low",
+      "status": "resolved",
+      "summary": "Inline/prose exception coverage is now explicit.",
+      "detail": "Earlier inline cases were masked by spacing-pass wording. Current targetsize-n2 and targetsize-n8 carry inlineException=true and pass reason generated inline/in-sentence exception."
+    },
+    {
+      "severity": "low",
+      "status": "resolved",
+      "summary": "User-agent-control exception coverage is now present.",
+      "detail": "targetsize-n5 is now a native checkbox input measured 13 by 13 CSS px with uaControl=true and pass reason user-agent control exception (unmodified default-sized native control)."
+    },
+    {
+      "severity": "low",
+      "status": "partially-resolved",
+      "summary": "Visual metadata is improved but still representative rather than complete.",
+      "detail": "targetsize-p1 has visual metadata in prompts.json and the manifest includes refreshed captures for n5. Most target-size fixtures still have no visual capture, which is acceptable because geometry remains load-bearing, but less convenient for manual audits."
+    }
+  ],
+  "recommendedHarnessChanges": [
+    {
+      "priority": "medium",
+      "change": "Keep the no-LLM behavior for negative rows, but add compact scoped-ok evidence to prompts.json or an adjacent sidecar: measured box, exception/no-intersection reason, and the warning that it is not a page-wide conformance clear."
+    },
+    {
+      "priority": "low",
+      "change": "Where visual captures exist, include visualRef metadata for negative no-packet rows in a review sidecar or manifest cross-reference while keeping geometry measurements as the decisive evidence."
+    },
+    {
+      "priority": "low",
+      "change": "Optionally add visual captures for at least one essential, one equivalent, and one 32 by 32 pass case so every negative exception family has representative visual context."
+    }
+  ],
+  "caseVerdicts": {
+    "targetsize-p1": {
+      "expectedDirection": "LIKELY_BARRIER",
+      "reviewVerdict": "supported",
+      "basis": "Rendered button #target measured 18 by 18 CSS px; evidenceClaims include rendered-pointer-target, measured-target-size-below-24, and target-spacing-intersection; inlineException=false, essential=false, equivalent=false, uaControl=false.",
+      "visual": "targetsize-p1-before-page.png shows two tiny adjacent square controls, and prompts.json records hasVisualRef=true with visualAgreement=true."
+    },
+    "targetsize-p2": {
+      "expectedDirection": "LIKELY_BARRIER",
+      "reviewVerdict": "supported",
+      "basis": "Rendered 18 by 18 #target button adjacent to another target with target-spacing intersection and no exception flags.",
+      "visual": "No visual capture available in the reviewed manifest."
+    },
+    "targetsize-p3": {
+      "expectedDirection": "LIKELY_BARRIER",
+      "reviewVerdict": "supported",
+      "basis": "Rendered 18 by 18 #target button adjacent to another target with target-spacing intersection and no exception flags.",
+      "visual": "No visual capture available in the reviewed manifest."
+    },
+    "targetsize-p4": {
+      "expectedDirection": "LIKELY_BARRIER",
+      "reviewVerdict": "supported",
+      "basis": "Rendered 18 by 18 #target button adjacent to another target with target-spacing intersection and no exception flags.",
+      "visual": "No visual capture available in the reviewed manifest."
+    },
+    "targetsize-p5": {
+      "expectedDirection": "LIKELY_BARRIER",
+      "reviewVerdict": "supported",
+      "basis": "Rendered 18 by 18 #target button adjacent to another target with target-spacing intersection and no exception flags.",
+      "visual": "No visual capture available in the reviewed manifest."
+    },
+    "targetsize-p6": {
+      "expectedDirection": "LIKELY_BARRIER",
+      "reviewVerdict": "supported",
+      "basis": "Rendered 18 by 18 #target button adjacent to another target with target-spacing intersection and no exception flags.",
+      "visual": "No visual capture available in the reviewed manifest."
+    },
+    "targetsize-p7": {
+      "expectedDirection": "LIKELY_BARRIER",
+      "reviewVerdict": "supported",
+      "basis": "Rendered 18 by 18 #target button adjacent to another target with target-spacing intersection and no exception flags.",
+      "visual": "No visual capture available in the reviewed manifest."
+    },
+    "targetsize-p8": {
+      "expectedDirection": "LIKELY_BARRIER",
+      "reviewVerdict": "supported",
+      "basis": "Rendered 18 by 18 #target button adjacent to another target with target-spacing intersection and no exception flags.",
+      "visual": "No visual capture available in the reviewed manifest."
+    },
+    "targetsize-p9": {
+      "expectedDirection": "LIKELY_BARRIER",
+      "reviewVerdict": "supported",
+      "basis": "Rendered 18 by 18 #target button adjacent to another target with target-spacing intersection and no exception flags.",
+      "visual": "No visual capture available in the reviewed manifest."
+    },
+    "targetsize-p10": {
+      "expectedDirection": "LIKELY_BARRIER",
+      "reviewVerdict": "supported",
+      "basis": "Rendered 18 by 18 #target button adjacent to another target with target-spacing intersection and no exception flags.",
+      "visual": "No visual capture available in the reviewed manifest."
+    },
+    "targetsize-n1": {
+      "expectedDirection": "NO_PACKET_SCOPED_OK",
+      "reviewVerdict": "supported-with-validation-evidence",
+      "basis": "Validation observes a rendered 18 by 18 #target button but reports spacing exception/no target-spacing intersection: the 24px circle clears adjacent targets.",
+      "promptPackNote": "prompts.json has no packet and warns not to treat this as a conformance clear.",
+      "visual": "targetsize-n1-before-page.png shows the two tiny controls separated by a large visible gap."
+    },
+    "targetsize-n2": {
+      "expectedDirection": "NO_PACKET_SCOPED_OK",
+      "reviewVerdict": "supported-with-validation-evidence",
+      "basis": "Validation observes an inline prose link measured 13.36 by 14 CSS px with inlineCandidate=true, inSentence=true, inlineException=true, and pass reason generated inline/in-sentence exception.",
+      "promptPackNote": "prompts.json has no packet and warns not to treat this as a conformance clear.",
+      "visual": "targetsize-n2-before-page.png shows the target as a tiny link inside a sentence."
+    },
+    "targetsize-n3": {
+      "expectedDirection": "NO_PACKET_SCOPED_OK",
+      "reviewVerdict": "supported-with-validation-evidence",
+      "basis": "Validation observes an 18 by 18 #target button with essential=true and result reason essential exception.",
+      "promptPackNote": "No packet; scoped OK evidence is only in validation.json.",
+      "visual": "No visual capture available in the reviewed manifest."
+    },
+    "targetsize-n4": {
+      "expectedDirection": "NO_PACKET_SCOPED_OK",
+      "reviewVerdict": "supported-with-validation-evidence",
+      "basis": "Validation observes an 18 by 18 #target with equivalent=true and result reason generated equivalent-target exception.",
+      "promptPackNote": "No packet; scoped OK evidence is only in validation.json.",
+      "visual": "No visual capture available in the reviewed manifest."
+    },
+    "targetsize-n5": {
+      "expectedDirection": "NO_PACKET_SCOPED_OK",
+      "reviewVerdict": "supported-with-validation-evidence",
+      "basis": "Validation observes a native input checkbox #target measured 13 by 13 CSS px with uaControl=true and pass reason user-agent control exception (unmodified default-sized native control).",
+      "promptPackNote": "No packet; scoped OK evidence is only in validation.json.",
+      "visual": "targetsize-n5-before-page.png shows two small native checkbox controls."
+    },
+    "targetsize-n6": {
+      "expectedDirection": "NO_PACKET_SCOPED_OK",
+      "reviewVerdict": "supported-with-validation-evidence",
+      "basis": "Validation observes #target at 32 by 32 CSS px with squareFits=true and a pass reason that it meets 24 by 24.",
+      "promptPackNote": "No packet; scoped OK evidence is only in validation.json.",
+      "visual": "No visual capture available in the reviewed manifest."
+    },
+    "targetsize-n7": {
+      "expectedDirection": "NO_PACKET_SCOPED_OK",
+      "reviewVerdict": "supported-with-validation-evidence",
+      "basis": "Validation observes a rendered 18 by 18 #target button with spacing exception/no target-spacing intersection.",
+      "promptPackNote": "No packet; scoped OK evidence is only in validation.json.",
+      "visual": "No visual capture available in the reviewed manifest."
+    },
+    "targetsize-n8": {
+      "expectedDirection": "NO_PACKET_SCOPED_OK",
+      "reviewVerdict": "supported-with-validation-evidence",
+      "basis": "Validation observes an inline prose link measured 13.36 by 14 CSS px with inlineCandidate=true, inSentence=true, inlineException=true, and pass reason generated inline/in-sentence exception.",
+      "promptPackNote": "No packet; scoped OK evidence is only in validation.json.",
+      "visual": "No visual capture available in the reviewed manifest."
+    },
+    "targetsize-n9": {
+      "expectedDirection": "NO_PACKET_SCOPED_OK",
+      "reviewVerdict": "supported-with-validation-evidence",
+      "basis": "Validation observes an 18 by 18 #target button with essential=true and result reason essential exception.",
+      "promptPackNote": "No packet; scoped OK evidence is only in validation.json.",
+      "visual": "No visual capture available in the reviewed manifest."
+    },
+    "targetsize-n10": {
+      "expectedDirection": "NO_PACKET_SCOPED_OK",
+      "reviewVerdict": "supported-with-validation-evidence",
+      "basis": "Validation observes an 18 by 18 #target with equivalent=true and result reason generated equivalent-target exception.",
+      "promptPackNote": "No packet; scoped OK evidence is only in validation.json.",
+      "visual": "No visual capture available in the reviewed manifest."
+    }
+  }
+}

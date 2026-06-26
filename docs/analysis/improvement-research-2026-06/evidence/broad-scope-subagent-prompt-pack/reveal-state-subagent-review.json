@@ -1,0 +1,87 @@
+{
+  "verdict": "PASS_WITH_CONCERNS",
+  "summary": "The reveal-state slice is correctly wired as discovery-only, but it needed hardening so packets are not overread as barriers and common reveal/hidden-content cases are less likely to be missed.",
+  "findings": [
+    {
+      "severity": "medium",
+      "risk": "4.1.2 under-routing",
+      "remediation": "Reveal-state findings and fixture prompt mappings now use 1.3.1/2.4.3/2.4.10/4.1.2; prompt packets preserve relatedScs for all four SCs."
+    },
+    {
+      "severity": "medium",
+      "risk": "Discovery packets could be overread as barriers",
+      "remediation": "The reveal-state LLM procedure now instructs judges to return UNCERTAIN from reveal discovery alone, and the deterministic packet-pressure scripts expect UNCERTAIN_DISCOVERY rather than LIKELY_BARRIER."
+    },
+    {
+      "severity": "medium",
+      "risk": "Selector/path collisions for no-id controls",
+      "remediation": "probeRevealStates now emits stable nth-of-type CSS paths for no-id controls; an adversarial two-button test verifies the second button is clicked."
+    },
+    {
+      "severity": "medium",
+      "risk": "False positives from text-only diffs and closed details visibility",
+      "remediation": "The reveal diff now requires newly visible nodes rather than text changes on already-visible nodes, and visibility respects closed details semantics."
+    },
+    {
+      "severity": "medium",
+      "risk": "False negatives for common reveal controls",
+      "remediation": "The discovery selector now includes popover, aria-haspopup, and data-reveal controls in addition to explicit aria-controls/details/tab patterns. Broader keyboard-only, shadow DOM, iframe, long-delay, and state-combination exploration remains deferred."
+    },
+    {
+      "severity": "low",
+      "risk": "Partial visual coverage",
+      "remediation": "Visual capture now includes all 10 positive and all 10 negative reveal-state generated fixtures."
+    }
+  ],
+  "postRemediationEvidence": {
+    "fixtureValidation": {
+      "file": "scripts/v3/tests/generated/broad-scope/non-interference-interaction/validation.json",
+      "totalRows": 260,
+      "passingRows": 260,
+      "revealPositives": "10/10",
+      "revealNegatives": "10/10"
+    },
+    "promptPackAudit": {
+      "file": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-subagent-prompt-pack/integration-audit.json",
+      "revealRows": 20,
+      "packetEntries": 10,
+      "noPacketEntries": 10,
+      "expectedDirections": {
+        "UNCERTAIN_DISCOVERY": 10,
+        "NO_PACKET_SCOPED_OK": 10
+      },
+      "barrierBridgeable": 0,
+      "clearBridgeable": 0
+    },
+    "packetPressure": {
+      "file": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-stratified-packet-pressure/results.json",
+      "verdicts": {
+        "UNCERTAIN": 10,
+        "NO_REVIEW": 10
+      },
+      "relatedScs": {
+        "1.3.1": 10,
+        "2.4.3": 10,
+        "2.4.10": 10,
+        "4.1.2": 10
+      },
+      "convertedJudgments": 0
+    },
+    "visualEvidence": {
+      "file": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/manifest.json",
+      "revealCaptures": 20,
+      "manualVisionSamples": [
+        "reveal-p4-after-reveal-page.png",
+        "reveal-p5-after-reveal-page.png",
+        "reveal-n5-after-reveal-page.png",
+        "reveal-n7-after-reveal-page.png"
+      ]
+    }
+  },
+  "remainingLimitations": [
+    "The lane still discovers revealed states rather than emitting dynamicSubjects into the v3 obligation ledger.",
+    "It does not yet rerun focus order, heading/structure, or name/role/value checks inside every revealed state.",
+    "Keyboard-only reveals, hover/focus reveals, long transitions, shadow DOM, same-origin iframes, and bounded state-combination exploration remain future work.",
+    "Discovery absence must not be interpreted as a pass."
+  ]
+}

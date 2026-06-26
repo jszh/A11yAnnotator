@@ -1,0 +1,88 @@
+{
+  "generatedAt": "2026-06-22T05:06:46Z",
+  "reviewer": "subagent:019eedb8-f469-7c13-8858-0cd4d680b7e2",
+  "slice": "broad-scope complete-process and site-set consistency sidecar analyzers",
+  "verdictBeforeRemediation": "PASS_WITH_CONCERNS",
+  "summary": "The slice was correctly sidecar-scoped and did not convert process/site-set packets into v3 judgments, but the critic found over-broad site-set comparisons, optimistic process coverage defaults, incomplete process packet fields, and a misleading no-packet LIKELY_OK pressure-summary label.",
+  "findings": [
+    {
+      "id": "SITE_FP_HELP_EXACT_SET_COMPARE",
+      "severity": "high",
+      "status": "remediated",
+      "risk": "Exact helpMechanisms array comparison could flag availability differences instead of repeated help order/location issues under WCAG 2.2 SC 3.2.6.",
+      "remediation": "Site-set analysis now checks relative order among repeated help mechanisms and does not flag chat+phone vs chat-only availability differences as a barrier."
+    },
+    {
+      "id": "SITE_FP_NAV_WHOLE_SIGNATURE",
+      "severity": "high",
+      "status": "remediated",
+      "risk": "Whole nav label+href signatures could confuse contextual/current-page nav changes with SC 3.2.3 order failures.",
+      "remediation": "Site-set analysis now checks relative order among repeated navigation labels, ignores empty current-page hrefs for destination conflicts, and separates same-label different-destination evidence."
+    },
+    {
+      "id": "SITE_FP_FN_TITLES",
+      "severity": "medium",
+      "status": "partially-remediated",
+      "risk": "Duplicate-title detection depended on purpose/url metadata and ignored missing/blank titles.",
+      "remediation": "Missing/blank page titles now produce a scoped title candidate. Duplicate title handling remains purpose-aware and sidecar-only; generic duplicate-title cases without purpose metadata remain review surfaces rather than authoritative failures."
+    },
+    {
+      "id": "PROCESS_FN_REQUIRED_COVERAGE_DEFAULTS",
+      "severity": "high",
+      "status": "remediated",
+      "risk": "When requiredStepIds was omitted, observed steps became the required set; measured also defaulted to true unless explicitly false.",
+      "remediation": "Process analysis now requires declared requiredStepIds for process-scope comparison, requires measured:true plus a target to count a step as measured, and emits scope-gap warnings when required steps or process boundary completeness are undeclared."
+    },
+    {
+      "id": "PROCESS_PACKET_CONFLICTING_SUMMARY",
+      "severity": "medium",
+      "status": "remediated",
+      "risk": "Process packets omitted structured duplicate/missing/unmeasured fields and could claim all-required-steps-measured while a target was missing.",
+      "remediation": "Process packets now expose duplicateStepIds, missingTargets, unmeasuredSteps, missingStepResults, and a missing target prevents that step from counting as measured."
+    },
+    {
+      "id": "OUTPUT_NO_PACKET_MARKED_LIKELY_OK",
+      "severity": "medium",
+      "status": "remediated",
+      "risk": "Pressure results summarized no-packet negative controls as LIKELY_OK, creating a downstream false-clear hazard.",
+      "remediation": "No-packet rows now carry syntheticVerdict:NO_REVIEW in pressure results. Answer-key expected direction remains NO_PACKET_SCOPED_OK only as a fixture expectation, not a review verdict."
+    }
+  ],
+  "postRemediationEvidence": {
+    "mediaProcessAuthValidation": {
+      "total": 120,
+      "pass": 120,
+      "fail": 0,
+      "completeProcess": "10 positive / 10 negative, all passed",
+      "siteSetConsistency": "10 positive / 10 negative, all passed"
+    },
+    "focusedTests": {
+      "broadScopeProbes": "31 passed, 0 failed",
+      "broadScopeLlmReview": "13 passed, 0 failed"
+    },
+    "promptAudit": {
+      "totalEntries": 460,
+      "packetEntries": 250,
+      "noPacketEntries": 210,
+      "structuralBarrierReady": 200,
+      "barrierBridgeable": 30,
+      "clearBridgeable": 0
+    },
+    "processSitePressure": {
+      "completeProcessVerdicts": {
+        "LIKELY_BARRIER": 10,
+        "NO_REVIEW": 10
+      },
+      "siteSetConsistencyVerdicts": {
+        "LIKELY_BARRIER": 10,
+        "NO_REVIEW": 10
+      },
+      "convertedJudgments": 0
+    }
+  },
+  "remainingCaveats": [
+    "These analyzers consume manifests; they do not yet prove that a crawler or flow runner discovered every required process branch or page-set member.",
+    "Site-set duplicate-title and same-link-name candidates remain review surfaces because purpose equivalence is semantic and context dependent.",
+    "Process/site packets remain sidecar-only and convert no v3 judgments."
+  ]
+}

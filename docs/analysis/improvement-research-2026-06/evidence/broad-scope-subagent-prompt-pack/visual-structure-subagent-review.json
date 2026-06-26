@@ -1,0 +1,75 @@
+{
+  "verdict": "PROVISIONALLY_SOUND_AS_DISCOVERY_SIDECAR_WITH_GAPS",
+  "summary": "The visual-structure-discovery lane is sound enough as a discovery-only sidecar for WCAG 1.3.1 / 2.4.6 and optional AAA 2.4.10 follow-up, but required hardening so discovery evidence cannot look like a definite barrier and prompt packets actually include visual evidence.",
+  "findings": [
+    {
+      "severity": "medium",
+      "risk": "Discovery verdict was prompt-enforced, not code-enforced",
+      "remediation": "Discovery-only aspects are now clamped in broad-scope LLM review: reveal-state-discovery and visual-structure-discovery always reconcile to UNCERTAIN even if judge and critic agree on LIKELY_BARRIER."
+    },
+    {
+      "severity": "medium",
+      "risk": "Prompt pack was stale relative to visual evidence",
+      "remediation": "Prompt artifacts were regenerated after screenshot capture; positive visual-structure packets now include visual refs and visualAgreement. The prompt-pack audit now fails if expected visual refs are missing."
+    },
+    {
+      "severity": "medium",
+      "risk": "Generated 10/10 coverage is useful but narrow",
+      "remediation": "Recorded as a limitation. Current positives cover non-semantic visual headings, bullet-like groups, and CSS grid tables; negatives cover semantic headings, lists, tables, and large control text. Future adversarial cases should add ARIA equivalents, CSS counters, flex tables, layout grids, responsive breakpoints, card-title false positives, and aria-hidden/inert variants."
+    },
+    {
+      "severity": "low",
+      "risk": "SC scoping could imply 2.4.10 baseline conformance scope",
+      "remediation": "The aspect wording now labels 2.4.10 as optional AAA follow-up; sidecar packets remain non-authoritative and convert no v3 judgments."
+    }
+  ],
+  "postRemediationEvidence": {
+    "fixtureValidation": {
+      "file": "scripts/v3/tests/generated/broad-scope/non-interference-interaction/validation.json",
+      "totalRows": 280,
+      "passingRows": 280,
+      "visualStructurePositives": "10/10",
+      "visualStructureNegatives": "10/10"
+    },
+    "promptPackAudit": {
+      "file": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-subagent-prompt-pack/integration-audit.json",
+      "totalEntries": 500,
+      "visualStructureRows": 20,
+      "packetEntries": 10,
+      "noPacketEntries": 10,
+      "expectedDirections": {
+        "UNCERTAIN_DISCOVERY": 10,
+        "NO_PACKET_SCOPED_OK": 10
+      },
+      "barrierBridgeable": 0,
+      "clearBridgeable": 0,
+      "promptsMissingExpectedVisualRef": 0
+    },
+    "packetPressure": {
+      "file": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-stratified-packet-pressure/results.json",
+      "verdicts": {
+        "UNCERTAIN": 10,
+        "NO_REVIEW": 10
+      },
+      "convertedJudgments": 0
+    },
+    "visualEvidence": {
+      "file": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/manifest.json",
+      "visualStructureCaptures": 20,
+      "manualVisionSamples": [
+        "vstruct-p1-visual-structure-page.png",
+        "vstruct-p4-visual-structure-page.png",
+        "vstruct-p8-visual-structure-page.png",
+        "vstruct-n1-visual-structure-page.png",
+        "vstruct-n4-visual-structure-page.png",
+        "vstruct-n8-visual-structure-page.png"
+      ]
+    }
+  },
+  "remainingLimitations": [
+    "The lane is heuristic discovery, not a complete visual structure algorithm.",
+    "It does not prove a WCAG failure by itself; LLM or downstream deterministic checks must judge whether the visual grouping is meaningful and whether programmatic relationships are required.",
+    "It currently covers generated visible HTML/CSS structures only, not full-page tiled OCR, canvas/SVG text, below-fold pressure on saved websites, responsive breakpoints, shadow DOM, or iframe content.",
+    "2.4.10 is an optional AAA follow-up and must not be interpreted as EN/WCAG A-AA baseline publication scope."
+  ]
+}

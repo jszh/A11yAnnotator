@@ -1,0 +1,124 @@
+{
+  "summary": {
+    "generatedAt": "2026-06-21T21:40:49.476Z",
+    "totalReviewed": 10,
+    "acceptable": 10,
+    "unsafe": 0,
+    "verdicts": {
+      "LIKELY_OK": 2,
+      "UNCERTAIN": 8
+    }
+  },
+  "rows": [
+    {
+      "id": "context-n1",
+      "aspect": "context-change",
+      "expected": "negative",
+      "expectedStateDisposition": "LIKELY_OK_OR_UNCERTAIN",
+      "verdict": "LIKELY_OK",
+      "acceptable": true,
+      "unsafe": false,
+      "summary": "The scoped negative control shows no context change after focus.",
+      "reasoning": "The afterFocus state keeps locationHash empty while focus moves to target, positively showing the alleged focus-triggered context change absent in this trace."
+    },
+    {
+      "id": "context-p1",
+      "aspect": "context-change",
+      "expected": "positive",
+      "expectedStateDisposition": "LIKELY_BARRIER_OR_UNCERTAIN",
+      "verdict": "UNCERTAIN",
+      "acceptable": true,
+      "unsafe": false,
+      "summary": "Focus caused a hash change and moved focus to the target, but the trace does not establish lack of advance advice.",
+      "reasoning": "The afterFocus state shows locationHash changed from empty to #focus1, supporting a context change on focus/input action. However, the required not-advised-beforehand evidence is not present in the JSON observation."
+    },
+    {
+      "id": "flash-n1",
+      "aspect": "flash-risk",
+      "expected": "negative",
+      "expectedStateDisposition": "LIKELY_OK_OR_UNCERTAIN",
+      "verdict": "UNCERTAIN",
+      "acceptable": true,
+      "unsafe": false,
+      "summary": "The slower animation does not by itself prove the flashing criterion is satisfied.",
+      "reasoning": "The trace shows a 1s infinite opacity animation, but it does not include sampled flash frequency, flash count, or area/red threshold analysis. The required negative-control absence is therefore not positively established."
+    },
+    {
+      "id": "flash-p1",
+      "aspect": "flash-risk",
+      "expected": "positive",
+      "expectedStateDisposition": "UNCERTAIN_UNLESS_THRESHOLD_AND_EXCEPTION_EVIDENCE_PRESENT",
+      "verdict": "UNCERTAIN",
+      "acceptable": true,
+      "unsafe": false,
+      "summary": "The animation appears fast and ongoing, but the trace does not establish flash-rate sampling or applicable area/red thresholds.",
+      "reasoning": "The 0.2s infinite animation with changed opacity suggests rapid flashing, but SC 2.3.1 requires evidence about frame-sampled flash rate and general/red flash threshold area. Those required items are not fully supported by the provided states."
+    },
+    {
+      "id": "trap-n1",
+      "aspect": "keyboard-trap",
+      "expected": "negative",
+      "expectedStateDisposition": "LIKELY_OK_OR_UNCERTAIN",
+      "verdict": "UNCERTAIN",
+      "acceptable": true,
+      "unsafe": false,
+      "summary": "This JSON trace does not positively show that focus can leave the region.",
+      "reasoning": "The observation says afterTab activeElementId is empty. The separate visual batch cannot be used. With only this JSON, the negative-control absence of a keyboard trap is not established."
+    },
+    {
+      "id": "trap-p1",
+      "aspect": "keyboard-trap",
+      "expected": "positive",
+      "expectedStateDisposition": "LIKELY_BARRIER",
+      "verdict": "UNCERTAIN",
+      "acceptable": true,
+      "unsafe": false,
+      "summary": "Tab leaves focus on the same button, but the trace does not prove a keyboard trap or absence of an advised exit.",
+      "reasoning": "The afterTab state has the same active element, which supports possible trapping. It does not establish repeated trusted Tab/Shift+Tab behavior, that focus cannot leave the region, or that no keyboard exit was advised."
+    },
+    {
+      "id": "motion-n1",
+      "aspect": "pause-stop-hide",
+      "expected": "negative",
+      "expectedStateDisposition": "LIKELY_OK_OR_UNCERTAIN",
+      "verdict": "UNCERTAIN",
+      "acceptable": true,
+      "unsafe": false,
+      "summary": "The animation is single-iteration and short, but the trace does not positively prove the alleged issue absent under the scoped requirements.",
+      "reasoning": "The pulse animation has duration 2s and iteration=1, suggesting it may end within the WCAG time threshold. Still, the trace does not include full duration observation or context about controls and essentiality, so a LIKELY_OK finding is not fully supported."
+    },
+    {
+      "id": "motion-p1",
+      "aspect": "pause-stop-hide",
+      "expected": "positive",
+      "expectedStateDisposition": "UNCERTAIN_UNLESS_THRESHOLD_AND_EXCEPTION_EVIDENCE_PRESENT",
+      "verdict": "UNCERTAIN",
+      "acceptable": true,
+      "unsafe": false,
+      "summary": "The trace shows persistent automatic motion without controls, but not all SC 2.2.2 process/context requirements are established.",
+      "reasoning": "The ticker animation is infinite, changes transform after 550ms, and controls=false supports auto-motion persisting without visible controls. However, the trace does not establish that there is no working pause/stop/hide mechanism beyond the observed controls flag, nor that the moving content is parallel and non-essential."
+    },
+    {
+      "id": "pointer-n1",
+      "aspect": "pointer-operation",
+      "expected": "negative",
+      "expectedStateDisposition": "LIKELY_OK_OR_UNCERTAIN",
+      "verdict": "LIKELY_OK",
+      "acceptable": true,
+      "unsafe": false,
+      "summary": "The scoped negative control shows no activation on pointer down.",
+      "reasoning": "The button remains activated=false after pointerDown while receiving focus, positively showing the alleged down-event activation absent in this trace."
+    },
+    {
+      "id": "pointer-p1",
+      "aspect": "pointer-operation",
+      "expected": "positive",
+      "expectedStateDisposition": "LIKELY_BARRIER_OR_UNCERTAIN",
+      "verdict": "UNCERTAIN",
+      "acceptable": true,
+      "unsafe": false,
+      "summary": "Activation occurs on pointer down, but missing alternatives or cancellation are not established.",
+      "reasoning": "The afterPointerDown state shows activated=true, supporting a pointer-down activation sequence. The trace does not show whether release cancellation, undo, up-event activation, or an equivalent simple pointer alternative exists."
+    }
+  ]
+}

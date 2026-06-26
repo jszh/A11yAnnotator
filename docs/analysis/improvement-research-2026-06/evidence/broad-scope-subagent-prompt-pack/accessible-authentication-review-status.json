@@ -1,0 +1,76 @@
+{
+  "generatedAt": "2026-06-23T00:25:51.593Z",
+  "aspect": "accessible-authentication",
+  "status": "local-review-complete-independent-review-pending",
+  "scope": "Generated fixture and prompt-pack pressure only. This is not saved-site validation and not a conformance publication lane.",
+  "wcag": {
+    "primarySc": "3.3.8",
+    "interpretation": "Barrier-side packets require a scoped authentication step, a cognitive function test, and missing allowed alternative/exception evidence. Control packets expose exception/control evidence and must resolve to UNCERTAIN, not a pass."
+  },
+  "localEvidence": {
+    "fixtureValidation": {
+      "command": "node scripts/v3/tests/manual/validate-broad-scope-media-process-auth-fixtures.js",
+      "result": "120/120 pass; accessible-authentication 10/10 positive and 10/10 negative controls observed as expected"
+    },
+    "promptTests": {
+      "command": "node --test scripts/v3/tests/broad-scope-llm-review.test.js",
+      "result": "16/16 pass"
+    },
+    "packetValidation": {
+      "command": "node scripts/v3/tests/manual/validate-broad-scope-llm-packets.js",
+      "result": "accessible-authentication 20 packets; 10 LIKELY_BARRIER positives, 10 UNCERTAIN controls; 0 converted judgments"
+    },
+    "promptPackAudit": {
+      "command": "node scripts/v3/tests/manual/audit-broad-scope-prompt-pack.js",
+      "result": {
+        "rows": 20,
+        "positives": 10,
+        "negatives": 10,
+        "packetEntries": 20,
+        "noPacketEntries": 0,
+        "structuralBarrierReady": 10,
+        "barrierBridgeable": 0,
+        "clearBridgeable": 0,
+        "expectedDirections": {
+          "LIKELY_BARRIER": 10,
+          "SCOPED_AUTH_CONTROL": 10
+        }
+      }
+    },
+    "promptPressure": {
+      "command": "node scripts/v3/tests/manual/run-broad-scope-stratified-packet-pressure.js",
+      "result": {
+        "rows": 20,
+        "verdicts": {
+          "LIKELY_BARRIER": 10,
+          "UNCERTAIN": 10
+        },
+        "convertedJudgments": 0
+      }
+    }
+  },
+  "remediationsFromThisPass": [
+    "Positive auth fixtures now encode authentication-step, cognitive-function-test, and missing allowed alternative/exception evidence.",
+    "Negative/control auth fixtures encode allowed alternatives or exceptions such as password-manager support, passkeys, one-time-code autocomplete/paste support, non-cognitive alternatives, object-recognition exception, personal-content exception, or not-authentication-step.",
+    "Prompt rules allow only LIKELY_BARRIER or UNCERTAIN and explicitly forbid treating scoped controls as LIKELY_OK.",
+    "Prompt-pack, packet-validation, and pressure scripts now emit auth control packets instead of silently routing them to NO_REVIEW."
+  ],
+  "blockedValidation": [
+    {
+      "item": "fresh representative browser screenshots for all auth fixtures",
+      "status": "pending",
+      "reason": "browser capture was not rerun after quota exhaustion"
+    },
+    {
+      "item": "independent subagent critique of the updated auth packet slice",
+      "status": "pending",
+      "reason": "subagent spawn failed due usage limit"
+    }
+  ],
+  "remainingLimits": [
+    "The lane still does not drive a real authentication process or possess test credentials.",
+    "The lane does not prove process-wide conformance for SC 3.3.8.",
+    "CAPTCHA and equivalent-alternative adequacy remain semantic judgments; fixture markers are only controlled evidence for this generated set.",
+    "Absence of an accessible-authentication packet must never be read as a pass."
+  ]
+}

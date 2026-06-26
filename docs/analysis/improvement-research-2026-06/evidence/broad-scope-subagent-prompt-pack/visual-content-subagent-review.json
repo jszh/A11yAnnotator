@@ -1,0 +1,108 @@
+{
+  "reviewedAt": "2026-06-22T18:16:00Z",
+  "aspect": "visual-content-discovery",
+  "reviewer": "subagent-confucius",
+  "verdict": "CONDITIONALLY_SOUND_AS_SIDECAR_ONLY",
+  "findings": [
+    {
+      "severity": "high",
+      "id": "VC-H1",
+      "finding": "The first prototype was marker-heavy and should not be described as broad real-page visual discovery.",
+      "remediation": "Kept the lane explicitly fixture-assisted and discovery-only. The report and backlog now state that real OCR/pixel/AX discovery for arbitrary pages remains open."
+    },
+    {
+      "severity": "high",
+      "id": "VC-H2",
+      "finding": "Alternative detection was too shallow: any label/nearby text could suppress a candidate even when adequacy was not proven.",
+      "remediation": "Split alternative facts into alternativeDeclared, decorativeDeclared, nonColorCueDeclared, and alternativeAdequacyProven. Candidates are suppressed only by decorative declaration or proven adequate alternative metadata/non-color cue in the controlled fixture set."
+    },
+    {
+      "severity": "medium",
+      "id": "VC-M1",
+      "finding": "Some positive examples were semantically weak because the visible meaning was also present as ordinary DOM text.",
+      "remediation": "Strengthened background-image/pseudo text positives so the target has no DOM text or accessible label, and changed color-only positives from 'Overdue invoice' text to 'Invoice' plus a color-only square."
+    },
+    {
+      "severity": "medium",
+      "id": "VC-M2",
+      "finding": "Prompt packets could still invite LIKELY_BARRIER for a discovery-only lane.",
+      "remediation": "Discovery-only prompt generation now sets allowedVerdicts to ['UNCERTAIN'] and includes an explicit rule that downstream conformance evidence is required before barrier or clear verdicts."
+    },
+    {
+      "severity": "low",
+      "id": "VC-L1",
+      "finding": "SC routing mixed raw combined strings with normalized primary SCs.",
+      "remediation": "Packets now carry normalized primary sc plus rawSc and relatedScs for follow-up scope. The lane remains sidecar-only, so raw multi-SC routing cannot publish a conformance verdict."
+    }
+  ],
+  "verification": {
+    "syntaxChecks": [
+      "node --check scripts/v3/lib/broad-scope-probes.js",
+      "node --check scripts/v3/lib/broad-scope-llm-review.js",
+      "node --check scripts/v3/tests/manual/generate-broad-scope-ni-interaction-fixtures.js",
+      "node --check scripts/v3/tests/manual/validate-broad-scope-ni-interaction-fixtures.js"
+    ],
+    "fixtureValidation": {
+      "command": "node scripts/v3/tests/manual/validate-broad-scope-ni-interaction-fixtures.js",
+      "total": 300,
+      "pass": 300,
+      "fail": 0,
+      "visualContent": {
+        "positivePass": 10,
+        "positiveFail": 0,
+        "negativePass": 10,
+        "negativeFail": 0
+      }
+    },
+    "tests": [
+      {
+        "command": "node --test scripts/v3/tests/broad-scope-probes.test.js",
+        "pass": 35,
+        "fail": 0,
+        "browserBacked": true
+      },
+      {
+        "command": "node --test scripts/v3/tests/broad-scope-llm-review.test.js",
+        "pass": 14,
+        "fail": 0,
+        "browserBacked": false
+      }
+    ],
+    "promptPackAudit": {
+      "totalEntries": 520,
+      "visualContentRows": 20,
+      "visualContentPacketEntries": 10,
+      "visualContentNoPacketEntries": 10,
+      "visualContentExpectedDirections": {
+        "UNCERTAIN_DISCOVERY": 10,
+        "NO_PACKET_SCOPED_OK": 10
+      },
+      "visualContentBarrierBridgeable": 0,
+      "visualContentClearBridgeable": 0,
+      "promptsMissingExpectedVisualRef": 0
+    },
+    "promptPressure": {
+      "visualContentVerdicts": {
+        "UNCERTAIN": 10,
+        "NO_REVIEW": 10
+      },
+      "convertedJudgments": 0
+    },
+    "representativeVisionSamples": [
+      "vcontent-p1-visual-content-page.png: visible SALE text; target state has no DOM text, label, or proven alternative",
+      "vcontent-p4-visual-content-page.png: visible canvas chart; no semantic alternative",
+      "vcontent-p8-visual-content-page.png: red square plus 'Invoice 8'; color carries the status meaning",
+      "vcontent-n2-visual-content-page.png: visually similar SALE text but fixture metadata marks an adequate alternative",
+      "vcontent-n4-visual-content-page.png: visible chart with adequate fixture-provided ARIA label",
+      "vcontent-n6-visual-content-page.png: visible SVG chart with role/name and adequate fixture metadata",
+      "vcontent-n8-visual-content-page.png: red square plus explicit 'Overdue' text non-color cue",
+      "vcontent-n10-visual-content-page.png: decorative background declared decorative"
+    ]
+  },
+  "remainingLimitations": [
+    "The detector is still marker/element assisted; it is not general real-page OCR, canvas semantic extraction, SVG understanding, or full-page vision discovery.",
+    "Adequate-alternative suppression relies on controlled fixture metadata. In the wild, adequacy must be judged downstream by a rubric/LLM/human, not by this sidecar.",
+    "A visual-content packet is a review target only. It must not publish LIKELY_BARRIER, LIKELY_OK, pass, or fail without a registered downstream conformance mechanism.",
+    "Absence of a visual-content packet is scoped silence, never evidence that 1.1.1, 1.4.1, or 1.4.5 pass."
+  ]
+}

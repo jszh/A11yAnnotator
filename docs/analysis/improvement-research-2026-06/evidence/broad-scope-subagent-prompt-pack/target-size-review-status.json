@@ -1,0 +1,187 @@
+{
+  "aspect": "target-size-minimum",
+  "status": "sidecar-remediated-with-independent-review",
+  "updatedAt": "2026-06-24",
+  "supersedes": [
+    {
+      "file": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-subagent-prompt-pack/target-size-subagent-review.json",
+      "reason": "historical review reflected the older no-packet-negative target-size design; current controls now emit scoped packets"
+    }
+  ],
+  "normativeScope": [
+    "WCAG 2.2 SC 2.5.8 Target Size (Minimum)",
+    "A rendered pointer target meets the size rule when a page-aligned 24 by 24 CSS pixel square fits inside the target",
+    "Undersized targets can still satisfy the SC through the 24 CSS pixel diameter circle spacing exception",
+    "Other scoped exceptions are equivalent same-page target, inline/in-sentence or line-height constrained target, unmodified user-agent control, and essential/legal presentation",
+    "EN 301 549 web context is treated as WCAG pass-through only where the applicable procurement version includes WCAG 2.2 SC 2.5.8"
+  ],
+  "summary": {
+    "generatedRows": 20,
+    "positiveRows": 10,
+    "negativeRows": 10,
+    "fixtureValidation": {
+      "positive": "10/10 pass",
+      "negative": "10/10 pass"
+    },
+    "promptPacketRows": 20,
+    "noPacketRows": 0,
+    "structuralBarrierReadyRows": 10,
+    "barrierBridgeableRows": 0,
+    "clearBridgeableRows": 0,
+    "convertedJudgments": 0,
+    "verdicts": {
+      "LIKELY_BARRIER": 10,
+      "UNCERTAIN": 10
+    },
+    "expectedDirections": {
+      "LIKELY_BARRIER": 10,
+      "SCOPED_TARGET_SIZE_CONTROL": 10
+    }
+  },
+  "coverage": {
+    "positivePredicate": [
+      "rendered pointer target observed",
+      "target measured below 24 by 24 CSS pixels",
+      "24px circle spacing intersects another target or undersized-target circle",
+      "no spacing, inline, equivalent, essential, or user-agent-control exception evidence is observed"
+    ],
+    "controlClasses": [
+      "undersized but sufficient 24px circle spacing",
+      "inline/in-sentence target constrained by text line height",
+      "essential or legally required presentation",
+      "equivalent same-page target",
+      "unmodified user-agent control",
+      "target at least 24 by 24 CSS pixels"
+    ],
+    "adversarialFixtureClasses": [
+      "visually tiny but sufficiently spaced target",
+      "visually tiny inline text link",
+      "visually failure-like essential target",
+      "visually small target with a visible large equivalent control",
+      "visually failure-like native checkbox user-agent control"
+    ]
+  },
+  "safetyInvariants": [
+    "Target-size packets allow only LIKELY_BARRIER or UNCERTAIN.",
+    "The lane has no registered v3 publication claim family in the broad-scope LLM path, so no target-size packet currently converts to an authoritative v3 judgment.",
+    "Controls and exception evidence never become clears; clearBridgeableRows remains 0.",
+    "Exception evidence is disqualifying for LIKELY_BARRIER structural readiness.",
+    "Visual screenshots are contextual for this lane; CSS-pixel geometry and explicit exception/control evidence are load-bearing.",
+    "Equivalent, essential, and user-agent-control markers are fixture-scoped control evidence, not global proof of conformance on arbitrary saved pages."
+  ],
+  "independentCritic": {
+    "agent": "Herschel",
+    "verdict": "PASS_WITH_CONCERNS",
+    "blockers": [],
+    "concernsCarriedForward": [
+      {
+        "severity": "medium",
+        "issue": "Exception controls are partly marker-driven; inline/equivalent exceptions can override probe judgment from data-v3 markers, and essential/UA/equivalent evidence is fixture-scoped rather than real-world proof."
+      },
+      {
+        "severity": "low",
+        "issue": "Representative visuals cover targetsize-p1 and targetsize-n1 through targetsize-n6 only; validation and integration artifacts cover all 20 cases."
+      },
+      {
+        "severity": "low",
+        "issue": "Fallback control packets degrade to only target-size-procedure-run if validation evidenceClaims are absent. Current generated artifacts include richer claims, so this is not currently unsafe."
+      }
+    ],
+    "bridgeAssessment": {
+      "negativeAsClear": "No current target-size negative should clear; LIKELY_OK is disallowed or clamped to UNCERTAIN and integration audit reports clearBridgeable=false.",
+      "positiveBridge": "No current target-size positive bridges; packets are sidecar LIKELY_BARRIER candidates with claimFamily=null and convertedJudgments=0.",
+      "controlBridge": "No current control bridges; controls are structurally not barrier-ready and claimFamily=null."
+    },
+    "missingAdversarialCases": [
+      "equivalent target proof that validates same-page same-function behavior plus equivalent target size/spacing rather than relying on marker and label",
+      "essential/legal presentation rationale stronger than fixture marker text",
+      "user-agent-control proof that author CSS did not modify target size beyond data-v3-ua-control",
+      "boundary/tangent cases around exactly 24px circle intersection and fractional CSS pixels",
+      "transformed, clipped, rounded, obscured, or complex-shape targets where the bounding box is at least 24 but the hit area may not admit a 24 by 24 square"
+    ]
+  },
+  "commands": [
+    {
+      "command": "node scripts/v3/tests/manual/validate-broad-scope-ni-interaction-fixtures.js",
+      "result": "300/300 pass; target-size-minimum 10 positives / 10 negatives"
+    },
+    {
+      "command": "node scripts/v3/tests/manual/build-broad-scope-subagent-prompt-pack.js --sample-per-class 10",
+      "result": "regenerated prompt pack and answer key"
+    },
+    {
+      "command": "node scripts/v3/tests/manual/validate-broad-scope-llm-packets.js",
+      "result": "target-size-minimum 20 packets; positives converted to 0 judgments; controls converted to 0 judgments"
+    },
+    {
+      "command": "node scripts/v3/tests/manual/run-broad-scope-stratified-packet-pressure.js",
+      "result": "target-size-minimum 20 packets; verdicts {LIKELY_BARRIER:10, UNCERTAIN:10}; convertedJudgments:0"
+    },
+    {
+      "command": "node scripts/v3/tests/manual/audit-broad-scope-prompt-pack.js",
+      "result": "target-size-minimum 20 packet entries, 10 structural positives, 0 barrier-bridgeable rows, 0 clear-bridgeable rows"
+    },
+    {
+      "command": "node scripts/v3/tests/manual/capture-broad-scope-ni-visuals.js",
+      "result": "representative target-size screenshots refreshed and visually inspected"
+    },
+    {
+      "command": "node --test scripts/v3/tests/broad-scope-llm-review.test.js",
+      "result": "36/36 pass"
+    },
+    {
+      "command": "node --test --test-name-pattern=\"target-size|status-announcement|character-shortcut\" scripts/v3/tests/broad-scope-probes.test.js",
+      "result": "1/1 selected target-size test pass"
+    }
+  ],
+  "testCaveats": [
+    "A combined run of scripts/v3/tests/broad-scope-llm-review.test.js and scripts/v3/tests/broad-scope-probes.test.js printed all individual test passes but ended with Node's pending-promise/open-handle wrapper failure after the browser-heavy probes. The focused target-size probe test and the full LLM-review suite pass cleanly."
+  ],
+  "visualInspection": [
+    {
+      "id": "targetsize-p1",
+      "file": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/targetsize-p1-before-page.png",
+      "observation": "two tiny adjacent controls visually agree with the measured 18 by 18 failure and spacing intersection"
+    },
+    {
+      "id": "targetsize-n1",
+      "file": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/targetsize-n1-before-page.png",
+      "observation": "two tiny controls are visibly separated; spacing exception measurement is decisive because pixels alone may still look risky"
+    },
+    {
+      "id": "targetsize-n2",
+      "file": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/targetsize-n2-before-page.png",
+      "observation": "tiny target appears as an inline link inside sentence text; inline exception evidence is load-bearing"
+    },
+    {
+      "id": "targetsize-n3",
+      "file": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/targetsize-n3-before-page.png",
+      "observation": "visually resembles the positive failure case; essential-presentation exception is fixture-scoped and must not be generalized"
+    },
+    {
+      "id": "targetsize-n4",
+      "file": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/targetsize-n4-before-page.png",
+      "observation": "small target is accompanied by a visible large equivalent control; semantic same-function proof remains scoped fixture evidence"
+    },
+    {
+      "id": "targetsize-n5",
+      "file": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/targetsize-n5-before-page.png",
+      "observation": "visually resembles the positive failure case, but the measured target is an unmodified native checkbox control"
+    },
+    {
+      "id": "targetsize-n6",
+      "file": "docs/analysis/improvement-research-2026-06/evidence/broad-scope-fixture-matrix/visuals/non-adaptation/targetsize-n6-before-page.png",
+      "observation": "controls are visibly larger and measured at least 24 by 24 CSS pixels"
+    }
+  ],
+  "remainingLimitations": [
+    "The broad-scope LLM target-size lane remains sidecar-only; the core v3 deterministic geometry path is the intended publication authority for measurable 2.5.8 geometry.",
+    "Equivalent, essential, and user-agent-control exceptions are generated fixture facts, not general saved-page proof.",
+    "Saved websites still need richer same-function equivalent-target discovery and author-CSS/native-control attribution.",
+    "Boundary cases around fractional CSS pixels, tangent 24px circles, transforms, clipping, rounded corners, SVG/complex shapes, and obscured targets need additional adversarial fixtures."
+  ],
+  "sources": [
+    "https://www.w3.org/TR/WCAG22/#target-size-minimum",
+    "https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html"
+  ]
+}
