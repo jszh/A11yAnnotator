@@ -1,5 +1,6 @@
 'use strict';
-// Optional post-`load` SETTLE wait (gated by V3_SETTLE_WAIT=1; INERT by default → production byte-identical).
+// Post-`load` SETTLE wait — DEFAULT-ON (opt out with V3_SETTLE_WAIT=0). Was opt-in/inert while under evaluation; the
+// determinism work concluded settle + per-lease isolation are what remove the ±3 FP instability, so settle now ships on.
 //
 // Every navigation in the harness uses `waitUntil:'load'`, which fires before web-fonts finish loading AND before
 // layout/reflow has fully settled. Under CPU contention (high page-concurrency) that gap widens, so vision capture
@@ -12,7 +13,7 @@
 // layout settles within ~1 frame). On real web-font pages fonts.ready may add ~50-300ms — exactly where instability
 // is worst, so the trade favors it. Call AFTER each goto/reload, BEFORE any screenshot or state read.
 async function awaitSettle(page, opts = {}) {
-  if (process.env.V3_SETTLE_WAIT !== '1' && !opts.force) return;
+  if (process.env.V3_SETTLE_WAIT === '0' && !opts.force) return; // DEFAULT-ON; opt out with V3_SETTLE_WAIT=0
   if (!page || typeof page.evaluate !== 'function') return;
   const maxFrames = Number(opts.maxFrames) || 60;     // hard cap: ≤ maxFrames rAF ticks (~1s) — never hangs
   const fontsTimeoutMs = Number(opts.fontsTimeoutMs) || 1000;
@@ -41,7 +42,7 @@ async function awaitSettle(page, opts = {}) {
 // What the focus read actually needs is for the FOCUSED ELEMENT to stop changing — scroll is expected, not drift. So
 // the signature is the activeElement NODE identity (compared by reference within one evaluate), require two
 // consecutive equal frames, with a TIGHT cap (focus lands in 1-2 frames). Cost ~2 frames (~33ms) on the common case,
-// ≤ maxFrames worst case (~130ms), vs ~1000ms before. Gated identically (V3_SETTLE_KBD); INERT by default.
+// ≤ maxFrames worst case (~130ms), vs ~1000ms before. DEFAULT-ON via its call site (kbd-graph.js); opt out V3_SETTLE_KBD=0.
 async function awaitFocusSettle(page, opts = {}) {
   if (!page || typeof page.evaluate !== 'function') return;
   const maxFrames = Number(opts.maxFrames) || 16;      // enough for a focus-triggered reflow to settle; bounded (awaitSettle used 60)

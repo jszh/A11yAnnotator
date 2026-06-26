@@ -49,7 +49,7 @@ async function collectTabOrder(page, opts = {}) {
   for (let i = 0; i < cap; i++) {
     if (backward) { await page.keyboard.down('Shift'); await page.keyboard.press('Tab'); await page.keyboard.up('Shift'); }
     else { await page.keyboard.press('Tab'); }
-    if (process.env.V3_SETTLE_KBD === '1') await require('./settle.js').awaitFocusSettle(page); // settle the FOCUSED element (not scroll/geometry) before reading activeElement — see settle.js
+    if (process.env.V3_SETTLE_KBD !== '0') await require('./settle.js').awaitFocusSettle(page); // DEFAULT-ON (opt out V3_SETTLE_KBD=0); settle the FOCUSED element before reading activeElement — see settle.js
     const info = await page.evaluate(probeActive).catch(() => ({ sentinel: true, err: true }));
     // A SINGLE body/sentinel mid-ring is normal — positive tabindex routes focus through the document
     // boundary after the highest tabindex, so only TWO consecutive sentinels (or a WeakSet revisit) is a
