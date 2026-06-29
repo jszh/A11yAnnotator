@@ -48,7 +48,7 @@ const CATALOG = {
         NO_BARRIER_OBSERVED: { requires: ['textRendersVisible', 'foregroundResolved', 'backgroundResolved', 'backdropIsSolidUniform', 'contrastComputable', 'sizeClassResolved', 'thresholdMet', 'notExemptText', 'measurementStable'] },
         BARRIER_OBSERVED: { requires: ['isTextNode', 'textRendersVisible', 'foregroundResolved', 'backgroundResolved', 'contrastComputable', 'sizeClassResolved', 'thresholdFailed', 'notExemptText', 'measurementStable'] },
       },
-      typedOutcomes: ['isTextNode', 'textRendersVisible', 'foregroundResolved', 'backgroundResolved', 'backdropIsSolidUniform', 'contrastComputable', 'sizeClassResolved', 'thresholdMet', 'thresholdFailed', 'notExemptText', 'measurementStable', 'hydrationReady'],
+      typedOutcomes: ['isTextNode', 'textRendersVisible', 'foregroundResolved', 'backgroundResolved', 'backdropIsSolidUniform', 'contrastComputable', 'sizeClassResolved', 'thresholdMet', 'thresholdFailed', 'notExemptText', 'nonLanguageExempt', 'measurementStable', 'hydrationReady'],
     },
 
     // ---- C5: keyboard trap escape → 2.1.2 (CLEAR per-component; finite mechanism set). ----

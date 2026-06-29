@@ -89,18 +89,50 @@ function summarizeSdkMessage(msg) {
   return { type: t || 'unknown' };
 }
 
+// ENVELOPE-REPAIR re-prompt: the model answered but the verdict envelope was unparseable (prose only, a
+// fenced/truncated object, or a non-canonical token like "LIKELY_BARRIER"/"FAIL"). This is the dominant
+// noVerdict cause in the FN run (cc0f0a, d0f69e: the model DID the analysis but botched the JSON). Hand the
+// model its OWN prior reply and ask for ONLY the JSON object — so it reformats its existing conclusion
+// rather than re-deciding. Tool-free + image-free (see disableTools below): cheap, no re-navigation.
+function reformatPrompt(badText) {
+  return [
+    'Your previous reply could not be parsed as the required strict-JSON verdict. This is exactly what you wrote:',
+    '--- YOUR PREVIOUS REPLY ---',
+    String(badText == null ? '' : badText).slice(0, 8000),
+    '--- END ---',
+    'Re-express that SAME conclusion as ONE JSON object and NOTHING else — no prose, no markdown fence, no code block:',
+    '{"verdict": <verdict>, "confidence": "high|medium|low", "summary": "<one line>", "reasoning": "<brief>", "evidenceRefs": []}',
+    'The "verdict" value MUST be EXACTLY one of these four strings: ' + V2_9_VERDICTS.map((v) => JSON.stringify(v)).join(', ') + '.',
+    'Do NOT invent other tokens (no "LIKELY_*", "FAIL", "PASS"). If your analysis was inconclusive or you could not verify, use "PARTIAL".',
+  ].join('\n');
+}
+
 // Build a runAgent from a transport. transport(request, { onTrace }) -> { content: [{type:'text', text}] } (or throws).
 // model defaults to a vision-capable Claude. A transport error/timeout returns null (producer drops it). When the
 // transport reports a turn-by-turn trace via onTrace, it is attached as `out.trace` (the adjudicator lifts it).
 function makeRunAgent({ transport, model = 'claude-opus-4-8', maxTokens = LIMITS.llm.maxTokens } = {}) {
   if (typeof transport !== 'function') throw new Error('makeRunAgent: a transport function is required');
+  const reformatRetry = process.env.V3_LLM_REFORMAT_RETRY !== '0'; // default ON; opt-out for ablation/determinism studies
   return async function runAgent(messages, _subject) {
     const request = { model, max_tokens: maxTokens, messages: [{ role: 'user', content: toAnthropicContent(messages) }] };
     const trace = [];
-    let res;
-    try { res = await transport(request, { onTrace: (e) => { if (e) trace.push(e); } }); } catch (e) { return null; }
-    const text = res && Array.isArray(res.content) ? res.content.filter((c) => c && c.type === 'text').map((c) => c.text).join('\n') : (typeof res === 'string' ? res : null);
-    const parsed = parseAgentReply(text);
+    const runOnce = async (req) => {
+      let res;
+      try { res = await transport(req, { onTrace: (e) => { if (e) trace.push(e); } }); } catch (e) { return null; }
+      return res && Array.isArray(res.content) ? res.content.filter((c) => c && c.type === 'text').map((c) => c.text).join('\n') : (typeof res === 'string' ? res : null);
+    };
+    const text = await runOnce(request);
+    let parsed = parseAgentReply(text);
+    // REFORMAT RETRY: the model replied but the envelope was unparseable. Re-ask for ONLY the JSON, handing
+    // back its own text. disableTools (honored by the tool transports) keeps this a single plain completion —
+    // it must not re-run the agentic tool loop (which on the Claude SDK path would re-clone/re-navigate pages).
+    // Skipped when there is no text to repair (a transport failure ⇒ nothing to reformat; degrade to null as before).
+    if (!parsed && reformatRetry && typeof text === 'string' && text.trim().length) {
+      const retryReq = { model, max_tokens: maxTokens, disableTools: true, messages: [{ role: 'user', content: [{ type: 'text', text: reformatPrompt(text) }] }] };
+      const text2 = await runOnce(retryReq);
+      parsed = parseAgentReply(text2);
+      if (parsed) parsed.reformatRetried = true;
+    }
     if (parsed && trace.length) parsed.trace = trace; // full reasoning/tool trace → surfaced into llm-trace.json
     return parsed;
   };
@@ -156,6 +188,83 @@ function makeGeminiTransport({ apiKey, model = 'gemini-3.5-flash', fetchImpl, ma
         return text ? { content: [{ type: 'text', text }] } : null;
       } catch (e) { await new Promise((res) => setTimeout(res, baseBackoffMs * (attempt + 1))); }
       finally { clearTimeout(t); }
+    }
+    return null;
+  };
+}
+
+// CROSS-FAMILY MULTI-TURN transport: Google Gemini WITH FUNCTION CALLING — the tool-path analog of makeGeminiTransport,
+// so the cross-family comparison can run the FULL config (tools on), not just single-shot. Drives a hand-rolled
+// function-calling loop (generateContent + `tools.functionDeclarations`): send → if the model emits functionCall
+// part(s), execute them via `dispatch.call(name,args)`, echo the model turn + append a user Content carrying the
+// `functionResponse`(s), loop until the model returns text or maxTurns. `dispatch` is cdp-tools.buildCdpToolDispatch
+// (session) → {declarations, call}. Tool results ride back as the native functionResponse object (same INFORMATION the
+// Claude MCP path JSON-stringifies into text content). generativelanguage v1beta Content.role is ONLY 'user'/'model',
+// so a functionResponse rides a role:'user' Content. On the FINAL allowed turn tools are disabled (forces a text
+// verdict from the gathered evidence, mirroring the Claude path's maxTurns cap). Deadline mirrors the Claude SDK path:
+// runTimeoutMs minus queue-wait (getExtraDeadlineMs) plus backoff credit. Degrades to null on timeout/exhaustion.
+function makeGeminiToolTransport({ apiKey, model = 'gemini-3.5-flash', dispatch, fetchImpl, maxOutputTokens = 8192,
+  temperature = 0, baseUrl = 'https://generativelanguage.googleapis.com/v1beta',
+  runTimeoutMs = LIMITS.llm.toolRunTimeoutMs, maxTurns = LIMITS.llm.toolMaxTurns,
+  maxRetries = LIMITS.llm.maxRetries, baseBackoffMs = LIMITS.llm.baseBackoffMs, maxBackoffMs = LIMITS.llm.maxBackoffMs,
+  getExtraDeadlineMs = null } = {}) {
+  const f = fetchImpl || (typeof fetch === 'function' ? fetch : null);
+  if (!apiKey) throw new Error('makeGeminiToolTransport: apiKey required (set GEMINI_API_KEY in .env)');
+  if (!f) throw new Error('makeGeminiToolTransport: no fetch available');
+  if (!dispatch || !Array.isArray(dispatch.declarations) || typeof dispatch.call !== 'function') throw new Error('makeGeminiToolTransport: dispatch {declarations, call} required');
+  const toParts = (content) => (content || []).map((b) => (b && b.type === 'image' && b.source)
+    ? { inlineData: { mimeType: b.source.media_type || 'image/png', data: b.source.data } }
+    : { text: (b && b.text) || '' });
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  return async function transport(request, callOpts = {}) {
+    const msg = (request.messages && request.messages[0]) || { content: [] };
+    const contents = [{ role: 'user', parts: toParts(msg.content) }];
+    const tools = [{ functionDeclarations: dispatch.declarations }];
+    const deadline = Date.now() + runTimeoutMs;
+    let backoffCreditMs = 0;
+    const dueAt = () => deadline + (getExtraDeadlineMs ? (Number(getExtraDeadlineMs()) || 0) : 0) + backoffCreditMs;
+    const trace = (j) => { if (typeof callOpts.onTrace === 'function' && j && j.usageMetadata) callOpts.onTrace({ type: 'result', usage: { input_tokens: j.usageMetadata.promptTokenCount, output_tokens: j.usageMetadata.candidatesTokenCount } }); };
+    // ONE generateContent round with 429/5xx backoff (parked wall-clock credited back to the deadline). null ⇒ degrade.
+    const postOnce = async (useTools) => {
+      const body = { contents, generationConfig: { temperature, maxOutputTokens } };
+      if (useTools) body.tools = tools;
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        if (dueAt() - Date.now() <= 0) return null;
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), Math.max(1, dueAt() - Date.now()));
+        try {
+          const r = await f(`${baseUrl}/models/${model}:generateContent?key=${apiKey}`, { method: 'POST', signal: ctrl.signal, headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+          if (r.status === 429 || r.status >= 500) { clearTimeout(t); const b = Math.min(maxBackoffMs, baseBackoffMs * (attempt + 1)); backoffCreditMs += b; await sleep(b); continue; }
+          if (!r.ok) { clearTimeout(t); return null; }
+          const j = await r.json(); clearTimeout(t); trace(j); return j;
+        } catch (e) { clearTimeout(t); if (ctrl.signal.aborted) return null; const b = Math.min(maxBackoffMs, baseBackoffMs * (attempt + 1)); backoffCreditMs += b; await sleep(b); }
+      }
+      return null;
+    };
+    for (let turn = 0; turn < maxTurns; turn++) {
+      if (dueAt() - Date.now() <= 0) return null;
+      const lastTurn = turn === maxTurns - 1; // final turn: disable tools so the model MUST conclude with a text verdict
+      const j = await postOnce(!lastTurn && !request.disableTools); // disableTools (envelope-repair retry) ⇒ plain text completion
+      const cand = j && j.candidates && j.candidates[0];
+      const parts = (cand && cand.content && Array.isArray(cand.content.parts)) ? cand.content.parts : [];
+      const calls = parts.filter((p) => p && p.functionCall && p.functionCall.name);
+      if (calls.length && !lastTurn) {
+        contents.push({ role: 'model', parts }); // echo the model's turn (functionCall(s) + any thinking) into history
+        const responses = [];
+        for (const p of calls) {
+          const fc = p.functionCall;
+          let resultObj;
+          try { resultObj = await dispatch.call(fc.name, fc.args || {}); }
+          catch (e) { resultObj = { error: String((e && e.message) || e) }; }
+          // functionResponse.response must be a JSON object (Struct); a non-object handler return is boxed under `result`.
+          const response = (resultObj && typeof resultObj === 'object' && !Array.isArray(resultObj)) ? resultObj : { result: resultObj };
+          responses.push({ functionResponse: { name: fc.name, response } });
+        }
+        contents.push({ role: 'user', parts: responses }); // v1beta: a functionResponse rides a 'user' Content
+        continue;
+      }
+      const text = parts.map((p) => (p && p.text) || '').join('');
+      return text ? { content: [{ type: 'text', text }] } : null; // no tool call (or final turn) ⇒ the verdict text (or degrade)
     }
     return null;
   };
@@ -229,8 +338,11 @@ function makeClaudeSdkTransport(opts = {}) {
         // judge's ONLY tools are the cdp MCP server (when present, gated by allowedTools 'mcp__cdp__*'). Without
         // this the smoke run showed the judge burning turns on ToolSearch (thinking the cdp tools were deferred —
         // "No matching deferred tools found") and even running Bash; allowedTools alone is NOT exclusive of built-ins.
-        const options = { maxTurns, allowedTools, settingSources, model: useModel, abortController: ctrl, env, tools: [] };
-        if (mcpServers) options.mcpServers = mcpServers;
+        // disableTools (envelope-repair retry): drop the cdp MCP server + allowedTools so the reformat call is a
+        // single plain completion and can NEVER re-enter the agentic tool loop (no page re-clone / re-navigation).
+        const noTools = request && request.disableTools === true;
+        const options = { maxTurns: noTools ? 1 : maxTurns, allowedTools: noTools ? [] : allowedTools, settingSources, model: useModel, abortController: ctrl, env, tools: [] };
+        if (mcpServers && !noTools) options.mcpServers = mcpServers;
         if (effort) options.effort = effort; // SDK guides thinking depth by effort (works with adaptive thinking)
         for await (const msg of q({ prompt: input(), options })) {
           if (msg && msg.type === 'rate_limit_event') { if (!rlStart) rlStart = Date.now(); }   // SDK throttle began → start crediting the wait
@@ -258,4 +370,4 @@ function makeClaudeSdkTransport(opts = {}) {
   };
 }
 
-module.exports = { makeRunAgent, makeAnthropicTransport, makeClaudeSdkTransport, makeGeminiTransport, parseAgentReply, toAnthropicContent };
+module.exports = { makeRunAgent, makeAnthropicTransport, makeClaudeSdkTransport, makeGeminiTransport, makeGeminiToolTransport, parseAgentReply, toAnthropicContent };

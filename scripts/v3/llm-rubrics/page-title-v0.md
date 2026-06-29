@@ -11,6 +11,13 @@ visionEvidence: [viewport]
 the FIRST `<title>` element, which is what the browser uses) and a viewport screenshot. Whether a title
 EXISTS is mechanical; you JUDGE whether it DESCRIBES this page's topic or purpose.
 
+**`signals.pageTitle.value` is the DETERMINISTIC title — it is AUTHORITATIVE for presence.** If
+`pageTitle.present` is true, the page HAS a non-empty `<title>` whose exact text is `pageTitle.value`. Do NOT
+contradict this from the screenshot: a sparse, near-empty, or slow-to-paint VIEWPORT does NOT mean the title is
+missing — the title lives in the document head, not the visible page. NEVER report "the page is blank" or "the
+title is missing/empty" when `pageTitle.present` is true; read the title from `pageTitle.value`, and judge ONLY
+whether that string is a literal placeholder or contradicts the page's topic.
+
 **Judge — this rubric owns title PRESENCE + non-contradiction, NOT descriptive quality.** The SC facet under
 test requires a NON-EMPTY title; whether a present title is richly descriptive is a stricter, separate facet
 you must NOT adjudicate here. Flag a barrier ONLY in these two cases:

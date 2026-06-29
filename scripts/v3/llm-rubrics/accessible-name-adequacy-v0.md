@@ -38,6 +38,15 @@ purpose, *even if terse or unspecific* — "Close", "Submit search", "Open main 
 menu, "Search" on a search field. A name that simply restates the control's evident function is adequate for
 4.1.2. Reserve "could be more descriptive" for 2.4.6 and DEFER it here.
 
+**Do NOT manufacture a name-vs-DEPICTED-BRAND mismatch.** A link or button that wraps a LOGO, brand mark, or
+icon is correctly named by its DESTINATION or PURPOSE, NOT by the brand the image depicts: a link named
+"Web Accessibility Initiative" wrapping the *W3C logo* image is CORRECT (the logo links to WAI) — it is NOT a
+mismatch, and "the name does not match the rendered logo/content" is the WRONG test. A "mismatch" barrier
+requires the name to describe a clearly DIFFERENT FUNCTION than the control performs (a "Search" name on a
+hamburger that opens a menu; a "Previous" name on the Next arrow) — a contradiction in ACTION, not a difference
+between the name and the brand/glyph/photo shown. When the name plausibly states where the control goes or what
+it does, clear it; never flag it for failing to echo the depicted brand or image content.
+
 **Evidence handed to you:** the PRESENT accessible name, the `element-crop` (the control's rendered pixels —
 its icon/glyph/label) and the `surrounding-region` (its context — the panel it controls, the row it sits
 in), and the role/state. Judge the name AGAINST what the control evidently does in the pixels.

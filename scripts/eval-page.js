@@ -479,6 +479,11 @@ function parseRGB(s) {
         const _isImg = (tag === 'img' || tag === 'svg' || tag === 'canvas' || roleAttr === 'img');
         const svgLiveText = tag === 'svg' && !!r.querySelector('text, tspan') && (r.textContent || '').trim().length > 0; // S7 (R7, 0va7u6) parity
         const renderedVisible = _isImg && b.width >= 8 && b.height >= 8; // S3 (R3): SIZE/visibility only — not "meaningful" (parity with act-page-collect)
+        // DECORATIVE-CONFLICT (Tier-0 #5, e88epe 2 & 3 — parity with act-page-collect): explicitly hidden (aria-hidden /
+        // role=presentation|none) yet author-NAMED and RENDERED → mint the gated 1.1.1 alt-adequacy obligation (oracle).
+        // A bare alt="" image (no author name) is NOT a conflict — genuinely decorative; needs vision, not enumeration.
+        const _authorName = ((r.getAttribute('alt') || '') + ' ' + (r.getAttribute('aria-label') || '') + ' ' + (r.getAttribute('title') || '')).trim();
+        const decorativeConflict = (_ariaHidden || _presentational) && _authorName.length > 0 && renderedVisible === true;
         // S3 (RCA R3): nearby text for the REDUNDANCY judgment (parity). Redundant-with-adjacent-text ⇒ decorative; unique ⇒ barrier if removed.
         const _txt = (e) => (e && (e.innerText || e.textContent) || '').replace(/\s+/g, ' ').trim();
         const nearbyText = !_isImg ? undefined : (function () {
@@ -586,7 +591,8 @@ function parseRGB(s) {
           hasKeyHandler: r.hasAttribute('onkeydown') || r.hasAttribute('onkeyup') || r.hasAttribute('onkeypress'),
           isFormField: formTags.includes(tag) || formRoles.includes(roleAttr),
           isImage: tag === 'img' || tag === 'svg' || tag === 'canvas' || roleAttr === 'img',
-          removedFromA11yTree, hiddenMechanism, ariaHiddenWithName, renderedVisible, nearbyText, svgLiveText, // Tier-0 #5 (e88epe) + S3 (R3) + S7 (R7)
+          iframeSrc: (tag === 'iframe' || tag === 'frame') ? (r.getAttribute('src') || '') : undefined, // 4.1.2 (4b1c6c): same-name iframe purpose-equivalence (parity with act-page-collect)
+          removedFromA11yTree, hiddenMechanism, ariaHiddenWithName, decorativeConflict, renderedVisible, nearbyText, svgLiveText, // Tier-0 #5 (e88epe) + S3 (R3) + S7 (R7)
           complexImageHint, // Item 7b: gate long-description-completeness to data-bearing images
           hasGlyphText, splitFieldGroup, // C8 small-signal applicability predicates (glyph-text-alternative / multipart-field-grouping)
           underOverlay, hasHoverContent, // Item 9: un-dead 2.4.11 focus-not-obscured + 1.4.13 content-on-hover

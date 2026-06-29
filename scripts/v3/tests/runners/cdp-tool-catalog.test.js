@@ -35,6 +35,9 @@ test('SC-primary selection: the right tools surface per guideline', () => {
   assert.ok(names('1.4.3', 'color-and-visual-text').includes('resolve_part_color'), '1.4.3 → backdrop pixel');
   // resolve_destination must NOT leak onto every name-role-state SC (it is SC-2.4.4-only, no skill key)
   assert.ok(!names('4.1.2', 'name-role-state').includes('resolve_destination'), 'resolve_destination must stay 2.4.4-only');
+  // compare_iframe_content is the 4.1.2 analog: surfaces on 4.1.2 but must NOT leak onto other name-role-state SCs
+  assert.ok(names('4.1.2', 'name-role-state').includes('compare_iframe_content'), '4.1.2 → iframe-content comparison');
+  assert.ok(!names('2.4.4', 'name-role-state').includes('compare_iframe_content'), 'compare_iframe_content must stay 4.1.2-only');
   // an SC no tool maps to → nothing
   assert.deepEqual(names('2.2.2', 'timing-and-motion'), [], '2.2.2 has no mapped tool');
 });

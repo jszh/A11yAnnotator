@@ -260,6 +260,15 @@ function precomputeSignals(element, skill, sc) {
       role: element.role, tabindex: element.tabindex, reachedByTab: element.reachedByTab,
       respondedToSyntheticKey: element.respondedToSyntheticKey, respondsToArrows: element.respondsToArrows, focusable: element.focusable,
     });
+    // 2.1.2 keyboard-trap (keyboard-trap-v0): the CONFINED set the deterministic instrument confirmed (attached as
+    // __confinement when this element is a confinement member). The rubric reveals/verifies the documented escape.
+    if (element.__confinement && Array.isArray(element.__confinement.members)) {
+      s.keyboardTrap = {
+        members: element.__confinement.members,
+        setSize: element.__confinement.setSize,
+        uncertainReason: 'a deterministic probe confirmed focus is CONFINED to these elements (cannot leave by Tab, Shift+Tab, or Escape, and an element outside the set is never reached). This is a 2.1.2 barrier UNLESS the user is told how to escape (a non-standard key, possibly behind a help control) AND that key works. Activate each member with observe_state_after_activation to reveal any escape instructions, then press the advised key with press_keys_and_observe_focus and read focusMoved. Undocumented or non-working ⇒ REPRODUCED.',
+      };
+    }
     // S5 (RCA R5): the 2.1.2 no-keyboard-trap judgment needs the trap-RISK context. A trap means focus is
     // RETAINED (cannot Tab/Shift+Tab/Esc out). Absent a focus-trapping region or inline focus handler, a normal
     // focusable is almost never a trap — surface this so the rubric does not invent one from operability alone.
@@ -366,6 +375,22 @@ function precomputeSignals(element, skill, sc) {
         peers: element.__sameNameLinks,
         distinctRawHrefs: rawHrefs.size,
         uncertainReason: 'other links on this page share this name — 2.4.4 fails if any resolve to a DIFFERENT destination. The values shown are RAW hrefs, NOT settled destinations: identical raw hrefs can still diverge (redirect/meta-refresh/SPA route) and different raw hrefs can be equivalent, so distinctRawHrefs is NOT sufficient to clear. If a tool is available, call resolve_destination on the SET of same-named links to compare SETTLED destinations; otherwise, if you cannot confirm the destinations are truly equivalent, return PARTIAL — never a confident clear on raw-href equality alone',
+      };
+    }
+    // 4.1.2 relational duplicate-name (4b1c6c): the OTHER iframes sharing THIS iframe's accessible name + their src,
+    // so the duplicate-name-equivalence rubric can judge whether same-named frames serve an EQUIVALENT purpose.
+    if (Array.isArray(element.__sameNameIframes) && element.__sameNameIframes.length) {
+      const norm = (u) => (typeof u === 'string' ? u.trim().replace(/[?#].*$/, '').replace(/\/+$/, '').toLowerCase() : '');
+      const selfSrc = typeof element.iframeSrc === 'string' ? element.iframeSrc : '';
+      const rawSrcs = new Set([selfSrc, ...element.__sameNameIframes.map((f) => f.src)].map(norm)); // includes self; '' = srcdoc/empty (kept — un-inspectable)
+      s.sameNameIframes = {
+        count: element.__sameNameIframes.length,
+        name: typeof element.axName === 'string' ? element.axName : null,
+        peers: element.__sameNameIframes,
+        selfSrc: selfSrc || null,
+        distinctSrcs: rawSrcs.size,
+        allSameSrc: rawSrcs.size === 1,
+        uncertainReason: 'two or more iframes on this page share THIS accessible name. 4.1.2 (ACT 4b1c6c) requires same-named frames to serve an EQUIVALENT purpose, so the user is not misdirected. distinctSrcs=1 (allSameSrc) means every same-named frame loads the SAME resource, so they serve an equivalent purpose and this is NOT a barrier (NOT REPRODUCED). distinctSrcs of 2 or more means the frames load DIFFERENT src strings — this is a TRIGGER TO INSPECT the rendered content, NOT a verdict: a different src does NOT by itself prove a different purpose. Clear (NOT REPRODUCED) when the crops show the frames render the SAME content (a copy/mirror, the same file under a different path, or a CDN/locale variant) OR when the shared name denotes a CATEGORY whose purpose both frames fulfil (e.g. two advertising frames showing different ads). Flag (REPRODUCED) only when the crops show the frames serve genuinely DIFFERENT purposes (e.g. a contributor list vs a contact form). src is the RAW attribute (query/hash/trailing-slash normalized), not settled content; an EMPTY src is a srcdoc or JS-set frame you must inspect or return PARTIAL. Never decide distinctSrcs of 2 or more on the src strings alone.',
       };
     }
     // #12 (2.4.4 enclosing context): the link's PROGRAMMATICALLY-DETERMINED context is the text of its NEAREST block
@@ -479,6 +504,22 @@ function precomputeSignals(element, skill, sc) {
         role: role || 'heading',
         ariaLevel: Number.isFinite(lvl) ? lvl : undefined,
         isOffscreen,
+      };
+    }
+    // 2.4.6 LABEL facet (cc0f0a): a form field / <label> is routed to heading-descriptive by the oracle, but it
+    // is NOT a heading, so the branch above never fires and the rubric got an EMPTY s.heading — it cleared a
+    // non-descriptive label by default. Surface the field's COMPUTED ACCESSIBLE NAME (axName: the resolved
+    // aria-label/aria-labelledby/label/title, in ANNOUNCE order) as the heading text so the rubric judges label
+    // descriptiveness — e.g. an aria-labelledby="submit search" that resolves to the confusing "Go Search".
+    // isFormFieldLabel tells the rubric this `text` is the field's announced name, not a page heading.
+    const FORMFIELD_ROLE_RE = /^(textbox|combobox|listbox|spinbutton|searchbox|slider)$/;
+    if (!s.heading && (element.isFormField === true || FORMFIELD_ROLE_RE.test(role) || (tag === 'label' && typeof element.text === 'string' && element.text.trim()))) {
+      const nm = typeof element.axName === 'string' ? element.axName.trim() : '';
+      s.heading = {
+        text: nm || (typeof element.text === 'string' && element.text ? element.text : null),
+        role: role || (tag === 'label' ? 'label' : 'form-field'),
+        isFormFieldLabel: true,
+        fieldRole: role || tag,
       };
     }
   }
@@ -797,7 +838,12 @@ const mapToRubricVerdict = (v29) => RUBRIC_VERDICT_FROM_V29[v29] || null;
 
 // Build (element, rubric) judging subjects: each auto-PARTIAL obligation × every atomic rubric whose
 // `sc` matches the obligation's SC. `rubrics` is loadRubrics().rubrics ({ [id]: {id, sc, skill, text, visionEvidence} }).
-function selectRubricSubjects(collect, ledger, rubrics, { onlyAutoPartial = true } = {}) {
+function selectRubricSubjects(collect, ledger, rubrics, { onlyAutoPartial = true, confinement = null, contrastExempt = null } = {}) {
+  // 2.1.2 keyboard-trap: `confinement` maps each CONFINED element xpath → { members:[{xpath,label}], setSize } (built
+  // from the deterministic confinement instrument's REVIEW findings — the lying-static-advisory ones were already
+  // promoted to a barrier and are excluded). The keyboard-trap-v0 rubric fires ONLY on a confined member, carrying
+  // the trapped set so the regular LLM judge can reveal a buried advisory + verify the key with the tools.
+  const confinementFor = (xpath) => (confinement && Object.prototype.hasOwnProperty.call(confinement, xpath)) ? confinement[xpath] : null;
   const elByXpath = {};
   for (const el of (collect && collect.elements) || []) if (el && el.xpath) elByXpath[el.xpath] = el;
   const structure = (collect && collect.structure) || null; // page facts threaded to page-structure subjects (Tier-0 #3)
@@ -825,6 +871,25 @@ function selectRubricSubjects(collect, ledger, rubrics, { onlyAutoPartial = true
     const peers = (linksByName[nm.toLowerCase()] || []).filter((l) => l.xpath !== el.xpath);
     return peers.length ? peers.slice(0, 12) : null;
   };
+  // 4.1.2 (4b1c6c, relational duplicate-name): a per-page index of IFRAMES sharing an accessible name. ACT requires
+  // that iframes with IDENTICAL accessible names serve an EQUIVALENT purpose; a single-element name-adequacy view
+  // cannot see this (and accessible-name-adequacy-v0 explicitly defers it). Hand the duplicate-name-equivalence
+  // rubric the OTHER same-named iframes + their src so it can judge whether they point at different content/purpose.
+  const iframesByName = {};
+  for (const el of (collect && collect.elements) || []) {
+    if (!el || !el.xpath) continue;
+    if (el.tag !== 'iframe' && el.tag !== 'frame') continue;
+    const nm = (typeof el.axName === 'string' && el.axName.trim()) || '';
+    if (!nm) continue; // an UNNAMED iframe owns no identical-name obligation
+    (iframesByName[nm.toLowerCase()] = iframesByName[nm.toLowerCase()] || []).push({ xpath: el.xpath, name: nm, src: typeof el.iframeSrc === 'string' ? el.iframeSrc : '' });
+  }
+  const sameNameIframesFor = (el) => {
+    if (!el || (el.tag !== 'iframe' && el.tag !== 'frame')) return null;
+    const nm = (typeof el.axName === 'string' && el.axName.trim()) || '';
+    if (!nm) return null;
+    const peers = (iframesByName[nm.toLowerCase()] || []).filter((f) => f.xpath !== el.xpath);
+    return peers.length ? peers.slice(0, 12) : null;
+  };
   const bySc = {};
   for (const r of Object.values(rubrics || {})) if (r && r.sc) (bySc[r.sc] = bySc[r.sc] || []).push(r);
   const rows = (ledger || []).filter((r) => (onlyAutoPartial ? r.autoPartial : true));
@@ -839,10 +904,41 @@ function selectRubricSubjects(collect, ledger, rubrics, { onlyAutoPartial = true
     seen.add(key);
     // attach per-subject evidence via a SHALLOW COPY (never mutate the shared collect.elements record): the
     // whole-page structure for page-structure/grouping rubrics (__pageStructure), and the same-named link set for
-    // the in-context link-purpose rubric (__sameNameLinks). precomputeSignals reads these.
+    // the relational link-name-equivalence rubric (__sameNameLinks). precomputeSignals reads these.
     const extra = {};
     if (structure && PAGE_STRUCTURE_SKILLS.has(rub.skill || '')) extra.__pageStructure = structure;
-    if (rub.id === 'link-purpose-v0') { const peers = sameNameLinksFor(baseEl); if (peers) extra.__sameNameLinks = peers; }
+    // 2.4.4 SPLIT (fd3a94): the RELATIONAL "do same-named links resolve to equivalent destinations?" question is
+    // OWNED by link-name-equivalence-v0, NOT link-purpose-v0 (the single-link purpose-in-context rubric). Mirror the
+    // iframe duplicate-name-equivalence gate: this rubric fires ONLY on a link that shares its name with another link;
+    // with no same-named peer the relational check is vacuous — skip the subject (no LLM call). link-purpose-v0 no
+    // longer receives the peer set, so the two questions are judged independently (a single-link FP/FN cannot leak
+    // into the relational decision and vice versa).
+    if (rub.id === 'link-name-equivalence-v0') { const peers = sameNameLinksFor(baseEl); if (!peers) { seen.delete(key); continue; } extra.__sameNameLinks = peers; }
+    // 4.1.2 relational duplicate-name (4b1c6c): the duplicate-name-equivalence rubric ONLY applies to an iframe that
+    // shares its accessible name with ANOTHER iframe. With no same-named peer the relational check is vacuous — skip
+    // the subject entirely (no LLM call), so this rubric never fires on a lone iframe or any non-iframe 4.1.2 row.
+    if (rub.id === 'duplicate-name-equivalence-v0') {
+      const peers = sameNameIframesFor(baseEl);
+      if (!peers) { seen.delete(key); continue; }
+      // DETERMINISTIC EQUIVALENCE (allSameSrc): every same-named iframe loads the SAME non-empty src ⇒ the same
+      // resource ⇒ equivalent purpose ⇒ NOT a barrier. SUBTRACT it from the LLM lane (the rubric's own allSameSrc
+      // branch, made deterministic) — this is the 4b1c6c FP source: a judge that ignores allSameSrc and flags a
+      // barrier on page-one-vs-page-one. The rubric then fires ONLY for distinctSrcs>=2 (the genuinely ambiguous
+      // case it now resolves with compare_iframe_content). Empty src ('') stays in the lane (srcdoc/JS — un-fingerprintable).
+      const norm = (u) => (typeof u === 'string' ? u.trim().replace(/[?#].*$/, '').replace(/\/+$/, '').toLowerCase() : '');
+      const srcs = new Set([typeof baseEl.iframeSrc === 'string' ? baseEl.iframeSrc : '', ...peers.map((f) => f.src)].map(norm));
+      if (srcs.size === 1 && [...srcs][0] !== '') { seen.delete(key); continue; }
+      extra.__sameNameIframes = peers;
+    }
+    // 2.1.2 keyboard-trap: ONLY judge a CONFINED element (the deterministic instrument confirmed the confinement and
+    // did not settle it via the lying-static-advisory fast-path). With no confinement finding the rubric is vacuous —
+    // skip the subject so it never fires on the thousands of ordinary focusRisk elements.
+    if (rub.id === 'keyboard-trap-v0') { const conf = confinementFor(row.xpath); if (!conf) { seen.delete(key); continue; } extra.__confinement = conf; }
+    // #3 (1.4.3 non-language exemption): the text-contrast experiment proved this element's rendered text expresses
+    // no human language (pure symbols / a separately-named single-letter icon — afw4f7 Passed Ex6/Ex7), so 1.4.3 is
+    // inapplicable. SUBTRACT it from the LLM contrast lane — the deterministic facet is settled; the rubric would
+    // only re-derive the (true-but-irrelevant) sub-threshold ratio and FALSE-barrier a passing case.
+    if (rub.id === 'contrast-over-complex-backdrop-v0' && contrastExempt && contrastExempt.has(row.xpath)) { seen.delete(key); continue; }
     const element = Object.keys(extra).length ? { ...baseEl, ...extra } : baseEl;
     subjects.push({ xpath: row.xpath, sc: row.sc, claimFamily: row.claimFamily, rubricId: rub.id, rubric: rub, skill: rub.skill || null, element });
   }

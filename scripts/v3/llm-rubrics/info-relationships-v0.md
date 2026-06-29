@@ -13,11 +13,28 @@ are ALSO programmatically determinable. DEFER where a deterministic CLAIM exists
 
 **Interpreting the deterministic evidence.** `signals.structure` carries `headings[]` ({tag, role, level, text,
 offscreen}) and `tables[]` — each table has `{rowCount, thCount, tdCount, hasCaption, captionText, headers[] ({id,
-scope, text}), tdHeaderSamples[] ({cell, headers[], resolved[]}), tdWithHeaders, danglingIdref, headerWithNoDataCell,
-looksLikeDataTable}`. Use these for the header-association call: `danglingIdref`/`headerWithNoDataCell` are positive
-broken-association smells; `tdHeaderSamples[].resolved` shows which header text each `headers=` IDREF actually points
-to (judge whether that is the RIGHT header for the cell). `looksLikeDataTable:false` ⇒ likely a layout table (not in
-scope). An ABSENT signal is "could not determine", never "passes".
+scope, text}), tdHeaderSamples[] ({cell, headers[], resolved[]}), tdWithHeaders, danglingIdref, headersRefsNonCell,
+headersRefsSelf, headerWithNoDataCell, looksLikeDataTable, roleOverride}`.
+
+**The `headers=` IDREF wiring is checked DETERMINISTICALLY — TRUST it, do not second-guess a resolving ref.** A
+collector pass verified, for every `<td headers="…">`, whether each IDREF resolves to a th/td CELL in the SAME table:
+- `danglingIdref:true` ⇒ a ref points to an id NOT in this table (cross-table / missing) → BROKEN ref → barrier.
+- `headersRefsNonCell:true` ⇒ a ref resolves to a non-cell element (a `<span>`/`<div>` that carries the id) → barrier.
+- `headersRefsSelf:true` ⇒ a data cell references its OWN id (a cell is not its own header) → barrier.
+- **All three FALSE ⇒ every `headers=` IDREF that EXISTS resolves to a valid same-table cell — do NOT flag the IDREF
+  RESOLUTION, and do NOT invent a "wrong / multiple / redundant header" barrier on it.** A cell referencing MULTIPLE
+  headers (its column header AND its row header) is CORRECT HTML, not a "misrepresentation"; a present, resolving
+  association is never a barrier for being sub-optimal. `tdHeaderSamples[].resolved` is shown to support the
+  BROKEN-ref call above, not to invite re-judging valid wiring.
+
+This trust applies ONLY to the resolution of refs that exist; it does not pre-clear the OTHER table failure patterns
+below (a header with no data cell in its column, a visual grid with no programmatic headers at all). Judge those from
+`headers[]`/`scope`/the grid as usual — but do not promote `headerWithNoDataCell` or a lone header-only table to a
+barrier by itself (a table with no data cells conveys no relationship to break). `looksLikeDataTable:false` or a
+non-null `roleOverride` (`role=heading`/`presentation`/`none`) ⇒ NOT a data table: `role=presentation`/`none` is the
+author's EXPLICIT layout declaration, so do not flag it for "stripped/missing table semantics" (header facet
+INAPPLICABLE) unless the viewport unmistakably shows mislabelled data — and then prefer PARTIAL. An ABSENT signal is
+"could not determine", never "passes".
 
 `signals.structure.lists[]` carries list semantics (TT 10.D). Each entry is either `kind:'real'` (a genuine
 `ul`/`ol`/`dl`) — `{tag, role, itemCount, listStyleNone, hasNonItemChildren, roleOverridesList, nestedDepth,
@@ -48,11 +65,13 @@ real list is NOT. Common failure patterns:
   content below it) but is a plain `<div>`/`<span>`/`<strong>` with no heading role — a sighted reader
   perceives the section break, AT users do not (technique H69). The same applies to a heading that is
   only *styled* large (e.g. `<strong style="font-size:18pt">`) standing in for an `<h1>`.
-- **Broken table header association:** a data table whose column/row HEADER cells do not actually associate
-  with the data cells a sighted user reads under/beside them — e.g. a header column with NO data cell in
-  its column, or `headers=`/`scope` wiring that leaves a header orphaned. The visual
-  row/column grid implies an association the markup does not deliver ⇒ barrier. (A genuine LAYOUT table
-  that conveys no data relationships is not in scope — judge whether the grid actually carries data.)
+- **Broken table header association:** a DATA table (it has both header cells AND data cells) whose column/row
+  HEADER cells do not actually associate with the data cells a sighted user reads under/beside them — e.g. a header
+  whose column/row holds data but is not linked to it, or a visual grid with no programmatic `th`/`scope`/`headers=`
+  at all. The visual row/column grid implies an association the markup does not deliver ⇒ barrier. Use the
+  deterministic ref flags (`danglingIdref`/`headersRefsNonCell`/`headersRefsSelf`): a RESOLVING `headers=` ref is NOT
+  broken — do not flag it, and do not flag a cell merely for referencing multiple valid headers. (A genuine LAYOUT
+  table, or a header-only table with no data, conveys no data relationship and is not in scope.)
 - **List not marked up (TT 10.D):** a run of items a sighted reader perceives as a list — bullet/number
   glyphs, or `<br>`-separated bulleted lines — coded as plain `<div>`/`<span>`/`<p>` with no `ul`/`ol`/`dl`
   (a `kind:'faux'` entry in `signals.structure.lists`). The list relationship (membership, count, order) is

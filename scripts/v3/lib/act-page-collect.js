@@ -416,6 +416,12 @@ async function collectActPage(page, opts = {}) {
       const authorName = ((altAttr || '') + ' ' + (el.getAttribute('aria-label') || '') + ' ' + (el.getAttribute('title') || '')).trim();
       const ariaHiddenWithName = ariaHidden && authorName.length > 0;
       const renderedVisible = isImage && box.width >= 8 && box.height >= 8; // S3 (R3): SIZE/visibility only — NOT "meaningful" (a decorative photo and a meaningful logo both pass this)
+      // DECORATIVE-CONFLICT (Tier-0 #5, e88epe fixtures 2 & 3): an image EXPLICITLY hidden (aria-hidden OR
+      // role=presentation/none) that the author nonetheless NAMED (alt/aria-label/title) and that RENDERS at a
+      // non-trivial size — the author signalled meaning, then removed it from AT. This deterministic smell mints a
+      // (gated) 1.1.1 alt-adequacy obligation in the oracle so the rubric judges the rendered pixels vs the hidden
+      // name. NOT fired for a bare alt="" decorative image (no author name) — that is genuinely decorative.
+      const decorativeConflict = (ariaHidden || presentational) && authorName.length > 0 && renderedVisible === true;
       // S3 (RCA R3): NEARBY TEXT for the REDUNDANCY judgment. Pixel content cannot separate a decorative photo
       // from a meaningful logo (the photo often has MORE pixels). The real discriminator is whether the image's
       // information is REDUNDANT with adjacent text (→ correctly decorative) or UNIQUE (→ a barrier if removed
@@ -541,7 +547,7 @@ async function collectActPage(page, opts = {}) {
         removedFromA11yTree,
         hiddenMechanism,
         renderedVisible, nearbyText, svgLiveText, svgNamedDescendant,
-        ariaHiddenWithName,
+        ariaHiddenWithName, decorativeConflict,
         complexImageHint,
         tabindexEffective, hasGlyphText, splitFieldGroup, // C8 small-signal predicates (parity)
         // Item 13 (cheap scrutiny signals, parity with eval-page): a native control that overrides its role
@@ -556,6 +562,7 @@ async function collectActPage(page, opts = {}) {
         hasHoverContent: _hasHoverContent(el),
         backgroundImageMeaningful, backgroundImageUrl, isCaptcha, // TT gaps G2/G3 (1.1.1)
         iframeTabExcluded, focusableInAriaHidden, prohibitedAriaAttr, // deterministic barrier flags (2.1.1 / 4.1.2)
+        iframeSrc: (tag === 'iframe' || tag === 'frame') ? (el.getAttribute('src') || '') : undefined, // 4.1.2 (4b1c6c): same-name iframe purpose-equivalence
       });
     }
     // IFRAME TRAVERSAL (coverage audit, akn7bn 2.1.1): descend ONE level into SAME-ORIGIN iframes and collect
@@ -606,8 +613,40 @@ async function collectActPage(page, opts = {}) {
           box: { x: Math.round(box.x), y: Math.round(box.y), width: Math.round(box.width), height: Math.round(box.height) },
           inModal: false, focusRisk: false, underOverlay: false, hasHoverContent: false,
           backgroundImageMeaningful: _frameBgM, backgroundImageUrl: _frameBgU, isCaptcha: _frameCaptcha, // R2 G3-2 parity
+          iframeSrc: (tag === 'iframe' || tag === 'frame') ? (el.getAttribute('src') || '') : undefined, // 4.1.2 (4b1c6c): a NESTED same-named iframe (srcdoc) needs its src for purpose-equivalence
         });
       }
+    }
+    // SHADOW-DOM iframe collection (4.1.2 4b1c6c Passed Ex9 + shadow barriers): the main walk and the iframe query
+    // above use querySelectorAll, which does NOT cross shadow boundaries, so a same-named <iframe> inside an OPEN
+    // shadow root is invisible to the duplicate-name-equivalence check. Recursively descend open shadow roots and
+    // collect each RENDERED iframe as a top-level iframe RECORD (tag / axName / iframeSrc) so it joins the same-name
+    // index. The box-size gate excludes the UNRENDERED light-DOM children a shadow host hides (Passed Ex9's page-two
+    // frame), so a frame the user never sees does not invent a barrier. Cross-origin frame CONTENTS are still not read.
+    if (!_subset) {
+      const walkShadow = (host, hostXpath, depth) => {
+        const sr = host.shadowRoot;
+        if (!sr || depth > 4) return;
+        const sprefix = hostXpath + '>>shadow';
+        for (const ifr of sr.querySelectorAll('iframe, frame')) {
+          if (els.length >= cap) { _cappedOut = true; return; }
+          const box = ifr.getBoundingClientRect();
+          if (box.width < 8 || box.height < 8) continue; // unrendered (or shadow-hidden light child) ⇒ skip
+          const tag = ifr.tagName.toLowerCase();
+          els.push({
+            xpath: sprefix + '/' + tag + (ifr.id ? `[@id="${ifr.id}"]` : '[1]'), inFrame: true, inShadow: true,
+            text: '', hasText: false, focusable: false, isInteractive: false, isFormField: false, isImage: false,
+            ariaAttrs: ifr.getAttributeNames().filter((n) => n.indexOf('aria-') === 0),
+            roleAttr: ifr.getAttribute('role') || '', sampledRole: '', axRole: '', axName: labelledText(ifr, ''), tag, type: '',
+            box: { x: Math.round(box.x), y: Math.round(box.y), width: Math.round(box.width), height: Math.round(box.height) },
+            inModal: false, focusRisk: false, underOverlay: false, hasHoverContent: false,
+            iframeSrc: ifr.getAttribute('src') || '',
+          });
+          walkShadow(ifr, sprefix + '/' + tag, depth + 1); // an iframe can itself host a shadow root (rare)
+        }
+        for (const node of sr.querySelectorAll('*')) if (node.shadowRoot) walkShadow(node, sprefix + '/' + node.tagName.toLowerCase() + (node.id ? `[@id="${node.id}"]` : ''), depth + 1);
+      };
+      for (const host of document.querySelectorAll('*')) if (host.shadowRoot) walkShadow(host, xpathOf(host), 0);
     }
     // PAGE STRUCTURE (Tier-0 #3, parity with eval-page.js): the heading tree + landmarks the page-structure /
     // grouping rubrics (2.4.2/2.4.6/2.4.10/1.3.1) promise. Headings include OFF-SCREEN ones (an off-viewport

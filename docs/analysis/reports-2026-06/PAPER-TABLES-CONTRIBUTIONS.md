@@ -101,6 +101,8 @@ Evidence forms (NONE is the harness's deployed form except where noted):
 | Full + HTML, style-stripped | targeted | 42/66 | **78.8** | 76.5 | 0.78 | 4.1 |
 | **Full + HTML, style-stripped + facet-gated** | targeted | 42/66 | 77.3 | **81.0** | **0.79** | 3.1 |
 | **▶ Current pipeline (2026-06-24): default + new det. runners** | targeted | **43/66** | **78.8** | 78.8 | 0.788 | 3.6 |
+| **▶ + determinism defaults ON (settle + per-lease isolation), 2026-06-25** | targeted | 40/66 | 74.2 | **81.7** | 0.778 | **2.8** |
+| **▶ Cross-family: Gemini 3.5-flash judge (same harness, full config), 2026-06-28** | targeted | 40/66 | 74.2 | 70.0 | 0.721 | 5.4 |
 
 > **Re-run on current code (2026-06-24, `results/exp30-current-html`).** A full 458-case re-run of the
 > *deployed-default* config (facet-gated style-stripped HTML augmentation + targeted vision + tools) at the
@@ -113,6 +115,44 @@ Evidence forms (NONE is the harness's deployed form except where noted):
 > (FP 14 vs exp19's 11) — partly the medium-vs-high effort tradeoff (exp19 @ high held 82.3% precision); a
 > matched high-effort re-run would be expected to recover most of it. Recompute: `node
 > eval/checker-comparison/ablation-table.js`.
+
+> **Determinism defaults ON (2026-06-25, `results/fn-llm-allfixes`).** The same deployed-default config (facet-gated
+> style-stripped HTML + targeted vision + tools, medium effort) re-run with this session's determinism fixes now
+> **default-on** — `awaitSettle`/`awaitFocusSettle` (no longer opt-in), incognito **per-lease isolation**,
+> `robustScreenshot` retries, and the DOM-mutation-gated VSR poll. **Result: 74.2% recall (49/66), 81.7% precision,
+> 2.8% FP, F1 0.778, LLM-lane 40/66.** Relative to the exp30 anchor this is −4.6 recall / +2.9 precision / −0.8 FP —
+> a swap **within the documented LLM run-to-run band** (LLM-lane 40 vs 43; the Full config samples at 38–43, see
+> Limitations). This is the expected reading: the determinism fixes are a **variance-reduction** intervention — they
+> drove the per-run ledger drift from 7→0 and the perceptual-vision drift from 1→0 on a drift-bearing replay set
+> (`docs/analysis/improvement-research-2026-06/FP-REDUCTION-CONTROLLED-ROUND2.md`) — **not a central-tendency lift**,
+> so a single end-to-end run shows parity (here trading ~3 recall for ~3 FP / +precision), not a jump. Their value is
+> repeatability of the cell, which single-run tables cannot show; a multi-run median is the right way to credit them.
+> Recompute: `node eval/checker-comparison/ablation-table.js` (config `fn-llm-allfixes`).
+
+> **Cross-family judge — whole LLM lane on Gemini (2026-06-28, `results/fn-llm-gemini`).** The *same* deployed-default
+> harness as the row above (facet-gated style-stripped HTML + targeted vision + **tools**, determinism defaults ON) with
+> **only the judge swapped** from Claude Sonnet 4.6 to **Google Gemini 3.5-flash**. Tools are driven by a re-implemented
+> **function-calling loop** (`makeGeminiToolTransport`) over the *same* 13 CDP handlers; because every tool result is
+> JSON-stringified uniformly (`cdp-tools.js` `wrap`), the judge receives **byte-identical tool evidence** — so this run
+> varies *model + agent-loop protocol* while holding the evidence and tool outputs constant. (It is a full-pipeline
+> head-to-head, distinct from the fixed-evidence Gemini *refuter panel* in Table 1c / contribution #6.) **Result: 74.2%
+> recall (49/66), 70.0% precision, 5.4% FP, F1 0.721, LLM-lane 40/66.**
+>
+> - **Recall generalizes across families — essentially exactly.** Gemini matches Claude's same-harness run on **both**
+>   end-to-end recall (74.2%, 49/66) **and** scorer-independent LLM-lane recall (40/66), and the catches *overlap*: **45
+>   of 49 are the identical cases** (4 unique to each family). The harness's evidence-provisioning recall contribution
+>   (#2: vision→recall, signals/HTML/tools→precise-recall) is **not Claude-specific** — a second model family, given the
+>   same routed evidence and tools, recovers the same barriers.
+> - **The cost is precision, and it is part-intrinsic, part-model.** Gemini flags **21** FPs vs Claude's 11. Of these,
+>   **6 are shared** (both families call the same GT-pass case a barrier) — the cross-model-shared, debatable-GT residual
+>   that contribution #6 isolates. Gemini independently over-flags **15 more** (1.3.1 structure ×3, 2.4.x heading/link
+>   ×7, 4.1.2 name-role ×2, 1.1.1 ×2, 1.4.3 ×1) — model-specific trigger-happiness on the adequacy/structure judgments,
+>   not shared ambiguity. So the precision *ceiling* is judge-design-invariant for the shared core (#6 stands), but the
+>   *absolute* FP rate is model-dependent: Gemini 3.5-flash is less calibrated than Claude on the GT-pass set.
+> - **Methodology caveat.** The Gemini tool path is a hand-rolled `generateContent` function-calling loop
+>   (generativelanguage v1beta), not the Claude Agent SDK MCP loop the Claude rows use; the evidence and tool *outputs*
+>   are identical but the agent-loop protocol differs, so read this as a model+transport swap, not a pure model swap.
+>   Recompute: `node eval/checker-comparison/ablation-table.js` (config `fn-llm-gemini`).
 
 **Two independent levers (the corrected central finding).**
 - **Vision is the RECALL lever.** name/role 6 → +vision 26 (LLM-lane). The model must *see* the rendered page
@@ -253,7 +293,12 @@ FP-REDUCTION-CONTROLLED-ROUND2.md`.)
    cost; the residual is confident and *cross-model-shared* (Gemini and Claude fail on, and agree about, the same
    cases). This delimits LLM-as-judge improvement for conformance — the boundary in #5 is **intrinsic** (debatable
    GT / semantic ambiguity), not a prompting deficiency — and quantifies the judge's irreducible sampling noise
-   (σ≈1.06 FP), recommending multi-run-median measurement for sub-floor changes.
+   (σ≈1.06 FP), recommending multi-run-median measurement for sub-floor changes. A **full-pipeline** cross-family run
+   (the *whole* LLM lane on Gemini 3.5-flash at the deployed config — Table 1b, `results/fn-llm-gemini`) independently
+   corroborates the shared core (6 of Claude's 11 Full-config FPs are flagged by Gemini too) while sharpening the
+   boundary: *recall* is family-invariant (49/66 for both; 45 of 49 catches the same cases), but the *absolute* FP rate
+   is model-dependent (Gemini 21 vs Claude 11 — 15 model-specific extra over-flags), so the precision *ceiling* is
+   judge-invariant for the ambiguous core even though the *operating point* is not.
 
 ## Related work (anchors to situate the contributions)
 

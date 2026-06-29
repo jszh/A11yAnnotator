@@ -188,9 +188,15 @@ function familiesFor(el) {
   // 1.1.1 alt + 1.4.5: owed only for an image that is IN the a11y tree. A graphic REMOVED from the tree
   // (aria-hidden=true, role=presentation/none, alt="") is intentionally decorative and owes no text alternative
   // (ACT inapplicable — e.g. an aria-hidden role=img logo). Gate on the collector's removedFromA11yTree fact so a
-  // bare/decorative svg/canvas/role=img is not enumerated. (A decorative image conveying UNIQUE meaning despite
-  // being hidden is still caught by the alt-text-adequacy decorative-marking signal, not by minting an obligation here.)
+  // bare/decorative svg/canvas/role=img is not enumerated.
   if ((IMG_ROLE.test(role) || el.isImage === true) && el.removedFromA11yTree !== true && el.svgNamedDescendant !== true) { fams.push('non-text-content'); fams.push('images-of-text'); }
+  // Tier-0 #5 (e88epe FN): the EXCEPTION to the rule above — a removed-from-tree image is normally decorative, BUT a
+  // DECORATIVE-CONFLICT (explicitly hidden via aria-hidden / role=presentation|none, yet author-NAMED and RENDERED)
+  // is a deterministic smell: the author signalled the image carries meaning, then removed it from AT. Mint the 1.1.1
+  // alt-adequacy obligation ONLY (not images-of-text) so the rubric judges the rendered pixels vs the hidden name
+  // (the decorativeMarking precompute already surfaces the conflict). Gated tightly on decorativeConflict — a bare
+  // alt="" decorative image (no author name) stays unenumerated, so no flood on ordinary decorative imagery.
+  else if ((IMG_ROLE.test(role) || el.isImage === true) && el.decorativeConflict === true && el.svgNamedDescendant !== true) { fams.push('non-text-content'); }
   // TT gap G2 (TT 7.C): a CSS background-image conveying INFORMATION owes a text alternative — the SAME
   // non-text-content family + alt-text-adequacy rubric as an <img> (1.1.1). It ALSO owes images-of-text (1.4.5):
   // a background-image can render TEXT-AS-IMAGE (e.g. a textimage.jpg); the images-of-text rubric judges that and

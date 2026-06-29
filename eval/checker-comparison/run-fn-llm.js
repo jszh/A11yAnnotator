@@ -25,7 +25,7 @@ require('../../scripts/v3/lib/load-env.js').loadEnv(REPO_ROOT);
 
 const { orchestrate } = require('../../scripts/v3/lib/orchestrator.js');
 const { createTabAllocator } = require('../../scripts/v3/lib/tab-allocator.js');
-const { makeRunAgent, makeClaudeSdkTransport } = require('../../scripts/v3/lib/llm-agent-adapter.js');
+const { makeRunAgent, makeClaudeSdkTransport, makeGeminiTransport } = require('../../scripts/v3/lib/llm-agent-adapter.js');
 const { collectActPage, normalizeCollectRoles } = require('../../scripts/v3/lib/act-page-collect.js');
 const { makeSemaphore, sampleMemory } = require('../../scripts/v3/lib/run-telemetry.js');
 const LIMITS = require('../../scripts/v3/lib/limits.js');
@@ -49,11 +49,17 @@ const RUN_LLM = !arg('no-llm', false);                 // --no-llm ⇒ DETERMINI
 const RESTRICT_SC = REACHES_LLM || !!arg('restrict-sc', false); // judge ONLY the case's GT'd SC — ACT ground truth is per-SC (off-target verdicts are unscoreable + wasted spend)
 const PAGE_CONC = Number(arg('pages', 8));             // pages orchestrated at once (default = cores-2 headroom; was 4 —
                                                       // too few to feed the global LLM cap once tools cap per-page conc)
+// PROVIDER: 'claude' (default, subscription SDK) or 'gemini' (cross-family comparison via GEMINI_API_KEY). BOTH
+// support the multi-turn tool path: claude via the Agent SDK MCP query() loop, gemini via the hand-rolled
+// function-calling loop (makeGeminiToolTransport) over the SAME CDP handlers — only the agent-loop protocol differs.
+const PROVIDER = arg('provider', 'claude');
 // LLM concurrency is governed by limits.js — NOT a hand-picked number. Page-parallelism multiplies per-page
-// concurrency, so the GLOBAL in-flight cap is set to (and clamped at) LIMITS.concurrency.llm: the single LLM
-// restriction the whole harness honors. An override may only go LOWER, never above the limit (clamp pattern from
-// run-v3-act-suite.js). maxTabs likewise sources from limits.js.
-const GLOBAL_LLM = Math.min(LIMITS.concurrency.llm, Math.max(1, Number(arg('global-llm', LIMITS.concurrency.llm))));
+// concurrency, so the GLOBAL in-flight cap is clamped at the PROVIDER ceiling. Claude rides the subscription rate
+// limit (LIMITS.concurrency.llm = 16; above ~19 in-flight the API rate-limits). Gemini has a SEPARATE, higher API
+// quota, so its ceiling is raised (GEMINI_LLM_CAP, default 64) — an explicit --global-llm may exercise it up to that.
+// An override may only go LOWER than the provider ceiling, never above. maxTabs likewise sources from limits.js.
+const LLM_CAP = PROVIDER === 'gemini' ? Number(process.env.GEMINI_LLM_CAP || 64) : LIMITS.concurrency.llm;
+const GLOBAL_LLM = Math.min(LLM_CAP, Math.max(1, Number(arg('global-llm', LIMITS.concurrency.llm))));
 const LLM_CONC = Math.min(LIMITS.concurrency.llm, Math.max(1, Number(arg('llm-concurrency', LIMITS.concurrency.llm)))); // per-page subjects; the global gate enforces the true cap
 const MAX_TABS = Math.min(LIMITS.concurrency.maxTabs, Math.max(1, Number(arg('max-tabs', LIMITS.concurrency.maxTabs))));
 const MAX_AUTO = Number(arg('max-auto', LIMITS.act.maxAuto));
@@ -78,7 +84,8 @@ const BASELINE_VISION = process.env.V3_BASELINE_VISION === '1';
 const FIXED_STATUS_PATH = process.env.LLM_EVAL_STATUS_PATH || process.env.FN_LLM_STATUS_PATH || '/tmp/llm-eval-status.json';
 const STATUS_EVERY_MS = 500;
 
-const MODEL = process.env.V3_LLM_MODEL || 'claude-sonnet-4-6';
+const MODEL = process.env.V3_LLM_MODEL || (PROVIDER === 'gemini' ? (arg('model', null) || 'gemini-3.5-flash') : 'claude-sonnet-4-6');
+const GEMINI_KEY = (() => { try { return (fs.readFileSync(path.join(REPO_ROOT, '.env'), 'utf8').split('\n').find((l) => l.startsWith('GEMINI_API_KEY=')) || '').split('=')[1].trim(); } catch (e) { return null; } })();
 const TRANSPORT_CONFIG = {
   oauthToken: process.env.CLAUDE_CODE_OAUTH_TOKEN,
   model: MODEL,
@@ -171,7 +178,11 @@ function recordTrace(e) {
 // multi-turn tool transport orchestrate builds internally (it rides `...llmTransportConfig`), so the monitor's
 // token/cost counters stay honest whether tools are off or on.
 const TRANSPORT_WITH_SINK = { ...TRANSPORT_CONFIG, onTraceSink: recordTrace };
-const baseAgent = makeRunAgent({ transport: makeClaudeSdkTransport(TRANSPORT_WITH_SINK), model: MODEL });
+// PROVIDER switch: gemini ⇒ cross-family single-shot transport (no tools, no OAuth), else the subscription SDK.
+const baseTransport = PROVIDER === 'gemini'
+  ? makeGeminiTransport({ apiKey: GEMINI_KEY, model: MODEL })
+  : makeClaudeSdkTransport(TRANSPORT_WITH_SINK);
+const baseAgent = makeRunAgent({ transport: baseTransport, model: MODEL });
 // GLOBAL semaphore + inflight tracking, factored so it wraps EITHER agent: the single-shot agent (here) and the
 // tool agent (via orchestrate's wrapAgent hook). One global cap + one inflight view regardless of tools on/off.
 const wrapAgent = (agent) => (messages, subject) => sem.run(async () => {
@@ -273,10 +284,11 @@ async function main() {
   tel.config.fnTotal = cases.length;
   tel.phase = 'launching';
   writeStatus();
-  console.log(`FN×LLM run: ${cases.length} cases | model=${MODEL} effort=${TRANSPORT_CONFIG.effort} | pages=${PAGE_CONC} globalLLM=${GLOBAL_LLM} maxTabs=${MAX_TABS} vision=${VISION} tools=${TOOLS}`);
+  console.log(`FN×LLM run: ${cases.length} cases | provider=${PROVIDER} model=${MODEL} effort=${TRANSPORT_CONFIG.effort} | pages=${PAGE_CONC} globalLLM=${GLOBAL_LLM} maxTabs=${MAX_TABS} vision=${VISION} tools=${TOOLS}`);
   console.log(`status → ${path.join(OUT, 'status.json')}  (run: node ${path.relative(process.cwd(), path.join(__dirname, 'fn-llm-monitor.js'))})`);
 
-  if (!process.env.CLAUDE_CODE_OAUTH_TOKEN) { console.error('FATAL: CLAUDE_CODE_OAUTH_TOKEN not set (.env)'); process.exit(1); }
+  if (PROVIDER === 'gemini') { if (!GEMINI_KEY) { console.error('FATAL: GEMINI_API_KEY not set (.env)'); process.exit(1); } }
+  else if (!process.env.CLAUDE_CODE_OAUTH_TOKEN) { console.error('FATAL: CLAUDE_CODE_OAUTH_TOKEN not set (.env)'); process.exit(1); }
 
   const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
   const browserPid = browser.process() && browser.process().pid;
@@ -337,6 +349,7 @@ async function main() {
           runLlm: RUN_LLM, runAgent, captureVision: RUN_LLM && VISION, wrapAgent, // --no-llm ⇒ DETERMINISTIC baseline (no LLM lane, no vision capture)
           llmConcurrency: LLM_CONC,
           llmTools: TOOLS, llmTransportConfig: TRANSPORT_WITH_SINK,
+          llmProvider: PROVIDER, geminiKey: GEMINI_KEY, // gemini ⇒ the hand-rolled function-calling tool loop over the same CDP handlers
           llmToolConcurrency: LIMITS.concurrency.llmTool,
           llmToolMaxTurns: LIMITS.llm.toolMaxTurns,
           llmToolRunTimeoutMs: LIMITS.llm.toolRunTimeoutMs,

@@ -297,6 +297,13 @@ function measureContrast(marker) {
     isTextNode: ownsText, textRendersVisible: visible && ownsText,
     foregroundResolved, backgroundResolved, backdropIsSolidUniform, contrastComputable,
     sizeClassResolved: sizePx > 0, notExemptText: !disabled && !ariaHidden && expressesLanguage,
+    // SPECIFIC non-language exemption (a SUBSET of notExemptText=false): the rendered text is exempt from 1.4.3
+    // because its OWN text expresses no human language — pure symbols/punctuation (afw4f7 Passed Ex6) or a
+    // single-letter ICON named separately (Passed Ex7). Surfaced apart from notExemptText (which ALSO covers
+    // disabled/aria-hidden, a different concern) so the orchestrator can SUBTRACT only THIS facet from the LLM
+    // lane (the two flat-color FPs: 2845a840 "----===", eb4bfbbe <button aria-label=Close>X</button>). Real
+    // language text — incl. the GT-fail afw4f7 examples — keeps expressesLanguage=true ⇒ false here ⇒ still judged.
+    nonLanguageExempt: ownsText && visible && !expressesLanguage,
     ratio, threshold,
     bgColor: bg ? { r: Math.round(bg.r), g: Math.round(bg.g), b: Math.round(bg.b) } : null, // the backdrop the RATIO used
     fgColor: effFgColor, // the composited FOREGROUND the ratio used (vs rendered glyph ink)
@@ -384,7 +391,7 @@ function analyzeBackdrop(sentAB64, sentBB64, hiddenB64) {
 
 async function runTextContrastPixel(page, request) {
   const marker = String(request.candidateId || request.targetXpath);
-  const o = { isTextNode: false, textRendersVisible: false, foregroundResolved: false, backgroundResolved: false, backdropIsSolidUniform: false, contrastComputable: false, sizeClassResolved: false, thresholdMet: false, thresholdFailed: false, notExemptText: false, measurementStable: false };
+  const o = { isTextNode: false, textRendersVisible: false, foregroundResolved: false, backgroundResolved: false, backdropIsSolidUniform: false, contrastComputable: false, sizeClassResolved: false, thresholdMet: false, thresholdFailed: false, notExemptText: false, nonLanguageExempt: false, measurementStable: false };
   const hydrationReady = await H.hydrate(page);
   const tagged = await page.evaluate(H.tagByXpath, request.targetXpath, marker).catch(() => false);
   if (!tagged) return mk(request, 'text-contrast-pixel', '1.4.3', o, {}, { action: 'measure-contrast' });
@@ -428,7 +435,7 @@ async function runTextContrastPixel(page, request) {
     const pixelOk = pixelUniform && pixelAgrees;
     const uniform = a.backdropIsSolidUniform && pixelOk;                 // both channels + colour agree
     const contrastComputable = a.contrastComputable && pixelOk;         // a.contrastComputable already ANDs the geometric channel
-    Object.assign(o, { isTextNode: a.isTextNode, textRendersVisible: a.textRendersVisible, foregroundResolved: a.foregroundResolved, backgroundResolved: a.backgroundResolved, backdropIsSolidUniform: uniform, contrastComputable, sizeClassResolved: a.sizeClassResolved, notExemptText: a.notExemptText });
+    Object.assign(o, { isTextNode: a.isTextNode, textRendersVisible: a.textRendersVisible, foregroundResolved: a.foregroundResolved, backgroundResolved: a.backgroundResolved, backdropIsSolidUniform: uniform, contrastComputable, sizeClassResolved: a.sizeClassResolved, notExemptText: a.notExemptText, nonLanguageExempt: a.nonLanguageExempt });
     o.measurementStable = a.signature === b.signature; // no color animation between reads
     // A1 (Harness 3.3): compute the ratio against the RENDERED backdrop's worst-case luminance extreme
     // (analyzeBackdrop mean + p05/p95), NOT the CSS-resolved a.ratio. The CSS ratio can clear a true

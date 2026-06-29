@@ -273,7 +273,32 @@ async function orchestrate(collect, drive, opts = {}) {
     // agent runs only on the rubric-less SCs, so the two never co-fire on one cell (no duplicate eval).
     const ownedScs = new Set(Object.values(llmRubrics.rubrics || {}).filter((r) => r && r.sc).map((r) => r.sc));
     let agentSubjects = llmAdj.selectSubjects(collect, ledger, { onlyAutoPartial, ownedScs });          // llm-agent (rubric-less SCs only)
-    let rubricSubjects = llmAdj.selectRubricSubjects(collect, ledger, llmRubrics.rubrics, { onlyAutoPartial }); // llm-rubric:<id> (per SC)
+    // 2.1.2 keyboard-trap routing: map each CONFINED member xpath → its trapped set, from the deterministic
+    // confinement instrument's REVIEW findings (the lying-static-advisory ones were already promoted to a barrier and
+    // carry review:false, so they are excluded). Threaded to selectRubricSubjects to gate keyboard-trap-v0.
+    const confinement = (() => {
+      const findings = (bundle.instruments && Array.isArray(bundle.instruments.findings)) ? bundle.instruments.findings : [];
+      const map = {};
+      for (const f of findings) {
+        if (!f || f.kind !== 'keyboard-trap-confinement' || !f.review || !f.xpath) continue;
+        const members = (Array.isArray(f.memberXpaths) && f.memberXpaths.length) ? f.memberXpaths : [f.xpath];
+        if (!map[f.xpath]) map[f.xpath] = { members: members.map((x) => ({ xpath: x })), setSize: f.setSize || members.length };
+      }
+      return Object.keys(map).length ? map : null;
+    })();
+    // #3 (1.4.3 non-language exemption): the xpaths whose text-contrast-pixel experiment determined the rendered
+    // text expresses NO human language (pure symbols, or a single-letter icon named separately — afw4f7 Passed
+    // Ex6/Ex7). 1.4.3 does not apply, so the auto-PARTIAL must NOT reach the contrast LLM rubric (the FP source:
+    // 2845a840 #000/#666 "----===", eb4bfbbe <button aria-label=Close>X</button> — both ~3.66:1, the math AND the
+    // judge call "fail", but ACT exempts them). Single source of truth: the experiment already computed it.
+    const contrastExempt = (() => {
+      const set = new Set();
+      for (const e of (experiments && Array.isArray(experiments.results) ? experiments.results : [])) {
+        if (e && e.sc === '1.4.3' && e.outcome && e.outcome.nonLanguageExempt === true && e.targetXpath) set.add(e.targetXpath);
+      }
+      return set.size ? set : null;
+    })();
+    let rubricSubjects = llmAdj.selectRubricSubjects(collect, ledger, llmRubrics.rubrics, { onlyAutoPartial, confinement, contrastExempt }); // llm-rubric:<id> (per SC)
     // EVAL SCOPE GATE (opt-in): restrict the LLM to the SC(s) we have ground truth for. ACT ground truth is
     // PER-SC — a testcase only tells us pass/fail/inapplicable for its OWN rule's SC, not the page's other SCs.
     // Judging off-target obligations is both unscoreable (no GT) and wasted LLM/tool/vision spend. A Set of SC
@@ -307,20 +332,26 @@ async function orchestrate(collect, drive, opts = {}) {
         const reapAgeMs = (Number(opts.llmToolRunTimeoutMs) || LIMITS.llm.toolRunTimeoutMs) + LIMITS.concurrency.reapAgeMarginMs; // strictly above the whole-run abort
         // the tool session draws its base page + clones from the SHARED pool (same browser+allocator as every lane).
         toolSession = await openToolSession(turl, { executablePath: opts.executablePath, reapAgeMs, browser, tabAllocator }).catch(() => null);
-        const server = toolSession ? await cdpTools.buildCdpToolServer(toolSession).catch(() => null) : null;
-        if (server) {
+        // PROVIDER: 'claude' wraps the CDP handlers as an MCP server the Agent SDK's query() loop drives; 'gemini'
+        // builds a direct dispatch ({declarations, call}) the hand-rolled function-calling loop drives. Same handlers,
+        // same tool evidence — only the agent-loop protocol differs (cross-family full-config comparison).
+        const provider = opts.llmProvider || 'claude';
+        const server = (toolSession && provider !== 'gemini') ? await cdpTools.buildCdpToolServer(toolSession).catch(() => null) : null;
+        const dispatch = (toolSession && provider === 'gemini') ? (() => { try { return cdpTools.buildCdpToolDispatch(toolSession); } catch (e) { return null; } })() : null;
+        if (server || dispatch) {
           toolConcurrency = Math.min(Number(opts.llmConcurrency) || 1, Number(opts.llmToolConcurrency) || LIMITS.concurrency.llmTool); // V3_LLM_TOOL_CONCURRENCY (default 4) bounds concurrent SUBJECTS (≈ tabs; a turn may open >1 clone briefly)
-          llmRunAgent = adapter.makeRunAgent({
-            transport: adapter.makeClaudeSdkTransport({
-              ...opts.llmTransportConfig, mcpServers: { cdp: server }, allowedTools: ['mcp__cdp__*'],
-              maxTurns: opts.llmToolMaxTurns || LIMITS.llm.toolMaxTurns, runTimeoutMs: opts.llmToolRunTimeoutMs || LIMITS.llm.toolRunTimeoutMs,
+          const runTimeoutMs = opts.llmToolRunTimeoutMs || LIMITS.llm.toolRunTimeoutMs;
+          const maxTurns = opts.llmToolMaxTurns || LIMITS.llm.toolMaxTurns;
+          const transport = provider === 'gemini'
+            ? adapter.makeGeminiToolTransport({ apiKey: opts.geminiKey, model: opts.llmTransportConfig.model, dispatch, maxTurns, runTimeoutMs, getExtraDeadlineMs: toolSession.extraDeadlineMs })
+            : adapter.makeClaudeSdkTransport({
+              ...opts.llmTransportConfig, mcpServers: { cdp: server }, allowedTools: ['mcp__cdp__*'], maxTurns, runTimeoutMs,
               getExtraDeadlineMs: toolSession.extraDeadlineMs, // credit tab-queue wait back to the deadline (timer-pause)
               // onTraceSink rides ...llmTransportConfig ⇒ this multi-turn tool transport feeds the SAME token telemetry.
-            }),
-            model: opts.llmTransportConfig.model,
-          });
-          // The tool agent is built HERE (it needs the live server + session), so the caller's single-shot wrapper
-          // (global LLM semaphore + inflight tracking) can't reach it unless we apply it. Keep BOTH paths under one cap.
+            });
+          llmRunAgent = adapter.makeRunAgent({ transport, model: opts.llmTransportConfig.model });
+          // The tool agent is built HERE (it needs the live server/dispatch + session), so the caller's single-shot
+          // wrapper (global LLM semaphore + inflight tracking) can't reach it unless we apply it. Keep BOTH under one cap.
           if (typeof opts.wrapAgent === 'function') llmRunAgent = opts.wrapAgent(llmRunAgent);
         }
       }

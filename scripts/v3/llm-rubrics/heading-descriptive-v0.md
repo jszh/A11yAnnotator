@@ -22,7 +22,10 @@ to the content it introduces (visible in the `viewport`). Failure modes:
   misdirects the reader about what follows IS a barrier. Read the content beneath/beside the
   heading and confirm the heading actually announces it.
 - **LABEL that doesn't describe the field's expected input:** for a FORM-FIELD label, descriptiveness means
-  the label tells the user what to ENTER / what the control does. Non-descriptive labels include: a label that
+  the label tells the user what to ENTER / what the control does. When the subject is a form field,
+  **`signals.heading.text` holds the field's COMPUTED ACCESSIBLE NAME** (the resolved
+  `aria-label`/`aria-labelledby`/`<label>`/`title`, in the order AT announces it) and
+  `signals.heading.isFormFieldLabel` is true — judge THAT name, not a page-heading. Non-descriptive labels include: a label that
   names an unrelated object or a generic concept rather than the field's purpose; a label assembled in the WRONG
   ORDER (e.g. a reversed `aria-labelledby` that concatenates its referenced tokens out of sequence) so the
   resulting name misreads the field; and the SAME label repeated on two or more fields of DIFFERENT purpose

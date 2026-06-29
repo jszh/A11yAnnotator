@@ -221,6 +221,17 @@ const REFOCUS_SETTLE_MS = 180; // cover an async onblur/onfocusout refocus (setT
 // is a pure robustness margin, it does not change which elements are CONFIRMED traps.)
 const RETENTION_CAP = 60;      // bound the candidate scan on large pages (offline instrument lane)
 const settleMs = (page, ms) => page.evaluate((t) => new Promise((r) => setTimeout(r, t)), ms);
+// CONCURRENCY-ROBUST confirmation (fixes the flake under heavy parallel Chrome): the old dirReturns read
+// focus via single CDP round-trips — `leftSync` immediately after Tab, `returns` after ONE fixed 180ms settle.
+// Under process contention those round-trips are irregularly delayed PAST the fixture's 10ms onblur→setTimeout
+// refocus, so the snapshot races the refocus and the trap is intermittently missed (~27% under 24-way load).
+// Instead we (1) record EVERY focus change in-page via a focusin listener (event-driven ⇒ a departure is never
+// lost to a slow sample) and (2) POLL for the refocus to RETURN focus, up to a generous deadline, exiting early
+// when focus has demonstrably SETTLED on another focusable. Robust to load; no fixed sleep that load can outrun.
+const RETURN_POLL_MS = 20;       // poll cadence while waiting for a refocus to land
+const RETURN_MAX_MS = 1500;      // upper bound for a load-delayed refocus to pull focus back (only fully spent on a NON-return)
+const MIN_REFOCUS_WAIT_MS = 200; // never conclude "no return" before this — covers a load-delayed onblur→setTimeout refocus
+const SETTLED_ELSEWHERE_MS = 140;// …and only after focus has been STABLE on another real focusable this long
 
 function tagFocusables(focSel) {
   const getXPath = (e) => {
@@ -250,6 +261,16 @@ async function detectFocusRetentionTraps(page, opts = {}) {
   if (!Array.isArray(focs) || focs.length < 2) return { traps: [], focusableCount: (focs || []).length, candidates: [] };
   const byId = new Map(focs.map((f) => [f.id, f]));
   const scan = focs.slice(0, RETENTION_CAP);
+  // install an in-page focus-change recorder (capture phase, idempotent): every focusin pushes the target's
+  // data-v3-foc id (or '' for body/untagged). dirReturns reads this log so a transient departure that a slow
+  // CDP sample would miss is still recorded — the load-robust basis for `leftSync`.
+  await page.evaluate(() => {
+    if (window.__frInstalled) { window.__frLog = []; return; }
+    window.__frInstalled = true; window.__frLog = [];
+    document.addEventListener('focusin', (e) => {
+      const t = e.target; window.__frLog.push((t && t.getAttribute && t.getAttribute('data-v3-foc')) || '');
+    }, true);
+  }).catch(() => null);
 
   // settled forward walk: an element that is the active focus for two CONSECUTIVE settled Tab steps has
   // retained focus across a Tab — a self-refocus candidate (cheap; surfaces the blocking trap).
@@ -270,11 +291,33 @@ async function detectFocusRetentionTraps(page, opts = {}) {
   async function dirReturns(id, backward) {
     await focusBody(); await settleMs(page, 50);
     if (!(await focusId(id))) return { returns: false, leftSync: false };
+    await page.evaluate(() => { window.__frLog = []; }).catch(() => null); // record focus changes from the Tab onward
     if (backward) { await page.keyboard.down('Shift'); await page.keyboard.press('Tab'); await page.keyboard.up('Shift'); }
     else { await page.keyboard.press('Tab'); }
-    const leftSync = (await page.evaluate(activeFocId).catch(() => '')) !== id;
-    await settleMs(page, REFOCUS_SETTLE_MS);
-    const returns = (await page.evaluate(activeFocId).catch(() => '')) === id;
+    // POLL for the refocus to RETURN focus to `id`, instead of one fixed-settle snapshot that load can outrun.
+    // Stop early (returns=false) only once focus has demonstrably SETTLED on ANOTHER real focusable past the
+    // refocus window — so a genuine non-trap candidate costs ~MIN_REFOCUS_WAIT, while a real (possibly delayed)
+    // refocus is caught the instant it lands. Also tracks whether focus was EVER observed off `id` (sampled).
+    const t0 = Date.now();
+    let returns = false, sawNonId = false, elsewhere = '', elsewhereSince = 0;
+    while (Date.now() - t0 < RETURN_MAX_MS) {
+      const cur = await page.evaluate(activeFocId).catch(() => null);
+      if (cur === id) { returns = true; break; }
+      if (cur != null) {
+        sawNonId = true;
+        if (cur && byId.has(cur)) { // a real, tab-reachable focusable (not body '')
+          if (cur !== elsewhere) { elsewhere = cur; elsewhereSince = Date.now(); }
+          else if (Date.now() - t0 >= MIN_REFOCUS_WAIT_MS && Date.now() - elsewhereSince >= SETTLED_ELSEWHERE_MS) break;
+        } else { elsewhere = ''; }
+      }
+      await settleMs(page, RETURN_POLL_MS);
+    }
+    if (!returns) { await settleMs(page, REFOCUS_SETTLE_MS); returns = (await page.evaluate(activeFocId).catch(() => '')) === id; }
+    // leftSync = focus DEMONSTRABLY left `id` (an active departure + pull-back, not a single-focusable wrap):
+    // the event log captured a focusin on some OTHER element, OR a poll sampled focus off `id`. Event-driven, so
+    // not lost to a slow sample like the old single read was.
+    const log = await page.evaluate(() => (window.__frLog || []).slice()).catch(() => []);
+    const leftSync = sawNonId || log.some((x) => x && x !== id);
     return { returns, leftSync };
   }
   const traps = [];
@@ -325,19 +368,21 @@ async function detectFixedSetConfinementTraps(page, opts = {}) {
   const window = Math.min(cap, Math.max(CONFINE_FLOOR, total * CONFINE_MULTIPLE));
   async function sweep(backward, budget) {
     await page.evaluate(() => { const b = document.body; if (b) { b.tabIndex = -1; b.focus(); } }).catch(() => null);
-    const seq = [];
+    const seq = [], imm = [];
     for (let i = 0; i < budget; i++) {
       if (backward) { await page.keyboard.down('Shift'); await page.keyboard.press('Tab'); await page.keyboard.up('Shift'); }
       else { await page.keyboard.press('Tab'); }
+      const i0 = await page.evaluate(activeFocId).catch(() => null); // PRE-settle read: where the browser landed BEFORE any async refocus bounces it
       await settleMs(page, REFOCUS_SETTLE_MS);
       const cur = await page.evaluate(activeFocId).catch(() => null);
       if (cur === null) return null;                 // probe failed mid-sweep ⇒ fail-closed (abandon candidate)
-      seq.push(cur);
+      seq.push(cur); imm.push(i0);
     }
-    return seq;
+    return { seq, imm };
   }
-  const fwdSeq = await sweep(false, window);
-  if (!fwdSeq) return { traps: [], focusableCount: total, undetermined: true };
+  const fwd = await sweep(false, window);
+  if (!fwd) return { traps: [], focusableCount: total, undetermined: true };
+  const fwdSeq = fwd.seq;
 
   // the confinement candidate is the distinct set of REAL elements (drop body/sentinel '' entries) that the
   // forward sweep settled on AFTER it had a chance to start cycling — we take the tail half so a clean ring's
@@ -351,13 +396,21 @@ async function detectFixedSetConfinementTraps(page, opts = {}) {
   if (firstInS < 0) return { traps: [], focusableCount: total };
   const fwdConfined = fwdSeq.slice(firstInS).every((id) => S.has(id));
   if (!fwdConfined) return { traps: [], focusableCount: total };
+  // TRANSIENT-REACH guard (80af7b Passed Ex7, async sibling-progression): a `setTimeout(()=>sibling.focus())` bounce
+  // lets the browser FIRST land focus on the element OUTSIDE S (the next sibling) before the timer bounces it back.
+  // The user genuinely reached that outside element, so this is PROGRESSION, not a hard trap. If any PRE-settle
+  // (immediate) focus, once we are in S, lands on a real focusable outside S, abandon the candidate. (A SYNCHRONOUS
+  // onblur bounce — the failed cases — never lets focus settle outside S even immediately.)
+  if (fwd.imm.slice(firstInS).some((id) => id && byId.has(id) && !S.has(id))) return { traps: [], focusableCount: total };
 
   // an independent extended Shift+Tab sweep must ALSO never leave S (a one-way bounce is not a hard trap —
   // the user can still escape backward; that case is left to the directional reporting in detectKeyboardTraps).
-  const bwdSeq = await sweep(true, window);
-  if (!bwdSeq) return { traps: [], focusableCount: total, undetermined: true };
-  const bwdTail = bwdSeq.filter((id) => id && byId.has(id));
+  const bwd = await sweep(true, window);
+  if (!bwd) return { traps: [], focusableCount: total, undetermined: true };
+  const bwdTail = bwd.seq.filter((id) => id && byId.has(id));
   if (!bwdTail.length || !bwdTail.every((id) => S.has(id))) return { traps: [], focusableCount: total };
+  // backward transient-reach guard (mirror): an async progression escapes backward too.
+  if (bwd.imm.some((id) => id && byId.has(id) && !S.has(id))) return { traps: [], focusableCount: total };
 
   // ESCAPE route check (CRITICAL false-positive guard): drive focus into S, press Escape, settle, and confirm
   // focus is STILL inside S. A legitimate modal that traps focus but releases on Escape moves focus OUT of S
@@ -376,14 +429,49 @@ async function detectFixedSetConfinementTraps(page, opts = {}) {
   }
   if (escEscapes) return { traps: [], focusableCount: total };       // escapable ⇒ not a barrier
 
-  // CONFIRMED: focus is confined to a small fixed set S it cannot leave by Tab, Shift+Tab, or Escape, while a
-  // focusable outside S is never reached. Report the set (the entry element anchors the finding's xpath).
+  // ADVISED-KEY escape (80af7b advisory exception): 2.1.2 PERMITS a non-standard exit IF the page ADVISES the user
+  // of it AND that key actually works. `tryAdvised` parses an advisory ("Press Ctrl+M to Exit") from the CURRENT page
+  // text, drives focus into S, presses the combo, and reports: 'clear' (the advised key freed focus ⇒ documented exit
+  // works ⇒ NOT a barrier), 'lying' (the page advises a key that does NOT move focus ⇒ a 2.1.2 barrier), 'none' (no
+  // advisory in the current text), or 'undetermined' (probe failed ⇒ fail-closed).
+  const tryAdvised = async () => {
+    const advised = await page.evaluate(() => {
+      const t = (document.body && (document.body.innerText || document.body.textContent)) || '';
+      const m = t.match(/press\s+(?:the\s+)?((?:ctrl|control|alt|option|shift|cmd|command|meta)\s*\+\s*)?["']?([A-Za-z0-9])["']?\s+(?:key\s+)?to\s+(?:leave|exit|close|escape|dismiss|continue|go)/i);
+      return m ? { mod: (m[1] || '').replace(/[^a-z]/gi, '').toLowerCase(), key: m[2].toLowerCase() } : null;
+    }).catch(() => null);
+    if (!advised || !advised.key) return 'none';
+    await page.evaluate((id) => { const el = document.querySelector(`[data-v3-foc="${id}"]`); if (el) el.focus(); }, [...S][0]).catch(() => null);
+    const MOD = { ctrl: 'Control', control: 'Control', alt: 'Alt', option: 'Alt', shift: 'Shift', cmd: 'Meta', command: 'Meta', meta: 'Meta' };
+    const mod = MOD[advised.mod] || null;
+    if (mod) await page.keyboard.down(mod);
+    await page.keyboard.press(advised.key);
+    if (mod) await page.keyboard.up(mod);
+    await settleMs(page, escSettle);
+    const after = await page.evaluate(activeFocId).catch(() => null);
+    if (after === null) return 'undetermined';
+    return S.has(after) ? 'lying' : 'clear';
+  };
+
+  // Phase 1 — STATIC advisory (visible without interaction).
+  const r1 = await tryAdvised();
+  if (r1 === 'clear') return { traps: [], focusableCount: total };                       // documented static exit works ⇒ not a barrier
+  if (r1 === 'undetermined') return { traps: [], focusableCount: total, undetermined: true };
+  const lyingAdvisory = (r1 === 'lying');
+
+  // CONFIRMED: focus is confined to a small fixed set S it cannot leave by Tab, Shift+Tab, Escape, or a documented
+  // STATIC advised key, while a focusable outside S is never reached. Report the set (the entry element anchors the
+  // xpath). `lyingAdvisory` (the page advertises a STATIC exit key that does NOT work) is an unambiguous deterministic
+  // barrier (promoted in build-v3). A confinement with NO static advisory stays a REVIEW finding that ROUTES to the
+  // 2.1.2 keyboard-trap RUBRIC: the regular LLM judge investigates a buried / non-canonically-phrased advisory by
+  // ACTIVATING the confined controls via observe_state_after_activation and verifying the key with
+  // press_keys_and_observe_focus — both run on FRESH CLONES with navigation/popup guards, so no live page is clicked.
   const members = [...S].map((id) => byId.get(id)).filter(Boolean);
   const anchor = members[0];
   return {
     traps: [{ sc: '2.1.2', xpath: anchor.xpath, tag: anchor.tag, label: anchor.label,
       memberXpaths: members.map((m) => m.xpath), setSize: S.size,
-      deterministicTrapConfirmed: true }],
+      deterministicTrapConfirmed: true, lyingAdvisory }],
     focusableCount: total, candidateSet: members.map((m) => m.xpath),
   };
 }

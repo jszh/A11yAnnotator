@@ -803,6 +803,37 @@ async function resolveDestination(page, args) {
   return { fingerprints, resolvedCount: ok.length, equality: { finalUrlEqual: eqOf('finalUrl'), titleEqual: eqOf('title'), h1Equal: eqOf('h1'), mainFirstParagraphEqual: eqOf('mainFirstParagraph'), visibleTextEqual: eqOf('visibleText') }, note: 'each link resolved to a raw fingerprint (+ redirect timing) + a per-field byte-EQUALITY grid across the resolved set. Equality is string-equality only (the model judges "same purpose?"); an equality field is null when fewer than 2 links resolved (could not compare — NOT "different"). visibleText/h1 are read from the RENDERED page (post client-side JS), so two same-named links to different query branches differ here even when the static URL/title match.' };
 }
 
+// compare_iframe_content — READ-ONLY: for 4.1.2 (ACT 4b1c6c) — same-named iframes must serve an EQUIVALENT
+// purpose. Reads each SAME-ORIGIN iframe's RENDERED contentDocument (title/h1/firstParagraph/visibleText)
+// directly from the live page — what the iframe ACTUALLY shows (post client-side JS), not the raw src string —
+// and returns a per-iframe fingerprint + a per-field string-EQUALITY grid across the set. NO equivalent/same/
+// different verdict (that IS the 4.1.2 judgment the model is graded on). A cross-origin iframe blocks
+// contentDocument: it is reported {crossOrigin:true, src} (judge from src + crops, or PARTIAL). Touches no state.
+async function compareIframeContent(page, args) {
+  const { iframeXpath, iframeXpaths } = args || {};
+  const xpaths = (Array.isArray(iframeXpaths) && iframeXpaths.length) ? iframeXpaths : (typeof iframeXpath === 'string' && iframeXpath ? [iframeXpath] : []);
+  if (!xpaths.length) return { error: 'iframeXpath (string) or iframeXpaths (array) required' };
+  const frames = await page.evaluate((xps) => {
+    const vis = (doc, e) => { if (!e) return false; try { const s = doc.defaultView.getComputedStyle(e); if (s.display === 'none' || s.visibility === 'hidden') return false; const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; } catch (x) { return true; } };
+    return xps.slice(0, 8).map((xp) => {
+      const el = document.evaluate(xp, document, null, 9, null).singleNodeValue;
+      if (!el || (el.tagName !== 'IFRAME' && el.tagName !== 'FRAME')) return { iframeXpath: xp, found: false };
+      const src = el.getAttribute('src') || '';
+      let doc = null; try { doc = el.contentDocument; } catch (e) { doc = null; } // cross-origin throws/returns null
+      if (!doc) return { iframeXpath: xp, found: true, src, crossOrigin: true };
+      const h1 = [...doc.querySelectorAll('h1')].find((e) => vis(doc, e)) || doc.querySelector('h1');
+      const para = [...doc.querySelectorAll('p')].find((e) => vis(doc, e)) || doc.querySelector('p');
+      const text = ((doc.body && doc.body.innerText) || '').replace(/\s+/g, ' ').trim();
+      return { iframeXpath: xp, found: true, src, crossOrigin: false, title: (doc.title || '').slice(0, 200), h1: h1 ? (h1.textContent || '').trim().slice(0, 160) : null, firstParagraph: para ? (para.textContent || '').trim().slice(0, 160) : null, textLen: text.length, visibleText: text.slice(0, 240) };
+    });
+  }, xpaths).catch(() => null);
+  if (!frames) return { error: 'could not read iframes' };
+  const ok = frames.filter((f) => f && f.found && f.crossOrigin === false);
+  // null (NOT false) when fewer than 2 iframes were readable — "could not compare", never read as "different".
+  const eqOf = (field) => ok.length >= 2 ? ok.every((f) => f[field] === ok[0][field]) : null;
+  return { iframes: frames, comparedCount: ok.length, equality: { titleEqual: eqOf('title'), h1Equal: eqOf('h1'), firstParagraphEqual: eqOf('firstParagraph'), visibleTextEqual: eqOf('visibleText') }, note: 'each same-named iframe\'s RENDERED content read from its same-origin contentDocument + a per-field string-EQUALITY grid. Equality is string-equality only (you judge "equivalent purpose?"); a field is null when fewer than 2 iframes were readable (could NOT compare — NOT "different"). A crossOrigin iframe could not be read — judge it from src + crops or return PARTIAL.' };
+}
+
 // ============================================================================================
 // compare_named_regions — READ-ONLY: the only surviving limb of the proposed "eyedropper". For an image/chart
 // whose sub-regions only the MODEL can name, return per-region dominant colour + a DERIVED perceptual deltaE
@@ -969,6 +1000,64 @@ async function captureFullPage(page, args, ctx) {
 }
 
 // ============================================================================================
+// press_keys_and_observe_focus — MUTATING (fresh clone): focus ONE element, dispatch ONE key combo, report
+// whether focus MOVED. For 2.1.2 keyboard-trap escape: BEHAVIORALLY verify a documented non-standard exit
+// ("Press Ctrl+M to Exit") actually frees focus, instead of trusting the page's JS source. A key that moves
+// focus off a trapped control is a working escape; one that does nothing is a non-working / lying advisory.
+// Real keypress + real document.activeElement before/after; objective observation, never a verdict.
+// ============================================================================================
+const _KEY_MOD = { ctrl: 'Control', control: 'Control', alt: 'Alt', option: 'Alt', shift: 'Shift', cmd: 'Meta', command: 'Meta', meta: 'Meta', win: 'Meta', super: 'Meta' };
+function _normKey(k) {
+  const m = { esc: 'Escape', escape: 'Escape', enter: 'Enter', return: 'Enter', tab: 'Tab', space: ' ', spacebar: ' ', del: 'Delete', delete: 'Delete', backspace: 'Backspace' };
+  const low = String(k).toLowerCase();
+  if (m[low]) return m[low];
+  if (/^f([1-9]|1[0-2])$/i.test(k)) return k.toUpperCase();          // F1-F12
+  if (k.length === 1) return /[A-Za-z]/.test(k) ? k.toLowerCase() : k; // single printable ⇒ keyname
+  return k;                                                           // ArrowDown, PageUp, etc. pass through
+}
+async function pressKeysAndObserveFocus(page, args, ctx) {
+  const { targetXpath, keys } = args || {};
+  if (typeof targetXpath !== 'string' || !targetXpath) return { error: 'targetXpath required (the element to focus before pressing)' };
+  if (typeof keys !== 'string' || !keys.trim()) return { error: 'keys required, e.g. "Ctrl+M", "Escape", "Tab", "Alt+F6"' };
+  if (!ctx || typeof ctx.freshClone !== 'function') return { error: 'fresh clone unavailable — this mutating tool refuses to touch the shared page' };
+  const live = await ctx.freshClone();
+  const _XP = (el) => { if (!el || el.nodeType !== 1) return null; const p = []; for (let n = el; n && n.nodeType === 1; n = n.parentElement) { let i = 1; for (let s = n.previousElementSibling; s; s = s.previousElementSibling) if (s.tagName === n.tagName) i++; p.unshift(n.tagName.toLowerCase() + '[' + i + ']'); } return '/' + p.join('/'); };
+  const before = await live.evaluate((xp, xpFn) => {
+    const _xp = new Function('el', 'return (' + xpFn + ')(el)');
+    const el = document.evaluate(xp, document, null, 9, null).singleNodeValue;
+    if (!el) return { ok: false };
+    try { el.focus(); } catch (e) {}
+    const a = document.activeElement;
+    return { ok: true, focusedTarget: a === el, active: _xp(a), tag: a ? a.tagName.toLowerCase() : null, id: a ? a.id || null : null };
+  }, targetXpath, _XP.toString()).catch(() => ({ ok: false }));
+  if (!before.ok) return { error: 'targetXpath did not resolve to an element' };
+  if (!before.focusedTarget) return { refused: 'target-not-focusable', reason: 'the element could not take focus on a fresh load — a user could not be on it to press a key' };
+  const parts = keys.split('+').map((s) => s.trim()).filter(Boolean);
+  const mods = [], plain = [];
+  for (const p of parts) { const mm = _KEY_MOD[p.toLowerCase()]; if (mm) { if (!mods.includes(mm)) mods.push(mm); } else plain.push(p); }
+  const key = plain.length ? _normKey(plain[plain.length - 1]) : null;
+  if (!key && !mods.length) return { error: `could not parse a key from "${keys}"` };
+  try {
+    for (const mm of mods) await live.keyboard.down(mm);
+    if (key) await live.keyboard.press(key);
+    for (const mm of [...mods].reverse()) await live.keyboard.up(mm);
+  } catch (e) { return { error: 'keypress failed: ' + String((e && e.message) || e) }; }
+  await new Promise((r) => setTimeout(r, 90)); // settle any async (setTimeout) refocus rebound
+  const after = await live.evaluate((xpFn) => {
+    const _xp = new Function('el', 'return (' + xpFn + ')(el)');
+    const a = document.activeElement;
+    return { active: _xp(a), tag: a ? a.tagName.toLowerCase() : null, id: a ? a.id || null : null, text: a ? (a.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 40) : null };
+  }, _XP.toString()).catch(() => ({ active: null }));
+  return {
+    keysPressed: keys,
+    focusBefore: { xpath: before.active, tag: before.tag, id: before.id },
+    focusAfter: { xpath: after.active, tag: after.tag, id: after.id, text: after.text },
+    focusMoved: before.active !== after.active,
+    note: 'focusMoved=true ⇒ the key changed which element holds focus (for a trapped control, evidence of a WORKING escape). focusMoved=false ⇒ the key did nothing (a non-working / lying advisory). Objective before/after focus, never a verdict.',
+  };
+}
+
+// ============================================================================================
 // SDK binding — wrap the raw tool functions as an in-process MCP server over the live page `session`.
 // `session` = { page, freshClone:()=>Promise<page> }. Lazy-imports the SDK (ESM) + zod. Each tool returns
 // the JSON-stringified OBJECTIVE result as MCP text content — never a verdict.
@@ -988,6 +1077,8 @@ async function buildCdpToolServer(session) {
       { targetXpath: z.string(), state: z.enum(['focus', 'hover', 'checked', 'open', 'expanded', 'placeholder-shown']) }, (a) => wrap(setStateAndCapture, a)),
     tool('probe_screen_reader_after_action', 'Mutating (FRESH clone): run a screen reader, clear its log, activate ONE control (by xpath), settle, and return the VERBATIM spoken-phrase queue. Returns BOTH the full announcements queue AND liveRegionAnnouncements (the polite/assertive subset — the ONLY 4.1.3-relevant phrases; focus/change-of-context phrases are excluded by 4.1.3). emptyQueue/noLiveRegionAnnouncement flag a genuine silence; an instrument failure returns {error,probeFailed:true} instead (never a fake emptyQueue). Raw phrases, never an adequacy/announced verdict.',
       { triggerXpath: z.string() }, (a) => wrap(probeScreenReaderAfterAction, a)),
+    tool('press_keys_and_observe_focus', 'Mutating (FRESH clone): focus ONE element (by xpath), dispatch ONE key combo (e.g. "Ctrl+M", "Escape", "Tab", "Alt+F6"), settle, and report whether focus MOVED (document.activeElement before vs after). For 2.1.2 keyboard-trap escape — behaviorally VERIFY a documented non-standard exit key actually frees focus instead of trusting the page JS: focusMoved=true ⇒ a WORKING escape; focusMoved=false ⇒ the key did nothing (a non-working / lying advisory). Objective before/after focus, never a verdict.',
+      { targetXpath: z.string(), keys: z.string() }, (a) => wrap(pressKeysAndObserveFocus, a)),
     tool('measure_geometry_live', 'Read-only on the shared page (unless viewportWidth is given): box, horizontal overflow + culprit, occludedElements[] (what paints on top of the target — 1.4.13 Dismissible), and (if otherXpath) overlapFractionOfTarget/OfOther + gapX/gapY between the two boxes. Pass viewportWidth to re-measure on a CLONE at that width (1.4.10 reflow) — stateUsed echoes which. Raw numbers; marks degenerate boxes ambiguous; never a pass/fail.',
       { targetXpath: z.string(), otherXpath: z.string().optional(), viewportWidth: z.number().optional() }, (a) => wrap(measureGeometryLive, a)),
     tool('request_hi_res_crop', 'Mutating (FRESH clone): re-raster ONE element at a higher DEVICE scale (2-4x, NOT page zoom) and return the PNG + the actual scale + CSS-pixel and device-pixel sizes. Use when a small wordmark/chart label is unreadable in the 1x crop (1.1.1/1.4.5). Covers the whole element. If the result is still illegible, return PARTIAL — never invent text.',
@@ -1000,6 +1091,8 @@ async function buildCdpToolServer(session) {
       { x: z.number(), y: z.number() }, (a) => wrap(resolvePartColor, a)),
     tool('resolve_destination', 'Read-only: follow a SAME-ORIGIN link in an isolated incognito GET and return a RAW fingerprint (finalUrl/httpStatus/title/h1/mainFirstParagraph + instantRedirect/redirectDelayMs/interstitialPage) — for 2.4.4. Pass linkXpaths[] (the SET of same-named links — fd3a94 is a set test) to resolve all in one call + get a per-field byte-EQUALITY grid. instantRedirect is true only for a 3xx or meta-refresh delay-0 (only instant redirects count). NEVER same/equivalent/different — your judgment. Cross-origin/non-http refused.',
       { linkXpath: z.string().optional(), linkXpaths: z.array(z.string()).optional() }, (a) => wrap(resolveDestination, a)),
+    tool('compare_iframe_content', 'Read-only: for 4.1.2 (ACT 4b1c6c — same-named iframes must serve an EQUIVALENT purpose). Pass iframeXpaths[] (the SET of same-named iframes) and get each one\'s RENDERED content read from its SAME-ORIGIN contentDocument (title/h1/firstParagraph/visibleText) + a per-field byte-EQUALITY grid across the set — the rendered-content comparison the raw `src` string cannot give (page-one.html vs page-two.html look interchangeable as strings but render DIFFERENT content). A crossOrigin iframe cannot be read (reported crossOrigin:true — judge from src/crops or PARTIAL). NEVER equivalent/same/different — your judgment.',
+      { iframeXpath: z.string().optional(), iframeXpaths: z.array(z.string()).optional() }, (a) => wrap(compareIframeContent, a)),
     tool('compare_named_regions', 'Read-only: for an image/chart, given >=2 named regions (each {name,x,y,w,h} as fractions 0-1 of the element), return each region MEAN colour (+ colorSpread; high ⇒ multi-coloured, mean unrepresentative) and the perceptual ΔE2000 + luminanceDelta + perceptiblyDistinct between them (1.1.1 F13 — a colour-encoded distinction the alt omits). Derived measure only — never raw pixels, never a contrast ratio, never a verdict.',
       { targetXpath: z.string(), regions: z.array(z.object({ name: z.string(), x: z.number(), y: z.number(), w: z.number(), h: z.number() })) }, (a) => wrap(compareNamedRegions, a)),
     tool('ocr_image_text', 'Read-only: OCR a crop of the page — an element (targetXpath) OR an explicit x/y/width/height rect — via PP-OCRv6 and return the recognised text + per-line boxes + confidences. For images-of-text (1.4.5), a wordmark/label the vision pass cannot read, or comparing rendered text to the alt/accessible name. Objective reading of the pixels, NEVER a verdict; empty text on a low-res crop does NOT mean "no text" (use request_hi_res_crop first). Returns {error} when the OCR sidecar is not set up — treat as INCONCLUSIVE.',
@@ -1010,4 +1103,67 @@ async function buildCdpToolServer(session) {
   return createSdkMcpServer({ name: 'cdp', version: '1.0.0', tools });
 }
 
-module.exports = { queryAxNode, observeStateAfterActivation, setStateAndCapture, probeScreenReaderAfterAction, measureGeometryLive, requestHiResCrop, renderWithOverrides, computeContrastRatio, resolvePartColor, resolveDestination, compareNamedRegions, ocrImageText, captureFullPage, buildCdpToolServer };
+// CROSS-FAMILY tool surface (Gemini): the SAME CDP handlers + descriptions as buildCdpToolServer, exposed as Gemini
+// `functionDeclarations` (JSON-Schema params) + a direct dispatcher — the Gemini transport drives a hand-rolled
+// function-calling loop, not the Claude Agent SDK's MCP query() loop. `call()` returns the RAW result object; the
+// Gemini loop JSON-stringifies it into a `functionResponse` exactly as the MCP `wrap` above stringifies it into text
+// content, so the judge receives byte-identical tool EVIDENCE across families — only the agent-loop protocol differs.
+// Descriptions are intentionally verbatim copies of buildCdpToolServer's (keep the two in sync if either changes).
+function buildCdpToolDispatch(session) {
+  const page = session.page;
+  const ctx = { freshClone: session.freshClone, ocr: session.ocr };
+  const HANDLERS = {
+    query_ax_node: queryAxNode, observe_state_after_activation: observeStateAfterActivation,
+    set_state_and_capture: setStateAndCapture, probe_screen_reader_after_action: probeScreenReaderAfterAction,
+    press_keys_and_observe_focus: pressKeysAndObserveFocus,
+    measure_geometry_live: measureGeometryLive, request_hi_res_crop: requestHiResCrop,
+    render_with_overrides: renderWithOverrides, compute_contrast_ratio: computeContrastRatio,
+    resolve_part_color: resolvePartColor, resolve_destination: resolveDestination,
+    compare_iframe_content: compareIframeContent,
+    compare_named_regions: compareNamedRegions, ocr_image_text: ocrImageText, capture_full_page: captureFullPage,
+  };
+  const S = (properties, required) => ({ type: 'object', properties, ...(required && required.length ? { required } : {}) });
+  const declarations = [
+    { name: 'query_ax_node', description: 'Read-only: resolve a node (by xpath OR by a screenshot pixel x/y) to its live accessibility facts — role, role source, heading level, name provenance (nameFrom), aria-labelledby/describedby IDREF resolve status, required states, focusability, aria-hidden. Returns raw facts, NEVER a pass/fail.',
+      parameters: S({ targetXpath: { type: 'string' }, x: { type: 'number' }, y: { type: 'number' } }) },
+    { name: 'observe_state_after_activation', description: 'Mutating (runs on a FRESH page clone): activate ONE control (by xpath) and return the OBJECTIVE before/after delta — each newly-visible text with its visibilityCause (inserted | display | visibility | aria-hidden | text-changed), whether it landed in a live region AND whether that region PRE-EXISTED (4.1.3: a region created with its message is NOT a reliable announcement → anyNewTextInNewLiveRegion, INCONCLUSIVE), whether focus moved into the revealed content (focusMovedToChange), and whether the page navigated/opened a window. Refuses a non-perceivable target. Reports WHAT changed and HOW, never whether it is conformant.',
+      parameters: S({ targetXpath: { type: 'string' } }, ['targetXpath']) },
+    { name: 'press_keys_and_observe_focus', description: 'Mutating (FRESH clone): focus ONE element (by xpath), dispatch ONE key combo (e.g. "Ctrl+M", "Escape", "Tab", "Alt+F6"), settle, and report whether focus MOVED (document.activeElement before vs after). For 2.1.2 keyboard-trap escape — behaviorally VERIFY a documented non-standard exit key actually frees focus instead of trusting the page JS: focusMoved=true ⇒ a WORKING escape; focusMoved=false ⇒ the key did nothing (a non-working / lying advisory). Objective before/after focus, never a verdict.',
+      parameters: S({ targetXpath: { type: 'string' }, keys: { type: 'string' } }, ['targetXpath', 'keys']) },
+    { name: 'set_state_and_capture', description: 'Mutating (FRESH clone): drive ONE element into an interaction state (focus|hover|checked|open|expanded|placeholder-shown) and return before/after screenshots of the same region + the computed-style DELTA (which outline/border/decoration/background props changed) + stateReached/textVisible. Use for state-specific indicators (1.4.11/1.4.1/1.4.3). Returns PIXELS + objective style deltas, never a contrast number or a verdict; if stateReached is false, do not infer a pass.',
+      parameters: S({ targetXpath: { type: 'string' }, state: { type: 'string', enum: ['focus', 'hover', 'checked', 'open', 'expanded', 'placeholder-shown'] } }, ['targetXpath', 'state']) },
+    { name: 'probe_screen_reader_after_action', description: 'Mutating (FRESH clone): run a screen reader, clear its log, activate ONE control (by xpath), settle, and return the VERBATIM spoken-phrase queue. Returns BOTH the full announcements queue AND liveRegionAnnouncements (the polite/assertive subset — the ONLY 4.1.3-relevant phrases; focus/change-of-context phrases are excluded by 4.1.3). emptyQueue/noLiveRegionAnnouncement flag a genuine silence; an instrument failure returns {error,probeFailed:true} instead (never a fake emptyQueue). Raw phrases, never an adequacy/announced verdict.',
+      parameters: S({ triggerXpath: { type: 'string' } }, ['triggerXpath']) },
+    { name: 'measure_geometry_live', description: 'Read-only on the shared page (unless viewportWidth is given): box, horizontal overflow + culprit, occludedElements[] (what paints on top of the target — 1.4.13 Dismissible), and (if otherXpath) overlapFractionOfTarget/OfOther + gapX/gapY between the two boxes. Pass viewportWidth to re-measure on a CLONE at that width (1.4.10 reflow) — stateUsed echoes which. Raw numbers; marks degenerate boxes ambiguous; never a pass/fail.',
+      parameters: S({ targetXpath: { type: 'string' }, otherXpath: { type: 'string' }, viewportWidth: { type: 'number' } }, ['targetXpath']) },
+    { name: 'request_hi_res_crop', description: 'Mutating (FRESH clone): re-raster ONE element at a higher DEVICE scale (2-4x, NOT page zoom) and return the PNG + the actual scale + CSS-pixel and device-pixel sizes. Use when a small wordmark/chart label is unreadable in the 1x crop (1.1.1/1.4.5). Covers the whole element. If the result is still illegible, return PARTIAL — never invent text.',
+      parameters: S({ targetXpath: { type: 'string' }, scale: { type: 'number' } }, ['targetXpath']) },
+    { name: 'render_with_overrides', description: 'Mutating (FRESH clone): re-render under ONE transform (grayscale|protanopia|deuteranopia|tritanopia|forced-colors|no-author-css) and return the screenshot (whole element if targetXpath given, else viewport). For 1.4.1 (which colour cue is load-bearing after grayscale/CVD) and forced-colors survival. Judge from pixels; never assert a numeric ratio from a transformed image.',
+      parameters: S({ transform: { type: 'string', enum: ['grayscale', 'protanopia', 'deuteranopia', 'tritanopia', 'forced-colors', 'no-author-css'] }, targetXpath: { type: 'string' } }, ['transform']) },
+    { name: 'compute_contrast_ratio', description: 'Read-only: the WCAG contrast ratio for TWO flat used-colours the model chooses (e.g. an in-text link colour vs the surrounding text colour — G183 for 1.4.1). Returns colorA/colorB/contrastRatio/threshold/passes from CSSOM. REFUSES (inconclusive) translucent/unparseable colours — it never sweeps a photo/gradient. `passes` is a mechanical compare, not a verdict.',
+      parameters: S({ nodeAXpath: { type: 'string' }, nodeBXpath: { type: 'string' }, threshold: { type: 'number' } }, ['nodeAXpath', 'nodeBXpath']) },
+    { name: 'resolve_part_color', description: 'Read-only: for a NON-TEXT part at a screenshot pixel (x,y) — a border/indicator/SVG fill — return the CSS used-colours (incl. ::before/::after pseudo) AND the RENDERED pixel AND cssVsRenderedDivergence (sourceProperty = the used-colour the pixel best matches). usedColourReliable is false when a gradient/filter/opacity<1/translucent part means no single flat colour is sound ⇒ trust ONLY the rendered pixel. If divergent, no used-colour explains the pixel ⇒ INCONCLUSIVE. Raw RGBA + flags, never a ratio/verdict.',
+      parameters: S({ x: { type: 'number' }, y: { type: 'number' } }, ['x', 'y']) },
+    { name: 'resolve_destination', description: 'Read-only: follow a SAME-ORIGIN link in an isolated incognito GET and return a RAW fingerprint (finalUrl/httpStatus/title/h1/mainFirstParagraph + instantRedirect/redirectDelayMs/interstitialPage) — for 2.4.4. Pass linkXpaths[] (the SET of same-named links — fd3a94 is a set test) to resolve all in one call + get a per-field byte-EQUALITY grid. instantRedirect is true only for a 3xx or meta-refresh delay-0 (only instant redirects count). NEVER same/equivalent/different — your judgment. Cross-origin/non-http refused.',
+      parameters: S({ linkXpath: { type: 'string' }, linkXpaths: { type: 'array', items: { type: 'string' } } }) },
+    { name: 'compare_iframe_content', description: 'Read-only: for 4.1.2 (ACT 4b1c6c — same-named iframes must serve an EQUIVALENT purpose). Pass iframeXpaths[] (the SET of same-named iframes) and get each one\'s RENDERED content read from its SAME-ORIGIN contentDocument (title/h1/firstParagraph/visibleText) + a per-field byte-EQUALITY grid across the set — the rendered-content comparison the raw `src` string cannot give (page-one.html vs page-two.html look interchangeable as strings but render DIFFERENT content). A crossOrigin iframe cannot be read (reported crossOrigin:true — judge from src/crops or PARTIAL). NEVER equivalent/same/different — your judgment.',
+      parameters: S({ iframeXpath: { type: 'string' }, iframeXpaths: { type: 'array', items: { type: 'string' } } }) },
+    { name: 'compare_named_regions', description: 'Read-only: for an image/chart, given >=2 named regions (each {name,x,y,w,h} as fractions 0-1 of the element), return each region MEAN colour (+ colorSpread; high ⇒ multi-coloured, mean unrepresentative) and the perceptual ΔE2000 + luminanceDelta + perceptiblyDistinct between them (1.1.1 F13 — a colour-encoded distinction the alt omits). Derived measure only — never raw pixels, never a contrast ratio, never a verdict.',
+      parameters: S({ targetXpath: { type: 'string' }, regions: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, x: { type: 'number' }, y: { type: 'number' }, w: { type: 'number' }, h: { type: 'number' } }, required: ['name', 'x', 'y', 'w', 'h'] } } }, ['targetXpath', 'regions']) },
+    { name: 'ocr_image_text', description: 'Read-only: OCR a crop of the page — an element (targetXpath) OR an explicit x/y/width/height rect — via PP-OCRv6 and return the recognised text + per-line boxes + confidences. For images-of-text (1.4.5), a wordmark/label the vision pass cannot read, or comparing rendered text to the alt/accessible name. Objective reading of the pixels, NEVER a verdict; empty text on a low-res crop does NOT mean "no text" (use request_hi_res_crop first). Returns {error} when the OCR sidecar is not set up — treat as INCONCLUSIVE.',
+      parameters: S({ targetXpath: { type: 'string' }, x: { type: 'number' }, y: { type: 'number' }, width: { type: 'number' }, height: { type: 'number' } }) },
+    { name: 'capture_full_page', description: 'Mutating (FRESH clone): a screenshot of the WHOLE scrollable document — beyond the viewport / below the fold. Optional targetXpath additionally returns that element\'s box in PAGE coordinates (origin = document top) + tag/role/text + verticalPositionPct + inViewport. Use to confirm an OFF-VIEWPORT heading/element exists and judge WHERE it sits relative to content (does an h1 introduce the prose or sit over the nav/TOC? — 2.4.10/2.4.6/1.3.1). Returns PIXELS + geometry, never a verdict; never infer a barrier from position alone.',
+      parameters: S({ targetXpath: { type: 'string' } }) },
+  ];
+  // Returns the RAW result OBJECT (NOT MCP-wrapped); the Gemini loop JSON-stringifies it into a functionResponse,
+  // matching how `wrap` JSON-stringifies it into MCP text content. A thrown handler ⇒ {error} (never a fake result).
+  const call = async (name, args) => {
+    const fn = HANDLERS[name];
+    if (!fn) return { error: `unknown tool: ${name}` };
+    try { return await fn(page, args || {}, ctx); }
+    catch (e) { return { error: String((e && e.message) || e) }; }
+  };
+  return { declarations, call };
+}
+
+module.exports = { queryAxNode, observeStateAfterActivation, setStateAndCapture, probeScreenReaderAfterAction, pressKeysAndObserveFocus, measureGeometryLive, requestHiResCrop, renderWithOverrides, computeContrastRatio, resolvePartColor, resolveDestination, compareIframeContent, compareNamedRegions, ocrImageText, captureFullPage, buildCdpToolServer, buildCdpToolDispatch };

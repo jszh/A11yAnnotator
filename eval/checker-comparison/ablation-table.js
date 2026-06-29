@@ -39,6 +39,10 @@ const CONFIGS = [
   ['exp19-effort-high', 'FULL (deployed default), effort=HIGH', 'targeted', 'v3 signals + HTML(gated) + tools'],
   ['exp27-critic', 'FULL + critic lane, effort=med', 'targeted', 'v3 signals + HTML(gated) + tools + critic'],
   ['exp30-current-html', '▶ CURRENT PIPELINE 2026-06-24 (default + new det. runners C4/C6/C8/C2)', 'targeted', 'v3 signals + HTML(gated) + tools'],
+  ['fn-llm-allfixes', '▶ CURRENT + determinism defaults ON (settle + per-lease isolation), effort=med', 'targeted', 'v3 signals + HTML(gated) + tools'],
+  // --- cross-family (model swap): SAME deployed-default harness (v3 signals + HTML(gated) + vision + tools, det. defaults ON),
+  //     judge = Google Gemini 3.5-flash via the hand-rolled function-calling tool loop (same CDP handlers; agent-loop protocol differs).
+  ['fn-llm-gemini', '▶ CROSS-FAMILY: Gemini 3.5-flash judge (full config, tools via function-calling loop)', 'targeted', 'v3 signals + HTML(gated) + tools'],
 ];
 
 function metrics(dir) {

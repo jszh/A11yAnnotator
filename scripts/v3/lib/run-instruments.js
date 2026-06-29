@@ -19,7 +19,7 @@ const CHROME = process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_PATH
 // Run every instrument against an already-loaded Puppeteer page. Returns { findings: [...] }.
 async function runInstruments(page, opts = {}) {
   const findings = [];
-  const add = (detector, list) => { for (const f of (list || [])) { const row = { detector, sc: f.sc || '', kind: f.kind, xpath: f.xpath || null, detail: f.detail || '', review: !!f.review }; if (f.calibrated === false) row.calibrated = false; findings.push(row); } };
+  const add = (detector, list) => { for (const f of (list || [])) { const row = { detector, sc: f.sc || '', kind: f.kind, xpath: f.xpath || null, detail: f.detail || '', review: !!f.review }; if (f.calibrated === false) row.calibrated = false; if (Array.isArray(f.memberXpaths)) row.memberXpaths = f.memberXpaths; if (Number.isFinite(f.setSize)) row.setSize = f.setSize; findings.push(row); } };
 
   // #21 NATIVE DIALOG capture: Puppeteer auto-DISMISSES native alert()/confirm()/prompt() when no listener
   // is attached, so a page that surfaces validation/confirmation text via a native dialog goes invisible to
@@ -88,7 +88,13 @@ async function runInstruments(page, opts = {}) {
       const seen = new Set();
       for (const xpath of members) {
         if (!xpath || seen.has(xpath)) continue; seen.add(xpath);
-        confineRows.push({ sc: t.sc, kind: 'keyboard-trap-confinement', detector: 'confinement', review: true, xpath, detail: `focus is confined to a fixed set of ${t.setSize} element(s) and cannot leave by Tab, Shift+Tab, or Escape. This is a 2.1.2 barrier ONLY IF no documented non-standard escape (e.g. a Ctrl+key advised in the page) exists — verify whether the page tells the user how to exit before concluding.` });
+        // PROMOTABLE only when the detector confirmed a LYING STATIC advisory (the page advertises a Ctrl+key exit that
+        // does NOT free focus) — an unambiguous 2.1.2 barrier the keyboard driver verified. Otherwise the confinement
+        // stays a REVIEW finding and ROUTES to the keyboard-trap-v0 rubric, where the REGULAR LLM judge investigates a
+        // buried / non-canonical advisory (observe_state_after_activation + press_keys_and_observe_focus, fresh clones).
+        confineRows.push({ sc: t.sc, kind: 'keyboard-trap-confinement', detector: 'confinement', review: !t.lyingAdvisory, xpath, memberXpaths: t.memberXpaths, setSize: t.setSize, detail: t.lyingAdvisory
+          ? `confirmed keyboard trap: focus is confined to a fixed set of ${t.setSize} element(s) and cannot leave by Tab, Shift+Tab, or Escape, AND the page's documented escape key does NOT free focus (a lying advisory) — a 2.1.2 barrier.`
+          : `focus is confined to a fixed set of ${t.setSize} element(s) and cannot leave by Tab, Shift+Tab, or Escape. A 2.1.2 barrier UNLESS the user is told how to exit (a non-standard key, possibly behind a help control) AND that key works — verify by revealing instructions and pressing the key.` });
       }
     }
     add('keyboard-trap', confineRows);

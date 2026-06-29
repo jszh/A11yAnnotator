@@ -278,13 +278,15 @@ function buildV3(bundle, opts = {}) {
   // (auto-PARTIAL) obligation — a valid experiment PARTIAL is never overridden. These obs fill the LEDGER but do
   // NOT join annotationObs (the LLM annotation/gold-scoring view stays LLM-only).
   // Two DYNAMIC instrument barriers are promoted here, both adversarially held-out-validated for ~0 FP:
-  //  - 2.1.2 keyboard-trap / -self-refocus (NOT the demoted -confinement review signal, whose pass/fail turns on a
-  //    semantic escape-advisory the keyboard driver cannot read);
+  //  - 2.1.2 keyboard-trap / -self-refocus, AND -confinement ONLY when the detector confirmed a LYING advisory (the
+  //    page documents a Ctrl+key exit that the driver verified does NOT free focus); a -confinement finding without a
+  //    parsed advisory stays review:true (a buried/dynamic advisory could document a real exit) and is skipped below;
+  //  - 4.1.2 focus-rests-in-aria-hidden (6cfa84): a tabbable element under an aria-hidden ANCESTOR where focus RESTS
   //  - 4.1.2 focus-rests-in-aria-hidden (6cfa84): a tabbable element under an aria-hidden ANCESTOR where focus RESTS
   //    after settling. This MUST be dynamic — the rule's passed focus-sentinel is statically identical to its failed
   //    barrier, so the reverted static flag was unsound. Both only fill an ENUMERATED auto-PARTIAL obligation.
   const INSTRUMENT_BARRIER = {
-    '2.1.2': { kinds: ['keyboard-trap', 'keyboard-trap-self-refocus'], family: 'no-keyboard-trap', state: 'keyboard-trap-probe', action: 'tab-cycle', mech: 'kbd-trap:' },
+    '2.1.2': { kinds: ['keyboard-trap', 'keyboard-trap-self-refocus', 'keyboard-trap-confinement'], family: 'no-keyboard-trap', state: 'keyboard-trap-probe', action: 'tab-cycle', mech: 'kbd-trap:' },
     '4.1.2': { kinds: ['focus-rests-in-aria-hidden'], family: 'name-role-value', state: 'focus-rest-probe', action: 'focus', mech: 'aria-hidden-focus:' },
   };
   const trapObs = [];
@@ -470,13 +472,30 @@ function buildV3(bundle, opts = {}) {
     if (!existingOblIds.has(sid)) sequenceObligations.push({ obligationId: sid, xpath: oracle.PAGE_MEANINGFUL_SEQUENCE_XPATH, sc: '1.3.2', claimFamily: 'meaningful-sequence' });
   }
   const obligations = [...staticObligations, ...dynamicObligations, ...checkerObligations, ...axeDecidedObligations, ...detBarrierObligations, ...sequenceObligations];
+  // 2.1.2 PRECEDENCE (self-refocus FN, 80af7b): the keyboard-trap-escape EXPERIMENT provably cannot decide an
+  // ASYNC self-refocus trap (onblur→focus snap-back) — it abstains (INCONCLUSIVE) and records a NON-authoritative
+  // SHADOW PARTIAL on the no-keyboard-trap obligation. That shadow PARTIAL was shutting out the hardened (~0-FP)
+  // trap DETECTOR's BARRIER for the SAME obligation, because the §5b fill skips any obligation that already carries
+  // ANY disposition. A CONFIRMED instrument BARRIER (trapObs / detBarrierObs — both already adversarially held-out
+  // validated for ~0 FP) OUTRANKS an abstaining shadow PARTIAL: drop the colliding shadow PARTIAL so the BARRIER
+  // fills via §5b. A real CLAIM or a non-shadow PARTIAL (a bound/decided result) still owns the obligation — untouched.
+  const instrumentBarrierIds = new Set();
+  for (const o of [...trapObs, ...detBarrierObs]) {
+    if (o && o.wouldBe && o.wouldBe.observationOutcome === 'BARRIER_OBSERVED') {
+      instrumentBarrierIds.add(oracle.oblId(o.observationScope && o.observationScope.actionTargetRef, o.sc, o.claimFamily));
+    }
+  }
   const dispositions = [];
   for (const c of claims) dispositions.push({
     obligationId: oracle.oblId(c._target, c._sc, c._family), kind: 'CLAIM',
     cleared: c.observationOutcome === 'NO_BARRIER_OBSERVED' || c.wcagApplicability === 'INAPPLICABLE',
   });
   for (const p of partials) dispositions.push({ obligationId: oracle.oblId(p._target, p._sc, p._family), kind: 'PARTIAL', cleared: false });
-  for (const s of shadowObs) dispositions.push({ obligationId: oracle.oblId(s.observationScope && s.observationScope.actionTargetRef, s.sc, s.claimFamily), kind: 'PARTIAL', cleared: false, shadow: true });
+  for (const s of shadowObs) {
+    const sid = oracle.oblId(s.observationScope && s.observationScope.actionTargetRef, s.sc, s.claimFamily);
+    if (instrumentBarrierIds.has(sid)) continue; // a confirmed instrument BARRIER outranks an abstaining shadow PARTIAL (2.1.2 async trap)
+    dispositions.push({ obligationId: sid, kind: 'PARTIAL', cleared: false, shadow: true });
+  }
 
   // (5b) PROVISIONAL FILL (Harness 3.2): a calibrated/ungated LLM verdict FILLS an obligation the
   //      deterministic lane left at auto-PARTIAL. We emit a PROVISIONAL disposition ONLY for an
