@@ -231,6 +231,25 @@ function crossRuleIndeterminate(tc, collect) {
   return removedSubstantialImg ? 'cross-rule-indeterminate:e88epe(1.1.1-removed-image)' : null;
 }
 
+// ============================ criterion-level GT override (*) ============================
+// The 7 cross-rule-indeterminate 1.1.1 cases (crossRuleIndeterminate, above) were MANUALLY examined at the
+// criterion level (the image + what e88epe says + our harness's verdict; see the audit). This map records that
+// human judgment and REPLACES the blunt exclusion for them. The 2 aria-hidden W3C wordmarks are barriers e88epe
+// fails (image-of-text denied to AT) → relabel `failed` (our catch becomes a recall TP, not an excluded would-be
+// FP). The 5 decoratives (stripe texture / yellow circle / redundant PDF icon / atmospheric+redundant fireworks)
+// e88epe passes → the original NEGATIVE label is CONFIRMED at criterion level and kept (so our correct clears count
+// as true-negatives). Metrics computed WITH these overrides are starred (*); the raw ACT-label metrics are reported
+// separately (summary.unmodified). Tiny + auditable BY DESIGN — extend ONLY after the same manual examination.
+const GT_OVERRIDE = {
+  '25e5364c0a1320a08e2742fa59a0f8627591bc61': { expected: 'failed', note: 'e88epe-fail: aria-hidden W3C wordmark (image-of-text) denied to AT' },        // 23a2a8
+  'e15b9aca4aaa53cb3a96ae48e78e1af064b9a01d': { expected: 'failed', note: 'e88epe-fail: aria-hidden W3C wordmark denied to AT' },                         // 23a2a8
+  'e8f40f5af06646ef15283302903f6c78f7d7a505': { expected: 'passed', note: 'e88epe-pass: decorative stripe texture (criterion-confirmed)' },               // 23a2a8
+  'b3c602b7aa172611a22304666dd8d81d6ce8d214': { expected: 'inapplicable', note: 'e88epe-pass: decorative yellow circle' },                                // 7d6734
+  '0ab8d652533229aae98191a6a43c2168e1959963': { expected: 'inapplicable', note: 'e88epe-pass: PDF icon redundant with "PDF document" text' },             // qt1vmo
+  '4d04a4946e1f06834c89b91f0a765367f9d0d492': { expected: 'inapplicable', note: 'e88epe-pass: atmospheric fireworks photo, no unique information' },       // qt1vmo
+  'ce2c30787caebdf1d6adcd6aedfac8fa8842a9c4': { expected: 'inapplicable', note: 'e88epe-pass: fireworks redundant with "Happy new year!"' },              // qt1vmo
+};
+
 // ============================ scoring one case ============================
 function scoreCase(tc, out, collect) {
   const inScope = new Set(tc.sc || []);
@@ -283,14 +302,20 @@ function scoreCase(tc, out, collect) {
   rec.llmFlag = outcome === 'caught';
   // POLARITY (ACT GT is per-SC): on a `failed` case a flagged barrier is a TRUE POSITIVE (recall); on a
   // `passed`/`inapplicable` case the SAME flag is a FALSE POSITIVE (the LLM invented a barrier the GT denies).
-  rec.polarity = tc.expected === 'failed' ? 'recall' : 'specificity';
+  // CRITERION-LEVEL GT OVERRIDE (*): a hand-examined cross-rule case uses its asserted criterion-level label for
+  // scoring (and is NOT excluded — the override supersedes the exclusion). `rec.expected` stays the ORIGINAL ACT
+  // label (the un-modified table reads it); `rec.effectiveExpected` drives the starred metrics.
+  const ov = GT_OVERRIDE[tc.testcaseId] || null;
+  const effExpected = ov ? ov.expected : tc.expected;
+  rec.effectiveExpected = effExpected;
+  if (ov) { rec.gtOverride = true; rec.gtOverrideNote = ov.note; }
+  rec.polarity = effExpected === 'failed' ? 'recall' : 'specificity';
   rec.correct = rec.polarity === 'recall' ? (outcome === 'caught') : (outcome !== 'caught');
   rec.falsePositive = rec.polarity === 'specificity' && outcome === 'caught';
-  // CROSS-RULE-INDETERMINATE EXCLUSION: a negative-labeled page whose true SC status its single ACT-rule label does not
-  // determine (a sibling rule is applicable + non-deterministic). Flagged here, removed from the specificity denominator
-  // in summarize(), and reported for audit. `falsePositive` is still recorded (so the would-be FP is visible).
-  const excl = crossRuleIndeterminate(tc, collect);
-  if (excl) { rec.excluded = true; rec.excludedReason = excl; }
+  // CROSS-RULE-INDETERMINATE EXCLUSION (fallback for any cross-rule case NOT hand-resolved above): a negative-labeled
+  // page whose true SC status its single ACT-rule label does not determine. Removed from the specificity denominator
+  // in summarize() and reported for audit. Skipped when a GT override is present (the override resolves it).
+  if (!ov) { const excl = crossRuleIndeterminate(tc, collect); if (excl) { rec.excluded = true; rec.excludedReason = excl; } }
 
   // surface the actual verdicts + rationale so the run is auditable
   const rats = (bundle.llmRationale && bundle.llmRationale.rationales) || [];
@@ -442,22 +467,35 @@ function summarize(results) {
     }
   }
   const n = results.length;
-  // POLARITY metrics: recall on `failed`; false-positive rate on `passed`+`inapplicable` (specificity).
+  // ── STARRED (*) metrics: criterion-level GT overrides applied (rec.polarity reflects effectiveExpected) AND any
+  //    cross-rule-indeterminate fallback cases quarantined from the specificity denominator (reported, never silent).
   const recallCases = results.filter((r) => r.polarity === 'recall');
-  // CROSS-RULE-INDETERMINATE cases are quarantined from the specificity denominator (their single ACT-rule label does
-  // not determine the SC). Reported separately so the denominator change is never silent (see crossRuleIndeterminate).
   const specAll = results.filter((r) => r.polarity === 'specificity');
   const excludedCases = specAll.filter((r) => r.excluded);
   const specCases = specAll.filter((r) => !r.excluded); // GRADED negatives only
   const recallCaught = recallCases.filter((r) => r.outcome === 'caught').length;
   const falsePos = specCases.filter((r) => r.falsePositive).length;
   const exclReasons = {}; for (const r of excludedCases) exclReasons[r.excludedReason] = (exclReasons[r.excludedReason] || 0) + 1;
+  const overrides = results.filter((r) => r.gtOverride).map((r) => ({ ruleId: r.ruleId, testcaseId: r.testcaseId, original: r.expected, asserted: r.effectiveExpected, outcome: r.outcome, note: r.gtOverrideNote }));
+  // ── UN-MODIFIED metrics: the raw ACT corpus as-shipped — original per-rule labels, NO override, NO exclusion.
+  const isNeg = (r) => r.expected === 'passed' || r.expected === 'inapplicable';
+  const recallUn = results.filter((r) => r.expected === 'failed');
+  const specUn = results.filter(isNeg);
+  const recallUnCaught = recallUn.filter((r) => r.outcome === 'caught').length;
+  const fpUn = specUn.filter((r) => r.outcome === 'caught').length;
   return { generatedAt: new Date().toISOString(), n, model: MODEL, vision: VISION, tools: TOOLS,
     reachesLlm: REACHES_LLM, restrictSc: RESTRICT_SC, tally, byExpected,
+    // starred (*) — criterion-level GT override + cross-rule exclusion applied
     recall: { failedN: recallCases.length, caught: recallCaught, recallRate: recallCases.length ? +(recallCaught / recallCases.length).toFixed(3) : null },
     specificity: { n: specCases.length, falsePositive: falsePos, falsePositiveRate: specCases.length ? +(falsePos / specCases.length).toFixed(3) : null,
       grossN: specAll.length, excluded: excludedCases.length, excludedReasons: exclReasons,
       excludedCases: excludedCases.map((r) => ({ ruleId: r.ruleId, testcaseId: r.testcaseId, expected: r.expected, wouldBeFP: !!r.falsePositive, reason: r.excludedReason })) },
+    gtOverrides: { count: overrides.length, cases: overrides },
+    // un-modified — raw ACT labels, no override, no exclusion (the corpus as it ships)
+    unmodified: {
+      recall: { failedN: recallUn.length, caught: recallUnCaught, recallRate: recallUn.length ? +(recallUnCaught / recallUn.length).toFixed(3) : null },
+      specificity: { n: specUn.length, falsePositive: fpUn, falsePositiveRate: specUn.length ? +(fpUn / specUn.length).toFixed(3) : null },
+    },
     caughtRate: n ? +(tally.caught / n).toFixed(3) : null, bySc };
 }
 
@@ -465,13 +503,22 @@ function printSummary(results) {
   const s = summarize(results);
   console.log('\n================= LLM eval results (recall + specificity) =================');
   console.log(`cases: ${s.n}  |  model ${s.model}  vision=${s.vision} tools=${s.tools}  restrictSC=${s.restrictSc}  reachesLLM=${s.reachesLlm}`);
-  console.log('\n  RECALL — expected=failed (a flagged barrier is a TRUE POSITIVE):');
-  console.log(`    failed cases reaching the LLM: ${s.recall.failedN}  |  caught: ${s.recall.caught}  =  ${s.recall.recallRate != null ? (100 * s.recall.recallRate).toFixed(0) + '%' : '-'} recall`);
-  console.log('\n  SPECIFICITY — expected=passed/inapplicable (a flagged barrier is a FALSE POSITIVE):');
-  console.log(`    specificity cases: ${s.specificity.n}  |  false positives: ${s.specificity.falsePositive}  =  ${s.specificity.falsePositiveRate != null ? (100 * s.specificity.falsePositiveRate).toFixed(1) + '%' : '-'} FP rate`);
+  const star = s.gtOverrides && s.gtOverrides.count ? '*' : '';
+  console.log(`\n  RECALL${star} — expected=failed (a flagged barrier is a TRUE POSITIVE):`);
+  console.log(`    failed cases reaching the LLM: ${s.recall.failedN}  |  caught: ${s.recall.caught}  =  ${s.recall.recallRate != null ? (100 * s.recall.recallRate).toFixed(0) + '%' : '-'} recall${star}`);
+  console.log(`\n  SPECIFICITY${star} — expected=passed/inapplicable (a flagged barrier is a FALSE POSITIVE):`);
+  console.log(`    specificity cases: ${s.specificity.n}  |  false positives: ${s.specificity.falsePositive}  =  ${s.specificity.falsePositiveRate != null ? (100 * s.specificity.falsePositiveRate).toFixed(1) + '%' : '-'} FP rate${star}`);
   if (s.specificity.excluded) {
     console.log(`    cross-rule-indeterminate EXCLUDED: ${s.specificity.excluded} of ${s.specificity.grossN} negatives (${JSON.stringify(s.specificity.excludedReasons)})`);
     for (const c of s.specificity.excludedCases) console.log(`      - ${c.ruleId}/${c.testcaseId.slice(0, 10)} ${c.expected} (would-be FP: ${c.wouldBeFP}) — ${c.reason}`);
+  }
+  if (s.gtOverrides && s.gtOverrides.count) {
+    console.log(`\n  * ${s.gtOverrides.count} CRITERION-LEVEL GT OVERRIDES applied (manually examined cross-rule cases; raw ACT-label metrics below):`);
+    for (const o of s.gtOverrides.cases) console.log(`      - ${o.ruleId}/${o.testcaseId.slice(0, 10)}  ${o.original} → ${o.asserted}  [${o.outcome}]  — ${o.note}`);
+    const u = s.unmodified;
+    console.log('\n  UN-MODIFIED (raw ACT labels, no override, no exclusion):');
+    console.log(`    recall:      ${u.recall.caught}/${u.recall.failedN}  =  ${u.recall.recallRate != null ? (100 * u.recall.recallRate).toFixed(0) + '%' : '-'}`);
+    console.log(`    specificity: FP ${u.specificity.falsePositive}/${u.specificity.n}  =  ${u.specificity.falsePositiveRate != null ? (100 * u.specificity.falsePositiveRate).toFixed(1) + '%' : '-'} FP rate`);
   }
   for (const e of ['passed', 'inapplicable']) { const b = s.byExpected[e]; if (b) console.log(`      ${e.padEnd(13)} n=${String(b.n).padStart(3)}  FP(flagged)=${String(b.caught).padStart(3)}  clearedOK=${String(b.missedAgree).padStart(3)}  uncertain=${String(b.uncertain).padStart(3)}  noVerdict=${String(b.noVerdict).padStart(3)}  noObligation=${String(b.noObligation).padStart(3)}`); }
   console.log('\n  by SC (FP = flagged where GT says pass/inapplicable; * = recall SC):');

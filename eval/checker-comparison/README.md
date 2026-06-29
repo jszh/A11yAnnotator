@@ -121,7 +121,32 @@ harness agrees** — see `crossRuleIndeterminate` in `run-fn-llm.js`):
 (which `e88epe` would pass) from an *ambiguous* substantial logo (which `e88epe` might fail) — that separation is
 the very judgment the exclusion exists to avoid relying on. So the exclusion also removes a few negatives the
 harness *correctly cleared* (it cannot condition on "was it a would-be-FP?" without becoming self-serving). The
-`wouldBeFP` flag in the reported excluded set makes this auditable per case. Net effect on the full reaches-LLM
-set: a small denominator reduction that removes the mislabeled cases (which otherwise *reward under-flagging*),
-at the price of a handful of true-negative cases — recoverable, if ever needed, by criterion-level hand-labeling
-of **only the reported excluded set** (not the corpus). Tunables: `INDETERMINACY_MIN_DIM`, `E88EPE_SIBLINGS_111`.
+`wouldBeFP` flag in the reported excluded set makes this auditable per case.
+
+### Criterion-level GT override (`*`) — replaces the exclusion once a case is examined
+
+Quarantining is the conservative default for an *un-examined* cross-rule case. Once a case is examined manually
+(the rendered image + what `e88epe` rules + the harness's own verdict), it gets an explicit entry in
+`GT_OVERRIDE` (`run-fn-llm.js`) carrying its **criterion-level** label, which **supersedes** the exclusion. On
+this corpus all **7** cross-rule cases are examined: the **2** aria-hidden W3C wordmarks are barriers `e88epe`
+fails → relabelled `failed` (the harness's correct catch becomes a recall **TP**, not a would-be FP); the **5**
+decoratives (texture / circle / redundant PDF icon / atmospheric+redundant fireworks) `e88epe` passes → original
+negative label **confirmed** and kept as graded true-negatives.
+
+Metrics computed **with** the overrides are starred (`*`); the **un-modified** raw-ACT-label metrics (no override,
+no exclusion) print alongside and ride `summary.unmodified`:
+
+```
+RECALL*: 68 …    SPECIFICITY*: 390 …
+* 7 CRITERION-LEVEL GT OVERRIDES applied (raw ACT-label metrics below):
+  - 23a2a8/25e5364c0a  inapplicable → failed  [caught]  — e88epe-fail: aria-hidden W3C wordmark …
+  …
+UN-MODIFIED (raw ACT labels, no override, no exclusion):
+  recall: 66 …   specificity: 392 …
+```
+
+The override is **label-validity-only**: it relabels just the 2 cases ACT's complementary `e88epe` rule also
+fails on the identical image, and keeping the 5 cleared TNs graded *raises* our FP rate (so it cannot be accused
+of cherry-picking in our favor). It is the **one hand-labeled overlay** on the corpus, kept tiny and auditable —
+extend `GT_OVERRIDE` only after the same manual examination (CLAUDE.md: judge it yourself). Tunables:
+`INDETERMINACY_MIN_DIM`, `E88EPE_SIBLINGS_111`, `GT_OVERRIDE`.
