@@ -156,6 +156,14 @@ function makeAnthropicTransport({ apiKey, fetchImpl, baseUrl = 'https://api.anth
   };
 }
 
+// Gemini recovery knobs (both transports). On `finishReason: MAX_TOKENS` with no usable output, gemini-flash spent its
+// whole output budget on internal thinking and emitted nothing — DOUBLE the budget once (capped) and re-issue rather
+// than degrade to null. GEMINI_MAXTOK_CEIL bounds the doubling so a runaway can't balloon cost. CONCLUDE_INSTRUCTION
+// drives the tool-loop forced-conclusion fallback: when the loop ends with empty text, one tools-off call demands ONLY
+// the verdict JSON from the evidence already gathered (the dominant Gemini noVerdict cause was the loop returning null).
+const GEMINI_MAXTOK_CEIL = 16384;
+const CONCLUDE_INSTRUCTION = 'You have gathered sufficient evidence from the tools above. Do NOT request any more tools. Respond NOW with ONLY the final JSON verdict object exactly as specified in the task instructions (keys: verdict, confidence, summary, reasoning, evidenceRefs) — no preamble, no explanation, no markdown code fence, just the JSON object.';
+
 // CROSS-FAMILY transport: Google Gemini (generateContent REST), keyed from GEMINI_API_KEY. Maps our Anthropic-format
 // `request` (text + base64-image content blocks) → Gemini `contents[].parts[]` ({text} / {inlineData}) and returns the
 // `{ content:[{type:'text',text}] }` shape makeRunAgent expects (or null to degrade). Used for the "entire LLM lane on
@@ -174,6 +182,7 @@ function makeGeminiTransport({ apiKey, model = 'gemini-3.5-flash', fetchImpl, ma
   return async function transport(request, callOpts = {}) {
     const msg = (request.messages && request.messages[0]) || { content: [] };
     const body = { contents: [{ role: 'user', parts: toParts(msg.content) }], generationConfig: { temperature, maxOutputTokens } };
+    let doubled = false;
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       const ctrl = new AbortController();
       const t = setTimeout(() => ctrl.abort(), timeoutMs);
@@ -185,6 +194,10 @@ function makeGeminiTransport({ apiKey, model = 'gemini-3.5-flash', fetchImpl, ma
         const cand = j && j.candidates && j.candidates[0];
         const text = cand && cand.content && Array.isArray(cand.content.parts) ? cand.content.parts.map((p) => p.text || '').join('') : null;
         if (typeof callOpts.onTrace === 'function' && j.usageMetadata) callOpts.onTrace({ type: 'result', usage: { input_tokens: j.usageMetadata.promptTokenCount, output_tokens: j.usageMetadata.candidatesTokenCount } });
+        // MAX_TOKENS with empty output ⇒ thinking starved the verdict ⇒ DOUBLE the budget once and re-issue.
+        if (!text && cand && cand.finishReason === 'MAX_TOKENS' && !doubled && process.env.V3_GEMINI_MAXTOK_DOUBLE !== '0') {
+          doubled = true; body.generationConfig.maxOutputTokens = Math.min(maxOutputTokens * 2, GEMINI_MAXTOK_CEIL); continue;
+        }
         return text ? { content: [{ type: 'text', text }] } : null;
       } catch (e) { await new Promise((res) => setTimeout(res, baseBackoffMs * (attempt + 1))); }
       finally { clearTimeout(t); }
@@ -225,8 +238,8 @@ function makeGeminiToolTransport({ apiKey, model = 'gemini-3.5-flash', dispatch,
     const dueAt = () => deadline + (getExtraDeadlineMs ? (Number(getExtraDeadlineMs()) || 0) : 0) + backoffCreditMs;
     const trace = (j) => { if (typeof callOpts.onTrace === 'function' && j && j.usageMetadata) callOpts.onTrace({ type: 'result', usage: { input_tokens: j.usageMetadata.promptTokenCount, output_tokens: j.usageMetadata.candidatesTokenCount } }); };
     // ONE generateContent round with 429/5xx backoff (parked wall-clock credited back to the deadline). null ⇒ degrade.
-    const postOnce = async (useTools) => {
-      const body = { contents, generationConfig: { temperature, maxOutputTokens } };
+    const postOnce = async (useTools, outTokens = maxOutputTokens, doubled = false) => {
+      const body = { contents, generationConfig: { temperature, maxOutputTokens: outTokens } };
       if (useTools) body.tools = tools;
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
         if (dueAt() - Date.now() <= 0) return null;
@@ -236,7 +249,16 @@ function makeGeminiToolTransport({ apiKey, model = 'gemini-3.5-flash', dispatch,
           const r = await f(`${baseUrl}/models/${model}:generateContent?key=${apiKey}`, { method: 'POST', signal: ctrl.signal, headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
           if (r.status === 429 || r.status >= 500) { clearTimeout(t); const b = Math.min(maxBackoffMs, baseBackoffMs * (attempt + 1)); backoffCreditMs += b; await sleep(b); continue; }
           if (!r.ok) { clearTimeout(t); return null; }
-          const j = await r.json(); clearTimeout(t); trace(j); return j;
+          const j = await r.json(); clearTimeout(t); trace(j);
+          // MAX_TOKENS with NO usable output (no text, no tool call) ⇒ thinking starved the turn ⇒ DOUBLE the budget
+          // once and re-issue the SAME request before handing back. A turn that DID emit text or a functionCall is fine.
+          const cand0 = j && j.candidates && j.candidates[0];
+          const cps = (cand0 && cand0.content && Array.isArray(cand0.content.parts)) ? cand0.content.parts : [];
+          const usable = cps.some((p) => p && (p.text || (p.functionCall && p.functionCall.name)));
+          if (!doubled && !usable && cand0 && cand0.finishReason === 'MAX_TOKENS' && process.env.V3_GEMINI_MAXTOK_DOUBLE !== '0') {
+            return postOnce(useTools, Math.min(outTokens * 2, GEMINI_MAXTOK_CEIL), true);
+          }
+          return j;
         } catch (e) { clearTimeout(t); if (ctrl.signal.aborted) return null; const b = Math.min(maxBackoffMs, baseBackoffMs * (attempt + 1)); backoffCreditMs += b; await sleep(b); }
       }
       return null;
@@ -264,7 +286,19 @@ function makeGeminiToolTransport({ apiKey, model = 'gemini-3.5-flash', dispatch,
         continue;
       }
       const text = parts.map((p) => (p && p.text) || '').join('');
-      return text ? { content: [{ type: 'text', text }] } : null; // no tool call (or final turn) ⇒ the verdict text (or degrade)
+      if (text) return { content: [{ type: 'text', text }] }; // got the verdict text
+      // EMPTY answer (no tool call, no text — even after any MAX_TOKENS doubling). Rather than degrade to null (a
+      // noVerdict — the dominant Gemini tool-loop failure: the model never committed to a final answer, or emitted a
+      // stray functionCall on the tools-off final turn), make ONE forced tools-off conclusion: echo the empty turn so
+      // roles still alternate, then demand ONLY the JSON verdict from the evidence already gathered. Opt out with
+      // V3_GEMINI_FORCE_CONCLUDE=0. Past-deadline still degrades (no time for another round).
+      if (process.env.V3_GEMINI_FORCE_CONCLUDE === '0' || dueAt() - Date.now() <= 0) return null;
+      contents.push({ role: 'model', parts: parts.length ? parts : [{ text: '(no answer emitted)' }] });
+      contents.push({ role: 'user', parts: [{ text: CONCLUDE_INSTRUCTION }] });
+      const cj = await postOnce(false);
+      const cparts = (cj && cj.candidates && cj.candidates[0] && cj.candidates[0].content && Array.isArray(cj.candidates[0].content.parts)) ? cj.candidates[0].content.parts : [];
+      const ctext = cparts.map((p) => (p && p.text) || '').join('');
+      return ctext ? { content: [{ type: 'text', text: ctext }] } : null;
     }
     return null;
   };

@@ -77,6 +77,25 @@ real list is NOT. Common failure patterns:
   (a `kind:'faux'` entry in `signals.structure.lists`). The list relationship (membership, count, order) is
   visually apparent but not programmatic ⇒ barrier. Confirm from `itemSamples` it reads as discrete items.
 
+**ARIA structures — association can be POSITIONAL or via `aria-owns`; do NOT over-flag a well-formed one.**
+The deterministic `signals.structure.tables[]`/`lists[]` cover NATIVE `<table>`/`<ul>`/`<ol>`/`<dl>` ONLY. An ARIA
+grid/list built from `<div>`/`<span>` (`role=table`/`grid`/`list`/`row`/`cell`) carries NO entry there, so you judge it
+from the roles + viewport — but judge it RIGHT, and do not invent a barrier the markup does not have:
+- **`aria-owns` IS a valid association.** A `role=list`/`role=table`/`role=row`/`role=rowgroup` may own its children
+  via `aria-owns="id1 id2"` instead of DOM nesting. If those ids resolve to the expected child roles
+  (`role=listitem`/`role=cell`/`role=row`), the relationship IS programmatically determinable — do NOT flag the
+  container as "empty" or "broken" because its children are owned rather than nested (ff89c9).
+- **ARIA grid association is POSITIONAL.** In a `role=table`/`grid`, a `role=columnheader`/`rowheader` associates with
+  `role=cell`/`gridcell` by GRID POSITION (column/row index) — exactly as a sighted reader reads it. A WELL-FORMED ARIA
+  grid (header roles present AND every data row has the SAME cell count as the header row) conveys the row/column
+  relationship correctly ⇒ NOT a barrier. Flag an ARIA grid ONLY when the visual grid has NO header roles at all, or a
+  data row's cell COUNT does not match the header row (a genuinely misaligned/broken grid) (d0f69e ARIA pass).
+- **`headers=` is INERT on an ARIA cell.** The HTML `headers=` attribute is meaningful ONLY on a native `<td>`/`<th>`;
+  on a `<div>`/`<span>` with `role=cell`/`gridcell` it is NOT an ARIA association and neither creates nor breaks the
+  relationship (the positional grid is the association). Do NOT flag a `headers=` value on an ARIA cell as
+  "wrong/swapped/redundant/mis-wired" — the deterministic `danglingIdref`/`headersRefsNonCell`/`headersRefsSelf` flags
+  apply ONLY to a native `<table>`, so on an ARIA cell they are silent BY DESIGN, not "could not determine" (a25f45).
+
 **WCAG soundness caveats (REQUIRED before failing):**
 - The relationship must be REQUIRED to be programmatically determinable AND must actually convey meaning —
   purely decorative visual grouping is not a 1.3.1 obligation.

@@ -892,7 +892,14 @@ function selectRubricSubjects(collect, ledger, rubrics, { onlyAutoPartial = true
   };
   const bySc = {};
   for (const r of Object.values(rubrics || {})) if (r && r.sc) (bySc[r.sc] = bySc[r.sc] || []).push(r);
-  const rows = (ledger || []).filter((r) => (onlyAutoPartial ? r.autoPartial : true));
+  // Type-B routing fix (80af7b 2.1.2): the keyboard-trap-escape EXPERIMENT disposes a CONFIRMED-confinement obligation
+  // as a terminal PARTIAL (autoPartial=false — it provably cannot decide an async/onblur trap), which the autoPartial
+  // filter would then DROP, starving keyboard-trap-v0 of the one subject it exists to judge (the case scored
+  // noObligation — a recall miss on BOTH models). A 2.1.2 row carrying a REAL confinement signal is genuinely
+  // uncertain (the undocumented-escape question only the rubric can settle) ⇒ keep it in the lane regardless of
+  // autoPartial. The keyboard-trap-v0 gate below still requires the confinement, and it is the SOLE 2.1.2 rubric
+  // (verified) so no other rubric can leak onto the now-included row.
+  const rows = (ledger || []).filter((r) => (onlyAutoPartial ? (r.autoPartial || (r.sc === '2.1.2' && !!confinementFor(r.xpath))) : true));
   const seen = new Set();
   const subjects = [];
   for (const row of rows) for (const rub of (bySc[row.sc] || [])) {

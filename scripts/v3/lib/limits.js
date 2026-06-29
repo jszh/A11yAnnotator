@@ -41,7 +41,10 @@ const LIMITS = Object.freeze({
     maxRetries: 4,                    // 429/overloaded retries
     baseBackoffMs: 1000,              // exponential backoff floor (1s → … )
     maxBackoffMs: 30000,              // exponential backoff ceiling ( … → 30s)
-    toolMaxTurns: 6,                  // multi-turn tool path turn cap (V3_LLM_TOOL_MAX_TURNS)
+    toolMaxTurns: 12,                 // multi-turn tool path turn cap (V3_LLM_TOOL_MAX_TURNS). 6→12: gemini's
+                                      //   hand-rolled function-calling loop was exhausting turns then degrading to
+                                      //   null (noVerdict); more rounds let it conclude naturally before the forced
+                                      //   tools-off fallback. Ceiling only — most calls finish well under it.
     toolRunTimeoutMs: 500000,         // multi-turn tool path whole-call deadline (V3_LLM_TOOL_RUN_TIMEOUT_MS)
   }),
 
