@@ -79,6 +79,32 @@ const FORMFIELD_ROLE = /^(textbox|combobox|listbox|spinbutton|searchbox|slider)$
 const COMPOSITE_ROLE = /^(menu|menubar|tree|treegrid|grid|tablist|listbox|radiogroup)$/;
 const IMG_ROLE = /^(img|image|figure)$/;   // 3.2 non-text-content (1.1.1)
 const HEADING_ROLE = /^heading$/;          // 3.2 heading-descriptive (2.4.6)
+
+// DECORATIVE-SUSPECT (the "don't BLINDLY exclude decorative" lane). A SUBSTANTIAL image REMOVED from the a11y tree
+// (alt=""/aria-hidden/role=presentation) that the author did NOT name (so the Tier-0 #5 decorativeConflict route does
+// not apply). Deterministically we cannot tell a genuinely-decorative image from an INFORMATIVE one wrongly given alt=""
+// (a wrongly-decorated logo/photo/image-of-text is a real 1.1.1/1.4.5 failure — the e88epe/0va7u6 FNs — indistinguishable
+// from legit decoration without judging the pixels + redundancy with nearby text). So instead of excluding it outright,
+// route the SUBSTANTIAL ones to a redundancy-aware verification rubric. The TINY/NARROW ones (spacers, icon sprites,
+// 1px slivers — min(width,height) below the threshold) stay excluded: the corpus geometry scan found those buckets were
+// 100% genuinely decorative (0 recall loss), while the size gate alone cannot separate large-decorative from
+// large-informative — that residual is the rubric's redundancy call. Threshold tunable via V3_DECORATIVE_MIN_DIM (px);
+// disable the whole lane with V3_DECORATIVE_LANE=0 (reverts to blanket exclusion). Read per-call so tests/runs can tune.
+function decorativeSuspect(el) {
+  if (process.env.V3_DECORATIVE_LANE === '0' || !el) return false;
+  const role = String(el.role || el.roleAttr || el.axRole || el.sampledRole || '').toLowerCase();
+  if (!(IMG_ROLE.test(role) || el.isImage === true)) return false;
+  if (el.removedFromA11yTree !== true) return false;   // an IN-tree image already owes the normal alt/1.4.5 obligation
+  if (el.decorativeConflict === true) return false;    // author-NAMED-but-hidden is already routed (Tier-0 #5)
+  if (el.svgNamedDescendant === true) return false;    // an <svg> named via a <title> descendant is not bare-decorative
+  const b = el.box;                                    // two collectors: act-page-collect {width,height}, eval-page {w,h}
+  if (!b) return false;
+  const w = b.width != null ? b.width : b.w;
+  const h = b.height != null ? b.height : b.h;
+  if (!(w > 0 && h > 0)) return false;
+  const minDim = Math.max(1, Number(process.env.V3_DECORATIVE_MIN_DIM) || 24);
+  return Math.min(w, h) >= minDim;                     // below threshold ⇒ tiny/narrow ⇒ stays excluded (genuinely decorative)
+}
 // page-level pseudo-element for the page-scoped reflow obligation (C8).
 const PAGE_REFLOW_XPATH = '/page-level::reflow';
 // page-level pseudo-element for the page-title obligation (3.2 ○-tier, 2.4.2).
@@ -197,6 +223,11 @@ function familiesFor(el) {
   // (the decorativeMarking precompute already surfaces the conflict). Gated tightly on decorativeConflict — a bare
   // alt="" decorative image (no author name) stays unenumerated, so no flood on ordinary decorative imagery.
   else if ((IMG_ROLE.test(role) || el.isImage === true) && el.decorativeConflict === true && el.svgNamedDescendant !== true) { fams.push('non-text-content'); }
+  // "Don't BLINDLY exclude decorative": a SUBSTANTIAL, UNnamed removed-from-tree image (not a decorativeConflict) is
+  // routed to a redundancy-aware verification lane (1.1.1 alt + 1.4.5 image-of-text) instead of being silently dropped;
+  // tiny/narrow spacers/icons stay excluded by the size gate inside decorativeSuspect(). RUBRIC_GATE binds ONLY the
+  // decorative-image-verification rubric to these (alt-text-adequacy/long-description are gated OFF for them).
+  else if (decorativeSuspect(el)) { fams.push('non-text-content'); fams.push('images-of-text'); }
   // TT gap G2 (TT 7.C): a CSS background-image conveying INFORMATION owes a text alternative — the SAME
   // non-text-content family + alt-text-adequacy rubric as an <img> (1.1.1). It ALSO owes images-of-text (1.4.5):
   // a background-image can render TEXT-AS-IMAGE (e.g. a textimage.jpg); the images-of-text rubric judges that and
@@ -304,7 +335,7 @@ function skillsForFamily(claimFamily) { return (FAMILIES[claimFamily] && FAMILIE
 function scForFamily(claimFamily) { return FAMILIES[claimFamily] && FAMILIES[claimFamily].sc; }
 
 module.exports = {
-  FAMILIES, WIDGET_ROLE, FORMFIELD_ROLE, IMG_ROLE, HEADING_ROLE, PAGE_REFLOW_XPATH, PAGE_TITLE_XPATH, PAGE_INFOREL_XPATH,
+  FAMILIES, WIDGET_ROLE, FORMFIELD_ROLE, IMG_ROLE, HEADING_ROLE, decorativeSuspect, PAGE_REFLOW_XPATH, PAGE_TITLE_XPATH, PAGE_INFOREL_XPATH,
   PAGE_SECTIONHEADINGS_XPATH, PAGE_FOCUSORDER_XPATH, PAGE_MEANINGFUL_SEQUENCE_XPATH, pageTitleSlotPresent,
   isEvaluable, familiesFor, deriveObligations, oblId,
   applicableScsFor, enumerationErrors, outOfScopeElements, skillsForFamily, scForFamily, factHasText, factRole,

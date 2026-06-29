@@ -17,9 +17,31 @@ W3C **ACT-Rules** testcases, restricted to the *reaches-LLM* set — the cases t
 **not** pre-settle, i.e. the hard subset where a target-SC obligation stays auto-PARTIAL and reaches the LLM:
 **458 testcases** (66 GT-fail, 392 GT-pass/inapplicable), spanning **37 ACT rules / 13 WCAG success criteria**.
 Ground truth is per-SC (ACT GT is per success-criterion). Metrics: **Recall** = TP / GT-fail (66);
-**FP rate** = FP / (GT-pass + inapplicable) (392); **Precision** = TP / (TP+FP); **F1** = harmonic mean.
-The **LLM-lane** column is the LLM's *marginal* recall (GT-fail cases the LLM flagged), computed
-scorer-independently so it is comparable across configurations.
+**FP rate** = FP / (GT-pass + inapplicable) (392 *gross*, minus the cross-rule-indeterminate exclusion below);
+**Precision** = TP / (TP+FP); **F1** = harmonic mean. The **LLM-lane** column is the LLM's *marginal* recall
+(GT-fail cases the LLM flagged), computed scorer-independently so it is comparable across configurations.
+
+**Cross-rule-indeterminate exclusion (scoring protocol).** An ACT testcase carries **one rule's** expected
+outcome, but the harness judges the **whole SC**. Where same-SC rules *partition a construct by applicability*,
+a page can be `passed`/`inapplicable` for its authoring rule while a **sibling same-SC rule is applicable and
+its verdict is a non-deterministic judgment**, with no sibling label recorded — so the page's true SC status is
+**undetermined by the single label it carries**. The canonical case is **1.1.1 images**: `23a2a8`/`qt1vmo`/
+`7d6734`/`8fc3b6`/`59796f` own *in-tree* images ("has a/descriptive name"); `e88epe` owns *removed-from-tree*
+images ("is it decorative?"). A `23a2a8`-`inapplicable` page that hides a substantial **removed-from-tree** image
+(e.g. the W3C wordmark) is one `e88epe` would adjudicate — but no `e88epe` label exists, so a correct barrier
+flag is graded an FP against a label that never covered the image. The scorer **excludes such pages from the
+specificity denominator** (neither FP nor TN) and **reports the excluded set every run** (`run-fn-llm.js`,
+`crossRuleIndeterminate`). Guardrails: eligibility uses the **standard's applicability** (a removed-from-tree
+image), not our `decorativeSuspect` routing — so a genuinely-clean page (no removed image: the `7d6734` in-tree
+circle, the `e88epe` named `pdf-icon`) is **not** excluded and a real over-flag still counts; a removed image
+below 24 px (min dim) is unambiguously decorative ⇒ `e88epe`'s verdict is deterministic ⇒ not excluded; and
+`e88epe`'s own cases are never excluded. **Cost (stated, not hidden):** size cannot separate a clear-decorative
+substantial texture (which `e88epe` passes) from an ambiguous logo (which `e88epe` may fail) — that separation is
+the judgment the exclusion exists to avoid relying on — so it also removes a few *correctly-cleared* negatives
+(it must not condition on "would-be-FP" or it would be self-serving). On the reaches-LLM set this quarantines
+**7 of 392** negatives (392 → **385** graded; `23a2a8`×3, `qt1vmo`×3, `7d6734`×1; 6 inapplicable + 1 passed;
+all `cross-rule-indeterminate:e88epe(1.1.1-removed-image)`; label-driven, computed from collected geometry),
+recoverable by criterion-level hand-labeling of *only the reported excluded set*.
 
 ## Table 1 — Main result
 
@@ -334,5 +356,12 @@ FP-REDUCTION-CONTROLLED-ROUND2.md`.)
 - The no-vision ablation cells required **bypassing a required-evidence gate** to measure the model fairly (see
   the methodology note); they reflect what the model does given the text evidence, not the deployed harness
   (which gates on vision by design). Reported as an ablation, not a deployment configuration.
-- Ground truth is **per-SC**; some apparent FPs are cross-rule artifacts (an element is a genuine concern for a
-  different SC than the case's labeled one).
+- Ground truth is **per-SC**, but each ACT testcase carries only **one rule's** label. Where same-SC rules
+  partition a construct by applicability (1.1.1 in-tree vs removed-from-tree images), a page can be labeled clean
+  for its rule while a sibling rule would fail the same construct — so a *correct* harness flag is graded a false
+  positive. We handle this with the **cross-rule-indeterminate exclusion** (see Evaluation setup): such pages are
+  quarantined from the specificity denominator and reported per run. The exclusion keys on *label validity* (the
+  standard's applicability), never on whether the harness agrees, and it conservatively also drops a few
+  correctly-cleared negatives it cannot deterministically distinguish — a small denominator cost that removes a
+  *perverse incentive* (a mislabeled negative rewards under-flagging) rather than a real signal. Encoded for
+  1.1.1 images only (v1); other partitioned SCs (e.g. 2.4.2 title present/descriptive) are not yet covered.

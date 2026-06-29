@@ -107,6 +107,32 @@ function reformatPrompt(badText) {
   ].join('\n');
 }
 
+// Durable noVerdict diagnostic. Every null runAgent return IS a noVerdict, but is otherwise SILENT — the trace is
+// discarded (only attached when a verdict survives) so the case shows empty agentVerdicts with no recorded reason
+// (exactly why the FN run's 18 gemini noVerdicts were un-diagnosable post-hoc). Emit ONE structured stderr line
+// classifying WHY: `transport-null` (the transport degraded — HTTP / timeout / MAX_TOKENS-empty / turn-exhaustion;
+// the transport pushed a `transportFail` trace event carrying the mechanism) vs `unparseable-envelope` (the model
+// replied but the JSON could not be extracted even after the reformat retry — a preview is logged). The harness's
+// stderr redirect captures it into the run log; grep `[v3:noVerdict]`. Opt out with V3_NOVERDICT_LOG=0.
+function emitNoVerdict(subject, text, trace, reformatRetried) {
+  if (process.env.V3_NOVERDICT_LOG === '0') return;
+  const fail = [...(trace || [])].reverse().find((e) => e && e.type === 'transportFail') || null;
+  const hadText = typeof text === 'string' && text.trim().length > 0;
+  const rec = {
+    reason: hadText ? 'unparseable-envelope' : 'transport-null',
+    provider: fail ? fail.provider : null,
+    mode: fail ? fail.mode : null,
+    finishReason: fail ? (fail.finishReason || null) : null,
+    sc: (subject && subject.sc) || null,
+    skill: (subject && subject.skill) || null,
+    xpath: subject && subject.xpath ? String(subject.xpath).slice(0, 70) : null,
+    textLen: typeof text === 'string' ? text.length : 0,
+    reformatRetried: !!reformatRetried,
+  };
+  if (hadText) rec.preview = String(text).replace(/\s+/g, ' ').slice(0, 160);
+  try { process.stderr.write(`[v3:noVerdict] ${JSON.stringify(rec)}\n`); } catch (e) { /* logging must never throw */ }
+}
+
 // Build a runAgent from a transport. transport(request, { onTrace }) -> { content: [{type:'text', text}] } (or throws).
 // model defaults to a vision-capable Claude. A transport error/timeout returns null (producer drops it). When the
 // transport reports a turn-by-turn trace via onTrace, it is attached as `out.trace` (the adjudicator lifts it).
@@ -123,17 +149,20 @@ function makeRunAgent({ transport, model = 'claude-opus-4-8', maxTokens = LIMITS
     };
     const text = await runOnce(request);
     let parsed = parseAgentReply(text);
+    let reformatRetried = false;
     // REFORMAT RETRY: the model replied but the envelope was unparseable. Re-ask for ONLY the JSON, handing
     // back its own text. disableTools (honored by the tool transports) keeps this a single plain completion —
     // it must not re-run the agentic tool loop (which on the Claude SDK path would re-clone/re-navigate pages).
     // Skipped when there is no text to repair (a transport failure ⇒ nothing to reformat; degrade to null as before).
     if (!parsed && reformatRetry && typeof text === 'string' && text.trim().length) {
+      reformatRetried = true;
       const retryReq = { model, max_tokens: maxTokens, disableTools: true, messages: [{ role: 'user', content: [{ type: 'text', text: reformatPrompt(text) }] }] };
       const text2 = await runOnce(retryReq);
       parsed = parseAgentReply(text2);
       if (parsed) parsed.reformatRetried = true;
     }
     if (parsed && trace.length) parsed.trace = trace; // full reasoning/tool trace → surfaced into llm-trace.json
+    if (!parsed) emitNoVerdict(_subject, text, trace, reformatRetried); // durable diagnostic for the silent noVerdict
     return parsed;
   };
 }
@@ -164,6 +193,30 @@ function makeAnthropicTransport({ apiKey, fetchImpl, baseUrl = 'https://api.anth
 const GEMINI_MAXTOK_CEIL = 16384;
 const CONCLUDE_INSTRUCTION = 'You have gathered sufficient evidence from the tools above. Do NOT request any more tools. Respond NOW with ONLY the final JSON verdict object exactly as specified in the task instructions (keys: verdict, confidence, summary, reasoning, evidenceRefs) — no preamble, no explanation, no markdown code fence, just the JSON object.';
 
+// TOOL-RESULT IMAGE EXTRACTION (the capture_full_page noVerdict fix). Several cdp tools return a base64 PNG
+// (capture_full_page/_element → `screenshot`, render_under_transform → `screenshot`, observe_state_after_activation →
+// `screenshots.{before,after}`). Gemini's functionResponse is a JSON Struct: a multi-MB base64 string boxed there is
+// rejected by the API (the next turn comes back null → noVerdict) AND, even if accepted, is an opaque string the model
+// cannot SEE as an image. Pull every image-keyed base64 field OUT of the Struct (replace with a short placeholder note)
+// and return them as Gemini `inlineData` image parts to ride alongside the functionResponse — so the model actually
+// sees the pixels, mirroring the Claude MCP tool-result image-block path. Walks nested objects/arrays (the before/after
+// pair). Opt out with V3_GEMINI_TOOL_IMAGES=0 (degrades to the old string-boxed behavior).
+const GEMINI_IMG_KEY = /screenshot|image|before|after|render|crop/i;
+const looksBase64Png = (s) => typeof s === 'string' && s.length > 256 && /^[A-Za-z0-9+/=\s]*$/.test(s.slice(0, 4096));
+function extractToolImages(obj, images, depth = 0) {
+  if (!obj || typeof obj !== 'object' || depth > 5) return obj;
+  if (Array.isArray(obj)) return obj.map((v) => extractToolImages(v, images, depth + 1));
+  const out = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (GEMINI_IMG_KEY.test(k) && looksBase64Png(v)) {
+      images.push({ inlineData: { mimeType: 'image/png', data: String(v).replace(/^data:image\/\w+;base64,/, '') } });
+      out[k] = `[image #${images.length} attached as an image part below — judge from those pixels]`;
+    } else if (v && typeof v === 'object') out[k] = extractToolImages(v, images, depth + 1);
+    else out[k] = v;
+  }
+  return out;
+}
+
 // CROSS-FAMILY transport: Google Gemini (generateContent REST), keyed from GEMINI_API_KEY. Maps our Anthropic-format
 // `request` (text + base64-image content blocks) → Gemini `contents[].parts[]` ({text} / {inlineData}) and returns the
 // `{ content:[{type:'text',text}] }` shape makeRunAgent expects (or null to degrade). Used for the "entire LLM lane on
@@ -182,6 +235,8 @@ function makeGeminiTransport({ apiKey, model = 'gemini-3.5-flash', fetchImpl, ma
   return async function transport(request, callOpts = {}) {
     const msg = (request.messages && request.messages[0]) || { content: [] };
     const body = { contents: [{ role: 'user', parts: toParts(msg.content) }], generationConfig: { temperature, maxOutputTokens } };
+    // failTrace records WHY this transport degraded to null (lifted by emitNoVerdict into the durable noVerdict log).
+    const failTrace = (mode, finishReason) => { if (typeof callOpts.onTrace === 'function') callOpts.onTrace({ type: 'transportFail', provider: 'gemini', mode, finishReason: finishReason || null }); };
     let doubled = false;
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       const ctrl = new AbortController();
@@ -189,7 +244,7 @@ function makeGeminiTransport({ apiKey, model = 'gemini-3.5-flash', fetchImpl, ma
       try {
         const r = await f(`${baseUrl}/models/${model}:generateContent?key=${apiKey}`, { method: 'POST', signal: ctrl.signal, headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
         if (r.status === 429 || r.status >= 500) { clearTimeout(t); await new Promise((res) => setTimeout(res, baseBackoffMs * (attempt + 1))); continue; }
-        if (!r.ok) { clearTimeout(t); return null; }
+        if (!r.ok) { clearTimeout(t); failTrace(`http-${r.status}`); return null; }
         const j = await r.json();
         const cand = j && j.candidates && j.candidates[0];
         const text = cand && cand.content && Array.isArray(cand.content.parts) ? cand.content.parts.map((p) => p.text || '').join('') : null;
@@ -198,10 +253,13 @@ function makeGeminiTransport({ apiKey, model = 'gemini-3.5-flash', fetchImpl, ma
         if (!text && cand && cand.finishReason === 'MAX_TOKENS' && !doubled && process.env.V3_GEMINI_MAXTOK_DOUBLE !== '0') {
           doubled = true; body.generationConfig.maxOutputTokens = Math.min(maxOutputTokens * 2, GEMINI_MAXTOK_CEIL); continue;
         }
-        return text ? { content: [{ type: 'text', text }] } : null;
+        if (text) return { content: [{ type: 'text', text }] };
+        failTrace(cand && cand.finishReason === 'MAX_TOKENS' ? 'maxtokens-empty' : 'empty', cand && cand.finishReason);
+        return null;
       } catch (e) { await new Promise((res) => setTimeout(res, baseBackoffMs * (attempt + 1))); }
       finally { clearTimeout(t); }
     }
+    failTrace('retry-exhausted');
     return null;
   };
 }
@@ -237,6 +295,10 @@ function makeGeminiToolTransport({ apiKey, model = 'gemini-3.5-flash', dispatch,
     let backoffCreditMs = 0;
     const dueAt = () => deadline + (getExtraDeadlineMs ? (Number(getExtraDeadlineMs()) || 0) : 0) + backoffCreditMs;
     const trace = (j) => { if (typeof callOpts.onTrace === 'function' && j && j.usageMetadata) callOpts.onTrace({ type: 'result', usage: { input_tokens: j.usageMetadata.promptTokenCount, output_tokens: j.usageMetadata.candidatesTokenCount } }); };
+    // failTrace records WHY this transport degraded to null (lifted by emitNoVerdict into the durable noVerdict log).
+    // lastFinish carries the most recent turn's finishReason so a terminal degrade reports MAX_TOKENS vs STOP etc.
+    const failTrace = (mode, finishReason) => { if (typeof callOpts.onTrace === 'function') callOpts.onTrace({ type: 'transportFail', provider: 'gemini', mode, finishReason: finishReason || null }); };
+    let lastFinish = null;
     // ONE generateContent round with 429/5xx backoff (parked wall-clock credited back to the deadline). null ⇒ degrade.
     const postOnce = async (useTools, outTokens = maxOutputTokens, doubled = false) => {
       const body = { contents, generationConfig: { temperature, maxOutputTokens: outTokens } };
@@ -264,25 +326,37 @@ function makeGeminiToolTransport({ apiKey, model = 'gemini-3.5-flash', dispatch,
       return null;
     };
     for (let turn = 0; turn < maxTurns; turn++) {
-      if (dueAt() - Date.now() <= 0) return null;
+      if (dueAt() - Date.now() <= 0) { failTrace('deadline', lastFinish); return null; }
       const lastTurn = turn === maxTurns - 1; // final turn: disable tools so the model MUST conclude with a text verdict
       const j = await postOnce(!lastTurn && !request.disableTools); // disableTools (envelope-repair retry) ⇒ plain text completion
       const cand = j && j.candidates && j.candidates[0];
+      if (cand && cand.finishReason) lastFinish = cand.finishReason;
       const parts = (cand && cand.content && Array.isArray(cand.content.parts)) ? cand.content.parts : [];
       const calls = parts.filter((p) => p && p.functionCall && p.functionCall.name);
+      if (process.env.V3_GEMINI_TURN_DEBUG === '1') { // per-turn observability for the empty-loop diagnosis (default off)
+        const tl = parts.map((p) => (p && p.text) || '').join('').length;
+        try { process.stderr.write(`[v3:geminiTurn] ${JSON.stringify({ turn, lastTurn, candNull: !cand, finishReason: (cand && cand.finishReason) || null, calls: calls.map((c) => c.functionCall.name), parts: parts.length, textLen: tl, thinking: parts.some((p) => p && p.thought) })}\n`); } catch (e) { /* never throw */ }
+      }
       if (calls.length && !lastTurn) {
         contents.push({ role: 'model', parts }); // echo the model's turn (functionCall(s) + any thinking) into history
         const responses = [];
+        const images = []; // base64 screenshots pulled out of the function results → ride as inlineData parts
+        const extractImages = process.env.V3_GEMINI_TOOL_IMAGES !== '0';
         for (const p of calls) {
           const fc = p.functionCall;
           let resultObj;
           try { resultObj = await dispatch.call(fc.name, fc.args || {}); }
           catch (e) { resultObj = { error: String((e && e.message) || e) }; }
           // functionResponse.response must be a JSON object (Struct); a non-object handler return is boxed under `result`.
-          const response = (resultObj && typeof resultObj === 'object' && !Array.isArray(resultObj)) ? resultObj : { result: resultObj };
+          let response = (resultObj && typeof resultObj === 'object' && !Array.isArray(resultObj)) ? resultObj : { result: resultObj };
+          if (extractImages) response = extractToolImages(response, images); // lift base64 screenshots out of the Struct
           responses.push({ functionResponse: { name: fc.name, response } });
         }
-        contents.push({ role: 'user', parts: responses }); // v1beta: a functionResponse rides a 'user' Content
+        // v1beta: a functionResponse rides a 'user' Content. Any lifted screenshots ride the SAME user turn as
+        // inlineData image parts (after the functionResponse), so the model SEES the pixels instead of an opaque string.
+        const userParts = responses.slice();
+        if (images.length) { userParts.push({ text: `${images.length} tool screenshot(s) attached as image part(s) below — judge from those pixels.` }, ...images); }
+        contents.push({ role: 'user', parts: userParts });
         continue;
       }
       const text = parts.map((p) => (p && p.text) || '').join('');
@@ -292,14 +366,20 @@ function makeGeminiToolTransport({ apiKey, model = 'gemini-3.5-flash', dispatch,
       // stray functionCall on the tools-off final turn), make ONE forced tools-off conclusion: echo the empty turn so
       // roles still alternate, then demand ONLY the JSON verdict from the evidence already gathered. Opt out with
       // V3_GEMINI_FORCE_CONCLUDE=0. Past-deadline still degrades (no time for another round).
-      if (process.env.V3_GEMINI_FORCE_CONCLUDE === '0' || dueAt() - Date.now() <= 0) return null;
+      if (process.env.V3_GEMINI_FORCE_CONCLUDE === '0' || dueAt() - Date.now() <= 0) {
+        failTrace(process.env.V3_GEMINI_FORCE_CONCLUDE === '0' ? 'force-conclude-optout' : 'deadline-preconclude', lastFinish); return null;
+      }
       contents.push({ role: 'model', parts: parts.length ? parts : [{ text: '(no answer emitted)' }] });
       contents.push({ role: 'user', parts: [{ text: CONCLUDE_INSTRUCTION }] });
       const cj = await postOnce(false);
+      const cFinish = cj && cj.candidates && cj.candidates[0] && cj.candidates[0].finishReason;
       const cparts = (cj && cj.candidates && cj.candidates[0] && cj.candidates[0].content && Array.isArray(cj.candidates[0].content.parts)) ? cj.candidates[0].content.parts : [];
       const ctext = cparts.map((p) => (p && p.text) || '').join('');
-      return ctext ? { content: [{ type: 'text', text: ctext }] } : null;
+      if (ctext) return { content: [{ type: 'text', text: ctext }] };
+      failTrace('force-conclude-empty', cFinish || lastFinish);
+      return null;
     }
+    failTrace('maxturns-exhausted', lastFinish);
     return null;
   };
 }
@@ -338,8 +418,10 @@ function makeClaudeSdkTransport(opts = {}) {
 
   return async function transport(request, callOpts) {
     const onTrace = callOpts && typeof callOpts.onTrace === 'function' ? callOpts.onTrace : null;
+    // failTrace records WHY this transport degraded to null (lifted by emitNoVerdict into the durable noVerdict log).
+    const failTrace = (mode) => { if (onTrace) try { onTrace({ type: 'transportFail', provider: 'claude', mode, finishReason: null }); } catch (e) { /* never throw */ } };
     const q = await getQuery();
-    if (typeof q !== 'function') return null;
+    if (typeof q !== 'function') { failTrace('sdk-absent'); return null; }
     const content = (request && request.messages && request.messages[0] && request.messages[0].content) || [];
     const useModel = (request && request.model) || model || 'claude-sonnet-4-6';
     async function* input() { yield { type: 'user', parent_tool_use_id: null, message: { role: 'user', content } }; }
@@ -357,7 +439,7 @@ function makeClaudeSdkTransport(opts = {}) {
     let backoffCreditMs = 0;
     const dueAt = () => deadline + (getExtraDeadlineMs ? (Number(getExtraDeadlineMs()) || 0) : 0) + backoffCreditMs;
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      if (dueAt() - Date.now() <= 0) return null; // whole-run budget (excluding queue-wait) exhausted before this attempt
+      if (dueAt() - Date.now() <= 0) { failTrace('deadline'); return null; } // whole-run budget (excluding queue-wait) exhausted before this attempt
       const ctrl = new AbortController();
       // tool path POLLS so mid-call clone-waits keep extending the effective deadline; single-shot keeps one timer.
       let timer = null, guard = null;
@@ -392,14 +474,17 @@ function makeClaudeSdkTransport(opts = {}) {
           }
         }
       } catch (e) {
-        if (ctrl.signal.aborted) { clearGuards(); return null; } // whole-run timeout ⇒ degrade
+        if (ctrl.signal.aborted) { clearGuards(); failTrace('timeout-abort'); return null; } // whole-run timeout ⇒ degrade
         if (isOverloaded(e)) overloaded = true; // else: fall through to degrade below
       } finally { clearGuards(); }
 
       if (text && !overloaded) return { content: [{ type: 'text', text }] };
       if (overloaded && attempt < maxRetries) { const b = backoffMs(attempt); backoffCreditMs += b; await sleep(b); continue; } // credit the backoff sleep to the deadline (throttle wait, not model work)
-      return text ? { content: [{ type: 'text', text }] } : null; // exhausted / fatal / empty ⇒ degrade
+      if (text) return { content: [{ type: 'text', text }] };
+      failTrace(overloaded ? 'overloaded-exhausted' : 'empty'); // exhausted / fatal / empty ⇒ degrade
+      return null;
     }
+    failTrace('retry-exhausted');
     return null;
   };
 }

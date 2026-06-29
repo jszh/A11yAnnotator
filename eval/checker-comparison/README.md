@@ -66,3 +66,62 @@ for real-world breadth/robustness. The fixtures span the SCs our deterministic r
   control on a landmark-less fixture). Read `outcome: 'violation'` vs `'review'` accordingly.
 
 Versions/results are a snapshot (2026-06-16); `npm install` re-pins the exact engine versions above.
+
+---
+
+## FN×LLM evidence-lane eval (`run-fn-llm.js`)
+
+A separate runner in this folder evaluates **our harness's LLM evidence lane** over the W3C ACT-Rules
+testcases — the *reaches-LLM* subset (the hard cases the deterministic stack does not pre-settle). Scoring is
+**per-SC** (ACT ground truth is per success-criterion): on a `failed` case a flagged barrier is a true positive
+(recall); on a `passed`/`inapplicable` case the same flag is a false positive (specificity).
+
+```sh
+node run-fn-llm.js --reaches-llm --tools                 # full reaches-LLM set, Claude (default)
+node run-fn-llm.js --reaches-llm --tools --provider=gemini --global-llm=50
+node run-fn-llm.js --reaches-llm --no-llm                # deterministic-only baseline (also computes the exclusion)
+node run-fn-llm.js --reaches-llm --cases=<ids-file> --out=<name>   # subset
+```
+
+### Cross-rule-indeterminate exclusion (scoring correction)
+
+An ACT testcase carries **one rule's** expected outcome, but the harness judges the **whole SC**. For some SCs
+the rules *partition a construct by applicability*, so a page can be `inapplicable`/`passed` for the rule it was
+authored for while a **sibling same-SC rule is applicable and its verdict is a non-deterministic judgment** —
+and no sibling label exists for the page. Treating that page's single label as an SC-level "no barrier" example
+mislabels it: a correct barrier flag is graded a false positive against a label that never covered the construct.
+
+The canonical case is **1.1.1 images**: `23a2a8`/`qt1vmo`/`7d6734`/`8fc3b6`/`59796f` own **in-tree** images
+(*"has a name / descriptive name"*); **`e88epe`** owns **removed-from-tree** images (*"is it decorative?"*). A
+page authored for an in-tree rule that *also* contains a substantial **removed-from-tree** image is inapplicable
+to its own rule, but `e88epe` is applicable to that image and its verdict is a judgment — unrecorded. So the
+page's true 1.1.1 status is **undetermined by its label** (e.g. the W3C-wordmark-under-`23a2a8` cases).
+
+The scorer detects these and **excludes them from the specificity (FP) denominator** — scored neither FP nor
+true-negative — and **reports the excluded set every run** (never a silent denominator change):
+
+```
+cross-rule-indeterminate EXCLUDED: 6 of 13 negatives ({"cross-rule-indeterminate:e88epe(1.1.1-removed-image)":6})
+  - 23a2a8/e15b9aca inapplicable (would-be FP: true) — cross-rule-indeterminate:e88epe(1.1.1-removed-image)
+  - …
+```
+
+Three guardrails keep it from excusing genuine errors (it keys on **label validity, never on whether the
+harness agrees** — see `crossRuleIndeterminate` in `run-fn-llm.js`):
+
+1. **Eligibility = the standard's applicability** (`e88epe` ⇐ *an image not in the a11y tree*), **not** our
+   `decorativeSuspect` routing. A genuinely-clean page with **no removed image** (the `7d6734` in-tree yellow
+   circle, the `e88epe` `pdf-icon` with `alt="PDF"`) is **not** excluded — a real over-flag there still counts.
+2. **Indeterminacy size** (`INDETERMINACY_MIN_DIM = 24`px, min of width/height): below it a removed image is an
+   icon/spacer/sliver — unambiguously decorative — so `e88epe`'s verdict is deterministic and the label valid ⇒
+   not excluded.
+3. **`e88epe`'s own cases are never excluded** — the owning rule's label is present, so the SC *is* determined.
+
+**Honest cost (documented, not hidden):** size cannot separate a *clear-decorative* substantial texture/photo
+(which `e88epe` would pass) from an *ambiguous* substantial logo (which `e88epe` might fail) — that separation is
+the very judgment the exclusion exists to avoid relying on. So the exclusion also removes a few negatives the
+harness *correctly cleared* (it cannot condition on "was it a would-be-FP?" without becoming self-serving). The
+`wouldBeFP` flag in the reported excluded set makes this auditable per case. Net effect on the full reaches-LLM
+set: a small denominator reduction that removes the mislabeled cases (which otherwise *reward under-flagging*),
+at the price of a handful of true-negative cases — recoverable, if ever needed, by criterion-level hand-labeling
+of **only the reported excluded set** (not the corpus). Tunables: `INDETERMINACY_MIN_DIM`, `E88EPE_SIBLINGS_111`.

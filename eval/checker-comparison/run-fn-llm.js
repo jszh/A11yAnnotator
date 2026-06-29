@@ -196,8 +196,43 @@ const wrapAgent = (agent) => (messages, subject) => sem.run(async () => {
 });
 const runAgent = wrapAgent(baseAgent);
 
+// ============================ cross-rule-indeterminate exclusion ============================
+// THE EVAL-LABELING-ARTIFACT FIX. An ACT testcase carries ONE rule's expected outcome, but our harness judges the
+// whole SC. For 1.1.1 the rules PARTITION images by accessibility-tree membership: 23a2a8/qt1vmo/7d6734/8fc3b6/59796f
+// own IN-tree images ("has a name / descriptive name"); e88epe owns REMOVED-from-tree images ("is it decorative?").
+// A page authored for an IN-tree rule and labeled passed/inapplicable can STILL contain a substantial REMOVED-from-tree
+// image — inapplicable *to its own rule*, but e88epe IS applicable to that image and its verdict is a JUDGMENT
+// (non-deterministic), and no e88epe label exists for the page. So the page's true 1.1.1 status is UNDETERMINED by the
+// single label it carries: a correct barrier flag on the removed image would be graded a false positive against a label
+// that never covered it (the W3C-wordmark-under-23a2a8 cases). Such a page is EXCLUDED from the specificity denominator
+// (scored neither FP nor TN) and reported separately for audit — never silently dropped.
+//
+// Three guardrails keep this from excusing genuine errors (it must key on LABEL VALIDITY, never on whether WE agree):
+//   1. Eligibility uses the STANDARD's applicability — e88epe applies to an image NOT in the a11y tree — NOT our
+//      decorativeSuspect routing. A genuinely-clean page (NO removed image: the 7d6734 yellow circle, the e88epe
+//      pdf-icon with alt="PDF") is therefore NOT excluded, and a real over-flag on it still counts as an FP.
+//   2. INDETERMINACY size: below INDETERMINACY_MIN_DIM a removed image is an icon/spacer/sliver — unambiguously
+//      decorative — so e88epe's verdict is deterministic and the single label IS valid ⇒ NOT excluded. (Independent of
+//      the oracle's routing gate; it happens to be the same physical boundary — where decorativeness becomes a judgment.)
+//   3. e88epe's OWN cases are never excluded — the owning rule's label is present, so the SC status IS determined.
+const INDETERMINACY_MIN_DIM = 24; // px (min of width/height): below this a removed-from-tree image is unambiguously decorative
+const E88EPE_SIBLINGS_111 = new Set(['23a2a8', 'qt1vmo', '7d6734', '8fc3b6', '59796f']); // 1.1.1 IN-tree image rules; e88epe owns REMOVED images
+function crossRuleIndeterminate(tc, collect) {
+  if (tc.expected === 'failed') return null;                     // only NEGATIVE-labeled cases are ever excluded
+  if (!(tc.sc || []).includes('1.1.1')) return null;             // v1 encodes only the 1.1.1 in-tree/removed image partition
+  if (!E88EPE_SIBLINGS_111.has(tc.ruleId)) return null;          // e88epe's own + unrelated rules: the label determines the SC
+  const removedSubstantialImg = ((collect && collect.elements) || []).some((el) => {
+    if (!(el.isImage === true || el.tag === 'img')) return false;
+    if (el.removedFromA11yTree !== true) return false;           // e88epe applicability: image NOT in the accessibility tree
+    const b = el.box; if (!b) return false;                      // two collectors: {width,height} (act-page) / {w,h} (eval-page)
+    const w = b.width != null ? b.width : b.w; const h = b.height != null ? b.height : b.h;
+    return w > 0 && h > 0 && Math.min(w, h) >= INDETERMINACY_MIN_DIM; // indeterminacy: large enough that decorativeness is a judgment
+  });
+  return removedSubstantialImg ? 'cross-rule-indeterminate:e88epe(1.1.1-removed-image)' : null;
+}
+
 // ============================ scoring one case ============================
-function scoreCase(tc, out) {
+function scoreCase(tc, out, collect) {
   const inScope = new Set(tc.sc || []);
   const built = out && out.built;
   const bundle = (out && out.bundle) || {};
@@ -251,6 +286,11 @@ function scoreCase(tc, out) {
   rec.polarity = tc.expected === 'failed' ? 'recall' : 'specificity';
   rec.correct = rec.polarity === 'recall' ? (outcome === 'caught') : (outcome !== 'caught');
   rec.falsePositive = rec.polarity === 'specificity' && outcome === 'caught';
+  // CROSS-RULE-INDETERMINATE EXCLUSION: a negative-labeled page whose true SC status its single ACT-rule label does not
+  // determine (a sibling rule is applicable + non-deterministic). Flagged here, removed from the specificity denominator
+  // in summarize(), and reported for audit. `falsePositive` is still recorded (so the would-be FP is visible).
+  const excl = crossRuleIndeterminate(tc, collect);
+  if (excl) { rec.excluded = true; rec.excludedReason = excl; }
 
   // surface the actual verdicts + rationale so the run is auditable
   const rats = (bundle.llmRationale && bundle.llmRationale.rationales) || [];
@@ -354,7 +394,7 @@ async function main() {
           llmToolMaxTurns: LIMITS.llm.toolMaxTurns,
           llmToolRunTimeoutMs: LIMITS.llm.toolRunTimeoutMs,
         });
-        rec = scoreCase(tc, out);
+        rec = scoreCase(tc, out, collect);
         // full LLM trace → side file (offline analysis); base64 already elided by the transport.
         const traces = (out.bundle && out.bundle.llmTrace && out.bundle.llmTrace.traces) || [];
         if (traces.length) allTraces.push({ testcaseId: tc.testcaseId, ruleId: tc.ruleId, sc: tc.sc, traces });
@@ -404,13 +444,20 @@ function summarize(results) {
   const n = results.length;
   // POLARITY metrics: recall on `failed`; false-positive rate on `passed`+`inapplicable` (specificity).
   const recallCases = results.filter((r) => r.polarity === 'recall');
-  const specCases = results.filter((r) => r.polarity === 'specificity');
+  // CROSS-RULE-INDETERMINATE cases are quarantined from the specificity denominator (their single ACT-rule label does
+  // not determine the SC). Reported separately so the denominator change is never silent (see crossRuleIndeterminate).
+  const specAll = results.filter((r) => r.polarity === 'specificity');
+  const excludedCases = specAll.filter((r) => r.excluded);
+  const specCases = specAll.filter((r) => !r.excluded); // GRADED negatives only
   const recallCaught = recallCases.filter((r) => r.outcome === 'caught').length;
   const falsePos = specCases.filter((r) => r.falsePositive).length;
+  const exclReasons = {}; for (const r of excludedCases) exclReasons[r.excludedReason] = (exclReasons[r.excludedReason] || 0) + 1;
   return { generatedAt: new Date().toISOString(), n, model: MODEL, vision: VISION, tools: TOOLS,
     reachesLlm: REACHES_LLM, restrictSc: RESTRICT_SC, tally, byExpected,
     recall: { failedN: recallCases.length, caught: recallCaught, recallRate: recallCases.length ? +(recallCaught / recallCases.length).toFixed(3) : null },
-    specificity: { n: specCases.length, falsePositive: falsePos, falsePositiveRate: specCases.length ? +(falsePos / specCases.length).toFixed(3) : null },
+    specificity: { n: specCases.length, falsePositive: falsePos, falsePositiveRate: specCases.length ? +(falsePos / specCases.length).toFixed(3) : null,
+      grossN: specAll.length, excluded: excludedCases.length, excludedReasons: exclReasons,
+      excludedCases: excludedCases.map((r) => ({ ruleId: r.ruleId, testcaseId: r.testcaseId, expected: r.expected, wouldBeFP: !!r.falsePositive, reason: r.excludedReason })) },
     caughtRate: n ? +(tally.caught / n).toFixed(3) : null, bySc };
 }
 
@@ -422,6 +469,10 @@ function printSummary(results) {
   console.log(`    failed cases reaching the LLM: ${s.recall.failedN}  |  caught: ${s.recall.caught}  =  ${s.recall.recallRate != null ? (100 * s.recall.recallRate).toFixed(0) + '%' : '-'} recall`);
   console.log('\n  SPECIFICITY — expected=passed/inapplicable (a flagged barrier is a FALSE POSITIVE):');
   console.log(`    specificity cases: ${s.specificity.n}  |  false positives: ${s.specificity.falsePositive}  =  ${s.specificity.falsePositiveRate != null ? (100 * s.specificity.falsePositiveRate).toFixed(1) + '%' : '-'} FP rate`);
+  if (s.specificity.excluded) {
+    console.log(`    cross-rule-indeterminate EXCLUDED: ${s.specificity.excluded} of ${s.specificity.grossN} negatives (${JSON.stringify(s.specificity.excludedReasons)})`);
+    for (const c of s.specificity.excludedCases) console.log(`      - ${c.ruleId}/${c.testcaseId.slice(0, 10)} ${c.expected} (would-be FP: ${c.wouldBeFP}) — ${c.reason}`);
+  }
   for (const e of ['passed', 'inapplicable']) { const b = s.byExpected[e]; if (b) console.log(`      ${e.padEnd(13)} n=${String(b.n).padStart(3)}  FP(flagged)=${String(b.caught).padStart(3)}  clearedOK=${String(b.missedAgree).padStart(3)}  uncertain=${String(b.uncertain).padStart(3)}  noVerdict=${String(b.noVerdict).padStart(3)}  noObligation=${String(b.noObligation).padStart(3)}`); }
   console.log('\n  by SC (FP = flagged where GT says pass/inapplicable; * = recall SC):');
   console.log('    sc        exp           n  caught/FP  agree  uncert  noVerd  noOblig');

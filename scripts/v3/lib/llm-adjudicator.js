@@ -156,8 +156,13 @@ const RUBRIC_GATE = {
   // by the deterministic text-contrast-pixel runner (Tier-0 #2). Route only when the runner abstained.
   'contrast-over-complex-backdrop-v0': (el) => !!el && el.contrastReliable !== true,
   // 7b: long-description-completeness is for genuinely data-bearing images (figure / role=figure / aria-describedby);
-  // a logo/icon gets alt-text-adequacy only (long-desc on a simple logo was UNCERTAIN noise on 2/3 of them).
-  'long-description-completeness-v0': (el) => !!el && el.complexImageHint === true,
+  // a logo/icon gets alt-text-adequacy only (long-desc on a simple logo was UNCERTAIN noise on 2/3 of them). NOT a
+  // decorative-suspect (removed-from-tree) image — the dedicated verification rubric owns that question.
+  'long-description-completeness-v0': (el) => !!el && el.complexImageHint === true && !oracle.decorativeSuspect(el),
+  // Decorative-verification lane: fires ONLY on a SUBSTANTIAL unnamed removed-from-tree image (the "is this genuinely
+  // decorative or an informative image wrongly given alt=""?" redundancy call). The oracle mints its 1.1.1/1.4.5
+  // obligation; this gate makes it the SOLE 1.1.1 rubric for that image (alt-text-adequacy is excluded below).
+  'decorative-image-verification-v0': (el) => oracle.decorativeSuspect(el),
   // TT gap G3: the captcha-alternative rubric (1.1.1) fires ONLY on a detected CAPTCHA — without this gate it would
   // fire on every image's 1.1.1 obligation (routing is by SC).
   'captcha-alternative-v0': (el) => !!el && el.isCaptcha === true,
@@ -165,7 +170,9 @@ const RUBRIC_GATE = {
   // purpose description — TT 7.A.1.c — and captcha-alternative self-abstains to PARTIAL, so both run harmlessly);
   // it is skipped only for a captcha that is a non-image widget (div/iframe), where there is no alt to judge. This
   // also stops an over-broad isCaptcha FP (a non-captcha image with "captcha" in a class) from losing its alt judgment.
-  'alt-text-adequacy-v0': (el) => !el || el.isCaptcha !== true || el.isImage === true,
+  // ...and NOT a decorative-suspect (unnamed removed-from-tree image): there is no author name/alt to judge there, so
+  // the empty-alt would only false-barrier — the decorative-image-verification rubric owns that image's 1.1.1 instead.
+  'alt-text-adequacy-v0': (el) => (!el || el.isCaptcha !== true || el.isImage === true) && !oracle.decorativeSuspect(el),
 };
 
 // v2.9 PURE SIGNAL PRE-COMPUTE (3.1 §3): reuse a11y-eval verbatim where the inputs exist on the
