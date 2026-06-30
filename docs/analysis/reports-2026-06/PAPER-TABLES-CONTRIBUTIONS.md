@@ -293,28 +293,43 @@ any row with `node eval/checker-comparison/ablation-table.js` (config = the run 
 | `fn-llm-gemini-v2` **`*`** (06-29) | Gemini 3.5-flash | tools, 80-par, `*`override | `2c7628c0` † | **91.2** (62/68) | 79.5 | 4.1 (16/390) | **0.849** | 4 |
 | `openai-gpt54-full` (06-29) | GPT-5.4 | tools, 8-par | `876e4696` | 83.3 (55/66) | 79.7 | 3.6 (14/392) | 0.815 | 5 |
 | `openai-gpt54-full` **`*`** (06-29) | GPT-5.4 | tools, 8-par, `*`override | `876e4696` | 83.8 (57/68) | 82.6 | 3.1 (12/390) | 0.832 | 5 |
+| `claude-sonnet-full` (06-30) | Claude Sonnet 4.6 | tools, 8-par | `34aec9d3` | 89.4 (59/66) | 74.7 | 5.1 (20/392) | 0.814 | 2 |
+| `claude-sonnet-full` **`*`** (06-30) | Claude Sonnet 4.6 | tools, 8-par, `*`override | `34aec9d3` | 89.7 (61/68) | 77.2 | 4.6 (18/390) | 0.830 | 2 |
 
 † plus a 1-line uncommitted `V3_MAX_TABS` env wire (`limits.js`) so `--max-tabs=64` takes effect. **`fn-llm-gemini-v2`
 is the first full run with ALL the round's fixes live** (Gemini image-tool fix → **noVerdict 28→4**; decorative
 lane; the `*` GT override — shown as the two rows above, un-modified then starred). It brings **Gemini to
 Claude-level recall** (90.9%, up from 83.3% at `49b4c23b`): the image-tool fix recovers the capture-driven
-noVerdicts and the lane adds recall (at a small FP cost, 2.8→4.6). The starred **Table 1** for the *deployed Claude
-default* with the same fixes still needs its own re-run; this Gemini row is the cross-family confirmation the
-fix-set holds.
+noVerdicts and the lane adds recall (at a small FP cost, 2.8→4.6). **The deployed-Claude all-fixes re-run is now
+done** (`claude-sonnet-full`, `34aec9d3`): **89.7 / 77.2 / 0.830 starred** (89.4 / 74.7 / 0.814 un-modified) —
+a **regression** from the pre-fix `full-claude-default` (90.9 / 84.5 / **0.876**). The fixes that *won* for Gemini
+*cost* Claude: FP **11→18** (2.8→4.6), recall held (90.9→89.7), F1 **0.876→0.830**. The asymmetry is mechanical —
+Gemini's gain was almost entirely **noVerdict recovery** (28→4) from the image-tool fix, an upside Claude never had
+(it was already at noVerd 3 / 90.9 recall), so for Claude the decorative lane + 1.3.1-ARIA / 2.1.2-routing
+re-calibration (`e41784db`) is **all FP cost, no recall benefit**. New FPs cluster in the re-calibrated lanes
+(2.4.4 ×20, 1.1.1 ×13, 2.4.6 ×10 at the obligation grain). Tool use: **121 calls / 11 tools / 70 cases**
+(query_ax_node 50, capture_full_page 20, resolve_destination 20, …); spend **$23.95** (404k out, 2.43M cache-read,
+539 events, mean 750 out/verdict). **Implication:** `full-claude-default` (0.876) remains the strongest *measured*
+Claude full result, but it predates the round's fixes — the round-3 lanes need to be gated harder (or made
+provider-aware) before they are net-positive for the deployed Claude default.
 
 **Provenance / read-off.**
 - `full-gemini-50p` + `full-claude-default` are the first post-FP/FN-fix full runs (request: "run gemini
   50-parallel + claude on the full suite"), both at `49b4c23b`. They **predate** the Gemini noVerdict recovery
   (`e41784db`) — hence Gemini's **28** noVerdict vs Claude's 3 — and the decorative lane + cross-rule override
   (`52ab69d5`/`2c7628c0`). **`full-claude-default` (90.9 / 84.5 / 0.876) is the strongest measured full result to
-  date** and supersedes Table 1's stale Full-harness cell (72.7 / 80.0) on the same scoring.
+  date** and supersedes Table 1's stale Full-harness cell (72.7 / 80.0) on the same scoring — but note it **predates
+  the round's fixes**; the all-fixes Claude re-run (`claude-sonnet-full`, 0.830) regresses on it (see `†` note).
 - The cross-family read of `fn-llm-gemini` (recall *generalizes* across model families, precision is the
   model-dependent cost) is the Table 1b blockquote; the gap to `full-gemini-50p` (74→83 recall, 5.4→2.8 FP) is the
   FP/FN-fix batch + run-to-run judge noise.
 - `fn-llm-gemini-v2` (complete) is the first full run with **all** the round's fixes live (Gemini image-tool fix →
   **noVerdict 4**, down from 18–28; decorative lane; `*` override applied — 7 cases, 0 quarantined). Un-modified
   90.9 / 76.9 / 0.834, starred **91.2 / 79.5 / 0.849** — Gemini at Claude-level recall, confirming the fix-set is
-  not model-specific. The deployed-**Claude** starred Table 1 still awaits its own all-fixes re-run.
+  not model-specific. The deployed-**Claude** all-fixes re-run is now in the ledger (`claude-sonnet-full`,
+  `34aec9d3`): starred **89.7 / 77.2 / 0.830**, a **regression** from the pre-fix 0.876 — the fix-set's recall
+  recovery is Gemini-specific (noVerdict 28→4) while its FP cost (2.8→4.6) is shared, so it is net-negative for the
+  already-ceiling Claude default. See the `†` note above.
 - `openai-gpt54-full` is the **third model family** (GPT-5.4), via a HAND-ROLLED OpenAI **Responses-API** function-
   calling loop (`makeOpenAITransport`) over the SAME `buildCdpToolDispatch` handlers as Gemini — the loop is OURS, so
   tool use is guaranteed. Unmodified **83.3 / 79.7 / 0.815**, starred **83.8 / 82.6 / 0.832** (noVerdict **5**). Recall
