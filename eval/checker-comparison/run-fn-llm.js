@@ -291,8 +291,20 @@ function scoreCase(tc, out, collect) {
   // which inflated BOTH recall and FP by scoring "the harness deferred" as "the harness caught it".
   rec.inScopeBarrierFilled = inScopeOblig.filter((r) => r.disposition === 'PROVISIONAL' && r.cleared === false).length;
 
+  // RESPECT the obligation-ledger reconcile (audit: the scorer must not bypass a deployed FP fix). A rubric
+  // LIKELY_BARRIER that the ledger RECONCILED-SUPPRESSED — e.g. the 2.4.4 link-equivalence-authoritative rule
+  // cleared the obligation because link-name-equivalence-v0 settled it, so the row is PROVISIONAL/cleared with
+  // `provisional.reconciled.suppressed` naming the dropped link-purpose mechanism — must NOT be re-counted here as a
+  // raw catch. Without this exclusion the eval scores the RAW rubric verdict and the ledger reconcile is invisible
+  // to recall/FP (the bug: a799c1/e0d32d showed barrierFilled=0 yet `caught`). Keyed by xpath::sc::rubricId.
+  const reconciledSuppressed = new Set();
+  for (const r of inScopeOblig) {
+    const sup = r && r.cleared === true && r.provisional && r.provisional.reconciled && r.provisional.reconciled.suppressed;
+    if (Array.isArray(sup)) for (const mech of sup) reconciledSuppressed.add(`${r.xpath}::${r.sc}::${String(mech).replace(/^llm-rubric:/, '')}`);
+  }
   const barrierAgent = agentInScope.filter((v) => v.agentVerdict === 'REPRODUCED');
-  const barrierRubric = rubricInScope.filter((j) => j.verdict === 'LIKELY_BARRIER');
+  const barrierRubric = rubricInScope.filter((j) => j.verdict === 'LIKELY_BARRIER'
+    && !reconciledSuppressed.has(`${j.targetXpath}::${j.sc}::${j.rubricRef}`));
   const okAgent = agentInScope.filter((v) => v.agentVerdict === 'NOT REPRODUCED');
   const okRubric = rubricInScope.filter((j) => j.verdict === 'LIKELY_OK');
   const nVerdicts = agentInScope.length + rubricInScope.length;

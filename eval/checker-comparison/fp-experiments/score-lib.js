@@ -25,8 +25,17 @@ function scoreCase(tc, out) {
   rec.inScopeAutoPartial = inScopeOblig.filter((r) => r.autoPartial).length;
   rec.inScopeBarrierFilled = inScopeOblig.filter((r) => r.disposition === 'PROVISIONAL' && r.cleared === false).length;
 
+  // RESPECT the obligation-ledger reconcile (kept in sync with run-fn-llm.js): a rubric LIKELY_BARRIER the ledger
+  // RECONCILED-SUPPRESSED (PROVISIONAL/cleared with provisional.reconciled.suppressed) must NOT be re-counted as a
+  // raw catch — else the link-equivalence-authoritative FP fix is invisible to the replay metric.
+  const reconciledSuppressed = new Set();
+  for (const r of inScopeOblig) {
+    const sup = r && r.cleared === true && r.provisional && r.provisional.reconciled && r.provisional.reconciled.suppressed;
+    if (Array.isArray(sup)) for (const mech of sup) reconciledSuppressed.add(`${r.xpath}::${r.sc}::${String(mech).replace(/^llm-rubric:/, '')}`);
+  }
   const barrierAgent = agentInScope.filter((v) => v.agentVerdict === 'REPRODUCED');
-  const barrierRubric = rubricInScope.filter((j) => j.verdict === 'LIKELY_BARRIER');
+  const barrierRubric = rubricInScope.filter((j) => j.verdict === 'LIKELY_BARRIER'
+    && !reconciledSuppressed.has(`${j.targetXpath}::${j.sc}::${j.rubricRef}`));
   const okAgent = agentInScope.filter((v) => v.agentVerdict === 'NOT REPRODUCED');
   const okRubric = rubricInScope.filter((j) => j.verdict === 'LIKELY_OK');
   const nVerdicts = agentInScope.length + rubricInScope.length;

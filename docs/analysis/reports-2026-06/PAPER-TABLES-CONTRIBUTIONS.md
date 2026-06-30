@@ -295,6 +295,21 @@ any row with `node eval/checker-comparison/ablation-table.js` (config = the run 
 | `openai-gpt54-full` **`*`** (06-29) | GPT-5.4 | tools, 8-par, `*`override | `876e4696` | 83.8 (57/68) | 82.6 | 3.1 (12/390) | 0.832 | 5 |
 | `claude-sonnet-full` (06-30) | Claude Sonnet 4.6 | tools, 8-par | `34aec9d3` | 89.4 (59/66) | 74.7 | 5.1 (20/392) | 0.814 | 2 |
 | `claude-sonnet-full` **`*`** (06-30) | Claude Sonnet 4.6 | tools, 8-par, `*`override | `34aec9d3` | 89.7 (61/68) | 77.2 | 4.6 (18/390) | 0.830 | 2 |
+| `sonnet5-full` (06-30) | Claude Sonnet 5.0 | tools, 16-par (default) | `21518a5f` ‡ | 84.8 (56/66) | 75.7 | 4.6 (18/392) | 0.800 | 2 |
+| `sonnet5-full` **`*`** (06-30) | Claude Sonnet 5.0 | tools, 16-par (default) | `21518a5f` ‡ | 82.4 (56/68) | 75.7 | 4.6 (18/390) | 0.789 | 2 |
+
+‡ **Sonnet 5.0 (`claude-sonnet-5`), default config, first full run on the new code (`21518a5f`).** Starred
+**82.4 / 75.7 / 0.789** (un-modified 84.8 / 75.7 / 0.800), noVerdict 2; **179 tool calls / 121 cases** (incl. the
+new `interact_and_observe` ×9, query_ax_node 77, capture_full_page 41, resolve_destination 23); spend **$27.96**
+(181k out, 4.44M cache-read, mean 341 out/verdict). **READ-OFF — NOT a clean model swap.** It is **below** the
+Sonnet 4.6 row (89.7 / 77.2 / **0.830**), driven entirely by **recall** (82.4 vs 89.7 — 56 vs 61 of 68 caught;
+`uncertain` 11 vs 8): on this eval Sonnet 5.0 is **more conservative** — it abstains more and flags fewer barriers,
+at the same FP/precision. **Confound:** the two runs are at DIFFERENT commits — `sonnet5-full` rides `21518a5f`
+(this round's FP fixes + cross-origin/table/primitive-set work), `claude-sonnet-full` rode `34aec9d3` (no FP fixes)
+— and the config differs (16-par default vs 8-par; concurrency does not change verdicts, but the code does). A
+clean model-only comparison needs a Sonnet 4.6 re-run at `21518a5f`; until then read the gap as model+code, not
+model alone. (Notably the FP fixes did NOT drop Claude's FP count here — still 18 — so Sonnet 5.0 surfaces its own
+FPs where 4.6's recovered ones were; worth isolating.)
 
 † plus a 1-line uncommitted `V3_MAX_TABS` env wire (`limits.js`) so `--max-tabs=64` takes effect. **`fn-llm-gemini-v2`
 is the first full run with ALL the round's fixes live** (Gemini image-tool fix → **noVerdict 28→4**; decorative
