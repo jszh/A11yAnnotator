@@ -291,6 +291,8 @@ any row with `node eval/checker-comparison/ablation-table.js` (config = the run 
 | `full-claude-default` (06-29) | Claude Sonnet 4.6 | tools, 16-par | `49b4c23b` | **90.9** (60/66) | 84.5 | 2.8 (11/392) | **0.876** | 3 |
 | `fn-llm-gemini-v2` (06-29) | Gemini 3.5-flash | tools, 80-par | `2c7628c0` † | 90.9 (60/66) | 76.9 | 4.6 (18/392) | 0.834 | **4** |
 | `fn-llm-gemini-v2` **`*`** (06-29) | Gemini 3.5-flash | tools, 80-par, `*`override | `2c7628c0` † | **91.2** (62/68) | 79.5 | 4.1 (16/390) | **0.849** | 4 |
+| `openai-gpt54-full` (06-29) | GPT-5.4 | tools, 8-par | `876e4696` | 83.3 (55/66) | 79.7 | 3.6 (14/392) | 0.815 | 5 |
+| `openai-gpt54-full` **`*`** (06-29) | GPT-5.4 | tools, 8-par, `*`override | `876e4696` | 83.8 (57/68) | 82.6 | 3.1 (12/390) | 0.832 | 5 |
 
 † plus a 1-line uncommitted `V3_MAX_TABS` env wire (`limits.js`) so `--max-tabs=64` takes effect. **`fn-llm-gemini-v2`
 is the first full run with ALL the round's fixes live** (Gemini image-tool fix → **noVerdict 28→4**; decorative
@@ -313,6 +315,17 @@ fix-set holds.
   **noVerdict 4**, down from 18–28; decorative lane; `*` override applied — 7 cases, 0 quarantined). Un-modified
   90.9 / 76.9 / 0.834, starred **91.2 / 79.5 / 0.849** — Gemini at Claude-level recall, confirming the fix-set is
   not model-specific. The deployed-**Claude** starred Table 1 still awaits its own all-fixes re-run.
+- `openai-gpt54-full` is the **third model family** (GPT-5.4), via a HAND-ROLLED OpenAI **Responses-API** function-
+  calling loop (`makeOpenAITransport`) over the SAME `buildCdpToolDispatch` handlers as Gemini — the loop is OURS, so
+  tool use is guaranteed. Unmodified **83.3 / 79.7 / 0.815**, starred **83.8 / 82.6 / 0.832** (noVerdict **5**). Recall
+  trails Claude/Gemini (~84 vs ~91) at comparable precision and the lowest FP of the cross-family rows (3.1%). Tool use
+  was RICH: **302 calls across 13 cdp tools on 116/309 LLM cases** (query_ax_node 98, resolve_destination 82,
+  capture_full_page 40, observe_state_after_activation 22, compare_iframe_content 16, ocr_image_text 13, …). Token
+  spend (now tracked in `summary.json`): **4.65M total** (4.37M in / 274K out, 743 usage events, mean 369 out/verdict),
+  59.3 min wall-clock. CONTRAST — the `@openai/codex-sdk` **agent** lane (same GPT-5.4, same cdp tools over an in-process
+  HTTP-MCP bridge) made **0 tool calls** across every probe (six channels: prompt guidance, MCP `instructions`,
+  approval=auto, networkAccess, high reasoning effort, in-prompt catalog) despite connecting + listing them — so the
+  hand-rolled loop, not the agent SDK, is the GPT tools path. Codex remains a vision-only no-tools judge.
 
 ## Table 2 — Held-out generalization gate (581-case full corpus)
 
