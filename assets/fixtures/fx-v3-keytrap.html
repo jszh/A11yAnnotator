@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Keyboard trap (Ctrl+M to exit)</title></head>
+<body>
+  <a id="before" href="#">Before the trap</a>
+  <button id="b1">Button 1 — press Ctrl+M to exit</button>
+  <button id="b2">Button 2</button>
+  <a id="after" href="#">After the trap</a>
+  <script>
+    // Mirrors ACT 80af7b: a keyboard trap (Tab/Shift+Tab off a button is forced back to the other button, so
+    // focus cannot leave by the standard keys) WITH a documented non-standard escape (Ctrl+M), which here works.
+    var trap = true;
+    var b1 = document.getElementById('b1'), b2 = document.getElementById('b2'), after = document.getElementById('after');
+    b1.addEventListener('blur', function () { if (trap) b2.focus(); });
+    b2.addEventListener('blur', function () { if (trap) b1.focus(); });
+    function esc(e) { if ((e.ctrlKey || e.metaKey) && (e.key === 'm' || e.key === 'M')) { trap = false; after.focus(); } }
+    b1.addEventListener('keydown', esc);
+    b2.addEventListener('keydown', esc);
+  </script>
+</body>
+</html>

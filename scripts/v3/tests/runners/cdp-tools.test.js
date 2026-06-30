@@ -522,3 +522,22 @@ test('interact_and_observe 2.1.2 (merged press-keys): a modifier COMBO is parsed
     assert.equal(r.steps[1].activeAfter, IXP.email, 'Shift+Tab moved focus to the previous focusable (email) — combo + activeAfter both work');
   });
 });
+
+test('interact_and_observe 2.1.2: Ctrl+M frees a keyboard trap; plain Tab stays trapped (the merged keyboard-escape path)', { skip: !chromeOK, concurrency: false }, async () => {
+  // fx-v3-keytrap.html mirrors ACT 80af7b: Tab off a button is forced back to the other (a trap) WITH a working
+  // Ctrl+M escape. This is the keyboard-trap-escape behaviour absorbed from press_keys_and_observe_focus, now a
+  // focus-then-press SEQUENCE read off step.activeAfter.
+  const KT = assetFileUrl('fx-v3-keytrap.html');
+  const B1 = '/html[1]/body[1]/button[1]', B2 = '/html[1]/body[1]/button[2]', AFTER = '/html[1]/body[1]/a[2]';
+  const page = await sharedBrowser.newPage();
+  try {
+    await page.goto(KT, { waitUntil: 'load' });
+    const ctx = { freshClone: async () => { const p = await sharedBrowser.newPage(); await p.goto(KT, { waitUntil: 'load' }); return p; } };
+    const esc = await interactAndObserve(page, { actions: [{ op: 'focus', xpath: B1 }, { op: 'press', key: 'Tab' }, { op: 'press', key: 'Ctrl+M' }] }, ctx);
+    assert.ok(!esc.error, esc.error || 'ok');
+    assert.equal(esc.steps[1].activeAfter, B2, 'Tab is trapped to the other button (focus cannot leave by Tab)');
+    assert.equal(esc.steps[2].activeAfter, AFTER, 'Ctrl+M moved focus OUT of the trapped set — a WORKING documented escape');
+    const trap = await interactAndObserve(page, { actions: [{ op: 'focus', xpath: B1 }, { op: 'press', key: 'Tab' }, { op: 'press', key: 'Tab' }] }, ctx);
+    assert.ok([B1, B2].includes(trap.steps[2].activeAfter), 'without the escape key, plain Tab cannot leave the trap (focus stays on the buttons)');
+  } finally { await page.close().catch(() => {}); }
+});
