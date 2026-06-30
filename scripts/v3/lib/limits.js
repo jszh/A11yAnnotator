@@ -62,9 +62,9 @@ const LIMITS = Object.freeze({
                                       // lets PAGE_CONC×8 reach the global 40 cap. ≈ concurrent tool tabs (maxTabs heads it).
     reapAgeMarginMs: 30000,           // tool-tab reap age = toolRunTimeoutMs + this (strictly above the abort)
     reapAgeFallbackMs: 330000,        // openToolSession reapAge default when no run timeout is supplied
-    maxTabs: 50,                      // CENTRAL tab allocator cap: hard ceiling on CONCURRENTLY-OPEN tabs across
-                                      // all lanes/pages (V3_MAX_TABS). Memory-bound default; a CPU-bound workload
-                                      // (many heavy pages painting at once) should lower it toward core count.
+    maxTabs: Number(process.env.V3_MAX_TABS) || 50, // CENTRAL tab allocator cap: hard ceiling on CONCURRENTLY-OPEN
+                                      // tabs across all lanes/pages (V3_MAX_TABS env override; default 50). Memory-bound
+                                      // default; a CPU-bound workload (many heavy pages painting at once) should lower it.
   }),
 
   // ── D′. ACT-suite knobs (eval/checker-comparison/run-v3-act-suite.js + run-fn-llm.js). ──────────────────

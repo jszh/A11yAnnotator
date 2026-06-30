@@ -80,6 +80,27 @@ LLM $+$ vision, no facet-routed grounding & 54.5 & 11.5 & 44.4 & 0.49\\
 \end{tabular}\end{table}
 ```
 
+### How the +36 recall / +40 precision decomposes — the three layers
+
+An example-grounded trace of *how* each layer moves the numbers, mined from the last full Claude run
+(`results/full-claude-default`), is in **[COMPONENT-CONTRIBUTIONS.md](./COMPONENT-CONTRIBUTIONS.md)** (a master
+matrix of 14 mechanisms × recall/precision × real case ids, plus per-layer analysis). The one-line summary:
+
+- **Recall (54.5→90.9%)** = routing + reach. The oracle turns one open-ended "find all barriers" prompt into ~one
+  bounded question per real obligation (**49/60 TPs** are LLM verdicts on routed obligations, 0 from a raw sweep);
+  the deterministic instruments catch **11** behavioural/syntactic barriers a vision-LLM is worst at (2 of which the
+  LLM had *cleared*); tools reach off-viewport/relational/dynamic state the static frame hides (e.g. `capture_full_page`
+  catching an `offDocument:true` heading the static signal reported as `offscreen:false`).
+- **Precision (44.4→84.5%, FP 11.5→2.8%)** = subtraction + grounding + verification. Applicability keeps **83**
+  inapplicable cases off the worklist; `RUBRIC_GATE` withholds runner-owned facets (**21/26** 1.4.3 contrast settled
+  deterministically, never routed); `precomputeSignals` anchors the verdict in measured facts; tools overturn
+  misleading static signals (**42** of 70 tool-traces are true-negative clears). The model is never *handed the
+  question* on a facet it would guess wrong.
+
+The governing principle is one move applied in three places — **route by facet**: a deterministic producer owns
+every facet it can settle; the LLM gets only the residual *meaning* question, pre-loaded with the deterministic
+facts and a tool to probe what the frame can't show.
+
 ## Table 1d — Cross-rule GT override (`*`): the 7 hand-examined 1.1.1 cases
 
 The reaches-LLM set has **7** cross-rule-indeterminate negatives — pages labelled clean for an *in-tree* image
@@ -255,6 +276,43 @@ before the model was ever called, so a no-vision run invoked the LLM on ~16/458 
 gate (and neutralizing the rubric's "judge from the crop" wording) for the ablation raised the no-vision
 LLM-lane from 0 → 6 (name/role) / 15 (signals) / 34 (HTML). **Ablations that vary one input can silently
 trip a downstream gate keyed on that input; the abstain path must be audited, not trusted.**
+
+## Table 1e — Full reaches-LLM run log (provider × concurrency; 2026-06-28/29)
+
+Full-suite (458-case) runs as this round's fixes landed. Per-SC scoring, **raw ACT labels** *unless the row is
+marked* `*` (which applies the cross-rule GT override of Table 1d → denominators 68 / 390). `noVerd` = subjects
+that reached the LLM but produced no parseable verdict (a transport/judge failure, **not** an abstain). Recompute
+any row with `node eval/checker-comparison/ablation-table.js` (config = the run dir).
+
+| run (`results/…`) | model | config | commit | Recall | Prec | FP rate | F1 | noVerd |
+|---|---|---|---|---|---|---|---|---|
+| `fn-llm-gemini` (06-28) | Gemini 3.5-flash | tools, 16-par | ≈`ad472017` (pre-fix) | 74.2 (49/66) | 70.0 | 5.4 (21/392) | 0.721 | 18 |
+| `full-gemini-50p` (06-29) | Gemini 3.5-flash | tools, 50-par | `49b4c23b` | 83.3 (55/66) | 83.3 | 2.8 (11/392) | 0.833 | 28 |
+| `full-claude-default` (06-29) | Claude Sonnet 4.6 | tools, 16-par | `49b4c23b` | **90.9** (60/66) | 84.5 | 2.8 (11/392) | **0.876** | 3 |
+| `fn-llm-gemini-v2` (06-29) | Gemini 3.5-flash | tools, 80-par | `2c7628c0` † | 90.9 (60/66) | 76.9 | 4.6 (18/392) | 0.834 | **4** |
+| `fn-llm-gemini-v2` **`*`** (06-29) | Gemini 3.5-flash | tools, 80-par, `*`override | `2c7628c0` † | **91.2** (62/68) | 79.5 | 4.1 (16/390) | **0.849** | 4 |
+
+† plus a 1-line uncommitted `V3_MAX_TABS` env wire (`limits.js`) so `--max-tabs=64` takes effect. **`fn-llm-gemini-v2`
+is the first full run with ALL the round's fixes live** (Gemini image-tool fix → **noVerdict 28→4**; decorative
+lane; the `*` GT override — shown as the two rows above, un-modified then starred). It brings **Gemini to
+Claude-level recall** (90.9%, up from 83.3% at `49b4c23b`): the image-tool fix recovers the capture-driven
+noVerdicts and the lane adds recall (at a small FP cost, 2.8→4.6). The starred **Table 1** for the *deployed Claude
+default* with the same fixes still needs its own re-run; this Gemini row is the cross-family confirmation the
+fix-set holds.
+
+**Provenance / read-off.**
+- `full-gemini-50p` + `full-claude-default` are the first post-FP/FN-fix full runs (request: "run gemini
+  50-parallel + claude on the full suite"), both at `49b4c23b`. They **predate** the Gemini noVerdict recovery
+  (`e41784db`) — hence Gemini's **28** noVerdict vs Claude's 3 — and the decorative lane + cross-rule override
+  (`52ab69d5`/`2c7628c0`). **`full-claude-default` (90.9 / 84.5 / 0.876) is the strongest measured full result to
+  date** and supersedes Table 1's stale Full-harness cell (72.7 / 80.0) on the same scoring.
+- The cross-family read of `fn-llm-gemini` (recall *generalizes* across model families, precision is the
+  model-dependent cost) is the Table 1b blockquote; the gap to `full-gemini-50p` (74→83 recall, 5.4→2.8 FP) is the
+  FP/FN-fix batch + run-to-run judge noise.
+- `fn-llm-gemini-v2` (complete) is the first full run with **all** the round's fixes live (Gemini image-tool fix →
+  **noVerdict 4**, down from 18–28; decorative lane; `*` override applied — 7 cases, 0 quarantined). Un-modified
+  90.9 / 76.9 / 0.834, starred **91.2 / 79.5 / 0.849** — Gemini at Claude-level recall, confirming the fix-set is
+  not model-specific. The deployed-**Claude** starred Table 1 still awaits its own all-fixes re-run.
 
 ## Table 2 — Held-out generalization gate (581-case full corpus)
 

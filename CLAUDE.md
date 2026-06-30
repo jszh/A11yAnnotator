@@ -3,4 +3,4 @@
 - Foundation tests are slow, only run that suite if it is likely needed. Running the full testing suite takes a while, so make it a background task.
 - If you are doing an analysis task: do NOT reset, stash, or otherwise clear the current git working tree unless explicited told to do so. Another agent may be working on it.
 - The scope of our project is defined in categories.json.
-- This file should contain the up-to-date experiment results: docs/analysis/reports-2026-06/PAPER-TABLES-CONTRIBUTIONS.md. After each experiment run, update this table. Also note the corresponding commit before the experiment; if there are uncommitted code, prompt the user for commit approval.
+- This file should contain the up-to-date experiment results: docs/analysis/reports-2026-06/PAPER-TABLES-CONTRIBUTIONS.md. After each experiment run, update this table. Also note the corresponding commit before the experiment; if there are uncommitted code, prompt the user for commit approval. Do not override LLM_EVAL_STATUS_PATH unless you are running more than one experiments at the same time.
