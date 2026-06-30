@@ -7,7 +7,7 @@
 //       tool transport makes ONE forced tools-off call demanding ONLY the JSON verdict from the gathered evidence.
 const test = require('node:test');
 const assert = require('node:assert');
-const { makeGeminiTransport, makeGeminiToolTransport, makeRunAgent } = require('../../lib/llm-agent-adapter.js');
+const { makeGeminiTransport, makeGeminiToolTransport, makeRunAgent, looksDegenerate } = require('../../lib/llm-agent-adapter.js');
 
 // a fake fetch driven by a queue of Gemini response objects (`j`). Records the PARSED request body of every call so
 // tests can assert maxOutputTokens doubling and tools-on/off. status 200 unless the queued item carries {__status}.
@@ -188,4 +188,53 @@ test('noVerdict log: V3_NOVERDICT_LOG=0 opts out', async () => {
     });
     assert.equal(noVerdictLine(buf), null, 'no log line when opted out');
   } finally { if (prev === undefined) delete process.env.V3_NOVERDICT_LOG; else process.env.V3_NOVERDICT_LOG = prev; }
+});
+
+// --- degeneration-loop detector + perturbed retry (the "0000…" repetition-collapse fix) ---
+const longZeros = '0'.repeat(8192);
+
+test('looksDegenerate: ADVERSARIAL — flags repetition collapse, NOT valid output', () => {
+  // positives (collapse): a long single-char run, a dominant char, a short repeated unit
+  assert.equal(looksDegenerate(longZeros), true, 'a long run of one char');
+  assert.equal(looksDegenerate('ababab'.repeat(200)), true, 'a short repeated unit (a/b dominate)');
+  assert.equal(looksDegenerate('x '.repeat(300)), true, 'one char dominating after whitespace strip');
+  // negatives (legitimate): a real verdict, normal prose reasoning, short replies
+  assert.equal(looksDegenerate(textJson()), false, 'a normal JSON verdict is not degenerate');
+  assert.equal(looksDegenerate('The image renders the W3C logo but its alt text incorrectly identifies it as the ERCIM logo, which misinforms assistive-technology users about the brand depicted.'.repeat(2)), false, 'normal prose is not degenerate');
+  assert.equal(looksDegenerate('0000'), false, 'short string never degenerate');
+  assert.equal(looksDegenerate(null), false);
+});
+
+test('degeneration retry: a "0000…" reply triggers a PERTURBED (higher-temperature) re-issue that parses', async () => {
+  const f = fakeFetch([cand([{ text: longZeros }]), cand([{ text: textJson() }])]);
+  const t = makeGeminiTransport({ apiKey: 'k', fetchImpl: f, temperature: 0 });
+  const out = await makeRunAgent({ transport: t })([{ type: 'text', text: 'judge' }], { sc: '2.4.4' });
+  assert.equal(f.requests.length, 2, 're-issues the ORIGINAL request once');
+  assert.equal(f.requests[0].generationConfig.temperature, 0, 'first call at base temperature');
+  assert.ok(f.requests[1].generationConfig.temperature > 0, 'the retry PERTURBS the temperature to break the loop');
+  assert.equal(out.verdict, 'REPRODUCED', 'the perturbed retry recovers a parseable verdict');
+  assert.equal(out.degenRetried, true, 'flagged as recovered via the degeneration retry');
+});
+
+test('degeneration retry: V3_DEGEN_RETRY=0 opts out (no perturbed re-issue)', async () => {
+  const prev = process.env.V3_DEGEN_RETRY; process.env.V3_DEGEN_RETRY = '0';
+  try {
+    const f = fakeFetch([cand([{ text: longZeros }]), cand([{ text: textJson() }])]);
+    const out = await makeRunAgent({ transport: makeGeminiTransport({ apiKey: 'k', fetchImpl: f }) })([{ type: 'text', text: 'j' }], { sc: '2.4.4' });
+    assert.equal(out, null, 'opted out ⇒ degrades (no perturbed retry, reformat skipped on degenerate text)');
+    assert.equal(f.requests.length, 1, 'no re-issue when opted out');
+  } finally { if (prev === undefined) delete process.env.V3_DEGEN_RETRY; else process.env.V3_DEGEN_RETRY = prev; }
+});
+
+test('degeneration retry: a STILL-degenerate retry ⇒ null logged as degenerate-loop (no reformat on garbage)', async () => {
+  const buf = await captureStderr(async () => {
+    const f = fakeFetch([cand([{ text: longZeros }]), cand([{ text: '1'.repeat(8192) }])]); // both collapse
+    const out = await makeRunAgent({ transport: makeGeminiTransport({ apiKey: 'k', fetchImpl: f }) })([{ type: 'text', text: 'j' }], { sc: '2.4.4', skill: 'name-role-state' });
+    assert.equal(out, null, 'still-degenerate after the perturbed retry ⇒ null (reformat is skipped on garbage)');
+    assert.equal(f.requests.length, 2, 'one perturbed retry, then give up — NOT a reformat round on the garbage');
+  });
+  const rec = noVerdictLine(buf);
+  assert.ok(rec, 'logged');
+  assert.equal(rec.reason, 'degenerate-loop', 'classified as a degeneration collapse, not unparseable-envelope');
+  assert.equal(rec.degenRetried, true);
 });

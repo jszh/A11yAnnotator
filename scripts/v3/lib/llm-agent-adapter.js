@@ -114,12 +114,14 @@ function reformatPrompt(badText) {
 // the transport pushed a `transportFail` trace event carrying the mechanism) vs `unparseable-envelope` (the model
 // replied but the JSON could not be extracted even after the reformat retry — a preview is logged). The harness's
 // stderr redirect captures it into the run log; grep `[v3:noVerdict]`. Opt out with V3_NOVERDICT_LOG=0.
-function emitNoVerdict(subject, text, trace, reformatRetried) {
+function emitNoVerdict(subject, text, trace, retries) {
   if (process.env.V3_NOVERDICT_LOG === '0') return;
+  const r = retries || {};
   const fail = [...(trace || [])].reverse().find((e) => e && e.type === 'transportFail') || null;
   const hadText = typeof text === 'string' && text.trim().length > 0;
+  const degenerate = looksDegenerate(text);
   const rec = {
-    reason: hadText ? 'unparseable-envelope' : 'transport-null',
+    reason: degenerate ? 'degenerate-loop' : (hadText ? 'unparseable-envelope' : 'transport-null'),
     provider: fail ? fail.provider : null,
     mode: fail ? fail.mode : null,
     finishReason: fail ? (fail.finishReason || null) : null,
@@ -127,7 +129,8 @@ function emitNoVerdict(subject, text, trace, reformatRetried) {
     skill: (subject && subject.skill) || null,
     xpath: subject && subject.xpath ? String(subject.xpath).slice(0, 70) : null,
     textLen: typeof text === 'string' ? text.length : 0,
-    reformatRetried: !!reformatRetried,
+    reformatRetried: !!r.reformatRetried,
+    degenRetried: !!r.degenRetried,
   };
   if (hadText) rec.preview = String(text).replace(/\s+/g, ' ').slice(0, 160);
   try { process.stderr.write(`[v3:noVerdict] ${JSON.stringify(rec)}\n`); } catch (e) { /* logging must never throw */ }
@@ -149,20 +152,32 @@ function makeRunAgent({ transport, model = 'claude-opus-4-8', maxTokens = LIMITS
     };
     const text = await runOnce(request);
     let parsed = parseAgentReply(text);
-    let reformatRetried = false;
+    let reformatRetried = false, degenRetried = false;
+    let textForReformat = text; // the text the reformat path will try (swapped/cleared by the degeneration retry)
+    // DEGENERATION RETRY (runs FIRST): the reply is a low-entropy repetition loop ("0000…") — not reformattable, since
+    // re-asking for ONLY the JSON re-degenerates. Re-issue the ORIGINAL request with a PERTURBED temperature
+    // (`temperatureOverride`, honored by the Gemini transports) to break the greedy loop. Opt out V3_DEGEN_RETRY=0.
+    if (!parsed && process.env.V3_DEGEN_RETRY !== '0' && looksDegenerate(text)) {
+      degenRetried = true;
+      const temp = Number(process.env.V3_DEGEN_TEMP) || 0.5;
+      const text2 = await runOnce({ ...request, temperatureOverride: temp });
+      parsed = parseAgentReply(text2);
+      if (parsed) parsed.degenRetried = true;
+      else textForReformat = looksDegenerate(text2) ? null : text2; // a STILL-degenerate retry isn't worth reformatting
+    }
     // REFORMAT RETRY: the model replied but the envelope was unparseable. Re-ask for ONLY the JSON, handing
     // back its own text. disableTools (honored by the tool transports) keeps this a single plain completion —
     // it must not re-run the agentic tool loop (which on the Claude SDK path would re-clone/re-navigate pages).
-    // Skipped when there is no text to repair (a transport failure ⇒ nothing to reformat; degrade to null as before).
-    if (!parsed && reformatRetry && typeof text === 'string' && text.trim().length) {
+    // Skipped when there is no (non-degenerate) text to repair (degrade to null as before).
+    if (!parsed && reformatRetry && typeof textForReformat === 'string' && textForReformat.trim().length && !looksDegenerate(textForReformat)) {
       reformatRetried = true;
-      const retryReq = { model, max_tokens: maxTokens, disableTools: true, messages: [{ role: 'user', content: [{ type: 'text', text: reformatPrompt(text) }] }] };
+      const retryReq = { model, max_tokens: maxTokens, disableTools: true, messages: [{ role: 'user', content: [{ type: 'text', text: reformatPrompt(textForReformat) }] }] };
       const text2 = await runOnce(retryReq);
       parsed = parseAgentReply(text2);
       if (parsed) parsed.reformatRetried = true;
     }
     if (parsed && trace.length) parsed.trace = trace; // full reasoning/tool trace → surfaced into llm-trace.json
-    if (!parsed) emitNoVerdict(_subject, text, trace, reformatRetried); // durable diagnostic for the silent noVerdict
+    if (!parsed) emitNoVerdict(_subject, text, trace, { reformatRetried, degenRetried }); // durable diagnostic for the silent noVerdict
     return parsed;
   };
 }
@@ -217,6 +232,27 @@ function extractToolImages(obj, images, depth = 0) {
   return out;
 }
 
+// DEGENERATION DETECTOR. A judge (gemini-flash, observed) can collapse into a low-entropy REPETITION — e.g. emitting
+// "0000…" up to the token cap. That output is long, unparseable, and the reformat-retry (which re-asks for ONLY the
+// JSON) just re-degenerates the same way, so it lands as a noVerdict the transport/MAX_TOKENS fixes cannot touch (the
+// model IS producing tokens, just garbage). looksDegenerate flags it so makeRunAgent can re-issue the ORIGINAL request
+// with a PERTURBED (higher) temperature, which breaks the greedy loop. Heuristic on the whitespace-stripped text: a
+// long run of a single repeated char OR one char dominating — neither occurs in a normal JSON verdict + prose reasoning.
+const DEGEN_MIN_LEN = 200;     // below this, a short reply can't be a runaway loop
+const DEGEN_RUN = 64;          // a single char repeated this many times in a row ⇒ collapse
+const DEGEN_TOP_FRAC = 0.5;    // one char accounting for ≥ half of a long reply ⇒ collapse
+function looksDegenerate(text) {
+  if (typeof text !== 'string') return false;
+  const s = text.replace(/\s+/g, '');
+  if (s.length < DEGEN_MIN_LEN) return false;
+  let run = 1, maxRun = 1;
+  for (let i = 1; i < s.length; i++) { if (s[i] === s[i - 1]) { run++; if (run > maxRun) maxRun = run; } else run = 1; }
+  if (maxRun >= DEGEN_RUN) return true;
+  const freq = Object.create(null); let top = 0;
+  for (const c of s) { freq[c] = (freq[c] || 0) + 1; if (freq[c] > top) top = freq[c]; }
+  return top / s.length >= DEGEN_TOP_FRAC;
+}
+
 // CROSS-FAMILY transport: Google Gemini (generateContent REST), keyed from GEMINI_API_KEY. Maps our Anthropic-format
 // `request` (text + base64-image content blocks) → Gemini `contents[].parts[]` ({text} / {inlineData}) and returns the
 // `{ content:[{type:'text',text}] }` shape makeRunAgent expects (or null to degrade). Used for the "entire LLM lane on
@@ -234,7 +270,8 @@ function makeGeminiTransport({ apiKey, model = 'gemini-3.5-flash', fetchImpl, ma
     : { text: (b && b.text) || '' });
   return async function transport(request, callOpts = {}) {
     const msg = (request.messages && request.messages[0]) || { content: [] };
-    const body = { contents: [{ role: 'user', parts: toParts(msg.content) }], generationConfig: { temperature, maxOutputTokens } };
+    const temp = request.temperatureOverride != null ? request.temperatureOverride : temperature; // degeneration-retry perturbation
+    const body = { contents: [{ role: 'user', parts: toParts(msg.content) }], generationConfig: { temperature: temp, maxOutputTokens } };
     // failTrace records WHY this transport degraded to null (lifted by emitNoVerdict into the durable noVerdict log).
     const failTrace = (mode, finishReason) => { if (typeof callOpts.onTrace === 'function') callOpts.onTrace({ type: 'transportFail', provider: 'gemini', mode, finishReason: finishReason || null }); };
     let doubled = false;
@@ -299,9 +336,10 @@ function makeGeminiToolTransport({ apiKey, model = 'gemini-3.5-flash', dispatch,
     // lastFinish carries the most recent turn's finishReason so a terminal degrade reports MAX_TOKENS vs STOP etc.
     const failTrace = (mode, finishReason) => { if (typeof callOpts.onTrace === 'function') callOpts.onTrace({ type: 'transportFail', provider: 'gemini', mode, finishReason: finishReason || null }); };
     let lastFinish = null;
+    const temp = request.temperatureOverride != null ? request.temperatureOverride : temperature; // degeneration-retry perturbation
     // ONE generateContent round with 429/5xx backoff (parked wall-clock credited back to the deadline). null ⇒ degrade.
     const postOnce = async (useTools, outTokens = maxOutputTokens, doubled = false) => {
-      const body = { contents, generationConfig: { temperature, maxOutputTokens: outTokens } };
+      const body = { contents, generationConfig: { temperature: temp, maxOutputTokens: outTokens } };
       if (useTools) body.tools = tools;
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
         if (dueAt() - Date.now() <= 0) return null;
@@ -489,4 +527,4 @@ function makeClaudeSdkTransport(opts = {}) {
   };
 }
 
-module.exports = { makeRunAgent, makeAnthropicTransport, makeClaudeSdkTransport, makeGeminiTransport, makeGeminiToolTransport, parseAgentReply, toAnthropicContent };
+module.exports = { makeRunAgent, makeAnthropicTransport, makeClaudeSdkTransport, makeGeminiTransport, makeGeminiToolTransport, parseAgentReply, toAnthropicContent, looksDegenerate };

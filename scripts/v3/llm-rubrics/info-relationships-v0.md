@@ -11,6 +11,23 @@ visionEvidence: [viewport]
 headings, lists, tables, groups) and a viewport screenshot. JUDGE whether relationships conveyed VISUALLY
 are ALSO programmatically determinable. DEFER where a deterministic CLAIM exists.
 
+**TABLE ASSOCIATION — CONSULT THE DETERMINISTIC VERDICT FIRST (a HARD GATE you may not override).** Before any
+table/header reasoning, read `signals.structure.tableAssociation` ({page, hasDataTable, perTable[]}). A
+deterministic pass computed each table's header-to-data association from the live DOM. **You may raise a
+table/header-association barrier ONLY for a table whose `perTable` verdict is `UNCERTAIN` or `BROKEN`:**
+- `page: NO_DATA_TABLE` or `hasDataTable: false` ⇒ **there is NO data table on this page — you may NOT raise any
+  table/header-association barrier.** If the viewport *looks* like a grid but no data table was collected, it is a
+  layout/CSS grid or `role=presentation` — NOT a 1.3.1 table-association failure. Do not invent one.
+- `perTable[i] = VALID` ⇒ that table's association IS programmatic (resolving `scope`/`headers=`) — do NOT flag it.
+- `perTable[i] = NOT_DATA` ⇒ a layout/presentation table — owes no data association — do NOT flag it.
+- `perTable[i] = BROKEN` ⇒ a real broken ref (dangling/non-cell/self) — flag it.
+- `perTable[i] = UNCERTAIN` ⇒ a data table with NO `scope` and NO `headers=` — THIS is the only case you judge:
+  decide from the grid whether position alone conveys the header→data association. A `<th>` being hidden from AT
+  (`aria-hidden`) does NOT by itself break a simple positional 2-cell table — flag only if a sighted reader's
+  row/column association is genuinely lost to AT users.
+
+This gate governs ONLY the table facet. Judge headings, lists, groups, and emphasis on their own merits below.
+
 **Interpreting the deterministic evidence.** `signals.structure` carries `headings[]` ({tag, role, level, text,
 offscreen}) and `tables[]` — each table has `{rowCount, thCount, tdCount, hasCaption, captionText, headers[] ({id,
 scope, text}), tdHeaderSamples[] ({cell, headers[], resolved[]}), tdWithHeaders, danglingIdref, headersRefsNonCell,

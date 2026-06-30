@@ -493,6 +493,28 @@ function precomputeSignals(element, skill, sc) {
         tables: Array.isArray(struct.tables) ? struct.tables : undefined, // Tier-0 #4 (when collected)
         lists: Array.isArray(struct.lists) ? struct.lists : undefined,    // TT gap G1 (1.3.1 / TT 10.D — when collected)
       };
+      // #1 TABLE-ASSOCIATION SUBTRACTION — a DETERMINISTIC per-table verdict from the collector's wiring flags, so a
+      // weaker judge cannot hallucinate a header-association barrier where the facts settle it. NO_DATA: not a data
+      // table (presentation/none, or no th+td grid) ⇒ no 1.3.1 association is owed. VALID: scope present OR a resolving
+      // `headers=` ref AND no broken-ref flag ⇒ the association IS programmatic. BROKEN: a dangling/non-cell/self ref
+      // ⇒ a real barrier. UNCERTAIN: a data table with NO scope and NO headers= — the genuine judgment zone (a no-scope
+      // table can be associable-by-position OR not; the GT-pass and GT-fail d0f69e cases are collector-identical here),
+      // so it is NOT subtracted — the rubric judges it. Page verdict drives the rubric's hard gate (rubric §lead).
+      const tbls = Array.isArray(struct.tables) ? struct.tables : [];
+      const tVerdict = (t) => {
+        const isData = t && t.looksLikeDataTable === true && t.roleOverride !== 'presentation' && t.roleOverride !== 'none';
+        if (!isData) return 'NOT_DATA';
+        if (t.danglingIdref || t.headersRefsNonCell || t.headersRefsSelf) return 'BROKEN';
+        const hasScope = Array.isArray(t.headers) && t.headers.some((h) => h && h.scope);
+        const hasHeadersRef = Number(t.tdWithHeaders) > 0;
+        return (hasScope || hasHeadersRef) ? 'VALID' : 'UNCERTAIN';
+      };
+      const per = tbls.map(tVerdict);
+      const dataN = per.filter((v) => v !== 'NOT_DATA').length;
+      const page = dataN === 0 ? 'NO_DATA_TABLE'
+        : per.includes('BROKEN') ? 'HAS_BROKEN'
+          : per.includes('UNCERTAIN') ? 'HAS_UNCERTAIN' : 'ALL_VALID';
+      s.structure.tableAssociation = { page, hasDataTable: dataN > 0, perTable: per };
     }
     // the SUBJECT heading itself (b49b2e): surface role/level/text + offscreen so the off-viewport heading the
     // crop omits is judgeable as a heading, not "a plain span". Reads the element's own collected facts.
