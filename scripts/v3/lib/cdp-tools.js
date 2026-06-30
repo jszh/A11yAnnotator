@@ -699,8 +699,54 @@ async function resolvePartColor(page, args) {
 }
 
 // ============================================================================================
-// resolve_destination — fetches a SAME-ORIGIN link's settled destination in an isolated, read-only incognito
-// GET, returning a RAW fingerprint (finalUrl/httpStatus/title/h1/mainFirstParagraph). NO "equivalent"/"same"
+// ─── SSRF guard (resolve_destination cross-origin egress) ──────────────────────────────────────────────────
+// Cross-origin destination resolution is DEFAULT-ON (it recovers real 2.4.4 cross-origin same-named-link barriers
+// the same-origin-only resolver missed) but ALWAYS behind this guard: GET only, no credentials, ports 80/443 only,
+// and the target hostname must resolve to a PUBLIC address (every resolved A/AAAA checked — DNS-rebinding / multi-A
+// safe). Private/loopback/link-local/ULA/CGNAT/metadata (169.254.169.254) ranges are refused BEFORE any connection.
+// Pure + injectable (lookup) so the decision is unit-tested without network; the live fetch stays isolated incognito
+// (no cookies), target-origin-only subresources, depth-0 (an off-origin redirect is refused, not followed).
+const _dnsLookup = (host, o) => require('dns').promises.lookup(host, o);
+function isPrivateIp(ip) {
+  const net = require('net');
+  if (net.isIPv4(ip)) {
+    const o = ip.split('.').map(Number);
+    if (o.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) return true; // malformed ⇒ unsafe
+    if (o[0] === 0 || o[0] === 10 || o[0] === 127) return true;               // this-net / private-A / loopback
+    if (o[0] === 169 && o[1] === 254) return true;                            // link-local incl. cloud metadata 169.254.169.254
+    if (o[0] === 172 && o[1] >= 16 && o[1] <= 31) return true;               // private-B
+    if (o[0] === 192 && o[1] === 168) return true;                           // private-C
+    if (o[0] === 100 && o[1] >= 64 && o[1] <= 127) return true;              // CGNAT 100.64/10
+    if (o[0] >= 224) return true;                                            // multicast / reserved
+    return false;
+  }
+  if (net.isIPv6(ip)) {
+    const a = ip.toLowerCase().replace(/^\[|\]$/g, '');
+    if (a === '::1' || a === '::') return true;                              // loopback / unspecified
+    if (a.startsWith('::ffff:') && net.isIPv4(a.slice(7))) return isPrivateIp(a.slice(7)); // IPv4-mapped
+    if (/^f[cd][0-9a-f]{2}:/.test(a) || a.startsWith('fc') || a.startsWith('fd')) return true; // ULA fc00::/7
+    if (a.startsWith('fe8') || a.startsWith('fe9') || a.startsWith('fea') || a.startsWith('feb')) return true; // link-local fe80::/10
+    return false;
+  }
+  return true; // not a parseable IP ⇒ unsafe
+}
+async function ssrfSafeUrl(u, lookup = _dnsLookup) {
+  if (!u || !/^https?:$/.test(u.protocol)) return { safe: false, reason: 'non-http' };
+  if (u.username || u.password) return { safe: false, reason: 'credentials-in-url' };
+  const port = u.port ? Number(u.port) : (u.protocol === 'https:' ? 443 : 80);
+  if (port !== 80 && port !== 443) return { safe: false, reason: 'non-standard-port' };
+  const host = u.hostname.replace(/^\[|\]$/g, '');
+  if (!host || /^(localhost|.*\.local|.*\.localhost|.*\.internal|metadata|metadata\.google\.internal)$/i.test(host)) return { safe: false, reason: 'local-hostname' };
+  let addrs;
+  try { addrs = await lookup(host, { all: true }); } catch (e) { return { safe: false, reason: 'dns-failed' }; }
+  if (!Array.isArray(addrs) || !addrs.length) return { safe: false, reason: 'no-address' };
+  for (const a of addrs) if (isPrivateIp(a.address)) return { safe: false, reason: 'private-ip', ip: a.address };
+  return { safe: true, addresses: addrs.map((a) => a.address) };
+}
+
+// resolve_destination — fetches a link's settled destination in an isolated, read-only incognito GET, returning a
+// RAW fingerprint (finalUrl/httpStatus/title/h1/mainFirstParagraph). Same-origin always; CROSS-ORIGIN http(s) is
+// resolved too, behind the SSRF guard above (file:// stays strict same-root — the offline mirror). NO "equivalent"/"same"
 // verdict — that IS the 2.4.4 judgment the model is graded on, so computing it here would launder the
 // conclusion. SAME-ORIGIN ONLY (http(s) same origin, or file:// same directory for the local mirror):
 // following arbitrary external hrefs is SSRF/exfil surface and breaks the saved-dataset determinism. GET only,
@@ -711,7 +757,11 @@ async function resolvePartColor(page, args) {
 // only SUCCESSFUL fingerprints (a transient network error stays retryable). Cross-PROCESS determinism still requires
 // freezing the result in the evidence pack — this is the in-process building block. Bounded by # distinct corpus links.
 const _DEST_CACHE = new Map();
-async function resolveDestination(page, args) {
+async function resolveDestination(page, args, opts = {}) {
+  // opts.ssrfCheck (async (URL)→{safe,reason}) + opts.lookup are injection seams for tests; production uses the
+  // real DNS+IP guard. Cross-origin egress is ON by default — opts.allowCrossOrigin===false hard-disables it.
+  const allowCrossOrigin = opts.allowCrossOrigin !== false;
+  const ssrfCheck = opts.ssrfCheck || ((u) => ssrfSafeUrl(u, opts.lookup));
   const { linkXpath, linkXpaths } = args || {};
   const xpaths = (Array.isArray(linkXpaths) && linkXpaths.length) ? linkXpaths : (typeof linkXpath === 'string' && linkXpath ? [linkXpath] : []);
   if (!xpaths.length) return { error: 'linkXpath (string) or linkXpaths (array) required' };
@@ -750,7 +800,15 @@ async function resolveDestination(page, args) {
     try { target = new URL(info.href); base = new URL(info.pageUrl); } catch (e) { return { linkXpath: xp, refused: 'unparseable-url' }; }
     if (!/^https?:$/.test(target.protocol) && target.protocol !== 'file:') return { linkXpath: xp, refused: 'non-http-or-file' };
     const sameOrigin = target.protocol === 'file:' ? (base.protocol === 'file:' && sameLocalRoot(target, base)) : (target.origin === base.origin);
-    if (!sameOrigin) return { linkXpath: xp, refused: 'cross-origin', destinationOrigin: target.origin };
+    let crossOrigin = false;
+    if (!sameOrigin) {
+      // file:// stays strict (the offline corpus is a same-root sandbox — never live-fetch off it).
+      if (target.protocol === 'file:') return { linkXpath: xp, refused: 'cross-origin', destinationOrigin: target.origin };
+      if (!allowCrossOrigin) return { linkXpath: xp, refused: 'cross-origin', destinationOrigin: target.origin };
+      const guard = await ssrfCheck(target);
+      if (!guard.safe) return { linkXpath: xp, refused: 'cross-origin-unsafe', destinationOrigin: target.origin, reason: guard.reason };
+      crossOrigin = true; // SSRF-cleared cross-origin http(s) destination — resolve it (depth-0, target-origin only)
+    }
     if (_DEST_CACHE.has(target.href)) return { linkXpath: xp, ..._DEST_CACHE.get(target.href), cached: true }; // deterministic re-resolve (no second fetch)
     let bctx = null, p = null;
     try {
@@ -764,8 +822,11 @@ async function resolveDestination(page, args) {
       });
       const resp = await p.goto(target.href, { waitUntil: 'load', timeout: 15000 }).catch(() => null);
       let finalU = null; try { finalU = new URL(p.url()); } catch (e) {}
-      const finalSameOrigin = finalU && (target.protocol === 'file:' ? (finalU.protocol === 'file:' && sameLocalRoot(finalU, base)) : (finalU.origin === base.origin));
-      if (!finalSameOrigin) return { linkXpath: xp, refused: 'cross-origin-redirect', finalOrigin: finalU ? finalU.origin : null };
+      // depth-0: the settled URL must stay on the EXPECTED origin (the link's own origin for a cross-origin fetch,
+      // the page origin for same-origin). An off-origin redirect is refused, not followed (no redirect-chain SSRF).
+      const expectOrigin = crossOrigin ? target.origin : base.origin;
+      const finalSameOrigin = finalU && (target.protocol === 'file:' ? (finalU.protocol === 'file:' && sameLocalRoot(finalU, base)) : (finalU.origin === expectOrigin));
+      if (!finalSameOrigin) return { linkXpath: xp, refused: crossOrigin ? 'cross-origin-redirect-offsite' : 'cross-origin-redirect', finalOrigin: finalU ? finalU.origin : null };
       const httpChain = (() => { try { return resp ? resp.request().redirectChain().length : 0; } catch (e) { return 0; } })();
       const meta = await p.evaluate(() => { const m = document.querySelector('meta[http-equiv="refresh" i]'); if (!m) return null; const c = (m.getAttribute('content') || '').trim(); const mm = c.match(/^(\d+(?:\.\d+)?)\s*(?:;|$)/); return mm ? { delay: parseFloat(mm[1]) } : null; }).catch(() => null);
       let instantRedirect = httpChain > 0, redirectDelayMs = httpChain > 0 ? 0 : null, interstitial = false;
@@ -783,7 +844,7 @@ async function resolveDestination(page, args) {
         const vt = ((document.body && document.body.innerText) || '').replace(/\s+/g, ' ').trim().slice(0, 240);
         return { title: document.title, h1: h1 ? h1.textContent : null, mainFirstParagraph: para ? (para.textContent || '').trim().slice(0, 160) : null, visibleText: vt };
       }).catch(() => ({}));
-      const fingerprint = { finalUrl: p.url().slice(0, 300), httpStatus: resp ? resp.status() : null, title: (fp.title || '').slice(0, 200), h1: fp.h1 ? String(fp.h1).trim().slice(0, 160) : null, mainFirstParagraph: fp.mainFirstParagraph || null, visibleText: fp.visibleText || null, instantRedirect, redirectDelayMs, ...(interstitial ? { interstitialPage: true } : {}) };
+      const fingerprint = { finalUrl: p.url().slice(0, 300), httpStatus: resp ? resp.status() : null, title: (fp.title || '').slice(0, 200), h1: fp.h1 ? String(fp.h1).trim().slice(0, 160) : null, mainFirstParagraph: fp.mainFirstParagraph || null, visibleText: fp.visibleText || null, instantRedirect, redirectDelayMs, ...(interstitial ? { interstitialPage: true } : {}), ...(crossOrigin ? { crossOrigin: true } : {}) };
       _DEST_CACHE.set(target.href, fingerprint); // memo the SUCCESSFUL fingerprint for a deterministic re-resolve
       return { linkXpath: xp, ...fingerprint };
     } catch (e) { return { linkXpath: xp, error: String(e && e.message || e).slice(0, 200) }; }
@@ -791,7 +852,7 @@ async function resolveDestination(page, args) {
   };
   if (xpaths.length === 1) {
     const { linkXpath: _lx, ...rest } = await resolveOne(xpaths[0]);
-    return { ...rest, note: 'raw destination fingerprint (same-origin only); instantRedirect=true only for a 3xx or meta-refresh delay 0 (ACT fd3a94 — only instant redirects count); a delayed redirect sets interstitialPage (the fingerprint is the PRE-redirect page). The model judges "same purpose?" — never equivalent/same/different.' };
+    return { ...rest, note: 'raw destination fingerprint; same-origin always, cross-origin http(s) resolved behind an SSRF guard (crossOrigin:true on the result; refused:"cross-origin-unsafe" if the target is private/credentialed/non-80-443, "cross-origin" for a file:// off-root link). instantRedirect=true only for a 3xx or meta-refresh delay 0 (ACT fd3a94 — only instant redirects count); a delayed redirect sets interstitialPage (the fingerprint is the PRE-redirect page). The model judges "same purpose?" — never equivalent/same/different.' };
   }
   // sibling-set (fd3a94 is a SET test): resolve each + a per-field string-EQUALITY grid (no same/different verdict).
   const fingerprints = [];
@@ -1089,7 +1150,7 @@ async function buildCdpToolServer(session) {
       { nodeAXpath: z.string(), nodeBXpath: z.string(), threshold: z.number().optional() }, (a) => wrap(computeContrastRatio, a)),
     tool('resolve_part_color', 'Read-only: for a NON-TEXT part at a screenshot pixel (x,y) — a border/indicator/SVG fill — return the CSS used-colours (incl. ::before/::after pseudo) AND the RENDERED pixel AND cssVsRenderedDivergence (sourceProperty = the used-colour the pixel best matches). usedColourReliable is false when a gradient/filter/opacity<1/translucent part means no single flat colour is sound ⇒ trust ONLY the rendered pixel. If divergent, no used-colour explains the pixel ⇒ INCONCLUSIVE. Raw RGBA + flags, never a ratio/verdict.',
       { x: z.number(), y: z.number() }, (a) => wrap(resolvePartColor, a)),
-    tool('resolve_destination', 'Read-only: follow a SAME-ORIGIN link in an isolated incognito GET and return a RAW fingerprint (finalUrl/httpStatus/title/h1/mainFirstParagraph + instantRedirect/redirectDelayMs/interstitialPage) — for 2.4.4. Pass linkXpaths[] (the SET of same-named links — fd3a94 is a set test) to resolve all in one call + get a per-field byte-EQUALITY grid. instantRedirect is true only for a 3xx or meta-refresh delay-0 (only instant redirects count). NEVER same/equivalent/different — your judgment. Cross-origin/non-http refused.',
+    tool('resolve_destination', 'Read-only: follow a SAME-ORIGIN link in an isolated incognito GET and return a RAW fingerprint (finalUrl/httpStatus/title/h1/mainFirstParagraph + instantRedirect/redirectDelayMs/interstitialPage) — for 2.4.4. Pass linkXpaths[] (the SET of same-named links — fd3a94 is a set test) to resolve all in one call + get a per-field byte-EQUALITY grid. instantRedirect is true only for a 3xx or meta-refresh delay-0 (only instant redirects count). NEVER same/equivalent/different — your judgment. Cross-origin http(s) IS resolved (behind an SSRF guard, crossOrigin:true on the result); non-http and private/credentialed/off-port targets are refused.',
       { linkXpath: z.string().optional(), linkXpaths: z.array(z.string()).optional() }, (a) => wrap(resolveDestination, a)),
     tool('compare_iframe_content', 'Read-only: for 4.1.2 (ACT 4b1c6c — same-named iframes must serve an EQUIVALENT purpose). Pass iframeXpaths[] (the SET of same-named iframes) and get each one\'s RENDERED content read from its SAME-ORIGIN contentDocument (title/h1/firstParagraph/visibleText) + a per-field byte-EQUALITY grid across the set — the rendered-content comparison the raw `src` string cannot give (page-one.html vs page-two.html look interchangeable as strings but render DIFFERENT content). A crossOrigin iframe cannot be read (reported crossOrigin:true — judge from src/crops or PARTIAL). NEVER equivalent/same/different — your judgment.',
       { iframeXpath: z.string().optional(), iframeXpaths: z.array(z.string()).optional() }, (a) => wrap(compareIframeContent, a)),
@@ -1144,7 +1205,7 @@ function buildCdpToolDispatch(session) {
       parameters: S({ nodeAXpath: { type: 'string' }, nodeBXpath: { type: 'string' }, threshold: { type: 'number' } }, ['nodeAXpath', 'nodeBXpath']) },
     { name: 'resolve_part_color', description: 'Read-only: for a NON-TEXT part at a screenshot pixel (x,y) — a border/indicator/SVG fill — return the CSS used-colours (incl. ::before/::after pseudo) AND the RENDERED pixel AND cssVsRenderedDivergence (sourceProperty = the used-colour the pixel best matches). usedColourReliable is false when a gradient/filter/opacity<1/translucent part means no single flat colour is sound ⇒ trust ONLY the rendered pixel. If divergent, no used-colour explains the pixel ⇒ INCONCLUSIVE. Raw RGBA + flags, never a ratio/verdict.',
       parameters: S({ x: { type: 'number' }, y: { type: 'number' } }, ['x', 'y']) },
-    { name: 'resolve_destination', description: 'Read-only: follow a SAME-ORIGIN link in an isolated incognito GET and return a RAW fingerprint (finalUrl/httpStatus/title/h1/mainFirstParagraph + instantRedirect/redirectDelayMs/interstitialPage) — for 2.4.4. Pass linkXpaths[] (the SET of same-named links — fd3a94 is a set test) to resolve all in one call + get a per-field byte-EQUALITY grid. instantRedirect is true only for a 3xx or meta-refresh delay-0 (only instant redirects count). NEVER same/equivalent/different — your judgment. Cross-origin/non-http refused.',
+    { name: 'resolve_destination', description: 'Read-only: follow a SAME-ORIGIN link in an isolated incognito GET and return a RAW fingerprint (finalUrl/httpStatus/title/h1/mainFirstParagraph + instantRedirect/redirectDelayMs/interstitialPage) — for 2.4.4. Pass linkXpaths[] (the SET of same-named links — fd3a94 is a set test) to resolve all in one call + get a per-field byte-EQUALITY grid. instantRedirect is true only for a 3xx or meta-refresh delay-0 (only instant redirects count). NEVER same/equivalent/different — your judgment. Cross-origin http(s) IS resolved (behind an SSRF guard, crossOrigin:true on the result); non-http and private/credentialed/off-port targets are refused.',
       parameters: S({ linkXpath: { type: 'string' }, linkXpaths: { type: 'array', items: { type: 'string' } } }) },
     { name: 'compare_iframe_content', description: 'Read-only: for 4.1.2 (ACT 4b1c6c — same-named iframes must serve an EQUIVALENT purpose). Pass iframeXpaths[] (the SET of same-named iframes) and get each one\'s RENDERED content read from its SAME-ORIGIN contentDocument (title/h1/firstParagraph/visibleText) + a per-field byte-EQUALITY grid across the set — the rendered-content comparison the raw `src` string cannot give (page-one.html vs page-two.html look interchangeable as strings but render DIFFERENT content). A crossOrigin iframe cannot be read (reported crossOrigin:true — judge from src/crops or PARTIAL). NEVER equivalent/same/different — your judgment.',
       parameters: S({ iframeXpath: { type: 'string' }, iframeXpaths: { type: 'array', items: { type: 'string' } } }) },
@@ -1226,4 +1287,4 @@ async function buildCdpHttpMcpServer(arg) {
   return { url, stats, declarations: dispatch.declarations, close: async () => new Promise((resolve) => { try { httpServer.close(() => resolve()); } catch (e) { resolve(); } }) };
 }
 
-module.exports = { queryAxNode, observeStateAfterActivation, setStateAndCapture, probeScreenReaderAfterAction, pressKeysAndObserveFocus, measureGeometryLive, requestHiResCrop, renderWithOverrides, computeContrastRatio, resolvePartColor, resolveDestination, compareIframeContent, compareNamedRegions, ocrImageText, captureFullPage, buildCdpToolServer, buildCdpToolDispatch, buildCdpHttpMcpServer, CDP_MCP_INSTRUCTIONS };
+module.exports = { queryAxNode, observeStateAfterActivation, setStateAndCapture, probeScreenReaderAfterAction, pressKeysAndObserveFocus, measureGeometryLive, requestHiResCrop, renderWithOverrides, computeContrastRatio, resolvePartColor, resolveDestination, compareIframeContent, compareNamedRegions, ocrImageText, captureFullPage, buildCdpToolServer, buildCdpToolDispatch, buildCdpHttpMcpServer, CDP_MCP_INSTRUCTIONS, ssrfSafeUrl, isPrivateIp };

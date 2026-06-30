@@ -10,7 +10,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const puppeteer = require('puppeteer');
 const { CHROME } = require('../../lib/run-experiments.js');
-const { queryAxNode, observeStateAfterActivation, setStateAndCapture, probeScreenReaderAfterAction, measureGeometryLive, requestHiResCrop, renderWithOverrides, computeContrastRatio, resolvePartColor, resolveDestination, compareNamedRegions, ocrImageText } = require('../../lib/cdp-tools.js');
+const { queryAxNode, observeStateAfterActivation, setStateAndCapture, probeScreenReaderAfterAction, measureGeometryLive, requestHiResCrop, renderWithOverrides, computeContrastRatio, resolvePartColor, resolveDestination, compareNamedRegions, ocrImageText, ssrfSafeUrl, isPrivateIp } = require('../../lib/cdp-tools.js');
+const http = require('node:http');
 const { assetFileUrl, assetPath } = require('../../../lib/asset-paths.js');
 
 const chromeOK = fs.existsSync(CHROME);
@@ -283,9 +284,60 @@ test('resolve_destination: same-origin link returns a raw fingerprint; cross-ori
     assert.equal(r.title, 'Pricing details');
     assert.equal(r.h1, 'Pricing details');
     assert.ok(!('equivalent' in r) && !('same' in r) && !('verdict' in r), 'raw fingerprint only — the "same purpose?" call stays with the model');
-    const ext = await resolveDestination(page, { linkXpath: XP.extlink });
-    assert.equal(ext.refused, 'cross-origin', 'an external (cross-origin) link is refused, not fetched (SSRF guard)');
+    // cross-origin is DEFAULT-ON behind the SSRF guard. An injected blocking guard ⇒ refused 'cross-origin-unsafe'
+    // (the live target is never reached); allowCrossOrigin:false hard-disables ⇒ plain 'cross-origin'. (No network.)
+    const blocked = await resolveDestination(page, { linkXpath: XP.extlink }, { ssrfCheck: async () => ({ safe: false, reason: 'test-blocked' }) });
+    assert.equal(blocked.refused, 'cross-origin-unsafe', 'an SSRF-unsafe cross-origin target is refused, not fetched');
+    assert.equal(blocked.reason, 'test-blocked');
+    const disabled = await resolveDestination(page, { linkXpath: XP.extlink }, { allowCrossOrigin: false });
+    assert.equal(disabled.refused, 'cross-origin', 'allowCrossOrigin:false hard-disables cross-origin egress');
   });
+});
+
+// ───────────── #2 SSRF guard (pure, no browser) — the cross-origin egress gate ─────────────
+test('SSRF isPrivateIp: blocks private/loopback/link-local/ULA/CGNAT/metadata, allows public', () => {
+  for (const ip of ['10.0.0.1', '172.16.5.5', '192.168.1.1', '127.0.0.1', '0.0.0.0', '169.254.169.254', '100.64.0.1', '224.0.0.1', '::1', 'fc00::1', 'fd12::3', 'fe80::1', '::ffff:10.0.0.1'])
+    assert.equal(isPrivateIp(ip), true, `${ip} must be blocked`);
+  for (const ip of ['8.8.8.8', '1.1.1.1', '185.199.108.153', '172.32.0.1', '2606:4700::1111'])
+    assert.equal(isPrivateIp(ip), false, `${ip} must be allowed`);
+  assert.equal(isPrivateIp('not-an-ip'), true, 'a non-IP is fail-closed to unsafe');
+});
+
+test('SSRF ssrfSafeUrl: only public-resolving http(s) on 80/443 without creds passes; every A/AAAA checked', async () => {
+  const stub = (map) => async (h) => { if (!(h in map)) throw new Error('nxdomain'); return map[h].map((a) => ({ address: a, family: a.includes(':') ? 6 : 4 })); };
+  const chk = (s, map) => ssrfSafeUrl(new URL(s), stub(map));
+  assert.equal((await chk('https://act-rules.github.io/', { 'act-rules.github.io': ['185.199.108.153'] })).safe, true, 'public host passes');
+  assert.equal((await chk('https://internal/', { internal: ['10.1.2.3'] })).reason, 'private-ip', 'private A blocked');
+  assert.equal((await chk('http://169.254.169.254/latest/', { '169.254.169.254': ['169.254.169.254'] })).reason, 'private-ip', 'cloud metadata blocked');
+  assert.equal((await chk('https://u:p@evil.test/', { 'evil.test': ['8.8.8.8'] })).reason, 'credentials-in-url', 'creds blocked');
+  assert.equal((await chk('https://x.test:8080/', { 'x.test': ['8.8.8.8'] })).reason, 'non-standard-port', 'non-80/443 port blocked');
+  assert.equal((await chk('http://localhost/', {})).reason, 'local-hostname', 'localhost name blocked pre-DNS');
+  assert.equal((await chk('https://rebind.test/', { 'rebind.test': ['8.8.8.8', '127.0.0.1'] })).reason, 'private-ip', 'multi-A with ANY private is blocked (DNS-rebinding safe)');
+  assert.equal((await chk('https://nope.invalid/', {})).reason, 'dns-failed', 'unresolvable host blocked');
+  assert.equal((await chk('ftp://x.test/', { 'x.test': ['8.8.8.8'] })).reason, 'non-http', 'non-http scheme blocked');
+});
+
+test('resolve_destination cross-origin: an SSRF-cleared external link IS resolved (crossOrigin:true fingerprint)', { skip: !chromeOK, concurrency: false }, async () => {
+  // two LOCAL origins (different ports ⇒ cross-origin) stand in for an external destination; the injected permissive
+  // ssrfCheck lets the path run end-to-end with NO real external egress. Proves the cross-origin fetch + flag.
+  const dest = http.createServer((req, res) => { res.setHeader('content-type', 'text/html'); res.end('<!doctype html><title>Pricing</title><h1>Pricing details</h1><main><p>Annual plans.</p></main>'); });
+  await new Promise((r) => dest.listen(0, '127.0.0.1', r));
+  const destPort = dest.address().port;
+  const origin = http.createServer((req, res) => { res.setHeader('content-type', 'text/html'); res.end(`<!doctype html><body><a id="x" href="http://127.0.0.1:${destPort}/pricing">More</a></body>`); });
+  await new Promise((r) => origin.listen(0, '127.0.0.1', r));
+  const originPort = origin.address().port;
+  try {
+    const page = await sharedBrowser.newPage();
+    try {
+      await page.goto(`http://127.0.0.1:${originPort}/`, { waitUntil: 'load' });
+      const r = await resolveDestination(page, { linkXpath: '/html[1]/body[1]/a[1]' }, { ssrfCheck: async () => ({ safe: true }) });
+      assert.ok(!r.error && !r.refused, `resolved: ${r.error || r.refused || 'ok'}`);
+      assert.equal(r.crossOrigin, true, 'flagged crossOrigin:true');
+      assert.equal(r.title, 'Pricing');
+      assert.equal(r.h1, 'Pricing details');
+      assert.ok(!('equivalent' in r) && !('verdict' in r), 'raw fingerprint only — no verdict laundered');
+    } finally { await page.close().catch(() => {}); }
+  } finally { dest.close(); origin.close(); }
 });
 
 test('compare_named_regions: a red vs blue chart half is measured perceptibly distinct (1.1.1 F13); derived only', { skip: !chromeOK, concurrency: false }, async () => {
