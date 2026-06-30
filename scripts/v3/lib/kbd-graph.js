@@ -465,7 +465,7 @@ async function detectFixedSetConfinementTraps(page, opts = {}) {
   // barrier (promoted in build-v3). A confinement with NO static advisory stays a REVIEW finding that ROUTES to the
   // 2.1.2 keyboard-trap RUBRIC: the regular LLM judge investigates a buried / non-canonically-phrased advisory by
   // ACTIVATING the confined controls via observe_state_after_activation and verifying the key with
-  // press_keys_and_observe_focus — both run on FRESH CLONES with navigation/popup guards, so no live page is clicked.
+  // interact_and_observe — both run on FRESH CLONES with navigation/popup guards, so no live page is clicked.
   const members = [...S].map((id) => byId.get(id)).filter(Boolean);
   const anchor = members[0];
   return {

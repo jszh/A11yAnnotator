@@ -509,3 +509,16 @@ test('interact_and_observe GUARDS: action cap + invalid op are rejected; result 
     assert.ok(!('verdict' in r) && !('pass' in r) && !('barrier' in r) && !('conformant' in r), 'facts only — no verdict laundered');
   });
 });
+
+test('interact_and_observe 2.1.2 (merged press-keys): a modifier COMBO is parsed + each step records activeAfter (focus trajectory)', { skip: !chromeOK, concurrency: false }, async () => {
+  // focus the submit button, then Shift+Tab (a real modifier combo) — focus must move to the previous focusable
+  // (the email input). This exercises both the combo-parse path absorbed from press_keys_and_observe_focus and the
+  // per-step activeAfter trajectory the 2.1.2 keyboard-trap-escape rubric now reads.
+  await withInteractPage(async (page, ctx) => {
+    const r = await interactAndObserve(page, { actions: [{ op: 'focus', xpath: IXP.submit }, { op: 'press', key: 'Shift+Tab' }] }, ctx);
+    assert.ok(!r.error, r.error || 'ok');
+    assert.equal(r.steps.length, 2);
+    assert.equal(r.steps[0].activeAfter, IXP.submit, 'after focus, the submit button holds focus');
+    assert.equal(r.steps[1].activeAfter, IXP.email, 'Shift+Tab moved focus to the previous focusable (email) — combo + activeAfter both work');
+  });
+});

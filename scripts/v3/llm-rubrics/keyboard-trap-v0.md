@@ -26,9 +26,12 @@ key the user cannot know about is still a trap), OR a documented key does not wo
 - The advisory may be hidden behind a help control INSIDE the trap. Call `observe_state_after_activation(targetXpath)`
   on the trapped members (`signals.keyboardTrap.members`) to reveal any instructions an activation surfaces (e.g. a
   "How to go to the next element" link that injects "Press Ctrl+M to Exit"). Read the newly-visible text it returns.
-- Once you have a candidate exit key, call `press_keys_and_observe_focus(targetXpath, keys)` — focus a trapped member
-  and press the combo (e.g. `"Ctrl+M"`, `"Escape"`) — and read `focusMoved`: true ⇒ the key freed focus (a working
-  exit); false ⇒ it did nothing. Do NOT infer "the key works" from reading the handler source — PRESS it.
+- Once you have a candidate exit key, call `interact_and_observe` with a focus-then-press sequence —
+  `actions:[{op:'focus', xpath:<trapped member>}, {op:'press', key:'Ctrl+M'}]` (the `press` op takes modifier combos
+  like `"Ctrl+M"`, `"Alt+F6"`, `"Shift+Tab"`, or a bare `"Escape"`). Read the press step's `activeAfter`: if it is an
+  element OUTSIDE the trapped set (`signals.keyboardTrap.members`), the key freed focus (a working exit); if it is
+  still a trapped member (or unchanged), the key did nothing. Do NOT infer "the key works" from the handler source —
+  PRESS it. (You can also Tab/Shift+Tab in the same sequence to confirm focus cannot leave by the standard keys.)
 
 **Decide:**
 - A documented exit key whose press moves focus OUT of the trapped set ⇒ **NOT REPRODUCED** (escapable, documented).

@@ -241,12 +241,24 @@ async function observeStateAfterActivation(page, args, ctx) {
   } finally { try { await live.close(); } catch (e) {} }
 }
 
+// keyboard combo parsing (used by interact_and_observe's `press` op — the 2.1.2 keyboard-trap-escape path).
+const _KEY_MOD = { ctrl: 'Control', control: 'Control', alt: 'Alt', option: 'Alt', shift: 'Shift', cmd: 'Meta', command: 'Meta', meta: 'Meta', win: 'Meta', super: 'Meta' };
+function _normKey(k) {
+  const m = { esc: 'Escape', escape: 'Escape', enter: 'Enter', return: 'Enter', tab: 'Tab', space: ' ', spacebar: ' ', del: 'Delete', delete: 'Delete', backspace: 'Backspace' };
+  const low = String(k).toLowerCase();
+  if (m[low]) return m[low];
+  if (/^f([1-9]|1[0-2])$/i.test(k)) return k.toUpperCase();          // F1-F12
+  if (k.length === 1) return /[A-Za-z]/.test(k) ? k.toLowerCase() : k; // single printable ⇒ keyname
+  return k;                                                           // ArrowDown, PageUp, etc. pass through
+}
+
 // ============================================================================================
 // interact_and_observe — the BOUNDED generic primitive set. A SHORT, capped SEQUENCE of low-level primitives
 // (type / click / press / focus / clear) driven on a FRESH CLONE, with real navigation/submission BLOCKED (so a
 // form submit fires CLIENT-SIDE validation but never POSTs), then a single OBJECTIVE before/after delta. This is
-// the composition of the existing "drive one state, observe the delta" tools (observe_state_after_activation /
-// press_keys_and_observe_focus) into "drive a short sequence, observe" — so the LLM can, under rubric GUIDELINES,
+// the composition of the existing "drive one state, observe the delta" tools (observe_state_after_activation +
+// the former press_keys_and_observe_focus, now merged in: a `press` op takes modifier combos and each step records
+// its post-action focus) into "drive a short sequence, observe" — so the LLM can, under rubric GUIDELINES,
 // handle the heterogeneous long tail (3.3.x form errors, multi-step reveals) WITHOUT a bespoke tool per pattern.
 // Invariants preserved: fresh clone (isolated), network blocked (no side effects), hard action cap, and the
 // return is FACTS, never a verdict. The echoed `actions` + per-step `steps` ARE the action-trace — frozen into the
@@ -301,11 +313,26 @@ async function interactAndObserve(page, args, ctx) {
         }
         if (a.op === 'clear') await live.evaluate(() => { const el = document.activeElement; if (el && 'value' in el) { el.value = ''; el.dispatchEvent(new Event('input', { bubbles: true })); } });
         else if (a.op === 'type') await live.keyboard.type(String(a.text == null ? '' : a.text).slice(0, 200), { delay: 0 });
-        else if (a.op === 'press') await live.keyboard.press(String(a.key || 'Enter').slice(0, 24));
+        else if (a.op === 'press') {
+          // a single key OR a modifier COMBO ("Ctrl+M", "Alt+F6", "Shift+Tab", "Escape") — down mods, press the key,
+          // up mods (the keyboard-trap-escape path absorbed from press_keys_and_observe_focus).
+          const parts = String(a.key || 'Enter').split('+').map((s) => s.trim()).filter(Boolean);
+          const mods = [], plain = [];
+          for (const pp of parts) { const mm = _KEY_MOD[pp.toLowerCase()]; if (mm) { if (!mods.includes(mm)) mods.push(mm); } else plain.push(pp); }
+          const k = plain.length ? _normKey(plain[plain.length - 1]) : null;
+          if (!k && !mods.length) { steps.push({ op: a.op, key: a.key || null, ok: false, note: `could not parse a key from "${a.key}"` }); continue; }
+          for (const mm of mods) await live.keyboard.down(mm);
+          if (k) await live.keyboard.press(k);
+          for (const mm of [...mods].reverse()) await live.keyboard.up(mm);
+        }
         else if (a.op === 'click') { const ok = await live.evaluate((xp) => { const el = document.evaluate(xp, document, null, 9, null).singleNodeValue; if (!el) return false; el.click(); return true; }, a.xpath); if (!ok) { steps.push({ op: a.op, xpath: a.xpath || null, ok: false, note: 'element not found' }); continue; } }
         steps.push({ op: a.op, xpath: a.xpath || null, key: a.key || undefined, typed: a.op === 'type' ? String(a.text == null ? '' : a.text).slice(0, 60) : undefined, ok: true });
       } catch (e) { steps.push({ op: a.op, xpath: a.xpath || null, ok: false, note: String((e && e.message) || e).slice(0, 80) }); }
       await new Promise((r) => setTimeout(r, 70)); // settle between primitives
+      // record WHERE focus is after this primitive (the focus TRAJECTORY — subsumes press_keys_and_observe_focus:
+      // for 2.1.2 a press whose activeAfter is OUTSIDE the trapped set is a working escape; an unchanged one is not).
+      const last = steps[steps.length - 1];
+      if (last) last.activeAfter = await live.evaluate(() => { const a2 = document.activeElement; if (!a2 || a2.nodeType !== 1) return null; const p = []; for (let n = a2; n && n.nodeType === 1; n = n.parentElement) { let i = 1; for (let s = n.previousElementSibling; s; s = s.previousElementSibling) if (s.tagName === n.tagName) i++; p.unshift(n.tagName.toLowerCase() + '[' + i + ']'); } return '/' + p.join('/'); }).catch(() => null);
     }
 
     // AFTER: newly-visible texts (+ cause / live-region), focus move, and per-field invalidation + error association.
@@ -367,7 +394,7 @@ async function interactAndObserve(page, args, ctx) {
         invalidFields: after.invalidFields, // 3.3.1/3.3.3: which fields the page itself reports invalid + the error text it surfaced + whether it is programmatically ASSOCIATED
         noErrorSurfaced: after.invalidFields.length === 0,
       },
-      note: 'OBJECTIVE before/after delta of a bounded primitive sequence on an isolated clone (navigation/submit BLOCKED — no real POST). invalidFields reports what the page conveyed after the sequence; errorAssociated/validationMessage are facts, NOT a 3.3.1/3.3.3 adequacy verdict. noErrorSurfaced with an invalid submit is INCONCLUSIVE (the form may validate server-side), never "passes".',
+      note: 'OBJECTIVE before/after delta of a bounded primitive sequence on an isolated clone (navigation/submit BLOCKED — no real POST). each step records activeAfter (the focus trajectory): for a 2.1.2 trap, a press whose activeAfter is OUTSIDE the trapped set is a working escape, an unchanged one is a non-working/lying advisory. invalidFields reports what the page conveyed after the sequence; errorAssociated/validationMessage are facts, NOT a 3.3.1/3.3.3 adequacy verdict. noErrorSurfaced with an invalid submit is INCONCLUSIVE (the form may validate server-side), never "passes".',
     };
   } finally { try { await live.close(); } catch (e) {} }
 }
@@ -1192,64 +1219,6 @@ async function captureFullPage(page, args, ctx) {
 }
 
 // ============================================================================================
-// press_keys_and_observe_focus — MUTATING (fresh clone): focus ONE element, dispatch ONE key combo, report
-// whether focus MOVED. For 2.1.2 keyboard-trap escape: BEHAVIORALLY verify a documented non-standard exit
-// ("Press Ctrl+M to Exit") actually frees focus, instead of trusting the page's JS source. A key that moves
-// focus off a trapped control is a working escape; one that does nothing is a non-working / lying advisory.
-// Real keypress + real document.activeElement before/after; objective observation, never a verdict.
-// ============================================================================================
-const _KEY_MOD = { ctrl: 'Control', control: 'Control', alt: 'Alt', option: 'Alt', shift: 'Shift', cmd: 'Meta', command: 'Meta', meta: 'Meta', win: 'Meta', super: 'Meta' };
-function _normKey(k) {
-  const m = { esc: 'Escape', escape: 'Escape', enter: 'Enter', return: 'Enter', tab: 'Tab', space: ' ', spacebar: ' ', del: 'Delete', delete: 'Delete', backspace: 'Backspace' };
-  const low = String(k).toLowerCase();
-  if (m[low]) return m[low];
-  if (/^f([1-9]|1[0-2])$/i.test(k)) return k.toUpperCase();          // F1-F12
-  if (k.length === 1) return /[A-Za-z]/.test(k) ? k.toLowerCase() : k; // single printable ⇒ keyname
-  return k;                                                           // ArrowDown, PageUp, etc. pass through
-}
-async function pressKeysAndObserveFocus(page, args, ctx) {
-  const { targetXpath, keys } = args || {};
-  if (typeof targetXpath !== 'string' || !targetXpath) return { error: 'targetXpath required (the element to focus before pressing)' };
-  if (typeof keys !== 'string' || !keys.trim()) return { error: 'keys required, e.g. "Ctrl+M", "Escape", "Tab", "Alt+F6"' };
-  if (!ctx || typeof ctx.freshClone !== 'function') return { error: 'fresh clone unavailable — this mutating tool refuses to touch the shared page' };
-  const live = await ctx.freshClone();
-  const _XP = (el) => { if (!el || el.nodeType !== 1) return null; const p = []; for (let n = el; n && n.nodeType === 1; n = n.parentElement) { let i = 1; for (let s = n.previousElementSibling; s; s = s.previousElementSibling) if (s.tagName === n.tagName) i++; p.unshift(n.tagName.toLowerCase() + '[' + i + ']'); } return '/' + p.join('/'); };
-  const before = await live.evaluate((xp, xpFn) => {
-    const _xp = new Function('el', 'return (' + xpFn + ')(el)');
-    const el = document.evaluate(xp, document, null, 9, null).singleNodeValue;
-    if (!el) return { ok: false };
-    try { el.focus(); } catch (e) {}
-    const a = document.activeElement;
-    return { ok: true, focusedTarget: a === el, active: _xp(a), tag: a ? a.tagName.toLowerCase() : null, id: a ? a.id || null : null };
-  }, targetXpath, _XP.toString()).catch(() => ({ ok: false }));
-  if (!before.ok) return { error: 'targetXpath did not resolve to an element' };
-  if (!before.focusedTarget) return { refused: 'target-not-focusable', reason: 'the element could not take focus on a fresh load — a user could not be on it to press a key' };
-  const parts = keys.split('+').map((s) => s.trim()).filter(Boolean);
-  const mods = [], plain = [];
-  for (const p of parts) { const mm = _KEY_MOD[p.toLowerCase()]; if (mm) { if (!mods.includes(mm)) mods.push(mm); } else plain.push(p); }
-  const key = plain.length ? _normKey(plain[plain.length - 1]) : null;
-  if (!key && !mods.length) return { error: `could not parse a key from "${keys}"` };
-  try {
-    for (const mm of mods) await live.keyboard.down(mm);
-    if (key) await live.keyboard.press(key);
-    for (const mm of [...mods].reverse()) await live.keyboard.up(mm);
-  } catch (e) { return { error: 'keypress failed: ' + String((e && e.message) || e) }; }
-  await new Promise((r) => setTimeout(r, 90)); // settle any async (setTimeout) refocus rebound
-  const after = await live.evaluate((xpFn) => {
-    const _xp = new Function('el', 'return (' + xpFn + ')(el)');
-    const a = document.activeElement;
-    return { active: _xp(a), tag: a ? a.tagName.toLowerCase() : null, id: a ? a.id || null : null, text: a ? (a.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 40) : null };
-  }, _XP.toString()).catch(() => ({ active: null }));
-  return {
-    keysPressed: keys,
-    focusBefore: { xpath: before.active, tag: before.tag, id: before.id },
-    focusAfter: { xpath: after.active, tag: after.tag, id: after.id, text: after.text },
-    focusMoved: before.active !== after.active,
-    note: 'focusMoved=true ⇒ the key changed which element holds focus (for a trapped control, evidence of a WORKING escape). focusMoved=false ⇒ the key did nothing (a non-working / lying advisory). Objective before/after focus, never a verdict.',
-  };
-}
-
-// ============================================================================================
 // SDK binding — wrap the raw tool functions as an in-process MCP server over the live page `session`.
 // `session` = { page, freshClone:()=>Promise<page> }. Lazy-imports the SDK (ESM) + zod. Each tool returns
 // the JSON-stringified OBJECTIVE result as MCP text content — never a verdict.
@@ -1265,14 +1234,12 @@ async function buildCdpToolServer(session) {
       { targetXpath: z.string().optional(), x: z.number().optional(), y: z.number().optional() }, (a) => wrap(queryAxNode, a)),
     tool('observe_state_after_activation', 'Mutating (runs on a FRESH page clone): activate ONE control (by xpath) and return the OBJECTIVE before/after delta — each newly-visible text with its visibilityCause (inserted | display | visibility | aria-hidden | text-changed), whether it landed in a live region AND whether that region PRE-EXISTED (4.1.3: a region created with its message is NOT a reliable announcement → anyNewTextInNewLiveRegion, INCONCLUSIVE), whether focus moved into the revealed content (focusMovedToChange), and whether the page navigated/opened a window. Refuses a non-perceivable target. Reports WHAT changed and HOW, never whether it is conformant.',
       { targetXpath: z.string() }, (a) => wrap(observeStateAfterActivation, a)),
-    tool('interact_and_observe', 'Mutating (FRESH clone, real navigation/submit BLOCKED): run a SHORT capped SEQUENCE of low-level primitives — actions:[{op:"type"|"click"|"press"|"focus"|"clear", xpath?, text?, key?}] (≤16) — then return ONE objective before/after delta: newlyVisibleNodes (visibilityCause + live-region facts), focusMovedTo, blockedNavigations, and invalidFields[] (each field the page reported invalid, with constraintInvalid/ariaInvalid/cssInvalid, validationMessage, the associated error text + errorAssociated/via). Use the GUIDELINES to drive a heterogeneous interaction yourself (e.g. 3.3.1/3.3.3: clear+type-invalid into required/typed fields, click submit, observe the error surface). FACTS not a verdict; noErrorSurfaced after an invalid submit is INCONCLUSIVE (server-side validation possible), never a pass.',
+    tool('interact_and_observe', 'Mutating (FRESH clone, real navigation/submit BLOCKED): run a SHORT capped SEQUENCE of low-level primitives — actions:[{op:"type"|"click"|"press"|"focus"|"clear", xpath?, text?, key?}] (≤16) — then return ONE objective before/after delta: newlyVisibleNodes (visibilityCause + live-region facts), focusMovedTo, blockedNavigations, and invalidFields[] (each field the page reported invalid, with constraintInvalid/ariaInvalid/cssInvalid, validationMessage, the associated error text + errorAssociated/via). Use the GUIDELINES to drive a heterogeneous interaction yourself (e.g. 3.3.1/3.3.3: clear+type-invalid into required/typed fields, click submit, observe the error surface; or 2.1.2 keyboard-trap escape: focus a trapped member, press the advised exit key — `press` accepts modifier COMBOS like "Ctrl+M"/"Alt+F6"/"Shift+Tab" — and read each step.activeAfter to see if focus LEFT the trap). FACTS not a verdict; noErrorSurfaced after an invalid submit is INCONCLUSIVE (server-side validation possible), never a pass.',
       { actions: z.array(z.object({ op: z.enum(['type', 'click', 'press', 'focus', 'clear']), xpath: z.string().optional(), text: z.string().optional(), key: z.string().optional() })), maxActions: z.number().optional() }, (a) => wrap(interactAndObserve, a)),
     tool('set_state_and_capture', 'Mutating (FRESH clone): drive ONE element into an interaction state (focus|hover|checked|open|expanded|placeholder-shown) and return before/after screenshots of the same region + the computed-style DELTA (which outline/border/decoration/background props changed) + stateReached/textVisible. Use for state-specific indicators (1.4.11/1.4.1/1.4.3). Returns PIXELS + objective style deltas, never a contrast number or a verdict; if stateReached is false, do not infer a pass.',
       { targetXpath: z.string(), state: z.enum(['focus', 'hover', 'checked', 'open', 'expanded', 'placeholder-shown']) }, (a) => wrap(setStateAndCapture, a)),
     tool('probe_screen_reader_after_action', 'Mutating (FRESH clone): run a screen reader, clear its log, activate ONE control (by xpath), settle, and return the VERBATIM spoken-phrase queue. Returns BOTH the full announcements queue AND liveRegionAnnouncements (the polite/assertive subset — the ONLY 4.1.3-relevant phrases; focus/change-of-context phrases are excluded by 4.1.3). emptyQueue/noLiveRegionAnnouncement flag a genuine silence; an instrument failure returns {error,probeFailed:true} instead (never a fake emptyQueue). Raw phrases, never an adequacy/announced verdict.',
       { triggerXpath: z.string() }, (a) => wrap(probeScreenReaderAfterAction, a)),
-    tool('press_keys_and_observe_focus', 'Mutating (FRESH clone): focus ONE element (by xpath), dispatch ONE key combo (e.g. "Ctrl+M", "Escape", "Tab", "Alt+F6"), settle, and report whether focus MOVED (document.activeElement before vs after). For 2.1.2 keyboard-trap escape — behaviorally VERIFY a documented non-standard exit key actually frees focus instead of trusting the page JS: focusMoved=true ⇒ a WORKING escape; focusMoved=false ⇒ the key did nothing (a non-working / lying advisory). Objective before/after focus, never a verdict.',
-      { targetXpath: z.string(), keys: z.string() }, (a) => wrap(pressKeysAndObserveFocus, a)),
     tool('measure_geometry_live', 'Read-only on the shared page (unless viewportWidth is given): box, horizontal overflow + culprit, occludedElements[] (what paints on top of the target — 1.4.13 Dismissible), and (if otherXpath) overlapFractionOfTarget/OfOther + gapX/gapY between the two boxes. Pass viewportWidth to re-measure on a CLONE at that width (1.4.10 reflow) — stateUsed echoes which. Raw numbers; marks degenerate boxes ambiguous; never a pass/fail.',
       { targetXpath: z.string(), otherXpath: z.string().optional(), viewportWidth: z.number().optional() }, (a) => wrap(measureGeometryLive, a)),
     tool('request_hi_res_crop', 'Mutating (FRESH clone): re-raster ONE element at a higher DEVICE scale (2-4x, NOT page zoom) and return the PNG + the actual scale + CSS-pixel and device-pixel sizes. Use when a small wordmark/chart label is unreadable in the 1x crop (1.1.1/1.4.5). Covers the whole element. If the result is still illegible, return PARTIAL — never invent text.',
@@ -1309,7 +1276,6 @@ function buildCdpToolDispatch(session) {
   const HANDLERS = {
     query_ax_node: queryAxNode, observe_state_after_activation: observeStateAfterActivation,
     set_state_and_capture: setStateAndCapture, probe_screen_reader_after_action: probeScreenReaderAfterAction,
-    press_keys_and_observe_focus: pressKeysAndObserveFocus,
     measure_geometry_live: measureGeometryLive, request_hi_res_crop: requestHiResCrop,
     render_with_overrides: renderWithOverrides, compute_contrast_ratio: computeContrastRatio,
     resolve_part_color: resolvePartColor, resolve_destination: resolveDestination,
@@ -1323,10 +1289,8 @@ function buildCdpToolDispatch(session) {
       parameters: S({ targetXpath: { type: 'string' }, x: { type: 'number' }, y: { type: 'number' } }) },
     { name: 'observe_state_after_activation', description: 'Mutating (runs on a FRESH page clone): activate ONE control (by xpath) and return the OBJECTIVE before/after delta — each newly-visible text with its visibilityCause (inserted | display | visibility | aria-hidden | text-changed), whether it landed in a live region AND whether that region PRE-EXISTED (4.1.3: a region created with its message is NOT a reliable announcement → anyNewTextInNewLiveRegion, INCONCLUSIVE), whether focus moved into the revealed content (focusMovedToChange), and whether the page navigated/opened a window. Refuses a non-perceivable target. Reports WHAT changed and HOW, never whether it is conformant.',
       parameters: S({ targetXpath: { type: 'string' } }, ['targetXpath']) },
-    { name: 'interact_and_observe', description: 'Mutating (FRESH clone, real navigation/submit BLOCKED): run a SHORT capped SEQUENCE of low-level primitives — actions:[{op:"type"|"click"|"press"|"focus"|"clear", xpath?, text?, key?}] (≤16) — then return ONE objective before/after delta: newlyVisibleNodes (each with visibilityCause + live-region facts), focusMovedTo, blockedNavigations, and invalidFields[] (each field the page reported invalid after the sequence, with constraintInvalid/ariaInvalid/cssInvalid, validationMessage, the programmatically-associated error text + errorAssociated/via). Use the GUIDELINES to drive a heterogeneous interaction yourself (e.g. 3.3.1/3.3.3: clear+type-invalid into required/typed fields, click the submit, observe the error surface) instead of needing a bespoke tool. Returns FACTS, never a verdict; noErrorSurfaced after an invalid submit is INCONCLUSIVE (server-side validation possible), never a pass.',
+    { name: 'interact_and_observe', description: 'Mutating (FRESH clone, real navigation/submit BLOCKED): run a SHORT capped SEQUENCE of low-level primitives — actions:[{op:"type"|"click"|"press"|"focus"|"clear", xpath?, text?, key?}] (≤16) — then return ONE objective before/after delta: newlyVisibleNodes (each with visibilityCause + live-region facts), focusMovedTo, blockedNavigations, and invalidFields[] (each field the page reported invalid after the sequence, with constraintInvalid/ariaInvalid/cssInvalid, validationMessage, the programmatically-associated error text + errorAssociated/via). Use the GUIDELINES to drive a heterogeneous interaction yourself (e.g. 3.3.1/3.3.3: clear+type-invalid into required/typed fields, click the submit, observe the error surface; or 2.1.2 keyboard-trap escape: focus a trapped member, press the advised exit key — `press` accepts modifier COMBOS like "Ctrl+M" — and read step.activeAfter to see if focus LEFT the trap) instead of needing a bespoke tool. Returns FACTS, never a verdict; noErrorSurfaced after an invalid submit is INCONCLUSIVE (server-side validation possible), never a pass.',
       parameters: S({ actions: { type: 'array', items: { type: 'object', properties: { op: { type: 'string', enum: ['type', 'click', 'press', 'focus', 'clear'] }, xpath: { type: 'string' }, text: { type: 'string' }, key: { type: 'string' } }, required: ['op'] } }, maxActions: { type: 'number' } }, ['actions']) },
-    { name: 'press_keys_and_observe_focus', description: 'Mutating (FRESH clone): focus ONE element (by xpath), dispatch ONE key combo (e.g. "Ctrl+M", "Escape", "Tab", "Alt+F6"), settle, and report whether focus MOVED (document.activeElement before vs after). For 2.1.2 keyboard-trap escape — behaviorally VERIFY a documented non-standard exit key actually frees focus instead of trusting the page JS: focusMoved=true ⇒ a WORKING escape; focusMoved=false ⇒ the key did nothing (a non-working / lying advisory). Objective before/after focus, never a verdict.',
-      parameters: S({ targetXpath: { type: 'string' }, keys: { type: 'string' } }, ['targetXpath', 'keys']) },
     { name: 'set_state_and_capture', description: 'Mutating (FRESH clone): drive ONE element into an interaction state (focus|hover|checked|open|expanded|placeholder-shown) and return before/after screenshots of the same region + the computed-style DELTA (which outline/border/decoration/background props changed) + stateReached/textVisible. Use for state-specific indicators (1.4.11/1.4.1/1.4.3). Returns PIXELS + objective style deltas, never a contrast number or a verdict; if stateReached is false, do not infer a pass.',
       parameters: S({ targetXpath: { type: 'string' }, state: { type: 'string', enum: ['focus', 'hover', 'checked', 'open', 'expanded', 'placeholder-shown'] } }, ['targetXpath', 'state']) },
     { name: 'probe_screen_reader_after_action', description: 'Mutating (FRESH clone): run a screen reader, clear its log, activate ONE control (by xpath), settle, and return the VERBATIM spoken-phrase queue. Returns BOTH the full announcements queue AND liveRegionAnnouncements (the polite/assertive subset — the ONLY 4.1.3-relevant phrases; focus/change-of-context phrases are excluded by 4.1.3). emptyQueue/noLiveRegionAnnouncement flag a genuine silence; an instrument failure returns {error,probeFailed:true} instead (never a fake emptyQueue). Raw phrases, never an adequacy/announced verdict.',
@@ -1423,4 +1387,4 @@ async function buildCdpHttpMcpServer(arg) {
   return { url, stats, declarations: dispatch.declarations, close: async () => new Promise((resolve) => { try { httpServer.close(() => resolve()); } catch (e) { resolve(); } }) };
 }
 
-module.exports = { queryAxNode, observeStateAfterActivation, interactAndObserve, setStateAndCapture, probeScreenReaderAfterAction, pressKeysAndObserveFocus, measureGeometryLive, requestHiResCrop, renderWithOverrides, computeContrastRatio, resolvePartColor, resolveDestination, compareIframeContent, compareNamedRegions, ocrImageText, captureFullPage, buildCdpToolServer, buildCdpToolDispatch, buildCdpHttpMcpServer, CDP_MCP_INSTRUCTIONS, ssrfSafeUrl, isPrivateIp };
+module.exports = { queryAxNode, observeStateAfterActivation, interactAndObserve, setStateAndCapture, probeScreenReaderAfterAction, measureGeometryLive, requestHiResCrop, renderWithOverrides, computeContrastRatio, resolvePartColor, resolveDestination, compareIframeContent, compareNamedRegions, ocrImageText, captureFullPage, buildCdpToolServer, buildCdpToolDispatch, buildCdpHttpMcpServer, CDP_MCP_INSTRUCTIONS, ssrfSafeUrl, isPrivateIp };

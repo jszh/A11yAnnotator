@@ -273,7 +273,7 @@ function precomputeSignals(element, skill, sc) {
       s.keyboardTrap = {
         members: element.__confinement.members,
         setSize: element.__confinement.setSize,
-        uncertainReason: 'a deterministic probe confirmed focus is CONFINED to these elements (cannot leave by Tab, Shift+Tab, or Escape, and an element outside the set is never reached). This is a 2.1.2 barrier UNLESS the user is told how to escape (a non-standard key, possibly behind a help control) AND that key works. Activate each member with observe_state_after_activation to reveal any escape instructions, then press the advised key with press_keys_and_observe_focus and read focusMoved. Undocumented or non-working ⇒ REPRODUCED.',
+        uncertainReason: 'a deterministic probe confirmed focus is CONFINED to these elements (cannot leave by Tab, Shift+Tab, or Escape, and an element outside the set is never reached). This is a 2.1.2 barrier UNLESS the user is told how to escape (a non-standard key, possibly behind a help control) AND that key works. Activate each member with observe_state_after_activation to reveal any escape instructions, then drive a focus-then-press sequence with interact_and_observe (actions:[{op:focus,xpath:member},{op:press,key:"Ctrl+M"}]) and read the press step.activeAfter — if it is OUTSIDE this set the key freed focus, otherwise it did nothing. Undocumented or non-working ⇒ REPRODUCED.',
       };
     }
     // S5 (RCA R5): the 2.1.2 no-keyboard-trap judgment needs the trap-RISK context. A trap means focus is
