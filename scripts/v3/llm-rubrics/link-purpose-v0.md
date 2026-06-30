@@ -77,6 +77,13 @@ with their destinations (needed to judge the identical-names mode).
 **WCAG soundness caveats:**
 - Context counts: a generic name disambiguated by its programmatic context (same list item, heading) is
   NOT a 2.4.4 failure — only flag when neither name nor context resolves the purpose.
+- **A SELF-REFERENTIAL phrase whose referent the enclosing context fixes is determinable — do NOT demand the
+  name restate the subject.** "See the description of this product", "Read this page", "this article" — when the
+  enclosing sentence / list-item / the page's evident single subject establishes WHICH product/page/article it
+  refers to, the purpose IS determinable (the reader follows the reference) ⇒ **NOT REPRODUCED**. Do not flag such
+  a link merely because the name alone does not NAME the subject; 2.4.4 is satisfied by name-PLUS-context, and a
+  resolvable "this X" reference is context-resolved. Flag it only when the context does NOT fix the referent
+  (several products in scope, no enclosing subject).
 - Repeated identical names going to DIFFERENT destinations is the classic failure; identical names to the
   SAME destination is fine. If you cannot see the sibling links' destinations to confirm they differ,
   return PARTIAL rather than assuming a mismatch.

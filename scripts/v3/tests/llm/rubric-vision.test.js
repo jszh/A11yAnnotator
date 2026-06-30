@@ -48,6 +48,19 @@ test('link-purpose-v0 carries the enclosingContext-authority clause (FP-fix #3â€
   assert.match(txt, /ancestor list-item|ANCESTOR list-item|nested WITHIN|nested inside/i, 'credits an ancestor list-item the link is nested inside');
 });
 
+test('facet hard-stops: the four over-reach-prone rubrics fence their SC facet (cross-model FP fix, validated on 4 models)', () => {
+  // Sonnet 5.0 over-reached into a STRICTER sub-facet than the SC under test (link-destination naming on a 1.1.1
+  // alt; name ADEQUACY on a 4.1.2 presence check; heading RICHNESS on a 2.4.6 conventional label; demanding a
+  // self-referential link name the subject). These clauses fence each facet â€” mirroring page-title-v0's working
+  // "do not escalate on descriptiveness" hard-stop. Validated: cleared the over-reach FPs on gemini/gpt/5.0 with
+  // recall 6/6 and no regression on any model. Pins the clauses against silent removal.
+  const R = loadRubrics().rubrics;
+  assert.match(R['accessible-name-adequacy-v0'].text, /button\/link/, '4.1.2: a generic type-naming phrase like "button/link" is a real name, not a placeholder');
+  assert.match(R['heading-descriptive-v0'].text, /CONVENTIONAL \/ POSITIONAL|glossary|positional label/i, '2.4.6: a conventional/positional label (glossary "A") is descriptive in context');
+  assert.match(R['alt-text-adequacy-v0'].text, /SOLE name|already has its own accessible name/i, '1.1.1: the functional-image action rule applies ONLY when the image is the control\'s sole name');
+  assert.match(R['link-purpose-v0'].text, /SELF-REFERENTIAL|self-referential/i, '2.4.4: a self-referential phrase whose referent the context fixes is determinable');
+});
+
 test('loadRubrics: a reworded rubric is a DIFFERENT mechanism (the content hash changes)', () => {
   const a = parseFrontmatter('---\nid: x\nsc: 1.1.1\nvisionEvidence: [element-crop]\n---\nbody one');
   assert.equal(a.meta.id, 'x'); assert.equal(a.meta.sc, '1.1.1');

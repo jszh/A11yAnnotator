@@ -27,7 +27,11 @@ or "generic" if it nonetheless identifies the control. Failure is limited to a n
   name PASSES even if it is plain, generic, or merely restates the control's type — INCLUDING a multi-word phrase
   that *mentions* the control type (a phrase that names the control is still a name, not a placeholder). 4.1.2
   asks only that the name IDENTIFY the control, not that it be specific or well-chosen (that is 2.4.6). Do NOT
-  flag a present, real name as "placeholder/filler" because it sounds generic or could be more descriptive;
+  flag a present, real name as "placeholder/filler" because it sounds generic or could be more descriptive.
+  EXPLICITLY PASSING (real names that merely name the type/role — NOT placeholders): "button/link", "button",
+  "link", "Checkbox name", "Menu", "Search", "Submit". A human-readable phrase that names what the control IS — even
+  `"button/link"` — IDENTIFIES it and therefore satisfies 4.1.2; reserve REPRODUCED for the NARROW token/keyword
+  set above and the mismatch/icon-only modes below;
 - a name that **describes a DIFFERENT control than the one rendered** (a "Search" name on a visibly "Menu"
   hamburger; a "Previous" name on the Next arrow) — a true mismatch with the pixels;
 - an **icon-only control whose name names only the ICON** ("icon", "image", "svg", a file name) instead of the

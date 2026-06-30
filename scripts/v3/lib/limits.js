@@ -41,10 +41,13 @@ const LIMITS = Object.freeze({
     maxRetries: 4,                    // 429/overloaded retries
     baseBackoffMs: 1000,              // exponential backoff floor (1s → … )
     maxBackoffMs: 30000,              // exponential backoff ceiling ( … → 30s)
-    toolMaxTurns: 12,                 // multi-turn tool path turn cap (V3_LLM_TOOL_MAX_TURNS). 6→12: gemini's
-                                      //   hand-rolled function-calling loop was exhausting turns then degrading to
-                                      //   null (noVerdict); more rounds let it conclude naturally before the forced
-                                      //   tools-off fallback. Ceiling only — most calls finish well under it.
+    toolMaxTurns: 30,                 // multi-turn tool path turn cap (V3_LLM_TOOL_MAX_TURNS). at 12,
+                                      //   a model that issues SEPARATE resolve_destination calls per same-named link
+                                      //   (instead of one set call — Sonnet 5.0 on multi-subject 2.4.4) exhausted the
+                                      //   turns, so a later subject's tool call landed on the tools-OFF final turn and
+                                      //   the model concluded "tool call issued but no result available". More rounds
+                                      //   give those headroom. Ceiling only — most calls finish well under it; the
+                                      //   real fix is the model BATCHING the set into one call (rubric directive).
     toolRunTimeoutMs: 500000,         // multi-turn tool path whole-call deadline (V3_LLM_TOOL_RUN_TIMEOUT_MS)
   }),
 

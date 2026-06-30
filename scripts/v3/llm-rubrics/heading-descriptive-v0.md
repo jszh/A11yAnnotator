@@ -52,6 +52,14 @@ to the content it introduces (visible in the `viewport`). Failure modes:
   over substantive unique content). A reasonable topical heading is NOT a barrier merely because a more
   specific wording exists — do not over-flag on stylistic preference.
 - A terse-but-unique-and-clear heading is fine; do not demand verbosity.
+- **A CONVENTIONAL / POSITIONAL label that accurately labels its section IS descriptive — do not flag it.** A
+  single letter heading "A" / "B" over a glossary or alphabetical index section (it labels the A-entries), a step
+  number "1." / "Step 2" over that step, a date over a day's agenda, a category letter in an A–Z directory — these
+  DESCRIBE their content by an established convention the reader understands in the `viewport`. Judge
+  descriptiveness RELATIVE TO the content + its convention, not against an absolute "names a topic in isolation"
+  bar. "A" in a glossary is NOT "Section 2" over arbitrary content — clear it (**NOT REPRODUCED**). Flag a
+  positional label only when it labels content the convention does NOT explain (a bare "A" over a paragraph about
+  the weather).
 - The MISMATCH call REQUIRES seeing the introduced content: if the `viewport` does not show enough of the
   content under the heading to judge whether it matches, return PARTIAL — do not infer a mismatch from the
   heading text alone.

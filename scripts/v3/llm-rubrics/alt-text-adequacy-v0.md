@@ -37,8 +37,15 @@ deterministic runner already disposed this obligation, DEFER — you are only ha
   canvas that draws another's — the text alternative misinforms the AT user → barrier.
   This applies to `img alt`, `svg`/`canvas`/`role=img` accessible names alike: judge rendered content vs
   name, not the name's plausibility in isolation.
-- **Wrong purpose for a functional image:** a linked/iconed control's name must convey the ACTION (where
-  it goes / what it does), not merely the picture.
+- **Wrong purpose for a functional image — ONLY when the image IS the control's SOLE name.** A linked/iconed
+  control whose accessible name comes ONLY from the image must convey the ACTION (where it goes / what it does),
+  not merely the picture. **But if the enclosing link/button ALREADY has its own accessible name** — its own link
+  TEXT, an `aria-label`, or `aria-labelledby` (e.g. `<a>` with visible text "W3C home", or `aria-label="Web
+  Accessibility Initiative"`, wrapping an `<svg>` named "star") — then the SVG/icon is NOT the control's name: it
+  is decorative-or-redundant *within* an already-named control, and its own short name ("star") is FINE (judge it
+  as an image: decorative/redundant ⇒ NOT a barrier). Whether the *control's* name names the action is 4.1.2/2.4.4,
+  not 1.1.1 — do NOT flag the inner image's name for "describing the picture, not the link's destination" when the
+  link carries its own name. Only an image that is the control's ONLY name falls under this failure mode.
 - **CSS background-image carrying meaning (TT 7.C):** when `signals.backgroundImage` is present, the element
   conveys its visible content through a CSS `background-image` — there is NO `alt`, and TT's "hide
   backgrounds" step removes it, so any information it carries must ALSO exist as text (an accessible name or
