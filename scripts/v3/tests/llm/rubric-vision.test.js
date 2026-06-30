@@ -35,6 +35,19 @@ test('loadRubrics: skill rubrics + the atomic v3.2 set, each with a pinned conte
   assert.ok(r.promptHash.startsWith('sha256:'), 'a combined fingerprint pins the whole rubric set');
 });
 
+test('link-purpose-v0 carries the enclosingContext-authority clause (FP-fix #3′ — recovers the EPUB false positive)', () => {
+  // The collector's `enclosingContext.blockText` is deterministic and walks the FULL ancestor chain; the rubric
+  // must treat it as AUTHORITATIVE and credit an ANCESTOR list-item the link is nested inside — otherwise the
+  // judge re-derives context from the crop and over-flags a format-only link (the "EPUB under <li>Ulysses" FP).
+  // Validated by the replay A/B in results/fp-experiments/runs/fp3rep2-* (EPUB recovered on BOTH models, the
+  // three blockText-empty guards stay flagged). This pins the clause against silent removal.
+  const txt = loadRubrics().rubrics['link-purpose-v0'].text;
+  assert.match(txt, /enclosingContext/, 'references the deterministic enclosing-context signal');
+  assert.match(txt, /blockText/, 'reads blockText explicitly');
+  assert.match(txt, /AUTHORITATIVE|authoritative/, 'treats the signal as authoritative over the crop');
+  assert.match(txt, /ancestor list-item|ANCESTOR list-item|nested WITHIN|nested inside/i, 'credits an ancestor list-item the link is nested inside');
+});
+
 test('loadRubrics: a reworded rubric is a DIFFERENT mechanism (the content hash changes)', () => {
   const a = parseFrontmatter('---\nid: x\nsc: 1.1.1\nvisionEvidence: [element-crop]\n---\nbody one');
   assert.equal(a.meta.id, 'x'); assert.equal(a.meta.sc, '1.1.1');

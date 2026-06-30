@@ -246,6 +246,70 @@ test('tie-break: on a confidence tie the ATOMIC rubric wins the attribution (not
   assert.ok(r1.ledger[0].provisional.supportRefs.includes('llm-agent'), 'the agent still appears in supportRefs');
 });
 
+// ============================ 2.4.4 link-equivalence reconcile (FP-fix) ============================
+// `link-name-equivalence-v0` is the tool-authoritative relational verdict on same-named links; when it
+// decisively CLEARS, it suppresses `link-purpose-v0`'s name-based barrier on the SAME obligation. When it
+// flags or abstains, barrier-dominance / fail-closed recall is preserved. Validated on the claude + gemini
+// full runs: recovers FPs (91abed/b55973/19d5c288 claude, 9abd9bcf gemini) with ZERO recall loss.
+const _LOID = 'l::2.4.4::link-purpose';
+const _lobls = [{ obligationId: _LOID, xpath: 'l', sc: '2.4.4', claimFamily: 'link-purpose' }];
+const _lfill = (mech, outcome, confidence = 'high') => ({ obligationId: _LOID, kind: 'PROVISIONAL', outcome, provisional: { mechanism: mech, confidence, outcome } });
+const _purpose = (o, c) => _lfill('llm-rubric:link-purpose-v0', o, c);
+const _equiv = (o, c) => _lfill('llm-rubric:link-name-equivalence-v0', o, c);
+
+test('link-equiv reconcile: equiv CLEAR suppresses link-purpose BARRIER ⇒ obligation CLEARS (the 91abed FP)', () => {
+  const r = obl.reconcile(_lobls, [_equiv('NO_BARRIER_OBSERVED'), _purpose('BARRIER_OBSERVED')]);
+  const row = r.ledger[0];
+  assert.equal(row.disposition, 'PROVISIONAL');
+  assert.equal(row.cleared, true, 'equiv-authoritative clear wins over the name-based barrier');
+  assert.equal(row.provisional.outcome, 'NO_BARRIER_OBSERVED');
+  assert.deepEqual(row.provisional.reconciled, { rule: 'link-equivalence-authoritative', suppressed: ['llm-rubric:link-purpose-v0'] }, 'suppression is recorded for audit');
+  assert.ok(row.provisional.supportRefs.includes('llm-rubric:link-purpose-v0'), 'the suppressed barrier still rides supportRefs');
+});
+
+test('link-equiv reconcile: order-independent — same CLEAR result regardless of fill order', () => {
+  const a = obl.reconcile(_lobls, [_purpose('BARRIER_OBSERVED'), _equiv('NO_BARRIER_OBSERVED')]);
+  const b = obl.reconcile(_lobls, [_equiv('NO_BARRIER_OBSERVED'), _purpose('BARRIER_OBSERVED')]);
+  assert.equal(a.ledger[0].cleared, true);
+  assert.equal(b.ledger[0].cleared, true);
+});
+
+test('link-equiv reconcile RECALL GUARD: equiv BARRIER stands — purpose CLEAR may NOT override it (1379913f/8dc58c48)', () => {
+  // the relational rubric (with tools) caught a same-named-different-destination barrier the single-link
+  // rubric missed; suppressing it here would be a recall loss. It must remain flagged.
+  const r = obl.reconcile(_lobls, [_equiv('BARRIER_OBSERVED'), _purpose('NO_BARRIER_OBSERVED')]);
+  assert.equal(r.ledger[0].cleared, false, 'equiv barrier is fail-closed; a purpose clear cannot suppress it');
+  assert.equal(r.ledger[0].provisional.outcome, 'BARRIER_OBSERVED');
+  assert.equal(r.ledger[0].provisional.reconciled, undefined, 'no suppression when equiv flags');
+});
+
+test('link-equiv reconcile RECALL GUARD: BOTH flag ⇒ barrier (a genuine identical-names barrier)', () => {
+  const r = obl.reconcile(_lobls, [_equiv('BARRIER_OBSERVED'), _purpose('BARRIER_OBSERVED')]);
+  assert.equal(r.ledger[0].cleared, false);
+});
+
+test('link-equiv reconcile: equiv ABSENT (uniquely-named link, EPUB-style) ⇒ barrier-dominance UNCHANGED', () => {
+  // link-name-equivalence-v0 only fires for a same-named link; for a unique name only link-purpose runs and
+  // its barrier must stand (fix #1 is inert here — EPUB is recovered by the rubric clause, not this reconcile).
+  const r = obl.reconcile(_lobls, [_purpose('BARRIER_OBSERVED')]);
+  assert.equal(r.ledger[0].cleared, false);
+  assert.equal(r.ledger[0].provisional.reconciled, undefined);
+});
+
+test('link-equiv reconcile: equiv only ABSTAINS (no decisive clear) ⇒ purpose barrier stands (fail-closed)', () => {
+  const r = obl.reconcile(_lobls, [_equiv('INCONCLUSIVE'), _purpose('BARRIER_OBSERVED')]);
+  assert.equal(r.ledger[0].cleared, false, 'an abstaining equiv does not clear — only a decisive equiv clear suppresses');
+});
+
+test('link-equiv reconcile: the gate is SCOPED — an unrelated rubric pair is untouched (no spurious suppression)', () => {
+  const oid = 'z::2.4.7::focus-indicator-visible';
+  const obls = [{ obligationId: oid, xpath: 'z', sc: '2.4.7', claimFamily: 'focus-indicator-visible' }];
+  const mk = (mech, o) => ({ obligationId: oid, kind: 'PROVISIONAL', outcome: o, provisional: { mechanism: mech, confidence: 'high' } });
+  const r = obl.reconcile(obls, [mk('llm-agent', 'NO_BARRIER_OBSERVED'), mk('llm-rubric:focus-rubric-v0', 'BARRIER_OBSERVED')]);
+  assert.equal(r.ledger[0].cleared, false, 'barrier-dominance still holds for non-link rubrics');
+  assert.equal(r.ledger[0].provisional.reconciled, undefined, 'no link-equivalence reconcile fires outside the 2.4.4 pair');
+});
+
 test('adversarial MED: reconcile never throws on a non-decisive PROVISIONAL set (fail-closed, not fail-open)', () => {
   const oid = 'a::2.4.7::focus-indicator-visible';
   const obls = [{ obligationId: oid, xpath: 'a', sc: '2.4.7', claimFamily: 'focus-indicator-visible' }];

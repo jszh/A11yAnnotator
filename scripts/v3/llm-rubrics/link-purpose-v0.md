@@ -34,6 +34,29 @@ that text is **NOT** enclosing — the link's only context is its own name. A si
 the link's cell and is not a header cell, so it does not count either. Do not treat a preceding-sibling sentence
 as if it were the link's enclosing sentence just because it is the nearest prose in reading order.
 
+**`signals.enclosingContext` is the DETERMINISTIC enclosing-block text — TRUST it; do not re-derive the enclosing
+context from the crop.** The collector already walked THIS link's ANCESTOR chain (its enclosing `<li>`/`<td>`/`<p>`/
+heading and every enclosing block up the nesting) and extracted the text of the block(s) that CONTAIN it, with all
+link text stripped — that is precisely the programmatically-enclosing context defined above. Read
+`enclosingContext.blockText`:
+- **`blockText` NON-EMPTY ⇒ that string IS the link's enclosing context.** If it names the subject/destination
+  (e.g. name `"EPUB"` with `blockText:"Ulysses"`, or name `"Download"` with `blockText:"the annual report"`), the
+  purpose is RESOLVED by context ⇒ **NOT REPRODUCED**. Do NOT claim "no subject text in the list item", "no
+  enclosing context", or "the link sits alone" when `blockText` is non-empty — that contradicts the signal.
+  This INCLUDES the text of an ANCESTOR list-item / cell the link is NESTED inside: for
+  `<li>Ulysses<ul><li><a>EPUB</a></li></ul></li>`, "Ulysses" IS the EPUB link's enclosing context because the link
+  is nested WITHIN that `<li>` (a nested sub-list does not sever the enclosure). The collector already walked the
+  FULL ancestor chain, so a non-empty `blockText` is programmatically-enclosing context BY CONSTRUCTION — do NOT
+  reject it as "ancestor / sibling text, not the same list item." (The only thing excluded is a PRECEDING-SIBLING
+  block the link is NOT nested inside — and the collector never puts that in `blockText`, so if you see it in
+  `blockText`, the link IS enclosed by it.)
+- **`enclosingContext.linkAloneInBlock:true` (empty `blockText`) ⇒ the link IS alone in its block** — its only
+  context is its own name, so the format-only / action-only failure below applies if the name does not name the
+  destination.
+- **`blockText:null` / absent ⇒ the link is not inside any enclosing block** — again its only context is its name.
+When the `surrounding-region` crop and `blockText` seem to disagree (the crop may not have framed a nested ancestor's
+text), the deterministic `blockText` is AUTHORITATIVE for what ENCLOSES the link.
+
 Three failure modes:
 - **Format-only / action-only name:** a name that states only a FORMAT (a file-format token) or a bare
   ACTION ("Download", "Read more", "More", "Details") whose ENCLOSING context does not name the destination

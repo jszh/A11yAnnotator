@@ -36,7 +36,30 @@ const _mechOf = (f) => (f.provisional || {}).mechanism || '';
 // is the more trustworthy/specific judgment than the broad whole-obligation `llm-agent` — prefer it for
 // the row's primary attribution (mechanism/rationaleRef). Both still appear in supportRefs.
 const _specificity = (f) => (_mechOf(f).startsWith('llm-rubric:') ? 1 : 0);
-function mergeProvisional(fills) {
+// 2.4.4 complementary-rubric reconcile (FP-fix, validated on the claude + gemini full runs). The two 2.4.4
+// rubrics test DIFFERENT *sufficient* conditions for a passing link: `link-purpose-v0` judges name + enclosing
+// context for ONE link; `link-name-equivalence-v0` is the TOOL-authoritative relational verdict on whether
+// SAME-NAMED links resolve to an EQUIVALENT destination (it follows the links with `resolve_destination`).
+// When the relational rubric DECISIVELY CLEARS (resolved the destinations as equivalent / context-disambiguated)
+// and does NOT itself flag, it OWNS the identical-names question — so drop `link-purpose-v0`'s name-based barrier
+// for the SAME obligation, which would otherwise win under the barrier-dominant rule and over-flag (the classic
+// "two 'About us' links to identical copies" false positive). When equiv FLAGS or only ABSTAINS, nothing is
+// dropped — barrier-dominance / fail-closed recall is preserved (a real same-named-different-destination barrier
+// the relational rubric catches is NOT suppressed). Scoped to this exact rubric pair; all other obligations are
+// untouched.
+const _LINK_EQUIV = 'llm-rubric:link-name-equivalence-v0';
+const _LINK_PURPOSE = 'llm-rubric:link-purpose-v0';
+function reconcileLinkPurpose(fills) {
+  const equivClears = fills.some((f) => _mechOf(f) === _LINK_EQUIV && f.outcome === 'NO_BARRIER_OBSERVED');
+  const equivBarriers = fills.some((f) => _mechOf(f) === _LINK_EQUIV && f.outcome === 'BARRIER_OBSERVED');
+  if (!equivClears || equivBarriers) return { fills, suppressed: [] };
+  const suppressed = fills.filter((f) => _mechOf(f) === _LINK_PURPOSE && f.outcome === 'BARRIER_OBSERVED');
+  if (!suppressed.length) return { fills, suppressed: [] };
+  return { fills: fills.filter((f) => !(_mechOf(f) === _LINK_PURPOSE && f.outcome === 'BARRIER_OBSERVED')), suppressed };
+}
+function mergeProvisional(allFills) {
+  const { fills: fillsForDecision, suppressed } = reconcileLinkPurpose(allFills);
+  const fills = fillsForDecision;
   const barriers = fills.filter((f) => f.outcome === 'BARRIER_OBSERVED');
   const clears = fills.filter((f) => f.outcome === 'NO_BARRIER_OBSERVED');
   if (!barriers.length && !clears.length) return null; // no DECISIVE fill (all abstentions/unknown) ⇒ no row, fail-closed
@@ -54,8 +77,10 @@ function mergeProvisional(fills) {
   // strip any pre-existing `conflict` from the chosen block so a STALE conflict can't ride the spread —
   // the conflict is RECOMPUTED here from the actual merge (adversarial A-F3).
   const { conflict: _stale, ...rest } = (chosen.provisional || {});
-  const block = { ...rest, supportRefs: [...new Set(fills.map((f) => (f.provisional || {}).mechanism).filter(Boolean))].sort() };
+  // supportRefs from the ORIGINAL fills so a reconcile-suppressed link-purpose barrier still rides the audit trail.
+  const block = { ...rest, supportRefs: [...new Set(allFills.map((f) => (f.provisional || {}).mechanism).filter(Boolean))].sort() };
   if (conflict) block.conflict = conflict;
+  if (suppressed.length) block.reconciled = { rule: 'link-equivalence-authoritative', suppressed: [...new Set(suppressed.map((f) => (f.provisional || {}).mechanism).filter(Boolean))].sort() };
   return { cleared, provisional: block };
 }
 function reconcile(obligations, dispositions) {
