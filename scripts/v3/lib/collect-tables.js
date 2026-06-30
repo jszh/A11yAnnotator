@@ -19,6 +19,27 @@ function collectTables() {
     const rows = [...t.rows];
     const ths = [...t.querySelectorAll('th')];
     const tds = [...t.querySelectorAll('td')];
+    // SIMPLE-POSITIONAL header facts (1.3.1 implicit-header algorithm). A regular grid whose header cells sit ONLY
+    // in the first row and/or the first column conveys the row/column association BY POSITION — no scope/headers=
+    // is required (HTML's header-scanning algorithm; AT resolves it). We compute the raw facts here; the verdict
+    // (llm-adjudicator) decides VALID only for the UNAMBIGUOUS simple shape. Conservative: any rowspan, scattered
+    // (mid-body) th, ragged logical widths, or a multi-row header stack ⇒ NOT simple ⇒ left UNCERTAIN for the judge.
+    const rowCells = rows.map((r) => [...r.cells]);
+    const isTh = (c) => c && c.tagName === 'TH';
+    const logicalWidth = (cells) => cells.reduce((n, c) => n + (c.colSpan || 1), 0);
+    const firstRowAllTh = rowCells.length > 0 && rowCells[0].length > 0 && rowCells[0].every(isTh);
+    const firstColAllTh = rowCells.length >= 2 && rowCells.every((r) => r.length > 0 && isTh(r[0]));
+    let bodyTh = 0, anyRowspan = false, headerRows = 0, leadingHeader = true;
+    rowCells.forEach((cells, ri) => {
+      const allTh = cells.length > 0 && cells.every(isTh);
+      if (leadingHeader && allTh) headerRows++; else leadingHeader = false;
+      cells.forEach((c, ci) => {
+        if ((c.rowSpan || 1) > 1) anyRowspan = true;
+        if (isTh(c) && ri > 0 && ci > 0) bodyTh++; // a th NOT in the first row or first column — needs scope to associate
+      });
+    });
+    const widths = rowCells.map(logicalWidth);
+    const regularGrid = widths.length > 0 && widths.every((w) => w === widths[0]) && !anyRowspan;
     const idText = {};
     for (const c of t.querySelectorAll('[id]')) idText[c.id] = clip(c.textContent, 40);
     // a25f45: a `headers=` IDREF must resolve to a th/td CELL in THIS table. Build a CELL-id map (not any [id]) so the
@@ -50,6 +71,7 @@ function collectTables() {
       rowCount: rows.length, thCount: ths.length, tdCount: tds.length,
       hasCaption: !!caption, captionText: caption ? clip(caption.textContent, 80) : null,
       headers, tdWithHeaders, tdHeaderSamples, danglingIdref, headersRefsNonCell, headersRefsSelf,
+      firstRowAllTh, firstColAllTh, bodyTh, headerRows, regularGrid, // simple-positional header facts (1.3.1 implicit algorithm)
       roleOverride: roleOverride || null, // non-null ⇒ table semantics overridden (a25f45/1.3.1 table facet inapplicable)
       // a header cell but ZERO data cells ⇒ a header pointing at nothing (coarse derived flag).
       headerWithNoDataCell: isTableRole && ths.length > 0 && tds.length === 0,

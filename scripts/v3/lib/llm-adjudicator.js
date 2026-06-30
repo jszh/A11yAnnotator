@@ -507,7 +507,17 @@ function precomputeSignals(element, skill, sc) {
         if (t.danglingIdref || t.headersRefsNonCell || t.headersRefsSelf) return 'BROKEN';
         const hasScope = Array.isArray(t.headers) && t.headers.some((h) => h && h.scope);
         const hasHeadersRef = Number(t.tdWithHeaders) > 0;
-        return (hasScope || hasHeadersRef) ? 'VALID' : 'UNCERTAIN';
+        if (hasScope || hasHeadersRef) return 'VALID';
+        // SIMPLE-POSITIONAL VALID (#3 FP/FN fix): a REGULAR grid whose header cells sit ONLY in the first row
+        // and/or first column, with NO scattered (mid-body) th, NO rowspan, and a SINGLE leading header row, is
+        // associable BY POSITION via HTML's implicit header-scanning algorithm — no scope/headers= required (the
+        // d0f69e GT-pass tables: a <thead> column-header table with a colspan-matched data row, and a 2-D
+        // first-row+first-column table). The irregular GT-fail twin (a 2-col header over a 1-cell data row, no
+        // colspan) has regularGrid=false ⇒ stays UNCERTAIN for the judge, so recall is preserved. A table missing
+        // these collector facts (older packs) also stays UNCERTAIN — backward-compatible.
+        const simplePositional = (t.firstRowAllTh === true || t.firstColAllTh === true)
+          && t.regularGrid === true && Number(t.bodyTh) === 0 && Number(t.headerRows) <= 1;
+        return simplePositional ? 'VALID' : 'UNCERTAIN';
       };
       const per = tbls.map(tVerdict);
       const dataN = per.filter((v) => v !== 'NOT_DATA').length;
