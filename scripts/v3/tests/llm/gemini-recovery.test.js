@@ -238,3 +238,17 @@ test('degeneration retry: a STILL-degenerate retry ⇒ null logged as degenerate
   assert.equal(rec.reason, 'degenerate-loop', 'classified as a degeneration collapse, not unparseable-envelope');
   assert.equal(rec.degenRetried, true);
 });
+
+// Token telemetry: Gemini usage now reaches the PERSISTENT sink (onTraceSink), not just the per-verdict trace — and
+// the output count INCLUDES thinking tokens (gemini-flash spends most of its output budget reasoning).
+test('gemini token usage → onTraceSink (persistent telemetry); output INCLUDES thinking tokens', async () => {
+  const j = { candidates: [{ content: { parts: [{ text: textJson() }] }, finishReason: 'STOP' }], usageMetadata: { promptTokenCount: 200, candidatesTokenCount: 50, thoughtsTokenCount: 80 } };
+  const f = fakeFetch([j]);
+  const sink = []; const tr = [];
+  const t = makeGeminiTransport({ apiKey: 'k', fetchImpl: f, onTraceSink: (e) => sink.push(e) });
+  await t(REQ, { onTrace: (e) => tr.push(e) });
+  const s = sink.find((e) => e.type === 'result');
+  assert.ok(s, 'persistent token sink received a usage event (was previously dropped)');
+  assert.deepEqual(s.usage, { input_tokens: 200, output_tokens: 130 }, 'output = candidates(50) + thoughts(80)');
+  assert.ok(tr.some((e) => e.type === 'result'), 'the per-verdict trace still gets usage too');
+});

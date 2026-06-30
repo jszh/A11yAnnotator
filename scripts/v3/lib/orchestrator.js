@@ -323,7 +323,7 @@ async function orchestrate(collect, drive, opts = {}) {
     // page serves every subject; mutating tools clone. Verdicts stay canary-capped shadow regardless. The
     // live session is opened here and ALWAYS closed in the finally. Tool-path concurrency is bounded (≤4) to
     // cap concurrent live pages. Falls back to the single-shot runAgent if the session/server can't open.
-    let llmRunAgent = opts.runAgent, toolSession = null, toolConcurrency = opts.llmConcurrency;
+    let llmRunAgent = opts.runAgent, toolSession = null, toolConcurrency = opts.llmConcurrency, codexMcp = null;
     try {
       if (opts.llmTools && opts.llmTransportConfig && opts.resolveUrl) {
         const adapter = require('./llm-agent-adapter.js');
@@ -332,23 +332,29 @@ async function orchestrate(collect, drive, opts = {}) {
         const reapAgeMs = (Number(opts.llmToolRunTimeoutMs) || LIMITS.llm.toolRunTimeoutMs) + LIMITS.concurrency.reapAgeMarginMs; // strictly above the whole-run abort
         // the tool session draws its base page + clones from the SHARED pool (same browser+allocator as every lane).
         toolSession = await openToolSession(turl, { executablePath: opts.executablePath, reapAgeMs, browser, tabAllocator }).catch(() => null);
-        // PROVIDER: 'claude' wraps the CDP handlers as an MCP server the Agent SDK's query() loop drives; 'gemini'
-        // builds a direct dispatch ({declarations, call}) the hand-rolled function-calling loop drives. Same handlers,
-        // same tool evidence — only the agent-loop protocol differs (cross-family full-config comparison).
+        // PROVIDER tool surface (SAME CDP handlers, different protocol): 'claude' wraps them as an in-process Agent-SDK
+        // MCP server the query() loop drives; 'gemini' builds a direct dispatch the hand-rolled function-calling loop
+        // drives; 'codex' exposes them as an in-process Streamable-HTTP MCP server the Codex agent connects to by URL.
         const provider = opts.llmProvider || 'claude';
-        const server = (toolSession && provider !== 'gemini') ? await cdpTools.buildCdpToolServer(toolSession).catch(() => null) : null;
-        const dispatch = (toolSession && provider === 'gemini') ? (() => { try { return cdpTools.buildCdpToolDispatch(toolSession); } catch (e) { return null; } })() : null;
-        if (server || dispatch) {
+        const server = (toolSession && provider === 'claude') ? await cdpTools.buildCdpToolServer(toolSession).catch(() => null) : null;
+        // gemini AND openai drive the SAME direct dispatch via a hand-rolled function-calling loop (only the API shape differs).
+        const dispatch = (toolSession && (provider === 'gemini' || provider === 'openai')) ? (() => { try { return cdpTools.buildCdpToolDispatch(toolSession); } catch (e) { return null; } })() : null;
+        if (toolSession && provider === 'codex') codexMcp = await cdpTools.buildCdpHttpMcpServer(toolSession).catch(() => null);
+        if (server || dispatch || codexMcp) {
           toolConcurrency = Math.min(Number(opts.llmConcurrency) || 1, Number(opts.llmToolConcurrency) || LIMITS.concurrency.llmTool); // V3_LLM_TOOL_CONCURRENCY (default 4) bounds concurrent SUBJECTS (≈ tabs; a turn may open >1 clone briefly)
           const runTimeoutMs = opts.llmToolRunTimeoutMs || LIMITS.llm.toolRunTimeoutMs;
           const maxTurns = opts.llmToolMaxTurns || LIMITS.llm.toolMaxTurns;
           const transport = provider === 'gemini'
-            ? adapter.makeGeminiToolTransport({ apiKey: opts.geminiKey, model: opts.llmTransportConfig.model, dispatch, maxTurns, runTimeoutMs, getExtraDeadlineMs: toolSession.extraDeadlineMs })
-            : adapter.makeClaudeSdkTransport({
-              ...opts.llmTransportConfig, mcpServers: { cdp: server }, allowedTools: ['mcp__cdp__*'], maxTurns, runTimeoutMs,
-              getExtraDeadlineMs: toolSession.extraDeadlineMs, // credit tab-queue wait back to the deadline (timer-pause)
-              // onTraceSink rides ...llmTransportConfig ⇒ this multi-turn tool transport feeds the SAME token telemetry.
-            });
+            ? adapter.makeGeminiToolTransport({ apiKey: opts.geminiKey, model: opts.llmTransportConfig.model, dispatch, maxTurns, runTimeoutMs, getExtraDeadlineMs: toolSession.extraDeadlineMs, onTraceSink: opts.llmTransportConfig.onTraceSink })
+            : provider === 'openai'
+              ? adapter.makeOpenAITransport({ apiKey: opts.openaiKey, model: opts.llmTransportConfig.model, effort: opts.llmTransportConfig.effort, dispatch, maxTurns, runTimeoutMs, getExtraDeadlineMs: toolSession.extraDeadlineMs, onTraceSink: opts.llmTransportConfig.onTraceSink })
+              : provider === 'codex'
+                ? adapter.makeCodexTransport({ apiKey: opts.codexKey, model: opts.llmTransportConfig.model, effort: opts.llmTransportConfig.effort, mcpServers: { cdp: { url: codexMcp.url, default_tools_approval_mode: 'auto' } }, toolCatalog: codexMcp.declarations, onTraceSink: opts.llmTransportConfig.onTraceSink, runTimeoutMs, getExtraDeadlineMs: toolSession.extraDeadlineMs })
+                : adapter.makeClaudeSdkTransport({
+                ...opts.llmTransportConfig, mcpServers: { cdp: server }, allowedTools: ['mcp__cdp__*'], maxTurns, runTimeoutMs,
+                getExtraDeadlineMs: toolSession.extraDeadlineMs, // credit tab-queue wait back to the deadline (timer-pause)
+                // onTraceSink rides ...llmTransportConfig ⇒ this multi-turn tool transport feeds the SAME token telemetry.
+              });
           llmRunAgent = adapter.makeRunAgent({ transport, model: opts.llmTransportConfig.model });
           // The tool agent is built HERE (it needs the live server/dispatch + session), so the caller's single-shot
           // wrapper (global LLM semaphore + inflight tracking) can't reach it unless we apply it. Keep BOTH under one cap.
@@ -409,6 +415,10 @@ async function orchestrate(collect, drive, opts = {}) {
       // tool-session teardown: stop the OCR sidecar (kills its isolated Python process) and release the base-page
       // lease (frees its slot) + close an own browser only if the session launched one. The SHARED run browser is
       // closed by orchestrate's OUTER finally below — any clone that survived both checks dies with it.
+      if (codexMcp) { // close the codex HTTP MCP bridge + report whether the agent actually called the cdp tools
+        try { if (codexMcp.stats) process.stderr.write(`[codex-mcp] cdp tool calls: ${codexMcp.stats.calls} ${JSON.stringify(codexMcp.stats.byTool)}\n`); } catch (e) {}
+        if (codexMcp.close) { try { await codexMcp.close(); } catch (e) {} }
+      }
       if (toolSession && toolSession.ocr) { try { await toolSession.ocr.close(); } catch (e) {} }
       if (toolSession && toolSession.close) { try { await toolSession.close(); } catch (e) {} }
     }

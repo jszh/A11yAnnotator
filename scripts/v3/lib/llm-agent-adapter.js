@@ -261,7 +261,7 @@ function looksDegenerate(text) {
 // (empty output), so the default budget is generous. fetchImpl injectable for tests.
 function makeGeminiTransport({ apiKey, model = 'gemini-3.5-flash', fetchImpl, maxOutputTokens = 4096, temperature = 0,
   baseUrl = 'https://generativelanguage.googleapis.com/v1beta', timeoutMs = LIMITS.llm.httpTimeoutMs,
-  maxRetries = LIMITS.llm.maxRetries, baseBackoffMs = LIMITS.llm.baseBackoffMs } = {}) {
+  maxRetries = LIMITS.llm.maxRetries, baseBackoffMs = LIMITS.llm.baseBackoffMs, onTraceSink = null } = {}) {
   const f = fetchImpl || (typeof fetch === 'function' ? fetch : null);
   if (!apiKey) throw new Error('makeGeminiTransport: apiKey required (set GEMINI_API_KEY in .env)');
   if (!f) throw new Error('makeGeminiTransport: no fetch available');
@@ -285,7 +285,10 @@ function makeGeminiTransport({ apiKey, model = 'gemini-3.5-flash', fetchImpl, ma
         const j = await r.json();
         const cand = j && j.candidates && j.candidates[0];
         const text = cand && cand.content && Array.isArray(cand.content.parts) ? cand.content.parts.map((p) => p.text || '').join('') : null;
-        if (typeof callOpts.onTrace === 'function' && j.usageMetadata) callOpts.onTrace({ type: 'result', usage: { input_tokens: j.usageMetadata.promptTokenCount, output_tokens: j.usageMetadata.candidatesTokenCount } });
+        if (j.usageMetadata) { // token telemetry → BOTH the verdict trace (onTrace) AND the persistent token sink (onTraceSink); output INCLUDES thinking tokens
+          const um = j.usageMetadata; const ev = { type: 'result', usage: { input_tokens: um.promptTokenCount || 0, output_tokens: (um.candidatesTokenCount || 0) + (um.thoughtsTokenCount || 0) } };
+          if (typeof callOpts.onTrace === 'function') callOpts.onTrace(ev); if (typeof onTraceSink === 'function') try { onTraceSink(ev); } catch (e) {}
+        }
         // MAX_TOKENS with empty output ⇒ thinking starved the verdict ⇒ DOUBLE the budget once and re-issue.
         if (!text && cand && cand.finishReason === 'MAX_TOKENS' && !doubled && process.env.V3_GEMINI_MAXTOK_DOUBLE !== '0') {
           doubled = true; body.generationConfig.maxOutputTokens = Math.min(maxOutputTokens * 2, GEMINI_MAXTOK_CEIL); continue;
@@ -315,7 +318,7 @@ function makeGeminiToolTransport({ apiKey, model = 'gemini-3.5-flash', dispatch,
   temperature = 0, baseUrl = 'https://generativelanguage.googleapis.com/v1beta',
   runTimeoutMs = LIMITS.llm.toolRunTimeoutMs, maxTurns = LIMITS.llm.toolMaxTurns,
   maxRetries = LIMITS.llm.maxRetries, baseBackoffMs = LIMITS.llm.baseBackoffMs, maxBackoffMs = LIMITS.llm.maxBackoffMs,
-  getExtraDeadlineMs = null } = {}) {
+  getExtraDeadlineMs = null, onTraceSink = null } = {}) {
   const f = fetchImpl || (typeof fetch === 'function' ? fetch : null);
   if (!apiKey) throw new Error('makeGeminiToolTransport: apiKey required (set GEMINI_API_KEY in .env)');
   if (!f) throw new Error('makeGeminiToolTransport: no fetch available');
@@ -331,7 +334,8 @@ function makeGeminiToolTransport({ apiKey, model = 'gemini-3.5-flash', dispatch,
     const deadline = Date.now() + runTimeoutMs;
     let backoffCreditMs = 0;
     const dueAt = () => deadline + (getExtraDeadlineMs ? (Number(getExtraDeadlineMs()) || 0) : 0) + backoffCreditMs;
-    const trace = (j) => { if (typeof callOpts.onTrace === 'function' && j && j.usageMetadata) callOpts.onTrace({ type: 'result', usage: { input_tokens: j.usageMetadata.promptTokenCount, output_tokens: j.usageMetadata.candidatesTokenCount } }); };
+    // token telemetry per turn → BOTH the verdict trace AND the persistent sink (recordTrace sums across the loop's turns); output INCLUDES thinking tokens
+    const trace = (j) => { if (j && j.usageMetadata) { const um = j.usageMetadata; const ev = { type: 'result', usage: { input_tokens: um.promptTokenCount || 0, output_tokens: (um.candidatesTokenCount || 0) + (um.thoughtsTokenCount || 0) } }; if (typeof callOpts.onTrace === 'function') callOpts.onTrace(ev); if (typeof onTraceSink === 'function') try { onTraceSink(ev); } catch (e) {} } };
     // failTrace records WHY this transport degraded to null (lifted by emitNoVerdict into the durable noVerdict log).
     // lastFinish carries the most recent turn's finishReason so a terminal degrade reports MAX_TOKENS vs STOP etc.
     const failTrace = (mode, finishReason) => { if (typeof callOpts.onTrace === 'function') callOpts.onTrace({ type: 'transportFail', provider: 'gemini', mode, finishReason: finishReason || null }); };
@@ -527,4 +531,233 @@ function makeClaudeSdkTransport(opts = {}) {
   };
 }
 
-module.exports = { makeRunAgent, makeAnthropicTransport, makeClaudeSdkTransport, makeGeminiTransport, makeGeminiToolTransport, parseAgentReply, toAnthropicContent, looksDegenerate };
+// CROSS-FAMILY transport: OpenAI Codex SDK (@openai/codex-sdk), keyed from the LOCAL Codex auth (CODEX_API_KEY env or
+// `codex login`) — the GPT-5.4 analog of makeClaudeSdkTransport (a subscription/agent-SDK judge, no metered key). It
+// is SINGLE-SHOT: flatten our prompt to text, run ONE Codex turn, and return the agent's final text in the
+// `{content:[{type:'text',text}]}` shape makeRunAgent expects (or null to degrade). The SDK is LAZY-imported so the
+// (CommonJS) harness loads + tests WITHOUT it (lane OFF when absent); `codexImpl` is injectable so unit tests need
+// neither the SDK nor a network/login. AUTH: set CODEX_API_KEY (.env) or run `codex login` — until then the lane is
+// INERT (returns null). VISION: image crops are written to temp PNGs and sent as Codex `local_image` input items
+// (opt out V3_CODEX_VISION=0). TOOLS: `mcpServers` ({name:{url}}) is passed to Codex's config.mcp_servers so the agent
+// uses the cdp tools over an in-process Streamable-HTTP MCP server (orchestrate builds it via buildCdpHttpMcpServer).
+// The Codex agent runs its own multi-turn tool loop, so this transport stays a single run() call. NOTE: the
+// Codex↔MCP handshake + the SDK's exact run()/result/startThread fields are pinned to the docs (2026-06) — verify on
+// the first authenticated run; any mismatch surfaces in the [v3:noVerdict] provider:codex log (mode tells you which).
+function makeCodexTransport(opts = {}) {
+  const {
+    codexImpl = null,                            // injectable Codex constructor for tests (no SDK/login needed)
+    model = 'gpt-5.4',                           // the requested GPT-5.4 (override per-request via request.model or --model)
+    apiKey = (typeof process !== 'undefined' && process.env && process.env.CODEX_API_KEY) || null,
+    baseUrl = null, workingDirectory = null,     // a throwaway cwd so the judge agent has no repo side-effects (defaults to os.tmpdir())
+    effort = 'medium',                           // reasoning depth → modelReasoningEffort; UNSET ran the SDK default (likely low → no tool-use planning)
+    timeoutMs = LIMITS.llm.runTimeoutMs, maxRetries = LIMITS.llm.maxRetries,
+    baseBackoffMs = LIMITS.llm.baseBackoffMs, maxBackoffMs = LIMITS.llm.maxBackoffMs,
+    getExtraDeadlineMs = null, onTraceSink = null,
+  } = opts;
+  // map our EffortLevel ('low'|'medium'|'high'|'xhigh'|'max') → the SDK's ModelReasoningEffort (no 'max'; 'minimal' is Codex-only).
+  // V3_CODEX_EFFORT overrides for quick experiments. A coding agent at low effort answers directly; higher effort makes it PLAN (→ use tools).
+  const EFFORT_MAP = { minimal: 'minimal', low: 'low', medium: 'medium', high: 'high', xhigh: 'xhigh', max: 'xhigh' };
+  const reasoningEffort = EFFORT_MAP[(typeof process !== 'undefined' && process.env.V3_CODEX_EFFORT) || effort] || 'medium';
+  let _Codex = codexImpl;
+  const getCodex = async () => {
+    if (_Codex) return _Codex;
+    try { const mod = await import('@openai/codex-sdk'); _Codex = mod.Codex || (mod.default && mod.default.Codex) || mod.default; return _Codex; }
+    catch (e) { return null; } // SDK not installed ⇒ lane OFF (run `npm i @openai/codex-sdk` to enable)
+  };
+  const mcpServers = opts.mcpServers || null; // { name: { url } } — Streamable-HTTP MCP servers Codex connects to (cdp tools)
+  const toolCatalog = opts.toolCatalog || null; // [{name, description}] — named IN THE PROMPT (stronger channel than MCP instructions)
+  // Build the in-prompt tool directive: the agent connects to the MCP server but won't call its tools off the MCP
+  // `instructions` alone, so we list the tools + a hard "CALL them first" rule in the USER MESSAGE it weighs most.
+  const toolDirective = (decls) => {
+    if (!Array.isArray(decls) || !decls.length) return null;
+    const lines = decls.map((d) => `- ${d.name}: ${String(d.description || '').replace(/\s+/g, ' ').slice(0, 140)}`).join('\n');
+    return 'LIVE TOOLS — you have an MCP server named "cdp" with read-only accessibility-inspection tools that operate on the ACTUAL rendered page for this judgment. You MUST CALL the relevant tool(s) to verify BEFORE you flag or clear a barrier; do NOT decide from the static signals alone when a tool can settle it. Tools:\n'
+      + lines + '\nCall the tool(s) first, then return ONLY the JSON verdict, grounded in what they returned.';
+  };
+  const isOverloaded = (x) => /\b429\b|rate.?limit|overloaded|too many requests|quota/i.test(String(x == null ? '' : (x.message || x)));
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  // VISION: map our content blocks → the Codex structured input. Text rides inline; each base64 image crop is written to
+  // a temp PNG and passed as { type:'local_image', path } (Codex run() takes image PATHS, not inline base64). Returns the
+  // input array + a cleanup() that removes the temp dir. Opt out (text-only fallback) with V3_CODEX_VISION=0.
+  const buildInput = (content) => {
+    const blocks = content || [];
+    const textOnly = process.env.V3_CODEX_VISION === '0' || !blocks.some((b) => b && b.type === 'image' && b.source && b.source.data);
+    if (textOnly) {
+      const txt = blocks.filter((b) => b && b.type === 'text').map((b) => b.text).join('\n');
+      const nImg = blocks.filter((b) => b && b.type === 'image').length;
+      return { input: (nImg ? `${txt}\n\n[Note: ${nImg} visual crop(s) captured but omitted from this text-only run.]` : txt), cleanup: () => {} };
+    }
+    const fs = require('fs'); const path = require('path'); const os = require('os');
+    let dir = null; const items = [];
+    try {
+      for (const b of blocks) {
+        if (b && b.type === 'text') items.push({ type: 'text', text: b.text || '' });
+        else if (b && b.type === 'image' && b.source && b.source.data) {
+          if (!dir) dir = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-vis-'));
+          const fp = path.join(dir, `crop-${items.length}.png`);
+          fs.writeFileSync(fp, Buffer.from(b.source.data, 'base64'));
+          items.push({ type: 'local_image', path: fp });
+        }
+      }
+    } catch (e) { /* fall through with whatever items we have */ }
+    const d = dir;
+    return { input: items, cleanup: () => { try { if (d) require('fs').rmSync(d, { recursive: true, force: true }); } catch (e) {} } };
+  };
+  // robust to the SDK's result shape across versions: finalResponse (string|{text}), output, or the last text item.
+  const extractText = (r) => {
+    if (!r) return null;
+    if (typeof r.finalResponse === 'string') return r.finalResponse;
+    if (r.finalResponse && typeof r.finalResponse.text === 'string') return r.finalResponse.text;
+    if (typeof r.output === 'string') return r.output;
+    if (typeof r.text === 'string') return r.text;
+    if (Array.isArray(r.items)) {
+      for (let i = r.items.length - 1; i >= 0; i--) { const it = r.items[i]; const t = it && (it.text || (it.content && it.content.text) || (it.message && it.message.text)); if (typeof t === 'string' && t.trim()) return t; }
+    }
+    return null;
+  };
+  return async function transport(request, callOpts) {
+    const onTrace = callOpts && typeof callOpts.onTrace === 'function' ? callOpts.onTrace : null;
+    const failTrace = (mode) => { if (onTrace) try { onTrace({ type: 'transportFail', provider: 'codex', mode, finishReason: null }); } catch (e) { /* never throw */ } };
+    const Codex = await getCodex();
+    if (typeof Codex !== 'function') { failTrace('sdk-absent'); return null; } // SDK absent / lane OFF
+    const content0 = (request && request.messages && request.messages[0] && request.messages[0].content) || [];
+    // expose the cdp tools IN THE PROMPT (prepended text block) — the stronger channel than the MCP `instructions` field
+    // the agent ignored. EMPIRICALLY this STILL produced 0 tool calls AND hurt (uncertain↑, ~10× input tokens from the
+    // catalog), so it is OPT-IN (V3_CODEX_TOOL_PROMPT=1), OFF by default. Skipped on the tools-off repair pass.
+    const directive = (toolCatalog && mcpServers && !(request && request.disableTools) && (typeof process !== 'undefined' && process.env.V3_CODEX_TOOL_PROMPT === '1')) ? toolDirective(toolCatalog) : null;
+    const content = directive ? [{ type: 'text', text: directive }, ...content0] : content0;
+    const useModel = (request && request.model) || model;
+    const env = { ...(typeof process !== 'undefined' ? process.env : {}) }; if (apiKey) env.CODEX_API_KEY = apiKey;
+    const cwd = workingDirectory || (() => { try { return require('os').tmpdir(); } catch (e) { return undefined; } })();
+    // TOOLS: Codex connects to Streamable-HTTP MCP servers via config.mcp_servers (the cdp tools, when provided). The
+    // envelope-repair retry (request.disableTools) runs WITHOUT them so it is a single plain completion.
+    const cfg = (mcpServers && !(request && request.disableTools)) ? { config: { mcp_servers: mcpServers } } : {};
+    const deadline = Date.now() + timeoutMs;
+    let backoffCreditMs = 0;
+    const dueAt = () => deadline + (getExtraDeadlineMs ? (Number(getExtraDeadlineMs()) || 0) : 0) + backoffCreditMs;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      if (dueAt() - Date.now() <= 0) { failTrace('deadline'); return null; }
+      const { input, cleanup } = buildInput(content); // writes temp crop files for vision; removed in finally
+      try {
+        const codex = new Codex({ env, skipGitRepoCheck: true, ...cfg, ...(cwd ? { workingDirectory: cwd } : {}), ...(baseUrl ? { baseUrl } : {}) });
+        // modelReasoningEffort drives whether the agent PLANS (and thus uses tools); networkAccessEnabled lets it reach the
+        // localhost MCP for tool CALLS (the connection worked without it, but a tool call may be gated by the sandbox).
+        const thread = codex.startThread({ model: useModel, modelReasoningEffort: reasoningEffort, ...(mcpServers ? { networkAccessEnabled: true } : {}) });
+        // race the single run against the remaining deadline (run() exposes no abort signal we can rely on).
+        let timer; const timeout = new Promise((_, rej) => { timer = setTimeout(() => rej(new Error('codex-timeout')), Math.max(1, dueAt() - Date.now())); });
+        let result; try { result = await Promise.race([thread.run(input), timeout]); } finally { clearTimeout(timer); }
+        if (result && result.usage && (onTrace || onTraceSink)) {
+          const u = result.usage; const ev = { type: 'result', usage: { input_tokens: u.input_tokens || u.inputTokens || 0, output_tokens: u.output_tokens || u.outputTokens || 0 } };
+          if (onTrace) try { onTrace(ev); } catch (e) {} if (onTraceSink) try { onTraceSink(ev); } catch (e) {}
+        }
+        const text = extractText(result);
+        if (text) return { content: [{ type: 'text', text }] };
+        failTrace('empty'); return null;
+      } catch (e) {
+        if (String(e && e.message) === 'codex-timeout') { failTrace('timeout'); return null; }
+        if (isOverloaded(e) && attempt < maxRetries) { const b = Math.min(maxBackoffMs, baseBackoffMs * (2 ** attempt)); backoffCreditMs += b; await sleep(b); continue; }
+        failTrace('error'); return null; // SDK/auth error ⇒ degrade (lane inert until `codex login` / CODEX_API_KEY)
+      } finally { cleanup(); }
+    }
+    failTrace('retry-exhausted'); return null;
+  };
+}
+
+// CROSS-FAMILY transport: OpenAI GPT (RESPONSES API, /v1/responses) keyed from OPENAI_API_KEY. Unlike the Codex SDK
+// (an agent that would not call our tools), THIS is a HAND-ROLLED function-calling loop WE drive — like the Gemini
+// lane — so tool use is guaranteed: we present the cdp tools, the model emits function_call items, we dispatch to the
+// SAME buildCdpToolDispatch handlers, feed function_call_output back (chained via previous_response_id so the model's
+// reasoning carries across turns), and loop to a final JSON verdict. The RESPONSES API (NOT chat/completions) is
+// REQUIRED: gpt-5.4 rejects `tools + reasoning_effort` on chat/completions ("use /v1/responses instead"). `dispatch`
+// ({declarations,call}) OPTIONAL: omitted ⇒ a single vision response (no-tools lane); present ⇒ the multi-turn tool
+// loop. Vision rides as input_image data-URLs. Token usage (input+output, EVERY turn — output INCLUDES reasoning
+// tokens) → BOTH onTrace and onTraceSink so the loop's tokens are fully accounted. fetchImpl injectable; degrades to
+// null (never throws) on missing key / HTTP / timeout — lane stays inert without OPENAI_API_KEY.
+function makeOpenAITransport(opts = {}) {
+  const {
+    apiKey = (typeof process !== 'undefined' && process.env && process.env.OPENAI_API_KEY) || null,
+    model = 'gpt-5.4', effort = 'medium', dispatch = null,
+    maxTurns = LIMITS.llm.toolMaxTurns, maxOutputTokens = Number(process.env.V3_OPENAI_MAX_TOKENS) || 16000,
+    baseUrl = 'https://api.openai.com/v1', fetchImpl = null,
+    runTimeoutMs = LIMITS.llm.runTimeoutMs, maxRetries = LIMITS.llm.maxRetries,
+    baseBackoffMs = LIMITS.llm.baseBackoffMs, maxBackoffMs = LIMITS.llm.maxBackoffMs,
+    getExtraDeadlineMs = null, onTraceSink = null,
+  } = opts;
+  const f = fetchImpl || (typeof fetch === 'function' ? fetch : null);
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const EFFORT_MAP = { minimal: 'minimal', low: 'low', medium: 'medium', high: 'high', xhigh: 'high', max: 'high' }; // Responses reasoning.effort: minimal|low|medium|high
+  const reasoningEffort = EFFORT_MAP[(typeof process !== 'undefined' && process.env.V3_OPENAI_EFFORT) || effort] || 'medium';
+  const toInputContent = (blocks) => (blocks || []).map((b) => {
+    if (b && b.type === 'text') return { type: 'input_text', text: b.text || '' };
+    if (b && b.type === 'image' && b.source && b.source.data) return { type: 'input_image', image_url: `data:${b.source.media_type || 'image/png'};base64,${b.source.data}` };
+    return null;
+  }).filter(Boolean);
+  const toolDefs = (dispatch && Array.isArray(dispatch.declarations)) // Responses tools are FLAT (name/description/parameters at the top level)
+    ? dispatch.declarations.map((d) => ({ type: 'function', name: d.name, description: d.description, parameters: d.parameters || { type: 'object', properties: {} } }))
+    : null;
+  const extractText = (j) => {
+    if (j && typeof j.output_text === 'string' && j.output_text.trim()) return j.output_text; // SDK convenience field, when present
+    let text = '';
+    for (const item of (j && Array.isArray(j.output) ? j.output : [])) {
+      if (item && item.type === 'message' && Array.isArray(item.content)) for (const c of item.content) if (c && (c.type === 'output_text' || c.type === 'text') && typeof c.text === 'string') text += c.text;
+    }
+    return text;
+  };
+  return async function transport(request, callOpts = {}) {
+    const onTrace = callOpts && typeof callOpts.onTrace === 'function' ? callOpts.onTrace : null;
+    const failTrace = (mode) => { if (onTrace) try { onTrace({ type: 'transportFail', provider: 'openai', mode, finishReason: null }); } catch (e) {} };
+    const emitUsage = (u) => { if (!u) return; const ev = { type: 'result', usage: { input_tokens: u.input_tokens || 0, output_tokens: u.output_tokens || 0 } }; if (onTrace) try { onTrace(ev); } catch (e) {} if (onTraceSink) try { onTraceSink(ev); } catch (e) {} };
+    if (!apiKey) { failTrace('no-key'); return null; } // OPENAI_API_KEY absent ⇒ lane OFF
+    if (!f) { failTrace('no-fetch'); return null; }
+    const content = (request && request.messages && request.messages[0] && request.messages[0].content) || [];
+    const useModel = (request && request.model) || model;
+    const useTools = toolDefs && !(request && request.disableTools);
+    const maxT = useTools ? Math.max(1, maxTurns) : 1;
+    const deadline = Date.now() + runTimeoutMs;
+    let backoffCreditMs = 0;
+    const dueAt = () => deadline + (getExtraDeadlineMs ? (Number(getExtraDeadlineMs()) || 0) : 0) + backoffCreditMs;
+    let input = [{ role: 'user', content: toInputContent(content) }];
+    let prevId = null;
+    for (let turn = 0; turn < maxT; turn++) {
+      if (dueAt() - Date.now() <= 0) { failTrace('deadline'); return null; }
+      const offerTools = useTools && turn < maxT - 1; // last turn: no tools ⇒ FORCE the final verdict
+      const body = { model: useModel, input, max_output_tokens: maxOutputTokens, reasoning: { effort: reasoningEffort } };
+      if (prevId) body.previous_response_id = prevId; // chain so the model's reasoning carries across tool turns
+      if (offerTools) { body.tools = toolDefs; body.tool_choice = 'auto'; }
+      let j = null;
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        if (dueAt() - Date.now() <= 0) { failTrace('deadline'); return null; }
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), Math.max(1, dueAt() - Date.now()));
+        try {
+          const r = await f(`${baseUrl}/responses`, { method: 'POST', signal: ctrl.signal, headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' }, body: JSON.stringify(body) });
+          clearTimeout(timer);
+          if (r.status === 429 || r.status >= 500) { if (attempt < maxRetries) { const b = Math.min(maxBackoffMs, baseBackoffMs * (2 ** attempt)); backoffCreditMs += b; await sleep(b); continue; } failTrace(`http-${r.status}`); return null; }
+          if (!r.ok) { failTrace(`http-${r.status}`); return null; } // 4xx (bad model/params/auth) ⇒ degrade
+          j = await r.json(); break;
+        } catch (e) { clearTimeout(timer); if (attempt < maxRetries) { const b = Math.min(maxBackoffMs, baseBackoffMs * (2 ** attempt)); backoffCreditMs += b; await sleep(b); continue; } failTrace('network'); return null; }
+      }
+      if (!j) { failTrace('empty'); return null; }
+      emitUsage(j.usage);
+      prevId = j.id || prevId;
+      const fcs = (Array.isArray(j.output) ? j.output : []).filter((o) => o && o.type === 'function_call');
+      if (useTools && fcs.length) { // dispatch each function_call to the cdp handlers; next turn sends ONLY the outputs (prevId carries the rest)
+        input = [];
+        for (const fc of fcs) {
+          let args = {}; try { args = JSON.parse(fc.arguments || '{}'); } catch (e) {}
+          if (onTrace) try { onTrace({ type: 'tool_use', name: fc.name, input: args }); } catch (e) {}
+          let result; try { result = await dispatch.call(fc.name, args); } catch (e) { result = { error: String((e && e.message) || e) }; }
+          input.push({ type: 'function_call_output', call_id: fc.call_id, output: JSON.stringify(result == null ? {} : result) });
+        }
+        if (turn === maxT - 2) input.push({ role: 'user', content: [{ type: 'input_text', text: CONCLUDE_INSTRUCTION }] }); // next turn offers no tools → it must answer
+        continue;
+      }
+      const text = extractText(j);
+      if (text && text.trim()) return { content: [{ type: 'text', text }] };
+      failTrace('empty-final'); return null;
+    }
+    failTrace('max-turns'); return null;
+  };
+}
+
+module.exports = { makeRunAgent, makeAnthropicTransport, makeClaudeSdkTransport, makeGeminiTransport, makeGeminiToolTransport, makeCodexTransport, makeOpenAITransport, parseAgentReply, toAnthropicContent, looksDegenerate };

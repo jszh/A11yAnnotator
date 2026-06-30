@@ -1166,4 +1166,64 @@ function buildCdpToolDispatch(session) {
   return { declarations, call };
 }
 
-module.exports = { queryAxNode, observeStateAfterActivation, setStateAndCapture, probeScreenReaderAfterAction, pressKeysAndObserveFocus, measureGeometryLive, requestHiResCrop, renderWithOverrides, computeContrastRatio, resolvePartColor, resolveDestination, compareIframeContent, compareNamedRegions, ocrImageText, captureFullPage, buildCdpToolServer, buildCdpToolDispatch };
+// CROSS-FAMILY tool surface (Codex / any MCP client): the SAME CDP handlers, exposed as an in-process **Streamable
+// HTTP MCP server** — the only MCP transport that fits our LIVE in-process tool session (a stdio subprocess MCP could
+// not reach the running puppeteer session). The OpenAI Codex SDK connects to it by URL via config.mcp_servers.cdp.url.
+// Wraps buildCdpToolDispatch's JSON-schema declarations directly as MCP tools/list inputSchemas and routes tools/call
+// to dispatch.call. `arg` may be a live session OR a pre-built {declarations,call} dispatch (the latter for unit tests).
+// Stateless JSON responses (no SSE session) so each tool call is an independent request. Returns { url, close }.
+// Server-wide guidance Codex reads at MCP init (the verify-before-judging RULE is in the first ~200 chars by design).
+const CDP_MCP_INSTRUCTIONS = 'Read-only inspection tools over the LIVE rendered page for THIS accessibility judgment. '
+  + 'RULE: before you flag OR clear a barrier, CALL the relevant tool to verify rather than guessing from the static '
+  + 'signals. resolve_destination = where same-named links/buttons actually go (2.4.4); capture_full_page = off-viewport '
+  + 'headings/structure (2.4.10/1.3.1); query_ax_node = a node\'s live role/name/aria; compute_contrast_ratio & '
+  + 'resolve_part_color = contrast over flat colors (1.4.x); set_state_and_capture & observe_state_after_activation = '
+  + 'focus/hover/reveal states; ocr_image_text & request_hi_res_crop = read small/blurry image text (1.4.5/1.1.1). '
+  + 'These run on a throwaway clone and never mutate the real page — prefer a tool call over an assumption.';
+
+async function buildCdpHttpMcpServer(arg) {
+  const http = require('http');
+  const { Server } = await import('@modelcontextprotocol/sdk/server/index.js');
+  const { StreamableHTTPServerTransport } = await import('@modelcontextprotocol/sdk/server/streamableHttp.js');
+  const { ListToolsRequestSchema, CallToolRequestSchema } = await import('@modelcontextprotocol/sdk/types.js');
+  const dispatch = (arg && Array.isArray(arg.declarations) && typeof arg.call === 'function') ? arg : buildCdpToolDispatch(arg);
+  const stats = { calls: 0, lists: 0, byTool: {} }; // tool-call telemetry — proves the agent actually used the cdp tools
+  // STATELESS Streamable-HTTP: a FRESH Server+transport PER request (a reused stateless transport binds to one req/res
+  // and breaks concurrent calls). Handlers close over the shared `dispatch` (one live session serves every subject).
+  // The `instructions` field is server-wide guidance Codex reads at init "when deciding how to use the server" — the
+  // per-tool descriptions alone did NOT get the agent to call them (it connected + listed but called none), so this
+  // front-loads the verify-before-judging RULE in the first ~200 chars (docs: keep the first 512 self-contained).
+  const makeServer = () => {
+    const server = new Server({ name: 'cdp', version: '1.0.0' }, { capabilities: { tools: {} }, instructions: CDP_MCP_INSTRUCTIONS });
+    server.setRequestHandler(ListToolsRequestSchema, async () => {
+      stats.lists++;
+      if (process.env.V3_MCP_DEBUG === '1') { try { process.stderr.write('[cdp-mcp] tools/list (client connected + discovered tools)\n'); } catch (e) {} }
+      return { tools: dispatch.declarations.map((d) => ({ name: d.name, description: d.description, inputSchema: d.parameters || { type: 'object', properties: {} } })) };
+    });
+    server.setRequestHandler(CallToolRequestSchema, async (req) => {
+      stats.calls++; stats.byTool[req.params.name] = (stats.byTool[req.params.name] || 0) + 1;
+      if (process.env.V3_MCP_DEBUG === '1') { try { process.stderr.write(`[cdp-mcp] call ${req.params.name} ${JSON.stringify(req.params.arguments || {}).slice(0, 120)}\n`); } catch (e) {} }
+      try { const r = await dispatch.call(req.params.name, req.params.arguments || {}); return { content: [{ type: 'text', text: JSON.stringify(r) }] }; }
+      catch (e) { return { content: [{ type: 'text', text: JSON.stringify({ error: String((e && e.message) || e) }) }], isError: true }; }
+    });
+    return server;
+  };
+  const httpServer = http.createServer((req, res) => {
+    let body = ''; req.on('data', (c) => { body += c; });
+    req.on('end', async () => {
+      let parsed; try { parsed = body ? JSON.parse(body) : undefined; } catch (e) { parsed = undefined; }
+      const server = makeServer();
+      const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
+      res.on('close', () => { try { transport.close(); } catch (e) {} try { server.close(); } catch (e) {} });
+      try { await server.connect(transport); await transport.handleRequest(req, res, parsed); }
+      catch (e) { if (!res.headersSent) { res.statusCode = 500; res.end(JSON.stringify({ error: String((e && e.message) || e) })); } }
+    });
+  });
+  await new Promise((resolve) => httpServer.listen(0, '127.0.0.1', resolve));
+  const url = `http://127.0.0.1:${httpServer.address().port}/mcp`;
+  // `declarations` surfaced so the caller can also name the tools IN THE PROMPT (the Codex agent reads MCP instructions
+  // but ignored them; an explicit in-prompt catalog is the stronger channel).
+  return { url, stats, declarations: dispatch.declarations, close: async () => new Promise((resolve) => { try { httpServer.close(() => resolve()); } catch (e) { resolve(); } }) };
+}
+
+module.exports = { queryAxNode, observeStateAfterActivation, setStateAndCapture, probeScreenReaderAfterAction, pressKeysAndObserveFocus, measureGeometryLive, requestHiResCrop, renderWithOverrides, computeContrastRatio, resolvePartColor, resolveDestination, compareIframeContent, compareNamedRegions, ocrImageText, captureFullPage, buildCdpToolServer, buildCdpToolDispatch, buildCdpHttpMcpServer, CDP_MCP_INSTRUCTIONS };

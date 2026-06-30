@@ -25,7 +25,7 @@ require('../../scripts/v3/lib/load-env.js').loadEnv(REPO_ROOT);
 
 const { orchestrate } = require('../../scripts/v3/lib/orchestrator.js');
 const { createTabAllocator } = require('../../scripts/v3/lib/tab-allocator.js');
-const { makeRunAgent, makeClaudeSdkTransport, makeGeminiTransport } = require('../../scripts/v3/lib/llm-agent-adapter.js');
+const { makeRunAgent, makeClaudeSdkTransport, makeGeminiTransport, makeCodexTransport, makeOpenAITransport } = require('../../scripts/v3/lib/llm-agent-adapter.js');
 const { collectActPage, normalizeCollectRoles } = require('../../scripts/v3/lib/act-page-collect.js');
 const { makeSemaphore, sampleMemory } = require('../../scripts/v3/lib/run-telemetry.js');
 const LIMITS = require('../../scripts/v3/lib/limits.js');
@@ -58,7 +58,7 @@ const PROVIDER = arg('provider', 'claude');
 // limit (LIMITS.concurrency.llm = 16; above ~19 in-flight the API rate-limits). Gemini has a SEPARATE, higher API
 // quota, so its ceiling is raised (GEMINI_LLM_CAP, default 64) — an explicit --global-llm may exercise it up to that.
 // An override may only go LOWER than the provider ceiling, never above. maxTabs likewise sources from limits.js.
-const LLM_CAP = PROVIDER === 'gemini' ? Number(process.env.GEMINI_LLM_CAP || 64) : LIMITS.concurrency.llm;
+const LLM_CAP = PROVIDER === 'gemini' ? Number(process.env.GEMINI_LLM_CAP || 64) : PROVIDER === 'codex' ? Number(process.env.CODEX_LLM_CAP || 16) : PROVIDER === 'openai' ? Number(process.env.OPENAI_LLM_CAP || 24) : LIMITS.concurrency.llm;
 const GLOBAL_LLM = Math.min(LLM_CAP, Math.max(1, Number(arg('global-llm', LIMITS.concurrency.llm))));
 const LLM_CONC = Math.min(LIMITS.concurrency.llm, Math.max(1, Number(arg('llm-concurrency', LIMITS.concurrency.llm)))); // per-page subjects; the global gate enforces the true cap
 const MAX_TABS = Math.min(LIMITS.concurrency.maxTabs, Math.max(1, Number(arg('max-tabs', LIMITS.concurrency.maxTabs))));
@@ -84,8 +84,13 @@ const BASELINE_VISION = process.env.V3_BASELINE_VISION === '1';
 const FIXED_STATUS_PATH = process.env.LLM_EVAL_STATUS_PATH || process.env.FN_LLM_STATUS_PATH || '/tmp/llm-eval-status.json';
 const STATUS_EVERY_MS = 500;
 
-const MODEL = process.env.V3_LLM_MODEL || (PROVIDER === 'gemini' ? (arg('model', null) || 'gemini-3.5-flash') : 'claude-sonnet-4-6');
-const GEMINI_KEY = (() => { try { return (fs.readFileSync(path.join(REPO_ROOT, '.env'), 'utf8').split('\n').find((l) => l.startsWith('GEMINI_API_KEY=')) || '').split('=')[1].trim(); } catch (e) { return null; } })();
+const MODEL = process.env.V3_LLM_MODEL || (PROVIDER === 'gemini' ? (arg('model', null) || 'gemini-3.5-flash') : (PROVIDER === 'codex' || PROVIDER === 'openai') ? (arg('model', null) || 'gpt-5.4') : 'claude-sonnet-4-6');
+const envVal = (key) => { try { return (fs.readFileSync(path.join(REPO_ROOT, '.env'), 'utf8').split('\n').find((l) => l.startsWith(key + '=')) || '').split('=')[1].trim() || null; } catch (e) { return null; } };
+const GEMINI_KEY = envVal('GEMINI_API_KEY');
+// codex auth (the OpenAI Codex SDK lane): CODEX_API_KEY from .env OR ambient (`codex login`). Inert until set.
+const CODEX_KEY = process.env.CODEX_API_KEY || envVal('CODEX_API_KEY');
+// openai auth (the GPT hand-rolled function-calling lane): OPENAI_API_KEY from .env. Inert until set.
+const OPENAI_KEY = process.env.OPENAI_API_KEY || envVal('OPENAI_API_KEY');
 const TRANSPORT_CONFIG = {
   oauthToken: process.env.CLAUDE_CODE_OAUTH_TOKEN,
   model: MODEL,
@@ -180,8 +185,12 @@ function recordTrace(e) {
 const TRANSPORT_WITH_SINK = { ...TRANSPORT_CONFIG, onTraceSink: recordTrace };
 // PROVIDER switch: gemini ⇒ cross-family single-shot transport (no tools, no OAuth), else the subscription SDK.
 const baseTransport = PROVIDER === 'gemini'
-  ? makeGeminiTransport({ apiKey: GEMINI_KEY, model: MODEL })
-  : makeClaudeSdkTransport(TRANSPORT_WITH_SINK);
+  ? makeGeminiTransport({ apiKey: GEMINI_KEY, model: MODEL, onTraceSink: recordTrace }) // onTraceSink ⇒ Gemini tokens now hit the persistent telemetry
+  : PROVIDER === 'codex'
+    ? makeCodexTransport({ apiKey: CODEX_KEY, model: MODEL, effort: TRANSPORT_CONFIG.effort, onTraceSink: recordTrace, runTimeoutMs: TRANSPORT_CONFIG.runTimeoutMs }) // GPT-5.4 via the Codex SDK (vision; agent won't tool-call)
+    : PROVIDER === 'openai'
+      ? makeOpenAITransport({ apiKey: OPENAI_KEY, model: MODEL, effort: TRANSPORT_CONFIG.effort, onTraceSink: recordTrace, runTimeoutMs: TRANSPORT_CONFIG.runTimeoutMs }) // GPT-5.4 via Chat Completions (no-tools single-shot here; tool loop built in orchestrate)
+      : makeClaudeSdkTransport(TRANSPORT_WITH_SINK);
 const baseAgent = makeRunAgent({ transport: baseTransport, model: MODEL });
 // GLOBAL semaphore + inflight tracking, factored so it wraps EITHER agent: the single-shot agent (here) and the
 // tool agent (via orchestrate's wrapAgent hook). One global cap + one inflight view regardless of tools on/off.
@@ -373,7 +382,11 @@ async function main() {
   const allTraces = [];
   const persist = () => {
     fs.writeFileSync(path.join(OUT, 'results.json'), JSON.stringify(results, null, 2));
-    fs.writeFileSync(path.join(OUT, 'summary.json'), JSON.stringify(summarize(results), null, 2));
+    // token usage rides into the DURABLE summary (not just the transient status.json): input/output (+cache) totals,
+    // mean per judged verdict, and cost — so every experiment record carries its token spend.
+    const tk = tel.llm;
+    const tokens = { provider: PROVIDER, model: MODEL, inputTokens: tk.inputTokens, outputTokens: tk.outputTokens, totalTokens: tk.inputTokens + tk.outputTokens, cacheReadTokens: tk.cacheReadTokens, cacheCreateTokens: tk.cacheCreateTokens, costUsd: tk.costUsd, usageEvents: tk.results, meanOutputPerVerdict: tk.results ? Math.round(tk.outputTokens / tk.results) : 0 };
+    fs.writeFileSync(path.join(OUT, 'summary.json'), JSON.stringify({ ...summarize(results), tokens }, null, 2));
   };
 
   let cursor = 0;
@@ -414,7 +427,7 @@ async function main() {
           runLlm: RUN_LLM, runAgent, captureVision: RUN_LLM && VISION, wrapAgent, // --no-llm ⇒ DETERMINISTIC baseline (no LLM lane, no vision capture)
           llmConcurrency: LLM_CONC,
           llmTools: TOOLS, llmTransportConfig: TRANSPORT_WITH_SINK,
-          llmProvider: PROVIDER, geminiKey: GEMINI_KEY, // gemini ⇒ the hand-rolled function-calling tool loop over the same CDP handlers
+          llmProvider: PROVIDER, geminiKey: GEMINI_KEY, codexKey: CODEX_KEY, openaiKey: OPENAI_KEY, // gemini/openai ⇒ hand-rolled tool loop; codex ⇒ HTTP MCP cdp server
           llmToolConcurrency: LIMITS.concurrency.llmTool,
           llmToolMaxTurns: LIMITS.llm.toolMaxTurns,
           llmToolRunTimeoutMs: LIMITS.llm.toolRunTimeoutMs,
