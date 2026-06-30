@@ -242,6 +242,137 @@ async function observeStateAfterActivation(page, args, ctx) {
 }
 
 // ============================================================================================
+// interact_and_observe — the BOUNDED generic primitive set. A SHORT, capped SEQUENCE of low-level primitives
+// (type / click / press / focus / clear) driven on a FRESH CLONE, with real navigation/submission BLOCKED (so a
+// form submit fires CLIENT-SIDE validation but never POSTs), then a single OBJECTIVE before/after delta. This is
+// the composition of the existing "drive one state, observe the delta" tools (observe_state_after_activation /
+// press_keys_and_observe_focus) into "drive a short sequence, observe" — so the LLM can, under rubric GUIDELINES,
+// handle the heterogeneous long tail (3.3.x form errors, multi-step reveals) WITHOUT a bespoke tool per pattern.
+// Invariants preserved: fresh clone (isolated), network blocked (no side effects), hard action cap, and the
+// return is FACTS, never a verdict. The echoed `actions` + per-step `steps` ARE the action-trace — frozen into the
+// evidence pack like any tool result, so a judge A/B over the frozen interaction stays reproducible.
+const _MAX_ACTIONS = 16;
+async function interactAndObserve(page, args, ctx) {
+  const acts = Array.isArray(args && args.actions) ? args.actions : [];
+  if (!acts.length) return { error: 'actions[] required ({op:type|click|press|focus|clear, xpath?, text?, key?})' };
+  const cap = Math.max(1, Math.min(_MAX_ACTIONS, Number(args.maxActions) || _MAX_ACTIONS));
+  if (acts.length > cap) return { error: `too many actions (${acts.length} > cap ${cap})` };
+  const VALID_OPS = new Set(['type', 'click', 'press', 'focus', 'clear']);
+  for (const a of acts) { if (!a || !VALID_OPS.has(a.op)) return { error: `invalid op ${JSON.stringify(a && a.op)} — one of type|click|press|focus|clear` }; }
+  if (!ctx || typeof ctx.freshClone !== 'function') return { error: 'fresh clone unavailable — this mutating tool refuses to touch the shared page' };
+  const live = await ctx.freshClone();
+  const LIVE_SEL = '[aria-live="polite"],[aria-live="assertive"],[role=status],[role=alert],[role=log],[role=alertdialog],output';
+  let blockedNavigations = 0;
+  try {
+    const startUrl = live.url();
+    // SAFETY: block any post-load navigation/submission at the network layer (covers form.submit()/location=…), and
+    // preventDefault every submit in the page (covers the default form POST) — we only ever observe CLIENT-SIDE state.
+    await live.setRequestInterception(true).catch(() => {});
+    live.on('request', (req) => {
+      let block = false;
+      try { if (req.isNavigationRequest() && req.frame() === live.mainFrame() && req.url() !== startUrl) block = true; } catch (e) { block = false; }
+      if (block) { blockedNavigations++; req.abort().catch(() => {}); } else req.continue().catch(() => {});
+    });
+    await live.evaluate(() => { document.addEventListener('submit', (e) => { try { e.preventDefault(); } catch (x) {} }, true); }).catch(() => {});
+
+    // BEFORE: tag elements + record visible texts, focus, and per-field validity/aria-invalid state.
+    const before = await live.evaluate(() => {
+      const _vis = (el) => { try { return el.checkVisibility({ checkVisibilityCSS: true, checkOpacity: true }) && !el.closest('[aria-hidden="true"]'); } catch (e) { const cs = getComputedStyle(el); return cs.display !== 'none' && cs.visibility !== 'hidden' && !el.closest('[aria-hidden="true"]'); } };
+      const _xp = (el) => { if (!el || el.nodeType !== 1) return null; const p = []; for (let n = el; n && n.nodeType === 1; n = n.parentElement) { let i = 1; for (let s = n.previousElementSibling; s; s = s.previousElementSibling) if (s.tagName === n.tagName) i++; p.unshift(n.tagName.toLowerCase() + '[' + i + ']'); } return '/' + p.join('/'); };
+      const texts = new Set();
+      for (const el of document.querySelectorAll('body *')) {
+        el.setAttribute('data-v3-pre', '1');
+        const cs = getComputedStyle(el);
+        el.setAttribute('data-v3-pv', (cs.display === 'none' ? 'd' : '') + (cs.visibility === 'hidden' ? 'v' : '') + (el.closest('[aria-hidden="true"]') ? 'a' : ''));
+        if (_vis(el)) for (const n of el.childNodes) if (n.nodeType === 3 && n.textContent.trim()) texts.add(n.textContent.trim());
+      }
+      const fieldState = (el) => ({ xpath: _xp(el), ariaInvalid: el.getAttribute('aria-invalid'), valid: (el.validity ? el.validity.valid : null), cssInvalid: (el.matches ? el.matches(':invalid') : null) });
+      const fields = [...document.querySelectorAll('input,select,textarea')].slice(0, 40).map(fieldState);
+      return { url: location.href, active: _xp(document.activeElement), texts: [...texts], fields };
+    });
+
+    // EXECUTE the sequence step-by-step (puppeteer keyboard for type/press needs the element focused in the page).
+    const steps = [];
+    for (const a of acts) {
+      try {
+        if (a.op !== 'click') {
+          const found = await live.evaluate((xp) => { const el = xp ? document.evaluate(xp, document, null, 9, null).singleNodeValue : document.activeElement; if (!el) return false; try { el.focus(); } catch (e) {} return true; }, a.xpath || null);
+          if (!found) { steps.push({ op: a.op, xpath: a.xpath || null, ok: false, note: 'element not found' }); continue; }
+        }
+        if (a.op === 'clear') await live.evaluate(() => { const el = document.activeElement; if (el && 'value' in el) { el.value = ''; el.dispatchEvent(new Event('input', { bubbles: true })); } });
+        else if (a.op === 'type') await live.keyboard.type(String(a.text == null ? '' : a.text).slice(0, 200), { delay: 0 });
+        else if (a.op === 'press') await live.keyboard.press(String(a.key || 'Enter').slice(0, 24));
+        else if (a.op === 'click') { const ok = await live.evaluate((xp) => { const el = document.evaluate(xp, document, null, 9, null).singleNodeValue; if (!el) return false; el.click(); return true; }, a.xpath); if (!ok) { steps.push({ op: a.op, xpath: a.xpath || null, ok: false, note: 'element not found' }); continue; } }
+        steps.push({ op: a.op, xpath: a.xpath || null, key: a.key || undefined, typed: a.op === 'type' ? String(a.text == null ? '' : a.text).slice(0, 60) : undefined, ok: true });
+      } catch (e) { steps.push({ op: a.op, xpath: a.xpath || null, ok: false, note: String((e && e.message) || e).slice(0, 80) }); }
+      await new Promise((r) => setTimeout(r, 70)); // settle between primitives
+    }
+
+    // AFTER: newly-visible texts (+ cause / live-region), focus move, and per-field invalidation + error association.
+    const after = await live.evaluate((beforeTexts, beforeFields, liveSel) => {
+      const _vis = (el) => { try { return el.checkVisibility({ checkVisibilityCSS: true, checkOpacity: true }) && !el.closest('[aria-hidden="true"]'); } catch (e) { const cs = getComputedStyle(el); return cs.display !== 'none' && cs.visibility !== 'hidden' && !el.closest('[aria-hidden="true"]'); } };
+      const _xp = (el) => { if (!el || el.nodeType !== 1) return null; const p = []; for (let n = el; n && n.nodeType === 1; n = n.parentElement) { let i = 1; for (let s = n.previousElementSibling; s; s = s.previousElementSibling) if (s.tagName === n.tagName) i++; p.unshift(n.tagName.toLowerCase() + '[' + i + ']'); } return '/' + p.join('/'); };
+      const beforeSet = new Set(beforeTexts), seen = new Set(), newlyVisible = [];
+      const activeEl = document.activeElement; let focusMoved = false;
+      for (const el of document.querySelectorAll('body *')) {
+        if (!_vis(el)) continue;
+        for (const n of el.childNodes) {
+          if (n.nodeType !== 3) continue; const t = n.textContent.trim();
+          if (!t || beforeSet.has(t) || seen.has(t)) continue; seen.add(t);
+          if (newlyVisible.length >= 16) continue;
+          const preExisted = el.hasAttribute('data-v3-pre');
+          const pv = el.getAttribute('data-v3-pv') || '';
+          const cause = !preExisted ? 'inserted' : pv.includes('d') ? 'display' : pv.includes('v') ? 'visibility' : pv.includes('a') ? 'aria-hidden' : 'text-changed';
+          const liveAnc = el.closest(liveSel);
+          newlyVisible.push({ xpath: _xp(el), text: t.slice(0, 80), visibilityCause: cause, inLiveRegion: !!liveAnc, liveRegionPreExisted: !!(liveAnc && liveAnc.hasAttribute('data-v3-pre')) });
+        }
+      }
+      if (activeEl) focusMoved = true; // resolved against before.active by the caller
+      // per-field error surfacing: a field that BECAME invalid (constraint-validation OR aria-invalid), its
+      // validationMessage, and the programmatically-associated error text (aria-errormessage / aria-describedby).
+      const beforeByXp = {}; for (const f of beforeFields) beforeByXp[f.xpath] = f;
+      const resolveIds = (el, attr) => (el.getAttribute(attr) || '').split(/\s+/).filter(Boolean).map((id) => { const t = document.getElementById(id); return t ? (t.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 120) : null; }).filter(Boolean);
+      const invalidFields = [];
+      for (const el of [...document.querySelectorAll('input,select,textarea')].slice(0, 40)) {
+        const xp = _xp(el);
+        const v = el.validity ? el.validity.valid : null;
+        const ai = el.getAttribute('aria-invalid');
+        const cssInvalid = el.matches ? el.matches(':invalid') : null;
+        const wasValid = !beforeByXp[xp] || beforeByXp[xp].valid !== false;
+        const nowInvalid = v === false || ai === 'true' || cssInvalid === true;
+        if (!nowInvalid) continue;
+        const errFromErrmsg = resolveIds(el, 'aria-errormessage');
+        const errFromDesc = resolveIds(el, 'aria-describedby');
+        const associatedErrorText = [...errFromErrmsg, ...errFromDesc];
+        invalidFields.push({
+          xpath: xp, becameInvalid: nowInvalid && wasValid,
+          constraintInvalid: v === false, ariaInvalid: ai === 'true', cssInvalid: cssInvalid === true,
+          validationMessage: (el.validationMessage || '').slice(0, 160) || null,
+          associatedErrorText, errorAssociated: associatedErrorText.length > 0,
+          via: errFromErrmsg.length ? 'aria-errormessage' : errFromDesc.length ? 'aria-describedby' : null,
+        });
+      }
+      return { url: location.href, active: _xp(activeEl), newlyVisible, focusMoved, invalidFields };
+    }, before.texts, before.fields, LIVE_SEL).catch(() => ({ url: before.url, active: null, newlyVisible: [], focusMoved: false, invalidFields: [] }));
+
+    return {
+      ranActions: steps.length, steps, // the action-trace (echo) — frozen into evidence for reproducible replay
+      blockedNavigations,             // >0 ⇒ a submit/navigation was intercepted (client-side observation only; no POST happened)
+      delta: {
+        urlChanged: before.url !== after.url, // should be false (navigation blocked); a true here is a same-doc hash change
+        focusMovedTo: before.active !== after.active ? after.active : null,
+        newlyVisibleNodes: after.newlyVisible, newVisibleTextCount: after.newlyVisible.length,
+        anyNewTextInLiveRegion: after.newlyVisible.some((n) => n.inLiveRegion && n.liveRegionPreExisted),
+        anyNewTextInNewLiveRegion: after.newlyVisible.some((n) => n.inLiveRegion && !n.liveRegionPreExisted),
+        invalidFields: after.invalidFields, // 3.3.1/3.3.3: which fields the page itself reports invalid + the error text it surfaced + whether it is programmatically ASSOCIATED
+        noErrorSurfaced: after.invalidFields.length === 0,
+      },
+      note: 'OBJECTIVE before/after delta of a bounded primitive sequence on an isolated clone (navigation/submit BLOCKED — no real POST). invalidFields reports what the page conveyed after the sequence; errorAssociated/validationMessage are facts, NOT a 3.3.1/3.3.3 adequacy verdict. noErrorSurfaced with an invalid submit is INCONCLUSIVE (the form may validate server-side), never "passes".',
+    };
+  } finally { try { await live.close(); } catch (e) {} }
+}
+
+// ============================================================================================
 // set_state_and_capture — MUTATING (fresh clone): drive ONE element into a named INTERACTION STATE the frozen
 // transition table doesn't cover (focus / hover / checked / open / expanded / placeholder-shown), then
 // re-capture the SAME clip before/after + a read-only computed-style DELTA over a fixed allowlist. For
@@ -1134,6 +1265,8 @@ async function buildCdpToolServer(session) {
       { targetXpath: z.string().optional(), x: z.number().optional(), y: z.number().optional() }, (a) => wrap(queryAxNode, a)),
     tool('observe_state_after_activation', 'Mutating (runs on a FRESH page clone): activate ONE control (by xpath) and return the OBJECTIVE before/after delta — each newly-visible text with its visibilityCause (inserted | display | visibility | aria-hidden | text-changed), whether it landed in a live region AND whether that region PRE-EXISTED (4.1.3: a region created with its message is NOT a reliable announcement → anyNewTextInNewLiveRegion, INCONCLUSIVE), whether focus moved into the revealed content (focusMovedToChange), and whether the page navigated/opened a window. Refuses a non-perceivable target. Reports WHAT changed and HOW, never whether it is conformant.',
       { targetXpath: z.string() }, (a) => wrap(observeStateAfterActivation, a)),
+    tool('interact_and_observe', 'Mutating (FRESH clone, real navigation/submit BLOCKED): run a SHORT capped SEQUENCE of low-level primitives — actions:[{op:"type"|"click"|"press"|"focus"|"clear", xpath?, text?, key?}] (≤16) — then return ONE objective before/after delta: newlyVisibleNodes (visibilityCause + live-region facts), focusMovedTo, blockedNavigations, and invalidFields[] (each field the page reported invalid, with constraintInvalid/ariaInvalid/cssInvalid, validationMessage, the associated error text + errorAssociated/via). Use the GUIDELINES to drive a heterogeneous interaction yourself (e.g. 3.3.1/3.3.3: clear+type-invalid into required/typed fields, click submit, observe the error surface). FACTS not a verdict; noErrorSurfaced after an invalid submit is INCONCLUSIVE (server-side validation possible), never a pass.',
+      { actions: z.array(z.object({ op: z.enum(['type', 'click', 'press', 'focus', 'clear']), xpath: z.string().optional(), text: z.string().optional(), key: z.string().optional() })), maxActions: z.number().optional() }, (a) => wrap(interactAndObserve, a)),
     tool('set_state_and_capture', 'Mutating (FRESH clone): drive ONE element into an interaction state (focus|hover|checked|open|expanded|placeholder-shown) and return before/after screenshots of the same region + the computed-style DELTA (which outline/border/decoration/background props changed) + stateReached/textVisible. Use for state-specific indicators (1.4.11/1.4.1/1.4.3). Returns PIXELS + objective style deltas, never a contrast number or a verdict; if stateReached is false, do not infer a pass.',
       { targetXpath: z.string(), state: z.enum(['focus', 'hover', 'checked', 'open', 'expanded', 'placeholder-shown']) }, (a) => wrap(setStateAndCapture, a)),
     tool('probe_screen_reader_after_action', 'Mutating (FRESH clone): run a screen reader, clear its log, activate ONE control (by xpath), settle, and return the VERBATIM spoken-phrase queue. Returns BOTH the full announcements queue AND liveRegionAnnouncements (the polite/assertive subset — the ONLY 4.1.3-relevant phrases; focus/change-of-context phrases are excluded by 4.1.3). emptyQueue/noLiveRegionAnnouncement flag a genuine silence; an instrument failure returns {error,probeFailed:true} instead (never a fake emptyQueue). Raw phrases, never an adequacy/announced verdict.',
@@ -1182,6 +1315,7 @@ function buildCdpToolDispatch(session) {
     resolve_part_color: resolvePartColor, resolve_destination: resolveDestination,
     compare_iframe_content: compareIframeContent,
     compare_named_regions: compareNamedRegions, ocr_image_text: ocrImageText, capture_full_page: captureFullPage,
+    interact_and_observe: interactAndObserve,
   };
   const S = (properties, required) => ({ type: 'object', properties, ...(required && required.length ? { required } : {}) });
   const declarations = [
@@ -1189,6 +1323,8 @@ function buildCdpToolDispatch(session) {
       parameters: S({ targetXpath: { type: 'string' }, x: { type: 'number' }, y: { type: 'number' } }) },
     { name: 'observe_state_after_activation', description: 'Mutating (runs on a FRESH page clone): activate ONE control (by xpath) and return the OBJECTIVE before/after delta — each newly-visible text with its visibilityCause (inserted | display | visibility | aria-hidden | text-changed), whether it landed in a live region AND whether that region PRE-EXISTED (4.1.3: a region created with its message is NOT a reliable announcement → anyNewTextInNewLiveRegion, INCONCLUSIVE), whether focus moved into the revealed content (focusMovedToChange), and whether the page navigated/opened a window. Refuses a non-perceivable target. Reports WHAT changed and HOW, never whether it is conformant.',
       parameters: S({ targetXpath: { type: 'string' } }, ['targetXpath']) },
+    { name: 'interact_and_observe', description: 'Mutating (FRESH clone, real navigation/submit BLOCKED): run a SHORT capped SEQUENCE of low-level primitives — actions:[{op:"type"|"click"|"press"|"focus"|"clear", xpath?, text?, key?}] (≤16) — then return ONE objective before/after delta: newlyVisibleNodes (each with visibilityCause + live-region facts), focusMovedTo, blockedNavigations, and invalidFields[] (each field the page reported invalid after the sequence, with constraintInvalid/ariaInvalid/cssInvalid, validationMessage, the programmatically-associated error text + errorAssociated/via). Use the GUIDELINES to drive a heterogeneous interaction yourself (e.g. 3.3.1/3.3.3: clear+type-invalid into required/typed fields, click the submit, observe the error surface) instead of needing a bespoke tool. Returns FACTS, never a verdict; noErrorSurfaced after an invalid submit is INCONCLUSIVE (server-side validation possible), never a pass.',
+      parameters: S({ actions: { type: 'array', items: { type: 'object', properties: { op: { type: 'string', enum: ['type', 'click', 'press', 'focus', 'clear'] }, xpath: { type: 'string' }, text: { type: 'string' }, key: { type: 'string' } }, required: ['op'] } }, maxActions: { type: 'number' } }, ['actions']) },
     { name: 'press_keys_and_observe_focus', description: 'Mutating (FRESH clone): focus ONE element (by xpath), dispatch ONE key combo (e.g. "Ctrl+M", "Escape", "Tab", "Alt+F6"), settle, and report whether focus MOVED (document.activeElement before vs after). For 2.1.2 keyboard-trap escape — behaviorally VERIFY a documented non-standard exit key actually frees focus instead of trusting the page JS: focusMoved=true ⇒ a WORKING escape; focusMoved=false ⇒ the key did nothing (a non-working / lying advisory). Objective before/after focus, never a verdict.',
       parameters: S({ targetXpath: { type: 'string' }, keys: { type: 'string' } }, ['targetXpath', 'keys']) },
     { name: 'set_state_and_capture', description: 'Mutating (FRESH clone): drive ONE element into an interaction state (focus|hover|checked|open|expanded|placeholder-shown) and return before/after screenshots of the same region + the computed-style DELTA (which outline/border/decoration/background props changed) + stateReached/textVisible. Use for state-specific indicators (1.4.11/1.4.1/1.4.3). Returns PIXELS + objective style deltas, never a contrast number or a verdict; if stateReached is false, do not infer a pass.',
@@ -1287,4 +1423,4 @@ async function buildCdpHttpMcpServer(arg) {
   return { url, stats, declarations: dispatch.declarations, close: async () => new Promise((resolve) => { try { httpServer.close(() => resolve()); } catch (e) { resolve(); } }) };
 }
 
-module.exports = { queryAxNode, observeStateAfterActivation, setStateAndCapture, probeScreenReaderAfterAction, pressKeysAndObserveFocus, measureGeometryLive, requestHiResCrop, renderWithOverrides, computeContrastRatio, resolvePartColor, resolveDestination, compareIframeContent, compareNamedRegions, ocrImageText, captureFullPage, buildCdpToolServer, buildCdpToolDispatch, buildCdpHttpMcpServer, CDP_MCP_INSTRUCTIONS, ssrfSafeUrl, isPrivateIp };
+module.exports = { queryAxNode, observeStateAfterActivation, interactAndObserve, setStateAndCapture, probeScreenReaderAfterAction, pressKeysAndObserveFocus, measureGeometryLive, requestHiResCrop, renderWithOverrides, computeContrastRatio, resolvePartColor, resolveDestination, compareIframeContent, compareNamedRegions, ocrImageText, captureFullPage, buildCdpToolServer, buildCdpToolDispatch, buildCdpHttpMcpServer, CDP_MCP_INSTRUCTIONS, ssrfSafeUrl, isPrivateIp };

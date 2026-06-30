@@ -13,6 +13,19 @@ re-drive anything. Where a deterministic CLAIM already disposed this obligation 
 checked whether the rejected field is programmatically associated with an error), DEFER — the builder
 hands you ONLY the auto-PARTIAL obligations, the ones a machine could not settle on its own.
 
+**Self-drive with `interact_and_observe` when the handed evidence is INCONCLUSIVE (tools enabled).** The
+deterministic driver covers the common form, but a heterogeneous one (multi-field, format-specific, a
+non-`<form>` JS widget) may not reach the error state — leaving you with no before/after error region. When
+that happens, drive it YOURSELF with the bounded primitive tool instead of abstaining: pick the form's required
+/ typed (`type=email`/`pattern`/`minlength`) field(s), and call `interact_and_observe` with a short sequence —
+`[{op:'clear',xpath:F}, {op:'type',xpath:F,text:<deliberately-invalid>}, {op:'click',xpath:<submit>}]` (an empty
+required field is the most universal invalid input; a bad-format value for a typed field). Read the result's
+`delta.invalidFields[]`: each names a field the page itself reported invalid, with its `validationMessage`, the
+programmatically-`associatedErrorText`, and `errorAssociated`/`via`. The tool BLOCKS the real submit (client-side
+observation only — no POST). `delta.noErrorSurfaced:true` after an invalid submit is INCONCLUSIVE (the form may
+validate server-side), NOT a pass → PARTIAL. Judge the `invalidFields` error text exactly as you would the
+handed crop. (If tools are off, or you cannot induce an error, fall back to N/A as before.)
+
 **Judge:** when the input is rejected, is the error IDENTIFIED in text — and does that text give the
 user the clear DIRECTION of what went wrong (which field, what the problem is), not merely a generic
 "submission failed"? "Email is required" or "Date must be after today" IDENTIFIES the error in text. A

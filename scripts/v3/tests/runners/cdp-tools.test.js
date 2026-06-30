@@ -10,7 +10,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const puppeteer = require('puppeteer');
 const { CHROME } = require('../../lib/run-experiments.js');
-const { queryAxNode, observeStateAfterActivation, setStateAndCapture, probeScreenReaderAfterAction, measureGeometryLive, requestHiResCrop, renderWithOverrides, computeContrastRatio, resolvePartColor, resolveDestination, compareNamedRegions, ocrImageText, ssrfSafeUrl, isPrivateIp } = require('../../lib/cdp-tools.js');
+const { queryAxNode, observeStateAfterActivation, setStateAndCapture, probeScreenReaderAfterAction, measureGeometryLive, requestHiResCrop, renderWithOverrides, computeContrastRatio, resolvePartColor, resolveDestination, compareNamedRegions, ocrImageText, ssrfSafeUrl, isPrivateIp, interactAndObserve } = require('../../lib/cdp-tools.js');
 const http = require('node:http');
 const { assetFileUrl, assetPath } = require('../../../lib/asset-paths.js');
 
@@ -430,5 +430,82 @@ test('observe_state_after_activation: activationKind classifies in-page vs navig
     assert.equal(btn.activationKind, 'in-page', 'a plain reveal button is in-page');
     const link = await observeStateAfterActivation(page, { targetXpath: XP.destlink }, { freshClone });
     assert.equal(link.activationKind, 'navigating-link', 'a real href is flagged as navigating (the delta may be a page change)');
+  });
+});
+
+// ───────────── interact_and_observe (bounded generic primitive set) ─────────────
+// Served over a LOCAL http origin so the navigation-block (request interception) is genuinely exercised.
+const INTERACT_HTML = fs.readFileSync(assetPath('fx-v3-interact.html'), 'utf8');
+const IXP = { email: '/html[1]/body[1]/form[1]/input[1]', submit: '/html[1]/body[1]/form[1]/button[1]', reveal: '/html[1]/body[1]/button[1]' };
+async function withInteractPage(fn) {
+  const srv = http.createServer((req, res) => { if (req.url === '/' || req.url.startsWith('/?')) { res.setHeader('content-type', 'text/html'); res.end(INTERACT_HTML); } else { res.statusCode = 404; res.end('gone'); } });
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  const url = `http://127.0.0.1:${srv.address().port}/`;
+  const page = await sharedBrowser.newPage();
+  try { await page.goto(url, { waitUntil: 'load' }); const ctx = { freshClone: async () => { const p = await sharedBrowser.newPage(); await p.goto(url, { waitUntil: 'load' }); return p; } }; return await fn(page, ctx); }
+  finally { await page.close().catch(() => {}); srv.close(); }
+}
+
+test('interact_and_observe 3.3.1: submit an empty required field ⇒ invalidFields with validationMessage + ASSOCIATED error text', { skip: !chromeOK, concurrency: false }, async () => {
+  await withInteractPage(async (page, ctx) => {
+    const r = await interactAndObserve(page, { actions: [{ op: 'click', xpath: IXP.submit }] }, ctx);
+    assert.ok(!r.error, r.error || 'ok');
+    const email = r.delta.invalidFields.find((f) => /input/.test(f.xpath));
+    assert.ok(email, 'the empty required email is reported invalid');
+    assert.equal(email.constraintInvalid, true, 'native constraint validation flags it');
+    assert.ok(email.validationMessage && email.validationMessage.length > 0, 'a native validationMessage is surfaced');
+    assert.equal(email.ariaInvalid, true, 'the page set aria-invalid');
+    assert.ok(email.associatedErrorText.some((t) => /valid email/i.test(t)), 'the programmatically-associated error text is captured');
+    assert.equal(email.errorAssociated, true);
+    assert.equal(email.via, 'aria-describedby');
+    assert.equal(r.delta.urlChanged, false, 'no navigation/POST happened');
+  });
+});
+
+test('interact_and_observe 3.3.1: type an INVALID value then submit ⇒ field reported invalid (typed sequence)', { skip: !chromeOK, concurrency: false }, async () => {
+  await withInteractPage(async (page, ctx) => {
+    const r = await interactAndObserve(page, { actions: [{ op: 'type', xpath: IXP.email, text: 'notanemail' }, { op: 'click', xpath: IXP.submit }] }, ctx);
+    assert.ok(!r.error, r.error || 'ok');
+    assert.equal(r.steps.length, 2);
+    assert.ok(r.delta.invalidFields.some((f) => f.constraintInvalid && /input/.test(f.xpath)), 'the bad-format email is invalid');
+    assert.equal(r.delta.urlChanged, false);
+  });
+});
+
+test('interact_and_observe SAFETY: a VALID submit does NOT navigate/POST (preventDefault on submit)', { skip: !chromeOK, concurrency: false }, async () => {
+  await withInteractPage(async (page, ctx) => {
+    const r = await interactAndObserve(page, { actions: [{ op: 'type', xpath: IXP.email, text: 'a@b.com' }, { op: 'click', xpath: IXP.submit }] }, ctx);
+    assert.ok(!r.error, r.error || 'ok');
+    assert.equal(r.delta.urlChanged, false, 'the form did not navigate away — the submit default was prevented (no real POST)');
+    assert.equal(r.delta.noErrorSurfaced, true, 'a valid form surfaced no field errors');
+  });
+});
+
+test('interact_and_observe SAFETY: a JS-driven navigation (location.href) is BLOCKED at the network layer (backstop)', { skip: !chromeOK, concurrency: false }, async () => {
+  await withInteractPage(async (page, ctx) => {
+    const r = await interactAndObserve(page, { actions: [{ op: 'click', xpath: '/html[1]/body[1]/button[2]' }] }, ctx); // the "Leave" button → location.href
+    assert.ok(!r.error, r.error || 'ok');
+    assert.ok(r.blockedNavigations >= 1, 'the JS navigation REQUEST was aborted by the interception backstop — no real GET/POST reached the network (the destination href may commit on a blocked load, but nothing was fetched)');
+  });
+});
+
+test('interact_and_observe: a multi-step reveal returns the newly-visible content (visibilityCause)', { skip: !chromeOK, concurrency: false }, async () => {
+  await withInteractPage(async (page, ctx) => {
+    const r = await interactAndObserve(page, { actions: [{ op: 'click', xpath: IXP.reveal }] }, ctx);
+    assert.ok(!r.error, r.error || 'ok');
+    const node = r.delta.newlyVisibleNodes.find((n) => /Hidden details revealed/.test(n.text));
+    assert.ok(node, 'the revealed panel text is reported newly-visible');
+    assert.equal(node.visibilityCause, 'display', 'un-hidden via display (the hidden attribute)');
+  });
+});
+
+test('interact_and_observe GUARDS: action cap + invalid op are rejected; result never carries a verdict', { skip: !chromeOK, concurrency: false }, async () => {
+  await withInteractPage(async (page, ctx) => {
+    const tooMany = await interactAndObserve(page, { actions: Array.from({ length: 17 }, () => ({ op: 'press', key: 'Tab' })) }, ctx);
+    assert.match(tooMany.error || '', /too many actions/, 'the action cap is enforced');
+    const badOp = await interactAndObserve(page, { actions: [{ op: 'navigate', xpath: IXP.reveal }] }, ctx);
+    assert.match(badOp.error || '', /invalid op/, 'an unknown op is rejected');
+    const r = await interactAndObserve(page, { actions: [{ op: 'click', xpath: IXP.reveal }] }, ctx);
+    assert.ok(!('verdict' in r) && !('pass' in r) && !('barrier' in r) && !('conformant' in r), 'facts only — no verdict laundered');
   });
 });

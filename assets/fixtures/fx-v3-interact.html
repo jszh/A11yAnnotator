@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Interact fixture</title></head>
+<body>
+  <form id="f" action="/submitted">
+    <label for="email">Email</label>
+    <input id="email" type="email" required aria-describedby="emailerr">
+    <span id="emailerr" role="alert"></span>
+    <button id="submit" type="submit">Submit</button>
+  </form>
+  <button id="reveal" aria-expanded="false">Show details</button>
+  <div id="panel" hidden>Hidden details revealed.</div>
+  <button id="leave" type="button">Leave</button>
+  <script>
+    document.getElementById('leave').addEventListener('click', function () { location.href = '/elsewhere'; }); // JS-driven nav (bypasses the submit event — exercises the network-layer backstop)
+    var email = document.getElementById('email'), err = document.getElementById('emailerr');
+    email.addEventListener('invalid', function () { email.setAttribute('aria-invalid', 'true'); err.textContent = 'Please enter a valid email address.'; });
+    email.addEventListener('input', function () { if (email.validity.valid) { email.removeAttribute('aria-invalid'); err.textContent = ''; } });
+    document.getElementById('reveal').addEventListener('click', function () { document.getElementById('panel').hidden = false; this.setAttribute('aria-expanded', 'true'); });
+  </script>
+</body>
+</html>
