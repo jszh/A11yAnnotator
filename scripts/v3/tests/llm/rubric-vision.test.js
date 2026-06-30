@@ -78,6 +78,20 @@ test('buildMessages: text block + one image block per supplied vision frame', ()
   assert.ok(withVision.some((b) => b.type === 'image' && b.id === 'vis:0' && b.data === PNG), 'the crop rides the prompt to the agent');
 });
 
+// The always-on cross-cutting knowledge layer (aria-hidden exemption + meaningful-removal EXCEPTION +
+// decorative default + judge-only-this-facet) rides EVERY rubric prompt. It cleared the systematic
+// aria-hidden FPs (contrast/name/keyboard on AT-removed elements) across 5.0/Gemini/GPT without leaking
+// into perceivable-text contrast or the meaningful-removal (hidden-heading) guard. Pin its load-bearing clauses.
+test('buildMessages: every prompt carries the cross-cutting knowledge layer (aria-hidden exemption + meaningful-removal exception)', () => {
+  const subj = { xpath: 'node:x', skill: 'contrast', sc: '1.4.3', claimFamily: 'contrast-minimum' };
+  const text = llmAdj.buildMessages(subj, {}, null, [])[0].text;
+  assert.match(text, /cross-cutting/i, 'the layer is labelled as cross-cutting (applies to every SC)');
+  assert.match(text, /REMOVED FROM THE ACCESSIBILITY TREE/i, 'aria-hidden / AT-removed exemption is stated');
+  assert.match(text, /EXCEPTION|when (the )?hiding IS the (harm|barrier)/i, 'the meaningful-removal EXCEPTION (hiding IS the harm) is preserved — must not over-exempt');
+  assert.match(text, /decorative/i, 'the decorative-default principle for ambiguous non-text is present');
+  assert.match(text, /this SC|only (this|the) (SC|facet)/i, 'judge-only-this-SC-facet scoping is present');
+});
+
 test('runAdjudication: vision frames are supplied per the rubric, ride the side llmVision artifact + evidenceRefs', async () => {
   const subjects = [{ xpath: 'node:img', skill: 'name-role-state', sc: '1.1.1', claimFamily: 'name-role-value', element: { xpath: 'node:img' } }];
   const llmRubrics = loadRubrics(); // name-role-state declares element-crop

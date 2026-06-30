@@ -69,6 +69,37 @@ test('query_ax_node: a real <h2> resolves to role heading w/ level; a styled <p>
   });
 });
 
+test('query_ax_node: cellHeaders surfaces a cell\'s associated row/col headers — native scope, dangling headers=, AND an ARIA grid; undefined off-table (1.3.1 + 2.4.4 context)', { skip: !chromeOK, concurrency: false }, async () => {
+  await withPage(async (page) => {
+    // 2.4.4: a bare "EPUB" link in a data cell — its row header "Ulysses" + column header "Download" ARE its context.
+    const link = await queryAxNode(page, { targetXpath: "//*[@id='lnk-epub']" });
+    assert.equal(link.role, 'link');
+    assert.ok(link.cellHeaders, 'a link inside a <td> carries cellHeaders');
+    assert.deepEqual(link.cellHeaders.rowHeaders, ['Ulysses'], 'the row header is the link\'s programmatic context');
+    assert.deepEqual(link.cellHeaders.colHeaders, ['Download']);
+    assert.equal(link.cellHeaders.headerSource, 'scope');
+    assert.equal(link.cellHeaders.inDataTable, true);
+    // 1.3.1: explicit headers= with one DANGLING idref → the mis-wire smell, plus the resolving header text.
+    const priced = await queryAxNode(page, { targetXpath: "//*[@id='cell-price']" });
+    assert.equal(priced.cellHeaders.headerSource, 'headers-attr');
+    assert.deepEqual(priced.cellHeaders.danglingHeaderIds, ['hdr-GONE'], 'a headers= ref to a missing id is flagged (BROKEN)');
+    assert.deepEqual(priced.cellHeaders.colHeaders, ['Price'], 'the resolving header still resolves to its text');
+    // 2.4.4 colspan: a <th colspan=2> spanning both download columns — the column-1 "EPUB" cell must STILL resolve the
+    // spanning header (span-aware grid; a DOM-index resolver would miss it because the header occupies only index 0).
+    const epub = await queryAxNode(page, { targetXpath: "//*[@id='dl-epub']" });
+    assert.deepEqual(epub.cellHeaders.colHeaders, ['Ulysses'], 'a colspan header covers the column-1 cell (the EPUB-in-table case)');
+    // 1.3.1: an ARIA grid (the native-only collector misses it) STILL resolves headers positionally via role=columnheader.
+    const gcell = await queryAxNode(page, { targetXpath: "//*[@id='grid-cell']" });
+    assert.equal(gcell.role, 'gridcell');
+    assert.deepEqual(gcell.cellHeaders.colHeaders, ['Status'], 'an ARIA gridcell resolves its column header by position — the case a native-only gate suppressed');
+    assert.deepEqual(gcell.cellHeaders.rowHeaders, ['Alpha']);
+    // off-table control: no cellHeaders key at all (no false attachment) + soundness rail (no verdict).
+    const off = await queryAxNode(page, { targetXpath: XP.ariacheck });
+    assert.equal(off.cellHeaders, undefined, 'a non-table node carries no cellHeaders');
+    assert.ok(!('verdict' in (link.cellHeaders) ) && !('pass' in link.cellHeaders), 'cellHeaders is raw facts, never a pass/fail');
+  });
+});
+
 test('query_ax_node: aria-labelledby IDREF resolve status distinguishes a present source from a dangling one (4.1.2 F68)', { skip: !chromeOK, concurrency: false }, async () => {
   await withPage(async (page) => {
     const r = await queryAxNode(page, { targetXpath: XP.lbl });

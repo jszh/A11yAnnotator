@@ -346,10 +346,13 @@ async function collectActPage(page, opts = {}) {
       // `<li>Ulysses</li>` IS disambiguated by "Ulysses"). `ownText` strips nested links so a parent <li>'s text is
       // its OWN subject, not its child links. A preceding-SIBLING paragraph is still excluded (not an ancestor), and
       // walking only ANCESTORS keeps the alone-in-its-own-block case (`<p><a>Workshop</a></p>`) correctly context-free.
-      // NOTE: table-cell HEADER cells are ALSO 2.4.4 context, but they are deliberately NOT gathered here — the LLM
-      // cannot reliably tell a SPECIFIC header (a row's subject) from a GENERIC category title (a `<th>Books</th>`
-      // spanning a download table), so feeding the generic title falsely cleared a real barrier. Deferred until the
-      // rubric can treat a generic-category header as insufficient disambiguation.
+      // NOTE: table-cell HEADER cells are ALSO 2.4.4 context, but they are deliberately NOT merged into blockText — the
+      // LLM cannot tell a SPECIFIC header (a row's subject) from a GENERIC category title (a `<th>Books</th>` spanning a
+      // download table) from one flattened string, so merging the generic title falsely cleared a real barrier. Instead
+      // they ride a SEPARATE `cellHeaderContext` field (below) that keeps ROW and COLUMN headers DISTINCT, so the rubric
+      // can credit a specific row-subject header while treating a generic column category as insufficient — which is the
+      // condition the original deferral required. (Relying on a model to call query_ax_node for this is unreliable: the
+      // passive models — GPT-5.4 / Gemini — judge the link without investigating, so the deterministic signal is needed.)
       const enclosingBlockText = (sampledRole === 'link' || tag === 'a') ? (function () {
         const ownText = (node) => { if (!node) return ''; const c = node.cloneNode(true); c.querySelectorAll('a,[role=link]').forEach((n) => n.remove()); return (c.textContent || '').replace(/\s+/g, ' ').trim(); };
         const parts = []; let inBlock = false;
@@ -362,6 +365,58 @@ async function collectActPage(page, opts = {}) {
         // "" (linkAloneInBlock=true). Inside a block WITH disambiguating own-text ⇒ that text.
         if (!inBlock) return null;
         return parts.filter(Boolean).join(' ').replace(/\s+/g, ' ').trim().slice(0, 300);
+      })() : undefined;
+      // #12b (2.4.4 table-cell context): a link in a `<td>`/`role=cell` is contextualised by its cell's associated
+      // row/column HEADER (the same header→data association 1.3.1 governs) — the EPUB-in-a-table case where the row
+      // header names the book. Keep ROW and COLUMN headers DISTINCT (a row-subject header disambiguates; a generic
+      // column category does not — see the deferral note above). Mirrors query_ax_node's cellHeaders resolver, run
+      // deterministically here so the PASSIVE models (which won't call the tool) still get it. Precedence: explicit
+      // `headers=` IDREFs, else positional (top-row=column headers, first-column=row headers); spans ignored (a hint).
+      const cellHeaderContext = (sampledRole === 'link' || tag === 'a') ? (function () {
+        if (!el.closest) return undefined;
+        const cell = el.closest('td,th,[role=cell],[role=gridcell],[role=columnheader],[role=rowheader]');
+        if (!cell) return undefined;
+        const table = cell.closest('table,[role=table],[role=grid],[role=treegrid]');
+        if (!table) return undefined;
+        const txt = (n) => (n && (n.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 120)) || '';
+        const isHdr = (c) => c.tagName === 'TH' || /\b(columnheader|rowheader)\b/.test(c.getAttribute('role') || '');
+        const out = { rowHeaders: [], colHeaders: [], headerSource: 'none' };
+        // explicit headers= IDREFs win.
+        const hids = (cell.getAttribute('headers') || '').trim().split(/\s+/).filter(Boolean);
+        if (hids.length) {
+          out.headerSource = 'headers-attr';
+          for (const id of hids) { const h = document.getElementById(id); if (h && h !== cell) { const sc = (h.getAttribute('scope') || '').toLowerCase(); (sc === 'row' ? out.rowHeaders : out.colHeaders).push(txt(h)); } }
+          return (out.rowHeaders.length || out.colHeaders.length) ? out : undefined;
+        }
+        // SPAN-AWARE grid: build a column-position map so a `<th colspan=3>` header covers all 3 data columns (the
+        // EPUB-in-a-table case). occupied[] tracks rowspans; cellPos maps each cell → {r,c,rs,cs} grid rectangle.
+        const rows = table.rows ? [].slice.call(table.rows) : [].slice.call(table.querySelectorAll('[role=row]'));
+        const rowCells = (r) => (r.cells ? [].slice.call(r.cells) : [].slice.call(r.querySelectorAll('td,th,[role=cell],[role=gridcell],[role=columnheader],[role=rowheader]')));
+        const span = (c, a, b) => Math.max(1, c[a] || parseInt(c.getAttribute(b), 10) || 1);
+        const occ = {}, cellPos = new Map();
+        for (let r = 0; r < rows.length; r++) {
+          let c = 0;
+          for (const cc of rowCells(rows[r])) {
+            while (occ[r + ',' + c]) c++;
+            const cs = span(cc, 'colSpan', 'aria-colspan'), rs = span(cc, 'rowSpan', 'aria-rowspan');
+            cellPos.set(cc, { r, c, rs, cs });
+            for (let dr = 0; dr < rs; dr++) for (let dc = 0; dc < cs; dc++) occ[(r + dr) + ',' + (c + dc)] = cc;
+            c += cs;
+          }
+        }
+        const pos = cellPos.get(cell);
+        if (!pos) return undefined;
+        const seenC = {}, seenR = {};
+        for (const [hc, p] of cellPos) {
+          if (hc === cell || !isHdr(hc)) continue;
+          const coversCol = p.c <= pos.c && pos.c < p.c + p.cs;
+          const coversRow = p.r <= pos.r && pos.r < p.r + p.rs;
+          if (p.r < pos.r && coversCol) { const t = txt(hc); if (t && !seenC[t]) { seenC[t] = 1; out.colHeaders.push(t); out.headerSource = 'positional'; } }
+          else if (p.c < pos.c && coversRow) { const t = txt(hc); if (t && !seenR[t]) { seenR[t] = 1; out.rowHeaders.push(t); out.headerSource = 'positional'; } }
+        }
+        if (out.headerSource === 'positional' && table.querySelector('th[scope=col],th[scope=row]')) out.headerSource = 'scope';
+        out.rowHeaders = out.rowHeaders.slice(0, 4); out.colHeaders = out.colHeaders.slice(0, 4);
+        return (out.rowHeaders.length || out.colHeaders.length) ? out : undefined;
       })() : undefined;
       // HTML-evidence ablation (V3_HTML_EVIDENCE): the element's RAW markup + its parent's markup, so an ablation
       // can feed the LLM the HTML in place of v3 structured signals (does raw markup beat the route-by-facet bundle?).
@@ -537,7 +592,7 @@ async function collectActPage(page, opts = {}) {
         tag,
         type,
         href: href || null, // Item 14a: destination for the 2.4.4 same-name-link in-context index
-        jsHref, enclosingBlockText, // #11 onclick-nav target + #12 enclosing-block context (2.4.4)
+        jsHref, enclosingBlockText, cellHeaderContext, // #11 onclick-nav target + #12 enclosing-block context + #12b table-cell row/col headers (2.4.4)
         htmlSnippet, enclosingHtml, // raw markup for the HTML-evidence ablation
         // heading level for the page-structure precompute branch (Tier-0 #3): aria-level wins, else h1-h6 tag.
         ariaLevel: el.getAttribute('aria-level') ? Number(el.getAttribute('aria-level')) : (/^h[1-6]$/.test(tag) ? Number(tag[1]) : null),

@@ -91,6 +91,71 @@ async function queryAxNode(page, args) {
     };
     const labelledby = await idrefStatus('aria-labelledby');
     const describedby = await idrefStatus('aria-describedby');
+    // cellHeaders — TABLE-CELL HEADER CONTEXT (1.3.1 association correctness + 2.4.4 link-in-cell context). When the
+    // resolved node sits in a data-table cell, surface the cell's PROGRAMMATICALLY-ASSOCIATED column/row header text
+    // so the judge can read the real header context instead of the harness pre-deciding it. This is the FLEXIBLE
+    // replacement for a brittle native-only tableAssociation gate: it covers ARIA grids (role=grid/columnheader/
+    // rowheader) the gate suppressed, AND gives 2.4.4 the cell's row/col header as the link's enclosing context (the
+    // EPUB-in-a-table case). Resolution precedence mirrors the HTML headers algorithm: explicit `headers=` IDREFs
+    // (with a dangling-id smell for 1.3.1), then `scope`, then POSITIONAL (top row = column headers, first column =
+    // row headers). Positional ignores row/col SPANS — it is a CONTEXT HINT for the judge, NOT an authority; the
+    // judge still decides adequacy. Returns undefined when the node is not in a table cell (most subjects).
+    const cellHeaders = (isCoordPath || !resolvedXpath) ? undefined : await page.evaluate((xp) => {
+      const start = document.evaluate(xp, document, null, 9, null).singleNodeValue;
+      if (!start || !start.closest) return undefined;
+      const cell = start.closest('td,th,[role=cell],[role=gridcell],[role=columnheader],[role=rowheader]');
+      if (!cell) return undefined;
+      const table = cell.closest('table,[role=table],[role=grid],[role=treegrid]');
+      if (!table) return undefined;
+      const txt = (n) => (n && (n.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 200)) || '';
+      const isHeaderCell = (c) => c.tagName === 'TH' || /\b(columnheader|rowheader)\b/.test(c.getAttribute('role') || '');
+      const out = { inDataTable: false, headerSource: 'none', colHeaders: [], rowHeaders: [], cellText: txt(cell), cellIsHeader: isHeaderCell(cell) };
+      out.inDataTable = !!table.querySelector('th,[role=columnheader],[role=rowheader]') || /\b(grid|treegrid)\b/.test(table.getAttribute('role') || '');
+      // 1. explicit headers= IDREFs (authoritative association; flag dangling ids — the classic 1.3.1 mis-wire).
+      const hids = (cell.getAttribute('headers') || '').trim().split(/\s+/).filter(Boolean);
+      if (hids.length) {
+        out.headerSource = 'headers-attr';
+        out.danglingHeaderIds = hids.filter((id) => !document.getElementById(id));
+        const hs = hids.map((id) => document.getElementById(id)).filter(Boolean);
+        for (const h of hs) {
+          const sc = (h.getAttribute('scope') || '').toLowerCase();
+          (sc === 'row' ? out.rowHeaders : out.colHeaders).push(txt(h));
+        }
+        return out;
+      }
+      // SPAN-AWARE grid (native rows/cells, else ARIA role=row + cell roles): build a column-position map so a
+      // `<th colspan=3>` header covers all 3 data columns (the EPUB-in-a-table case). occ[] tracks rowspans; cellPos
+      // maps each cell → {r,c,rs,cs}. A header is THIS cell's column header when it sits in an earlier row and its
+      // column-rectangle COVERS our column; its row header when it sits in an earlier column and COVERS our row.
+      const rows = table.rows ? [...table.rows] : [...table.querySelectorAll('[role=row]')];
+      const rowCells = (r) => (r.cells ? [...r.cells] : [...r.querySelectorAll('td,th,[role=cell],[role=gridcell],[role=columnheader],[role=rowheader]')]);
+      const span = (c, a, b) => Math.max(1, c[a] || parseInt(c.getAttribute(b), 10) || 1);
+      const occ = {}, cellPos = new Map();
+      for (let r = 0; r < rows.length; r++) {
+        let cpos = 0;
+        for (const cc of rowCells(rows[r])) {
+          while (occ[r + ',' + cpos]) cpos++;
+          const cs = span(cc, 'colSpan', 'aria-colspan'), rs = span(cc, 'rowSpan', 'aria-rowspan');
+          cellPos.set(cc, { r, c: cpos, rs, cs });
+          for (let dr = 0; dr < rs; dr++) for (let dc = 0; dc < cs; dc++) occ[(r + dr) + ',' + (cpos + dc)] = cc;
+          cpos += cs;
+        }
+      }
+      const pos = cellPos.get(cell);
+      if (pos) {
+        const seenC = {}, seenR = {};
+        for (const [hc, p] of cellPos) {
+          if (hc === cell || !isHeaderCell(hc)) continue;
+          const coversCol = p.c <= pos.c && pos.c < p.c + p.cs;
+          const coversRow = p.r <= pos.r && pos.r < p.r + p.rs;
+          if (p.r < pos.r && coversCol) { const t = txt(hc); if (t && !seenC[t]) { seenC[t] = 1; out.colHeaders.push(t); out.headerSource = 'positional'; } }
+          else if (p.c < pos.c && coversRow) { const t = txt(hc); if (t && !seenR[t]) { seenR[t] = 1; out.rowHeaders.push(t); out.headerSource = 'positional'; } }
+        }
+        if (out.headerSource === 'positional' && (table.querySelector('th[scope=col],th[scope=row]'))) out.headerSource = 'scope';
+        out.rowHeaders = out.rowHeaders.slice(0, 4); out.colHeaders = out.colHeaders.slice(0, 4);
+      }
+      return out;
+    }, resolvedXpath).catch(() => undefined);
     return {
       resolved: true,
       inTree: !ax.ignored,
@@ -99,6 +164,7 @@ async function queryAxNode(page, args) {
       headingLevel: prop('level') != null ? prop('level') : null,
       nameFrom,
       labelledby, describedby,
+      ...(cellHeaders ? { cellHeaders } : {}),
       focusable: prop('focusable') === true,
       isAriaHidden: (ax.ignoredReasons || []).some((r) => r && (r.name === 'ariaHiddenElement' || r.name === 'ariaHiddenSubtree')),
       requiredStatesPresent,
@@ -1230,7 +1296,7 @@ async function buildCdpToolServer(session) {
   const ctx = { freshClone: session.freshClone, ocr: session.ocr };
   const wrap = (fn, args) => fn(page, args, ctx).then((r) => ({ content: [{ type: 'text', text: JSON.stringify(r) }] })).catch((e) => ({ content: [{ type: 'text', text: JSON.stringify({ error: String(e && e.message || e) }) }], isError: true }));
   const tools = [
-    tool('query_ax_node', 'Read-only: resolve a node (by xpath OR by a screenshot pixel x/y) to its live accessibility facts — role, role source, heading level, name provenance (nameFrom), aria-labelledby/describedby IDREF resolve status, required states, focusability, aria-hidden. Returns raw facts, NEVER a pass/fail.',
+    tool('query_ax_node', 'Read-only: resolve a node (by xpath OR by a screenshot pixel x/y) to its live accessibility facts — role, role source, heading level, name provenance (nameFrom), aria-labelledby/describedby IDREF resolve status, required states, focusability, aria-hidden, and — when the node sits in a data-table cell — its associated column/row HEADER text (cellHeaders: colHeaders/rowHeaders/headerSource/danglingHeaderIds), the programmatic header context for a cell or a link inside one. Returns raw facts, NEVER a pass/fail.',
       { targetXpath: z.string().optional(), x: z.number().optional(), y: z.number().optional() }, (a) => wrap(queryAxNode, a)),
     tool('observe_state_after_activation', 'Mutating (runs on a FRESH page clone): activate ONE control (by xpath) and return the OBJECTIVE before/after delta — each newly-visible text with its visibilityCause (inserted | display | visibility | aria-hidden | text-changed), whether it landed in a live region AND whether that region PRE-EXISTED (4.1.3: a region created with its message is NOT a reliable announcement → anyNewTextInNewLiveRegion, INCONCLUSIVE), whether focus moved into the revealed content (focusMovedToChange), and whether the page navigated/opened a window. Refuses a non-perceivable target. Reports WHAT changed and HOW, never whether it is conformant.',
       { targetXpath: z.string() }, (a) => wrap(observeStateAfterActivation, a)),
@@ -1285,7 +1351,7 @@ function buildCdpToolDispatch(session) {
   };
   const S = (properties, required) => ({ type: 'object', properties, ...(required && required.length ? { required } : {}) });
   const declarations = [
-    { name: 'query_ax_node', description: 'Read-only: resolve a node (by xpath OR by a screenshot pixel x/y) to its live accessibility facts — role, role source, heading level, name provenance (nameFrom), aria-labelledby/describedby IDREF resolve status, required states, focusability, aria-hidden. Returns raw facts, NEVER a pass/fail.',
+    { name: 'query_ax_node', description: 'Read-only: resolve a node (by xpath OR by a screenshot pixel x/y) to its live accessibility facts — role, role source, heading level, name provenance (nameFrom), aria-labelledby/describedby IDREF resolve status, required states, focusability, aria-hidden, and — when the node sits in a data-table cell — its associated column/row HEADER text (cellHeaders: colHeaders/rowHeaders/headerSource/danglingHeaderIds), the programmatic header context for a cell or a link inside one. Returns raw facts, NEVER a pass/fail.',
       parameters: S({ targetXpath: { type: 'string' }, x: { type: 'number' }, y: { type: 'number' } }) },
     { name: 'observe_state_after_activation', description: 'Mutating (runs on a FRESH page clone): activate ONE control (by xpath) and return the OBJECTIVE before/after delta — each newly-visible text with its visibilityCause (inserted | display | visibility | aria-hidden | text-changed), whether it landed in a live region AND whether that region PRE-EXISTED (4.1.3: a region created with its message is NOT a reliable announcement → anyNewTextInNewLiveRegion, INCONCLUSIVE), whether focus moved into the revealed content (focusMovedToChange), and whether the page navigated/opened a window. Refuses a non-perceivable target. Reports WHAT changed and HOW, never whether it is conformant.',
       parameters: S({ targetXpath: { type: 'string' } }, ['targetXpath']) },

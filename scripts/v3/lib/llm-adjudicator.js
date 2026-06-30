@@ -411,12 +411,20 @@ function precomputeSignals(element, skill, sc) {
       const blockLc = block.toLowerCase();
       // alone-in-block: the block text IS just the name (modulo punctuation/whitespace) ⇒ no disambiguating context.
       const aloneInBlock = !block || blockLc === ownName || (!!ownName && blockLc.replace(ownName, '').replace(/[^a-z0-9]+/g, '').length === 0);
+      // #12b: a link in a table cell also has its cell's associated ROW/COLUMN header as programmatic context (kept
+      // DISTINCT so a specific row-subject header can disambiguate while a generic column category cannot). Surfaced
+      // deterministically so the passive models (which won't call query_ax_node) still get it.
+      const chc = element.cellHeaderContext && (Array.isArray(element.cellHeaderContext.rowHeaders) || Array.isArray(element.cellHeaderContext.colHeaders)) ? element.cellHeaderContext : null;
+      const hasCellHdr = !!(chc && ((chc.rowHeaders || []).length || (chc.colHeaders || []).length));
       s.enclosingContext = {
         blockText: block.slice(0, 200),
         linkAloneInBlock: aloneInBlock,
-        uncertainReason: aloneInBlock
-          ? 'this link is ALONE in its enclosing block (paragraph/list-item/cell) — its programmatically-determined CONTEXT is ONLY its own name. Any descriptive prose in a SEPARATE sibling block is NOT enclosing context for 2.4.4, and the vision crop showing nearby text must NOT be read as link context. If the name alone (a generic/format/action word) does not identify the link purpose, that is a 2.4.4 barrier — do not clear on neighbouring text the link does not programmatically own.'
-          : 'this link sits within enclosing block text that MAY disambiguate it — judge whether the name TOGETHER WITH this enclosing-block context identifies the link purpose.',
+        ...(hasCellHdr ? { cellRowHeaders: (chc.rowHeaders || []).slice(0, 4), cellColHeaders: (chc.colHeaders || []).slice(0, 4), cellHeaderSource: chc.headerSource || 'positional' } : {}),
+        uncertainReason: hasCellHdr
+          ? 'this link sits in a DATA-TABLE CELL: beyond its own block, its programmatic context includes the cell\'s associated headers — cellRowHeaders and cellColHeaders (the cell\'s row/column header text). Per WCAG 2.4.4 the cell\'s row/column header IS enclosing context. The test is SPECIFICITY, NOT row-vs-column: a header (ROW or COLUMN) that names a SPECIFIC SUBJECT/DESTINATION resolves a format-only/action-only link name ⇒ NOT REPRODUCED — e.g. name "EPUB"/"Download" + a header ["Ulysses"] (a specific book) = "download Ulysses as EPUB", determinable. A header that is only a GENERIC CATEGORY or ACTION label ("Books", "Downloads", "Format", "Links") names no specific destination and does NOT resolve it; if neither the name nor a subject-naming header identifies the destination, that is a barrier. (Row headers are MORE OFTEN the subject and column headers MORE OFTEN the category, but judge the actual text, not the slot.) Judge the name TOGETHER WITH these headers; do not demand the name itself restate the subject.'
+          : aloneInBlock
+            ? 'this link is ALONE in its enclosing block (paragraph/list-item/cell) — its programmatically-determined CONTEXT is ONLY its own name. Any descriptive prose in a SEPARATE sibling block is NOT enclosing context for 2.4.4, and the vision crop showing nearby text must NOT be read as link context. If the name alone (a generic/format/action word) does not identify the link purpose, that is a 2.4.4 barrier — do not clear on neighbouring text the link does not programmatically own.'
+            : 'this link sits within enclosing block text that MAY disambiguate it — judge whether the name TOGETHER WITH this enclosing-block context identifies the link purpose.',
       };
     }
     // Item 12 (composite name-role-state): surface the already-collected states/axStates bundle so the rubric can
@@ -585,6 +593,29 @@ function precomputeSignals(element, skill, sc) {
 // available) and embeds the pre-computed signals + the (realism-corrected) VSR transcript excerpt for
 // the element. The agent must NAME the claimFamily (M3) and return {verdict, confidence, basis,
 // evidenceRefs}. Pure string assembly — no I/O beyond an optional rubric read passed in via opts.
+// ALWAYS-ON shared KNOWLEDGE LAYER (cross-cutting WCAG-judging principles, derived from the spec, NOT a fixture).
+// These were previously scattered inconsistently across the rubric .md files (and an OFF-by-default apply-gate), so a
+// model that lacked the clause in a given rubric over-flagged (e.g. invisible aria-hidden text judged for 1.4.3
+// contrast). Stating them ONCE, for every SC, levels the models. Each is FACET-AWARE — note the EXCEPTION on (1).
+const KNOWLEDGE_LAYER = [
+  '1. REMOVED FROM THE ACCESSIBILITY TREE. An element that is aria-hidden="true", role="presentation"/"none", or a',
+  '   rendering image with empty alt="" exposes NOTHING to assistive technology. Do NOT judge its OWN perceivable-',
+  '   element facets: its CONTRAST (1.4.3/1.4.11), its accessible-NAME adequacy (4.1.2), the keyboard operability of a',
+  '   hidden control — those facets do not apply to something AT cannot perceive ⇒ NOT REPRODUCED. (Invisible',
+  '   white-on-white text that is ALSO aria-hidden is not a 1.4.3 barrier — nobody perceives it; a focusable but',
+  '   aria-hidden sentinel link is not a 4.1.2 name barrier — AT never reaches its name.) EXCEPTION — when the SC is',
+  '   about whether HIDING the element is itself the harm: a MEANINGFUL image removed from the tree (1.1.1), or a',
+  '   section\'s ONLY heading made aria-hidden (2.4.6/2.4.10), DENIES the AT user information/structure the sighted',
+  '   user gets — THAT is the barrier. Judge it per the rubric; do not auto-exempt it.',
+  '2. DECORATIVE DEFAULT. Ambiguous non-text with no semantic content — a plain shape, spacer, flourish, gradient,',
+  '   background texture — defaults to DECORATIVE (no text alternative owed) UNLESS the evidence shows it carries',
+  '   information. Do not flag a contentless graphic merely for lacking a name.',
+  '3. JUDGE ONLY THIS SC\'s FACET. A requirement that is literally MET is not a barrier because it could be better:',
+  '   a PRESENT name that identifies a control satisfies 4.1.2 even if terse (richness is 2.4.6); a PRESENT title that',
+  '   IDENTIFIES the page\'s topic or purpose satisfies 2.4.2 even if terse (richer wording is 2.4.6). Do not escalate a',
+  '   stylistic preference, and do not judge a stricter neighbouring SC\'s facet here.',
+].join('\n');
+
 function buildPrompt(subject, signals, transcriptExcerpt, opts = {}) {
   const rubric = opts.rubric || `(rubric for skill "${subject.skill}" — judge whether a WCAG ${subject.sc} barrier is present)`;
   const fpStrip = process.env.V3_FP_STRIP_QUESTION === '1';
@@ -597,6 +628,8 @@ function buildPrompt(subject, signals, transcriptExcerpt, opts = {}) {
       : [`You are the ${subject.skill} skill evaluating WCAG ${subject.sc} for one element.`,
          `Element xpath: ${subject.xpath}`,
          `Claim family (bind your verdict to this): ${subject.claimFamily}`]),
+    '--- cross-cutting judgment principles (apply to EVERY SC; the rubric below adds the SC-specific detail) ---',
+    KNOWLEDGE_LAYER,
     '--- rubric ---',
     rubric,
     // NO-VISION ablation fairness (V3_NO_VISION_RUBRIC): neutralize the rubric's visual-examination instructions so a

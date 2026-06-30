@@ -70,6 +70,21 @@ Three failure modes:
   pointing elsewhere, the shared name fails to distinguish them ⇒ barrier. (Same name to the SAME destination
   is fine — not a failure.)
 
+**LINK INSIDE A TABLE CELL — the row/column HEADER is programmatic enclosing context.** Per WCAG, a link in a
+`<td>`/`role=cell` is contextualised by its cell's associated row/column header (the same association 1.3.1 governs).
+When the link is in a data-table cell, `signals.enclosingContext` carries the cell's headers DETERMINISTICALLY:
+`cellRowHeaders` and `cellColHeaders` (the cell's row/column header text) — **TRUST these as enclosing context; you do
+NOT need a tool to get them.** The test is **SPECIFICITY, not row-vs-column**: a header (ROW *or* COLUMN) that names a
+SPECIFIC SUBJECT/DESTINATION resolves a format-only/action-only link name ⇒ **NOT REPRODUCED**. A bare `EPUB`/`HTML`/
+`Plain text` download link whose header is `["Ulysses"]` (a specific book) is resolved — "download Ulysses as EPUB" —
+**even when "Ulysses" arrives as a `cellColHeaders`** (a `<th colspan=3>` book title spanning the download row). A
+header that is only a GENERIC CATEGORY or ACTION label ("Books", "Downloads", "Format", "Links") names no specific
+destination and does NOT resolve it; if neither the name nor a subject-naming header identifies the destination, the
+format/action-only failure stands. (Row headers are MORE OFTEN the subject and column headers MORE OFTEN the category —
+a useful prior, but judge the actual header TEXT, not its slot.) If `enclosingContext` carries no cell headers and you
+are unsure whether the link is in a table, you MAY call `query_ax_node` (its `cellHeaders` returns the same fields) —
+but the deterministic signal is authoritative when present.
+
 **Evidence handed to you:** the accessible name, the surrounding text (`element-crop`,
 `surrounding-region`), whether the name is generic, and — when present — sibling links sharing this name
 with their destinations (needed to judge the identical-names mode).

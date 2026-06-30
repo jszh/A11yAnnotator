@@ -15,9 +15,12 @@ are ALSO programmatically determinable. DEFER where a deterministic CLAIM exists
 table/header reasoning, read `signals.structure.tableAssociation` ({page, hasDataTable, perTable[]}). A
 deterministic pass computed each table's header-to-data association from the live DOM. **You may raise a
 table/header-association barrier ONLY for a table whose `perTable` verdict is `UNCERTAIN` or `BROKEN`:**
-- `page: NO_DATA_TABLE` or `hasDataTable: false` ⇒ **there is NO data table on this page — you may NOT raise any
-  table/header-association barrier.** If the viewport *looks* like a grid but no data table was collected, it is a
-  layout/CSS grid or `role=presentation` — NOT a 1.3.1 table-association failure. Do not invent one.
+- `page: NO_DATA_TABLE` or `hasDataTable: false` ⇒ **no NATIVE `<table>` data table was collected — you may NOT raise a
+  NATIVE-table header-association barrier.** This gate is computed from native `<table>` markup ONLY; it does NOT cover an
+  ARIA grid (`<div role=grid/table/row/columnheader/gridcell>`). So: if the viewport looks like a grid here, it is EITHER
+  a layout/CSS grid / `role=presentation` (no association owed — do not invent one) OR an ARIA grid the native pass cannot
+  see. To tell them apart and judge the ARIA case, resolve a cell with `query_ax_node` (below) instead of eyeballing — a
+  `NO_DATA_TABLE` page verdict is NOT a clearance for an ARIA grid.
 - `perTable[i] = VALID` ⇒ that table's association IS programmatic (resolving `scope`/`headers=`) — do NOT flag it.
 - `perTable[i] = NOT_DATA` ⇒ a layout/presentation table — owes no data association — do NOT flag it.
 - `perTable[i] = BROKEN` ⇒ a real broken ref (dangling/non-cell/self) — flag it.
@@ -112,6 +115,14 @@ from the roles + viewport — but judge it RIGHT, and do not invent a barrier th
   relationship (the positional grid is the association). Do NOT flag a `headers=` value on an ARIA cell as
   "wrong/swapped/redundant/mis-wired" — the deterministic `danglingIdref`/`headersRefsNonCell`/`headersRefsSelf` flags
   apply ONLY to a native `<table>`, so on an ARIA cell they are silent BY DESIGN, not "could not determine" (a25f45).
+- **TOOL — resolve a cell's REAL header association with `query_ax_node`.** When the table facet is genuinely uncertain
+  (an ARIA grid the native pass missed, or a native `UNCERTAIN`/`BROKEN` table you must confirm), call `query_ax_node`
+  on a representative cell (`targetXpath` or a screenshot pixel). Its `cellHeaders` returns the cell's PROGRAMMATICALLY-
+  associated `colHeaders`/`rowHeaders` text, the `headerSource` (`headers-attr`/`scope`/`positional`), and
+  `danglingHeaderIds` (a `headers=` ref pointing at a missing id — a real BROKEN association). Read it as the authority:
+  non-empty `colHeaders`/`rowHeaders` ⇒ the header→data association IS programmatically determinable ⇒ NOT a barrier;
+  empty header arrays for a cell a sighted user reads under a clear column/row header ⇒ the association is LOST ⇒ barrier;
+  a non-empty `danglingHeaderIds` ⇒ BROKEN. Prefer this objective resolve over guessing from the viewport.
 
 **WCAG soundness caveats (REQUIRED before failing):**
 - The relationship must be REQUIRED to be programmatically determinable AND must actually convey meaning —

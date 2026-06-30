@@ -32,5 +32,29 @@
   <div id="occcover" style="position:absolute;left:24px;top:410px;width:50px;height:20px;background:#900"></div>
   <!-- translucent border: the rendered pixel may best-match an OPAQUE property, but translucentPart must still fire -->
   <span id="translborder" style="border:6px solid rgba(255,0,0,0.4);padding:3px">tb</span>
+
+  <!-- cellHeaders: NATIVE data table w/ scope headers + a LINK in a data cell (2.4.4 link-in-cell context: the row
+       header "Ulysses" + column header "Download" ARE the EPUB link's programmatic enclosing context) -->
+  <table id="books">
+    <tr><th scope="col">Title</th><th scope="col">Download</th></tr>
+    <tr><th scope="row">Ulysses</th><td><a id="lnk-epub" href="/u.epub">EPUB</a></td></tr>
+  </table>
+  <!-- cellHeaders: explicit headers= IDREFs, one of which DANGLES (the classic 1.3.1 mis-wired association) -->
+  <table id="prices">
+    <tr><th id="hdr-item">Item</th><th id="hdr-price">Price</th></tr>
+    <tr><td>Widget</td><td id="cell-price" headers="hdr-price hdr-GONE">$10</td></tr>
+  </table>
+  <!-- cellHeaders: a COLSPAN header (the EPUB-in-a-table shape) — a single <th colspan=2> spanning both download
+       columns; the column-1 "EPUB" cell must STILL resolve the spanning header "Ulysses" (span-aware grid) -->
+  <table id="dl">
+    <tr><th colspan="2">Ulysses</th></tr>
+    <tr><td><a id="dl-html" href="/u.html">HTML</a></td><td><a id="dl-epub" href="/u.epub">EPUB</a></td></tr>
+  </table>
+  <!-- cellHeaders: an ARIA GRID (role=grid/row/columnheader/rowheader/gridcell) — the case a native-table-only gate
+       wrongly suppressed; the resolver must still surface the column header "Status" for the gridcell -->
+  <div id="grid" role="grid">
+    <div role="row"><div role="columnheader">Name</div><div role="columnheader">Status</div></div>
+    <div role="row"><div role="rowheader">Alpha</div><div id="grid-cell" role="gridcell">Active</div></div>
+  </div>
 </body>
 </html>

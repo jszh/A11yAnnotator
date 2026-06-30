@@ -14,8 +14,8 @@
 
 const TOOL_CATALOG = Object.freeze([
   Object.freeze({ name: 'query_ax_node', params: 'targetXpath | x,y',
-    when: 'confirm a node\'s COMPUTED role / accessible-name provenance (nameFrom) / aria-labelledby-describedby IDREF resolution / required states / aria-hidden — when the deterministic signal is ambiguous or the visual role may not match the computed one',
-    scs: ['4.1.2', '4.1.3', '1.3.1', '2.4.6', '2.1.1'], skills: ['name-role-state', 'dynamic-announcement'] }),
+    when: 'confirm a node\'s COMPUTED role / accessible-name provenance (nameFrom) / aria-labelledby-describedby IDREF resolution / required states / aria-hidden — when the deterministic signal is ambiguous or the visual role may not match the computed one. For a node IN A TABLE CELL it also returns cellHeaders (the cell\'s associated column/row HEADER text, headerSource, danglingHeaderIds): the programmatic header CONTEXT — for 1.3.1 to check the cell\'s header wiring, and for 2.4.4 to read a link-in-a-cell\'s row/column header as its enclosing context',
+    scs: ['4.1.2', '4.1.3', '1.3.1', '2.4.4', '2.4.6', '2.1.1'], skills: ['name-role-state', 'dynamic-announcement'] }),
   Object.freeze({ name: 'observe_state_after_activation', params: 'targetXpath',
     when: 'activate ONE control and see the OBJECTIVE before/after delta — each newly-visible text, whether it landed in a PRE-EXISTING live region (a region created WITH its message is not a reliable announcement), and whether focus moved. Also for 3.3.1: submit/activate and observe whether an error MESSAGE actually appears in text (do not assume from the resting form). Also for 2.1.2: activate a help control inside a keyboard trap to REVEAL a buried escape advisory ("Press Ctrl+M to Exit")',
     scs: ['4.1.3', '3.3.1', '2.1.2'], skills: ['dynamic-announcement', 'keyboard-operability'] }),
