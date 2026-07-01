@@ -69,3 +69,47 @@ test('table-association #3: a BROKEN headers= ref still dominates the positional
 test('table-association: BROKEN dominates UNCERTAIN at the page level', () => {
   assert.equal(sig([dataTable({}), dataTable({ danglingIdref: true })]).page, 'HAS_BROKEN');
 });
+
+// ===================== #4 partial-axis FP fix (DHS Trusted-Tester 511654-19, testId 14.B) =====================
+// top__table: row 0 = [th "Rank", td "First", td "Second", td "Third"]; rows 1-2 = [th "Name"/"Year", td, td, td].
+// firstColAllTh=true (every row's cell 0 is a real <th>), but row 0 itself mixes ONE <th> with three plain <td>
+// that a sighted user reads as column labels — DHS ground truth: FAIL (column headers never marked up at all).
+// Before #4 this was wrongly certified VALID via firstColAllTh alone, hard-gating the LLM away from a real barrier.
+test('table-association #4 FP FIX: firstColAllTh alone is NOT enough when row 0 is a partially-marked header row (511654-19 14.B) ⇒ UNCERTAIN', () => {
+  const v = sig([dataTable({
+    headers: [{}], tdWithHeaders: 0,
+    firstRowAllTh: false, firstColAllTh: true, firstRowPartialTh: true, firstColPartialTh: false,
+    regularGrid: true, bodyTh: 0, headerRows: 0,
+  })]);
+  assert.equal(v.perTable[0], 'UNCERTAIN', 'a half-marked row-0 header attempt must not be waved through via the column axis');
+  assert.equal(v.page, 'HAS_UNCERTAIN');
+});
+test('table-association #4 FP FIX (symmetric): firstRowAllTh alone is NOT enough when column 0 is partially-marked ⇒ UNCERTAIN', () => {
+  const v = sig([dataTable({
+    headers: [{}], tdWithHeaders: 0,
+    firstRowAllTh: true, firstColAllTh: false, firstRowPartialTh: false, firstColPartialTh: true,
+    regularGrid: true, bodyTh: 0, headerRows: 1,
+  })]);
+  assert.equal(v.perTable[0], 'UNCERTAIN');
+});
+test('table-association #4 NO OVER-SUPPRESSION: a clean row-header-only table (no partial marking on the other axis) stays VALID', () => {
+  // guards against the fix being too aggressive — a genuinely single-axis table (column 0 all-th, row 0 all plain
+  // <td> with NO th at all, i.e. firstRowPartialTh=false) must still clear via the column axis as before #4.
+  assert.equal(sig([dataTable({
+    headers: [{}], tdWithHeaders: 0,
+    firstRowAllTh: false, firstColAllTh: true, firstRowPartialTh: false, firstColPartialTh: false,
+    regularGrid: true, bodyTh: 0, headerRows: 0,
+  })]).perTable[0], 'VALID');
+});
+test('table-association #4 NO OVER-SUPPRESSION: a clean two-axis table (both first-row and first-col fully <th>) stays VALID', () => {
+  // both axes complete ⇒ each axis's own partial flag is false by construction ⇒ unaffected by #4.
+  assert.equal(sig([dataTable({
+    headers: [{}], tdWithHeaders: 0,
+    firstRowAllTh: true, firstColAllTh: true, firstRowPartialTh: false, firstColPartialTh: false,
+    regularGrid: true, bodyTh: 0, headerRows: 1,
+  })]).perTable[0], 'VALID');
+});
+test('table-association #4 backward-compat: older collector packs missing the partial-axis facts (undefined) behave as before #4', () => {
+  const v = posOK({}); // posOK never sets firstRowPartialTh/firstColPartialTh — both undefined
+  assert.equal(sig([v]).perTable[0], 'VALID', 'undefined partial flags must not newly suppress a pack frozen before #4');
+});

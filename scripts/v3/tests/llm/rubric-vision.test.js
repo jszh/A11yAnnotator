@@ -193,6 +193,30 @@ test('captureStateVision e2e: focus forces a ring delta; an indicator-less contr
   } finally { await b.close(); }
 });
 
+// ===================== #4 fix: don't force :focus/:focus-visible when real focus never persisted =====================
+test('captureStateVision #4 FP fix: a real :focus CSS rule that onfocus="this.blur()" immediately strips shows NO delta and focusPersisted:false', { skip: !chromeOK, concurrency: false }, async () => {
+  const puppeteer = require('puppeteer');
+  const b = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  try {
+    const fx = assetFileUrl;
+    const p = await b.newPage(); await p.setViewport({ width: 800, height: 400 }); await p.goto(fx('fx-v3-focus.html'), { waitUntil: 'load' });
+    // #real (button[1]) and #blurtrap (button[4]) share the IDENTICAL :focus CSS rule — the only difference is
+    // #blurtrap's onfocus handler stripping focus the instant it lands. Before #4, both got the pseudo-state
+    // FORCED regardless, so both showed the same "ring appeared" delta — a falsified frame for #blurtrap, which
+    // a real keyboard user never sees. After #4, only #real (real persisted focus) shows a delta.
+    const res = await captureStateVision(p, { '/html/body/button[1]': 'focus', '/html/body/button[4]': 'focus' });
+    const isPng = (d) => Buffer.from(d, 'base64').slice(0, 8).toString('hex') === '89504e470d0a1a0a';
+    const real = res['/html/body/button[1]'], trap = res['/html/body/button[4]'];
+    assert.ok(real && isPng(real['state-before']) && isPng(real['state-after']));
+    assert.notEqual(real['state-before'], real['state-after'], 'real persisted focus still forces the ring (no regression)');
+    assert.equal(real.focusPersisted, true, 'real focus is confirmed to have persisted');
+
+    assert.ok(trap && isPng(trap['state-before']) && isPng(trap['state-after']));
+    assert.equal(trap['state-before'], trap['state-after'], 'onfocus="this.blur()" ⇒ NO visible change — the TRUE render, not a manufactured ring');
+    assert.equal(trap.focusPersisted, false, 'focus did not actually stick, confirmed via document.activeElement');
+  } finally { await b.close(); }
+});
+
 test('captureStateVision e2e: form-submit pairs capture pristine→error (3.3.1/3.3.3); each form reload-isolated (Harness 3.3 D)', { skip: !chromeOK, concurrency: false }, async () => {
   const puppeteer = require('puppeteer');
   const b = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });

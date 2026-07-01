@@ -635,12 +635,44 @@ async function collectActPage(page, opts = {}) {
       for (let s = e.previousElementSibling; s; s = s.previousElementSibling) if (s.tagName === e.tagName) idx++;
       return xpathOfInDoc(e.parentElement, doc) + '/' + tag + '[' + idx + ']';
     }
+    // frame-sourced headings (#2 FP/FN fix): a frameset page's real content — and its headings — live in a child
+    // <frame>/<iframe>, never the bare top-level document. Collected in the SAME loop as the interactive-element
+    // frame traversal below (reusing its `prefix`/`fdoc`/`xpathOfInDoc`) so each heading gets a fully CDP-resolvable
+    // `<frameXpath>>>/<in-frame xpath>` — the resolveAx pass below already splits on '>>' and descends
+    // contentDocument between segments, so these get the SAME authoritative accessible-name resolution as a
+    // top-document heading, not a degraded fallback.
+    const frameHeadings = [];
+    // #3 fix (2.4.2 frameset title): document.title (below, "title") is the OUTER document's title — genuinely
+    // authoritative for what AT/the browser tab reports for a frameset page, so it stays the primary signal.
+    // But the page-title-v0 rubric judges whether that title matches what's ACTUALLY rendered, and a frameset's
+    // real content lives in a child frame that may carry its OWN, DIFFERENT <title> (e.g. an outer "XYZ News
+    // Company" wrapping a child document titled "XYZ Grocery Store" — a real DHS Trusted-Tester topic-mismatch
+    // case). Surface each distinct non-empty child title as an explicit signal so the rubric can cross-reference
+    // it against the outer title instead of relying solely on visually reconciling a screenshot against text.
+    const frameTitles = [];
     for (const frame of (_subset ? [] : document.querySelectorAll('iframe, frame'))) { // subset = explicit selection; skip auto-traversal
       if (els.length >= cap) { _cappedOut = true; break; }
       let fdoc = null;
       try { fdoc = frame.contentDocument; } catch (e) { fdoc = null; } // cross-origin SecurityError → skip
       if (!fdoc || !fdoc.body) continue;
+      const ft = (fdoc.title || '').trim();
+      if (ft && ft !== document.title && frameTitles.indexOf(ft) === -1 && frameTitles.length < 8) frameTitles.push(ft);
       const prefix = xpathOf(frame) + '>>';
+      for (const h of fdoc.querySelectorAll('h1,h2,h3,h4,h5,h6,[role=heading]')) {
+        if (frameHeadings.length >= 60) break;
+        const tg = h.tagName.toLowerCase();
+        const b = h.getBoundingClientRect();
+        frameHeadings.push({
+          tag: tg, role: h.getAttribute('role') || (/^h[1-6]$/.test(tg) ? 'heading' : null),
+          level: h.getAttribute('aria-level') ? Number(h.getAttribute('aria-level')) : (/^h([1-6])$/.test(tg) ? Number(tg[1]) : null),
+          text: (h.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 120),
+          xpath: prefix + xpathOfInDoc(h, fdoc),
+          name: labelledText(h, 'heading'),
+          ariaHidden: h.getAttribute('aria-hidden') === 'true' || !!h.closest('[aria-hidden="true"]'),
+          offscreen: b.x <= -1000 || b.y <= -1000 || (b.width <= 1 && b.height <= 1),
+          inFrame: true,
+        });
+      }
       for (const el of fdoc.querySelectorAll('body *')) {
         if (els.length >= cap) { _cappedOut = true; break; }
         if (!visible(el)) continue;
@@ -721,10 +753,14 @@ async function collectActPage(page, opts = {}) {
         offscreen: b.x <= -1000 || b.y <= -1000 || (b.width <= 1 && b.height <= 1),
       };
     });
+    // #2 fix: fold in frame-sourced headings (frameHeadings, collected above alongside the interactive-element
+    // frame traversal), respecting the SAME combined 60-heading cap as the top-document-only path before it.
+    if (headings.length < 60) headings.push(...frameHeadings.slice(0, 60 - headings.length));
     const landmarks = [...document.querySelectorAll('main,nav,header,footer,aside,[role=main],[role=navigation],[role=banner],[role=contentinfo],[role=complementary],[role=search],[role=region]')].slice(0, 40)
       .map((l) => ({ tag: l.tagName.toLowerCase(), role: l.getAttribute('role') || null }));
     return {
       title: document.title || '',
+      frameTitles, // #3 fix: distinct non-empty child-frame <title> values that differ from the outer title
       lang: document.documentElement.getAttribute('lang') || '',
       headings,
       landmarks,
@@ -789,6 +825,22 @@ async function collectActPage(page, opts = {}) {
   const tables = await page.evaluate(collectTables).catch(() => []);
   // TT gap G1: per-list semantics (real ul/ol/dl + visually-apparent faux lists) for the 1.3.1 JUDGMENT.
   const lists = await page.evaluate(collectLists).catch(() => []);
+  // #2 fix: collectTables/collectLists are top-document-only (document.querySelectorAll) — a frameset page's
+  // real headings/lists/tables live in a child <frame>/<iframe> (e.g. the DHS Trusted-Tester corpus), which
+  // NEVER reached structure.tables/lists before this fix, regardless of --allow-file-access-from-files. Puppeteer's
+  // page.frames() already gives direct Frame handles for the full (flattened) frame tree — reuse the SAME
+  // self-contained extractors per same-origin child frame; a cross-origin frame throws on evaluate ⇒ .catch(() => []).
+  for (const frame of page.frames()) {
+    if (frame === page.mainFrame()) continue;
+    const fTables = await frame.evaluate(collectTables).catch(() => []);
+    for (const t of fTables) t.inFrame = true;
+    tables.push(...fTables);
+    const fLists = await frame.evaluate(collectLists).catch(() => []);
+    for (const l of fLists) l.inFrame = true;
+    lists.push(...fLists);
+  }
+  if (tables.length > 20) tables.length = 20; // preserve collectTables' own per-page cap after merging frame content
+  if (lists.length > 40) lists.length = 40;   // preserve collectLists' own per-page cap
 
   // OPT-IN axe run (axe-promotion): inject axe + resolve each finding node's CSS target to the SAME v3 xpath
   // scheme this collector uses (the xpathOf below is byte-identical to the inventory's), so build-v3 can match an
@@ -832,7 +884,7 @@ async function collectActPage(page, opts = {}) {
     // flag the page-clear as PARTIAL-COVERAGE rather than a full-page conformance claim. `cap` is the configured cap.
     coverage: { truncated: !!data.truncated, collected: (data.elements || []).length, domElementCount: data.domElementCount || null, cap: elementCap, subset: !!data.subset },
     page: { reflowApplicable: !!data.reflowApplicable },
-    structure: { title: data.title || '', lang: data.lang || '', headings: data.headings || [], landmarks: data.landmarks || [], tables: tables || [], lists: lists || [] },
+    structure: { title: data.title || '', frameTitles: data.frameTitles || [], lang: data.lang || '', headings: data.headings || [], landmarks: data.landmarks || [], tables: tables || [], lists: lists || [] },
     axe: axeData ? axeData.violations : [],
     axeIncomplete: axeData ? axeData.incomplete : [],
     axeRan: !!axeData,

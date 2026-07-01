@@ -500,7 +500,11 @@ function precomputeSignals(element, skill, sc) {
     if (struct) {
       if (skill === 'page-structure') {
         const t = typeof struct.title === 'string' ? struct.title : '';
-        s.pageTitle = { value: t || null, present: t.trim().length > 0 };
+        // #3 fix: frameTitles are distinct child-frame <title> values that differ from the outer title — a
+        // frameset's real rendered content can carry its own title unrelated to the outer document's. Surfaced
+        // ONLY when non-empty so a non-framed page's pageTitle shape is byte-identical to before this fix.
+        const fts = Array.isArray(struct.frameTitles) ? struct.frameTitles.filter((x) => typeof x === 'string' && x) : [];
+        s.pageTitle = { value: t || null, present: t.trim().length > 0, ...(fts.length ? { frameTitles: fts } : {}) };
       }
       s.structure = {
         title: typeof struct.title === 'string' ? struct.title : null,
@@ -532,7 +536,17 @@ function precomputeSignals(element, skill, sc) {
         // first-row+first-column table). The irregular GT-fail twin (a 2-col header over a 1-cell data row, no
         // colspan) has regularGrid=false ⇒ stays UNCERTAIN for the judge, so recall is preserved. A table missing
         // these collector facts (older packs) also stays UNCERTAIN — backward-compatible.
-        const simplePositional = (t.firstRowAllTh === true || t.firstColAllTh === true)
+        //
+        // #4 FP fix: an axis is only trusted alone when the OTHER axis's boundary is NOT a half-marked header
+        // attempt. A table whose row 0 mixes real <th> ("Rank") with plain <td> ("First"/"Second"/"Third") is
+        // trying to be a two-axis grid but only got the row-header column right — DHS Trusted-Tester 14.B's
+        // exact failure shape (column headers never marked <th> at all). Crediting firstColAllTh alone there
+        // would suppress a real association barrier the rubric must judge. A clean two-axis table (both
+        // firstRowAllTh AND firstColAllTh true) is unaffected: each axis's partial flag is false by definition
+        // once that axis is fully <th>.
+        const rowAxisOk = t.firstRowAllTh === true && t.firstColPartialTh !== true;
+        const colAxisOk = t.firstColAllTh === true && t.firstRowPartialTh !== true;
+        const simplePositional = (rowAxisOk || colAxisOk)
           && t.regularGrid === true && Number(t.bodyTh) === 0 && Number(t.headerRows) <= 1;
         return simplePositional ? 'VALID' : 'UNCERTAIN';
       };

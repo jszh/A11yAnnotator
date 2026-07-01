@@ -226,15 +226,24 @@ async function captureStateVision(page, plan, opts = {}) {
     const inView = rect.x < rect.vw && rect.y < rect.vh && rect.x + rect.w > 0 && rect.y + rect.h > 0;
     if (!inView) continue;
     const pad = transition === 'hover' ? (Number.isFinite(opts.hoverPad) ? opts.hoverPad : 96) : (Number.isFinite(opts.statePad) ? opts.statePad : 16);
-    let before = null, after = null;
+    let before = null, after = null, focusPersisted = null; // #4 fix: null unless transition==='focus' actually checked it
     if (transition === 'focus') {
       const clip = clampClip(rect, pad); // a focus ring hugs the element
       before = await shot(clip);
       if (!str(before)) continue;
       await page.evaluate((x) => { const el = document.evaluate(x, document, null, 9, null).singleNodeValue; if (el && el.focus) { try { el.focus({ preventScroll: true }); } catch (e) { try { el.focus(); } catch (_) {} } } }, xp).catch(() => {});
+      // #4 fix: CONFIRM real focus actually PERSISTED before manufacturing a "focused" render. A synchronous
+      // focus-stripping handler (onfocus="this.blur()", a scripted focus trap that redirects elsewhere, etc.)
+      // reverts document.activeElement before we ever reach here — forcing the focus/focus-visible pseudo-state
+      // regardless would fabricate a screenshot no real keyboard user would ever see (the DHS Trusted-Tester
+      // 546353-13 miss: the rubric judged honestly, but on falsified evidence). Only force the pseudo-state —
+      // needed because :focus-visible's own browser heuristic may not qualify a script-driven .focus() call even
+      // when focus legitimately sticks — when persistence is CONFIRMED; otherwise capture the TRUE render, which
+      // correctly shows no focus styling when none would ever appear to a real user.
+      focusPersisted = await page.evaluate((x) => { const el = document.evaluate(x, document, null, 9, null).singleNodeValue; return !!el && document.activeElement === el; }, xp).catch(() => false);
       const nodeId = await nodeIdFor(xpRaw); // CDP DOM.performSearch path — unchanged (uses the raw collector xpath)
       let forced = false;
-      if (nodeId) { try { await cdp.send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: ['focus', 'focus-visible'] }); forced = true; } catch (e) {} }
+      if (focusPersisted && nodeId) { try { await cdp.send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: ['focus', 'focus-visible'] }); forced = true; } catch (e) {} }
       await sleep(60);
       after = await shot(clip);
       if (forced) { try { await cdp.send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: [] }); } catch (e) {} }
@@ -264,7 +273,9 @@ async function captureStateVision(page, plan, opts = {}) {
       after = await shot(clip);
       await parkPointer();
     }
-    if (str(after)) out[xpRaw] = { 'state-before': before, 'state-after': after };
+    // #4 fix: surface focusPersisted (transition==='focus' only; null shape elsewhere, unchanged) so a downstream
+    // consumer can distinguish "no visible change because focus never stuck" from an ordinary weak-but-real ring.
+    if (str(after)) out[xpRaw] = { 'state-before': before, 'state-after': after, ...(focusPersisted === null ? {} : { focusPersisted }) };
   }
   try { if (cdp) await cdp.detach(); } catch (e) {}
   return out;

@@ -430,4 +430,4 @@ async function orchestrate(collect, drive, opts = {}) {
   } finally { if (ownsAlloc) tabAllocator.close(); if (ownsBrowser) await browser.close().catch(() => {}); }
 }
 
-module.exports = { orchestrate, openToolSession };
+module.exports = { orchestrate, openToolSession, BROWSER_ARGS };

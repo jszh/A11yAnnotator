@@ -29,6 +29,23 @@ function collectTables() {
     const logicalWidth = (cells) => cells.reduce((n, c) => n + (c.colSpan || 1), 0);
     const firstRowAllTh = rowCells.length > 0 && rowCells[0].length > 0 && rowCells[0].every(isTh);
     const firstColAllTh = rowCells.length >= 2 && rowCells.every((r) => r.length > 0 && isTh(r[0]));
+    // PARTIAL header axis (#4 FP fix): row 0 (or column 0) carries SOME <th> cells but not ALL of them — a strong
+    // smell the author INTENDED that axis to be a header row/column too but coded it incompletely (e.g. one <th>
+    // "Rank" mixed with plain <td> "First"/"Second"/"Third" in row 0). This must NOT be waved through as a clean
+    // single-axis table via the OTHER axis's simple-positional VALID path (see llm-adjudicator.js) — a two-axis
+    // grid with one axis half-marked is exactly the DHS Trusted-Tester 14.B failure shape (column headers never
+    // marked <th> at all), not a legitimate row-header-only table.
+    const firstRowPartialTh = rowCells.length > 0 && rowCells[0].length > 0 && rowCells[0].some(isTh) && !firstRowAllTh;
+    // firstColPartialTh EXCLUDES row 0 from its "some but not all" check. Including it (rowCells.some(...) over
+    // ALL rows) falsely fires on any ordinary single-header-row table — a <thead><th>Projects</th><th>Exams</th>
+    // </thead><tbody><td colspan=2>15%</td></tbody> table (d0f69e, real ACT-corpus, GT-pass) has firstRowAllTh
+    // (legit) but its lone body row's colspan cell isn't <th>, which trivially makes "some but not all rows have
+    // th@col0" true for ANY such table — a false trigger, not a genuine broken row-header-column attempt (caught
+    // during the corpus-wide regression scan for this fix, see docs). Row 0 is already independently evaluated by
+    // firstRowAllTh/firstRowPartialTh; a REAL broken row-header-column attempt shows up in the BODY rows (1+)
+    // disagreeing with each other, not in row 0's relationship to itself.
+    const bodyRows = rowCells.slice(1);
+    const firstColPartialTh = bodyRows.length >= 2 && bodyRows.some((r) => r.length > 0 && isTh(r[0])) && !bodyRows.every((r) => r.length > 0 && isTh(r[0]));
     let bodyTh = 0, anyRowspan = false, headerRows = 0, leadingHeader = true;
     rowCells.forEach((cells, ri) => {
       const allTh = cells.length > 0 && cells.every(isTh);
@@ -71,7 +88,7 @@ function collectTables() {
       rowCount: rows.length, thCount: ths.length, tdCount: tds.length,
       hasCaption: !!caption, captionText: caption ? clip(caption.textContent, 80) : null,
       headers, tdWithHeaders, tdHeaderSamples, danglingIdref, headersRefsNonCell, headersRefsSelf,
-      firstRowAllTh, firstColAllTh, bodyTh, headerRows, regularGrid, // simple-positional header facts (1.3.1 implicit algorithm)
+      firstRowAllTh, firstColAllTh, firstRowPartialTh, firstColPartialTh, bodyTh, headerRows, regularGrid, // simple-positional header facts (1.3.1 implicit algorithm)
       roleOverride: roleOverride || null, // non-null ⇒ table semantics overridden (a25f45/1.3.1 table facet inapplicable)
       // a header cell but ZERO data cells ⇒ a header pointing at nothing (coarse derived flag).
       headerWithNoDataCell: isTableRole && ths.length > 0 && tds.length === 0,

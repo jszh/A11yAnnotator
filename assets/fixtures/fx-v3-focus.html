@@ -13,11 +13,17 @@
   /* #always: an always-on shadow that does NOT change on focus → BARRIER (not focus-dependent) */
   #always { box-shadow: 0 0 6px #000; }
   #always:focus { outline: none; }
+  /* #blurtrap: a REAL, obvious :focus ring (same rule as #real) that a real keyboard user NEVER sees, because
+     onfocus immediately strips focus again — the DHS Trusted-Tester 546353-13 pattern. The CSS rule existing is
+     not enough; #4 fix guards against forcing the pseudo-state open when document.activeElement never actually
+     stuck on this element. */
+  #blurtrap:focus { outline: 3px solid #1a73e8; outline-offset: 2px; }
 </style>
 </head>
 <body>
   <button id="real" type="button">Real focus ring</button>
   <button id="none" type="button">No focus indicator</button>
   <button id="always" type="button">Always-on shadow</button>
+  <button id="blurtrap" type="button" onfocus="this.blur();">Focus-stripping trap</button>
 </body>
 </html>

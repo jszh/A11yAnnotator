@@ -29,6 +29,15 @@ barrier ONLY in these cases:
   placeholder. Do NOT call a real, non-empty, page-identifying phrase a "placeholder" merely because it is terse.
 - **Topic CONTRADICTION:** a non-empty title that names a DIFFERENT, unrelated subject than the page's visible
   content — the title actively MISDIRECTS (names one topic while the page is plainly about another) → barrier.
+  **`signals.pageTitle.frameTitles` (frameset pages only, present when non-empty):** `pageTitle.value` is always
+  the OUTER document's `<title>` — genuinely authoritative for what the browser tab/AT reports, so it stays the
+  title you judge. But a legacy `<frameset>` page's real, rendered content lives in a CHILD frame, which may carry
+  its OWN, DIFFERENT `<title>` the outer shell never shows. When `frameTitles` is present, treat each entry as a
+  strong hint of what the visibly-rendered frame is actually titled internally — cross-reference it against the
+  viewport's real content and against `pageTitle.value`. If the viewport's visible content matches a `frameTitles`
+  entry's subject rather than the outer `pageTitle.value`'s subject, that IS a topic contradiction (the outer
+  title describes a different page than what's actually shown) — do not default to "the title matches" just
+  because a plausible-sounding org/brand name is present in `pageTitle.value`.
 - **Identifies NOTHING about THIS page (context-relative):** a title that names ONLY the SITE/ORGANISATION (or is
   otherwise a site-wide constant) and says nothing about this specific page, WHEN the viewport shows the page is a
   DISTINCT, specific page — an article with its own subject/`<h1>`, a product, a form/checkout, a search-results

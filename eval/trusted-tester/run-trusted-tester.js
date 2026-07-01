@@ -19,7 +19,7 @@ const path = require('path');
 const REPO_ROOT = path.join(__dirname, '..', '..');
 require('../../scripts/v3/lib/load-env.js').loadEnv(REPO_ROOT);
 
-const { orchestrate } = require('../../scripts/v3/lib/orchestrator.js');
+const { orchestrate, BROWSER_ARGS } = require('../../scripts/v3/lib/orchestrator.js');
 const { createTabAllocator } = require('../../scripts/v3/lib/tab-allocator.js');
 const { makeRunAgent, makeClaudeSdkTransport, makeGeminiTransport, makeCodexTransport, makeOpenAITransport } = require('../../scripts/v3/lib/llm-agent-adapter.js');
 const { collectActPage, normalizeCollectRoles } = require('../../scripts/v3/lib/act-page-collect.js');
@@ -236,7 +236,9 @@ async function main() {
   else if (PROVIDER === 'codex') { if (!CODEX_KEY) { console.error('FATAL: CODEX_API_KEY not set (.env) and no ambient codex login'); process.exit(1); } }
   else if (!process.env.CLAUDE_CODE_OAUTH_TOKEN) { console.error('FATAL: CLAUDE_CODE_OAUTH_TOKEN not set (.env)'); process.exit(1); }
 
-  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  // BROWSER_ARGS includes --allow-file-access-from-files — required for this corpus's file:// frameset pages
+  // (frame.contentDocument is null without it, so any <frame>/<iframe> content silently collects as empty).
+  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: BROWSER_ARGS });
   const browserPid = browser.process() && browser.process().pid;
   const alloc = createTabAllocator({ browser, maxTabs: MAX_TABS });
   tel.phase = 'running';
