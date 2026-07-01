@@ -29,6 +29,8 @@ const { makeRunAgent, makeClaudeSdkTransport, makeGeminiTransport, makeCodexTran
 const { collectActPage, normalizeCollectRoles } = require('../../scripts/v3/lib/act-page-collect.js');
 const { makeSemaphore, sampleMemory } = require('../../scripts/v3/lib/run-telemetry.js');
 const LIMITS = require('../../scripts/v3/lib/limits.js');
+const INDEP = require('./lib/llm-independent.js'); // LLM-independent splice (derive/skip/guard)
+const { execSync } = require('child_process');
 const puppeteer = require('puppeteer');
 
 function arg(name, def = null) {
@@ -44,8 +46,14 @@ const SUBSET_DIR = path.join(__dirname, 'act-subset');
 const AXE_PATH = process.env.AXE_PATH || path.join(REPO_ROOT, 'axe.min.js'); // axe injected at collection → axe-promotion + checker-uncertainty
 const LIMIT = Number(arg('limit', 0));                 // 0 = all
 const SC = arg('sc', null);
-const REACHES_LLM = !!arg('reaches-llm', false);       // run the REACHES-LLM set (recall on failed + SPECIFICITY on passed/inapplicable) instead of bothFail
-const RUN_LLM = !arg('no-llm', false);                 // --no-llm ⇒ DETERMINISTIC-ONLY baseline (no LLM lane); measures what the detectors/axe catch alone
+// LLM-INDEPENDENT SPLICE (see lib/llm-independent.js). --derive-independent: a --no-llm deterministic pass over the
+// full reaches-llm set that WRITES the manifest (the re-derivation command). --skip-llm-independent: run only the
+// LLM-dependent cases live and splice the manifest's fixed TN back into results/summary (guarded by pipeline hash).
+const DERIVE_INDEP = !!arg('derive-independent', false);
+const SKIP_INDEP = !!arg('skip-llm-independent', false);
+const FORCE_SPLICE = !!arg('force-splice', false);     // override the hash-mismatch guard (edit known LLM-only)
+const REACHES_LLM = DERIVE_INDEP ? true : !!arg('reaches-llm', false);       // run the REACHES-LLM set (recall on failed + SPECIFICITY on passed/inapplicable) instead of bothFail
+const RUN_LLM = DERIVE_INDEP ? false : !arg('no-llm', false);                 // --no-llm ⇒ DETERMINISTIC-ONLY baseline (no LLM lane); measures what the detectors/axe catch alone
 const RESTRICT_SC = REACHES_LLM || !!arg('restrict-sc', false); // judge ONLY the case's GT'd SC — ACT ground truth is per-SC (off-target verdicts are unscoreable + wasted spend)
 const PAGE_CONC = Number(arg('pages', 8));             // pages orchestrated at once (default = cores-2 headroom; was 4 —
                                                       // too few to feed the global LLM cap once tools cap per-page conc)
@@ -71,7 +79,7 @@ const RUN_WALL = Number(arg('run-wall-ms', LIMITS.act.runWallClockMs)); // exper
 const INSTRUMENTS_CONC = Math.max(1, Number(arg('instruments-conc', Math.min(PAGE_CONC, 4))));
 const INSTRUMENTS_TIMEOUT = Number(arg('instruments-timeout-ms', 90000));
 const instGate = makeSemaphore(INSTRUMENTS_CONC); // shared run-telemetry semaphore (.run(fn)); caps concurrent kbd-driving lanes
-const VISION = arg('no-vision', false) ? false : true;
+const VISION = DERIVE_INDEP ? false : (arg('no-vision', false) ? false : true);
 const TOOLS = !!arg('tools', false);
 const CASES_FILE = arg('cases', null);                 // --cases=<file>: restrict to a whitespace-separated testcaseId list (subset eval; composes with --sc/--limit)
 const RUN_NAME = arg('out', null) || 'fn-llm';
@@ -366,14 +374,50 @@ async function main() {
     console.log(`--cases ${path.basename(CASES_FILE)}: ${ids.size} ids → ${cases.length} matched (of ${before})`);
   }
   if (Number.isFinite(LIMIT) && LIMIT > 0) cases = cases.slice(0, LIMIT);
+
+  // ---- LLM-independent splice: run only the LLM-dependent cases, splice the manifest's fixed TN back ----
+  // `spliceRecords` are merged into the WRITTEN results.json + the summary (never run live), so the reported
+  // metrics cover the full reaches-llm set while the browser/LLM only touch the dependent subset.
+  let spliceRecords = [];
+  if (SKIP_INDEP) {
+    if (DERIVE_INDEP) { console.error('FATAL: --skip-llm-independent and --derive-independent are mutually exclusive'); process.exit(1); }
+    if (!REACHES_LLM) { console.error('FATAL: --skip-llm-independent requires --reaches-llm (the splice denominator is the reaches-llm set)'); process.exit(1); }
+    if (SC || CASES_FILE || (Number.isFinite(LIMIT) && LIMIT > 0)) { console.error('FATAL: --skip-llm-independent is incompatible with --sc/--cases/--limit (they change the denominator the splice reconstructs)'); process.exit(1); }
+    const manifest = INDEP.loadManifest();
+    const reachesIds = new Set(cases.map((c) => c.testcaseId));
+    const guard = INDEP.checkGuard(manifest, reachesIds);
+    if (!guard.ok) {
+      const detail = guard.currentHash ? ` (current ${guard.currentHash.slice(0, 12)} ≠ manifest ${String(guard.manifestHash).slice(0, 12)})` : '';
+      if (guard.pipelineChanged && !guard.missing && !guard.failedLeak && FORCE_SPLICE) {
+        console.warn(`⚠️  --skip-llm-independent: ${guard.reason}${detail} — OVERRIDDEN by --force-splice (caller asserts the edit is LLM-only and cannot change the zero-obligation set)`);
+      } else {
+        console.error(`FATAL: --skip-llm-independent guard: ${guard.reason}${detail}`);
+        console.error(`  Re-derive the set at the current pipeline state:  node ${path.basename(__filename)} --derive-independent --out=derive-independent`);
+        if (guard.pipelineChanged && !guard.missing) console.error('  (or pass --force-splice ONLY if the change is provably LLM-only — rubric/adjudicator/transport/tools)');
+        process.exit(1);
+      }
+    }
+    // EXACT partition: skip+splice only testcaseIds appearing exactly once; duplicated-independent ids run live
+    // (see lib/llm-independent.js partitionForSplice) so entries-removed === spliced and live+spliced === total.
+    const part = INDEP.partitionForSplice(manifest, cases);
+    const before = cases.length;
+    cases = cases.filter((c) => !part.skipIds.has(c.testcaseId));
+    spliceRecords = part.spliceRecords;
+    if (before !== cases.length + spliceRecords.length) { console.error(`FATAL: splice arithmetic broke (${before} ≠ ${cases.length} live + ${spliceRecords.length} spliced)`); process.exit(1); }
+    const dupNote = part.liveDuplicated.length ? `, ${part.liveDuplicated.length} duplicated-independent id(s) kept LIVE` : '';
+    console.log(`--skip-llm-independent: ${spliceRecords.length} deterministic TN spliced${guard.pipelineChanged ? ' (FORCED)' : ''}${dupNote}, running ${cases.length} live (of ${before} reaches-llm entries) | manifest ${path.basename(INDEP.MANIFEST_PATH)} @ ${String(manifest.derivedFromCommit).slice(0, 8)}`);
+  }
+
   tel.total = cases.length;
   tel.config.fnTotal = cases.length;
+  tel.config.spliced = spliceRecords.length;
   tel.phase = 'launching';
   writeStatus();
   console.log(`FN×LLM run: ${cases.length} cases | provider=${PROVIDER} model=${MODEL} effort=${TRANSPORT_CONFIG.effort} | pages=${PAGE_CONC} globalLLM=${GLOBAL_LLM} maxTabs=${MAX_TABS} vision=${VISION} tools=${TOOLS}`);
   console.log(`status → ${path.join(OUT, 'status.json')}  (run: node ${path.relative(process.cwd(), path.join(__dirname, 'fn-llm-monitor.js'))})`);
 
-  if (PROVIDER === 'gemini') { if (!GEMINI_KEY) { console.error('FATAL: GEMINI_API_KEY not set (.env)'); process.exit(1); } }
+  if (!RUN_LLM) { /* deterministic-only pass (e.g. --derive-independent / --no-llm): no LLM auth required */ }
+  else if (PROVIDER === 'gemini') { if (!GEMINI_KEY) { console.error('FATAL: GEMINI_API_KEY not set (.env)'); process.exit(1); } }
   else if (!process.env.CLAUDE_CODE_OAUTH_TOKEN) { console.error('FATAL: CLAUDE_CODE_OAUTH_TOKEN not set (.env)'); process.exit(1); }
 
   const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
@@ -392,13 +436,18 @@ async function main() {
 
   const results = [];
   const allTraces = [];
+  // The written results.json + summary cover the FULL reaches-llm set: live results + spliced deterministic TN
+  // (empty unless --skip-llm-independent). The live `results` array stays untouched (only cases actually run).
+  const outResults = () => (spliceRecords.length ? results.concat(spliceRecords) : results);
   const persist = () => {
-    fs.writeFileSync(path.join(OUT, 'results.json'), JSON.stringify(results, null, 2));
+    const out = outResults();
+    fs.writeFileSync(path.join(OUT, 'results.json'), JSON.stringify(out, null, 2));
     // token usage rides into the DURABLE summary (not just the transient status.json): input/output (+cache) totals,
     // mean per judged verdict, and cost — so every experiment record carries its token spend.
     const tk = tel.llm;
     const tokens = { provider: PROVIDER, model: MODEL, inputTokens: tk.inputTokens, outputTokens: tk.outputTokens, totalTokens: tk.inputTokens + tk.outputTokens, cacheReadTokens: tk.cacheReadTokens, cacheCreateTokens: tk.cacheCreateTokens, costUsd: tk.costUsd, usageEvents: tk.results, meanOutputPerVerdict: tk.results ? Math.round(tk.outputTokens / tk.results) : 0 };
-    fs.writeFileSync(path.join(OUT, 'summary.json'), JSON.stringify({ ...summarize(results), tokens }, null, 2));
+    const splice = spliceRecords.length ? { spliced: spliceRecords.length, live: results.length, manifest: path.basename(INDEP.MANIFEST_PATH) } : undefined;
+    fs.writeFileSync(path.join(OUT, 'summary.json'), JSON.stringify({ ...summarize(out), tokens, ...(splice ? { splice } : {}) }, null, 2));
   };
 
   let cursor = 0;
@@ -474,7 +523,18 @@ async function main() {
   tel.phase = 'done';
   writeStatus();
 
-  printSummary(results);
+  // --derive-independent: WRITE the manifest from this deterministic pass (the re-derivation command the guard
+  // points to). Independent = the negatives the pipeline leaves with NO in-scope obligation (outcome=noObligation).
+  if (DERIVE_INDEP) {
+    const indep = INDEP.deriveCasesFromResults(results);
+    let commit = null; try { commit = execSync('git rev-parse HEAD', { cwd: REPO_ROOT }).toString().trim(); } catch (e) {}
+    const manifest = INDEP.buildManifest({ cases: indep, derivedFromCommit: commit, reachesLlmTotal: results.length });
+    const p = INDEP.writeManifest(manifest);
+    console.log(`\n--derive-independent: ${indep.length} LLM-independent cases (of ${results.length} reaches-llm) → ${path.relative(process.cwd(), p)}`);
+    console.log(`  pipelineHash ${manifest.pipelineHash.slice(0, 16)}… over ${manifest.pipelineFileCount} files @ ${String(commit).slice(0, 8)}`);
+  }
+
+  printSummary(outResults());
 }
 
 function summarize(results) {
