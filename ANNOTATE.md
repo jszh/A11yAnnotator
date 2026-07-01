@@ -54,7 +54,7 @@ if you're right. The real queue **unlocks once you finish all practice cases**.
 ## 7. Annotate
 
 For each page: read **How to test it**, inspect (highlight, screen-reader transcript,
-**🔎 element inspector**, ANDI, contrast), then answer **Q1 — does an issue exist?** and
+**🔎 element inspector**, contrast, **↗ Open in tab + ANDI**), then answer **Q1 — does an issue exist?** and
 **Q2 — approve / comment**. Progress autosaves to your browser; it remembers where you
 left off.
 

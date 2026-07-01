@@ -38,11 +38,11 @@ The right panel is a **two-page wizard**. The page's target element is **highlig
 default** with a dimmed backdrop (a non-destructive overlay from the case's `primarySelector` —
 it never injects into the page HTML). While the highlight is on, the **backdrop blocks clicks**
 to the page (you can still scroll); **toggle ◎ Highlight off to interact** — which also starts
-the screen reader (see below). **⟐ ANDI** manually launches SSA's
-[ANDI](https://www.ssa.gov/accessibility/andi/help/install.html) inspector inside the page view
-— it's **vendored locally** under `vendor/andi/`, so it loads offline with no ssa.gov download.
-**◑ Contrast** opens the [WebAIM contrast checker](https://webaim.org/resources/contrastchecker/)
-in a new tab, and **↗ Open in tab** opens the page in a new tab with ANDI launched there too.
+the screen reader (see below). **◑ Contrast** opens the
+[WebAIM contrast checker](https://webaim.org/resources/contrastchecker/) in a new tab, and
+**↗ Open in tab + ANDI** opens the page in a new tab and launches SSA's
+[ANDI](https://www.ssa.gov/accessibility/andi/help/install.html) inspector there — ANDI is
+**vendored locally** under `vendor/andi/`, so it loads offline with no ssa.gov download.
 
 **Page 1 — Apply the test.** The top segment is headed by the **aspect title** (e.g.
 *"Partial update without aria-atomic announces only the changed fragment, losing meaning"*)

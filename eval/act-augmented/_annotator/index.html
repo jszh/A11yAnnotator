@@ -250,12 +250,9 @@
     <div id="caseBar">
       <div class="crumb" id="crumb"></div>
       <div class="spacer"></div>
-      <button class="btn sm" id="prevBtn" title="Previous case">‹ Prev</button>
-      <button class="btn sm" id="nextBtn" title="Next case">Next ›</button>
       <button class="btn sm" id="hlBtn" title="Toggle highlight around the target element (overlay, does not modify the page)">◎ Highlight target</button>
-      <button class="btn sm" id="andiBtn" title="Launch ANDI (Accessible Name &amp; Description Inspector) inside the page view — needs internet (ssa.gov)">⟐ ANDI</button>
       <button class="btn sm" id="contrastBtn" title="Open the target's text + background colours in the WebAIM contrast checker (new tab)">◑ Contrast</button>
-      <button class="btn sm" id="tabBtn" title="Open this page in a new tab and launch ANDI there">↗ Open in tab</button>
+      <button class="btn sm" id="tabBtn" title="Open this page in a new tab and launch ANDI there">↗ Open in tab + ANDI</button>
     </div>
     <div id="stage">
       <iframe id="frame" title="Test page under inspection"></iframe>
@@ -1469,8 +1466,6 @@ function exportJSON(){
 /* ---------------- wiring ---------------- */
 function wireChrome(){
   $('#queueToggle').addEventListener('click',()=>$('#queue').classList.toggle('collapsed'));
-  $('#prevBtn').addEventListener('click',()=>gotoCase(state.idx-1,'prev'));
-  $('#nextBtn').addEventListener('click',()=>gotoCase(state.idx+1,'next'));
   $('#hlBtn').addEventListener('click',()=>setHighlight(!state.highlightOn));
   $('#overlay').addEventListener('click',()=>{ if(state.highlightOn) showHlMsg('Turn off ◎ Highlight to interact with the page.'); });
   // the backdrop blocks clicks but still lets you scroll the page underneath
@@ -1479,13 +1474,6 @@ function wireChrome(){
     try{ const w=$('#frame').contentWindow; const f=e.deltaMode===1?16:(e.deltaMode===2?(w.innerHeight||800):1); w.scrollBy(e.deltaX*f, e.deltaY*f); }catch(_){}
     e.preventDefault();
   }, {passive:false});
-  $('#andiBtn').addEventListener('click',()=>{
-    const f=$('#frame');
-    let doc,win;
-    try{ doc=f.contentDocument; win=f.contentWindow; if(!doc||!win) throw new Error('no doc'); }
-    catch(e){ showHlMsg('Cannot access the page for ANDI (open via localhost).'); return; }
-    launchAndi(doc,win); log('andi_webview',{url:curCase()?.url});
-  });
   $('#contrastBtn').addEventListener('click',openContrastChecker);
   $('#tabBtn').addEventListener('click',()=>{ const c=curCase(); if(c){ openInTabWithAndi(c.url); log('open_new_tab',{url:c.url, andi:true}); } });
   $('#exportBtn').addEventListener('click',exportJSON);
