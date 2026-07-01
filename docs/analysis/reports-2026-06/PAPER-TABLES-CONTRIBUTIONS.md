@@ -444,6 +444,99 @@ Table-1b ungrounded rows; (2) the two model families here match Table 1e, but th
 this is the *adapted* GenA11y (our XPath/schema/transport shim), faithful to its single-shot extract→judge
 architecture but not byte-identical to upstream's OpenAI-GPT-4o original.
 
+## Table 1g — Cross-tool baseline: AccessGuru (axe-core 4.4.1 + LLM semantic detector)
+
+A **second published external tool**, architecturally different from GenA11y: **AccessGuru** (Ahmad et al.,
+`NadeenAhmad/AccessGuruLLM`) is a **hybrid** detector — axe-core 4.4.1 for **syntactic/layout** violations UNION an
+LLM **semantic** detector (their taxonomy of 12 "not-descriptive / mismatch / ambiguous" violation types the rule
+engine cannot catch). We adapted its **detection** module (`eval/accessguru/`, commit `4079318b`) faithfully: their
+**actual axe-core 4.4.1** injected via Selenium (mirroring their Playwright `axe.run(document)`), their **exact
+semantic prompt** (system + taxonomy + HTML + full-page screenshot + `[START]…[END]` element markers), both
+detectors' findings mapped to WCAG SCs through **their** `mapping_dict_file.json`; the semantic LLM runs through the
+**same transport/endpoints** (Gemini `generateContent`, OpenAI Responses) as GenA11y and the harness. AccessGuru is
+**page-level** (one axe run + one semantic LLM call per page), so it runs natively on the **full 581** corpus; a
+case's target SC is flagged if **either** detector maps a violation to it. We keep the axe component (per its design)
+and **decompose** the result into axe-only / LLM-semantic / axe∪LLM. Per-SC scoring, raw ACT labels. Recompute:
+`python eval/accessguru/analyze.py`.
+
+**Element-scoping (the fair correction).** AccessGuru's axe config ships with `best-practice` (+ AAA/section508/EN)
+tags. On the **minimal ACT fixtures** those best-practice rules fire on **page scaffold, not the element under test**,
+and their `mapping_dict` attributes them to real SCs — a spurious flag against a GT label that only covers the
+tested element. Empirically the faithful-axe reaches-FPs are **almost entirely** three page-structural best-practice
+rules: `landmark-one-main` (×53) + `region` (×47) → 1.3.1, and `page-has-heading-one` (×12) → 2.4.6 (none of which
+tests the fixture's element under test). They also produce **spurious TPs** (a `landmark`/`region` advisory that
+happens to map to a failed case's SC). Because our harness and GenA11y were both scored **only on the element under
+test**, we report an **element-scoped** verdict (`*`) that drops axe **best-practice-only** rules (the 31 axe-4.4.1
+rules with no `wcag*` tag — `eval/accessguru/data/axe_best_practice_only.json`), keeping genuine WCAG violations on
+the tested construct. This matches the harness's WCAG-scoped axe. We report the **faithful** (as-shipped) numbers
+alongside for transparency. Validation: element-scoped **axe-only** recovers **86.4% precision / 3.7% FP** — matching
+our independent axe-core baseline (Table 1a: 89.8 / 3.0), confirming the faithful-axe FPs were best-practice noise.
+
+**Full-corpus 581 view (element-scoped `*` primary; faithful shown too), vs the existing-checker baseline (Table 1a):**
+
+| System (full 581, per-SC) | model | Recall ↑ | Prec ↑ | FP rate ↓ | F1 ↑ |
+|---|---|---|---|---|---|
+| **axe-core**, harness scope (Table 1a) | — | 59.9 (106/177) | **89.8** | **3.0** (12/404) | 0.72 |
+| AccessGuru — axe-only `*` (WCAG-scoped) | — | 53.7 (95/177) | 86.4 | 3.7 (15/402) | 0.662 |
+| AccessGuru — LLM-semantic only | Gemini 3.5-flash | 37.9 (67/177) | 54.0 | 14.2 (57/402) | 0.445 |
+| AccessGuru — LLM-semantic only | GPT-5.4-mini | 40.1 (71/177) | 54.2 | 14.9 (60/404) | 0.461 |
+| **AccessGuru (axe`*` ∪ LLM)** | Gemini 3.5-flash | 71.2 (126/177) | 64.6 | 17.2 (69/402) | **0.677** |
+| **AccessGuru (axe`*` ∪ LLM)** | GPT-5.4-mini | 71.2 (126/177) | 63.3 | 18.1 (73/404) | 0.670 |
+| _faithful (axe incl. best-practice) ∪ LLM_ | Gemini 3.5-flash | _75.7_ | _51.9_ | _30.8_ | _0.616_ |
+| _faithful (axe incl. best-practice) ∪ LLM_ | GPT-5.4-mini | _75.7_ | _51.5_ | _31.2_ | _0.613_ |
+
+**Model-matched head-to-head on the reaches-LLM 458 set (element-scoped `*`; vs Table 1e):**
+
+| System (reaches-LLM 458, per-SC) | model | Recall ↑ | Prec ↑ | FP rate ↓ | F1 ↑ |
+|---|---|---|---|---|---|
+| AccessGuru (axe`*` ∪ LLM) | Gemini 3.5-flash | 40.9 (27/66) | 30.7 | 15.6 (61/390) | 0.351 |
+| **Our harness** (`fn-llm-gemini-v2`, Table 1e) | Gemini 3.5-flash | **90.9** (60/66) | **76.9** | **4.6** (18/392) | **0.834** |
+| AccessGuru (axe`*` ∪ LLM) | GPT-5.4-mini | 42.4 (28/66) | 29.8 | 16.8 (66/392) | 0.350 |
+| **Our harness** (`gpt54mini-live`, Table 1e) | GPT-5.4-mini | **86.4** (57/66) | **86.4** | **2.3** (9/392) | **0.864** |
+
+(Faithful, before element-scoping: reaches AccessGuru∪LLM was 53.0/23.2/29.7 (Gemini), 54.5/23.2/30.4 (GPT-5.4-mini)
+— inflated on **both** axes by the best-practice scaffold rules; element-scoping removes the spurious FPs **and** the
+spurious TPs, dropping reaches recall 53→41 as those `landmark`/`region` "catches" were never the element under test.)
+
+**Read-off.**
+- **Same model, harness vs AccessGuru — the harness dominates every axis.** Reaches-LLM, element-scoped: +50.0 recall
+  / +46.2 precision / −11.0 FP (Gemini) and +44.0 recall / +56.6 precision / −14.5 FP (GPT-5.4-mini), F1 0.35 →
+  0.83–0.86. Two independently-built external tools (GenA11y single-shot, AccessGuru hybrid), same models/corpus/
+  endpoints, both land far below the facet-routed harness — the architecture gap is not tool-specific.
+- **The model barely matters for AccessGuru.** Gemini and GPT-5.4-mini are near-identical (71.2 / 71.2 full recall;
+  40.9 / 42.4 reaches) because the **deterministic axe backbone is model-independent and dominates**, and the semantic
+  LLM is a small, similar marginal add across families (full-corpus LLM-only 37.9 vs 40.1). This contrasts with the
+  harness, where the model rides on rich routed evidence and the *system* — not the model — sets the ceiling.
+- **The element-under-test correction matters — and cuts both ways.** AccessGuru's faithful axe over-flags (20.5% FP
+  full / 19.4% reaches) almost entirely via best-practice **page-structural** rules (`landmark-one-main`, `region`,
+  `page-has-heading-one`) firing on fixture scaffold, not the tested element; scoping them out drops FP to 3.7%
+  (axe-only, matching axe-core) and lifts union precision 51.9→64.6%. But it also removes the **spurious recall**
+  those advisories bought (reaches 53→41): axe genuinely contributes almost nothing on the hard residual once
+  restricted to the element under test (axe-only`*` reaches 4.5% recall). The semantic LLM is the real hard-set
+  contribution (36–40% reaches recall) — and it is where AccessGuru's residual FP now lives (genuine on-element
+  over-flags: `link-text-mismatch`, `button-label-mismatch`, `incorrect-semantic-tag`), the same ungrounded-LLM
+  failure mode GenA11y shows.
+- **vs existing rule engines (full 581):** element-scoped AccessGuru reaches **71.2 recall** — its semantic LLM adds
+  **+17.5 over its own WCAG-axe's 53.7** — but precision falls to 64.6% (vs axe-only`*` 86.4% / axe-core 89.8%) and F1
+  lands at 0.677, still **below axe-core-alone's 0.72**: the LLM's added recall does not pay for its precision cost
+  without facet-routed grounding. The harness clears both (86–91 recall AND 77–86 precision on the harder reaches set).
+- **vs GenA11y (Table 1f):** on reaches the two baselines converge — element-scoped AccessGuru 40.9–42.4 recall /
+  ~30 precision vs GenA11y 50.0–53.0 / 24–32 — both sub-0.4 F1, both dominated by the same on-element LLM over-flagging,
+  both far under the harness's 0.83.
+
+**Provenance / artifacts.** Runs `results/accessguru-act-gemini` (Gemini, 581 cases, 2 errors, $1.85) and
+`results/accessguru-act-gpt5mini` (GPT-5.4-mini, 581 cases, 0 errors, $1.34), commit `4079318b`, 25 pages / 25 tabs /
+60 LLM. Per run: `results.json`, `summary.json`, `run.log`, `status.json`, and **`llm-trace.jsonl`** (per page: axe
+rule-ids, semantic violation-names, the raw semantic output with `[START]…[END]` element snippets, model
+reasoning/thinking, token usage). Element-scoping is applied post-hoc in `analyze.py` from the stored per-rule axe-ids
+(exact, deterministic — no re-run) using the axe-4.4.1 best-practice-only set. **Caveats:** (1) scoring is **page ×
+target-SC**; AccessGuru does produce element-level findings (axe node targets; semantic snippets, retained), and the
+`*` element-scoping restricts axe to the WCAG construct under test — but a residual "right SC via an on-element but
+off-construct WCAG violation" is still possible (rare on minimal fixtures); (2) faithful and element-scoped numbers
+are both reported — `*` is the fair cross-tool comparison, faithful is what AccessGuru ships; (3) this is the *adapted*
+AccessGuru (Selenium axe injection; structured element markers for parseable output), faithful to the axe∪semantic
+detection design but not byte-identical to upstream's OpenRouter multi-model original.
+
 ## Table 2 — Held-out generalization gate (581-case full corpus)
 
 Each new deterministic detector evaluated over its **entire** ACT rule, not its tuned examples. Over-fire =
