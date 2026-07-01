@@ -10,7 +10,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const puppeteer = require('puppeteer');
 const { CHROME } = require('../../lib/run-experiments.js');
-const { queryAxNode, observeStateAfterActivation, setStateAndCapture, probeScreenReaderAfterAction, measureGeometryLive, requestHiResCrop, renderWithOverrides, computeContrastRatio, resolvePartColor, resolveDestination, compareNamedRegions, ocrImageText, ssrfSafeUrl, isPrivateIp, interactAndObserve } = require('../../lib/cdp-tools.js');
+const { queryAxNode, observeStateAfterActivation, setStateAndCapture, probeScreenReaderAfterAction, measureGeometryLive, requestHiResCrop, renderWithOverrides, computeContrastRatio, measureTextContrastOverImage, resolvePartColor, resolveDestination, compareNamedRegions, ocrImageText, ssrfSafeUrl, isPrivateIp, interactAndObserve } = require('../../lib/cdp-tools.js');
 const http = require('node:http');
 const { assetFileUrl, assetPath } = require('../../../lib/asset-paths.js');
 
@@ -570,5 +570,73 @@ test('interact_and_observe 2.1.2: Ctrl+M frees a keyboard trap; plain Tab stays 
     assert.equal(esc.steps[2].activeAfter, AFTER, 'Ctrl+M moved focus OUT of the trapped set — a WORKING documented escape');
     const trap = await interactAndObserve(page, { actions: [{ op: 'focus', xpath: B1 }, { op: 'press', key: 'Tab' }, { op: 'press', key: 'Tab' }] }, ctx);
     assert.ok([B1, B2].includes(trap.steps[2].activeAfter), 'without the escape key, plain Tab cannot leave the trap (focus stays on the buttons)');
+  } finally { await page.close().catch(() => {}); }
+});
+
+test('interact_and_observe REAL-POINTER ops: hover/move (F95 hoverability), dismissible Esc, drag, key-hold — adversarial', { skip: !chromeOK, concurrency: false }, async () => {
+  const HD = assetFileUrl('fx-v3-hover-drag.html');
+  const page = await sharedBrowser.newPage();
+  const X = (id) => `//*[@id='${id}']`;
+  const revealed = (step) => (step && step.revealedNow || []).map((r) => r.text);
+  try {
+    await page.goto(HD, { waitUntil: 'load' });
+    const ctx = { freshClone: async () => { const p = await sharedBrowser.newPage(); await p.goto(HD, { waitUntil: 'load' }); return p; } };
+
+    // F95 FAIL: a GAP between trigger and tip — hover reveals it, but traveling the pointer toward it LOSES it.
+    const gap = await interactAndObserve(page, { actions: [{ op: 'hover', xpath: X('trig-gap') }, { op: 'move', xpath: X('tip-gap') }] }, ctx);
+    assert.ok(!gap.error, gap.error || 'ok');
+    assert.deepEqual(revealed(gap.steps[0]), ['GAP tooltip body'], 'hover reveals the tip');
+    assert.deepEqual(revealed(gap.steps[1]), [], 'travelling the pointer across the gap LOSES the tip (not hoverable — F95 fail)');
+
+    // F95 PASS: trigger+tip share a hoverable wrapper, tip adjacent — the pointer travels without losing it.
+    const ok = await interactAndObserve(page, { actions: [{ op: 'hover', xpath: X('trig-ok') }, { op: 'move', xpath: X('tip-ok') }] }, ctx);
+    assert.deepEqual(revealed(ok.steps[0]), ['OK tooltip body'], 'hover reveals the tip');
+    assert.deepEqual(revealed(ok.steps[1]), ['OK tooltip body'], 'the tip PERSISTS across the travel (hoverable — F95 pass)');
+
+    // DISMISSIBLE (1.4.13): hover reveals, Escape dismisses WITHOUT moving the pointer off.
+    const esc = await interactAndObserve(page, { actions: [{ op: 'hover', xpath: X('trig-esc') }, { op: 'press', key: 'Escape' }] }, ctx);
+    assert.deepEqual(revealed(esc.steps[0]), ['ESC tooltip body'], 'hover reveals the tip');
+    assert.deepEqual(revealed(esc.steps[1]), [], 'Escape dismisses it (dismissible)');
+
+    // DRAG (2.1.1): pointer drag source→target marks the drop.
+    const drag = await interactAndObserve(page, { actions: [{ op: 'drag', xpath: X('drag-src'), toXpath: X('drop-tgt') }] }, ctx);
+    assert.equal(drag.steps[0].ok, true);
+    assert.ok((drag.delta.newlyVisibleNodes || []).some((n) => /DROPPED OK/.test(n.text)), 'the pointer drag triggered the drop');
+
+    // KEYSTROKE-TIMING (2.1.1): a HELD key activates; a tap does NOT (negative control distinguishes them).
+    const held = await interactAndObserve(page, { actions: [{ op: 'focus', xpath: X('hold-btn') }, { op: 'press', key: 'Enter', holdMs: 400 }] }, ctx);
+    assert.deepEqual(revealed(held.steps[1]), ['HELD activation'], 'holding the key ≥250ms activates');
+    const tap = await interactAndObserve(page, { actions: [{ op: 'focus', xpath: X('hold-btn') }, { op: 'press', key: 'Enter' }] }, ctx);
+    assert.deepEqual(revealed(tap.steps[1]), [], 'a plain tap does NOT activate (timing-dependent)');
+  } finally { await page.close().catch(() => {}); }
+});
+
+test('measure_text_contrast_over_image: worst-case PER-GLYPH contrast over a non-flat backdrop — a low-contrast region fails, a uniformly-dark backdrop passes (1.4.3)', { skip: !chromeOK, concurrency: false }, async () => {
+  const TC = assetFileUrl('fx-v3-text-contrast.html');
+  const page = await sharedBrowser.newPage();
+  try {
+    await page.setViewport({ width: 600, height: 200, deviceScaleFactor: 1 });
+    await page.goto(TC, { waitUntil: 'load' });
+    const ctx = { freshClone: async () => { const p = await sharedBrowser.newPage(); await p.setViewport({ width: 600, height: 200, deviceScaleFactor: 1 }); await p.goto(TC, { waitUntil: 'load' }); return p; } };
+
+    // white text over a black→WHITE gradient: the glyphs over the light end drop to ~1:1, so worst-case FAILS even
+    // though the left end is ~21:1 (the failure WCAG requires — ALL text must meet the threshold).
+    const fail = await measureTextContrastOverImage(page, { targetXpath: "//*[@id='txt-fail']" }, ctx);
+    assert.ok(!fail.error && !fail.inconclusive, fail.error || fail.inconclusive || 'ok');
+    assert.equal(fail.bgKind, 'gradient');
+    assert.ok(fail.glyphPixels > 500, 'the glyph footprint was isolated');
+    assert.ok(fail.worstCaseRatio < 3, `worst-case glyph is low contrast (got ${fail.worstCaseRatio})`);
+    assert.ok(fail.bestCaseRatio > 10, 'the other end is high contrast (so it is genuinely a worst-case-governs case)');
+    assert.equal(fail.worstCasePasses, false, 'worst-case fails the threshold');
+    assert.ok(fail.fractionBelowThreshold > 0.02, 'a real fraction of the glyph area is below threshold');
+
+    // white text over a uniformly DARK gradient: non-flat backdrop, but every glyph stays well above threshold.
+    const pass = await measureTextContrastOverImage(page, { targetXpath: "//*[@id='txt-pass']" }, ctx);
+    assert.ok(!pass.error && !pass.inconclusive, pass.error || pass.inconclusive || 'ok');
+    assert.ok(pass.worstCaseRatio > 7, `worst-case stays high over the dark backdrop (got ${pass.worstCaseRatio})`);
+    assert.equal(pass.worstCasePasses, true);
+    assert.equal(pass.fractionBelowThreshold, 0, 'no glyph pixel is below threshold');
+    // soundness rail: raw numbers, never a verdict token.
+    assert.ok(!('verdict' in pass) && !('passes' in pass) && !('barrier' in pass));
   } finally { await page.close().catch(() => {}); }
 });

@@ -335,8 +335,9 @@ async function interactAndObserve(page, args, ctx) {
   if (!acts.length) return { error: 'actions[] required ({op:type|click|press|focus|clear, xpath?, text?, key?})' };
   const cap = Math.max(1, Math.min(_MAX_ACTIONS, Number(args.maxActions) || _MAX_ACTIONS));
   if (acts.length > cap) return { error: `too many actions (${acts.length} > cap ${cap})` };
-  const VALID_OPS = new Set(['type', 'click', 'press', 'focus', 'clear']);
-  for (const a of acts) { if (!a || !VALID_OPS.has(a.op)) return { error: `invalid op ${JSON.stringify(a && a.op)} — one of type|click|press|focus|clear` }; }
+  const VALID_OPS = new Set(['type', 'click', 'press', 'focus', 'clear', 'hover', 'move', 'drag']);
+  for (const a of acts) { if (!a || !VALID_OPS.has(a.op)) return { error: `invalid op ${JSON.stringify(a && a.op)} — one of type|click|press|focus|clear|hover|move|drag` }; }
+  const MOUSE_OPS = new Set(['hover', 'move', 'drag']);
   if (!ctx || typeof ctx.freshClone !== 'function') return { error: 'fresh clone unavailable — this mutating tool refuses to touch the shared page' };
   const live = await ctx.freshClone();
   const LIVE_SEL = '[aria-live="polite"],[aria-live="assertive"],[role=status],[role=alert],[role=log],[role=alertdialog],output';
@@ -369,15 +370,56 @@ async function interactAndObserve(page, args, ctx) {
       return { url: location.href, active: _xp(document.activeElement), texts: [...texts], fields };
     });
 
+    // REAL-POINTER helpers (hover/move/drag): the viewport-clamped CENTER of an xpath'd element, and a snapshot of
+    // the nodes CURRENTLY revealed (were display/visibility/aria-hidden or absent in BEFORE, visible now). The revealed
+    // snapshot is taken AFTER each step so a hover→travel sequence shows whether content appeared then VANISHED mid-
+    // travel (the F95 "not hoverable" failure: a gap between trigger and tooltip closes it before the pointer arrives).
+    const centerOf = (xp) => live.evaluate((x) => {
+      const el = x ? document.evaluate(x, document, null, 9, null).singleNodeValue : null;
+      if (!el || !el.getBoundingClientRect) return null;
+      const r = el.getBoundingClientRect();
+      if (r.width < 1 || r.height < 1) return null;
+      return { x: Math.max(0, Math.min(window.innerWidth - 1, Math.round(r.left + r.width / 2))), y: Math.max(0, Math.min(window.innerHeight - 1, Math.round(r.top + r.height / 2))) };
+    }, xp);
+    const snapRevealed = () => live.evaluate(() => {
+      const _vis = (el) => { try { return el.checkVisibility({ checkVisibilityCSS: true, checkOpacity: true }) && !el.closest('[aria-hidden="true"]'); } catch (e) { const cs = getComputedStyle(el); return cs.display !== 'none' && cs.visibility !== 'hidden' && !el.closest('[aria-hidden="true"]'); } };
+      const _xp = (el) => { if (!el || el.nodeType !== 1) return null; const p = []; for (let n = el; n && n.nodeType === 1; n = n.parentElement) { let i = 1; for (let s = n.previousElementSibling; s; s = s.previousElementSibling) if (s.tagName === n.tagName) i++; p.unshift(n.tagName.toLowerCase() + '[' + i + ']'); } return '/' + p.join('/'); };
+      const out = [], seen = new Set();
+      for (const el of document.querySelectorAll('body *')) {
+        if (!_vis(el)) continue;
+        const pre = el.hasAttribute('data-v3-pre'), pv = el.getAttribute('data-v3-pv') || '';
+        if (pre && !(pv.includes('d') || pv.includes('v') || pv.includes('a'))) continue; // already-visible in BEFORE
+        let t = ''; for (const n of el.childNodes) if (n.nodeType === 3 && n.textContent.trim()) { t = n.textContent.trim(); break; }
+        if (!t || seen.has(t)) continue; seen.add(t);
+        out.push({ xpath: _xp(el), text: t.slice(0, 60) });
+        if (out.length >= 8) break;
+      }
+      return out;
+    });
+
     // EXECUTE the sequence step-by-step (puppeteer keyboard for type/press needs the element focused in the page).
     const steps = [];
     for (const a of acts) {
       try {
-        if (a.op !== 'click') {
+        if (a.op !== 'click' && !MOUSE_OPS.has(a.op)) {
           const found = await live.evaluate((xp) => { const el = xp ? document.evaluate(xp, document, null, 9, null).singleNodeValue : document.activeElement; if (!el) return false; try { el.focus(); } catch (e) {} return true; }, a.xpath || null);
           if (!found) { steps.push({ op: a.op, xpath: a.xpath || null, ok: false, note: 'element not found' }); continue; }
         }
-        if (a.op === 'clear') await live.evaluate(() => { const el = document.activeElement; if (el && 'value' in el) { el.value = ''; el.dispatchEvent(new Event('input', { bubbles: true })); } });
+        // REAL-POINTER ops: hover (move onto element), move (TRAVEL the pointer to a target with intermediate steps —
+        // the F95 hoverability path), drag (down on source, travel to target, up). Coordinates are the element CENTER.
+        if (MOUSE_OPS.has(a.op)) {
+          const c = await centerOf(a.xpath || null);
+          if (!c) { steps.push({ op: a.op, xpath: a.xpath || null, ok: false, note: 'element not found / zero-size' }); await new Promise((r) => setTimeout(r, 70)); continue; }
+          if (a.op === 'hover') { await live.mouse.move(c.x, c.y, { steps: 3 }); }
+          else if (a.op === 'move') { await live.mouse.move(c.x, c.y, { steps: 16 }); } // TRAVEL from the current pointer position to the target, firing intermediate mousemove/over/out
+          else if (a.op === 'drag') {
+            const to = await centerOf(a.toXpath || null);
+            if (!to) { steps.push({ op: a.op, xpath: a.xpath || null, ok: false, note: 'drag target (toXpath) not found / zero-size' }); await new Promise((r) => setTimeout(r, 70)); continue; }
+            await live.mouse.move(c.x, c.y, { steps: 2 }); await live.mouse.down(); await live.mouse.move(to.x, to.y, { steps: 16 }); await live.mouse.up();
+          }
+          steps.push({ op: a.op, xpath: a.xpath || null, toXpath: a.op === 'drag' ? (a.toXpath || null) : undefined, pointerAt: { x: c.x, y: c.y }, ok: true });
+        }
+        else if (a.op === 'clear') await live.evaluate(() => { const el = document.activeElement; if (el && 'value' in el) { el.value = ''; el.dispatchEvent(new Event('input', { bubbles: true })); } });
         else if (a.op === 'type') await live.keyboard.type(String(a.text == null ? '' : a.text).slice(0, 200), { delay: 0 });
         else if (a.op === 'press') {
           // a single key OR a modifier COMBO ("Ctrl+M", "Alt+F6", "Shift+Tab", "Escape") — down mods, press the key,
@@ -388,17 +430,24 @@ async function interactAndObserve(page, args, ctx) {
           const k = plain.length ? _normKey(plain[plain.length - 1]) : null;
           if (!k && !mods.length) { steps.push({ op: a.op, key: a.key || null, ok: false, note: `could not parse a key from "${a.key}"` }); continue; }
           for (const mm of mods) await live.keyboard.down(mm);
-          if (k) await live.keyboard.press(k);
+          // holdMs (keystroke-timing-dependence, 2.1.1): HOLD the key for a duration then release (a long-press),
+          // instead of a tap — surfaces a control that only responds to a held key. holdMs=0 ⇒ a normal press.
+          const holdMs = Math.max(0, Math.min(3000, Number(a.holdMs) || 0));
+          if (k && holdMs > 0) { await live.keyboard.down(k); await new Promise((r) => setTimeout(r, holdMs)); await live.keyboard.up(k); }
+          else if (k) await live.keyboard.press(k);
           for (const mm of [...mods].reverse()) await live.keyboard.up(mm);
         }
         else if (a.op === 'click') { const ok = await live.evaluate((xp) => { const el = document.evaluate(xp, document, null, 9, null).singleNodeValue; if (!el) return false; el.click(); return true; }, a.xpath); if (!ok) { steps.push({ op: a.op, xpath: a.xpath || null, ok: false, note: 'element not found' }); continue; } }
-        steps.push({ op: a.op, xpath: a.xpath || null, key: a.key || undefined, typed: a.op === 'type' ? String(a.text == null ? '' : a.text).slice(0, 60) : undefined, ok: true });
+        if (!MOUSE_OPS.has(a.op)) steps.push({ op: a.op, xpath: a.xpath || null, key: a.key || undefined, typed: a.op === 'type' ? String(a.text == null ? '' : a.text).slice(0, 60) : undefined, ok: true }); // mouse ops already pushed their own step above
       } catch (e) { steps.push({ op: a.op, xpath: a.xpath || null, ok: false, note: String((e && e.message) || e).slice(0, 80) }); }
       await new Promise((r) => setTimeout(r, 70)); // settle between primitives
       // record WHERE focus is after this primitive (the focus TRAJECTORY — subsumes press_keys_and_observe_focus:
       // for 2.1.2 a press whose activeAfter is OUTSIDE the trapped set is a working escape; an unchanged one is not).
       const last = steps[steps.length - 1];
       if (last) last.activeAfter = await live.evaluate(() => { const a2 = document.activeElement; if (!a2 || a2.nodeType !== 1) return null; const p = []; for (let n = a2; n && n.nodeType === 1; n = n.parentElement) { let i = 1; for (let s = n.previousElementSibling; s; s = s.previousElementSibling) if (s.tagName === n.tagName) i++; p.unshift(n.tagName.toLowerCase() + '[' + i + ']'); } return '/' + p.join('/'); }).catch(() => null);
+      // per-step REVEALED snapshot: nodes visible-now that were hidden/absent in BEFORE. A hover that reveals a
+      // tooltip then a move that LOSES it ⇒ revealedNow non-empty then empty across steps (the F95 not-hoverable gap).
+      if (last && last.ok) last.revealedNow = await snapRevealed().catch(() => undefined);
     }
 
     // AFTER: newly-visible texts (+ cause / live-region), focus move, and per-field invalidation + error association.
@@ -846,6 +895,76 @@ async function computeContrastRatio(page, args) {
     threshold: th, passes: rawRatio >= th,
     note: 'WCAG ratio of two FLAT used-colours' + (shadowIsContrastEnhancing ? ', RAISED by a contrast-enhancing text-shadow halo (passesAsText/effectiveTextRatio use text-vs-shadow ' + (+shadowAdjacentRatio.toFixed(2)) + '; flat contrastRatio is the no-shadow worst case — confirm legibility from the crop)' : '') + '. For 1.4.3 TEXT contrast use passesAsText (textThreshold font-derived: ' + (isLargeText ? '3.0 large-text' : '4.5 normal') + '); `passes` honours an explicit threshold override. Not an SC disposition.',
   };
+}
+
+// ============================================================================================
+// measure_text_contrast_over_image — MUTATING (fresh clone): the PER-PIXEL worst-case text-vs-background contrast
+// UNDER the glyph footprint when text sits over a BACKGROUND IMAGE / gradient (1.4.3 background-image-least-
+// contrast-per-letter) — the case compute_contrast_ratio deliberately refuses (no single flat used-colour). Renders
+// the text in a sentinel colour to get a glyph MASK, then transparent to expose the backdrop, samples the backdrop
+// luminance at each glyph pixel, and computes the WORST (least-contrast) ratio vs the real text colour. WCAG requires
+// ALL text meet the threshold, so the worst-case pixel governs. Raw numbers + fraction-below-threshold; never a verdict.
+async function measureTextContrastOverImage(page, args, ctx) {
+  const A = require('../../lib/a11y-eval.js');
+  const { targetXpath, threshold } = args || {};
+  if (typeof targetXpath !== 'string' || !targetXpath) return { error: 'targetXpath required (a TEXT element rendered over a background image/gradient)' };
+  if (!ctx || typeof ctx.freshClone !== 'function') return { error: 'fresh clone unavailable — this recolours text, so it needs a clone' };
+  const live = await ctx.freshClone();
+  const SS = require('./settle.js').robustScreenshot;
+  try {
+    const meta = await live.evaluate((xp) => {
+      const el = document.evaluate(xp, document, null, 9, null).singleNodeValue;
+      if (!el || el.nodeType !== 1) return null;
+      const r = el.getBoundingClientRect();
+      if (r.width < 2 || r.height < 2) return null;
+      const cs = getComputedStyle(el);
+      let bgKind = 'flat'; for (let n = el, i = 0; n && i < 6; n = n.parentElement, i++) { const c = getComputedStyle(n); if (c.backgroundImage && c.backgroundImage !== 'none') { bgKind = /gradient/i.test(c.backgroundImage) ? 'gradient' : 'image'; break; } }
+      return { x: r.left, y: r.top, w: r.width, h: r.height, color: cs.color, fontPx: parseFloat(cs.fontSize), fontWeight: cs.fontWeight, bgKind };
+    }, targetXpath).catch(() => null);
+    if (!meta) return { error: 'target not found / too small (<2px)' };
+    const clip = { x: Math.max(0, Math.round(meta.x)), y: Math.max(0, Math.round(meta.y)), width: Math.round(meta.w), height: Math.round(meta.h) };
+    const th = Number.isFinite(threshold) ? threshold : A.contrastThresholdFor(meta.fontPx, meta.fontWeight);
+    // glyph MASK: paint the text a rare sentinel (magenta) with no shadow/stroke, screenshot the box.
+    await live.evaluate((xp) => { const el = document.evaluate(xp, document, null, 9, null).singleNodeValue; if (el) { el.style.setProperty('color', '#ff00fe', 'important'); el.style.setProperty('text-shadow', 'none', 'important'); el.style.setProperty('-webkit-text-stroke', '0', 'important'); } }, targetXpath).catch(() => {});
+    const maskB64 = await SS(live, { encoding: 'base64', clip });
+    // BACKDROP: paint the text transparent so the box shows only what is BEHIND the glyphs.
+    await live.evaluate((xp) => { const el = document.evaluate(xp, document, null, 9, null).singleNodeValue; if (el) el.style.setProperty('color', 'transparent', 'important'); }, targetXpath).catch(() => {});
+    const bgB64 = await SS(live, { encoding: 'base64', clip });
+    if (!maskB64 || !bgB64) return { error: 'capture failed' };
+    // PIXEL COMPARE in-browser: load both PNGs as same-origin data URLs (untainted), draw to canvas, read pixels, and
+    // at every sentinel (glyph) pixel compute WCAG contrast(text, backdrop). Returns small stats only, never pixels.
+    const stats = await live.evaluate(async (maskUrl, bgUrl, textColor, thr) => {
+      const load = (u) => new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = 'data:image/png;base64,' + u; });
+      let mi, bi; try { [mi, bi] = await Promise.all([load(maskUrl), load(bgUrl)]); } catch (e) { return { err: 'image-load' }; }
+      const w = mi.naturalWidth, h = mi.naturalHeight;
+      if (!w || !h || w !== bi.naturalWidth || h !== bi.naturalHeight) return { err: 'dim-mismatch' };
+      const cv = document.createElement('canvas'); cv.width = w; cv.height = h; const cx = cv.getContext('2d', { willReadFrequently: true });
+      cx.drawImage(mi, 0, 0); const md = cx.getImageData(0, 0, w, h).data;
+      cx.clearRect(0, 0, w, h); cx.drawImage(bi, 0, 0); const bd = cx.getImageData(0, 0, w, h).data;
+      const tcv = document.createElement('canvas'); tcv.width = tcv.height = 1; const tcx = tcv.getContext('2d'); tcx.fillStyle = textColor; tcx.fillRect(0, 0, 1, 1); const td = tcx.getImageData(0, 0, 1, 1).data;
+      const lum = (r, g, b) => { const f = (c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
+      const ratio = (l1, l2) => { const a = Math.max(l1, l2), b = Math.min(l1, l2); return (a + 0.05) / (b + 0.05); };
+      const tl = lum(td[0], td[1], td[2]);
+      let glyph = 0, below = 0, worst = Infinity, sum = 0; const all = [];
+      for (let i = 0; i < md.length; i += 4) {
+        if (md[i] > 180 && md[i + 1] < 90 && md[i + 2] > 180) { // sentinel magenta = a glyph pixel
+          glyph++; const rr = ratio(tl, lum(bd[i], bd[i + 1], bd[i + 2]));
+          if (rr < worst) worst = rr; if (rr < thr) below++; sum += rr; if (all.length < 5000) all.push(rr);
+        }
+      }
+      if (!glyph) return { glyphPixels: 0 };
+      all.sort((a, b) => a - b);
+      return { glyphPixels: glyph, worst, median: all[Math.floor(all.length / 2)], best: all[all.length - 1], mean: sum / glyph, fracBelow: below / glyph };
+    }, maskB64, bgB64, meta.color, th).catch(() => null);
+    if (!stats || stats.err) return { inconclusive: stats && stats.err === 'dim-mismatch' ? 'capture-dimension-mismatch' : 'pixel-read-failed', bgKind: meta.bgKind };
+    if (!stats.glyphPixels) return { inconclusive: 'no-glyph-pixels', note: 'could not isolate the text glyphs (sentinel mask empty — the element may have no own text, or it is occluded) — defer to the perceptual rubric', bgKind: meta.bgKind };
+    return {
+      bgKind: meta.bgKind, textColor: meta.color, fontPx: meta.fontPx, threshold: th, glyphPixels: stats.glyphPixels,
+      worstCaseRatio: +stats.worst.toFixed(2), medianRatio: +stats.median.toFixed(2), bestCaseRatio: +stats.best.toFixed(2),
+      fractionBelowThreshold: +stats.fracBelow.toFixed(3), worstCasePasses: stats.worst >= th,
+      note: 'PER-PIXEL worst-case text-vs-backdrop contrast sampled UNDER the glyph footprint over a ' + meta.bgKind + ' backdrop. WCAG requires ALL text meet the threshold, so worstCaseRatio governs: worstCaseRatio < threshold (fractionBelowThreshold of the glyph area) is a 1.4.3 failure even when most of the text passes. Raw numbers, never an SC disposition.',
+    };
+  } finally { try { await live.close(); } catch (e) {} }
 }
 
 // ============================================================================================
@@ -1300,8 +1419,8 @@ async function buildCdpToolServer(session) {
       { targetXpath: z.string().optional(), x: z.number().optional(), y: z.number().optional() }, (a) => wrap(queryAxNode, a)),
     tool('observe_state_after_activation', 'Mutating (runs on a FRESH page clone): activate ONE control (by xpath) and return the OBJECTIVE before/after delta — each newly-visible text with its visibilityCause (inserted | display | visibility | aria-hidden | text-changed), whether it landed in a live region AND whether that region PRE-EXISTED (4.1.3: a region created with its message is NOT a reliable announcement → anyNewTextInNewLiveRegion, INCONCLUSIVE), whether focus moved into the revealed content (focusMovedToChange), and whether the page navigated/opened a window. Refuses a non-perceivable target. Reports WHAT changed and HOW, never whether it is conformant.',
       { targetXpath: z.string() }, (a) => wrap(observeStateAfterActivation, a)),
-    tool('interact_and_observe', 'Mutating (FRESH clone, real navigation/submit BLOCKED): run a SHORT capped SEQUENCE of low-level primitives — actions:[{op:"type"|"click"|"press"|"focus"|"clear", xpath?, text?, key?}] (≤16) — then return ONE objective before/after delta: newlyVisibleNodes (visibilityCause + live-region facts), focusMovedTo, blockedNavigations, and invalidFields[] (each field the page reported invalid, with constraintInvalid/ariaInvalid/cssInvalid, validationMessage, the associated error text + errorAssociated/via). Use the GUIDELINES to drive a heterogeneous interaction yourself (e.g. 3.3.1/3.3.3: clear+type-invalid into required/typed fields, click submit, observe the error surface; or 2.1.2 keyboard-trap escape: focus a trapped member, press the advised exit key — `press` accepts modifier COMBOS like "Ctrl+M"/"Alt+F6"/"Shift+Tab" — and read each step.activeAfter to see if focus LEFT the trap). FACTS not a verdict; noErrorSurfaced after an invalid submit is INCONCLUSIVE (server-side validation possible), never a pass.',
-      { actions: z.array(z.object({ op: z.enum(['type', 'click', 'press', 'focus', 'clear']), xpath: z.string().optional(), text: z.string().optional(), key: z.string().optional() })), maxActions: z.number().optional() }, (a) => wrap(interactAndObserve, a)),
+    tool('interact_and_observe', 'Mutating (FRESH clone, real navigation/submit BLOCKED): run a SHORT capped SEQUENCE of low-level primitives — actions:[{op:"type"|"click"|"press"|"focus"|"clear"|"hover"|"move"|"drag", xpath?, toXpath?(drag target), text?, key?, holdMs?}] (≤16) — then return ONE objective before/after delta: newlyVisibleNodes (visibilityCause + live-region facts), focusMovedTo, blockedNavigations, invalidFields[] (constraintInvalid/ariaInvalid/cssInvalid, validationMessage, associated error text + errorAssociated/via), plus per-step activeAfter + revealedNow (content visible-now that was hidden in BEFORE). REAL-POINTER ops: `hover` moves the pointer onto an element (reveal hover content); `move` TRAVELS the pointer to a target firing intermediate mousemove/over/out — for 1.4.13 F95 "hoverable": [hover trigger, move tooltip] then compare revealedNow across steps (tooltip present after hover but GONE after move ⇒ a gap closed it = not hoverable); also 2.1.1 hover-only-reveal; `drag` presses on xpath, travels to toXpath, releases (2.1.1 drag parity). `press` accepts modifier COMBOS ("Ctrl+M") and holdMs (hold a key — keystroke-timing); for 2.1.2 keyboard-trap read step.activeAfter; for 1.4.13 dismissible [hover trigger, press "Escape"] then check revealedNow emptied without the pointer moving off. FACTS not a verdict; noErrorSurfaced after an invalid submit is INCONCLUSIVE (server-side validation possible), never a pass.',
+      { actions: z.array(z.object({ op: z.enum(['type', 'click', 'press', 'focus', 'clear', 'hover', 'move', 'drag']), xpath: z.string().optional(), toXpath: z.string().optional(), text: z.string().optional(), key: z.string().optional(), holdMs: z.number().optional() })), maxActions: z.number().optional() }, (a) => wrap(interactAndObserve, a)),
     tool('set_state_and_capture', 'Mutating (FRESH clone): drive ONE element into an interaction state (focus|hover|checked|open|expanded|placeholder-shown) and return before/after screenshots of the same region + the computed-style DELTA (which outline/border/decoration/background props changed) + stateReached/textVisible. Use for state-specific indicators (1.4.11/1.4.1/1.4.3). Returns PIXELS + objective style deltas, never a contrast number or a verdict; if stateReached is false, do not infer a pass.',
       { targetXpath: z.string(), state: z.enum(['focus', 'hover', 'checked', 'open', 'expanded', 'placeholder-shown']) }, (a) => wrap(setStateAndCapture, a)),
     tool('probe_screen_reader_after_action', 'Mutating (FRESH clone): run a screen reader, clear its log, activate ONE control (by xpath), settle, and return the VERBATIM spoken-phrase queue. Returns BOTH the full announcements queue AND liveRegionAnnouncements (the polite/assertive subset — the ONLY 4.1.3-relevant phrases; focus/change-of-context phrases are excluded by 4.1.3). emptyQueue/noLiveRegionAnnouncement flag a genuine silence; an instrument failure returns {error,probeFailed:true} instead (never a fake emptyQueue). Raw phrases, never an adequacy/announced verdict.',
@@ -1314,6 +1433,8 @@ async function buildCdpToolServer(session) {
       { transform: z.enum(['grayscale', 'protanopia', 'deuteranopia', 'tritanopia', 'forced-colors', 'no-author-css']), targetXpath: z.string().optional() }, (a) => wrap(renderWithOverrides, a)),
     tool('compute_contrast_ratio', 'Read-only: the WCAG contrast ratio for TWO flat used-colours the model chooses (e.g. an in-text link colour vs the surrounding text colour — G183 for 1.4.1). Returns colorA/colorB/contrastRatio/threshold/passes from CSSOM. REFUSES (inconclusive) translucent/unparseable colours — it never sweeps a photo/gradient. `passes` is a mechanical compare, not a verdict.',
       { nodeAXpath: z.string(), nodeBXpath: z.string(), threshold: z.number().optional() }, (a) => wrap(computeContrastRatio, a)),
+    tool('measure_text_contrast_over_image', 'Mutating (FRESH clone): the PER-PIXEL worst-case TEXT-vs-BACKGROUND contrast under the glyph footprint when text sits over a background IMAGE or gradient (1.4.3 — the case compute_contrast_ratio refuses because there is no single flat backdrop colour). Renders the text as a sentinel mask, then transparent to expose the backdrop, samples backdrop luminance at each glyph pixel, and returns worstCaseRatio/medianRatio/bestCaseRatio, fractionBelowThreshold, glyphPixels, threshold (font-derived), worstCasePasses + bgKind. WCAG requires ALL text meet the threshold, so worstCaseRatio governs (most of the text passing does NOT clear a low-contrast region). Raw numbers, never a verdict.',
+      { targetXpath: z.string(), threshold: z.number().optional() }, (a) => wrap(measureTextContrastOverImage, a)),
     tool('resolve_part_color', 'Read-only: for a NON-TEXT part at a screenshot pixel (x,y) — a border/indicator/SVG fill — return the CSS used-colours (incl. ::before/::after pseudo) AND the RENDERED pixel AND cssVsRenderedDivergence (sourceProperty = the used-colour the pixel best matches). usedColourReliable is false when a gradient/filter/opacity<1/translucent part means no single flat colour is sound ⇒ trust ONLY the rendered pixel. If divergent, no used-colour explains the pixel ⇒ INCONCLUSIVE. Raw RGBA + flags, never a ratio/verdict.',
       { x: z.number(), y: z.number() }, (a) => wrap(resolvePartColor, a)),
     tool('resolve_destination', 'Read-only: follow a SAME-ORIGIN link in an isolated incognito GET and return a RAW fingerprint (finalUrl/httpStatus/title/h1/mainFirstParagraph + instantRedirect/redirectDelayMs/interstitialPage) — for 2.4.4. Pass linkXpaths[] (the SET of same-named links — fd3a94 is a set test) to resolve all in one call + get a per-field byte-EQUALITY grid. instantRedirect is true only for a 3xx or meta-refresh delay-0 (only instant redirects count). NEVER same/equivalent/different — your judgment. Cross-origin http(s) IS resolved (behind an SSRF guard, crossOrigin:true on the result); non-http and private/credentialed/off-port targets are refused.',
@@ -1343,7 +1464,7 @@ function buildCdpToolDispatch(session) {
     query_ax_node: queryAxNode, observe_state_after_activation: observeStateAfterActivation,
     set_state_and_capture: setStateAndCapture, probe_screen_reader_after_action: probeScreenReaderAfterAction,
     measure_geometry_live: measureGeometryLive, request_hi_res_crop: requestHiResCrop,
-    render_with_overrides: renderWithOverrides, compute_contrast_ratio: computeContrastRatio,
+    render_with_overrides: renderWithOverrides, compute_contrast_ratio: computeContrastRatio, measure_text_contrast_over_image: measureTextContrastOverImage,
     resolve_part_color: resolvePartColor, resolve_destination: resolveDestination,
     compare_iframe_content: compareIframeContent,
     compare_named_regions: compareNamedRegions, ocr_image_text: ocrImageText, capture_full_page: captureFullPage,
@@ -1355,8 +1476,8 @@ function buildCdpToolDispatch(session) {
       parameters: S({ targetXpath: { type: 'string' }, x: { type: 'number' }, y: { type: 'number' } }) },
     { name: 'observe_state_after_activation', description: 'Mutating (runs on a FRESH page clone): activate ONE control (by xpath) and return the OBJECTIVE before/after delta — each newly-visible text with its visibilityCause (inserted | display | visibility | aria-hidden | text-changed), whether it landed in a live region AND whether that region PRE-EXISTED (4.1.3: a region created with its message is NOT a reliable announcement → anyNewTextInNewLiveRegion, INCONCLUSIVE), whether focus moved into the revealed content (focusMovedToChange), and whether the page navigated/opened a window. Refuses a non-perceivable target. Reports WHAT changed and HOW, never whether it is conformant.',
       parameters: S({ targetXpath: { type: 'string' } }, ['targetXpath']) },
-    { name: 'interact_and_observe', description: 'Mutating (FRESH clone, real navigation/submit BLOCKED): run a SHORT capped SEQUENCE of low-level primitives — actions:[{op:"type"|"click"|"press"|"focus"|"clear", xpath?, text?, key?}] (≤16) — then return ONE objective before/after delta: newlyVisibleNodes (each with visibilityCause + live-region facts), focusMovedTo, blockedNavigations, and invalidFields[] (each field the page reported invalid after the sequence, with constraintInvalid/ariaInvalid/cssInvalid, validationMessage, the programmatically-associated error text + errorAssociated/via). Use the GUIDELINES to drive a heterogeneous interaction yourself (e.g. 3.3.1/3.3.3: clear+type-invalid into required/typed fields, click the submit, observe the error surface; or 2.1.2 keyboard-trap escape: focus a trapped member, press the advised exit key — `press` accepts modifier COMBOS like "Ctrl+M" — and read step.activeAfter to see if focus LEFT the trap) instead of needing a bespoke tool. Returns FACTS, never a verdict; noErrorSurfaced after an invalid submit is INCONCLUSIVE (server-side validation possible), never a pass.',
-      parameters: S({ actions: { type: 'array', items: { type: 'object', properties: { op: { type: 'string', enum: ['type', 'click', 'press', 'focus', 'clear'] }, xpath: { type: 'string' }, text: { type: 'string' }, key: { type: 'string' } }, required: ['op'] } }, maxActions: { type: 'number' } }, ['actions']) },
+    { name: 'interact_and_observe', description: 'Mutating (FRESH clone, real navigation/submit BLOCKED): run a SHORT capped SEQUENCE of low-level primitives — actions:[{op:"type"|"click"|"press"|"focus"|"clear"|"hover"|"move"|"drag", xpath?, toXpath?, text?, key?, holdMs?}] (≤16) — then return ONE objective before/after delta: newlyVisibleNodes (visibilityCause + live-region facts), focusMovedTo, blockedNavigations, invalidFields[] (constraintInvalid/ariaInvalid/cssInvalid, validationMessage, associated error text + errorAssociated/via), plus per-step activeAfter + revealedNow (content visible-now that was hidden in BEFORE). REAL-POINTER ops: `hover` moves the pointer onto an element; `move` TRAVELS the pointer to a target (intermediate mousemove/over/out) — 1.4.13 F95 hoverability: [hover trigger, move tooltip] then compare revealedNow (present after hover, GONE after move ⇒ a gap = not hoverable); 2.1.1 hover-only-reveal; `drag` down on xpath → travel to toXpath → up (2.1.1 drag). `press` takes modifier COMBOS ("Ctrl+M") and holdMs (key-hold timing); 2.1.2 trap via step.activeAfter; 1.4.13 dismissible via [hover, press "Escape"] then revealedNow emptied. FACTS not a verdict; noErrorSurfaced after an invalid submit is INCONCLUSIVE, never a pass.',
+      parameters: S({ actions: { type: 'array', items: { type: 'object', properties: { op: { type: 'string', enum: ['type', 'click', 'press', 'focus', 'clear', 'hover', 'move', 'drag'] }, xpath: { type: 'string' }, toXpath: { type: 'string' }, text: { type: 'string' }, key: { type: 'string' }, holdMs: { type: 'number' } }, required: ['op'] } }, maxActions: { type: 'number' } }, ['actions']) },
     { name: 'set_state_and_capture', description: 'Mutating (FRESH clone): drive ONE element into an interaction state (focus|hover|checked|open|expanded|placeholder-shown) and return before/after screenshots of the same region + the computed-style DELTA (which outline/border/decoration/background props changed) + stateReached/textVisible. Use for state-specific indicators (1.4.11/1.4.1/1.4.3). Returns PIXELS + objective style deltas, never a contrast number or a verdict; if stateReached is false, do not infer a pass.',
       parameters: S({ targetXpath: { type: 'string' }, state: { type: 'string', enum: ['focus', 'hover', 'checked', 'open', 'expanded', 'placeholder-shown'] } }, ['targetXpath', 'state']) },
     { name: 'probe_screen_reader_after_action', description: 'Mutating (FRESH clone): run a screen reader, clear its log, activate ONE control (by xpath), settle, and return the VERBATIM spoken-phrase queue. Returns BOTH the full announcements queue AND liveRegionAnnouncements (the polite/assertive subset — the ONLY 4.1.3-relevant phrases; focus/change-of-context phrases are excluded by 4.1.3). emptyQueue/noLiveRegionAnnouncement flag a genuine silence; an instrument failure returns {error,probeFailed:true} instead (never a fake emptyQueue). Raw phrases, never an adequacy/announced verdict.',
@@ -1369,6 +1490,8 @@ function buildCdpToolDispatch(session) {
       parameters: S({ transform: { type: 'string', enum: ['grayscale', 'protanopia', 'deuteranopia', 'tritanopia', 'forced-colors', 'no-author-css'] }, targetXpath: { type: 'string' } }, ['transform']) },
     { name: 'compute_contrast_ratio', description: 'Read-only: the WCAG contrast ratio for TWO flat used-colours the model chooses (e.g. an in-text link colour vs the surrounding text colour — G183 for 1.4.1). Returns colorA/colorB/contrastRatio/threshold/passes from CSSOM. REFUSES (inconclusive) translucent/unparseable colours — it never sweeps a photo/gradient. `passes` is a mechanical compare, not a verdict.',
       parameters: S({ nodeAXpath: { type: 'string' }, nodeBXpath: { type: 'string' }, threshold: { type: 'number' } }, ['nodeAXpath', 'nodeBXpath']) },
+    { name: 'measure_text_contrast_over_image', description: 'Mutating (FRESH clone): PER-PIXEL worst-case TEXT-vs-BACKGROUND contrast under the glyph footprint when text sits over a background IMAGE/gradient (1.4.3 — the case compute_contrast_ratio refuses). Returns worstCaseRatio/medianRatio/bestCaseRatio, fractionBelowThreshold, glyphPixels, threshold, worstCasePasses, bgKind. worstCaseRatio governs (ALL text must meet the threshold). Raw numbers, never a verdict.',
+      parameters: S({ targetXpath: { type: 'string' }, threshold: { type: 'number' } }, ['targetXpath']) },
     { name: 'resolve_part_color', description: 'Read-only: for a NON-TEXT part at a screenshot pixel (x,y) — a border/indicator/SVG fill — return the CSS used-colours (incl. ::before/::after pseudo) AND the RENDERED pixel AND cssVsRenderedDivergence (sourceProperty = the used-colour the pixel best matches). usedColourReliable is false when a gradient/filter/opacity<1/translucent part means no single flat colour is sound ⇒ trust ONLY the rendered pixel. If divergent, no used-colour explains the pixel ⇒ INCONCLUSIVE. Raw RGBA + flags, never a ratio/verdict.',
       parameters: S({ x: { type: 'number' }, y: { type: 'number' } }, ['x', 'y']) },
     { name: 'resolve_destination', description: 'Read-only: follow a SAME-ORIGIN link in an isolated incognito GET and return a RAW fingerprint (finalUrl/httpStatus/title/h1/mainFirstParagraph + instantRedirect/redirectDelayMs/interstitialPage) — for 2.4.4. Pass linkXpaths[] (the SET of same-named links — fd3a94 is a set test) to resolve all in one call + get a per-field byte-EQUALITY grid. instantRedirect is true only for a 3xx or meta-refresh delay-0 (only instant redirects count). NEVER same/equivalent/different — your judgment. Cross-origin http(s) IS resolved (behind an SSRF guard, crossOrigin:true on the result); non-http and private/credentialed/off-port targets are refused.',
@@ -1453,4 +1576,4 @@ async function buildCdpHttpMcpServer(arg) {
   return { url, stats, declarations: dispatch.declarations, close: async () => new Promise((resolve) => { try { httpServer.close(() => resolve()); } catch (e) { resolve(); } }) };
 }
 
-module.exports = { queryAxNode, observeStateAfterActivation, interactAndObserve, setStateAndCapture, probeScreenReaderAfterAction, measureGeometryLive, requestHiResCrop, renderWithOverrides, computeContrastRatio, resolvePartColor, resolveDestination, compareIframeContent, compareNamedRegions, ocrImageText, captureFullPage, buildCdpToolServer, buildCdpToolDispatch, buildCdpHttpMcpServer, CDP_MCP_INSTRUCTIONS, ssrfSafeUrl, isPrivateIp };
+module.exports = { queryAxNode, observeStateAfterActivation, interactAndObserve, setStateAndCapture, probeScreenReaderAfterAction, measureGeometryLive, requestHiResCrop, renderWithOverrides, computeContrastRatio, measureTextContrastOverImage, resolvePartColor, resolveDestination, compareIframeContent, compareNamedRegions, ocrImageText, captureFullPage, buildCdpToolServer, buildCdpToolDispatch, buildCdpHttpMcpServer, CDP_MCP_INSTRUCTIONS, ssrfSafeUrl, isPrivateIp };

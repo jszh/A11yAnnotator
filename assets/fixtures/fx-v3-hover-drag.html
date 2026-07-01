@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>hover / move / drag / hold fixture</title>
+<style>
+  body { margin:0; font-family:sans-serif; }
+  .trig { display:inline-block; padding:8px 12px; background:#06c; color:#fff; }
+  .tip { position:absolute; padding:6px 10px; background:#222; color:#fff; width:160px; }
+</style></head>
+<body>
+  <!-- F95 FAIL: a GAP between trigger and tooltip. mouseleave on the trigger hides the tip, and there is a 40px
+       gap to cross, so traveling the pointer toward the tip loses :hover before reaching it (not hoverable). -->
+  <div style="position:absolute; left:20px; top:20px;">
+    <a id="trig-gap" href="#" class="trig">Trigger GAP</a>
+    <div id="tip-gap" class="tip" style="display:none; left:0; top:80px;">GAP tooltip body</div>
+  </div>
+  <script>
+    (function(){ var t=document.getElementById('trig-gap'), p=document.getElementById('tip-gap');
+      t.addEventListener('mouseenter',function(){ p.style.display='block'; });
+      t.addEventListener('mouseleave',function(){ p.style.display='none'; }); })();
+  </script>
+
+  <!-- F95 PASS: trigger + tooltip share a WRAPPER that owns the hover, and the tip is ADJACENT (no gap), so the
+       pointer can travel from trigger to tip without leaving the wrapper (hoverable). -->
+  <div id="wrap-ok" style="position:absolute; left:320px; top:20px;">
+    <a id="trig-ok" href="#" class="trig">Trigger OK</a>
+    <div id="tip-ok" class="tip" style="display:none; left:0; top:34px;">OK tooltip body</div>
+  </div>
+  <script>
+    (function(){ var w=document.getElementById('wrap-ok'), p=document.getElementById('tip-ok');
+      w.addEventListener('mouseenter',function(){ p.style.display='block'; });
+      w.addEventListener('mouseleave',function(){ p.style.display='none'; }); })();
+  </script>
+
+  <!-- 1.4.13 DISMISSIBLE: hover reveals a tip; pressing Escape (without moving the pointer off) dismisses it. -->
+  <div id="wrap-esc" style="position:absolute; left:620px; top:20px;">
+    <button id="trig-esc" class="trig">Trigger ESC</button>
+    <div id="tip-esc" class="tip" style="display:none; left:0; top:34px;">ESC tooltip body</div>
+  </div>
+  <script>
+    (function(){ var w=document.getElementById('wrap-esc'), p=document.getElementById('tip-esc');
+      w.addEventListener('mouseenter',function(){ p.style.display='block'; });
+      document.addEventListener('keydown',function(e){ if(e.key==='Escape') p.style.display='none'; }); })();
+  </script>
+
+  <!-- 2.1.1 DRAG: pointer drag from source to target (mousedown→travel→mouseup) marks the drop. -->
+  <div id="drag-src" style="position:absolute; left:20px; top:160px; width:90px; height:40px; background:#0a0; color:#fff;">Drag SRC</div>
+  <div id="drop-tgt" style="position:absolute; left:200px; top:160px; width:120px; height:40px; background:#eee; border:2px dashed #999;">Drop TARGET</div>
+  <script>
+    (function(){ var dragging=false, s=document.getElementById('drag-src'), t=document.getElementById('drop-tgt');
+      s.addEventListener('mousedown',function(){ dragging=true; });
+      document.addEventListener('mouseup',function(){ dragging=false; });
+      t.addEventListener('mouseup',function(){ if(dragging) t.textContent='DROPPED OK'; }); })();
+  </script>
+
+  <!-- 2.1.1 KEYSTROKE-TIMING: a control that only activates when the key is HELD ≥250ms (a tap does nothing). -->
+  <div style="position:absolute; left:20px; top:240px;">
+    <button id="hold-btn" class="trig">Hold ENTER</button>
+    <div id="hold-out" class="tip" style="display:none; position:static; margin-top:8px;">HELD activation</div>
+  </div>
+  <script>
+    (function(){ var timer=null, b=document.getElementById('hold-btn'), o=document.getElementById('hold-out');
+      b.addEventListener('keydown',function(e){ if((e.key==='Enter'||e.key===' ') && !timer){ timer=setTimeout(function(){ o.style.display='block'; },250); } });
+      b.addEventListener('keyup',function(){ if(timer){ clearTimeout(timer); timer=null; } }); })();
+  </script>
+</body>
+</html>

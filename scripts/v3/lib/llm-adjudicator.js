@@ -19,6 +19,7 @@ const V = require('./v3-schema.js');
 const A = require('../../lib/a11y-eval.js');
 const oracle = require('./applicability-oracle.js');
 const { toolsForSubject, renderToolGuidance } = require('./cdp-tool-catalog.js');
+const { detectConfusableText } = require('./confusable-text.js');
 
 const MECHANISM = 'llm-agent';
 const V2_9_VERDICTS = ['REPRODUCED', 'NOT REPRODUCED', 'PARTIAL', 'N/A'];
@@ -211,6 +212,14 @@ function precomputeSignals(element, skill, sc) {
   // subject (name/role in the prompt) only, i.e. axe-level evidence. Used to measure the value of v3 precompute.
   if (process.env.V3_MINIMAL_EVIDENCE === '1') return s;
   const num = (v) => (Number.isFinite(v) ? v : undefined);
+  // 1.1.1 text-lookalike-glyph-substitution: the element's visible text / accessible name RENDERS as words but is
+  // built from non-letter codepoints an SR cannot read (math-styled / fullwidth / enclosed / Cyrillic-Greek homoglyph
+  // mixed into a Latin word). DETERMINISTIC — surfaced so the judge sees the SEEN text vs the AT-readable fold.
+  {
+    const probe = (typeof element.text === 'string' && element.text) ? element.text : (typeof element.axName === 'string' ? element.axName : '');
+    const cf = detectConfusableText(probe);
+    if (cf.hasConfusables) s.confusableText = { kinds: cf.kinds, count: cf.count, asciiFold: cf.asciiFold, samples: cf.samples, uncertainReason: 'this element\'s visible text uses CONFUSABLE codepoints (' + cf.kinds.join(', ') + ') that render as ordinary words but are NOT readable letters to assistive technology — a screen reader gets gibberish, the wrong language, or nothing. The seen word folds to "' + cf.asciiFold + '" but the markup does not contain those ASCII letters. Treat styled/decorative glyph-substituted TEXT as non-text content lacking a text alternative (1.1.1) unless a proper text equivalent is present.' };
+  }
   // S7 (RCA R7): target-size is a 2.5.x GEOMETRY check — it belongs to the pointer/target-size skill, NOT the
   // contrast skill. Attaching it to `color-and-visual-text` contaminated the contrast/complex-backdrop judgment
   // (evalTargetSize's "zero-size/hidden — not a rendered target" verdict bled into the 1.4.3 call, afw4f7) AND
