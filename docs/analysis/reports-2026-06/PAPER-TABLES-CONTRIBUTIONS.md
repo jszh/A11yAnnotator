@@ -298,6 +298,12 @@ any row with `node eval/checker-comparison/ablation-table.js` (config = the run 
 | `sonnet5-full` (06-30) | Claude Sonnet 5.0 | tools, 16-par (default) | `21518a5f` ‡ | 84.8 (56/66) | 75.7 | 4.6 (18/392) | 0.800 | 2 |
 | `sonnet5-full` **`*`** (06-30) | Claude Sonnet 5.0 | tools, 16-par (default) | `21518a5f` ‡ | 82.4 (56/68) | 75.7 | 4.6 (18/390) | 0.789 | 2 |
 | `gpt54mini-live` (06-30) | GPT-5.4-mini | tools, 25-page/60-par, §splice | `9415844e` § | 86.4 (57/66) | 86.4 | 2.3 (9/392) | **0.864** | 3 |
+| `skip-sonnet-46` (07-01) | Claude Sonnet 4.6 | tools, 16-par, ◊splice | `752d5468` ◊ | 97.0 (64/66) | 80.0 | 4.1 (16/392) | 0.877 | 3 |
+| `skip-sonnet-46` **`*`** (07-01) | Claude Sonnet 4.6 | tools, 16-par, ◊splice, `*`override | `752d5468` ◊ | **97.1** (66/68) | 82.5 | 3.6 (14/390) | **0.892** | 3 |
+| `skip-gemini-35` (07-01) | Gemini 3.5-flash | tools, 50-par, ◊splice | `752d5468` ◊ | 92.4 (61/66) | 79.2 | 4.1 (16/392) | 0.853 | 3 |
+| `skip-gemini-35` **`*`** (07-01) | Gemini 3.5-flash | tools, 50-par, ◊splice, `*`override | `752d5468` ◊ | 92.6 (63/68) | 81.8 | 3.6 (14/390) | 0.869 | 3 |
+| `skip-haiku-45` (07-01) | Claude Haiku 4.5 | tools, 16-par, ◊splice | `752d5468` ◊ | 89.4 (59/66) | 71.1 | 6.1 (24/392) | 0.792 | 2 |
+| `skip-haiku-45` **`*`** (07-01) | Claude Haiku 4.5 | tools, 16-par, ◊splice, `*`override | `752d5468` ◊ | 89.7 (61/68) | 73.5 | 5.6 (22/390) | 0.808 | 2 |
 
 ‡ **Sonnet 5.0 (`claude-sonnet-5`), default config, first full run on the new code (`21518a5f`).** Starred
 **82.4 / 75.7 / 0.789** (un-modified 84.8 / 75.7 / 0.800), noVerdict 2; **179 tool calls / 121 cases** (incl. the
@@ -324,6 +330,23 @@ tokens). **CONFOUND — model+code, not model alone:** this rides `9415844e` (ro
 contrast/confusable tooling), while the `openai-gpt54-full` GPT-5.4 baseline rides `876e4696` (older). So the
 +0.037 F1 over GPT-5.4-full (0.864 vs 0.827) mixes the mini model with the newer build; a clean read needs GPT-5.4
 re-run at `9415844e`. Still, **0.864 is the strongest measured GPT result** and second only to `full-claude-default`.
+
+◊ **Persisted LLM-independence splice (`--skip-llm-independent`, harness commit `752d5468`; pipeline `b7fe59f8`
+≡ `9415844e`).** First runs of the splice optimization as a **committed, guarded** harness feature
+(`eval/checker-comparison/lib/llm-independent.js`), superseding the ad-hoc `§` version. Ran only the **327
+LLM-dependent cases** live and spliced **131 deterministic LLM-independent cases** (zero in-scope obligation ⇒
+`noObligation` regardless of model ⇒ all TN) as a fixed contribution — the full 458-set metrics for ~29% less
+browser work; recall stays fully live (all `failed` cases run live). The manifest (`llm-independent-set.json`) is
+guarded by a SHA-256 over the 74 deterministic-pipeline files and **refuses to splice on hash drift** (the set was
+measured drifting 137→132 across commits; here the pipeline is byte-identical `9415844e`→`b7fe59f8`, so the guard
+passes). The one testcaseId appearing **twice** in the reaches set (same page under two ACT rules) is kept LIVE, not
+spliced, so live + spliced = 458 exactly. **Clean cross-family read — all three ride the SAME code:** Sonnet 4.6
+**97.1 / 82.5 / 0.892** > Gemini 3.5 **92.6 / 81.8 / 0.869** > Haiku 4.5 **89.7 / 73.5 / 0.808** (starred; 0 errors,
+noVerd ≤3 each; Sonnet $26.64 / 345k out, Haiku $16.71 / 1.13M out, Gemini 664k out). **Sonnet 4.6's `*`0.892 is
+the strongest measured full-set F1 to date** (prior best `full-claude-default` 0.876). **Confound vs older rows:**
+these ride the `9415844e` pipeline (round-3+4 fixes); the 0.876 baseline rode `49b4c23b` — so the model *ranking*
+here is clean (identical code) but the gain over 0.876 mixes fixes+model. Splice exactness independently unit-tested
+(`lib/llm-independent.test.js`, 8 tests) + the arithmetic asserted at run time (`live + spliced === 458`).
 
 † plus a 1-line uncommitted `V3_MAX_TABS` env wire (`limits.js`) so `--max-tabs=64` takes effect. **`fn-llm-gemini-v2`
 is the first full run with ALL the round's fixes live** (Gemini image-tool fix → **noVerdict 28→4**; decorative
