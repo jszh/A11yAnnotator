@@ -297,6 +297,7 @@ any row with `node eval/checker-comparison/ablation-table.js` (config = the run 
 | `claude-sonnet-full` **`*`** (06-30) | Claude Sonnet 4.6 | tools, 8-par, `*`override | `34aec9d3` | 89.7 (61/68) | 77.2 | 4.6 (18/390) | 0.830 | 2 |
 | `sonnet5-full` (06-30) | Claude Sonnet 5.0 | tools, 16-par (default) | `21518a5f` ‡ | 84.8 (56/66) | 75.7 | 4.6 (18/392) | 0.800 | 2 |
 | `sonnet5-full` **`*`** (06-30) | Claude Sonnet 5.0 | tools, 16-par (default) | `21518a5f` ‡ | 82.4 (56/68) | 75.7 | 4.6 (18/390) | 0.789 | 2 |
+| `gpt54mini-live` (06-30) | GPT-5.4-mini | tools, 25-page/60-par, §splice | `9415844e` § | 86.4 (57/66) | 86.4 | 2.3 (9/392) | **0.864** | 3 |
 
 ‡ **Sonnet 5.0 (`claude-sonnet-5`), default config, first full run on the new code (`21518a5f`).** Starred
 **82.4 / 75.7 / 0.789** (un-modified 84.8 / 75.7 / 0.800), noVerdict 2; **179 tool calls / 121 cases** (incl. the
@@ -310,6 +311,19 @@ at the same FP/precision. **Confound:** the two runs are at DIFFERENT commits �
 clean model-only comparison needs a Sonnet 4.6 re-run at `21518a5f`; until then read the gap as model+code, not
 model alone. (Notably the FP fixes did NOT drop Claude's FP count here — still 18 — so Sonnet 5.0 surfaces its own
 FPs where 4.6's recovered ones were; worth isolating.)
+
+§ **GPT-5.4-mini, first run of the LLM-independence splice optimization + the round-4 tooling build (`9415844e`).**
+Ran only the **325 LLM-dependent cases** live (`--cases=llm-dependent-live.txt`) and **spliced the 132 deterministic
+LLM-independent cases** (all `noObligation`/no-LLM-trace across 4 prior runs → all TN) as a fixed contribution. The
+splice is exact — reconstructing the GPT-5.4 baseline from (its 325-live + 132-fixed) reproduces its full metrics
+byte-identically — so this saves ~29% of the browser collection work with no metric distortion; recall stays fully
+live (66/66). Config: 25 pages / 60 parallel calls, `V3_MAX_TABS=24` (memory safeguard after an orphaned-Chrome OOM
+crash on the first attempt). Real model spend confirmed (4.31M in / 246k out, 682 events — vs the aborted
+`gpt-5.5-mini` attempt which was a **404 non-existent model** the transport silently degraded to all-noVerdict, 0
+tokens). **CONFOUND — model+code, not model alone:** this rides `9415844e` (round-3 fixes + round-4 hover/drag/
+contrast/confusable tooling), while the `openai-gpt54-full` GPT-5.4 baseline rides `876e4696` (older). So the
++0.037 F1 over GPT-5.4-full (0.864 vs 0.827) mixes the mini model with the newer build; a clean read needs GPT-5.4
+re-run at `9415844e`. Still, **0.864 is the strongest measured GPT result** and second only to `full-claude-default`.
 
 † plus a 1-line uncommitted `V3_MAX_TABS` env wire (`limits.js`) so `--max-tabs=64` takes effect. **`fn-llm-gemini-v2`
 is the first full run with ALL the round's fixes live** (Gemini image-tool fix → **noVerdict 28→4**; decorative
@@ -356,6 +370,79 @@ provider-aware) before they are net-positive for the deployed Claude default.
   HTTP-MCP bridge) made **0 tool calls** across every probe (six channels: prompt guidance, MCP `instructions`,
   approval=auto, networkAccess, high reasoning effort, in-prompt catalog) despite connecting + listing them — so the
   hand-rolled loop, not the agent SDK, is the GPT tools path. Codex remains a vision-only no-tools judge.
+
+## Table 1f — Cross-tool baseline: GenA11y (single-shot LLM judge, no grounding, no tools)
+
+To situate the harness against a **published external LLM-accessibility tool** (not just our own ablations), we
+adapted **GenA11y** (Deng et al., `seal-hub/GenA11y` — Selenium per-SC element extraction → **one single-shot LLM
+call** per SC; no structured grounding, no tools, no obligation ledger, no applicability gate) to run on the **same
+official W3C ACT corpus** with the **same two model families** as the Table 1e cross-family rows. The adapter
+(`eval/gena11y/`, commit `a50a70ba`) ports GenA11y's extraction for the 15 categories.json SCs it can cover, tags
+each element with its XPath so violations map to our verdict schema, and routes the judge through a **pluggable
+transport that reuses the SAME provider APIs** as our harness (Gemini `generateContent`; OpenAI Responses
+`/v1/responses`; single-shot, vision inlined as base64). This is the cleanest possible *system-level* control: same
+corpus, same models, same provider endpoints — **only the architecture differs** (GenA11y's ungrounded single-shot
+judge vs our facet-routed, tool-augmented, ledger-reconciled harness).
+
+**Coverage + accounting.** GenA11y's extraction covers **10** of the corpus's SCs (5 of its 15 categories.json SCs
+have 0 ACT cases; the 7 interaction SCs — keyboard/focus/hover/status — it cannot address at all). We report on
+**both** paper denominators (FULL **581** → Table 1a; REACHES-LLM **458** → Table 1b/1e) under **two** accountings:
+*covered-only* (GenA11y's native slice: 531 of 581, 411 of 458) and **uncovered=Negative** (score over the WHOLE
+denominator, counting every SC GenA11y cannot handle as an abstain → Negative: an uncovered GT-fail is an FN, an
+uncovered GT-pass/NA a TN). The **uncovered=Negative** rows use the **identical denominator** as the harness rows,
+so they are directly comparable; they hold GenA11y accountable for its coverage gap. Per-SC scoring, raw ACT labels.
+Recompute: `python eval/gena11y/analyze.py`.
+
+**Model-matched head-to-head on the reaches-LLM 458 set (uncovered=Negative — identical denominator to Table 1e):**
+
+| System (reaches-LLM 458, per-SC) | model | Recall ↑ | Prec ↑ | FP rate ↓ | F1 ↑ |
+|---|---|---|---|---|---|
+| GenA11y (single-shot, no grounding, no tools) | Gemini 3.5-flash | 53.0 (35/66) | 31.8 | 19.1 (75/392) | 0.398 |
+| **Our harness** (`fn-llm-gemini-v2`, Table 1e) | Gemini 3.5-flash | **90.9** (60/66) | **76.9** | **4.6** (18/392) | **0.834** |
+| GenA11y (single-shot, no grounding, no tools) | GPT-5.4-mini | 50.0 (33/66) | 23.7 | 27.0 (106/392) | 0.322 |
+| **Our harness** (`gpt54mini-live`, Table 1e) | GPT-5.4-mini | **86.4** (57/66) | **86.4** | **2.3** (9/392) | **0.864** |
+
+**Full-corpus 581 view (uncovered=Negative), against the existing-checker baseline (Table 1a):**
+
+| System (full 581, per-SC) | model | Recall ↑ | Prec ↑ | FP rate ↓ | F1 ↑ |
+|---|---|---|---|---|---|
+| **axe-core** (best single checker, Table 1a) | — | 59.9 (106/177) | **89.8** | **3.0** (12/404) | 0.72 |
+| GenA11y (single-shot, no tools) | Gemini 3.5-flash | 63.8 (113/177) | 58.2 | 20.0 (81/404) | 0.609 |
+| GenA11y (single-shot, no tools) | GPT-5.4-mini | 65.5 (116/177) | 50.0 | 28.7 (116/404) | 0.567 |
+
+**Read-off.**
+- **Same model, harness vs GenA11y — the harness dominates every axis.** On the reaches-LLM set the harness beats
+  GenA11y by **+37.9 recall / +45.1 precision / −14.5 FP** (Gemini) and **+36.4 recall / +62.7 precision / −24.7 FP**
+  (GPT-5.4-mini), roughly **doubling F1** (0.398→0.834; 0.322→0.864). Because model, corpus, and provider endpoints
+  are held fixed, this delta **isolates the harness architecture** (route-by-facet grounding + tools + obligation
+  ledger + calibrated honest-uncertainty scoring) from the model — GenA11y is the same-model, no-harness control.
+  It is the *system-level* corroboration of contributions #1–#2 and #5.
+- **GenA11y reproduces the ungrounded-LLM failure mode as a real external tool.** Its profile (reaches-LLM: ~50–58
+  recall at **24–32% precision / 19–30% FP**) sits at — even slightly *below* — our Table 1b "LLM + name/role +
+  vision, **no** facet-routed grounding" ablation (54.5 R / 44.4 P / 11.5 FP). GenA11y over-flags harder because it
+  also feeds raw `outerHTML` (noisier recall at a precision cost, cf. the "raw HTML" Table-1b row) and has no
+  applicability subtraction. The independently-built tool landing on the *same* ungrounded operating point is
+  external validation that the precision problem is **architectural, not a quirk of our ablation harness**.
+- **vs existing rule engines (full 581): higher recall, far worse precision.** GenA11y edges axe-core on recall
+  (63.8–65.5 vs 59.9) — an LLM *does* surface residual barriers a static engine misses — but at **7–10× the FP rate**
+  (20–29% vs 3.0%) and **30–40 pts lower precision**. So "point an LLM at the page" beats a good rule engine on
+  recall and loses badly on precision; the facet-routed grounding is exactly what buys back precision **without**
+  sacrificing that recall (our harness: 86–91 recall AND 77–86 precision on the harder reaches set).
+- **Covered-only (native-slice) numbers** are marginally higher (they drop GenA11y's coverage gap): Gemini reaches
+  58.3 R / 31.8 P / 21.4 FP (411 cases); GPT-5.4-mini 55.0 R / 23.7 P / 30.2 FP. The gap to the uncovered=Negative
+  rows is the 6 GT-fail cases (of 66) in SCs GenA11y structurally cannot reach — the interaction/behavioural
+  barriers the harness recovers with its tools + behavior-driving detectors (contribution #3).
+
+**Provenance / artifacts.** Runs `results/gena11y-act-gemini` (Gemini, 531 cases, 1 error, $1.22) and
+`results/gena11y-act-gpt5mini` (GPT-5.4-mini, 531 cases, 4 errors, $0.44), commit `a50a70ba`, 25 parallel pages / 25
+Chrome-tab cap / 60 concurrent LLM calls. Full runtime artifacts retained per run: `results.json`, `summary.json`,
+`run.log`, `status.json`, and **`llm-trace.jsonl`** (every LLM call's prompt, raw output, model reasoning/thinking
+trace, token usage, and parsed verdict). **Caveats:** (1) GenA11y is single-shot **no-tools** by design, so this is a
+*system* comparison (our deployed tool-augmented harness vs the GenA11y tool), closest in ablation terms to the
+Table-1b ungrounded rows; (2) the two model families here match Table 1e, but the harness GPT-5.4-mini row
+(`gpt54mini-live`) rides a later commit (`9415844e`) and a deterministic-TN splice — see the Table 1e `§` note; (3)
+this is the *adapted* GenA11y (our XPath/schema/transport shim), faithful to its single-shot extract→judge
+architecture but not byte-identical to upstream's OpenAI-GPT-4o original.
 
 ## Table 2 — Held-out generalization gate (581-case full corpus)
 
