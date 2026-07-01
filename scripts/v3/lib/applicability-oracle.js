@@ -29,6 +29,11 @@ const FAMILIES = Object.freeze({
   'no-keyboard-trap':        Object.freeze({ sc: '2.1.2', skills: ['keyboard-operability'] }),   // C5
   'character-key-shortcut':   Object.freeze({ sc: '2.1.4', skills: ['keyboard-operability'] }),   // Broad-scope 2.1.4 — barrier-only LLM bridge from trusted key probe evidence
   'field-label':             Object.freeze({ sc: '3.3.2', skills: ['forms-instructions-errors'] }), // C6
+  // 1.3.1 Test 5.C (per refs/trusted-tester/sc-1.3.1-info-and-relationships.md): the PROGRAMMATIC-association
+  // side of a form field's label (accessible name/description + table row/column context + graphical cues) —
+  // distinct from 3.3.2's purely-visual "is a label present at all" question (field-label above covers 3.3.2;
+  // this family is 1.3.1's own, not a re-scope of field-label, since 3.3.2 still needs checking independently).
+  'field-programmatic-association': Object.freeze({ sc: '1.3.1', skills: ['grouping-and-reading-order'] }),
   'error-identification':    Object.freeze({ sc: '3.3.1', skills: ['forms-instructions-errors'] }), // C6 (form-error-probe)
   'hover-content':           Object.freeze({ sc: '1.4.13', skills: ['color-and-visual-text'] }),  // C9
   'reflow-no-hscroll':       Object.freeze({ sc: '1.4.10', skills: ['reflow'] }),                 // C8 (page-level)
@@ -201,7 +206,7 @@ function familiesFor(el) {
   // could cover it — so plain controls don't accrue obligations for risks their page doesn't present.
   if (el.focusable === true && (el.inModal === true || el.focusRisk === true)) fams.push('no-keyboard-trap'); // C5 (coverage audit: focusRisk widens the inModal-only gate to non-modal traps)
   if (el.focusable === true && el.underOverlay === true) fams.push('focus-not-obscured');           // C7
-  if (el.isFormField === true || FORMFIELD_ROLE.test(role)) { fams.push('field-label'); fams.push('error-identification'); } // C6: label (3.3.2) + error id (3.3.1)
+  if (el.isFormField === true || FORMFIELD_ROLE.test(role)) { fams.push('field-label'); fams.push('error-identification'); fams.push('field-programmatic-association'); } // C6: label (3.3.2) + error id (3.3.1) + programmatic association (1.3.1, TT 5.C)
   if (el.hasHoverContent === true) fams.push('hover-content');                                       // C9
   // ---- Harness 3.2 ○-tier (per-element). Strict raw-fact predicates: a rendered POINTER TARGET (it
   //      has a box AND is interactive) owes the target-size SCs; a WIDGET with BOTH a visible label and

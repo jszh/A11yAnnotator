@@ -85,6 +85,21 @@ real list is NOT. Common failure patterns:
   content below it) but is a plain `<div>`/`<span>`/`<strong>` with no heading role — a sighted reader
   perceives the section break, AT users do not (technique H69). The same applies to a heading that is
   only *styled* large (e.g. `<strong style="font-size:18pt">`) standing in for an `<h1>`.
+- **Heading LEVEL does not logically nest (TT 10.C):** distinct from "not marked up" above — a REAL heading
+  whose programmatic LEVEL NUMBER contradicts its visual nesting relative to a nearby heading. Consult
+  `signals.structure.headingOutline.sequence` — each entry may carry `suspect: 'SKIP_DEEPER'` (this heading's
+  level jumps more than one level deeper than the heading before it, e.g. h2 straight to h4, skipping h3 — a
+  classic anti-pattern) or `suspect: 'JUMP_SHALLOWER'` (this heading's level lands MORE than one level shallower
+  than the heading before it, on a level other than 1 — e.g. an `<h6>` section immediately followed by an
+  `<h4>`/`<h5>` that visually reads as ITS subsection). **A `suspect` flag is a hint to LOOK, never a verdict —
+  most flagged transitions are fine.** For each suspect entry, check the `viewport`: does the flagged heading's
+  VISUAL size/weight match its programmatic rank relative to the heading it appears to sit under or continue
+  from? If a numerically-SHALLOWER heading (fewer nesting, e.g. h4) renders SMALLER/less prominent than a
+  numerically-DEEPER heading (e.g. h6) it visually follows as if introducing a subsection of it, the programmatic
+  hierarchy contradicts what a sighted user perceives ⇒ barrier. A suspect entry whose visual sizing is
+  consistent with its own level (or where you cannot tell heading size from the viewport) is NOT a defect —
+  return PARTIAL only if genuinely inconclusive, otherwise clear it. A heading sequence with NO suspect entries
+  needs no special heading-level scrutiny — TT 10.C is not a concern there.
 - **Broken table header association:** a DATA table (it has both header cells AND data cells) whose column/row
   HEADER cells do not actually associate with the data cells a sighted user reads under/beside them — e.g. a header
   whose column/row holds data but is not linked to it, or a visual grid with no programmatic `th`/`scope`/`headers=`

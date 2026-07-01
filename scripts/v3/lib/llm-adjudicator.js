@@ -153,6 +153,13 @@ const PAGE_STRUCTURE_SKILLS = new Set(['page-structure', 'grouping-and-reading-o
 // (element, rubric) subject — keeping a settled-by-a-runner facet (computable contrast) or a wrong-facet image
 // (a logo for long-description) out of the LLM lane. Element-level rubrics only; a missing element ⇒ skip (safe).
 const RUBRIC_GATE = {
+  // 1.3.1 now has TWO rubrics sharing sc:'1.3.1' (routing is by SC, not claimFamily — see selectRubricSubjects):
+  // info-relationships-v0 owns the single PAGE-LEVEL pseudo-element (headings/lists/table-header-association);
+  // field-programmatic-association-v0 owns PER-FIELD form-element rows (TT 5.C). Without these gates each would
+  // also fire on the other's rows (info-relationships-v0 has no per-field judgment to make; the field rubric has
+  // no page-level judgment to make) — wasted/nonsensical LLM calls, not just noise.
+  'info-relationships-v0': (el) => !!el && el.xpath === oracle.PAGE_INFOREL_XPATH,
+  'field-programmatic-association-v0': (el) => !!el && (el.isFormField === true || oracle.FORMFIELD_ROLE.test(el.role || el.roleAttr || el.axRole || el.sampledRole || '')),
   // 7a: the complex-backdrop 1.4.3 rubric is for a NON-flat backdrop ONLY — a reliably COMPUTABLE ratio is owned
   // by the deterministic text-contrast-pixel runner (Tier-0 #2). Route only when the runner abstained.
   'contrast-over-complex-backdrop-v0': (el) => !!el && el.contrastReliable !== true,
@@ -556,6 +563,35 @@ function precomputeSignals(element, skill, sc) {
         : per.includes('BROKEN') ? 'HAS_BROKEN'
           : per.includes('UNCERTAIN') ? 'HAS_UNCERTAIN' : 'ALL_VALID';
       s.structure.tableAssociation = { page, hasDataTable: dataN > 0, perTable: per };
+      // HEADING-OUTLINE SUSPECT SIGNAL (#5, TT 10.C): a pure level-NUMBER-sequence check can flag a classic
+      // forward SKIP (h2 straight to h4, skipping h3) with confidence — a well-established anti-pattern. It
+      // CANNOT, by itself, decide the DHS Trusted-Tester 405382-14 shape (an <h6> section immediately followed
+      // by <h4>/<h5> "subsections" — level going SHALLOWER) because that direction is ambiguous from numbers
+      // alone: legitimately closing several nested sections and starting a new, shallower one (e.g. h4 -> h1) is
+      // NORMAL and must not be flagged, yet the DHS case IS a real defect where the shallower headings are
+      // visually/structurally subordinate to the deeper one they follow. Distinguishing the two needs the
+      // screenshot (does the numerically-shallower heading actually render SMALLER than the heading it visually
+      // sits under?) — so BOTH directions are marked SUSPECT ONLY, never a verdict; the rubric must confirm via
+      // `viewport` before treating either as a barrier. `structure.headings` already includes frame-sourced
+      // entries (#2) in document order, so the outline spans the whole rendered page, not just the top document.
+      const hs = Array.isArray(struct.headings) ? struct.headings : [];
+      const outlineSeq = [];
+      let prevLevel = null;
+      for (const h of hs) {
+        const level = Number.isFinite(h && h.level) ? h.level : null;
+        let suspect = null;
+        if (level != null && prevLevel != null) {
+          if (level > prevLevel + 1) suspect = 'SKIP_DEEPER';       // e.g. h2 -> h4 (h3 skipped)
+          // level > 1 excludes a full reset to the top (h4 -> h1 closing several nested sections and starting a
+          // brand-new top-level one is completely normal and universal — a corpus scan confirmed flagging it
+          // produced the ONLY clearly-benign false trigger found). Landing on an INTERMEDIATE level (h6 -> h4,
+          // neither fully closed nor simply one level up) is the genuinely ambiguous case worth the rubric's look.
+          else if (level < prevLevel - 1 && level > 1) suspect = 'JUMP_SHALLOWER';
+        }
+        outlineSeq.push({ level, text: (h && h.text) || '', xpath: (h && h.xpath) || null, suspect });
+        if (level != null) prevLevel = level;
+      }
+      s.structure.headingOutline = { sequence: outlineSeq, suspectCount: outlineSeq.filter((e) => e.suspect).length };
     }
     // the SUBJECT heading itself (b49b2e): surface role/level/text + offscreen so the off-viewport heading the
     // crop omits is judgeable as a heading, not "a plain span". Reads the element's own collected facts.
