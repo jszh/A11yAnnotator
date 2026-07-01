@@ -224,7 +224,7 @@ def _content_blocks_to_cli(content_blocks: list) -> tuple[str, list[str], bool]:
 # mirrors makeGeminiTransport in scripts/v3/lib/llm-agent-adapter.js
 # ---------------------------------------------------------------------------
 
-def _http_gemini(prompt_text, images, max_output_tokens=4096, _retries=4):
+def _http_gemini(prompt_text, images, system=SYSTEM_MESSAGE, max_output_tokens=4096, _retries=4):
     if not GEMINI_API_KEY:
         return None, {}, None
     parts = [{'text': prompt_text}] + [
@@ -235,7 +235,7 @@ def _http_gemini(prompt_text, images, max_output_tokens=4096, _retries=4):
     url = f'{GEMINI_BASE}/models/{MODEL}:generateContent?key={GEMINI_API_KEY}'
     for attempt in range(_retries + 1):
         body = {
-            'systemInstruction': {'parts': [{'text': SYSTEM_MESSAGE}]},
+            'systemInstruction': {'parts': [{'text': system}]},
             'contents': [{'role': 'user', 'parts': parts}],
             'generationConfig': {
                 'temperature': 0,
@@ -280,7 +280,7 @@ def _http_gemini(prompt_text, images, max_output_tokens=4096, _retries=4):
 # mirrors makeOpenAITransport in scripts/v3/lib/llm-agent-adapter.js
 # ---------------------------------------------------------------------------
 
-def _http_openai(prompt_text, images, effort='medium', max_output_tokens=16000, _retries=4):
+def _http_openai(prompt_text, images, system=SYSTEM_MESSAGE, effort='medium', max_output_tokens=16000, _retries=4):
     if not OPENAI_API_KEY:
         return None, {}, None
     content = [{'type': 'input_text', 'text': prompt_text}] + [
@@ -288,7 +288,7 @@ def _http_openai(prompt_text, images, effort='medium', max_output_tokens=16000, 
     ]
     body = {
         'model': MODEL,
-        'instructions': SYSTEM_MESSAGE,
+        'instructions': system,
         'input': [{'role': 'user', 'content': content}],
         'max_output_tokens': max_output_tokens,
         'reasoning': {'effort': effort, 'summary': 'auto'},
@@ -336,7 +336,7 @@ def _http_openai(prompt_text, images, effort='medium', max_output_tokens=16000, 
 # Transport: Claude via the Python Agent SDK (images via Read tool)
 # ---------------------------------------------------------------------------
 
-def _claude_sdk(content_blocks):
+def _claude_sdk(content_blocks, system=SYSTEM_MESSAGE):
     import claude_agent_sdk
     from claude_agent_sdk.types import AssistantMessage, ClaudeAgentOptions, ResultMessage
 
@@ -346,7 +346,7 @@ def _claude_sdk(content_blocks):
 
     async def _q():
         opts = ClaudeAgentOptions(
-            system_prompt=SYSTEM_MESSAGE,
+            system_prompt=system,
             tools=['Read'] if use_read else [],
             permission_mode='bypassPermissions',
             max_turns=5 if use_read else 1,
@@ -381,23 +381,25 @@ def _claude_sdk(content_blocks):
 # Core LLM call — dispatches to the active provider's transport
 # ---------------------------------------------------------------------------
 
-def _call_llm(content_blocks: list, _retries: int = 3) -> dict:
-    """Route to the configured provider, record usage/trace, return a verdict dict."""
+def dispatch(content_blocks: list, system: str = SYSTEM_MESSAGE) -> tuple:
+    """
+    Route content_blocks to the active provider's transport with a given system
+    prompt; record usage + call stats. Returns (prompt_text, raw, usage, reasoning,
+    provider). Shared by GenA11y (_call_llm) and the AccessGuru adapter.
+    """
     provider = _provider()
-    prompt_text, _ = _prepare_inline(content_blocks)
+    prompt_text, images = _prepare_inline(content_blocks)
 
     with _LOCK:
         LLM_STATS['calls'] += 1
 
     with _LLM_SEM:
         if provider == 'gemini':
-            _, images = _prepare_inline(content_blocks)
-            raw, usage, reasoning = _http_gemini(prompt_text, images)
+            raw, usage, reasoning = _http_gemini(prompt_text, images, system=system)
         elif provider == 'openai':
-            _, images = _prepare_inline(content_blocks)
-            raw, usage, reasoning = _http_openai(prompt_text, images)
+            raw, usage, reasoning = _http_openai(prompt_text, images, system=system)
         else:
-            raw, usage, reasoning = _claude_sdk(content_blocks)
+            raw, usage, reasoning = _claude_sdk(content_blocks, system=system)
 
     if provider == 'claude':
         _stat_add(usage.get('input_tokens', 0), usage.get('output_tokens', 0),
@@ -407,6 +409,12 @@ def _call_llm(content_blocks: list, _retries: int = 3) -> dict:
         in_tok, out_tok = usage.get('input_tokens', 0), usage.get('output_tokens', 0)
         _stat_add(in_tok, out_tok, cost=_price(in_tok, out_tok), done=bool(raw))
 
+    return prompt_text, raw, usage, reasoning, provider
+
+
+def _call_llm(content_blocks: list, _retries: int = 3) -> dict:
+    """Route to the configured provider, record usage/trace, return a verdict dict."""
+    prompt_text, raw, usage, reasoning, provider = dispatch(content_blocks)
     verdict = _parse_verdict(raw) if raw else _error_verdict(
         f'{provider} transport returned no text ({usage})')
     _emit_trace(prompt_text, raw, verdict, usage, reasoning, provider)
