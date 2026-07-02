@@ -587,28 +587,59 @@ barrier is a false positive) — same convention as Table 1.
 | Run | commit | recall (caught / failedN) | FP rate (FP / n) |
 |---|---|---|---|
 | Baseline (pre-fix-cycle) | `d29a6288` | 44.4% (8/18) | 8.3% (3/36) |
-| Round-3 (this fix cycle) | `176c1988` | **72.2% (13/18)** | 8.3% (3/36) |
+| Round-3 | `176c1988` | 72.2% (13/18) | 8.3% (3/36) |
+| Round-4 (this session) | `cee784b2` | **77.8% (14/18)** | 11.1% (4/36) |
 
-**+27.8 points of recall at an unchanged FP rate** — the fix cycle (5 targeted harness/rubric fixes: §Main
-contributions below) closed real coverage gaps rather than trading precision for recall. `noObligation` (a
-case where the deterministic ledger never even minted the obligation the GT label requires) fell from 15→6
-across the corpus, confirming the recall gain is a genuine coverage-gap closure, not a scoring artifact —
-before these fixes roughly a third of the corpus's obligations were structurally unreachable regardless of
-what the LLM judge did.
+**Round-3 → round-4: +5.6 points of recall, +2.8 points of FP** — a further 9 targeted fixes (7 vision-capture/
+in-frame-collection bugs, 1 rubric self-contradiction, 1 scorer/compute fix; commits `9cc85b0c` `ee901cbb`
+`3ac30372` `e9b345da` `cee784b2`), found by live-verifying every remaining round-3 FP/FN against its real
+captured page rather than trusting the scorer's outcome label alone. **Methodology change, not directly
+comparable to round-3/baseline:** round-4 also fixed the scorer itself (`cee784b2`) — it now restricts a test
+record's in-scope obligations to elements matching that record's own `target.selector` (when the corpus
+supplies one), instead of matching by WCAG success criterion alone. The old SC-only scorer let an unrelated
+finding elsewhere on the page under the same SC silently count against a record it had nothing to do with
+(confirmed: an unlabeled textbox flipped a LIST-markup test's outcome). This is strictly more correct, but it
+means round-4's numbers are not an apples-to-apples delta against round-3/baseline (which both used the looser
+scorer) — a `target.selector: null` record (an "inapplicable, nothing like this exists" case with no anchor
+element) still uses the old, unrestricted scoping, since there's nothing valid to restrict to.
 
-| SC (biggest movers) | expected | round-3 caught | baseline caught | driving fix |
+3 of the 4 round-4 false positives are the SAME already-characterized cases from round-3: two `target.selector:
+null` records (`1.1.1-decorative-background-image-7_C`, `1.3.1-heading-determinable-10_B`) where the scoping
+fix structurally cannot apply, and one confirmed LLM wording strictness call (`1.1.1-meaningful-image-name-7_A`:
+alt="The Giving Three" vs. the cover's own printed text "THE GIVING TREE" — the corpus's own ground truth treats
+this as an adequate match). The 4th (`1.3.1-heading-determinable-10_B-2`) DOES have a real target selector and
+flip-flopped between caught/cleared across repeated live re-runs earlier in this session — consistent with the
+established LLM sampling noise floor (Table 1c), not a new, reproducible defect.
+
+| SC (biggest movers, round-3 → round-4) | expected | round-4 caught | round-3 caught | driving fix |
 |---|---|---|---|---|
-| 1.3.1 (programmatic-label / table-header / heading-outline) | inapplicable | 4 | 1 | 1.3.1 field-programmatic-association routing gap (commit `a5483e85`) |
-| 4.1.2 (auto-update-notification, TT 2.D) | inapplicable | 1 | 0 | new obligation family + rubric, this cycle (`176c1988`) |
-| 2.4.6 (heading-descriptive) | failed | 1 | 0 | heading-level nesting fix (commit `a5483e85`) |
-| 2.4.7 (focus-visible) | inapplicable | 1 | 0 | vision-capture resilience (#7/#7b, `176c1988`) unstuck a previously-zero-obligation page |
-| 2.1.1 (keyboard) | failed | 1 | 2 | within LLM sampling noise (σ≈1.06 FP established in Table 1c; not investigated as a regression) |
+| 1.3.1 (programmatic-label, in-frame fields) | inapplicable | 6 | 4 | in-frame collection fixes: frame-xpath resolution, `labelledText` `ownerDocument`, missing `htmlSnippet`/`enclosingHtml` (`ee901cbb`, `3ac30372`) |
+| 1.4.5 (image-of-text, in-frame image) | failed | 1 | 0 | frame-xpath resolution unstuck a page whose obligations previously got zero vision evidence (`ee901cbb`) |
+| 2.4.4 (link-purpose) | mixed (1 passed / 1 inapplicable / 2 failed) | 2 caught | 3 caught | round-3's 3rd "caught" was the FALSE positive on the `passed` record (an unrelated nav-menu misjudgment, "Contact Us"/"Make a Payment") — target-selector scoping stopped it from contaminating the pager/table-button links the test is actually about; the 2 `failed`-record catches are unchanged (`cee784b2`) |
+
+Per-case detail (not aggregated by SC — the specific fix each closed): `1.3.1-programmatic-label-5_C` and
+`5_C-2` (fieldset/group-context rubric self-contradiction, `e9b345da`) and `1.3.1-list-type-10_D` (an unrelated
+same-page textbox no longer contaminating a list-markup test, `cee784b2`) all flipped from false positive to
+correctly cleared; `1.1.1-meaningful-image-name-7_A`'s crossfade-carousel "wrong book cover" symptom (a
+document-vs-viewport screenshot-clip coordinate bug plus an ancestor-`opacity:0` occlusion gap, `ee901cbb`) is
+gone, leaving only the wording-strictness residual noted above.
+
+An observed operational characteristic, not a correctness issue: the 3.3.1/3.3.3 form-submit rubrics (real
+page-reload + invalid-submit + state-vision capture) are the slowest lane in this harness — three cases in the
+round-4 run each took 800+ seconds and returned `noVerdict` (a safe degrade, not a false positive, since none
+of them were `expected: failed`) after `run-trusted-tester.js`'s per-call `toolRunTimeoutMs` (500s) capped the
+LLM turn but the case had no OVERALL per-case wall-clock guard (unlike `run-v3-act-suite.js`, which wires
+`LIMITS.act.caseTimeoutMs`). Not fixed this session — flagged here for a future pass.
 
 Methodology notes: single run per point (LLM non-determinism applies, as in Table 1e); a DIFFERENT
 provider/model (OpenAI gpt-5.4-mini) than the Claude-based Table 1 ACT-corpus numbers, so this is a
 cross-provider generalization signal, not a directly comparable recall figure. One known, already-deferred
 gap remains open on this corpus: `4.1.2-frame-title` (TT 12.C, obsolete `<frame>`/`<frameset>` title) — tracked
-as G8 in `docs/DEFERRED-TODO.md`, deliberately out of scope for this cycle.
+as G8 in `docs/DEFERRED-TODO.md`, deliberately out of scope. Also still open: `2.4.2-page-title-purpose-12_B-4`
+— investigated this session and found to be a likely GROUND-TRUTH DATA-QUALITY issue, not a harness bug: the
+captured page's actual rendered content (a real "XYZ News Company" news homepage) does not match the corpus's
+own recorded mechanism text ("a login/password-reset form"); not corrected here since it requires re-deriving
+the GT record against DHS's original exam material, out of scope for this session.
 
 ## Table 1c — Judge-design levers cannot reduce the residual FP (controlled, fixed-evidence)
 
