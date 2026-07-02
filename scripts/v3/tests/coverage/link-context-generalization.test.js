@@ -100,13 +100,17 @@ test('#12 nested list: a link in a child <li> inherits its ANCESTOR list-item su
   assert.equal(sig.linkAloneInBlock, false, 'the ancestor <li> "Ulysses" is programmatic 2.4.4 context — a nested format link is not alone');
 });
 
-test('#12 OVER-FIRE guard: a table-cell link does NOT inherit a generic table title as context', { skip: !chromeOK }, async () => {
-  // table-cell HEADER cells are 2.4.4 context in principle, but a generic category title (<th>Books</th>) is not a
-  // SPECIFIC disambiguator and the LLM over-accepts it — so the signal deliberately does NOT gather table headers.
+test('#12b table-cell header IS gathered as context; genericity is the model\'s specificity call, not linkAloneInBlock', { skip: !chromeOK }, async () => {
+  // #12b design: a table-cell link's associated row/column header IS programmatic 2.4.4 context, so the signal DOES
+  // gather it (cellColHeaders) and hands the SPECIFICITY judgment (a specific "Ulysses" resolves; a generic "Books"
+  // does not) to the model via uncertainReason. linkAloneInBlock means "NO programmatic context at all" — a cell WITH
+  // a header is not that, so it is false even for a generic header (sending true alongside cellColHeaders is a
+  // self-contradiction that biased models toward a false barrier; see the Ulysses-table 3/4-model FP).
   const c = await collectHtml(`<table><tr><th colspan="2">Books</th></tr><tr><td>Ulysses</td><td><a href="/d.htm">Download</a></td></tr></table>`);
   const el = links(c)[0];
   const sig = adj.precomputeSignals(el, 'name-role-state').enclosingContext;
-  assert.equal(sig.linkAloneInBlock, true, 'a generic table title must NOT be fed as disambiguating context (would falsely clear a real barrier)');
+  assert.equal(sig.linkAloneInBlock, false, 'a cell with an associated header is NOT context-less — header presence, not resolution, drives this flag');
+  assert.deepEqual(sig.cellColHeaders, ['Books'], 'the generic header IS surfaced; the model judges it too generic to resolve (protection lives in uncertainReason)');
 });
 
 // ─────────────────────────── generalized prohibited-ARIA (variants outside the ACT examples) ───────────────────────────

@@ -437,13 +437,20 @@ function precomputeSignals(element, skill, sc) {
       // deterministically so the passive models (which won't call query_ax_node) still get it.
       const chc = element.cellHeaderContext && (Array.isArray(element.cellHeaderContext.rowHeaders) || Array.isArray(element.cellHeaderContext.colHeaders)) ? element.cellHeaderContext : null;
       const hasCellHdr = !!(chc && ((chc.rowHeaders || []).length || (chc.colHeaders || []).length));
+      // `linkAloneInBlock` means "no PROGRAMMATIC context beyond the name". A table cell WITH associated headers is NOT
+      // that: the header IS programmatic 2.4.4 context (whether it RESOLVES the purpose is the specificity judgment the
+      // cell-header uncertainReason asks for). Sending linkAloneInBlock:true ALONGSIDE cellColHeaders:["Ulysses"] is a
+      // self-contradiction that biased passive models toward a barrier despite a resolving header (the Ulysses download
+      // table false-positived in 3/4 models). Report block-only aloneness ONLY when there is no cell-header context;
+      // when headers are present, the generic-vs-specific call lives entirely in the uncertainReason, not this boolean.
+      const aloneNoContext = aloneInBlock && !hasCellHdr;
       s.enclosingContext = {
         blockText: block.slice(0, 200),
-        linkAloneInBlock: aloneInBlock,
+        linkAloneInBlock: aloneNoContext,
         ...(hasCellHdr ? { cellRowHeaders: (chc.rowHeaders || []).slice(0, 4), cellColHeaders: (chc.colHeaders || []).slice(0, 4), cellHeaderSource: chc.headerSource || 'positional' } : {}),
         uncertainReason: hasCellHdr
           ? 'this link sits in a DATA-TABLE CELL: beyond its own block, its programmatic context includes the cell\'s associated headers — cellRowHeaders and cellColHeaders (the cell\'s row/column header text). Per WCAG 2.4.4 the cell\'s row/column header IS enclosing context. The test is SPECIFICITY, NOT row-vs-column: a header (ROW or COLUMN) that names a SPECIFIC SUBJECT/DESTINATION resolves a format-only/action-only link name ⇒ NOT REPRODUCED — e.g. name "EPUB"/"Download" + a header ["Ulysses"] (a specific book) = "download Ulysses as EPUB", determinable. A header that is only a GENERIC CATEGORY or ACTION label ("Books", "Downloads", "Format", "Links") names no specific destination and does NOT resolve it; if neither the name nor a subject-naming header identifies the destination, that is a barrier. (Row headers are MORE OFTEN the subject and column headers MORE OFTEN the category, but judge the actual text, not the slot.) Judge the name TOGETHER WITH these headers; do not demand the name itself restate the subject.'
-          : aloneInBlock
+          : aloneNoContext
             ? 'this link is ALONE in its enclosing block (paragraph/list-item/cell) — its programmatically-determined CONTEXT is ONLY its own name. Any descriptive prose in a SEPARATE sibling block is NOT enclosing context for 2.4.4, and the vision crop showing nearby text must NOT be read as link context. If the name alone (a generic/format/action word) does not identify the link purpose, that is a 2.4.4 barrier — do not clear on neighbouring text the link does not programmatically own.'
             : 'this link sits within enclosing block text that MAY disambiguate it — judge whether the name TOGETHER WITH this enclosing-block context identifies the link purpose.',
       };
