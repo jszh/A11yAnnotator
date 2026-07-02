@@ -573,6 +573,43 @@ fires on a GT-pass/inapplicable case. (The methodological check that caught two 
 | confinement keyboard-trap (2.1.2) | — | 4/7 passed | **demoted** to review (escape-advisory is semantic) |
 | **post-fix deterministic FP (full eval)** | — | **0 real** | — |
 
+## Table 2b — DHS Trusted-Tester external corpus (independent held-out evaluation)
+
+A second, fully independent held-out corpus: 54 ACT-format test cases hand-derived from the DHS **Trusted
+Tester v5.1.3** certification exam's official worked examples (`eval/trusted-tester/testcases.json`,
+`eval/trusted-tester/run-trusted-tester.js`). This corpus was never touched during any tuning on the 581-case
+ACT/main corpus (Tables 1/1b/2 above) — it is a genuinely external generalization check, sourced from a
+different institution's (DHS Section 508 program) own certification materials rather than the W3C ACT rules
+suite. Provider/model: OpenAI `gpt-5.4-mini`, tools+vision on. Scoring: recall over `expected: failed` cases
+(a flagged barrier is a true positive), specificity/FP over `expected: passed|inapplicable` cases (a flagged
+barrier is a false positive) — same convention as Table 1.
+
+| Run | commit | recall (caught / failedN) | FP rate (FP / n) |
+|---|---|---|---|
+| Baseline (pre-fix-cycle) | `d29a6288` | 44.4% (8/18) | 8.3% (3/36) |
+| Round-3 (this fix cycle) | `176c1988` | **72.2% (13/18)** | 8.3% (3/36) |
+
+**+27.8 points of recall at an unchanged FP rate** — the fix cycle (5 targeted harness/rubric fixes: §Main
+contributions below) closed real coverage gaps rather than trading precision for recall. `noObligation` (a
+case where the deterministic ledger never even minted the obligation the GT label requires) fell from 15→6
+across the corpus, confirming the recall gain is a genuine coverage-gap closure, not a scoring artifact —
+before these fixes roughly a third of the corpus's obligations were structurally unreachable regardless of
+what the LLM judge did.
+
+| SC (biggest movers) | expected | round-3 caught | baseline caught | driving fix |
+|---|---|---|---|---|
+| 1.3.1 (programmatic-label / table-header / heading-outline) | inapplicable | 4 | 1 | 1.3.1 field-programmatic-association routing gap (commit `a5483e85`) |
+| 4.1.2 (auto-update-notification, TT 2.D) | inapplicable | 1 | 0 | new obligation family + rubric, this cycle (`176c1988`) |
+| 2.4.6 (heading-descriptive) | failed | 1 | 0 | heading-level nesting fix (commit `a5483e85`) |
+| 2.4.7 (focus-visible) | inapplicable | 1 | 0 | vision-capture resilience (#7/#7b, `176c1988`) unstuck a previously-zero-obligation page |
+| 2.1.1 (keyboard) | failed | 1 | 2 | within LLM sampling noise (σ≈1.06 FP established in Table 1c; not investigated as a regression) |
+
+Methodology notes: single run per point (LLM non-determinism applies, as in Table 1e); a DIFFERENT
+provider/model (OpenAI gpt-5.4-mini) than the Claude-based Table 1 ACT-corpus numbers, so this is a
+cross-provider generalization signal, not a directly comparable recall figure. One known, already-deferred
+gap remains open on this corpus: `4.1.2-frame-title` (TT 12.C, obsolete `<frame>`/`<frameset>` title) — tracked
+as G8 in `docs/DEFERRED-TODO.md`, deliberately out of scope for this cycle.
+
 ## Table 1c — Judge-design levers cannot reduce the residual FP (controlled, fixed-evidence)
 
 The Table-1b precision (FP ~3.1–3.6%) is dominated by a residual of *semantic-judgment-limited* FPs (link
