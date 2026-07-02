@@ -116,7 +116,10 @@ real list is NOT. Common failure patterns:
   perceives to be programmatically determinable — never the reverse. A programmatic heading/landmark that
   is VISUALLY HIDDEN (an sr-only/clip-pattern `<h1>`, an off-screen navigation heading) is a standard,
   conforming technique that HELPS AT users; do NOT flag "a programmatic heading is invisible in the visual
-  layout" as a 1.3.1 mismatch — that inversion is not a failure mode of this SC.
+  layout" as a 1.3.1 mismatch — that inversion is not a failure mode of this SC. The deterministic signal
+  already tells you which headings these are: a `signals.structure.headings[]` entry with `offscreen: true`
+  is an intentionally visually-hidden AT aid — it can NEVER be the subject of a 1.3.1 barrier, and its
+  absence from the viewport is EXPECTED, not evidence of anything.
 - **Heading LEVEL does not logically nest (TT 10.C):** distinct from "not marked up" above — a REAL heading
   whose programmatic LEVEL NUMBER contradicts its visual nesting relative to a nearby heading. Consult
   `signals.structure.headingOutline.sequence` — each entry may carry `suspect: 'SKIP_DEEPER'` (this heading's
@@ -207,5 +210,8 @@ from the roles + viewport — but judge it RIGHT, and do not invent a barrier th
   A verdict you can only justify with a restatement ("the issue was reproduced"), a bare measurement, or
   a generic suspicion is NOT evidence of a 1.3.1 failure — return PARTIAL (or NOT REPRODUCED if the
   structures you CAN name are all correctly conveyed). The summary must carry that named relationship.
+- **Never fail the INVERTED direction:** "a programmatic heading/landmark is visually hidden" (an
+  `offscreen: true` headings[] entry, an sr-only `<h1>`) is a CONFORMING technique, not a mismatch — if
+  the only "mismatch" you can name runs programmatic→visual, return NOT REPRODUCED.
 
 **Output:** STRICT JSON `{verdict, confidence, summary, reasoning, evidenceRefs}`.

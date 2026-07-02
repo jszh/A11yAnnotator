@@ -171,6 +171,16 @@ const LABEL_SCOPE_EXCLUSION = {
   // 1.1.1 barriers on FOREGROUND images — divider `<img>`s with mismatched alt ("Tiger"/"Horse") and a text-bearing
   // image with empty alt — a different 1.1.1 mechanism this record's background-image label does not determine.
   'dhs-1.1.1-decorative-background-image-7_C': 'label-scope:1.1.1-background-image-condition(foreground-img-alt-is-different-mechanism)',
+  // TT 14.B (cell-header ASSOCIATION) with target=null: the record's own target.description concedes the page has
+  // ZERO <table> elements, so "all data cells are associated with headers" Does Not Apply — the label is correct
+  // for THAT condition. But the same 'All Books' section (hand-verified from the capture, 413327-6/index.html) is a
+  // bordered div.row/div.col grid with a background-colored HEADER row (Name/Author/Publish Year/Type) over data
+  // rows — a VISUAL data table carrying no table semantics at all: a genuine 1.3.1 barrier under the TABLE-
+  // IDENTIFICATION mechanism (TT 14.A / H51) that this record's 14.B association label does not determine. A
+  // whole-SC flag on that other mechanism is a label-SCOPE artifact, not a model error. (Keyed on the FIRST
+  // occurrence's suffixed id; the `failed` sibling record — the Example1 Rank/Name/Year page, loaded as …-14_B-2 —
+  // is protected twice over: different key AND the failed-guard below.)
+  'dhs-1.3.1-cell-header-association-14_B': 'label-scope:1.3.1-cell-association-condition(unmarked-visual-table-is-different-mechanism)',
 };
 function labelScopeExcluded(tc) {
   if (tc.expected === 'failed') return null;        // never exclude a recall case — a flag there is a true positive
