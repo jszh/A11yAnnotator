@@ -64,7 +64,13 @@ async function collectActPage(page, opts = {}) {
     function xpathOf(e) {
       if (!e || !e.tagName) return '';
       if (e === document.documentElement) return '/html';
-      if (e === document.body) return '/html/body';
+      // #10c fix: `document.body` is SPEC-DEFINED to return the <frameset> element when the document has no
+      // real <body> (a legacy HTML4 frameset page, e.g. every DHS Trusted-Tester exam page). Blindly emitting
+      // the literal string '/html/body' here for a <frameset> element produces an xpath that does not exist in
+      // the actual DOM — document.evaluate('/html/body/...') then finds NOTHING, silently killing vision/CDP
+      // resolution for every frame/element on the page. Only take the fast-path literal when `e` truly IS a
+      // <body> tag; a <frameset> falls through to the generic tag-based computation below (→ '/html/frameset').
+      if (e === document.body && e.tagName === 'BODY') return '/html/body';
       const tag = e.tagName.toLowerCase();
       let idx = 1;
       for (let s = e.previousElementSibling; s; s = s.previousElementSibling) if (s.tagName === e.tagName) idx++;
@@ -640,7 +646,7 @@ async function collectActPage(page, opts = {}) {
     function xpathOfInDoc(e, doc) {
       if (!e || !e.tagName) return '';
       if (e === doc.documentElement) return '/html';
-      if (e === doc.body) return '/html/body';
+      if (e === doc.body && e.tagName === 'BODY') return '/html/body'; // #10c fix: same frameset-doc.body-alias guard as xpathOf
       const tag = e.tagName.toLowerCase();
       let idx = 1;
       for (let s = e.previousElementSibling; s; s = s.previousElementSibling) if (s.tagName === e.tagName) idx++;
@@ -864,7 +870,7 @@ async function collectActPage(page, opts = {}) {
         function xpathOf(e) {
           if (!e || !e.tagName) return '';
           if (e === document.documentElement) return '/html';
-          if (e === document.body) return '/html/body';
+          if (e === document.body && e.tagName === 'BODY') return '/html/body'; // #10c fix: same frameset-doc.body-alias guard as the outer xpathOf
           const tag = e.tagName.toLowerCase();
           let idx = 1;
           for (let s = e.previousElementSibling; s; s = s.previousElementSibling) if (s.tagName === e.tagName) idx++;

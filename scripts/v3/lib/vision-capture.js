@@ -19,6 +19,108 @@
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const { nsXPath } = require('./xpath-ns.js'); // namespace-agnostic resolve (Tier-0 #1) — fixes SVG/MathML subjects
 
+// #10 fix: every `document.evaluate(x, document, ...)` call site in this file used the TOP-LEVEL `document`
+// only — but act-page-collect.js namespaces an in-frame subject's xpath as `<frameXpath>>/<in-frame xpath>`
+// (see its xpathOfInDoc/frame-traversal comments). A plain document.evaluate on a '>>'-bearing string throws
+// an invalid-XPath-expression SyntaxError, silently swallowed by this file's blanket `.catch(() => {})`/
+// `.catch(() => null)` wrappers — so every in-frame element got ZERO vision evidence (no element-crop, no
+// surrounding-region), which then hit the adjudicator's required-evidence gate and abstained with NO verdict
+// at all. Confirmed live on the DHS Trusted-Tester corpus: 3+ frameset-page cases (1.3.1 fields inside
+// frame-main.html, 1.4.5 image-of-text inside an iframe) minted auto-PARTIAL obligations that never got a
+// single rubric verdict. Mirrors the SAME resolver already proven in act-page-collect.js's resolveAx and
+// cdp-tools.js's queryAxNode (split on '>>', descend same-origin contentDocument between segments, retry each
+// segment with the local-name() SVG/MathML fallback) — injected once per page as `window.__v3ResolveXpath` so
+// every one of this file's ~10 call sites can swap `document.evaluate(x, document, null, 9, null)
+// .singleNodeValue` for `window.__v3ResolveXpath(x)` without duplicating the resolver ten times.
+function installXpathResolver() {
+  var nsFallback = function (s) {
+    return s.split('/').map(function (p) {
+      var m = p.match(/^([a-zA-Z][\w-]*)(\[[0-9]+\])?$/);
+      return m ? '*[local-name()="' + m[1] + '"]' + (m[2] || '') : p;
+    }).join('/');
+  };
+  var evalStep = function (doc, step) {
+    var n = null;
+    try { n = doc.evaluate(step, doc, null, 9, null).singleNodeValue; } catch (e) { n = null; }
+    if (!n) { try { n = doc.evaluate(nsFallback(step), doc, null, 9, null).singleNodeValue; } catch (e) { n = null; } }
+    return n;
+  };
+  window.__v3ResolveXpath = function (xpath) {
+    var parts = xpath.split('>>');
+    var doc = document, node = null;
+    for (var i = 0; i < parts.length; i++) {
+      if (!doc) return null;
+      var n = evalStep(doc, parts[i]);
+      if (!n) return null;
+      node = n;
+      if (i < parts.length - 1) { try { doc = node.contentDocument; } catch (e) { return null; } }
+    }
+    return node;
+  };
+  // #10b fix: an in-frame node's own getBoundingClientRect() is relative to ITS OWN document's viewport, NOT
+  // the top-level page — so a naive rect straight off the resolved element clips the screenshot at the WRONG
+  // coordinates (confirmed live: after #10's resolver fix alone, an in-frame button resolved successfully but
+  // still produced zero element-crop/surrounding-region — the probe's inView check failed on garbage coords).
+  // Re-walk the SAME '>>' chain, but at each frame BOUNDARY read the <frame>/<iframe> element's OWN rect
+  // (measured in ITS PARENT's coordinate space, i.e. before descending into contentDocument) and accumulate —
+  // summing consecutive frame-element offsets gives the final element's TOP-PAGE-relative position. Returns
+  // null on any unresolvable segment (mirrors __v3ResolveXpath's fail-closed shape).
+  // #10e fix: visibility:hidden/opacity:0/display:none set on an ANCESTOR (not the element itself) does not
+  // change the element's OWN getComputedStyle() — CSS opacity/visibility do not report as "inherited" on a
+  // child's computed style even though they visually suppress it (a whole subtree renders transparent/hidden).
+  // The pre-#10e check (`getComputedStyle(el).opacity === 0`) missed this entirely, so an element inside a
+  // hidden ancestor kept its real layout box and an in-viewport crop was taken of it — but since it paints
+  // NOTHING, the screenshot shows whatever is UNDERNEATH (a differently-stacked sibling), not a blank/absent
+  // result. Confirmed live: a Bootstrap-style crossfade carousel (`.slide{opacity:0} .slide.showing{opacity:1}`,
+  // all slides absolutely stacked at the SAME position) — the inactive <li class="slide"> (opacity:0 on the
+  // LIST ITEM, not the <img> inside it) let its <img alt="Wuthering Heights"> probe as visible with a real
+  // box, and the resulting crop showed the ACTIVE slide's "Nineteen Eighty-Four" cover instead (same screen
+  // region, different z-index layer). Walk from `el` to the document root checking EACH ancestor.
+  var effectivelyVisible = function (el) {
+    for (var a = el; a; a = a.parentElement) {
+      var cs = getComputedStyle(a);
+      if (cs.display === 'none' || cs.visibility === 'hidden' || cs.visibility === 'collapse' || parseFloat(cs.opacity) === 0) return false;
+    }
+    return true;
+  };
+  window.__v3EffectivelyVisible = effectivelyVisible;
+  window.__v3ResolveXpathBox = function (xpath) {
+    var parts = xpath.split('>>');
+    var doc = document, node = null, offsetX = 0, offsetY = 0;
+    for (var i = 0; i < parts.length; i++) {
+      if (!doc) return null;
+      var n = evalStep(doc, parts[i]);
+      if (!n) return null;
+      node = n;
+      if (i < parts.length - 1) {
+        var fr = n.getBoundingClientRect();
+        offsetX += fr.left; offsetY += fr.top;
+        try { doc = n.contentDocument; } catch (e) { return null; }
+      }
+    }
+    if (!node || !node.getBoundingClientRect) return null;
+    var r = node.getBoundingClientRect();
+    return { left: r.left + offsetX, top: r.top + offsetY, width: r.width, height: r.height };
+  };
+  // the offset alone, reusable for a RELATED element in the same document as xpath's target (e.g. `.closest('form')`,
+  // which lives in the identical frame but isn't itself reachable by re-resolving `xpath`).
+  window.__v3FrameOffset = function (xpath) {
+    var parts = xpath.split('>>');
+    var doc = document, offsetX = 0, offsetY = 0;
+    for (var i = 0; i < parts.length - 1; i++) {
+      var n = evalStep(doc, parts[i]);
+      if (!n) return { x: 0, y: 0 };
+      var fr = n.getBoundingClientRect();
+      offsetX += fr.left; offsetY += fr.top;
+      try { doc = n.contentDocument; } catch (e) { return { x: 0, y: 0 }; }
+    }
+    return { x: offsetX, y: offsetY };
+  };
+}
+// try/catch, not .catch() — a page mock lacking .evaluate (unit tests exercising ONLY the setViewport path)
+// throws SYNCHRONOUSLY (`TypeError: page.evaluate is not a function`), which .catch() cannot intercept.
+async function safeInstallResolver(page) { try { await page.evaluate(installXpathResolver); } catch (e) {} }
+
 // SC → the per-element transition whose before/after a rubric for that SC needs. Exported so the
 // orchestrator + a pure test share it. Form SCs drive a 'submit' (page-mutating ⇒ reload-isolated).
 const STATE_TRANSITIONS = Object.freeze({ '2.4.7': 'focus', '2.4.11': 'focus', '1.4.13': 'hover', '3.3.1': 'submit', '3.3.3': 'submit' });
@@ -32,6 +134,7 @@ function buildStatePlan(subjects) {
 
 // Capture the declared static crops for a set of element xpaths. opts: { states[], pad=24 }.
 async function captureVision(page, xpaths, opts = {}) {
+  await safeInstallResolver(page); // #10 fix: idempotent per-page setup for frame-qualified xpaths
   const want = new Set(opts.states || ['element-crop', 'surrounding-region', 'viewport', 'viewport-320']);
   const pad = Number.isFinite(opts.pad) ? opts.pad : 24;
   const shot = (clip) => require('./settle.js').robustScreenshot(page, clip ? { clip, encoding: 'base64' } : { encoding: 'base64' }); // retry-on-null under contention
@@ -70,34 +173,52 @@ async function captureVision(page, xpaths, opts = {}) {
     // scroll the target into view first — on a real page most sampled elements are BELOW THE FOLD, so
     // without this their element-crop is skipped (off-viewport) and the LLM gets no pixels (probe finding
     // on the corpus). scrollIntoView centres it; getBoundingClientRect is then viewport-relative and clips.
-    await page.evaluate((x) => { const el = document.evaluate(x, document, null, 9, null).singleNodeValue; if (el && el.scrollIntoView) try { el.scrollIntoView({ block: 'center', inline: 'center' }); } catch (e) { el.scrollIntoView(); } }, xp).catch(() => {});
+    await page.evaluate((x) => { const el = window.__v3ResolveXpath(x); if (el && el.scrollIntoView) try { el.scrollIntoView({ block: 'center', inline: 'center' }); } catch (e) { el.scrollIntoView(); } }, xp).catch(() => {});
     await require('./settle.js').awaitSettle(page); // gated V3_SETTLE_WAIT — settle the post-scroll reflow/repaint before the crop
     // probe returns { box } (box=null ⇒ the probe RAN and the element has no perceivable visual box); a THROW ⇒
     // .catch ⇒ null (the probe itself failed — a transient, NOT "non-visual"). This distinction lets the rubric gate
     // judge a genuinely-non-visual element text-only instead of silently abstaining (off-screen sr-only controls).
     const probe = await page.evaluate((x) => {
-      const el = document.evaluate(x, document, null, 9, null).singleNodeValue;
+      const el = window.__v3ResolveXpath(x);
       if (!el || !el.getBoundingClientRect) return { box: null };
-      // an AT-imperceivable element (visibility:hidden / opacity:0) keeps a layout box but a crop of it is
-      // a BLANK rectangle — a misleading "no visible content" signal to the agent. Skip it (adversarial).
-      const cs = getComputedStyle(el);
-      if (cs.visibility === 'hidden' || cs.visibility === 'collapse' || parseFloat(cs.opacity) === 0) return { box: null };
-      const r = el.getBoundingClientRect();
+      // an AT-imperceivable element (visibility:hidden / opacity:0, on the element OR an ancestor — #10e fix)
+      // keeps a layout box but a crop of it is either blank or shows whatever renders BEHIND it — a misleading
+      // signal to the agent either way. Skip it (adversarial).
+      if (!window.__v3EffectivelyVisible(el)) return { box: null };
+      // #10b fix: TOP-PAGE-relative coords (not the element's own in-frame-local rect) via __v3ResolveXpathBox —
+      // a plain el.getBoundingClientRect() here silently mis-clips (or entirely misses) an in-frame element.
+      const r = window.__v3ResolveXpathBox(x);
+      if (!r) return { box: null };
       // a DEGENERATE box (either dim < 6px — a collapsed layout artifact or a hairline element) yields a
       // near-blank crop that misleads the agent (corpus probe: Domino's 5x5, Amazon's 200x2 link). Skip
       // it — a <6px element is not a meaningful visual target anyway.
       if (!(r.width >= 6) || !(r.height >= 6)) return { box: null };
-      return { box: { x: r.left, y: r.top, w: r.width, h: r.height, vw: window.innerWidth, vh: window.innerHeight } };
+      return { box: { x: r.left, y: r.top, w: r.width, h: r.height, vw: window.innerWidth, vh: window.innerHeight, scrollX: window.scrollX, scrollY: window.scrollY } };
     }, xp).catch(() => null);
     const rect = probe && probe.box;
     const frames = {};
     let inView = false;
     if (rect) {
-      // clamp the clip fully inside the viewport (page.screenshot errors on an out-of-bounds clip).
+      // #10d fix: `page.screenshot({clip})` (CDP `Page.captureScreenshot`) takes DOCUMENT-relative coordinates,
+      // but `getBoundingClientRect()` (via __v3ResolveXpathBox) is VIEWPORT-relative — the two are IDENTICAL
+      // only when scrollY/scrollX are 0. Every below-the-fold element (the common case: scrollIntoView is
+      // called specifically BECAUSE most sampled elements start off-screen) leaves the page scrolled, so the
+      // clip silently captured the WRONG on-screen region — confirmed live on a real DHS Trusted-Tester page
+      // (a 3-item book carousel, scrollY:323 after centering the target): the crop for an <img alt="The
+      // Giving Three"> element showed a COMPLETELY DIFFERENT, unrelated carousel banner ("Nineteen Eighty-
+      // Four") rendered at the SAME viewport-relative coordinates the target had used pre-scroll, near
+      // document y:190 vs the target's real document y:628 — while `getBoundingClientRect()`, `elementFromPoint`,
+      // and Puppeteer's own `ElementHandle.screenshot()` all agreed the DOM/layout were entirely correct. This
+      // was NOT a rendering-timing race (reproduced deterministically, unaffected by an explicit settle floor)
+      // — it was a coordinate-space mismatch. Clamp fully in VIEWPORT space (unaffected — clamping is about
+      // what's currently visible on screen) but add the scroll offset ONLY when building the final clip handed
+      // to `shot()`.
       const clip = (p) => {
         const x = Math.max(0, Math.min(rect.x - p, rect.vw - 1));
         const y = Math.max(0, Math.min(rect.y - p, rect.vh - 1));
-        return { x, y, width: Math.max(1, Math.min(rect.w + 2 * p, rect.vw - x)), height: Math.max(1, Math.min(rect.h + 2 * p, rect.vh - y)) };
+        const width = Math.max(1, Math.min(rect.w + 2 * p, rect.vw - x));
+        const height = Math.max(1, Math.min(rect.h + 2 * p, rect.vh - y));
+        return { x: x + rect.scrollX, y: y + rect.scrollY, width, height };
       };
       inView = rect.x < rect.vw && rect.y < rect.vh && rect.x + rect.w > 0 && rect.y + rect.h > 0;
       if (inView && want.has('element-crop')) frames['element-crop'] = await shot(clip(2));
@@ -137,6 +258,7 @@ function mergeVision(base, ...more) {
 async function captureStateVision(page, plan, opts = {}) {
   const entries = Object.entries(plan || {});
   if (!entries.length) return {};
+  await safeInstallResolver(page); // #10 fix: idempotent per-page setup for frame-qualified xpaths
   const out = {};
   let cdp = null;
   try { cdp = await page.createCDPSession(); await cdp.send('DOM.enable'); await cdp.send('CSS.enable'); } catch (e) { cdp = null; }
@@ -146,10 +268,16 @@ async function captureStateVision(page, plan, opts = {}) {
   // iteration that ended there could leave a fixed top-left element :hover and pollute the NEXT subject's
   // before-frame (adversarial finding). 10000,10000 is outside any viewport ⇒ nothing is :hover.
   const parkPointer = () => page.mouse.move(10000, 10000).catch(() => {});
+  // #10d fix: same document-vs-viewport coordinate-space bug as captureVision (see its clip() comment) — CDP's
+  // Page.captureScreenshot clip is DOCUMENT-relative, getBoundingClientRect is VIEWPORT-relative. All the clip
+  // math below stays in viewport space (clamping against rc.vw/vh is legitimately about on-screen visibility);
+  // `rc.scrollX`/`rc.scrollY` (present on every rect this function receives) are added ONLY at the final return.
   const clampClip = (rc, pad) => {
     const x0 = Math.max(0, Math.min(rc.x - pad, rc.vw - 1));
     const y0 = Math.max(0, Math.min(rc.y - pad, rc.vh - 1));
-    return { x: x0, y: y0, width: Math.max(1, Math.min(rc.w + 2 * pad, rc.vw - x0)), height: Math.max(1, Math.min(rc.h + 2 * pad, rc.vh - y0)) };
+    const width = Math.max(1, Math.min(rc.w + 2 * pad, rc.vw - x0));
+    const height = Math.max(1, Math.min(rc.h + 2 * pad, rc.vh - y0));
+    return { x: x0 + (rc.scrollX || 0), y: y0 + (rc.scrollY || 0), width, height };
   };
   // a hover clip that actually CONTAINS the reveal: trigger ∪ measured revealed-node bbox (clamped), since a
   // fixed pad misses a tooltip/menu rendered far from the trigger (adversarial finding → false abstain).
@@ -159,7 +287,8 @@ async function captureStateVision(page, plan, opts = {}) {
     const y0 = Math.max(0, Math.min(rc.y, reveal.y0) - 8);
     const x1 = Math.min(rc.vw, Math.max(rc.x + rc.w, reveal.x1) + 8);
     const y1 = Math.min(rc.vh, Math.max(rc.y + rc.h, reveal.y1) + 8);
-    return (x1 > x0 && y1 > y0) ? { x: x0, y: y0, width: x1 - x0, height: y1 - y0 } : clampClip(rc, pad);
+    if (!(x1 > x0 && y1 > y0)) return clampClip(rc, pad);
+    return { x: x0 + (rc.scrollX || 0), y: y0 + (rc.scrollY || 0), width: x1 - x0, height: y1 - y0 };
   };
   // resolve an xpath -> CDP nodeId (DOM.performSearch accepts XPath) for forcePseudoState (drive-page.js T1/T8).
   const nodeIdFor = async (xp) => {
@@ -177,18 +306,22 @@ async function captureStateVision(page, plan, opts = {}) {
   // after-clip UNIONS the before-form-rect with the after-form-rect (the form grows when an error renders),
   // measured in the SAME scroll frame so the union is valid. Invalid submit is irreversible, so each form
   // subject runs on a fresh reload (focus/hover pairs are already captured + stored in `out`).
-  const scrollFormIntoView = (xp) => page.evaluate((x) => { const el = document.evaluate(x, document, null, 9, null).singleNodeValue; const form = el && el.closest && el.closest('form'); if (form && form.scrollIntoView) { try { form.scrollIntoView({ block: 'center', inline: 'center' }); } catch (e) { form.scrollIntoView(); } } }, xp).catch(() => {});
+  const scrollFormIntoView = (xp) => page.evaluate((x) => { const el = window.__v3ResolveXpath(x); const form = el && el.closest && el.closest('form'); if (form && form.scrollIntoView) { try { form.scrollIntoView({ block: 'center', inline: 'center' }); } catch (e) { form.scrollIntoView(); } } }, xp).catch(() => {});
   const measureForm = (xp) => page.evaluate((x) => {
-    const el = document.evaluate(x, document, null, 9, null).singleNodeValue;
+    const el = window.__v3ResolveXpath(x);
     const form = el && el.closest && el.closest('form');
     if (!form) return null;
     const cs = getComputedStyle(form); if (cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0) return null;
     const r = form.getBoundingClientRect();
     if (!(r.width >= 6) || !(r.height >= 6)) return null;
-    return { x: r.left, y: r.top, w: r.width, h: r.height, vw: window.innerWidth, vh: window.innerHeight };
+    // #10b fix: `form` is reached via `.closest()` on the resolved element, not by re-resolving the xpath, so
+    // __v3ResolveXpathBox can't be reused directly — apply the SAME frame-chain offset (form lives in the same
+    // document as `el`) on top of its own local rect.
+    const off = window.__v3FrameOffset(x);
+    return { x: r.left + off.x, y: r.top + off.y, w: r.width, h: r.height, vw: window.innerWidth, vh: window.innerHeight, scrollX: window.scrollX, scrollY: window.scrollY };
   }, xp).catch(() => null);
   const driveInvalidSubmit = (xp) => page.evaluate((x) => {
-    const el = document.evaluate(x, document, null, 9, null).singleNodeValue; if (!el) return false;
+    const el = window.__v3ResolveXpath(x); if (!el) return false;
     const form = el.closest('form'); if (!form) return false;
     const type = (el.getAttribute('type') || '').toLowerCase();
     const required = el.required === true || el.getAttribute('aria-required') === 'true';
@@ -206,10 +339,17 @@ async function captureStateVision(page, plan, opts = {}) {
     const y0 = Math.max(0, Math.min(r0.y, r1 ? r1.y : r0.y) - pad);
     const x1 = Math.min(r0.vw, Math.max(r0.x + r0.w, r1 ? r1.x + r1.w : 0) + pad);
     const y1 = Math.min(r0.vh, Math.max(r0.y + r0.h, r1 ? r1.y + r1.h : 0) + pad);
-    return (x1 > x0 && y1 > y0) ? { x: x0, y: y0, width: x1 - x0, height: y1 - y0 } : clampClip(r0, pad);
+    if (!(x1 > x0 && y1 > y0)) return clampClip(r0, pad);
+    // #10d fix: document-relative (see clampClip) — r0/r1 are the SAME scroll frame (captureSubmitPair never
+    // re-scrolls between them), so either's scrollX/scrollY is authoritative.
+    return { x: x0 + (r0.scrollX || 0), y: y0 + (r0.scrollY || 0), width: x1 - x0, height: y1 - y0 };
   };
   const captureSubmitPair = async (xp) => {
     try { await page.reload({ waitUntil: 'load', timeout: opts.gotoTimeoutMs || 30000 }); } catch (e) {}
+    // #10 fix: a navigation wipes the page's JS context, so window.__v3ResolveXpath/__v3FrameOffset (installed
+    // ONCE at the top of captureStateVision) no longer exist post-reload — every window.__v3* call below would
+    // throw (undefined is not a function), silently degrading to a null pair via the blanket .catch(() => null).
+    await safeInstallResolver(page);
     await require('./settle.js').awaitSettle(page); // gated V3_SETTLE_WAIT
     await parkPointer();
     await scrollFormIntoView(xp);
@@ -228,15 +368,19 @@ async function captureStateVision(page, plan, opts = {}) {
     if (transition === 'submit') { const pair = await captureSubmitPair(xp); if (pair) out[xpRaw] = pair; continue; }
     await parkPointer(); // RESET to a guaranteed-idle pointer BEFORE the before-frame (kills cross-subject hover leak)
     // a true IDLE before-state: blur whatever is focused, then bring the target into view.
-    await page.evaluate((x) => { try { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); } catch (e) {} const el = document.evaluate(x, document, null, 9, null).singleNodeValue; if (el && el.scrollIntoView) { try { el.scrollIntoView({ block: 'center', inline: 'center' }); } catch (e) { el.scrollIntoView(); } } }, xp).catch(() => {});
+    await page.evaluate((x) => { try { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); } catch (e) {} const el = window.__v3ResolveXpath(x); if (el && el.scrollIntoView) { try { el.scrollIntoView({ block: 'center', inline: 'center' }); } catch (e) { el.scrollIntoView(); } } }, xp).catch(() => {});
     const rect = await page.evaluate((x) => {
-      const el = document.evaluate(x, document, null, 9, null).singleNodeValue;
+      const el = window.__v3ResolveXpath(x);
       if (!el || !el.getBoundingClientRect) return null;
-      const cs = getComputedStyle(el);
-      if (cs.visibility === 'hidden' || cs.visibility === 'collapse' || parseFloat(cs.opacity) === 0) return null;
-      const r = el.getBoundingClientRect();
+      if (!window.__v3EffectivelyVisible(el)) return null; // #10e fix: ancestor-cascaded opacity:0/hidden — see captureVision's probe
+      // #10b fix: top-page-relative coords — cx/cy feed a REAL page.mouse.move() below, which is meaningless
+      // (or hits the wrong element) if computed from an in-frame-local rect.
+      const r = window.__v3ResolveXpathBox(x);
+      if (!r) return null;
       if (!(r.width >= 6) || !(r.height >= 6)) return null;
-      return { x: r.left, y: r.top, w: r.width, h: r.height, vw: window.innerWidth, vh: window.innerHeight, cx: r.left + r.width / 2, cy: r.top + r.height / 2 };
+      // cx/cy stay VIEWPORT-relative (they feed a real page.mouse.move() below, which is a screen/input coordinate,
+      // NOT a page.screenshot clip) — only x/y grow a scrollX/scrollY tag, consumed by clampClip/unionClip (#10d fix).
+      return { x: r.left, y: r.top, w: r.width, h: r.height, vw: window.innerWidth, vh: window.innerHeight, scrollX: window.scrollX, scrollY: window.scrollY, cx: r.left + r.width / 2, cy: r.top + r.height / 2 };
     }, xp).catch(() => null);
     if (!rect) continue;
     const inView = rect.x < rect.vw && rect.y < rect.vh && rect.x + rect.w > 0 && rect.y + rect.h > 0;
@@ -247,7 +391,7 @@ async function captureStateVision(page, plan, opts = {}) {
       const clip = clampClip(rect, pad); // a focus ring hugs the element
       before = await shot(clip);
       if (!str(before)) continue;
-      await page.evaluate((x) => { const el = document.evaluate(x, document, null, 9, null).singleNodeValue; if (el && el.focus) { try { el.focus({ preventScroll: true }); } catch (e) { try { el.focus(); } catch (_) {} } } }, xp).catch(() => {});
+      await page.evaluate((x) => { const el = window.__v3ResolveXpath(x); if (el && el.focus) { try { el.focus({ preventScroll: true }); } catch (e) { try { el.focus(); } catch (_) {} } } }, xp).catch(() => {});
       // #4 fix: CONFIRM real focus actually PERSISTED before manufacturing a "focused" render. A synchronous
       // focus-stripping handler (onfocus="this.blur()", a scripted focus trap that redirects elsewhere, etc.)
       // reverts document.activeElement before we ever reach here — forcing the focus/focus-visible pseudo-state
@@ -256,7 +400,11 @@ async function captureStateVision(page, plan, opts = {}) {
       // needed because :focus-visible's own browser heuristic may not qualify a script-driven .focus() call even
       // when focus legitimately sticks — when persistence is CONFIRMED; otherwise capture the TRUE render, which
       // correctly shows no focus styling when none would ever appear to a real user.
-      focusPersisted = await page.evaluate((x) => { const el = document.evaluate(x, document, null, 9, null).singleNodeValue; return !!el && document.activeElement === el; }, xp).catch(() => false);
+      // #10b fix: `document.activeElement` is the TOP document's own active element — for an in-frame target
+      // it would be the <frame>/<iframe> host element, never `el` itself, so this would ALWAYS report false
+      // for an in-frame focus target. `el.ownerDocument` is the element's OWN document (its frame's document
+      // for an in-frame node, the top document otherwise) — check activeElement against THAT.
+      focusPersisted = await page.evaluate((x) => { const el = window.__v3ResolveXpath(x); return !!el && el.ownerDocument && el.ownerDocument.activeElement === el; }, xp).catch(() => false);
       const nodeId = await nodeIdFor(xpRaw); // CDP DOM.performSearch path — unchanged (uses the raw collector xpath)
       let forced = false;
       if (focusPersisted && nodeId) { try { await cdp.send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: ['focus', 'focus-visible'] }); forced = true; } catch (e) {} }
@@ -270,7 +418,7 @@ async function captureStateVision(page, plan, opts = {}) {
       try { await page.mouse.move(rect.cx, rect.cy); } catch (e) {}
       await sleep(hoverSettle);
       const reveal = await page.evaluate((x) => {
-        const trig = document.evaluate(x, document, null, 9, null).singleNodeValue;
+        const trig = window.__v3ResolveXpath(x);
         if (!trig) return null;
         const cands = new Set();
         for (const a of ['aria-describedby', 'aria-controls', 'popovertarget']) for (const id of (trig.getAttribute(a) || '').split(/\s+/)) { if (id) { const e = document.getElementById(id); if (e) cands.add(e); } }

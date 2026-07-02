@@ -65,7 +65,10 @@ test('frame-structure #2: a frameset page\'s real headings/lists/tables are coll
   assert.equal(out.structure.headings.length, 1, 'the frame\'s <h1> is collected');
   assert.equal(out.structure.headings[0].text, 'Section One');
   assert.equal(out.structure.headings[0].inFrame, true);
-  assert.match(out.structure.headings[0].xpath, /^\/html\[?1?\]?\/body\[?1?\]?\/frame\[1\]>>/, 'a CDP-resolvable namespaced xpath, not null');
+  // #10c fix: `document.body` is spec-aliased to the <frameset> element on a body-less frameset document, so the
+  // REAL, resolvable DOM path is '/html/frameset[.../frame[1]', never '/html/body/frame[1]' (the old assertion
+  // here actually PINNED the bug — a '/body/' xpath for a frameset page doesn't exist in the DOM at all).
+  assert.match(out.structure.headings[0].xpath, /^\/html\/frameset\[1\]\/frame\[1\]>>/, 'a CDP-resolvable namespaced xpath, not null');
 
   assert.equal(out.structure.lists.length, 1, 'the frame\'s real <ul> is collected');
   assert.equal(out.structure.lists[0].kind, 'real');
