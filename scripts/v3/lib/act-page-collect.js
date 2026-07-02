@@ -11,6 +11,17 @@ function digestForUrl(url) {
   return 'sha256:url:' + crypto.createHash('sha256').update(String(url)).digest('hex');
 }
 
+// #11 fix — a caller (e.g. a corpus eval harness whose GT record names a specific `target.selector`) may pass a
+// single CSS selector string OR an array of them (the shape `testcases.json`'s `target.selector` field actually
+// takes). `element.matches()` accepts a single comma-combined selector list natively, so join an array with ','.
+// Returns null (⇒ matchesTarget stays undefined for every element, byte-identical to before this fix) for
+// anything falsy/empty.
+function normalizeTargetSelectors(sel) {
+  if (!sel) return null;
+  if (Array.isArray(sel)) { const joined = sel.filter((s) => typeof s === 'string' && s.trim()).join(', '); return joined || null; }
+  return typeof sel === 'string' && sel.trim() ? sel : null;
+}
+
 function nativeRole(tag, type, href) {
   tag = String(tag || '').toLowerCase();
   type = String(type || '').toLowerCase();
@@ -42,7 +53,18 @@ async function collectActPage(page, opts = {}) {
   await new Promise((r) => setTimeout(r, Number.isFinite(opts.settleMs) ? opts.settleMs : 250));
   const collectedAt = Number.isFinite(opts.now) ? opts.now : Date.now();
   const pageDigest = opts.pageDigest || digestForUrl(opts.sourceUrl || url);
-  const data = await page.evaluate((cap, subsetXpaths) => {
+  const data = await page.evaluate((cap, subsetXpaths, targetSelectors) => {
+    // #11 fix (scorer precision): when the caller supplies the TT test record's OWN target selector(s) (a CSS
+    // selector, comma-combined `element.matches()` handles a list natively), tag each collected element with
+    // whether it's actually the element this specific test is about. `run-trusted-tester.js`'s scorer used to
+    // match a test record to obligations/verdicts by SC alone (WCAG success criterion), which pulled in ANY
+    // finding anywhere on the page under that SC — e.g. an unrelated missing-label textbox on the SAME page
+    // silently counted as a false positive against a test record that was actually about list markup. Computed
+    // here (collection time, live page) rather than at scoring time, since matching requires a real DOM query.
+    const matchesTarget = (el) => {
+      if (!targetSelectors) return undefined; // no selector supplied ⇒ scorer falls back to its old SC-only behavior
+      try { return el.matches(targetSelectors); } catch (e) { return undefined; } // an invalid/unsupported selector degrades to "unknown", never a false negative
+    };
     function nativeRoleInPage(tag, type, href) {
       tag = String(tag || '').toLowerCase();
       type = String(type || '').toLowerCase();
@@ -603,6 +625,7 @@ async function collectActPage(page, opts = {}) {
       if (!_subset && !focusable && !isFormField && !sampledRole && !text && !isImage && !liveRegion && !isMedia && !autoMotion && !backgroundImageMeaningful && !isCaptcha && !iframeTabExcluded && !focusableInAriaHidden && !prohibitedAriaAttr) continue; // a pre-selected subset element is always included
       els.push({
         xpath: xpathOf(el),
+        matchesTarget: matchesTarget(el), // #11 fix — see scorer precision comment above
         // (axName below is computed by labelledText(el, sampledRole) — name-from-contents gated by role)
         text,
         hasText: text.length > 0,
@@ -722,6 +745,7 @@ async function collectActPage(page, opts = {}) {
         if (!focusable && !isFormField && !sampledRole && !text && !isImage && !_frameCaptcha && !_frameBgM) continue;
         els.push({
           xpath: prefix + xpathOfInDoc(el, fdoc), inFrame: true,
+          matchesTarget: matchesTarget(el), // #11 fix — el.matches() works identically for an in-frame element
           text, hasText: text.length > 0, focusable,
           isInteractive: focusable || /^(button|link|checkbox|switch|tab|menuitem|combobox|radio|slider)$/.test(sampledRole),
           isFormField, isImage, ariaAttrs: el.getAttributeNames().filter((n) => n.indexOf('aria-') === 0),
@@ -810,7 +834,7 @@ async function collectActPage(page, opts = {}) {
       domElementCount: _subset ? _subset.length : _domTotal, // subset ⇒ the subset IS the complete element population
       subset: !!_subset,            // collected from a pre-selected xpath list (the 80-cap did not apply)
     };
-  }, elementCap, Array.isArray(opts.xpaths) ? opts.xpaths : null);
+  }, elementCap, Array.isArray(opts.xpaths) ? opts.xpaths : null, normalizeTargetSelectors(opts.targetSelectors));
 
   // ── CDP ACCESSIBLE-NAME / ROLE / TREE-MEMBERSHIP pass ────────────────────────────────────────────────────
   // The in-page labelledText is a HEURISTIC re-implementation of Chrome's accessible-name algorithm; it has

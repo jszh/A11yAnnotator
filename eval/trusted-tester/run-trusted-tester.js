@@ -276,8 +276,20 @@ async function main() {
           collect = normalizeCollectRoles(await collectActPage(lease.page, {
             url: urlFor(tc), elementCap: ELEMENT_CAP, file: `tt:${tc.testcaseId}`, runId, sourceUrl: tc.examPageUrl,
             runAxe: true, axePath: AXE_PATH,
+            targetSelectors: tc.targetSelector, // #11 fix: tag each element with whether it's this record's OWN target
           }));
         } finally { await lease.release(); }
+        // #11 fix (scorer precision + wasted compute): the TT scorer used to match a test record to obligations/
+        // verdicts by SC alone, so an unrelated same-SC finding elsewhere on the page silently counted against a
+        // record it had nothing to do with (e.g. an unlabeled textbox flipping a LIST-markup test's outcome).
+        // Restricting HERE — before orchestrate() ever mints an obligation or spends an LLM call on it — fixes
+        // scoring precision AND avoids judging elements that would never be scored anyway. Only applies when the
+        // record actually NAMES a target selector; a null-selector record (e.g. "nothing meets this description
+        // on the page" — an inapplicable case with no anchor) keeps the full, unrestricted element set, matching
+        // its pre-#11 behavior exactly (there's nothing valid to restrict TO).
+        if (tc.targetSelector && Array.isArray(collect.elements)) {
+          collect.elements = collect.elements.filter((e) => e.matchesTarget !== false);
+        }
         tel.workers[wid].phase = 'orchestrate';
         const drive = { file: collect.file, runId, pageDigest: collect.pageDigest, drivenAt: collect.collectedAt + 1, elements: [] };
         const out = await orchestrate(collect, drive, {
