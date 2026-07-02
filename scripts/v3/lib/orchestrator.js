@@ -335,6 +335,40 @@ async function orchestrate(collect, drive, opts = {}) {
         // #8 fix: thread the page's known same-name-link groups onto the session so resolve_destination can
         // self-coalesce a single-target call into the whole set (see llm-adjudicator.js's computeLinkPeerGroups).
         if (toolSession) toolSession.linkPeerGroups = llmAdj.computeLinkPeerGroups(collect);
+        // FORCE-INVOKE resolve_destination for the 2.4.4 same-named SETS (required-tool-routing.js declares this as
+        // the intended design: "the orchestrator should invoke the tool and attach its result as required evidence").
+        // The model is unreliable at calling it and over-flags on RAW paths ("about/contact" vs "careers/contact")
+        // instead of the settled content (both titled "Contact") — a recurring fd3a94 FP across models. So resolve
+        // each same-named set ONCE here and attach its settled-destination byte-EQUALITY grid as a DETERMINISTIC
+        // signal on the link-name-equivalence subjects (the cellColHeaders/#12b pattern — hand the answer to passive
+        // AND active models rather than depend on a tool call). Bounded: only sets that actually have a subject;
+        // fails closed (a failed resolve just leaves the subject on the raw-href signal + its PARTIAL-if-unsure rule).
+        const lneSubjects = rubricSubjects.filter((s) => s.rubricId === 'link-name-equivalence-v0');
+        if (toolSession && lneSubjects.length && toolSession.linkPeerGroups && toolSession.linkPeerGroups.size) {
+          await timings.stage('resolve-destinations', async () => {
+            const want = new Set(lneSubjects.map((s) => s.xpath));
+            const groups = new Map(); // dedupe identical sets by a stable key
+            for (const xps of toolSession.linkPeerGroups.values()) if (xps.some((x) => want.has(x))) groups.set(xps.join('\n'), xps);
+            const gridByXpath = new Map();
+            for (const xps of groups.values()) {
+              const res = await cdpTools.resolveDestination(toolSession.page, { linkXpaths: xps }, { linkPeerGroups: toolSession.linkPeerGroups }).catch(() => null);
+              // RELIABILITY GUARDS (both recall-safe — each only WITHHOLDS the grid, falling back to the raw-href
+              // divergence signal that already catches these barriers): (1) need >=2 resolved to compare — a null grid
+              // must NOT suppress a barrier the raw hrefs flag (dddcd76a: a root-absolute file:// onclick target that
+              // could not resolve → the model wrongly backed off to UNCERTAIN). (2) resolve_destination cannot
+              // faithfully fingerprint a CLIENT-SIDE QUERY BRANCH (same page, ?page=N revealed by JS over shared
+              // nav/chrome): the branches read EQUAL and would FALSE-CLEAR a real fd3a94 barrier (0b01e772:
+              // contact-us.html?page=3 vs ?page=4). So attach ONLY when the settled destinations differ by PATH
+              // (distinct pages), never merely by query/hash — a query-only set stays on the raw-href signal.
+              if (!res || !res.equality || res.resolvedCount < 2) continue;
+              const paths = new Set();
+              for (const fp of res.fingerprints || []) { if (fp && fp.finalUrl) { try { paths.add(new URL(fp.finalUrl).pathname); } catch (e) {} } }
+              if (paths.size < 2) continue; // query/hash-only difference — unreliable to fingerprint; keep raw-href signal
+              for (const xp of xps) gridByXpath.set(xp, { equality: res.equality, resolvedCount: res.resolvedCount });
+            }
+            for (const s of lneSubjects) if (gridByXpath.has(s.xpath)) s.element.__destinationGrid = gridByXpath.get(s.xpath);
+          });
+        }
         // PROVIDER tool surface (SAME CDP handlers, different protocol): 'claude' wraps them as an in-process Agent-SDK
         // MCP server the query() loop drives; 'gemini' builds a direct dispatch the hand-rolled function-calling loop
         // drives; 'codex' exposes them as an in-process Streamable-HTTP MCP server the Codex agent connects to by URL.

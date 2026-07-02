@@ -515,3 +515,37 @@ catch a barrier the runner can't decide — is built (`resolveEscalation` in `mi
 (measured: C5 +15, C8 +11) — the opposite of the current goal of keeping the false-barrier count low. Revisit when
 recall (catching missed barriers) is wanted over precision; turn on `escalateAbstains` per-runner and re-tune the
 escalation confidence bar / skeptic to hold the false-barrier rate down.
+
+## Force-invoke resolve_destination for 2.4.4 same-named links (IMPLEMENTED 2026-07-02)
+DONE (orchestrator.js pre-resolution + llm-adjudicator.js `sameNameLinks.settledDestinations` signal +
+link-name-equivalence-v0.md). The orchestrator now resolves each same-named SET once and attaches the settled-
+destination byte-equality grid as a DETERMINISTIC signal, so passive models judge purpose from settled content, not
+raw paths. Validated on ACT 2.4.4 (Sonnet 5, tools): clears the distinct-path equivalent FP (`8e6c190e`,
+about/contact vs careers/contact both titled "Contact"), recall-safe (0/grid-attributable recall loss).
+RESIDUAL LIMITATION (kept, by two recall-safe guards that WITHHOLD the grid → fall back to the raw-href signal that
+already catches these): `resolve_destination` cannot faithfully fingerprint a CLIENT-SIDE QUERY BRANCH (same page,
+`?page=N` revealed by JS over shared nav/chrome — the branches read equal) nor a root-absolute `/…` onclick target
+under `file://`. So query/hash-only-differing sets (and null resolves) are NOT given a grid; they stay on the raw-
+href divergence heuristic. Remaining future work (only if the query-branch FN becomes material on a real HTTP corpus):
+a query-branch-aware fingerprint (diff the display-toggled section, not whole-page visibleText) so those sets can
+also be resolved deterministically. Original design note follows for context:
+
+
+The residual ACT `fd3a94` 2.4.4 false positives (4/4 on Sonnet 5; recurring across models — `8e6c190e`,
+`b55973d2`, `228c0a3d`, `58087cbeb1`) were hand-audited at the criterion level: the ACT `passed`/`inapplicable`
+labels are CORRECT (resolving the local test-asset destinations, `about/contact.html` and `careers/contact.html`
+both render "About - Contact"; the "Read more" pair has DIFFERENT enclosing context → fd3a94 inapplicable). So NO
+`GT_OVERRIDE` is warranted — overriding an authoritative W3C label to excuse our own error is the exact anti-pattern
+the cross-rule-indeterminate guardrails forbid. The FPs are a model tool-USE gap: `link-name-equivalence-v0`'s prose
+is already correct (resolve settled destinations, never a confident barrier on raw hrefs, PARTIAL if unresolved) and
+`resolve_destination` already handles these `file://` cross-dir links (`ROOT_DEPTH=3`), but the model judges on the
+raw PATH ("about" vs "careers" department) instead of calling the tool, and returns a confident REPRODUCED.
+
+`required-tool-routing.js` ALREADY declares the intended fix — 2.4.4 → `resolve_destination`, "the orchestrator
+should invoke the tool and attach its result as required evidence" — but the orchestrator does NOT force-invoke it;
+it only threads `linkPeerGroups` so a model-initiated call self-coalesces. Deferred work: in the orchestrator tool
+session, for each same-named link SET (computeLinkPeerGroups), run `resolve_destination` once and attach the settled-
+destination byte-equality grid as a DETERMINISTIC signal on those subjects (the cellColHeaders/#12b pattern — give
+passive models the answer so they don't need to call the tool). Removes the compliance dependency entirely and clears
+the fd3a94 cluster the right way. Non-trivial (browser fetches at setup, signal threading, live-browser tests against
+the b20e66 mirror) — its own scoped task + a 2.4.4 re-run watching recall, not folded into a rubric edit.

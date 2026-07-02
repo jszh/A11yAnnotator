@@ -28,7 +28,18 @@ names that resolve to the SAME or an EQUIVALENT place are correct (2.4.4 require
   `distinctRawHrefs` is a SMELL, never a verdict.
 - the `element-crop` (this link) + `surrounding-region` (its on-page context).
 
-**Investigate with the tool — resolve the SETTLED destinations, do NOT decide on raw hrefs:**
+**PREFER the PRE-RESOLVED grid when present — `signals.sameNameLinks.settledDestinations`.** The harness usually
+resolves the same-named set FOR you (isolated read-only GETs) and hands you a byte-EQUALITY grid: `resolvedCount` +
+`equality` ({finalUrlEqual, titleEqual, h1Equal, mainFirstParagraphEqual, visibleTextEqual}, each `true`/`false`/
+`null`). When this is present it is AUTHORITATIVE over the raw hrefs — you do NOT need to call the tool:
+- fields MATCH (true) on title/h1/mainFirstParagraph/visibleText (or finalUrl) ⇒ the destinations are equivalent ⇒
+  **NOT REPRODUCED** — even if the raw paths differ (`about/contact` vs `careers/contact` both titled "Contact").
+- fields DIVERGE (false) ⇒ the settled content differs; flag **REPRODUCED** only if that reflects a different
+  PURPOSE (different wording for the SAME function — "Get in touch" vs "Contact us" — is still equivalent), and the
+  enclosing context does not disambiguate.
+- `resolvedCount < 2` (equality `null`) ⇒ could not compare ⇒ **PARTIAL**, never a confident barrier on raw hrefs.
+
+**If the grid is ABSENT, investigate with the tool — resolve the SETTLED destinations, do NOT decide on raw hrefs:**
 - When `distinctRawHrefs` ≥ 2 (or you otherwise cannot confirm equivalence), call
   `resolve_destination(linkXpaths=[<this link + its same-named peers>])` — pass the WHOLE same-named SET in ONE call.
   It follows each SAME-ORIGIN link in an isolated read-only GET and returns a per-field byte-EQUALITY grid of the

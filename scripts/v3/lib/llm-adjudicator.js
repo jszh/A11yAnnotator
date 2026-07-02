@@ -404,6 +404,16 @@ function precomputeSignals(element, skill, sc) {
         distinctRawHrefs: rawHrefs.size,
         uncertainReason: 'other links on this page share this name — 2.4.4 fails if any resolve to a DIFFERENT destination. The values shown are RAW hrefs, NOT settled destinations: identical raw hrefs can still diverge (redirect/meta-refresh/SPA route) and different raw hrefs can be equivalent, so distinctRawHrefs is NOT sufficient to clear. If a tool is available, call resolve_destination on the SET of same-named links to compare SETTLED destinations; otherwise, if you cannot confirm the destinations are truly equivalent, return PARTIAL — never a confident clear on raw-href equality alone',
       };
+      // FORCE-INVOKE result (orchestrator.js): the same-named set was ALREADY resolved deterministically (isolated
+      // read-only GETs) and compared field-by-field, so a passive model no longer depends on calling the tool. When
+      // present, this settled grid is AUTHORITATIVE over the raw hrefs above — judge PURPOSE from it, not the paths.
+      if (element.__destinationGrid && element.__destinationGrid.equality) {
+        s.sameNameLinks.settledDestinations = {
+          resolvedCount: element.__destinationGrid.resolvedCount,
+          equality: element.__destinationGrid.equality,
+          uncertainReason: 'DETERMINISTIC settled-destination grid (resolve_destination was already run on the SET). Each equality.* is byte-equality across the RESOLVED destinations: true = all identical on that field, false = they differ, null = fewer than 2 resolved ⇒ COULD NOT COMPARE (never read null as "different"). This SUPERSEDES the raw hrefs/paths above — do NOT flag on "about/… vs careers/…" path differences. If the destinations match on title/h1/mainFirstParagraph/visibleText (or finalUrl), the same-named links serve an EQUIVALENT purpose ⇒ NOT REPRODUCED, even when the raw paths differ. Flag REPRODUCED only when the SETTLED content genuinely diverges in PURPOSE (not merely different wording for the same function — "Get in touch" and "Contact us" are equivalent) and the enclosing context does not disambiguate. If resolvedCount < 2 (equality null), you could not confirm ⇒ PARTIAL, never a confident barrier.',
+        };
+      }
     }
     // 4.1.2 relational duplicate-name (4b1c6c): the OTHER iframes sharing THIS iframe's accessible name + their src,
     // so the duplicate-name-equivalence rubric can judge whether same-named frames serve an EQUIVALENT purpose.

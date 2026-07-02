@@ -43,3 +43,33 @@ test('a uniquely-named link gets NO link-name-equivalence subject (gated out), b
   assert.ok(subs.find((s) => s.rubricId === 'link-purpose-v0'), 'single-link purpose still fires');
   assert.equal(subs.find((s) => s.rubricId === 'link-name-equivalence-v0'), undefined, 'relational rubric skipped (no peer)');
 });
+
+// FORCE-INVOKE resolve_destination (orchestrator.js pre-resolution): when the harness has already resolved the
+// same-named set, precomputeSignals surfaces the settled-destination byte-equality grid as an AUTHORITATIVE signal
+// so a passive model judges purpose from settled content, not raw paths (the recurring fd3a94 path-based FP).
+test('settledDestinations: a pre-resolved __destinationGrid surfaces onto sameNameLinks with its equality grid', () => {
+  const ledger = [{ xpath: '/a1', sc: '2.4.4', claimFamily: 'link-purpose', autoPartial: true }];
+  const eq = selectRubricSubjects(COLLECT, ledger, RUBRICS).find((s) => s.xpath === '/a1' && s.rubricId === 'link-name-equivalence-v0');
+  // simulate the orchestrator stamping the resolved grid onto the (already-copied) subject element
+  eq.element.__destinationGrid = { resolvedCount: 2, equality: { finalUrlEqual: false, titleEqual: true, h1Equal: true, mainFirstParagraphEqual: true, visibleTextEqual: true } };
+  const sig = precomputeSignals(eq.element, 'name-role-state');
+  assert.ok(sig.sameNameLinks.settledDestinations, 'the settled grid is surfaced');
+  assert.equal(sig.sameNameLinks.settledDestinations.resolvedCount, 2);
+  assert.equal(sig.sameNameLinks.settledDestinations.equality.titleEqual, true, 'equivalent-content links show titleEqual=true despite differing raw hrefs');
+  assert.equal(sig.sameNameLinks.settledDestinations.equality.finalUrlEqual, false);
+});
+
+test('settledDestinations REGRESSION GUARD: with no __destinationGrid, the signal is absent (raw-href signal only)', () => {
+  const ledger = [{ xpath: '/a1', sc: '2.4.4', claimFamily: 'link-purpose', autoPartial: true }];
+  const eq = selectRubricSubjects(COLLECT, ledger, RUBRICS).find((s) => s.xpath === '/a1' && s.rubricId === 'link-name-equivalence-v0');
+  const sig = precomputeSignals(eq.element, 'name-role-state');
+  assert.equal(sig.sameNameLinks.settledDestinations, undefined, 'no pre-resolution ⇒ no settled grid (model falls back to raw hrefs + PARTIAL-if-unsure)');
+});
+
+test('settledDestinations: a null equality (resolvedCount<2) is passed through, not coerced to a difference', () => {
+  const ledger = [{ xpath: '/a1', sc: '2.4.4', claimFamily: 'link-purpose', autoPartial: true }];
+  const eq = selectRubricSubjects(COLLECT, ledger, RUBRICS).find((s) => s.xpath === '/a1' && s.rubricId === 'link-name-equivalence-v0');
+  eq.element.__destinationGrid = { resolvedCount: 1, equality: { finalUrlEqual: null, titleEqual: null, h1Equal: null, mainFirstParagraphEqual: null, visibleTextEqual: null } };
+  const sig = precomputeSignals(eq.element, 'name-role-state');
+  assert.equal(sig.sameNameLinks.settledDestinations.equality.titleEqual, null, 'null (could-not-compare) is preserved, not read as different');
+});
