@@ -641,6 +641,49 @@ captured page's actual rendered content (a real "XYZ News Company" news homepage
 own recorded mechanism text ("a login/password-reset form"); not corrected here since it requires re-deriving
 the GT record against DHS's original exam material, out of scope for this session.
 
+## Table 2c — Overfit-audit de-fitting campaign (round 3, 2026-07-02): pre/post validation
+
+A 22-unit adversarially-verified audit of every rubric/runner/collector/scorer against the WCAG 2.2
+Understanding docs and the DHS TT v5.1.3 procedures found **18 confirmed** conditions fitted to specific
+ACT/DHS fixtures rather than the general rule (42 candidates; 22 refuted by a per-finding skeptic pass;
+2 confirmed-but-would-regress items deliberately NOT fixed). 16 were generalized across commits
+`f55facea` (harness: 15 fixes + over-fire/recall test pairs) and `def3b8b5` (scorer #14, latent), then
+live-validated pre-vs-post on both held-out corpora, with three further rubric iterations driven by the
+live results themselves (`4c07d097`, `e4a5c02d`, `576c27da`). Deterministic suite at final commit:
+**850/850**. Protocol: pre-fix runs from a git worktree pinned at the pre-fix commit (`cd4c6fe4`),
+post-fix from the fixed tree — same model, flags, machine; adverse per-case flips re-sampled once before
+being counted (fixed-evidence noise floor sd≈1.06, full-pipeline ±3 FP, Table 1c).
+
+| Run (all tools+vision) | commit | corpus / slice | recall | FP |
+|---|---|---|---|---|
+| TT pre-fix baseline (gemini-3.5-flash) | `cd4c6fe4`* | DHS TT, 54 | 15/18 (83.3%) | 2/35 (5.7%) |
+| TT post-fix round 1 (gemini) | `f55facea` | DHS TT, 54 | 15/18 | 5/35 → 4 new 1.3.1 FPs **diagnosed from the captured pages** |
+| TT 1.3.1 subset, post-hardening (gemini) | `4c07d097` | 14 recs | **4/4** | **0/10** (clears all 4 + the baseline's own 5_C-2 FP) |
+| TT full, final (gemini) | `e4a5c02d` | DHS TT, 54 | **16/18 (88.9%)** | 3/35 raw; 2/34 after the hand-audited 14_B label-scope exclusion (`576c27da`); the sr-only mode cleared on the follow-up sample |
+| ACT pre-fix (gemini) | `cd4c6fe4`* | 239 affected-SC reaches-LLM | 35/36 (97.2%) | 8/203 (3.9%) |
+| ACT post-fix (gemini) | `4c07d097` | same 239 | 34/36 | 7/203 — all 3 adverse flips re-sampled to pre-states (noise); **noise-corrected: +3 real 1.3.1 FP fixes (ff89c9 ×2, d0f69e), 0 attributable regressions** |
+| ACT pre-fix (claude-sonnet-4-6) | `cd4c6fe4`* | 114 (2.4.4+1.3.1) | 15/17 (88.2%) | 2/97 (2.1%) |
+| ACT post-fix (claude) | `4c07d097` | same 114 | **16/17 (94.1%)** — genuine recovery (fd3a94 same-name links) | 4/97 — 1 noise (re-sampled clean), 1 REPRODUCIBLE (5effbb PE3) → fixed |
+| ACT 5effbb slice, post-precedence-v2 (claude) | `e4a5c02d` | 18 | **6/6** | **0/12** |
+
+\* pre-fix code = `cd4c6fe4` (docs-only ahead of `44af6af7`).
+
+**What the live loop caught that the deterministic suite could not.** Three of the de-fitting edits
+themselves misfired on live judges and were only caught by this loop: (1) replacing the 1.3.1 visual-heading
+"clearly larger/bolder" predicate with soft cue-agnostic wording licensed gemini to *invent* a heading on
+the DHS lorem page — re-hardened (name a visible difference; identical-to-prose text is never a candidate);
+(2) the containment-mismatch framing induced an sr-only-heading inversion — countered with a direction rule
+anchored to the deterministic `offscreen` flag; (3) the 2.4.4 governance emphasis first over-rode the
+self-referential caveat (FP on 5effbb Passed Ex 3), and the corrective precedence wording then over-scoped
+to generic nouns (false-clear on Failed Ex 4 "Workshop") — both pinned after iteration 2. Every guard is
+phrased as the general WCAG/TT rule and pinned in `rubric-generalization.test.js` (19 pins).
+
+**Scorer-side artifacts found by the same loop:** `dhs-1.3.1-cell-header-association-14_B` (target=null,
+DNA for 14.B cell-association) sits on a page whose 'All Books' section is a bordered div-grid visual table
+with zero table semantics — a real 1.3.1 barrier under the 14.A/H51 identification mechanism its label never
+determines; added to the hand-audited `LABEL_SCOPE_EXCLUSION` (criterion-level note, capture-verified,
+reported never silent) alongside the existing 7_C entry.
+
 ## Table 1c — Judge-design levers cannot reduce the residual FP (controlled, fixed-evidence)
 
 The Table-1b precision (FP ~3.1–3.6%) is dominated by a residual of *semantic-judgment-limited* FPs (link
