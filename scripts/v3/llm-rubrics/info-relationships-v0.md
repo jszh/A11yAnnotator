@@ -96,6 +96,15 @@ real list is NOT. Common failure patterns:
   content below it) but is a plain `<div>`/`<span>`/`<strong>` with no heading role — a sighted reader
   perceives the section break, AT users do not (technique H69). The same applies to a heading that is
   only *styled* large (e.g. `<strong style="font-size:18pt">`) standing in for an `<h1>`.
+  **REQUIRED before flagging this: the text must ACTUALLY FUNCTION as a section heading — visually
+  distinguished AS a heading (clearly larger/bolder than the body text) AND labelling a distinct block of
+  content BELOW it.** Prominent text is NOT automatically a heading: a site title / logo / masthead wordmark,
+  a banner or hero tagline, the first line of a paragraph, a byline, a pull-quote, or inline emphasis is not
+  a section heading, and body prose that merely happens to be the first/topmost text is not one either. If the
+  page has NO text that both looks like a heading AND introduces a subordinate section (a page can legitimately
+  have zero headings — that is `inapplicable`, not a barrier), do NOT invent one; return NOT REPRODUCED, or
+  PARTIAL if the viewport is ambiguous about whether a candidate is a true section heading. Never describe "a
+  visual heading at the top" you cannot point to as visually-heading-styled AND section-introducing.
 - **Heading LEVEL does not logically nest (TT 10.C):** distinct from "not marked up" above — a REAL heading
   whose programmatic LEVEL NUMBER contradicts its visual nesting relative to a nearby heading. Consult
   `signals.structure.headingOutline.sequence` — each entry may carry `suspect: 'SKIP_DEEPER'` (this heading's
@@ -118,6 +127,15 @@ real list is NOT. Common failure patterns:
   the viewport doesn't show heading sizes clearly, return PARTIAL — do NOT default to "not a defect" from
   inconclusive evidence. A heading sequence with NO suspect entries needs no special heading-level scrutiny — TT
   10.C is not a concern there.
+  **CARVE-OUT — a level SKIP is not itself the barrier; a level that CONTRADICTS visual prominence is.** TT 10.C
+  fails when the programmatic level MISREPRESENTS the visual hierarchy, NOT merely because a level number is
+  skipped. A minor, out-of-outline CALLOUT — a contact blurb ("Call us at …"), a promo/aside, a sidebar note —
+  given a DEEP level (e.g. an `<h6>` sitting between an `<h1>` and the following `<h2>`) is CONSISTENT when it
+  renders small/subdued (deep level ↔ minor prominence) and the main outline RESUMES correctly after it (the
+  `<h2>` continues the top-level sequence): that is a benign skip, **NOT REPRODUCED**, even though the outline
+  sequence flags `SKIP_DEEPER`/`JUMP_SHALLOWER`. Reserve the barrier for the genuine contradiction the section
+  above describes: a numerically-SHALLOWER heading that renders LESS prominent than a deeper heading it visually
+  sits under. Do not flag a small callout's deep level as "illogical skips" when its size matches its level.
 - **Broken table header association:** a DATA table (it has both header cells AND data cells) whose column/row
   HEADER cells do not actually associate with the data cells a sighted user reads under/beside them — e.g. a header
   whose column/row holds data but is not linked to it, or a visual grid with no programmatic `th`/`scope`/`headers=`
