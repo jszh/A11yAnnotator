@@ -51,7 +51,7 @@ test('EN C.9.6.2: the collector flags truncation on a >cap page; a barrier past 
     let body = ''; for (let i = 1; i <= 100; i++) body += (i === 95) ? '<div role="button" tabindex="0" data-planted="1"></div>' : `<button>btn ${i}</button>`;
     const tmp = path.join(os.tmpdir(), 'en-fullpage-cap.html');
     fs.writeFileSync(tmp, `<!doctype html><meta charset=utf-8><title>cap</title><body>${body}</body>`);
-    const collect = await collectActPage(page, { url: 'file://' + tmp, file: 'cap', runId: 't' });
+    const collect = await collectActPage(page, { url: 'file://' + tmp, file: 'cap', runId: 't', autoUpdateWindowMs: 0 });
     assert.equal(collect.coverage.truncated, true, 'a 100-element page truncates at the 80 cap');
     assert.equal(collect.coverage.collected, 80);
     assert.ok(collect.coverage.domElementCount >= 100, 'the total DOM size is recorded');
@@ -75,7 +75,7 @@ test('Pre-selected subset (saved pages): collect EXACTLY the given xpaths — pa
     const ids = ['wrapper', 'b95', 'b100', 'deep']; // structural + two past the cap + hidden
     const xpaths = [];
     for (const id of ids) xpaths.push(await page.evaluate(`(${xpOf(id)})`));
-    const collect = await collectActPage(page, { url: 'file://' + tmp, file: 's', runId: 't', xpaths });
+    const collect = await collectActPage(page, { url: 'file://' + tmp, file: 's', runId: 't', xpaths, autoUpdateWindowMs: 0 });
     assert.equal(collect.elementCount, ids.length, 'collected EXACTLY the subset (no cap, no inclusion/visibility filter)');
     assert.equal(collect.coverage.subset, true);
     assert.equal(collect.coverage.truncated, false, 'a subset is the complete selection — never truncated');

@@ -14,12 +14,24 @@
 function collectLists() {
   const clip = (s, n) => (s || '').replace(/\s+/g, ' ').trim().slice(0, n);
   // a LEADING list MARKER a sighted reader perceives: a bullet glyph (•·▪‣◦⁃, the hyphen family, or *), a leading
-  // EMOJI, or an ORDERED marker — arabic (1..9999), fullwidth digits, a single letter "a)"/"b)", or a roman
-  // numeral "ii)"/"iii)"/"iv)". EN/EM dashes (–—) are DELIBERATELY EXCLUDED: at line start they are prose
-  // punctuation (attribution "— Author", dialogue "– line"), not list bullets (adversarial review). The trailing
-  // `\s+\S` (marker + whitespace + content) rejects "*Required" / "1.5x" / "-5 degrees"; the callers require ≥3
-  // items, so an accidental single-letter/roman match in prose cannot form a list. Case-insensitive + unicode.
-  const BULLET = /^\s*(?:[•·▪‣◦⁃‐‑‒*-]|\p{Extended_Pictographic}|\d{1,4}[.)]|[０-９]{1,4}[．。.)]|(?:ii|iii|iv|vi|vii|viii|ix|xi|xii|xiii|xiv|xv)[.)]|[a-z][.)])\s+\S/iu;
+  // EMOJI, or an ORDERED marker — arabic (1..9999), fullwidth digits, a single letter "a)"/"b)", a roman
+  // numeral, or a decimal/hierarchical outline ("2.1", "2.a", "2.a.i" — TT 10.D's cited marker shapes).
+  // EN/EM dashes (–—) are DELIBERATELY EXCLUDED: at line start they are prose punctuation (attribution
+  // "— Author", dialogue "– line"), not list bullets (adversarial review). The trailing `\s+\S` (marker +
+  // whitespace + content) rejects "*Required" / "-5 degrees". Case-insensitive + unicode.
+  //
+  // ROMAN lane (audit #13): was a hand-enumerated ii..xv alternation — fitted to the build fixtures; 'xvi)' and
+  // beyond never matched. Now a CANONICAL roman-numeral grammar (values 1..3999), guarded by a cheap
+  // `[ivxlcdm]{1,7}[.)]` shape lookahead (bounds length AND forces ≥1 roman char, since every grammar part is
+  // optional). PRECISION NOTE: the lane deliberately RELIES on the callers' ≥3-item floor — prose words that
+  // parse as canonical numerals ('mix)' = m+ix, 'div)' = d+iv) match here and are held back only by the floor
+  // (three sibling lines each opening with such a word is no accident); non-canonical roman-charset words
+  // ('civil)', 'mild)') pass the shape guard but fail the grammar and never match.
+  //
+  // DECIMAL-OUTLINE lane (audit #13): `\d+(?:[.][a-z\d]+)+[.)]?` — a digit head plus ≥1 dotted segment covers
+  // TT 10.D's hierarchical markers ('2.1', '2.a', '2.a.i'); the plain `\d{1,4}[.)]` arabic lane keeps '2.'/'2)'.
+  // Like the roman lane it leans on the ≥3 floor for stray prose ('3.14 is pi' matches; three such siblings don't happen).
+  const BULLET = /^\s*(?:[•·▪‣◦⁃‐‑‒*-]|\p{Extended_Pictographic}|\d+(?:[.][a-z\d]+)+[.)]?|\d{1,4}[.)]|[０-９]{1,4}[．。.)]|(?=[ivxlcdm]{1,7}[.)])m{0,3}(?:cm|cd|d?c{0,3})(?:xc|xl|l?x{0,3})(?:ix|iv|v?i{0,3})[.)]|[a-z][.)])\s+\S/iu;
   const vis = (el) => {
     if (!el || el.nodeType !== 1) return false;
     const cs = getComputedStyle(el);

@@ -41,7 +41,7 @@ async function collect(url, opts) {
     const alloc = createTabAllocator({ browser, maxTabs: 2 });
     const lease = await alloc.acquire();
     let out;
-    try { out = normalizeCollectRoles(await collectActPage(lease.page, { url, elementCap: 40, file: 'p', runId: 'p', sourceUrl: url, ...opts })); }
+    try { out = normalizeCollectRoles(await collectActPage(lease.page, { url, elementCap: 40, file: 'p', runId: 'p', sourceUrl: url, autoUpdateWindowMs: 0, ...opts })); }
     finally { await lease.release(); await alloc.close(); }
     return out;
   } finally {

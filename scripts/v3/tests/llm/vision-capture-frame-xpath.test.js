@@ -45,7 +45,7 @@ test('vision-capture #10 FIX: an in-frame element (namespaced xpath from collect
     const lease = await alloc.acquire();
     let inFrameXpath;
     try {
-      const collected = normalizeCollectRoles(await collectActPage(lease.page, { url, elementCap: 40, file: 'p', runId: 'p', sourceUrl: url }));
+      const collected = normalizeCollectRoles(await collectActPage(lease.page, { url, elementCap: 40, file: 'p', runId: 'p', sourceUrl: url, autoUpdateWindowMs: 0 }));
       const target = (collected.elements || []).find((e) => e.inFrame && /target/.test(e.xpath || ''));
       // fall back to any in-frame element if the id-based xpath match misses (xpathOfInDoc is positional, not id-based)
       const el = target || (collected.elements || []).find((e) => e.inFrame);

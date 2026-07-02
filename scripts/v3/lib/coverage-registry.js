@@ -62,6 +62,9 @@ const SURFACES = Object.freeze([
   Object.freeze({ id: 'media-video', when: (el) => el.tag === 'video', families: ['media-alternatives'] }),
   // Item 14d — auto-moving content owes a motion-control (2.2.2) obligation (re-declared to match the oracle, Rule 16).
   Object.freeze({ id: 'auto-motion', when: (el) => el.autoMotion === true, families: ['motion-control'] }),
+  // #9 — AUTO-UPDATING text (2.2.2 second clause: timer-driven recurring text swaps, no 5s grace) owes
+  // motion-control too, unless a live region already owns it (4.1.3) — re-declared to match the oracle (Rule 16).
+  Object.freeze({ id: 'auto-updating-text', when: (el) => el.autoUpdatingText === true && el.liveRegion !== true, families: ['motion-control'] }),
   Object.freeze({ id: 'non-text-contrast', when: (el) => WIDGET_ROLE.test(factRole(el)) || el.isImage === true, families: ['non-text-contrast'] }),
   Object.freeze({ id: 'heading-label', when: (el) => el.isFormField === true || FORMFIELD_ROLE.test(factRole(el)) || (el.tag === 'label' && factHasText(el)), families: ['heading-descriptive'] }),
   Object.freeze({ id: 'use-of-color', when: (el) => factRole(el) === 'link' || el.isFormField === true || FORMFIELD_ROLE.test(factRole(el)), families: ['use-of-color'] }),

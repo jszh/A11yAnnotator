@@ -270,6 +270,44 @@ test('compute_contrast_ratio: passes is computed on the UNROUNDED ratio (WCAG do
   assert.equal(raw >= 3, false, 'a passes gate on the unrounded ratio correctly FAILS at 2.998');
 });
 
+// Audit #15: the text-shadow halo path used to set effectiveTextRatio = contrast(text, shadowColor) and
+// passesAsText:true — a FULL 21:1 credit for a halo that cannot back every glyph pixel (ACT afw4f7 measures the
+// real 319a4651 fixture at 6.1–9:1 per-pixel, not 21:1; the credit was fitted to make that fixture read PASS).
+// The halo is now only FLAGGED (hasContrastEnhancingShadow + shadowColor); the flat worst case stays the number,
+// and the pass judgment belongs to measure_text_contrast_over_image / the perceptual crop rubric.
+const SHADOW_HTML = `<!doctype html><meta charset=utf-8><body style="margin:0;background:#949494">
+  <span style="color:#fff;background-color:#949494;font-size:14px;text-shadow:0 0 1px #000">Fine print over the grey backdrop</span>
+  <div style="background:#737373;padding:12px"><span style="color:#000;background-color:#737373;font-size:14px;text-shadow:0 0 3px #fff">Dark label lifted by a white halo</span></div>
+</body>`;
+const SHADOW_XP = { thin: '/html[1]/body[1]/span[1]', halo319: '/html[1]/body[1]/div[1]/span[1]' };
+
+test('compute_contrast_ratio OVER-FIRE guard (audit #15): a 1px black halo on 14px white/#949494 gets NO 21:1 credit and never passesAsText:true', { skip: !chromeOK, concurrency: false }, async () => {
+  const page = await sharedBrowser.newPage();
+  try {
+    await page.setContent(SHADOW_HTML, { waitUntil: 'load' });
+    const r = await computeContrastRatio(page, { nodeAXpath: SHADOW_XP.thin, nodeBXpath: SHADOW_XP.thin });
+    assert.ok(Number.isFinite(r.contrastRatio) && r.contrastRatio > 2.8 && r.contrastRatio < 3.3, `the FLAT worst-case ratio (~3.03) is what is surfaced (got ${r.contrastRatio})`);
+    assert.notEqual(r.passesAsText, true, 'a 1px blur on 14px text cannot halo every glyph pixel — the shadow alone NEVER sets passesAsText:true');
+    assert.equal(r.passesAsText, false, 'passesAsText is the flat ratio vs the font-derived 4.5 threshold');
+    assert.ok(!('effectiveTextRatio' in r) && !('shadowAdjacentRatio' in r), 'no numeric text-vs-shadow credit is returned at all');
+    assert.equal(r.hasContrastEnhancingShadow, true, 'the genuine halo is still FLAGGED (a fact, not a credit)');
+    assert.match(r.note, /do NOT treat the shadow as a numeric pass/, 'the note defers the pass to the per-pixel instrument / crop');
+  } finally { await page.close(); }
+});
+
+test('compute_contrast_ratio RECALL (audit #15): the 319a4651 shape (#000 on #737373 + white 0 0 3px) surfaces hasContrastEnhancingShadow so the crop rubric owns the clear', { skip: !chromeOK, concurrency: false }, async () => {
+  const page = await sharedBrowser.newPage();
+  try {
+    await page.setContent(SHADOW_HTML, { waitUntil: 'load' });
+    const r = await computeContrastRatio(page, { nodeAXpath: SHADOW_XP.halo319, nodeBXpath: SHADOW_XP.halo319 });
+    assert.equal(r.hasContrastEnhancingShadow, true, 'the helpful white halo IS surfaced — the case is not silently reduced to its failing flat ratio');
+    assert.match(String(r.shadowColor), /255,\s*255,\s*255/, 'the shadow colour travels with the flag (for the per-pixel/crop follow-up)');
+    assert.ok(Number.isFinite(r.contrastRatio) && r.contrastRatio > 4.0 && r.contrastRatio < 4.5, `flat #000-vs-#737373 (~4.43) stays the surfaced worst case (got ${r.contrastRatio})`);
+    assert.equal(r.passesAsText, false, 'the flat worst case does not clear 4.5 — and the shadow no longer converts that into a pass');
+    assert.ok(!('verdict' in r) && !('barrier' in r), 'objective facts only — the crop rubric / per-pixel instrument owns the disposition');
+  } finally { await page.close(); }
+});
+
 test('query_ax_node: an aria role=checkbox with no aria-checked reports requiredStatesMissing (F68/4e8ab6); a native checkbox does NOT', { skip: !chromeOK, concurrency: false }, async () => {
   await withPage(async (page) => {
     const aria = await queryAxNode(page, { targetXpath: XP.ariacheck });

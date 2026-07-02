@@ -118,7 +118,7 @@ async function collect(html) {
   try {
     const page = await browser.newPage();
     const url = 'file://' + path.join(tmp, 'index.html');
-    const out = normalizeCollectRoles(await collectActPage(page, { url, elementCap: 40, file: 'p', runId: 'p', sourceUrl: url }));
+    const out = normalizeCollectRoles(await collectActPage(page, { url, elementCap: 40, file: 'p', runId: 'p', sourceUrl: url, autoUpdateWindowMs: 0 }));
     return out.elements;
   } finally { await browser.close(); }
 }
@@ -155,7 +155,7 @@ test('end-to-end #9: the real DHS 457383-14 carousel now mints an auto-update-no
   const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: BROWSER_ARGS });
   try {
     const page = await browser.newPage();
-    const collect = normalizeCollectRoles(await collectActPage(page, { url, elementCap: 80, file: 'p', runId: 'p', sourceUrl: url }));
+    const collect = normalizeCollectRoles(await collectActPage(page, { url, elementCap: 80, file: 'p', runId: 'p', sourceUrl: url, autoUpdateWindowMs: 0 }));
     const obligations = oracle.deriveObligations(collect).filter((o) => o.claimFamily === 'auto-update-notification');
     assert.ok(obligations.length > 0, 'the real Bootstrap carousel on this page now owes an auto-update-notification obligation');
   } finally { await browser.close(); }

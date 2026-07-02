@@ -35,10 +35,17 @@ crops. (Again: **not** 1.4.3 — the runner owns it.)
 - **1.4.1 Use of Color (A) — colour-only meaning.** Decide whether hue is the
   *sole* carrier of information. Over the crop and the handed DOM signal: is a
   state/series/category distinguished only by color, with no dash, pattern,
-  icon, label, shape, or underline? If the handed signal shows series differing
-  only by `stroke` (no `stroke-dasharray`, no text label), or a link set apart
-  from body text by color with no underline, that is colour-only meaning →
-  REPRODUCED. A non-color redundant cue anywhere → NOT REPRODUCED.
+  icon, label, shape, underline, or sufficient lightness difference? Per F73's
+  Procedure a **≥3:1 luminance separation** between the color-cued element and
+  what it must be told apart from is itself a satisfying non-color cue (a
+  lightness difference survives color-vision loss). So: series differing only
+  by `stroke` (no `stroke-dasharray`, no text label) at SIMILAR lightness
+  (<3:1 between the series colors), or a link set apart from body text only by
+  a hue swap at similar lightness, is colour-only meaning → REPRODUCED; series
+  or link colors separated by ≥3:1 luminance, or any non-color redundant cue →
+  NOT REPRODUCED. EXCEPTION (F81): a state whose meaning relies on perceiving
+  a SPECIFIC color (green=valid / red=invalid) needs an additional non-color
+  indicator REGARDLESS of contrast ratio — the ≥3:1 escape does NOT apply there.
 - **1.4.5 Images of Text (AA) — text-as-image.** The handed signal already tells
   you the node is an `<img>`/`<canvas>` (its "text" is not DOM text and cannot
   be zoomed or restyled). Judge the crop: does it bake **essential** text into

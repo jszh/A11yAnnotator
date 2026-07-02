@@ -70,20 +70,34 @@ Three failure modes:
   pointing elsewhere, the shared name fails to distinguish them ⇒ barrier. (Same name to the SAME destination
   is fine — not a failure.)
 
-**LINK INSIDE A TABLE CELL — the row/column HEADER is programmatic enclosing context.** Per WCAG, a link in a
+**LINK INSIDE A TABLE CELL — the row/column HEADER is programmatic enclosing context.** Per WCAG (H79), a link in a
 `<td>`/`role=cell` is contextualised by its cell's associated row/column header (the same association 1.3.1 governs).
 When the link is in a data-table cell, `signals.enclosingContext` carries the cell's headers DETERMINISTICALLY:
 `cellRowHeaders` and `cellColHeaders` (the cell's row/column header text) — **TRUST these as enclosing context; you do
-NOT need a tool to get them.** The test is **SPECIFICITY, not row-vs-column**: a header (ROW *or* COLUMN) that names a
-SPECIFIC SUBJECT/DESTINATION resolves a format-only/action-only link name ⇒ **NOT REPRODUCED**. A bare `EPUB`/`HTML`/
-`Plain text` download link whose header is `["Ulysses"]` (a specific book) is resolved — "download Ulysses as EPUB" —
-**even when "Ulysses" arrives as a `cellColHeaders`** (a `<th colspan=3>` book title spanning the download row). A
-header that is only a GENERIC CATEGORY or ACTION label ("Books", "Downloads", "Format", "Links") names no specific
-destination and does NOT resolve it; if neither the name nor a subject-naming header identifies the destination, the
-format/action-only failure stands. (Row headers are MORE OFTEN the subject and column headers MORE OFTEN the category —
-a useful prior, but judge the actual header TEXT, not its slot.) If `enclosingContext` carries no cell headers and you
-are unsure whether the link is in a table, you MAY call `query_ax_node` (its `cellHeaders` returns the same fields) —
-but the deterministic signal is authoritative when present.
+NOT need a tool to get them.** The test is TWO-PART — **SPECIFICITY plus GOVERNANCE, not row-vs-column**:
+- **Specificity:** only a header that names a SPECIFIC SUBJECT/DESTINATION can resolve a format-only/action-only link
+  name. A header that is only a GENERIC CATEGORY or ACTION label (e.g. "Books", "Downloads", "Format", "Links") names
+  no specific destination and does NOT resolve it.
+- **Governance:** a cell header resolves the link only when it GOVERNS THIS link's specific record. When a single
+  colspan/rowspan header spans MULTIPLE data rows that each carry their OWN subject in a data cell (a group/section
+  caption, not a per-record header), that header is a CATEGORY and does NOT resolve any individual format-only link —
+  prefer the record's associated ROW header (`cellRowHeaders`) as the subject; if the row has none and the true
+  subject sits in an un-associated sibling `<td>`, the format/action-only failure STANDS (the sibling `<td>` is not
+  programmatic context — see the operational test above). Use the `surrounding-region` crop to check whether the
+  covering header spans multiple rows with DISTINCT subjects: a spanning header over a SINGLE record's row(s) (e.g. a
+  `<th colspan=3>` book title over that one book's download row) governs that record and DOES resolve it; the same
+  markup shape over several rows that each name a DIFFERENT subject is a section caption, not this link's subject.
+  SCOPE: a row's legitimate DATA cells carrying attributes OF the record (a filesize, a date, a version number) are
+  NOT "competing subjects" — they do not defeat a governing header; only a cell carrying a different record's
+  SUBJECT does.
+E.g. a bare `EPUB`/`HTML`/`Plain text` download link whose header is `["Ulysses"]` (a specific book, governing this
+record's row) is resolved — "download Ulysses as EPUB" — **even when "Ulysses" arrives as a `cellColHeaders`** (a
+`<th colspan=3>` book title spanning that book's own download row); e.g. the same links under a `["Books"]` header
+(generic category) are NOT resolved. (Row headers are MORE OFTEN the subject and column headers MORE OFTEN the
+category/group caption — a useful prior, but judge the actual header TEXT and WHAT IT GOVERNS, not its slot.) If
+`enclosingContext` carries no cell headers and you are unsure whether the link is in a table, you MAY call
+`query_ax_node` (its `cellHeaders` returns the same fields) — but the deterministic signal is authoritative when
+present.
 
 **Evidence handed to you:** the accessible name, the surrounding text (`element-crop`,
 `surrounding-region`), whether the name is generic, and — when present — sibling links sharing this name

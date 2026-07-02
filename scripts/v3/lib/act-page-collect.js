@@ -51,6 +51,44 @@ async function collectActPage(page, opts = {}) {
   const elementCap = Number.isFinite(opts.elementCap) ? opts.elementCap : 80;
   await page.goto(url, { waitUntil: 'load', timeout: 45000 });
   await new Promise((r) => setTimeout(r, Number.isFinite(opts.settleMs) ? opts.settleMs : 250));
+  // #9 (round-3 overfit audit) — AUTO-UPDATING TEXT observation window (SC 2.2.2, second clause). A JS
+  // setInterval ticker that rewrites an element's TEXT forever trips NEITHER autoMotion (keyframes/marquee/
+  // autoplay only) NOR autoUpdatingContent (carousel-library data-ride markers only) — a real 2.2.2 barrier
+  // class with no signal. Install a MutationObserver NOW (before the main inventory evaluate) and HARVEST it
+  // after the CDP/tables/lists passes below, so most of the window OVERLAPS work we already do and collection
+  // barely slows. Counted per element: mutation events whose textContent actually CHANGED (characterData or
+  // childList text swaps); >=2 changes within the window = RECURRING (a one-shot update never qualifies).
+  // WINDOW SIZE: with the >=2-swap floor, a period-p ticker needs a window >= ~2p to qualify deterministically.
+  // 6500ms covers periods up to ~3.2s — which includes the audit finding's own motivating case, a 3s stock
+  // ticker. (The adversarial review caught the original 2400ms default: it could only ever see sub-1.2s
+  // tickers, and the recall test had been fitted to that window with a 600ms fixture — the exact overfit class
+  // this audit hunts.) Slower tickers stay out of this deterministic signal's scope — a bounded observation
+  // cannot prove "forever" — and remain the vision/rubric lane's to judge. Unit tests that don't exercise the
+  // window pass opts.autoUpdateWindowMs=0 to skip the wait; production callers accept the tail (most of it
+  // overlaps the CDP/tables/lists passes on real pages).
+  const autoUpdateWindowMs = Number.isFinite(opts.autoUpdateWindowMs) ? opts.autoUpdateWindowMs : 6500;
+  if (autoUpdateWindowMs > 0) {
+    await page.evaluate(() => {
+      try {
+        const state = { t0: Date.now(), hits: new Map() };
+        const bump = (node) => {
+          const el = node && (node.nodeType === 1 ? node : node.parentElement);
+          if (!el) return;
+          if (state.hits.size > 400 && !state.hits.has(el)) return; // bound memory on mutation-storm pages
+          const rec = state.hits.get(el) || { n: 0, lastText: null };
+          const now = el.textContent || '';
+          // the FIRST mutation counts (the observer only fires on a real DOM change and we have no pre-state);
+          // after that, count only mutations whose resulting text actually DIFFERS (a same-text rewrite — e.g.
+          // setInterval re-assigning identical text — is not a visible update and must not accumulate).
+          if (rec.lastText === null || now !== rec.lastText) { rec.n++; rec.lastText = now; }
+          state.hits.set(el, rec);
+        };
+        state.mo = new MutationObserver((muts) => { for (const m of muts) bump(m.target); });
+        state.mo.observe(document.body || document.documentElement, { subtree: true, childList: true, characterData: true });
+        window.__v3AutoUpdObs = state;
+      } catch (e) { /* observer unavailable ⇒ autoUpdatingText degrades to absent (never throws) */ }
+    }).catch(() => {});
+  }
   const collectedAt = Number.isFinite(opts.now) ? opts.now : Date.now();
   const pageDigest = opts.pageDigest || digestForUrl(opts.sourceUrl || url);
   const data = await page.evaluate((cap, subsetXpaths, targetSelectors) => {
@@ -222,9 +260,8 @@ async function collectActPage(page, opts = {}) {
     // captures already exist; only these two collector fields were hardcoded false). Computed ONCE per page:
     //   underOverlay: a TOP-ANCHORED sticky/fixed overlay (header/consent layer) wide+tall enough to obscure —
     //     a focusable in the content area BELOW it (and horizontally overlapping) can scroll UNDER it (gate on a
-    //     DETECTED overlay, not every page with a header). hasHoverContent: the element CONTROLS/DESCRIBES a
-    //     tooltip/popover (popovertarget, or aria-describedby/aria-controls → a [role=tooltip]/[popover]) — reveals
-    //     NEW content on hover/focus. Native `title` is EXEMPT per the rubric, so a bare title is NOT flagged.
+    //     DETECTED overlay, not every page with a header). hasHoverContent: the element plausibly reveals NEW
+    //     content on hover/focus. Native `title` is EXEMPT per the rubric, so a bare title is NOT flagged.
     const _overlays = [];
     for (const o of document.querySelectorAll('body *')) {
       const ocs = getComputedStyle(o);
@@ -237,9 +274,55 @@ async function collectActPage(page, opts = {}) {
     const _underOverlay = (b) => _overlays.some((ov) => b.x < ov.right && b.x + b.width > ov.left && b.y >= ov.bottom - 2);
     const _tooltipIds = new Set();
     for (const t of document.querySelectorAll('[role=tooltip],[popover]')) if (t.id) _tooltipIds.add(t.id);
+    // #2 (round-3 overfit audit) — GENERALIZED hover/focus-reveal candidacy. The old gate required an
+    // ARIA/popover ASSOCIATION (popovertarget, or aria-describedby/aria-controls → [role=tooltip]/[popover]),
+    // which is a tooltip-LIBRARY convention, not the 1.4.13 rule: a class="popover"/"card-flyout"/class-less
+    // JS-toggled reveal or a pure CSS :hover/:focus reveal never became a candidate, so the hover-content-tri
+    // runner never even ran (silent FN). Candidacy is now detected STATICALLY (never hover every element —
+    // performance constraint): (a) the existing association markers (kept — cheap and precise), (b) an INLINE
+    // hover/focus handler attribute (onmouseover/onmouseenter/onpointerover/onpointerenter/onfocus/onfocusin —
+    // the JS-toggled reveal with no ARIA association; addEventListener-wired handlers are not visible to this
+    // static scan, an accepted limit), (c) a stylesheet :hover/:focus REVEAL rule whose TRIGGER selector matches
+    // the element. Native `title` alone still does NOT qualify (UA-controlled, rubric-exempt). Same read-only
+    // one-pass-per-page scan idiom as the _overlays/_tooltipIds scans above; cross-origin sheets are skipped.
+    // A false candidate only costs a deterministic probe (the runner still requires MEASURED appearing content
+    // before any barrier — the lane is BARRIER-ONLY), so over-approximation here is recall, not FPs.
+    const _hoverRevealTriggers = [];
+    try {
+      const PSEUDO = /:(?:hover|focus(?:-within|-visible)?)(?![\w-])/;
+      const _collectRevealRules = (rules) => {
+        for (const r of rules || []) {
+          if (_hoverRevealTriggers.length >= 200) return; // bound the per-element matches() cost on rule-heavy pages
+          if (r.selectorText && r.style && PSEUDO.test(r.selectorText)) {
+            // a REVEAL declaration flips the target shown: display set (≠none), visibility:visible, or opacity>0.
+            const _d = r.style.display, _v = r.style.visibility, _o = r.style.opacity;
+            if ((_d && _d !== 'none') || _v === 'visible' || (_o !== '' && parseFloat(_o) > 0)) {
+              for (const part of r.selectorText.split(',')) {
+                // TRIGGER = the selector before the pseudo; require a NON-EMPTY TAIL after it (a revealed
+                // DESCENDANT/SIBLING distinct from the trigger). A tail-less `a:hover{opacity:.8}` is a style
+                // tweak on the trigger itself, not a reveal — counting it would flood every link on the page.
+                const m = part.match(/^(.*?):(?:hover|focus(?:-within|-visible)?)(?![\w-])(.+)$/);
+                if (!m) continue;
+                const trigger = m[1].trim(), tail = m[2].trim();
+                if (trigger && tail && _hoverRevealTriggers.length < 200) _hoverRevealTriggers.push(trigger);
+              }
+            }
+          }
+          // descend grouping rules (@media/@supports) AND CSS-nesting children. NOTE: in nesting-era Chrome
+          // EVERY CSSStyleRule carries a (usually empty) .cssRules list, so descent must NOT short-circuit the
+          // style-rule handling above (the original `if (r.cssRules) continue`-style branch silently skipped
+          // every plain rule — caught by the generalization suite, not by inspection).
+          if (r.cssRules && r.cssRules.length) _collectRevealRules(r.cssRules);
+        }
+      };
+      for (const ss of document.styleSheets) { let rr = null; try { rr = ss.cssRules; } catch (e) {} if (rr) _collectRevealRules(rr); }
+    } catch (e) { /* stylesheet access failure degrades to the association/handler signals only */ }
+    const _HOVER_FOCUS_HANDLER_ATTRS = ['onmouseover', 'onmouseenter', 'onpointerover', 'onpointerenter', 'onfocus', 'onfocusin'];
     const _hasHoverContent = (el) => {
       if (el.hasAttribute('popovertarget')) return true;
       for (const a of ['aria-describedby', 'aria-controls']) { const v = el.getAttribute(a); if (v) for (const id of v.split(/\s+/)) if (_tooltipIds.has(id)) return true; }
+      for (const h of _HOVER_FOCUS_HANDLER_ATTRS) if (el.hasAttribute(h)) return true; // #2(b) inline reveal handler
+      for (const sel of _hoverRevealTriggers) { try { if (el.matches(sel)) return true; } catch (e) {} } // #2(c) CSS reveal trigger
       return false;
     };
     // FIX #4 (akn7bn 2.1.1): is ANY modal dialog open? A showModal()'d <dialog> inerts everything outside its top
@@ -622,6 +705,12 @@ async function collectActPage(page, opts = {}) {
         return false;
       })();
       const sectionHeading = (text.length > 0 || /^(input|select|textarea)$/i.test(el.tagName || '')) ? _sectionHeading(el) : null; // 2.4.6 visible section context (A) — labels AND fields
+      // Audit #7 (1.1.1 confusable-text): the NEAREST declared language (lang= or xml:lang=, self-or-ancestor)
+      // decides whether an all-Cyrillic/Greek fully-foldable word is legitimate text or a Latin-lookalike
+      // substitution. Collected here (the adjudicator has no DOM) and threaded into detectConfusableText.
+      const nearestLang = (() => {
+        try { const le = el.closest && el.closest('[lang],[xml\\:lang]'); return le ? (le.getAttribute('lang') || le.getAttribute('xml:lang') || null) : null; } catch (e) { return null; }
+      })();
       if (!_subset && !focusable && !isFormField && !sampledRole && !text && !isImage && !liveRegion && !isMedia && !autoMotion && !backgroundImageMeaningful && !isCaptcha && !iframeTabExcluded && !focusableInAriaHidden && !prohibitedAriaAttr) continue; // a pre-selected subset element is always included
       els.push({
         xpath: xpathOf(el),
@@ -631,6 +720,7 @@ async function collectActPage(page, opts = {}) {
         hasText: text.length > 0,
         inactiveText, // 1.4.3 contrast exemption (B): part of/labels an inactive component → no contrast obligation
         sectionHeading, // 2.4.6 (A): nearest preceding VISIBLE section heading (null if off-screen/none) — disambiguation context
+        nearestLang, // audit #7 (1.1.1): nearest declared lang/xml:lang — the confusable-text lang steer
         focusable,
         isInteractive, ownsInteractiveDescendants, hasKeyHandler,
         isFormField,
@@ -905,6 +995,57 @@ async function collectActPage(page, opts = {}) {
   }
   if (tables.length > 20) tables.length = 20; // preserve collectTables' own per-page cap after merging frame content
   if (lists.length > 40) lists.length = 40;   // preserve collectLists' own per-page cap
+
+  // #9 — HARVEST the auto-updating-text observation window installed above. The main evaluate + CDP name pass +
+  // tables/lists have been running meanwhile, so usually little (often none) of the window remains to wait out.
+  // An element qualifies as autoUpdatingText when, within the window, it saw RECURRING (>=2) text swaps AND is
+  // VISIBLE AND is presented IN PARALLEL with other content (2.2.2's auto-updating clause: auto-start + parallel
+  // — there is NO 5-second grace for auto-updating content, unlike moving/blinking/scrolling). Exclusions keep
+  // it narrow and un-double-minted: an update inside a LIVE REGION follows the existing 4.1.3 status-message
+  // lane (same aria-live guard the carousel lane uses), and an update inside a data-ride/data-bs-ride carousel
+  // already carries autoUpdatingContent (the 4.1.2 auto-update-notification lane).
+  if (autoUpdateWindowMs > 0) {
+    const autoUpdXpaths = await page.evaluate(async (winMs) => {
+      const st = window.__v3AutoUpdObs;
+      if (!st) return [];
+      const remain = st.t0 + winMs - Date.now();
+      if (remain > 0) await new Promise((r) => setTimeout(r, remain));
+      try { st.mo.disconnect(); } catch (e) {}
+      try { delete window.__v3AutoUpdObs; } catch (e) {}
+      function xpathOf(e) {
+        if (!e || !e.tagName) return '';
+        if (e === document.documentElement) return '/html';
+        if (e === document.body && e.tagName === 'BODY') return '/html/body'; // #10c fix: same frameset-doc.body-alias guard as the inventory xpathOf
+        const tag = e.tagName.toLowerCase();
+        let idx = 1;
+        for (let s = e.previousElementSibling; s; s = s.previousElementSibling) if (s.tagName === e.tagName) idx++;
+        return xpathOf(e.parentElement) + '/' + tag + '[' + idx + ']';
+      }
+      const out = [];
+      for (const [el, rec] of st.hits) {
+        if (rec.n < 2) continue;                       // recurring, not a one-shot update
+        if (!el.isConnected) continue;
+        const cs = getComputedStyle(el); const r = el.getBoundingClientRect();
+        if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity || '1') === 0 || r.width <= 0 || r.height <= 0) continue;
+        // live-region-owned updates route via the existing 4.1.3 lane (self OR ancestor — consistent with the
+        // oracle's liveRegion guard on the carousel family); never double-mint here.
+        if (el.closest('[aria-live="polite"],[aria-live="assertive"],[role="status"],[role="alert"],[role="log"],[role="marquee"],[role="timer"],[role="progressbar"]')) continue;
+        // carousel-library containers already carry autoUpdatingContent (4.1.2) — no double-mint.
+        const ride = el.closest('[data-ride],[data-bs-ride]');
+        if (ride && /carousel|slider|slideshow/i.test((ride.getAttribute('data-ride') || '') + ' ' + (ride.getAttribute('data-bs-ride') || ''))) continue;
+        // IN PARALLEL with other content: the updating element must carry text of its own AND the page must have
+        // substantial other visible text (an updating element that IS the page — a clock page — is not "parallel").
+        const ownLen = (el.innerText || '').replace(/\s+/g, ' ').trim().length;
+        const bodyLen = ((document.body && document.body.innerText) || '').replace(/\s+/g, ' ').trim().length;
+        if (!(ownLen > 0) || bodyLen - ownLen < 40) continue;
+        out.push(xpathOf(el));
+        if (out.length >= 12) break;                   // cap: nominate, don't flood (the rubric judges each)
+      }
+      return out;
+    }, autoUpdateWindowMs).catch(() => []);
+    const _updSet = new Set(autoUpdXpaths || []);
+    for (const el of data.elements || []) el.autoUpdatingText = _updSet.has(el.xpath);
+  }
 
   // OPT-IN axe run (axe-promotion): inject axe + resolve each finding node's CSS target to the SAME v3 xpath
   // scheme this collector uses (the xpathOf below is byte-identical to the inventory's), so build-v3 can match an

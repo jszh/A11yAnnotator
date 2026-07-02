@@ -91,16 +91,34 @@ const COMPOSITE_ROLE = /^(menu|menubar|tree|treegrid|grid|tablist|listbox|radiog
 const IMG_ROLE = /^(img|image|figure)$/;   // 3.2 non-text-content (1.1.1)
 const HEADING_ROLE = /^heading$/;          // 3.2 heading-descriptive (2.4.6)
 
-// DECORATIVE-SUSPECT (the "don't BLINDLY exclude decorative" lane). A SUBSTANTIAL image REMOVED from the a11y tree
+// DECORATIVE-SUSPECT (the "don't BLINDLY exclude decorative" lane). An image REMOVED from the a11y tree
 // (alt=""/aria-hidden/role=presentation) that the author did NOT name (so the Tier-0 #5 decorativeConflict route does
 // not apply). Deterministically we cannot tell a genuinely-decorative image from an INFORMATIVE one wrongly given alt=""
 // (a wrongly-decorated logo/photo/image-of-text is a real 1.1.1/1.4.5 failure — the e88epe/0va7u6 FNs — indistinguishable
 // from legit decoration without judging the pixels + redundancy with nearby text). So instead of excluding it outright,
-// route the SUBSTANTIAL ones to a redundancy-aware verification rubric. The TINY/NARROW ones (spacers, icon sprites,
-// 1px slivers — min(width,height) below the threshold) stay excluded: the corpus geometry scan found those buckets were
-// 100% genuinely decorative (0 recall loss), while the size gate alone cannot separate large-decorative from
-// large-informative — that residual is the rubric's redundancy call. Threshold tunable via V3_DECORATIVE_MIN_DIM (px);
-// disable the whole lane with V3_DECORATIVE_LANE=0 (reverts to blanket exclusion). Read per-call so tests/runs can tune.
+// route it to a redundancy-aware verification rubric — UNLESS its geometry makes it physically incapable of carrying
+// information. WCAG 1.1.1 / ACT e88epe carry NO size floor, so size alone may only clear what a SPACER definitionally
+// is (a pure-layout shim that cannot render legible content), never merely-small informative images (finding #10: the
+// old min-dim>=24 wall silently cleared a 320×20 image-of-text). Geometry gates, spec-grounded:
+//   - SQUARE-ish images below the square gate (default 24px, V3_DECORATIVE_MIN_DIM experiment override) stay excluded:
+//     bullets/sprite icons/avatar chips. Provenance: the corpus geometry scan (scan-decorative-geom.js) confirmed
+//     those buckets were 100% genuinely decorative (0 recall loss) — but that scan is evidence, not the rule; the
+//     rule is that an ELONGATED strip escapes this gate below.
+//   - ELONGATED escape hatch: rendered text is intrinsically elongated (average glyph advance ≈ 0.5em, so even one
+//     short word is wider than ~4× the line height), and banners/wordmarks/images-of-text share that shape — so an
+//     elongated strip big enough to hold a legible word is a suspect REGARDLESS of the square gate.
+//   - SPACER floors (what "too small to inform" means, from typography, not corpus buckets): an extreme-aspect
+//     strip's only plausible information payload is rendered TEXT, and legible text needs ~10 CSS px of height
+//     (browsers' minimum-font-size defaults are 9–10px; below that no word renders legibly) — so an elongated strip
+//     narrower than DECORATIVE_TEXT_MIN_HEIGHT is a rule/divider/shim by construction (1–2px slivers a fortiori),
+//     e.g. a 300×6 decorative border stripe, and one under DECORATIVE_SPACER_MIN_AREA cannot hold even one legible
+//     word (~10px tall × ~40px wide at the 4:1 shape).
+// The size gates cannot separate large-decorative from large-informative — that residual is the rubric's redundancy
+// call. Disable the whole lane with V3_DECORATIVE_LANE=0 (reverts to blanket exclusion). Read per-call so tests/runs
+// can tune.
+const DECORATIVE_ELONGATED_ASPECT = 4;   // max(w,h)/min(w,h) — the spec-plausible SHAPE of rendered text (one word ≳ 4:1)
+const DECORATIVE_TEXT_MIN_HEIGHT = 10;   // px — narrow dimension below which no legible word renders (min font-size ≈ 9–10px)
+const DECORATIVE_SPACER_MIN_AREA = 400;  // px² — smallest elongated strip holding one legible word (~10px × ~40px)
 function decorativeSuspect(el) {
   if (process.env.V3_DECORATIVE_LANE === '0' || !el) return false;
   const role = String(el.role || el.roleAttr || el.axRole || el.sampledRole || '').toLowerCase();
@@ -113,8 +131,17 @@ function decorativeSuspect(el) {
   const w = b.width != null ? b.width : b.w;
   const h = b.height != null ? b.height : b.h;
   if (!(w > 0 && h > 0)) return false;
-  const minDim = Math.max(1, Number(process.env.V3_DECORATIVE_MIN_DIM) || 24);
-  return Math.min(w, h) >= minDim;                     // below threshold ⇒ tiny/narrow ⇒ stays excluded (genuinely decorative)
+  const minDim = Math.min(w, h);
+  const squareGate = Math.max(1, Number(process.env.V3_DECORATIVE_MIN_DIM) || 24);
+  if (minDim >= squareGate) return true;               // substantial in BOTH dimensions ⇒ always a suspect
+  // ELONGATED escape hatch (#10): a text-shaped strip above the spacer floors is a suspect even under the square
+  // gate — recovers the 320×20 removed-from-tree image-of-text without un-gating 8×8 spacers / 16×16 icons
+  // (aspect 1 fails the shape test) or slivers / border stripes / sub-word shims (the spacer floors; a 300×6
+  // stripe stays excluded — 6px cannot render a word). Note: at aspect ≥ 4 and minDim ≥ 10 the area floor is
+  // implied (4·10² = 400); it stays explicit so the spacer definition survives independent tuning of either bound.
+  return (Math.max(w, h) / minDim) >= DECORATIVE_ELONGATED_ASPECT
+    && minDim >= DECORATIVE_TEXT_MIN_HEIGHT
+    && (w * h) >= DECORATIVE_SPACER_MIN_AREA;
 }
 // page-level pseudo-element for the page-scoped reflow obligation (C8).
 const PAGE_REFLOW_XPATH = '/page-level::reflow';
@@ -208,6 +235,14 @@ function familiesFor(el) {
   // media) owes a pause/stop/hide mechanism. Gated on the collected auto-motion signal (NOT brief/sub-5s decorative
   // animation). Whether a usable pause EXISTS and whether the motion is essential/loading is the rubric's judgment.
   if (el.autoMotion === true) fams.push('motion-control');
+  // #9 (round-3 overfit audit): SC 2.2.2's SECOND clause — AUTO-UPDATING content. A timer-driven text ticker
+  // (the collector's autoUpdatingText MutationObserver signal — recurring text swaps on a visible in-parallel
+  // element) owes pause/stop/hide/frequency-control with NO 5-second grace, and previously tripped NO gate at
+  // all (autoMotion is keyframes/marquee/autoplay only; autoUpdatingContent is the carousel-library 4.1.2
+  // marker). Routes to the SAME motion-control family/rubric (2.2.2, timing-and-motion) as a distinct
+  // auto-updating sub-family; liveRegion:true routes to status-message (4.1.3) instead — same guard as the
+  // carousel lane above. Deduped so an element that is BOTH auto-moving and auto-updating mints one family.
+  if (el.autoUpdatingText === true && el.liveRegion !== true && !fams.includes('motion-control')) fams.push('motion-control');
   // 1.4.11 NON-TEXT CONTRAST (coverage audit — un-orphans non-text-contrast-v0): UI components (widgets) and
   // graphical objects (img/svg/canvas) owe it. No deterministic 1.4.11 runner exists ⇒ rubric-judged.
   if (WIDGET_ROLE.test(role) || el.isImage === true) fams.push('non-text-contrast');
@@ -238,10 +273,12 @@ function familiesFor(el) {
   // (the decorativeMarking precompute already surfaces the conflict). Gated tightly on decorativeConflict — a bare
   // alt="" decorative image (no author name) stays unenumerated, so no flood on ordinary decorative imagery.
   else if ((IMG_ROLE.test(role) || el.isImage === true) && el.decorativeConflict === true && el.svgNamedDescendant !== true) { fams.push('non-text-content'); }
-  // "Don't BLINDLY exclude decorative": a SUBSTANTIAL, UNnamed removed-from-tree image (not a decorativeConflict) is
-  // routed to a redundancy-aware verification lane (1.1.1 alt + 1.4.5 image-of-text) instead of being silently dropped;
-  // tiny/narrow spacers/icons stay excluded by the size gate inside decorativeSuspect(). RUBRIC_GATE binds ONLY the
-  // decorative-image-verification rubric to these (alt-text-adequacy/long-description are gated OFF for them).
+  // "Don't BLINDLY exclude decorative": an UNnamed removed-from-tree image (not a decorativeConflict) that could
+  // plausibly carry information — substantial in both dimensions, OR text-shaped (elongated) above the spacer floors —
+  // is routed to a redundancy-aware verification lane (1.1.1 alt + 1.4.5 image-of-text) instead of being silently
+  // dropped; only spacer-geometry images (sub-gate squares, slivers, sub-word shims) stay excluded, per the geometry
+  // rationale on decorativeSuspect(). RUBRIC_GATE binds ONLY the decorative-image-verification rubric to these
+  // (alt-text-adequacy/long-description are gated OFF for them).
   else if (decorativeSuspect(el)) { fams.push('non-text-content'); fams.push('images-of-text'); }
   // TT gap G2 (TT 7.C): a CSS background-image conveying INFORMATION owes a text alternative — the SAME
   // non-text-content family + alt-text-adequacy rubric as an <img> (1.1.1). It ALSO owes images-of-text (1.4.5):

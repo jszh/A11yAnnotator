@@ -893,12 +893,16 @@ async function computeContrastRatio(page, args) {
   const textThreshold = fontPx != null ? A.contrastThresholdFor(fontPx, cols.fontA.fontWeight) : null;
   const isLargeText = fontPx != null ? A.isLargeText(fontPx, cols.fontA.fontWeight) : null;
   const th = Number.isFinite(threshold) ? threshold : (textThreshold != null ? textThreshold : 3);
-  // TEXT-SHADOW halo (Q1 consistency): a CONTRAST-ENHANCING halo gives the glyph an effective backing of the shadow
-  // colour, so legibility is bounded by text-vs-shadow, not the flat text-vs-bg. Credit a shadow ONLY when it is a
-  // genuine centred halo (real blur, offset within the blur — not a one-sided drop), OPAQUE (alpha >= 0.5), AND
-  // actually helps (shadow contrasts with the text MORE than the bg does). These guards stop a token/faint/drop
-  // shadow from clearing real low contrast. It is an APPROXIMATION (a thin halo may not fully back the glyph) — the
-  // flat `contrastRatio` is still surfaced as the worst-case, and the perceptual rubric/crop is the final arbiter.
+  // TEXT-SHADOW halo (Q1 consistency; audit #15): a CONTRAST-ENHANCING halo can give glyph pixels a backing of the
+  // shadow colour — but a css blur radius does NOT guarantee every glyph pixel is backed (a 1px blur on 14px text
+  // halos the edges, not the strokes' surroundings: ACT afw4f7 measures the real fixture at 6.1–9:1 per-pixel, NOT
+  // the 21:1 flat text-vs-shadow ratio a full credit would report). So the tool only FLAGS the halo
+  // (hasContrastEnhancingShadow + shadowColor) when it is a genuine centred halo (real blur, offset within the
+  // blur — not a one-sided drop), OPAQUE (alpha >= 0.5), AND actually helps (shadow contrasts with the text MORE
+  // than the bg does — harmful/token shadows never flag; guard direction unchanged). It NEVER converts the flag
+  // into a numeric ratio or a pass: the flat `contrastRatio` stays the surfaced worst case, and the PASS judgment
+  // belongs to the per-pixel instrument (measure_text_contrast_over_image) or the perceptual crop rubric.
+  // (The earlier passesAsText/effectiveTextRatio=text-vs-shadow credit was fitted to fixture 319a4651 — removed.)
   let shadowAdjacentRatio = null; let shadowColor = null;
   for (const sh of (cols.shadowsA || [])) {
     const ps = A.parseRGB(sh.color);
@@ -908,15 +912,14 @@ async function computeContrastRatio(page, args) {
     if (sr > rawRatio && (shadowAdjacentRatio == null || sr > shadowAdjacentRatio)) { shadowAdjacentRatio = sr; shadowColor = sh.color; }
   }
   const shadowIsContrastEnhancing = shadowAdjacentRatio != null;
-  const effectiveTextRatio = shadowIsContrastEnhancing ? shadowAdjacentRatio : rawRatio;
   // `passes`/`passesAsText` compare the UNROUNDED ratio (WCAG "do not round up": 2.998 must NOT pass 3:1).
   return {
     colorA: cols.a, colorB: cols.b, source: 'cssom', contrastRatio: +rawRatio.toFixed(2),
     fontPx, isLargeText, textThreshold,
-    ...(shadowIsContrastEnhancing ? { shadowColor, shadowAdjacentRatio: +shadowAdjacentRatio.toFixed(2), effectiveTextRatio: +effectiveTextRatio.toFixed(2) } : {}),
-    passesAsText: textThreshold != null ? effectiveTextRatio >= textThreshold : null, // USE THIS for 1.4.3 text contrast (credits a halo text-shadow)
+    ...(shadowIsContrastEnhancing ? { hasContrastEnhancingShadow: true, shadowColor } : {}),
+    passesAsText: textThreshold != null ? rawRatio >= textThreshold : null, // 1.4.3 text contrast on the FLAT worst case — a halo shadow never numerically clears it (audit #15)
     threshold: th, passes: rawRatio >= th,
-    note: 'WCAG ratio of two FLAT used-colours' + (shadowIsContrastEnhancing ? ', RAISED by a contrast-enhancing text-shadow halo (passesAsText/effectiveTextRatio use text-vs-shadow ' + (+shadowAdjacentRatio.toFixed(2)) + '; flat contrastRatio is the no-shadow worst case — confirm legibility from the crop)' : '') + '. For 1.4.3 TEXT contrast use passesAsText (textThreshold font-derived: ' + (isLargeText ? '3.0 large-text' : '4.5 normal') + '); `passes` honours an explicit threshold override. Not an SC disposition.',
+    note: 'WCAG ratio of two FLAT used-colours' + (shadowIsContrastEnhancing ? '. hasContrastEnhancingShadow: a centred opaque halo (' + shadowColor + ') may lift real legibility ABOVE this flat worst case, but a blur radius does not guarantee full glyph backing — do NOT treat the shadow as a numeric pass; measure with measure_text_contrast_over_image or judge the crop' : '') + '. For 1.4.3 TEXT contrast use passesAsText (textThreshold font-derived: ' + (isLargeText ? '3.0 large-text' : '4.5 normal') + '); `passes` honours an explicit threshold override. Not an SC disposition.',
   };
 }
 

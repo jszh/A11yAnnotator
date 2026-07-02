@@ -50,7 +50,7 @@ async function collect(url) {
     const alloc = createTabAllocator({ browser, maxTabs: 2 });
     const lease = await alloc.acquire();
     let out;
-    try { out = normalizeCollectRoles(await collectActPage(lease.page, { url, elementCap: 40, file: 'p', runId: 'p', sourceUrl: url })); }
+    try { out = normalizeCollectRoles(await collectActPage(lease.page, { url, elementCap: 40, file: 'p', runId: 'p', sourceUrl: url, autoUpdateWindowMs: 0 })); }
     finally { await lease.release(); await alloc.close(); }
     return out;
   } finally {
@@ -104,7 +104,7 @@ test('frame-structure #2 end-to-end: the info-relationships-v0 subject sees the 
     const alloc = createTabAllocator({ browser, maxTabs: 2 });
     const lease = await alloc.acquire();
     let out;
-    try { out = normalizeCollectRoles(await collectActPage(lease.page, { url, elementCap: 40, file: 'p', runId: 'p', sourceUrl: url })); }
+    try { out = normalizeCollectRoles(await collectActPage(lease.page, { url, elementCap: 40, file: 'p', runId: 'p', sourceUrl: url, autoUpdateWindowMs: 0 })); }
     finally { await lease.release(); }
     const { rubrics } = loadRubrics();
     const driven = await orchestrate(out, { file: out.file, runId: out.runId, pageDigest: out.pageDigest, drivenAt: out.collectedAt + 1, elements: [] }, {

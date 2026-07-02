@@ -24,7 +24,7 @@ async function collectHtml(html) {
   const page = await browser.newPage();
   try {
     const url = 'data:text/html,' + encodeURIComponent('<!doctype html><html lang="en"><body>' + html + '</body></html>');
-    return normalizeCollectRoles(await collectActPage(page, { url, elementCap: 80, file: 't', runId: 't', sourceUrl: url, runAxe: false }));
+    return normalizeCollectRoles(await collectActPage(page, { url, elementCap: 80, file: 't', runId: 't', sourceUrl: url, runAxe: false, autoUpdateWindowMs: 0 }));
   } finally { await page.close(); }
 }
 const links = (c) => (c.elements || []).filter((e) => (e.axRole || e.roleAttr || e.sampledRole) === 'link' || e.tag === 'a');

@@ -611,12 +611,15 @@ function probeFormError(marker) {
     return (n.textContent || '').replace(/\s+/g, ' ').trim();
   };
   const ERR_CLASS = /(error|invalid|warn|danger|fail|required|alert|toast|snackbar|notif|flash)/i;
-  // A2 (Harness 3.3): ERR_TEXT is English-only and NOT normative — it is no longer part of the
-  // identification DECISION (a Spanish/German/Japanese message must not false-barrier). It survives only
-  // as a guard that keeps a success surface that ALSO carries error/instruction wording from being
-  // wrongly excluded by OK_TEXT below; the reddish() colour cue is dropped entirely (colour is not text).
-  const ERR_TEXT = /\b(error|errors|invalid|required|must|please|enter|missing|cannot|can't|incorrect|select|provide|fill|problem|wrong|empty|blank)\b/i;
-  const OK_TEXT = /\b(thank|thanks|success|succeeded|saved|received|complete|completed|submitted|sent|welcome|congratulations)\b/i;
+  // A2 → #16 (round-3 overfit audit): the ERR_TEXT/OK_TEXT English keyword pair is retired from the
+  // DECISION entirely. A2 had already removed English ERR_TEXT + reddish() as barrier evidence, but the
+  // remaining OK_TEXT co-gate still made the CREDIT side language-dependent: a non-English success toast
+  // ('Gracias, formulario enviado') in a plain in-form <div> was credited via bare form.contains() as
+  // customIdentifies=true — only the ENGLISH success list could exclude it, while the byte-equivalent
+  // 'Thanks, submitted' was excluded. SC 3.3.1 is language-agnostic, so the verdict must not turn on the
+  // message's language: association is now judged from MARKUP ONLY (referencesField / isLiveRegion /
+  // errorStyled), and an in-form surface with NO error-association markup becomes an explicit ABSTAIN
+  // (unassociatedSurface, below) whose text sample the LLM lane judges for meaning.
   const fieldId = el.id || '';
   const esc = (s) => (window.CSS && CSS.escape) ? CSS.escape(s) : String(s).replace(/[^a-zA-Z0-9_-]/g, '\\$&');
   const refSet = new Set(((el.getAttribute('aria-errormessage') || '') + ' ' + (el.getAttribute('aria-describedby') || '')).split(/\s+/).filter(Boolean));
@@ -678,14 +681,20 @@ function probeFormError(marker) {
   form.removeEventListener('submit', onSubmit, true);
 
   // AFTER: a freshly-SURFACED (new / shown / populated), visible, error-ASSOCIATED message identifies the
-  // error — LANGUAGE-AGNOSTIC (A2). Association = the field references it (describedby/errormessage/
-  // summary-link), it is a live region, it is error-styled by MARKUP (role/class/data/id — NOT colour),
-  // or it surfaced INSIDE the field's own form. The English-only ERR_TEXT keyword and the reddish() colour
-  // cue are no longer part of the decision (audit B4): a non-English in-text message must not false-barrier
-  // and colour is not text. A pure success/confirmation surface (OK_TEXT, no error/instruction wording) is
-  // still excluded. Bias toward NOT-barrier: any plausible identification ⇒ errorNotIdentified=false ⇒
-  // PARTIAL (language/meaning deferred to the LLM/human lane), never a false BARRIER.
-  let customIdentifies = false, errorSample = '';
+  // error — LANGUAGE-AGNOSTIC (A2/#16). Association is judged from MARKUP ONLY: the field references it
+  // (describedby/errormessage/summary-link), it is a live region, or it is error-styled by MARKUP
+  // (role/class/data/id — NOT colour). Bare `form.contains(n)` crediting is DROPPED (#16): a surfaced
+  // in-form node with NO association markup could equally be a success/confirmation toast, and the only
+  // thing that ever told those apart was the retired ENGLISH OK_TEXT list — a language-dependent verdict
+  // on a language-agnostic SC ('Gracias, enviado' credited, 'Thanks, submitted' excluded). Such a surface
+  // now records an explicit ABSTAIN (unassociatedSurface): customIdentifies stays FALSE (it is NOT proven
+  // identification) but errorNotIdentified ALSO stays false — the surfaced text MAY be a legitimate
+  // plain-text identification (confirmed on the b4-error-*-fb fixtures: a bare in-form <div id=msg> holding
+  // a real Spanish/German/Japanese error message — structurally identical to the success toast), so a
+  // barrier here would be a false positive. The sample rides the measurement so the LLM lane judges the
+  // MEANING (checker-uncertainty-with-reasons). Bias toward NOT-barrier: any plausible identification ⇒
+  // errorNotIdentified=false ⇒ PARTIAL (language/meaning deferred to the LLM/human lane), never a false BARRIER.
+  let customIdentifies = false, errorSample = '', unassociatedSurface = '';
   for (const n of universe()) {
     const now = visibleText(n);
     if (!now) continue;
@@ -695,19 +704,24 @@ function probeFormError(marker) {
       // and that is error-associated by markup (role/class/data/id) is already-identified — e.g. a number
       // field pre-populated with an invalid value whose referenced <span id="error"> describes it (ACT
       // 36b590 Passed Example 1). Credit it. An UNREFERENCED unchanged surface (a persistent cart status)
-      // still falls through and is ignored, so a real barrier is not masked.
-      if (n.id && refSet.has(n.id) && errorStyled(n) && !(OK_TEXT.test(now) && !ERR_TEXT.test(now))) { customIdentifies = true; errorSample = now.slice(0, 80); break; }
+      // still falls through and is ignored, so a real barrier is not masked. (#16: the English OK_TEXT
+      // co-gate is retired — the reference + error-markup association IS the language-agnostic credit.)
+      if (n.id && refSet.has(n.id) && errorStyled(n)) { customIdentifies = true; errorSample = now.slice(0, 80); break; }
       continue;                                           // unchanged + unreferenced surface is not an error event
     }
-    if (OK_TEXT.test(now) && !ERR_TEXT.test(now)) continue;  // a pure success/confirmation surface is not error identification
-    if (referencesField(n) || isLiveRegion(n) || errorStyled(n) || (form && form.contains(n))) { customIdentifies = true; errorSample = now.slice(0, 80); break; }
+    if (referencesField(n) || isLiveRegion(n) || errorStyled(n)) { customIdentifies = true; errorSample = now.slice(0, 80); break; }
+    // #16 ABSTAIN channel: an in-form surface with no association markup — keep scanning (a later
+    // markup-associated surface still credits), but remember the first sample for the abstain record.
+    if (form && form.contains(n) && !unassociatedSurface) unassociatedSurface = now.slice(0, 80);
   }
   for (const n of universe()) { try { delete n[PRE]; } catch (e) {} }
   if (orig != null) { el.value = orig; } // restore
   // R2 G5-F4: undo any aria-invalid the page's validation set in reaction to the probe, so two fields probed on
   // one un-reloaded page (only the test harness does this; production reloads per attempt) can't contaminate.
   try { if (origAriaInvalid === null) el.removeAttribute('aria-invalid'); else el.setAttribute('aria-invalid', origAriaInvalid); } catch (e) {}
-  return { isUserInputField, fieldRendered, fieldConstrained: true, applicable: true, errorNotIdentified: !(nativeWouldBlock || customIdentifies), nativeWouldBlock, customIdentifies, errorSample };
+  // errorNotIdentified (the BARRIER flag) is true only when NOTHING plausibly surfaced: no native block, no
+  // markup-associated message, AND no unassociated in-form surface (the abstain case must not read as barrier).
+  return { isUserInputField, fieldRendered, fieldConstrained: true, applicable: true, errorNotIdentified: !(nativeWouldBlock || customIdentifies || unassociatedSurface), nativeWouldBlock, customIdentifies, unassociatedSurface: unassociatedSurface || null, errorSample };
 }
 
 async function runFormErrorProbe(page, request) {
@@ -730,7 +744,10 @@ async function runFormErrorProbe(page, request) {
   const m = await page.evaluate(probeFormError, marker).catch(() => null).finally(() => page.off('dialog', onDialog));
   if (m) Object.assign(o, { isUserInputField: m.isUserInputField, fieldRendered: m.fieldRendered, fieldConstrained: m.fieldConstrained, errorNotIdentified: m.errorNotIdentified });
   const valid = !!(m && m.applicable);
-  return mk(request, 'form-error-probe', '3.3.1', o, { isUserInputField: o.isUserInputField, fieldRendered: o.fieldRendered, fieldConstrained: o.fieldConstrained }, { action: 'submit-invalid', valid, measurement: m ? { nativeWouldBlock: m.nativeWouldBlock, customIdentifies: m.customIdentifies } : {} });
+  // #16: `unassociatedSurface` (the abstain sample — an in-form message with NO error-association markup)
+  // rides the measurement so the LLM lane can judge its MEANING; it is deliberately NOT an outcome flag
+  // (never barrier evidence) and customIdentifies stays false for it.
+  return mk(request, 'form-error-probe', '3.3.1', o, { isUserInputField: o.isUserInputField, fieldRendered: o.fieldRendered, fieldConstrained: o.fieldConstrained }, { action: 'submit-invalid', valid, measurement: m ? { nativeWouldBlock: m.nativeWouldBlock, customIdentifies: m.customIdentifies, unassociatedSurface: m.unassociatedSurface || null } : {} });
 }
 
 // =====================================================================================
@@ -749,11 +766,31 @@ function measureReflow() {
   // `dataTableExemptionApplied` reports when this heuristic boundary was the reason an overflow
   // source was not counted, so "0 barriers" is never mistaken for "proven no reflow barrier".
   let dataTableExemptionApplied = false;
+  // CELL GRANULARITY of the data-table exemption (Understanding 1.4.10: Note 2 exempts "data tables
+  // (not individual cells)"; "each cell within a table would still need to meet this success criterion").
+  // Before a TABLE/grid ancestor exempts an overflowing node inside one of ITS td/th cells, test whether
+  // the overflow is CELL-INTRINSIC — prose forced onto one line (white-space:nowrap), an unbreakable long
+  // token with no overflow-wrap escape, wrappable prose still wider than the WHOLE viewport (only a pinned
+  // width does that), or an explicit min-width pin. Such overflow is the cell's own defect (confirmed on
+  // capability two-d case-08: one cell's prose pinned to 800px), so the table's exemption must not cover
+  // it — fall through, so the C33 scroller-affordance branch below can still apply to unbreakable strings.
+  const cellIntrinsic = (el, p) => {
+    const cell = el.closest && el.closest('td, th');
+    if (!cell || !p.contains(cell) || p === el) return false;
+    const c = getComputedStyle(el); const t = (el.textContent || '').trim();
+    const prose = /\s/.test(t); const nowrap = (c.whiteSpace || '').indexOf('nowrap') >= 0;
+    if (prose && nowrap) return true;
+    const unbreakable = /\S{30,}/.test(t.replace(/\s+/g, ' ')) && !/(anywhere|break-word|break-all)/.test((c.overflowWrap || '') + ' ' + (c.wordBreak || ''));
+    if (unbreakable) return true;
+    if (prose && !nowrap && el.getBoundingClientRect().width > vw + SLOP) return true;
+    return (parseFloat(c.minWidth) || 0) > vw + SLOP;
+  };
   const isExempt = (el) => {
     for (let p = el; p; p = p.parentElement) {
       const tag = p.tagName, role = p.getAttribute && p.getAttribute('role');
-      if (tag === 'MAP' || tag === 'SVG' || (role && /^(table|grid|treegrid)$/.test(role))) return true;
-      if (tag === 'TABLE' && (p.querySelector('th, caption') || /^(table|grid|treegrid)$/.test(role || ''))) { dataTableExemptionApplied = true; return true; }
+      if (tag === 'MAP' || tag === 'SVG') return true;
+      if (role && /^(table|grid|treegrid)$/.test(role) && !cellIntrinsic(el, p)) return true;
+      if (tag === 'TABLE' && (p.querySelector('th, caption') || /^(table|grid|treegrid)$/.test(role || '')) && !cellIntrinsic(el, p)) { dataTableExemptionApplied = true; return true; }
       const ov = getComputedStyle(p).overflowX;
       if (ov === 'auto' || ov === 'scroll') {
         // G225 FIX (was: blanket exempt — passed carousels that strand panels off-screen). A scroll container is a
@@ -1369,25 +1406,81 @@ async function runHoverContentTri(page, request) {
   // native title= is UA-exempt
   const nativeTitleOnly = trig.hasNativeTitleOnly;
 
-  // whole-document visible-text signature (portal-aware), at rest vs hovered
-  const docSig = () => { let s = 0, t = 0; for (const el of document.querySelectorAll('[role="tooltip"],[role="status"],[popover],[data-tooltip],.tooltip,.tip')) { const cs = getComputedStyle(el); const r = el.getBoundingClientRect(); if (cs.display !== 'none' && cs.visibility !== 'hidden' && parseFloat(cs.opacity) > 0 && r.width > 1 && r.height > 1) { s++; t += (el.textContent || '').length; } } return s * 1e6 + t; };
-  const rest = await page.evaluate(docSig); // pristine — captured before any hover/focus
+  // #2 (round-3 overfit audit) — GENERALIZED appearing-content signature. The old docSig counted ONLY a curated
+  // tooltip-LIBRARY selector list ([role=tooltip],[role=status],[popover],[data-tooltip],.tooltip,.tip), so a
+  // class="popover"/"card-flyout"/class-less JS-toggled div or a pure CSS :hover reveal never incremented ⇒
+  // contentAppeared stayed false ⇒ the dismissible/hoverable/persistent tri-probe was silently skipped — a
+  // condition fitted to tooltip libraries, not the 1.4.13 rule. Now: MARK every element's rest-state visibility
+  // once (pristine — before any hover/focus), then measure the WHOLE-DOCUMENT delta of elements whose effective
+  // visibility flipped hidden→shown (or that were created) and that bear non-trivial text/geometry. Only the
+  // TOPMOST flipped element of an appeared region counts (a revealed subtree must not inflate the signature).
+  // Scalar shape (count*1e6 + textLen) is kept so the tri-probe comparisons below are unchanged. The curated
+  // selector list survives ONLY as a tip-binding PRIORITY (below), never as a gate.
+  const markRest = () => {
+    for (const el of document.querySelectorAll('body *')) {
+      const cs = getComputedStyle(el); const r = el.getBoundingClientRect();
+      el.__v3HoverRestVis = cs.display !== 'none' && cs.visibility !== 'hidden' && parseFloat(cs.opacity) > 0 && r.width > 1 && r.height > 1;
+    }
+  };
+  const appearedSig = () => {
+    let s = 0, t = 0;
+    for (const el of document.querySelectorAll('body *')) {
+      const cs = getComputedStyle(el); const r = el.getBoundingClientRect();
+      const vis = cs.display !== 'none' && cs.visibility !== 'hidden' && parseFloat(cs.opacity) > 0 && r.width > 1 && r.height > 1;
+      if (!vis || el.__v3HoverRestVis === true) continue;              // not shown, or already visible at rest
+      const p = el.parentElement;                                      // topmost flipped only: parent was rest-visible (or <body>)
+      if (p && p !== document.body && p.__v3HoverRestVis !== true) continue;
+      const txt = (el.textContent || '').replace(/\s+/g, ' ').trim();  // non-trivial: own text, or geometry able to carry meaning
+      if (!(txt.length > 0 || (r.width >= 16 && r.height >= 16))) continue;
+      s++; t += txt.length;
+    }
+    return s * 1e6 + t;
+  };
+  await page.evaluate(markRest);
+  const rest = await page.evaluate(appearedSig); // pristine — captured before any hover/focus (0 unless the page self-mutates)
   // hover
   const box = await page.evaluate((m) => { const el = document.querySelector(`[data-v3-target="${m}"]`); const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }, marker);
   await page.mouse.move(box.x, box.y); await H.settle(page, 200);
-  const hovered = await page.evaluate(docSig);
+  let shown = await page.evaluate(appearedSig);
+  let revealMode = shown > rest ? 'hover' : null;
+  // #2 FOCUS PATH: SC 1.4.13 is content on hover OR FOCUS — mirror the hover probe with a real focus + settle
+  // when hovering revealed nothing and the trigger is focusable. Focus is applied only AFTER the rest baseline
+  // and the hover attempt, so the pristine-baseline invariant above still holds.
+  if (!revealMode && trig.focusable) {
+    await page.mouse.move(2, 2); await H.settle(page, 100); // park the pointer away: isolate the focus channel
+    await page.evaluate((m) => { const el = document.querySelector(`[data-v3-target="${m}"]`); el && el.focus(); }, marker).catch(() => {});
+    await H.settle(page, 200);
+    const focused = await page.evaluate(appearedSig);
+    if (focused > rest) { revealMode = 'focus'; shown = focused; }
+  }
+  const hovered = shown; // the revealed-state signature (hover- or focus-triggered)
   o.appearingContentDetected = hovered > rest;
   o.contentAppeared = hovered > rest;
   o.contentIsAdditional = (hovered > rest) && !nativeTitleOnly;
   o.measurementDeterministic = true;
 
   if (o.contentAppeared && o.contentIsAdditional) {
-    // bind the ACTUAL appearing content region (not a guessed path), and decide whether it
-    // OBSCURES/REPLACES other content — 1.4.13 EXEMPTS Dismissible when it does not (audit V3R2-H5).
+    // bind the ACTUAL appearing content region — the flipped element(s) themselves, found by the same rest-mark
+    // delta (#2: the curated tooltip selectors only PRIORITIZE which flipped region binds as "the tip"; they
+    // never gate) — and decide whether it OBSCURES/REPLACES other content — 1.4.13 EXEMPTS Dismissible when it
+    // does not (audit V3R2-H5).
     const tip = await page.evaluate(() => {
-      const tips = [...document.querySelectorAll('[role="tooltip"],[role="status"],[popover],[data-tooltip],.tooltip,.tip')].filter((t) => { const cs = getComputedStyle(t); const r = t.getBoundingClientRect(); return cs.display !== 'none' && cs.visibility !== 'hidden' && parseFloat(cs.opacity) > 0 && r.width > 1 && r.height > 1; });
-      if (!tips.length) return null;
-      const tipEl = tips[0], tr = tipEl.getBoundingClientRect();
+      const flipped = [];
+      for (const el of document.querySelectorAll('body *')) {
+        const cs = getComputedStyle(el); const r = el.getBoundingClientRect();
+        const vis = cs.display !== 'none' && cs.visibility !== 'hidden' && parseFloat(cs.opacity) > 0 && r.width > 1 && r.height > 1;
+        if (!vis || el.__v3HoverRestVis === true) continue;
+        const p = el.parentElement;
+        if (p && p !== document.body && p.__v3HoverRestVis !== true) continue;
+        const txt = (el.textContent || '').replace(/\s+/g, ' ').trim();
+        if (!(txt.length > 0 || (r.width >= 16 && r.height >= 16))) continue;
+        flipped.push(el);
+      }
+      if (!flipped.length) return null;
+      const PRIO = '[role="tooltip"],[role="status"],[popover],[data-tooltip],.tooltip,.tip';
+      const tipEl = flipped.find((e) => { try { return e.matches(PRIO); } catch (err) { return false; } })
+        || flipped.sort((a, b) => { const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect(); return rb.width * rb.height - ra.width * ra.height; })[0];
+      const tr = tipEl.getBoundingClientRect();
       let obscures = false;
       for (const el of document.body.querySelectorAll('*')) {
         if (el === tipEl || tipEl.contains(el) || el.contains(tipEl)) continue;
@@ -1401,23 +1494,44 @@ async function runHoverContentTri(page, request) {
     }).catch(() => null);
     const dismissExempt = !!tip && !tip.obscures; // exempt when the content obscures/replaces nothing
 
-    const rehover = async () => { await page.mouse.move(2, 2); await H.settle(page, 90); await page.mouse.move(box.x, box.y); await H.settle(page, 220); return page.evaluate(docSig); };
-    // Persistent: still present after a dwell while still hovered?
+    // re-show via the channel that actually revealed (hover OR focus — #2 focus path).
+    const reshow = async () => {
+      if (revealMode === 'focus') {
+        await page.evaluate((m) => { const el = document.querySelector(`[data-v3-target="${m}"]`); el && el.blur && el.blur(); }, marker).catch(() => {});
+        await H.settle(page, 90);
+        await page.evaluate((m) => { const el = document.querySelector(`[data-v3-target="${m}"]`); el && el.focus(); }, marker).catch(() => {});
+        await H.settle(page, 220);
+      } else {
+        await page.mouse.move(2, 2); await H.settle(page, 90);
+        await page.mouse.move(box.x, box.y); await H.settle(page, 220);
+      }
+      return page.evaluate(appearedSig);
+    };
+    // Persistent: still present after a dwell while still hovered/focused?
     await H.settle(page, 1600);
-    o.persistent = (await page.evaluate(docSig)) >= hovered;
-    // Hoverable: re-show, then move the pointer to the ACTUAL content region; it must survive.
-    const shown1 = await rehover();
-    if (tip) { await page.mouse.move((box.x + tip.cx) / 2, (box.y + tip.cy) / 2); await page.mouse.move(tip.cx, tip.cy); } else { await page.mouse.move(box.x, box.y + 8); }
-    await H.settle(page, 150);
-    o.hoverable = shown1 > rest && (await page.evaluate(docSig)) >= shown1;
+    o.persistent = (await page.evaluate(appearedSig)) >= hovered;
+    // Hoverable: 1.4.13's Hoverable condition applies to POINTER-hover-triggered content only. In focus mode we
+    // are here precisely BECAUSE hover revealed nothing, so pointer hover cannot trigger it ⇒ vacuously satisfied
+    // (never a manufactured barrier — the lane is BARRIER-ONLY, so a vacuous pass only prevents a false positive).
+    if (revealMode === 'focus') {
+      o.hoverable = true;
+    } else {
+      // re-show, then move the pointer to the ACTUAL content region; it must survive.
+      const shown1 = await reshow();
+      if (tip) { await page.mouse.move((box.x + tip.cx) / 2, (box.y + tip.cy) / 2); await page.mouse.move(tip.cx, tip.cy); } else { await page.mouse.move(box.x, box.y + 8); }
+      await H.settle(page, 150);
+      o.hoverable = shown1 > rest && (await page.evaluate(appearedSig)) >= shown1;
+    }
     // Dismissible LAST (it hides the content). Exempt when the content obscures nothing.
-    const shown2 = await rehover();
+    const shown2 = await reshow();
     await page.keyboard.press('Escape'); await H.settle(page, 100);
-    o.dismissible = dismissExempt || (await page.evaluate(docSig)) < shown2;
+    o.dismissible = dismissExempt || (await page.evaluate(appearedSig)) < shown2;
     o.anyPropertyFails = (o.persistent === false) || (o.hoverable === false) || (o.dismissible === false);
   }
+  // clean the rest-visibility marks (mirror the form-probe PRE cleanup — leave no probe residue on the page)
+  await page.evaluate(() => { for (const el of document.querySelectorAll('body *')) { try { delete el.__v3HoverRestVis; } catch (e) {} } }).catch(() => {});
   const valid = o.contentAppeared && o.contentIsAdditional && o.measurementDeterministic;
-  return mk(request, 'hover-content-tri', '1.4.13', o, { hasHoverFocusTrigger: o.hasHoverFocusTrigger, triggerReachable: o.triggerReachable }, { action: 'hover-focus-tri', valid, measurement: { rest, hovered, nativeTitleOnly } });
+  return mk(request, 'hover-content-tri', '1.4.13', o, { hasHoverFocusTrigger: o.hasHoverFocusTrigger, triggerReachable: o.triggerReachable }, { action: 'hover-focus-tri', valid, measurement: { rest, hovered, nativeTitleOnly, revealMode } });
 }
 
 // =====================================================================================

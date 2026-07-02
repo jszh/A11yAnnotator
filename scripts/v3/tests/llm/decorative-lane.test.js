@@ -36,6 +36,29 @@ test('decorativeSuspect: the already-handled / not-applicable cases are NOT susp
   assert.equal(oracle.decorativeSuspect(null), false);
 });
 
+// ─── Finding #10 (generalization audit): the 24px square wall must not silently clear ELONGATED informative
+// images — WCAG 1.1.1 / ACT e88epe carry NO size floor, so only true spacer geometry may be size-excluded. ───
+test('#10 RECALL: a 320x20 removed-from-tree unnamed image (image-of-text shape) IS a suspect despite min-dim 20 < 24', () => {
+  assert.equal(oracle.decorativeSuspect(img({ box: { width: 320, height: 20 } })), true, 'elongated text-shaped strip escapes the square gate');
+  assert.equal(oracle.decorativeSuspect(img({ box: { w: 20, h: 320 } })), true, 'vertical strip + {w,h} collector shape too (aspect is orientation-free)');
+});
+
+test('#10 RECALL: the 320x20 suspect MINTS the 1.1.1 + 1.4.5 verification obligations (was a silent false clear)', () => {
+  const scs = oracle.deriveObligations({ elements: [img({ xpath: '/strip', box: { width: 320, height: 20 } })] })
+    .filter((o) => o.xpath === '/strip').map((o) => o.sc);
+  assert.ok(scs.includes('1.1.1'), 'sub-24px elongated decorated-away image owes the 1.1.1 verification obligation');
+  assert.ok(scs.includes('1.4.5'), 'and 1.4.5 (an image-of-text is exactly the elongated shape)');
+});
+
+test('#10 OVER-FIRE guard: spacer geometry stays excluded (square icons, slivers, border stripes, sub-word shims)', () => {
+  assert.equal(oracle.decorativeSuspect(img({ box: { width: 8, height: 8 } })), false, '8x8 spacer.gif: aspect 1 fails the text-shape test');
+  assert.equal(oracle.decorativeSuspect(img({ box: { width: 16, height: 16 } })), false, '16x16 icon: square-ish stays under the square gate');
+  assert.equal(oracle.decorativeSuspect(img({ box: { width: 600, height: 2 } })), false, '600x2 sliver: no glyph renders at 2px');
+  assert.equal(oracle.decorativeSuspect(img({ box: { width: 300, height: 6 } })), false, '300x6 border stripe: below the legible-text height floor (10px) — the 23a2a8 decorative-stripe geometry');
+  assert.equal(oracle.decorativeSuspect(img({ box: { width: 60, height: 6 } })), false, '60x6 shim: elongated but too narrow (and sub-word area) to hold text');
+  assert.equal(oracle.decorativeSuspect(img({ box: { width: 40, height: 20 } })), false, '40x20 chip: aspect 2 < 4 — not text-shaped, still under the square gate');
+});
+
 test('decorativeSuspect: V3_DECORATIVE_MIN_DIM tunes the gate; V3_DECORATIVE_LANE=0 disables the lane', () => {
   const prevDim = process.env.V3_DECORATIVE_MIN_DIM, prevLane = process.env.V3_DECORATIVE_LANE;
   try {
@@ -77,4 +100,11 @@ test('routing: a decorative-suspect routes ONLY decorative-image-verification (a
   assert.deepEqual(ids(subs, '/suspect'), ['decorative-image-verification-v0'], 'suspect → ONLY the verification rubric');
   assert.deepEqual(ids(subs, '/conflict'), ['alt-text-adequacy-v0'], 'a named conflict still gets alt-adequacy, NOT the decorative rubric');
   assert.deepEqual(ids(subs, '/intree'), ['alt-text-adequacy-v0', 'long-description-completeness-v0'], 'an in-tree complex image is unchanged');
+});
+
+test('#10 routing: the elongated suspect routes ONLY decorative-image-verification (same mutual exclusivity as big suspects)', () => {
+  const collect = { elements: [img({ xpath: '/strip', box: { width: 320, height: 20 } })] };
+  const ledger = [{ xpath: '/strip', sc: '1.1.1', claimFamily: 'non-text-content', autoPartial: true }];
+  const subs = selectRubricSubjects(collect, ledger, RUBRICS);
+  assert.deepEqual(ids(subs, '/strip'), ['decorative-image-verification-v0'], 'recovered strip goes to the redundancy-aware rubric, not alt-adequacy');
 });

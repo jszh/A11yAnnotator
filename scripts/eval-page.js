@@ -582,6 +582,10 @@ function parseRGB(s) {
           ariaInvalid: r.getAttribute('aria-invalid'),
           hasOnclick: r.hasAttribute('onclick'),
           text: (r.innerText || r.textContent || '').trim().slice(0, 120), tabindex: r.getAttribute('tabindex'),
+          // Audit #7 (1.1.1 confusable-text, parity with act-page-collect): nearest ancestor-or-self declared
+          // lang/xml:lang — threads into detectConfusableText so a fully-foldable Cyrillic/Greek word is judged
+          // against the content's declared writing system, not assumed to be a Latin spoof.
+          nearestLang: (() => { try { const le = r.closest('[lang],[xml\\:lang]'); return le ? (le.getAttribute('lang') || le.getAttribute('xml:lang') || null) : null; } catch (e) { return null; } })(),
           box: { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height) },
           color: cs.color, ownBg: cs.backgroundColor, ownBgImage: cs.backgroundImage,
           effBg, effBgImage, bgWalkCrossedOverlay, textInChildDiffColor,

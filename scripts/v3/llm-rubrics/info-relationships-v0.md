@@ -92,13 +92,14 @@ For `kind:'real'`, `hasNonItemChildren:true` is a structural-break smell (axe ow
 row/column association, a group/fieldset, an emphasis that carries meaning) have a programmatic
 equivalent? A visually-bold "heading" that is a plain `<div>` IS a barrier; a visual list marked up as a
 real list is NOT. Common failure patterns:
-- **Visual heading not marked up:** text that LOOKS like a section heading (larger/bolder, introduces the
-  content below it) but is a plain `<div>`/`<span>`/`<strong>` with no heading role — a sighted reader
-  perceives the section break, AT users do not (technique H69). The same applies to a heading that is
+- **Visual heading not marked up:** text that LOOKS like a section heading (set off from the body text,
+  introduces the content below it) but is a plain `<div>`/`<span>`/`<strong>` with no heading role — a sighted
+  reader perceives the section break, AT users do not (technique H69). The same applies to a heading that is
   only *styled* large (e.g. `<strong style="font-size:18pt">`) standing in for an `<h1>`.
   **REQUIRED before flagging this: the text must ACTUALLY FUNCTION as a section heading — visually
-  distinguished AS a heading (clearly larger/bolder than the body text) AND labelling a distinct block of
-  content BELOW it.** Prominent text is NOT automatically a heading: a site title / logo / masthead wordmark,
+  distinguished from surrounding body text by ANY presentational means (size, weight, color, all-caps/
+  letter-spacing, extra spacing, or a top/bottom rule/underline — H69 does not require "larger/bolder"
+  specifically) AND labelling a distinct block of content BELOW it.** Prominent text is NOT automatically a heading: a site title / logo / masthead wordmark,
   a banner or hero tagline, the first line of a paragraph, a byline, a pull-quote, or inline emphasis is not
   a section heading, and body prose that merely happens to be the first/topmost text is not one either. If the
   page has NO text that both looks like a heading AND introduces a subordinate section (a page can legitimately
@@ -116,26 +117,34 @@ real list is NOT. Common failure patterns:
   full reset to `<h1>`, closing several sections and starting fresh — never flagged).** A corpus-wide scan found
   this signal fires on well under 15% of real multi-section pages, so when it DOES fire it is a targeted,
   uncommon anomaly, not routine noise — treat a suspect entry as LIKELY a real mismatch until the viewport
-  affirmatively shows otherwise, not the reverse. For each suspect entry, check the `viewport`: does the flagged
-  heading's VISUAL size/weight match its programmatic rank relative to the heading it appears to sit under or
-  continue from? If a numerically-SHALLOWER heading (fewer nesting, e.g. h4) renders SMALLER/less prominent than
-  a numerically-DEEPER heading (e.g. h6) it visually follows as if introducing a subsection of it, the
-  programmatic hierarchy contradicts what a sighted user perceives ⇒ barrier — this is the DEFAULT reading of a
+  affirmatively shows otherwise, not the reverse. For a suspect entry, judge CONTAINMENT FIRST, size second:
+  **FIRST identify from the `viewport` whether the earlier heading visually introduces a block that CONTAINS the
+  following heading(s) as subsections** (its content — including those later headings — reads as sitting under
+  it). If so, the parent MUST be numerically shallower than its children: a PARENT coded DEEPER than its own
+  subsections (e.g. an h6 section title whose visually-subordinate subsections are h4/h5 — TT 10.C, confirmed on
+  DHS 405382-14) is a barrier EVEN WHEN each heading's font-size individually matches its own level. Do NOT clear
+  this shape because the shallower child renders larger — that rendering is EXPECTED for a shallower level and
+  does not resolve the containment inversion. Only when NO containment relationship is visible (the headings read
+  as SIBLING sections in sequence) use size-vs-prominence as SECONDARY confirmation: a numerically-SHALLOWER
+  heading (e.g. h4) rendering SMALLER/less prominent than a numerically-DEEPER heading (e.g. h6) it visually
+  follows contradicts the programmatic hierarchy ⇒ barrier. Either way the barrier reading is the DEFAULT for a
   suspect entry; do not talk yourself out of it by reasoning that the levels "could" be a deliberate style choice
-  without POINTING TO a specific visual cue (an actually-larger/bolder rendering of the shallower heading) that
-  justifies clearing it. Only clear a suspect entry when you can name the visual evidence that resolves it; if
-  the viewport doesn't show heading sizes clearly, return PARTIAL — do NOT default to "not a defect" from
-  inconclusive evidence. A heading sequence with NO suspect entries needs no special heading-level scrutiny — TT
+  without POINTING TO the specific visual evidence (a genuine sibling sequence, with no containment, whose
+  prominence matches its levels) that justifies clearing it. If the viewport doesn't show the headings and their
+  section structure clearly, return PARTIAL — do NOT default to "not a defect" from inconclusive evidence. A heading sequence with NO suspect entries needs no special heading-level scrutiny — TT
   10.C is not a concern there.
-  **CARVE-OUT — a level SKIP is not itself the barrier; a level that CONTRADICTS visual prominence is.** TT 10.C
-  fails when the programmatic level MISREPRESENTS the visual hierarchy, NOT merely because a level number is
+  **CARVE-OUT — a level SKIP is not itself the barrier; a level that CONTRADICTS the visual hierarchy is.** TT 10.C
+  fails when the programmatic level MISREPRESENTS the visual structure, NOT merely because a level number is
   skipped. A minor, out-of-outline CALLOUT — a contact blurb ("Call us at …"), a promo/aside, a sidebar note —
-  given a DEEP level (e.g. an `<h6>` sitting between an `<h1>` and the following `<h2>`) is CONSISTENT when it
-  renders small/subdued (deep level ↔ minor prominence) and the main outline RESUMES correctly after it (the
-  `<h2>` continues the top-level sequence): that is a benign skip, **NOT REPRODUCED**, even though the outline
-  sequence flags `SKIP_DEEPER`/`JUMP_SHALLOWER`. Reserve the barrier for the genuine contradiction the section
-  above describes: a numerically-SHALLOWER heading that renders LESS prominent than a deeper heading it visually
-  sits under. Do not flag a small callout's deep level as "illogical skips" when its size matches its level.
+  given a DEEP level (e.g. an `<h6>` sitting between an `<h1>` and the following `<h2>`) is benign ONLY when BOTH
+  hold: (a) NO following heading is a subsection of the deep-level callout — it introduces no subsections of its
+  own — AND (b) the main outline RESUMES correctly after it (the `<h2>` continues the top-level sequence). Then it
+  is a benign skip, **NOT REPRODUCED**, even though the outline sequence flags `SKIP_DEEPER`/`JUMP_SHALLOWER`
+  (e.g. TT 10.B-shape lone-h6 contact callout with no children, outline resuming at h2). But when the headings
+  AFTER the deep entry ARE its subsections, the containment-inversion rule above governs — the deep parent is the
+  barrier, and "each heading's size matches its level" does NOT clear it: size-matching is irrelevant to a
+  containment inversion. Reserve the barrier for the two genuine contradictions the section above describes (a
+  containment inversion, or a shallower sibling rendered less prominent than the deeper heading it follows).
 - **Broken table header association:** a DATA table (it has both header cells AND data cells) whose column/row
   HEADER cells do not actually associate with the data cells a sighted user reads under/beside them — e.g. a header
   whose column/row holds data but is not linked to it, or a visual grid with no programmatic `th`/`scope`/`headers=`

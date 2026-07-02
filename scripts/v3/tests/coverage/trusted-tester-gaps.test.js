@@ -135,6 +135,42 @@ test('G1: collectLists finds real + faux (incl. roman/emoji) lists, ignores deco
   } finally { await browser.close(); }
 });
 
+// Audit #13 (TT 10.D / 1.3.1): the roman-numeral marker was a hand-enumerated ii..xv alternation (fitted to the
+// build fixtures — 'xvi)' and beyond never matched) and TT 10.D's cited decimal/hierarchical markers ('2.1',
+// '2.a', '2.a.i') were unmatched entirely. The lane is now a canonical roman grammar + a decimal-outline
+// alternation; precision comes from the callers' ≥3-item floor (see the BULLET comment in collect-lists.js).
+const ROMAN18 = ['i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii', 'viii', 'ix', 'x', 'xi', 'xii', 'xiii', 'xiv', 'xv', 'xvi', 'xvii', 'xviii'];
+const AUDIT13_HTML = `<!doctype html><meta charset=utf-8><body>
+  <p id="roman18">${ROMAN18.map((n, k) => `${n}) ${String.fromCharCode(65 + k)}`).join('<br>')}</p>
+  <div id="decimal"><p>2.1 Scope of the policy</p><p>2.2 Terms and definitions</p><p>2.3 Normative references</p></div>
+  <div id="hier"><p>2.a Scope of the policy</p><p>2.a.i Applicability details</p><p>2.b Terms and definitions</p></div>
+  <p id="mixprose">mix) of colors in the morning palette<br>shifting slowly as the light climbs<br>until noon flattens every shade</p>
+  <div id="ampm"><p>a.m. and p.m. schedules differ on holidays</p><p>a.m. deliveries arrive before the open</p><p>a.m. staff clock out at two</p></div>
+</body>`;
+
+test('audit #13: canonical roman (incl. the xvi+ tail) + decimal/hierarchical outlines nominate; roman-lookalike and a.m. prose do NOT', { skip: !chromeOK, concurrency: false }, async () => {
+  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  try {
+    const page = await browser.newPage();
+    await page.setContent(AUDIT13_HTML, { waitUntil: 'load' });
+    const lists = await page.evaluate(collectLists);
+    const faux = lists.filter((l) => l.kind === 'faux');
+    // RECALL: the 18-item <br>-separated roman list is nominated INCLUDING its tail — itemCount 18 proves
+    // 'xvi)'..'xviii)' matched (the old ii..xv enumeration would have counted 15).
+    const roman = faux.find((l) => l.via === 'br-bulleted' && l.itemSamples.some((s) => /^i\) A/.test(s)));
+    assert.ok(roman, 'the br-separated roman list is nominated');
+    assert.equal(roman.itemCount, 18, 'ALL 18 roman markers match — the xvi/xvii/xviii tail is no longer dropped');
+    // RECALL: TT 10.D decimal ('2.1') and hierarchical ('2.a', '2.a.i') outline markers nominate.
+    const samples = faux.flatMap((l) => l.itemSamples).join(' | ');
+    assert.ok(/2\.1 Scope/.test(samples), 'the decimal-outline three-liner (2.1/2.2/2.3) is nominated');
+    assert.ok(/2\.a Scope/.test(samples) && /2\.a\.i Applicability/.test(samples), 'hierarchical 2.a / 2.a.i markers are nominated');
+    // NO-OVER-FIRE: 'mix)' parses as canonical roman (m+ix) but is a lone line in prose — the ≥3 floor holds
+    // it back; 'a.m.' never matches (the marker requires whitespace+content after the [.)]).
+    assert.ok(!/morning palette/.test(samples), 'the mix)-led prose block is NOT nominated (one marker line < floor)');
+    assert.ok(!/schedules differ/.test(samples), 'a.m./p.m. prose is NOT nominated (no marker match at all)');
+  } finally { await browser.close(); }
+});
+
 // ───────────────────────────── G2/G3 + G5 — collector / runner gates (Chrome-guarded) ─────────────────────────────
 const { collectActPage } = require('../../lib/act-page-collect.js');
 const GATE_HTML = `<!doctype html><meta charset=utf-8><style>.bg{background-image:url(http://x/i.png)}.ic{display:inline-block;width:32px;height:32px}</style><body>
@@ -159,7 +195,7 @@ test('G2/G3: collector fires bg-image on unlabeled controls (incl. DANGLING labe
     const page = await browser.newPage();
     const tmp = path.join(os.tmpdir(), 'tt-gap-gate.html');
     fs.writeFileSync(tmp, GATE_HTML);
-    const collect = await collectActPage(page, { url: 'file://' + tmp, file: 'tt:gate', runId: 't' });
+    const collect = await collectActPage(page, { url: 'file://' + tmp, file: 'tt:gate', runId: 't', autoUpdateWindowMs: 0 });
     const ids = await page.evaluate((xps) => xps.map((xp) => { try { const n = document.evaluate(xp.split('>>')[0], document, null, 9, null).singleNodeValue; return n ? n.id : null; } catch (e) { return null; } }), collect.elements.map((e) => e.xpath));
     const by = {}; collect.elements.forEach((e, i) => { if (ids[i]) by[ids[i]] = e; });
     assert.equal(by.p1 && by.p1.backgroundImageMeaningful, true, 'unlabeled bg-image control fires');
@@ -256,7 +292,7 @@ test('R2 G3-2: a g-recaptcha inside a same-origin iframe enumerates isCaptcha', 
     const page = await browser.newPage();
     const tmp = path.join(os.tmpdir(), 'tt-gap-frame.html');
     fs.writeFileSync(tmp, `<!doctype html><meta charset=utf-8><body><iframe srcdoc="<div class='g-recaptcha' data-sitekey='k' style='width:300px;height:78px'>x</div>"></iframe></body>`);
-    const collect = await collectActPage(page, { url: 'file://' + tmp, file: 'tt:frame', runId: 't' });
+    const collect = await collectActPage(page, { url: 'file://' + tmp, file: 'tt:frame', runId: 't', autoUpdateWindowMs: 0 });
     const inframe = collect.elements.filter((e) => e.inFrame);
     assert.ok(inframe.length > 0, 'the same-origin iframe was descended into');
     assert.ok(inframe.some((e) => e.isCaptcha === true), 'an in-frame g-recaptcha enumerates isCaptcha (R2 G3-2)');

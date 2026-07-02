@@ -18,8 +18,13 @@ judge whether two colors have enough contrast (1.4.11/1.4.3 own that).
 **Judge:** is there a SECOND, non-color cue carrying the same information — or is color the only thing
 distinguishing the states? Two classic failure modes:
 - **Links not distinguished from body text except by color (F73):** in-text links that look identical to
-  surrounding prose except for hue — no underline, no weight, no other affordance — so a color-blind reader
-  cannot find them. (A link with an underline, distinct weight, or other non-color cue is NOT a barrier.)
+  surrounding prose except for hue — no underline, no weight, no other affordance, and no lightness
+  separation — so a color-blind reader cannot find them. Per F73's Procedure, ANY of these satisfies: an
+  underline, distinct weight, italic, a shape/icon affordance, OR a sufficient lightness difference between
+  link and surrounding text (read as ≥3:1 luminance separation, not merely a different hue at similar
+  lightness) — a lightness difference survives color-vision loss, so WCAG counts it as a non-"color-alone"
+  cue. The residual F73 barrier is the equal-luminance hue-only link: a hue swap at similar lightness
+  (<3:1 luminance separation from the prose) with no other affordance.
 - **Status / required / error / selected shown only by color (F81):** a required field marked only by a red
   label, an invalid field flagged only by turning red, a "success/error" state distinguished only by
   green/red, a selected item shown only by a color swap — with no asterisk, icon, text, border, or other
@@ -46,8 +51,17 @@ abstain rather than clear.
   text all satisfy it. Do not insist on any particular form.
 - Hover/focus-only differentiation does not count for the default state (the reader must distinguish it at
   rest) — but if you are not handed the rendered states to judge this, return PARTIAL.
-- Do not judge contrast magnitude here (1.4.11/1.4.3 own that) — a redundant cue with weak contrast is a
-  1.4.11/1.4.3 question, not a 1.4.1 one.
+- Do not judge ABSOLUTE contrast adequacy here — whether text/UI clears its threshold against the page
+  background is 1.4.11/1.4.3's job, and a redundant cue with weak contrast is a 1.4.11/1.4.3 question, not
+  a 1.4.1 one. CARVE-OUT (F73): you MAY credit a visible link-vs-surrounding-text LIGHTNESS difference
+  (≥3:1 luminance separation between the link color and the prose color) as the required non-color cue —
+  that is the RELATIVE comparison F73's Procedure itself sanctions, not a contrast-adequacy judgment. When
+  the handed axe `link-in-text-block` signal reports PASS, DEFER to it — axe measured exactly this
+  link-vs-surrounding-text separation.
+- CRITICAL GUARD — the ≥3:1 escape is F73-ONLY; do NOT extend it to F81 states whose meaning relies on
+  perceiving a SPECIFIC color (green=valid / red=invalid, red=required, color-keyed legend states): there
+  the user must recognize WHICH color, not merely that the element stands apart, so an additional non-color
+  indicator (icon, text, asterisk, shape, border) is required REGARDLESS of contrast ratio.
 - When the crop cannot settle whether a second cue is present, return PARTIAL rather than guessing.
 
 **Output:** STRICT JSON `{verdict, confidence, summary, reasoning, evidenceRefs}` — summary = ONE sentence

@@ -229,8 +229,28 @@ function precomputeSignals(element, skill, sc) {
   // mixed into a Latin word). DETERMINISTIC — surfaced so the judge sees the SEEN text vs the AT-readable fold.
   {
     const probe = (typeof element.text === 'string' && element.text) ? element.text : (typeof element.axName === 'string' ? element.axName : '');
-    const cf = detectConfusableText(probe);
-    if (cf.hasConfusables) s.confusableText = { kinds: cf.kinds, count: cf.count, asciiFold: cf.asciiFold, samples: cf.samples, uncertainReason: 'this element\'s visible text uses CONFUSABLE codepoints (' + cf.kinds.join(', ') + ') that render as ordinary words but are NOT readable letters to assistive technology — a screen reader gets gibberish, the wrong language, or nothing. The seen word folds to "' + cf.asciiFold + '" but the markup does not contain those ASCII letters. Treat styled/decorative glyph-substituted TEXT as non-text content lacking a text alternative (1.1.1) unless a proper text equivalent is present.' };
+    // Audit #7: thread the element's NEAREST declared lang/xml:lang (collected as `nearestLang`) into the
+    // detector — a fully-substituted all-Cyrillic/Greek word is suppressed when the declared lang natively
+    // writes that script ('СОВА' under lang=ru), and the lang is surfaced in the reason otherwise so the
+    // judge can weigh 'folds to PayPal; lang=en — likely spoof' against legitimate multilingual content.
+    const cf = detectConfusableText(probe, typeof element.nearestLang === 'string' ? element.nearestLang : null);
+    if (cf.hasConfusables) {
+      // the 'may be legitimate' softening applies ONLY to fully-substituted words (homoglyph-full): a native-
+      // script lang plausibly explains an all-Cyrillic/Greek word, but NO language mixes Latin+Cyrillic/Greek
+      // INSIDE one word — softening a homoglyph-mix ('Аpple' under lang=ru) would soothe the judge on the
+      // classic spoof shape (adversarial-review defect 4). Mixed hits keep a firm steer regardless of lang.
+      const hasMix = Array.isArray(cf.kinds) && cf.kinds.includes('homoglyph-mix');
+      const langNote = cf.lang == null ? ''
+        : (cf.langMatchesScript === false
+          ? ' The nearest declared lang is "' + cf.lang + '", which is NOT written in the substituted script — the Latin fold is likely the intended reading (spoof / styled substitution).'
+          : (cf.langMatchesScript === true
+            ? (hasMix
+              ? ' The nearest declared lang is "' + cf.lang + '", which natively uses this script — but a MIXED-script word (Latin and Cyrillic/Greek letters inside ONE word) is not natural text in any language; treat the substitution as suspect despite the matching lang.'
+              : ' The nearest declared lang is "' + cf.lang + '", which natively uses this script — the word may be legitimate ' + cf.lang + ' text; weigh the fold against the surrounding language.')
+            : ' The nearest declared lang is "' + cf.lang + '".'));
+      // shape extended ADDITIVELY (lang/langMatchesScript only when a lang was declared) — existing consumers unchanged.
+      s.confusableText = { kinds: cf.kinds, count: cf.count, asciiFold: cf.asciiFold, samples: cf.samples, ...(cf.lang != null ? { lang: cf.lang, langMatchesScript: cf.langMatchesScript } : {}), uncertainReason: 'this element\'s visible text uses CONFUSABLE codepoints (' + cf.kinds.join(', ') + ') that render as ordinary words but are NOT readable letters to assistive technology — a screen reader gets gibberish, the wrong language, or nothing. The seen word folds to "' + cf.asciiFold + '" but the markup does not contain those ASCII letters. Treat styled/decorative glyph-substituted TEXT as non-text content lacking a text alternative (1.1.1) unless a proper text equivalent is present.' + langNote };
+    }
   }
   // S7 (RCA R7): target-size is a 2.5.x GEOMETRY check — it belongs to the pointer/target-size skill, NOT the
   // contrast skill. Attaching it to `color-and-visual-text` contaminated the contrast/complex-backdrop judgment
@@ -329,6 +349,20 @@ function precomputeSignals(element, skill, sc) {
   // S7 (RCA R7, 0va7u6): an <svg> rendering LIVE <text> is not an image of text — clear 1.4.5 for it.
   if (element.svgLiveText === true) {
     s.svgLiveText = { value: true, uncertainReason: 'this <svg> renders LIVE <text>/<tspan> — its text is REAL and machine-readable (not flattened pixels), so it is NOT an image of text and carries NO 1.4.5 barrier (judge NOT REPRODUCED for the images-of-text concern)' };
+  }
+  // #9 (round-3 overfit audit): SC 2.2.2 has TWO clauses with DIFFERENT conditions — tell the motion-control
+  // rubric WHICH mechanical signal minted this obligation so it applies the right one. MOVING/blinking/
+  // scrolling (autoMotion) carries the "lasts more than 5 seconds" condition; AUTO-UPDATING (autoUpdatingText —
+  // a deterministic MutationObserver saw recurring timer-driven text swaps on a visible in-parallel element)
+  // has NO 5-second grace: pause/stop/hide/frequency-control is owed whenever it auto-starts in parallel.
+  if (skill === 'timing-and-motion' && (element.autoMotion === true || element.autoUpdatingText === true)) {
+    s.motionMechanism = {
+      autoMotion: element.autoMotion === true,
+      autoUpdatingText: element.autoUpdatingText === true,
+      uncertainReason: element.autoUpdatingText === true
+        ? 'a deterministic MutationObserver window saw this element\'s TEXT rewritten repeatedly on a timer while presented in parallel with other content — this is AUTO-UPDATING content: it owes a pause/stop/hide (or update-frequency) mechanism whenever it auto-starts in parallel. The 5-second grace applies ONLY to moving/blinking/scrolling content; "auto-stops within 5 seconds" can NOT clear auto-updating content.'
+        : 'the collector detected auto-MOVING content (a looping/>5s CSS animation, <marquee>, or autoplay media) — the moving/blinking/scrolling clause applies: a pause/stop/hide mechanism is owed when it starts automatically, lasts more than 5 seconds, and is presented in parallel with other content.',
+    };
   }
   // #44 / adversarial verify #7: for name-role-state, surface the deterministic NAME-PRESENCE result. The
   // ax-name-presence detector is a SHADOW signal (not a CLAIM), so an empty-name 4.1.2 obligation still
