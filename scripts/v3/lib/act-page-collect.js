@@ -150,15 +150,27 @@ async function collectActPage(page, opts = {}) {
     const NFC_ROLES = /^(button|link|menuitem|menuitemcheckbox|menuitemradio|option|tab|treeitem|checkbox|radio|switch|heading|cell|gridcell|columnheader|rowheader|row|tooltip)$/;
     function labelledText(el, role) {
       const bits = [];
+      // #10f fix: this function is ALSO called on in-frame elements (the frame-traversal loop below passes an
+      // `el`/`h` living in a CHILD frame's document, e.g. `name: labelledText(el, sampledRole)`). The bare
+      // `document` global here is ALWAYS the TOP document, never the frame's — so `document.getElementById`
+      // and `document.querySelectorAll` silently found NOTHING for an in-frame field's own `aria-labelledby`
+      // target or `<label for>` (both live in the frame's OWN document, not the top one), losing a REAL,
+      // correctly-authored accessible name. Confirmed live on a real DHS Trusted-Tester page (401807-3,
+      // frame-main.html): every form field has a proper `<label class="form__label" for="...">` matching its
+      // input id, yet the collected axName came back empty for them — `el.closest('label')` below still
+      // worked (closest() searches the element's OWN document tree regardless of which global `document` is
+      // in scope), masking the bug for wrapped-label markup while explicit `for`-association silently broke.
+      // `el.ownerDocument` is ALWAYS the document that actually owns `el` — correct for a top-doc element too.
+      const doc = el.ownerDocument || document;
       const aria = el.getAttribute('aria-label');
       if (aria) bits.push(aria);
       const ids = (el.getAttribute('aria-labelledby') || '').split(/\s+/).filter(Boolean);
       for (const id of ids) {
-        const n = document.getElementById(id);
+        const n = doc.getElementById(id);
         if (n) bits.push(textOf(n));
       }
       if (el.id) {
-        for (const l of document.querySelectorAll(`label[for="${CSS.escape(el.id)}"]`)) bits.push(textOf(l));
+        for (const l of doc.querySelectorAll(`label[for="${CSS.escape(el.id)}"]`)) bits.push(textOf(l));
       }
       const p = el.closest('label');
       if (p) bits.push(textOf(p));
@@ -718,6 +730,17 @@ async function collectActPage(page, opts = {}) {
           inModal: false, focusRisk: false, underOverlay: false, hasHoverContent: false,
           backgroundImageMeaningful: _frameBgM, backgroundImageUrl: _frameBgU, isCaptcha: _frameCaptcha, // R2 G3-2 parity
           iframeSrc: (tag === 'iframe' || tag === 'frame') ? (el.getAttribute('src') || '') : undefined, // 4.1.2 (4b1c6c): a NESTED same-named iframe (srcdoc) needs its src for purpose-equivalence
+          // #10g fix: the old in-frame branch never set these (unlike the top-document loop, which has computed
+          // them since always) — every markup-driven rubric judged an in-frame subject with EMPTY raw HTML, no
+          // matter what the HTML-evidence gate said. Confirmed live: a 1.3.1 field-association rubric, shown
+          // axName:"First Name*" (correctly resolved after #10f) but no markup, still claimed "not programmatically
+          // associated" for a genuinely well-labeled in-frame form — the rubric is DELIBERATELY built to verify
+          // label association from raw markup rather than trust axName alone (the whole point of the sibling
+          // 5_C-3 case: a `<span for>` computes an empty axName legitimately, so trusting axName masks THAT
+          // barrier — the rubric can't have it both ways without seeing the markup). outerHTML/parentElement are
+          // plain DOM properties, unaffected by which document owns `el` — no frame-awareness issue here at all.
+          htmlSnippet: (el.outerHTML || '').slice(0, 2000),
+          enclosingHtml: el.parentElement ? (el.parentElement.outerHTML || '').slice(0, 2800) : null,
         });
       }
     }
