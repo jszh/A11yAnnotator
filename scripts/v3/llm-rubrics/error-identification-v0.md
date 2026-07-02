@@ -42,7 +42,13 @@ points to the specific field (by a unique label, position, or programmatic assoc
 duplicated elsewhere on the form.
 
 **Evidence handed to you:** the before/after crop of the field+error region (`state-before`,
-`state-after`), the textual error/validation message that was shown, and the field type.
+`state-after`), the field type, and — when present — `signals.nativeDialogText`: the VERBATIM text of a
+native `window.alert()`/`confirm()` the submit triggered. **A native dialog is browser chrome, not page
+content — `state-before`/`state-after` can NEVER show it, no matter how the crop looks.** If
+`signals.nativeDialogText` is present and non-empty, that string IS the error identification evidence —
+read it directly; do NOT judge from the screenshot alone in that case, and do NOT conclude "no text
+explanation, only a red outline" when `nativeDialogText` is sitting right there. If `nativeDialogText` is
+absent, judge from the screenshot as before (a DOM-toggled inline error, a summary region, etc.).
 
 **WCAG soundness caveats (these STOP a false clear/barrier):**
 - LANGUAGE-AGNOSTIC (Harness 3.3 D): the error text may be in ANY language — a clearly-worded message in

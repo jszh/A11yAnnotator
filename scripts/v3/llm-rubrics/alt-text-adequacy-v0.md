@@ -37,6 +37,15 @@ deterministic runner already disposed this obligation, DEFER — you are only ha
   canvas that draws another's — the text alternative misinforms the AT user → barrier.
   This applies to `img alt`, `svg`/`canvas`/`role=img` accessible names alike: judge rendered content vs
   name, not the name's plausibility in isolation.
+  **A minor WORDING VARIANT of the SAME subject is NOT a mismatch — only a genuinely DIFFERENT subject is.**
+  A typo, near-homophone, singular/plural difference, or loose paraphrase that still clearly names the SAME
+  thing the image depicts is adequate; do not demand letter-perfect agreement with printed/canonical text.
+  Confirmed against this project's own held-out corpus ground truth: an `alt="The Giving Three"` on a book
+  cover whose printed title reads "THE GIVING TREE" is a Pass, not a Fail — a sighted user glancing at that
+  alt text would recognize the SAME book instantly; the one-word substitution does not misdirect them to a
+  different subject. Reserve REPRODUCED for when the name points to a DIFFERENT referent entirely (the wrong
+  organization's logo, the wrong book's cover, the wrong product) — not for imperfect spelling/wording of the
+  CORRECT referent.
 - **Wrong purpose for a functional image — ONLY when the image IS the control's SOLE name.** A linked/iconed
   control whose accessible name comes ONLY from the image must convey the ACTION (where it goes / what it does),
   not merely the picture. **But if the enclosing link/button ALREADY has its own accessible name** — its own link

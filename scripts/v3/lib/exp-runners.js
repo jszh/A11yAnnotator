@@ -716,7 +716,18 @@ async function runFormErrorProbe(page, request) {
   const o = { isUserInputField: false, fieldRendered: false, fieldConstrained: false, hydrationReady, errorNotIdentified: false };
   const tagged = await page.evaluate(H.tagByXpath, request.targetXpath, marker).catch(() => false);
   if (!tagged) return mk(request, 'form-error-probe', '3.3.1', o, {}, { action: 'submit-invalid' });
-  const m = await page.evaluate(probeFormError, marker).catch(() => null);
+  // #12b fix: probeFormError clicks the submit button (`btn.click()` inside the page.evaluate below) to
+  // trigger the form's OWN submit handler — on a page whose error-identification mechanism is a native
+  // window.alert()/confirm() (a real, observed DHS Trusted-Tester pattern, not hypothetical), that freezes
+  // the page's JS realm until dismissed. With no listener registered here, this evaluate call hung
+  // INDEFINITELY (confirmed live: 400+s before the run-trusted-tester.js worker was killed) — the SAME bug
+  // class already fixed in vision-capture.js's captureStateVision (#12) and long-since handled in
+  // run-instruments.js's own dialog listener, just not wired into THIS separate deterministic-experiment
+  // call site. Dismiss immediately; this probe only needs whether an error surfaced in the DOM (below), not
+  // the dialog's own text (vision-capture.js's fix owns capturing that, for the LLM-lane subjects).
+  const onDialog = (d) => { d.dismiss().catch(() => {}); };
+  page.on('dialog', onDialog);
+  const m = await page.evaluate(probeFormError, marker).catch(() => null).finally(() => page.off('dialog', onDialog));
   if (m) Object.assign(o, { isUserInputField: m.isUserInputField, fieldRendered: m.fieldRendered, fieldConstrained: m.fieldConstrained, errorNotIdentified: m.errorNotIdentified });
   const valid = !!(m && m.applicable);
   return mk(request, 'form-error-probe', '3.3.1', o, { isUserInputField: o.isUserInputField, fieldRendered: o.fieldRendered, fieldConstrained: o.fieldConstrained }, { action: 'submit-invalid', valid, measurement: m ? { nativeWouldBlock: m.nativeWouldBlock, customIdentifies: m.customIdentifies } : {} });

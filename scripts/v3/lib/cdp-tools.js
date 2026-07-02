@@ -189,6 +189,13 @@ async function observeStateAfterActivation(page, args, ctx) {
   // ALWAYS on a fresh clone — activation mutates the page.
   if (!ctx || typeof ctx.freshClone !== 'function') return { error: 'fresh clone unavailable — this mutating tool refuses to touch the shared page' };
   const live = await ctx.freshClone();
+  // #12d fix: this tool explicitly classifies a target as activationKind:'form-submit' (below) — i.e. it is
+  // DESIGNED to activate submit controls, and a real DHS Trusted-Tester page's error-identification mechanism
+  // is a native window.alert(). With no page.on('dialog', ...) listener, el.click() (below) freezes the
+  // page's JS realm until dismissed, hanging every subsequent live.evaluate() indefinitely — the SAME bug
+  // class already fixed in vision-capture.js (#12), exp-runners.js (#12b), and interactAndObserve (#12c) in
+  // this file, just not wired into THIS separate activation tool.
+  live.on('dialog', (d) => { d.dismiss().catch(() => {}); });
   // aria-live="off" does NOT announce; alertdialog DOES — match the status detector's selector exactly.
   const LIVE_SEL = '[aria-live="polite"],[aria-live="assertive"],[role=status],[role=alert],[role=log],[role=alertdialog],output';
   try {
@@ -340,6 +347,14 @@ async function interactAndObserve(page, args, ctx) {
   const MOUSE_OPS = new Set(['hover', 'move', 'drag']);
   if (!ctx || typeof ctx.freshClone !== 'function') return { error: 'fresh clone unavailable — this mutating tool refuses to touch the shared page' };
   const live = await ctx.freshClone();
+  // #12c fix: a `click` action on a submit control can trigger the page's OWN validation handler, and a real
+  // DHS Trusted-Tester page's error-identification mechanism is a native window.alert() — which freezes the
+  // page's JS realm until dismissed. With no page.on('dialog', ...) listener, the click's own live.evaluate()
+  // call (below) hangs INDEFINITELY, not just slowly (confirmed live on the deterministic form-error-probe
+  // sibling of this same bug class, exp-runners.js #12b; vision-capture.js's captureStateVision was fixed
+  // first, #12). Dismiss immediately — this tool reports DOM-observable invalidFields/validationMessage
+  // facts, not a dialog's own text, so nothing besides unblocking is needed here.
+  live.on('dialog', (d) => { d.dismiss().catch(() => {}); });
   const LIVE_SEL = '[aria-live="polite"],[aria-live="assertive"],[role=status],[role=alert],[role=log],[role=alertdialog],output';
   let blockedNavigations = 0;
   try {
@@ -530,6 +545,10 @@ async function setStateAndCapture(page, args, ctx) {
   if (!allowed.includes(state)) return { error: `state must be one of: ${allowed.join(', ')}` };
   if (!ctx || typeof ctx.freshClone !== 'function') return { error: 'fresh clone unavailable — this mutating tool refuses to touch the shared page' };
   const live = await ctx.freshClone();
+  // #12f fix: this tool el.click()s a checkbox/switch/<details>/aria-expanded control below to set its state —
+  // same bug class as #12/#12b/#12c/#12d/#12e (a page whose click handler raises a native dialog would freeze
+  // the JS realm with no listener registered).
+  live.on('dialog', (d) => { d.dismiss().catch(() => {}); });
   try {
     const meta = await live.evaluate((xp, keys) => {
       const el = document.evaluate(xp, document, null, 9, null).singleNodeValue;
@@ -617,6 +636,10 @@ async function probeScreenReaderAfterAction(page, args, ctx) {
   if (typeof triggerXpath !== 'string' || !triggerXpath) return { error: 'triggerXpath required' };
   if (!ctx || typeof ctx.freshClone !== 'function') return { error: 'fresh clone unavailable — this mutating tool refuses to touch the shared page' };
   const live = await ctx.freshClone();
+  // #12e fix: el.click() below can activate ANY control the LLM names, including a form-submit button — same
+  // bug class as #12/#12b/#12c/#12d (a native window.alert() freezes the page until dismissed; with no
+  // listener, the enclosing live.evaluate() hangs indefinitely).
+  live.on('dialog', (d) => { d.dismiss().catch(() => {}); });
   try {
     const vsr = require('./vsr-collect.js');
     const ok = await vsr.ensureVsr(live);

@@ -23,7 +23,18 @@ async function awaitSettle(page, opts = {}) {
   // only — callers on the high-frequency keyboard walk pass floorMs:0). This is the knob the delay sweep varies.
   const floorMs = opts.floorMs != null ? Number(opts.floorMs) : (Number(process.env.V3_SETTLE_MS) || 0);
   try {
-    await page.evaluate(async (maxFrames, fontsTimeoutMs) => {
+    // #14b fix: the in-page loop's OWN bound (maxFrames) only helps if requestAnimationFrame keeps firing —
+    // `await new Promise((r) => requestAnimationFrame(r))` awaits ONE callback per iteration, so if rAF never
+    // fires even once, the loop is stuck on iteration 0 forever; maxFrames never gets a chance to matter. The
+    // "bounded so it can never hang" comment above was true only under the assumption rAF always eventually
+    // fires — confirmed FALSE live: a real DHS Trusted-Tester frameset page, reloaded right after a prior
+    // page.reload() on the SAME browser/tab-allocator, left THIS page.evaluate() hanging 60+ SECONDS past its
+    // supposed ~1s cap (traced with V3_DEBUG_SUBMIT — every step up through the reload itself completed in
+    // ~100ms; this call was the one that never returned). An external, Node-side race is the actual bound —
+    // the SAME pattern orchestrator.js already uses for its own "a page can pathologically hang" instruments
+    // stage guard. A degrade here (skip the settle) is always safe: settle is an OPTIMIZATION for capture
+    // determinism, never a correctness requirement — the caller's own screenshot/read still runs either way.
+    const settleWork = page.evaluate(async (maxFrames, fontsTimeoutMs) => {
       try { await Promise.race([document.fonts && document.fonts.ready, new Promise((r) => setTimeout(r, fontsTimeoutMs))]); } catch (e) {}
       const de = document.documentElement;
       // layout geometry (catches a viewport/reflow change) + scroll position (catches a scrollIntoView).
@@ -33,6 +44,8 @@ async function awaitSettle(page, opts = {}) {
       let prev = sig(), stable = 0;
       for (let i = 0; i < maxFrames; i++) { await new Promise((r) => requestAnimationFrame(r)); const s = sig(); if (s === prev) { if (++stable >= 2) return; } else stable = 0; prev = s; }
     }, maxFrames, fontsTimeoutMs).catch(() => {});
+    const hardCapMs = Number.isFinite(opts.hardCapMs) ? opts.hardCapMs : 5000; // generous vs. the ~1s expected cost; only fires on the pathological rAF-never-fires case
+    await Promise.race([settleWork, new Promise((r) => setTimeout(r, hardCapMs))]);
     if (floorMs > 0) await new Promise((r) => setTimeout(r, floorMs)); // wall-clock floor (rAF-throttle-robust)
   } catch (e) { /* never let settle break a run */ }
 }

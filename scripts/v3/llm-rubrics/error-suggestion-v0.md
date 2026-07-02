@@ -17,7 +17,11 @@ wrong? "Invalid email" alone is weaker than "Enter an email like name@example.co
 suggestion is actually possible (free-text essays / security reasons may exempt — see caveats).
 
 **Evidence handed to you:** the before/after crop of the field+error region (`state-before`,
-`state-after`), the validation/error text, and the field type.
+`state-after`), the field type, and — when present — `signals.nativeDialogText`: the VERBATIM text of a
+native `window.alert()`/`confirm()` the submit triggered. A native dialog is browser chrome, not page
+content — the crop can never show it. If `nativeDialogText` is present, judge the SUGGESTION question
+from that string directly (does it say HOW to fix the error, not just THAT it's wrong); if absent, judge
+from the screenshot as before.
 
 **WCAG soundness caveats (these STOP a false barrier):**
 - LANGUAGE-AGNOSTIC (Harness 3.3 D): a correction suggestion in ANY language counts — do NOT require

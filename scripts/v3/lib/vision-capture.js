@@ -260,6 +260,20 @@ async function captureStateVision(page, plan, opts = {}) {
   if (!entries.length) return {};
   await safeInstallResolver(page); // #10 fix: idempotent per-page setup for frame-qualified xpaths
   const out = {};
+  // #12 fix: a main.js-style native alert()/confirm()/prompt() (a common 3.3.1/3.3.3 error-announcement
+  // pattern) freezes the page's JS realm until dismissed — with no listener registered, the VERY NEXT
+  // page.evaluate() (e.g. measureForm, called right after driveInvalidSubmit) hangs INDEFINITELY, not just
+  // slowly. Confirmed live: a real DHS Trusted-Tester page's submit handler calls alert(...) on invalid
+  // submit; this file had no page.on('dialog', ...) anywhere, so every submit-pair capture on that page hung
+  // for 800+ seconds per subject before an eventual external timeout degraded it to noVerdict, having
+  // captured NOTHING. Registered once for the page's whole lifetime (page.on listeners survive page.reload)
+  // and dismissed immediately, this unblocks the hang. The message text is ALSO exactly the evidence
+  // 3.3.1/3.3.3 rubrics expect ("the textual error/validation message that was shown" —
+  // error-identification-v0.md) but is otherwise uncapturable any other way — a native dialog is browser
+  // chrome, not page content, so a screenshot can never show it even when evaluate() doesn't hang.
+  let lastDialogText = null;
+  const onDialog = async (d) => { try { lastDialogText = d.message() || ''; } finally { try { await d.dismiss(); } catch (e) {} } };
+  page.on('dialog', onDialog);
   let cdp = null;
   try { cdp = await page.createCDPSession(); await cdp.send('DOM.enable'); await cdp.send('CSS.enable'); } catch (e) { cdp = null; }
   const shot = (clip) => require('./settle.js').robustScreenshot(page, { clip, encoding: 'base64' }); // retry-on-null under contention
@@ -344,28 +358,69 @@ async function captureStateVision(page, plan, opts = {}) {
     // re-scrolls between them), so either's scrollX/scrollY is authoritative.
     return { x: x0 + (r0.scrollX || 0), y: y0 + (r0.scrollY || 0), width: x1 - x0, height: y1 - y0 };
   };
+  // TEMP diagnostic (V3_DEBUG_SUBMIT=1): per-step wall-clock for captureSubmitPair — the still-open question
+  // is WHICH step, for WHICH subject, accounts for the ~20min real-run durations that isolated repros (single
+  // subject, no prior instruments stage) never reproduce. No-op (near-zero overhead) unless the env var is set.
+  const dbg = process.env.V3_DEBUG_SUBMIT === '1';
   const captureSubmitPair = async (xp) => {
-    try { await page.reload({ waitUntil: 'load', timeout: opts.gotoTimeoutMs || 30000 }); } catch (e) {}
+    const t0 = Date.now();
+    const mk = (label) => { if (dbg) console.error('[V3_DEBUG_SUBMIT]', xp.slice(-40), label, Date.now() - t0, 'ms'); };
+    // #14 fix: `waitUntil:'load'` here hung for 20+ minutes on a real DHS Trusted-Tester frameset page — traced
+    // with page.on('framenavigated'/'load') event listeners (V3_DEBUG_SUBMIT) and found the 'load' event
+    // SIMPLY NEVER FIRES on some reloads of this page (a 2-frame frameset), even though every frame correctly
+    // renavigates and every resource request settles (fails fast, in this case) within ~300ms — confirmed via
+    // side-by-side traces where the FIRST goto on the same page got 'load' at 119ms but the very next reload,
+    // with identical frame/resource activity, never got it at all. This reads as a Chromium life-cycle-watcher
+    // race for multi-frame 'load' completion (unconfirmed why, only that it's real and reproducible), NOT a
+    // resource that's actually still loading. `waitUntil:'domcontentloaded'` fired reliably in EVERY trace
+    // (~30-100ms after navigation, frameset or not) and is sufficient here: `awaitSettle()` runs immediately
+    // after this call and independently confirms fonts-ready + layout-stable before any screenshot — the
+    // network-level 'load' event was redundant insurance this specific page's reload apparently cannot deliver.
+    try { await page.reload({ waitUntil: 'domcontentloaded', timeout: opts.gotoTimeoutMs || 30000 }); } catch (e) { mk('reload THREW: ' + e.message); }
+    mk('reload done');
     // #10 fix: a navigation wipes the page's JS context, so window.__v3ResolveXpath/__v3FrameOffset (installed
     // ONCE at the top of captureStateVision) no longer exist post-reload — every window.__v3* call below would
     // throw (undefined is not a function), silently degrading to a null pair via the blanket .catch(() => null).
     await safeInstallResolver(page);
+    mk('resolver reinstalled');
     await require('./settle.js').awaitSettle(page); // gated V3_SETTLE_WAIT
+    mk('awaitSettle done');
     await parkPointer();
     await scrollFormIntoView(xp);
-    const r0 = await measureForm(xp); if (!r0) return null;
+    mk('scrollFormIntoView done');
+    const r0 = await measureForm(xp); mk('measureForm(before) done: ' + JSON.stringify(r0)); if (!r0) return null;
     const inView = r0.x < r0.vw && r0.y < r0.vh && r0.x + r0.w > 0 && r0.y + r0.h > 0; if (!inView) return null;
     const pad = Number.isFinite(opts.submitPad) ? opts.submitPad : 20;
-    const before = await shot(clampClip(r0, pad)); if (!str(before)) return null;
-    if (!(await driveInvalidSubmit(xp))) return null;
+    const before = await shot(clampClip(r0, pad)); mk('before shot done: ' + (before ? before.length : 'null')); if (!str(before)) return null;
+    lastDialogText = null; // reset — a stale message from a PRIOR subject must never be misattributed to this one
+    const submitOk = await driveInvalidSubmit(xp); mk('driveInvalidSubmit done: ' + submitOk); if (!submitOk) return null;
     await sleep(Number.isFinite(opts.submitSettleMs) ? opts.submitSettleMs : 150);
-    const r1 = await measureForm(xp);                                   // SAME scroll frame (no re-scroll) ⇒ union is valid
-    const after = await shot(unionFormClip(r0, r1, pad)); if (!str(after)) return null;
-    return { 'state-before': before, 'state-after': after };
+    const r1 = await measureForm(xp); mk('measureForm(after) done');                                 // SAME scroll frame (no re-scroll) ⇒ union is valid
+    const after = await shot(unionFormClip(r0, r1, pad)); mk('after shot done: ' + (after ? after.length : 'null')); if (!str(after)) return null;
+    // nativeDialogText (#12 fix): survives mergeVision's string-only filter like any other frame; the rubric
+    // doesn't consume it yet (a future wiring step), but it's captured here rather than lost, and its mere
+    // presence is useful signal on its own (traces/analysis can already see whether a dialog fired at all).
+    return { 'state-before': before, 'state-after': after, ...(str(lastDialogText) ? { nativeDialogText: lastDialogText } : {}) };
   };
+  let _entryIdx = 0;
   for (const [xpRaw, transition] of entries) {
+    _entryIdx++;
+    if (dbg) console.error('[V3_DEBUG_SUBMIT] === entry', _entryIdx, '/', entries.length, transition, xpRaw.slice(-40), '===');
     const xp = nsXPath(xpRaw); // SVG/MathML-aware xpath for the in-page resolves below; xpRaw stays the key
-    if (transition === 'submit') { const pair = await captureSubmitPair(xp); if (pair) out[xpRaw] = pair; continue; }
+    if (transition === 'submit') {
+      // #14c fix: an OUTER bound on the whole submit-pair sequence, not just individual steps inside it. Even
+      // with #14b's awaitSettle hard-cap, tracing (V3_DEBUG_SUBMIT) showed the SAME page hanging again on the
+      // NEXT operation after settle degrades (a plain page.evaluate scrollFormIntoView call, ~5s; then AGAIN
+      // on the screenshot after THAT, past 180s with no return) — consistent with the underlying renderer
+      // becoming genuinely unresponsive after the reload, not a single fixable slow step. Rather than chase
+      // and individually guard every remaining await in this chain, bound the WHOLE subject: if it can't
+      // complete in `submitPairTimeoutMs`, abandon just this ONE xpath (degrades to no pair, same as any other
+      // capture failure) instead of blocking the rest of the page's subjects indefinitely.
+      const capMs = Number.isFinite(opts.submitPairTimeoutMs) ? opts.submitPairTimeoutMs : 30000;
+      const pair = await Promise.race([captureSubmitPair(xp), new Promise((r) => setTimeout(() => r(null), capMs))]);
+      if (pair) out[xpRaw] = pair;
+      continue;
+    }
     await parkPointer(); // RESET to a guaranteed-idle pointer BEFORE the before-frame (kills cross-subject hover leak)
     // a true IDLE before-state: blur whatever is focused, then bring the target into view.
     await page.evaluate((x) => { try { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); } catch (e) {} const el = window.__v3ResolveXpath(x); if (el && el.scrollIntoView) { try { el.scrollIntoView({ block: 'center', inline: 'center' }); } catch (e) { el.scrollIntoView(); } } }, xp).catch(() => {});
@@ -441,6 +496,7 @@ async function captureStateVision(page, plan, opts = {}) {
     // consumer can distinguish "no visible change because focus never stuck" from an ordinary weak-but-real ring.
     if (str(after)) out[xpRaw] = { 'state-before': before, 'state-after': after, ...(focusPersisted === null ? {} : { focusPersisted }) };
   }
+  page.off('dialog', onDialog);
   try { if (cdp) await cdp.detach(); } catch (e) {}
   return out;
 }
@@ -454,6 +510,18 @@ async function captureVisionForUrl(url, xpaths, opts = {}) {
   // Acquire-before-work ⇒ a queued tab's wait is NOT charged to the goto/capture deadlines (timer-pause).
   const { withLanePage } = require('./page-lease.js');
   return withLanePage(opts, async (page) => {
+    if (process.env.V3_DEBUG_SUBMIT === '1') {
+      const t0 = Date.now();
+      const dm = (l) => console.error('[V3_DEBUG_SUBMIT:cVFU]', Date.now() - t0, 'ms', l);
+      page.on('framenavigated', (f) => dm('framenavigated ' + f.url().slice(-30) + ' main=' + (f === page.mainFrame())));
+      page.on('load', () => dm('EVENT load'));
+      page.on('requestfailed', (r) => dm('requestfailed ' + r.url().slice(-40) + ' ' + (r.failure() && r.failure().errorText)));
+      page.on('console', (m) => dm('console[' + m.type() + '] ' + m.text().slice(0, 100)));
+      page.on('pageerror', (e) => dm('pageerror ' + e.message));
+      page.on('error', (e) => dm('error ' + e.message));
+      page.on('close', () => dm('EVENT page CLOSED'));
+      dm('withLanePage fn entered, page acquired');
+    }
     // #7 fix: setViewport sends a raw CDP command and can throw ("Target closed"/"Protocol error") under real
     // concurrent-tab pressure (memory contention, a tab-allocator reap racing this lease) — the ONE unguarded call
     // in this function, unlike every other await here (goto/settle/screenshot all degrade to null/{} on failure).
@@ -471,10 +539,15 @@ async function captureVisionForUrl(url, xpaths, opts = {}) {
       await new Promise((r) => setTimeout(r, 200));
       await page.setViewport({ width: opts.width || 1280, height: opts.height || 900 }).catch(() => {});
     }
-    await page.goto(url, { waitUntil: 'load', timeout: opts.gotoTimeoutMs || 30000 }).catch(() => {});
+    if (process.env.V3_DEBUG_SUBMIT === '1') console.error('[V3_DEBUG_SUBMIT:cVFU] BEGIN goto');
+    await page.goto(url, { waitUntil: 'load', timeout: opts.gotoTimeoutMs || 30000 }).catch((e) => { if (process.env.V3_DEBUG_SUBMIT === '1') console.error('[V3_DEBUG_SUBMIT:cVFU] goto REJECTED', e.message); });
+    if (process.env.V3_DEBUG_SUBMIT === '1') console.error('[V3_DEBUG_SUBMIT:cVFU] goto done, BEGIN awaitSettle');
     await require('./settle.js').awaitSettle(page); // gated V3_SETTLE_WAIT — settle fonts+layout before any screenshot
+    if (process.env.V3_DEBUG_SUBMIT === '1') console.error('[V3_DEBUG_SUBMIT:cVFU] awaitSettle done, BEGIN captureVision(static)');
     const stat = await captureVision(page, xpaths, opts);          // static crops first (no page mutation)
+    if (process.env.V3_DEBUG_SUBMIT === '1') console.error('[V3_DEBUG_SUBMIT:cVFU] captureVision(static) done, BEGIN captureStateVision');
     const pairs = opts.statePlan ? await captureStateVision(page, opts.statePlan, opts) : {}; // then driven pairs
+    if (process.env.V3_DEBUG_SUBMIT === '1') console.error('[V3_DEBUG_SUBMIT:cVFU] captureStateVision done');
     return mergeVision(stat, pairs);
   });
 }

@@ -910,6 +910,8 @@ async function runAdjudication(subjects, opts = {}) {
     const { text: rubricText, visionEvidence } = getRubric(subj.skill);
     // supply EXACTLY the vision frames the rubric declares AND the collector captured for this element.
     const avail = visionByXpath[subj.xpath] || {};
+    // #13 fix: same as runRubricJudgments below — a native dialog's captured text is otherwise discarded.
+    if (typeof avail.nativeDialogText === 'string' && avail.nativeDialogText) signals.nativeDialogText = avail.nativeDialogText;
     const frames = [];
     // BASELINE-VISION ablation (V3_BASELINE_VISION): for the SAME subjects the v3 design would give vision to
     // (visionEvidence non-empty), replace the DESIGNED element/surrounding crops with the page-wide full-page
@@ -1149,6 +1151,17 @@ async function runRubricJudgments(rubricSubjects, opts = {}) {
     const rub = subj.rubric || {};
     const signals = precomputeSignals(subj.element, subj.skill, subj.sc);
     const avail = visionByXpath[subj.xpath] || {};
+    // #13 fix: vision-capture.js's submit-pair driver (#12) captures a native window.alert()/confirm()'s
+    // message text — the ACTUAL evidence 3.3.1/3.3.3 rubrics need ("the textual error/validation message that
+    // was shown", error-identification-v0.md) — but nothing surfaced it to the prompt, so the rubric was still
+    // judging the state-before/after SCREENSHOTS alone. A native dialog is browser chrome, not page content,
+    // so those screenshots can only ever show the page's OWN visual state (e.g. a native :invalid red
+    // outline) — never the dialog text. Confirmed live: a real DHS Trusted-Tester page (401807-3, a properly
+    // `alert()`-based error-identification form) was judged REPRODUCED ("only a red validation outline...no
+    // visible text explaining the error") on every field, a false positive, because the model genuinely could
+    // not see the alert's text — it was captured but discarded. Surfaced as a plain signal so it rides the
+    // existing JSON.stringify(signals) block already in the prompt (buildPrompt) — no new wiring needed there.
+    if (typeof avail.nativeDialogText === 'string' && avail.nativeDialogText) signals.nativeDialogText = avail.nativeDialogText;
     const declaredVision = rub.visionEvidence || [];
     const frames = [];
     for (const state of declaredVision) { const data = avail[state]; if (typeof data === 'string' && data.length) frames.push({ id: `vis:${subj.rubricId}:${i}:${state}`, state, data, mediaType: 'image/png' }); }
