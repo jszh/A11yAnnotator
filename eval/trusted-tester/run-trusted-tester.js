@@ -155,10 +155,33 @@ const wrapAgent = (agent) => (messages, subject) => sem.run(async () => {
 });
 const runAgent = wrapAgent(baseAgent);
 
+// ============================ label-scope exclusion (hand-audited) ============================
+// A DHS Trusted-Tester record carries ONE test condition's hand-verified answer, but our harness judges the whole SC.
+// A record scoped to a NARROW mechanism (e.g. TT 7.C "is a CSS *background* image the only means of conveying info?"),
+// labeled inapplicable/passed *for that mechanism*, can still sit on a page with a REAL barrier on a DIFFERENT
+// mechanism of the SAME SC (foreground `<img>` alt mismatches). Our correct flag on that other mechanism would grade
+// as a false positive against a label that never covered it — a label-SCOPE artifact, not a model error. This mirrors
+// run-fn-llm.js's cross-rule-indeterminate exclusion, but DHS has no ACT rule-id partition to key on, so eligibility is
+// a TINY hand-audited map keyed by testcaseId (each entry examined at the criterion level; see the note). Excluded
+// records are QUARANTINED from the specificity denominator (scored neither FP nor TN) and REPORTED — never silent.
+// Guardrail: a `failed` case is NEVER excluded (a barrier flag there is a true positive; excluding would hide recall).
+const LABEL_SCOPE_EXCLUSION = {
+  // TT 7.C tests only whether a CSS *background-image* is the sole carrier of information (target=null ⇒ "no such
+  // background image exists" ⇒ inapplicable). The captured page (a Vintage Books frameset) independently carries real
+  // 1.1.1 barriers on FOREGROUND images — divider `<img>`s with mismatched alt ("Tiger"/"Horse") and a text-bearing
+  // image with empty alt — a different 1.1.1 mechanism this record's background-image label does not determine.
+  'dhs-1.1.1-decorative-background-image-7_C': 'label-scope:1.1.1-background-image-condition(foreground-img-alt-is-different-mechanism)',
+};
+function labelScopeExcluded(tc) {
+  if (tc.expected === 'failed') return null;        // never exclude a recall case — a flag there is a true positive
+  return LABEL_SCOPE_EXCLUSION[tc.testcaseId] || null;
+}
+
 // ============================ scoring one case ============================
 // Same catch/miss/uncertain logic as run-fn-llm.js's scoreCase — a barrier flagged in-scope is a TRUE POSITIVE on a
-// `failed` case (recall) and a FALSE POSITIVE on `passed`/`inapplicable` (specificity). No ACT-specific GT override
-// or cross-rule exclusion here: this corpus's `expected` already reflects a single hand-verified correct answer.
+// `failed` case (recall) and a FALSE POSITIVE on `passed`/`inapplicable` (specificity). The only escape hatch is the
+// hand-audited label-scope exclusion above (run-fn-llm.js's cross-rule-indeterminate analogue); otherwise this corpus's
+// `expected` already reflects a single hand-verified correct answer.
 function scoreCase(tc, out) {
   const inScope = new Set(tc.sc || []);
   const built = out && out.built;
@@ -202,6 +225,10 @@ function scoreCase(tc, out) {
   rec.polarity = tc.expected === 'failed' ? 'recall' : 'specificity';
   rec.correct = rec.polarity === 'recall' ? (outcome === 'caught') : (outcome !== 'caught');
   rec.falsePositive = rec.polarity === 'specificity' && outcome === 'caught';
+  // label-scope exclusion (hand-audited): quarantine from the specificity denominator in summarize(); reported, never
+  // silent. Only negative-labeled records are eligible (labelScopeExcluded guards `failed`).
+  const excl = labelScopeExcluded(tc);
+  if (excl) { rec.excluded = true; rec.excludedReason = excl; }
 
   const rats = (bundle.llmRationale && bundle.llmRationale.rationales) || [];
   const ratById = {}; for (const r of rats) ratById[r.verdictId] = r;
@@ -357,12 +384,19 @@ function summarize(results) {
   }
   const n = results.length;
   const recallCases = results.filter((r) => r.polarity === 'recall');
-  const specCases = results.filter((r) => r.polarity === 'specificity');
+  // label-scope exclusion quarantines a hand-audited negative-labeled record from the specificity denominator
+  // (scored neither FP nor TN). GRADED specificity = negatives that are NOT excluded; excluded ones are reported.
+  const specAll = results.filter((r) => r.polarity === 'specificity');
+  const excludedCases = specAll.filter((r) => r.excluded);
+  const specCases = specAll.filter((r) => !r.excluded);
   const recallCaught = recallCases.filter((r) => r.outcome === 'caught').length;
   const falsePos = specCases.filter((r) => r.falsePositive).length;
+  const excludedReasons = {}; for (const r of excludedCases) excludedReasons[r.excludedReason] = (excludedReasons[r.excludedReason] || 0) + 1;
   return { generatedAt: new Date().toISOString(), n, model: MODEL, vision: VISION, tools: TOOLS, tally, byExpected,
     recall: { failedN: recallCases.length, caught: recallCaught, recallRate: recallCases.length ? +(recallCaught / recallCases.length).toFixed(3) : null },
-    specificity: { n: specCases.length, falsePositive: falsePos, falsePositiveRate: specCases.length ? +(falsePos / specCases.length).toFixed(3) : null },
+    specificity: { n: specCases.length, falsePositive: falsePos, falsePositiveRate: specCases.length ? +(falsePos / specCases.length).toFixed(3) : null,
+      grossN: specAll.length, excluded: excludedCases.length, excludedReasons,
+      excludedCases: excludedCases.map((r) => ({ testcaseId: r.testcaseId, ruleId: r.ruleId, sc: r.sc, expected: r.expected, wouldBeFP: r.falsePositive === true, reason: r.excludedReason })) },
     caughtRate: n ? +(tally.caught / n).toFixed(3) : null, bySc };
 }
 
@@ -374,6 +408,10 @@ function printSummary(results) {
   console.log(`    failed cases: ${s.recall.failedN}  |  caught: ${s.recall.caught}  =  ${s.recall.recallRate != null ? (100 * s.recall.recallRate).toFixed(0) + '%' : '-'} recall`);
   console.log(`\n  SPECIFICITY — expected=passed/inapplicable (a flagged barrier is a FALSE POSITIVE):`);
   console.log(`    specificity cases: ${s.specificity.n}  |  false positives: ${s.specificity.falsePositive}  =  ${s.specificity.falsePositiveRate != null ? (100 * s.specificity.falsePositiveRate).toFixed(1) + '%' : '-'} FP rate`);
+  if (s.specificity.excluded) {
+    console.log(`    label-scope EXCLUDED: ${s.specificity.excluded} of ${s.specificity.grossN} negatives (${JSON.stringify(s.specificity.excludedReasons)})`);
+    for (const c of s.specificity.excludedCases) console.log(`      - ${c.testcaseId} (wouldBeFP=${c.wouldBeFP}): ${c.reason}`);
+  }
   console.log('\n  by SC (FP = flagged where GT says pass/inapplicable):');
   console.log('    sc        exp           n  caught/FP  agree  uncert  noVerd  noOblig');
   for (const [sc, b] of Object.entries(s.bySc).sort()) {
