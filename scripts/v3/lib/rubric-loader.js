@@ -77,7 +77,16 @@ function loadRubrics({ skillsDir = SKILLS_DIR, rubricsDir = RUBRICS_DIR } = {}) 
     if (Object.prototype.hasOwnProperty.call(rubrics, id)) { conflicts.push(`duplicate rubric id ${JSON.stringify(id)} (in ${f}) — first wins`); continue; } // keep first (sorted ⇒ stable); a stray file can't silently clobber a calibrated rubric
     const text = body.trim();
     const vision = okVision(meta.visionEvidence);
-    rubrics[id] = { id, sc: meta.sc || null, skill: meta.skill || null, visionEvidence: vision, text, promptHash: sha256(JSON.stringify({ text, sc: meta.sc || null, visionEvidence: vision })) };
+    // #15 fix: a rubric whose core judgment is a PIXEL comparison (e.g. alt-text-adequacy-v0's "does the name
+    // match what the image DEPICTS") cannot be answered from text signals alone — the existing NON-VISUAL
+    // EXCEPTION (llm-adjudicator.js) was designed for NAME/ROLE-type judgments (a real off-screen element with
+    // a genuine accessible name, still text-judgeable) and lets ANY rubric proceed text-only when the element
+    // has zero vision evidence. Confirmed live: with zero pixels, a model fabricated a specific "the image
+    // actually depicts X" claim instead of abstaining — the rubric's own caveat text ("you cannot know that")
+    // didn't stop it. `requiresVision: true` in frontmatter opts a rubric OUT of the non-visual exception, so
+    // the required-evidence gate abstains (auto-PARTIAL) instead of inviting a hallucinated pixel comparison.
+    const requiresVision = meta.requiresVision === 'true';
+    rubrics[id] = { id, sc: meta.sc || null, skill: meta.skill || null, visionEvidence: vision, requiresVision, text, promptHash: sha256(JSON.stringify({ text, sc: meta.sc || null, visionEvidence: vision, requiresVision })) };
   }
   const fingerprint = JSON.stringify({
     skills: Object.fromEntries(Object.entries(skills).map(([k, v]) => [k, v.promptHash])),

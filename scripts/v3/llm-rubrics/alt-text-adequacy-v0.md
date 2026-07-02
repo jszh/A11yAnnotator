@@ -3,6 +3,7 @@ id: alt-text-adequacy-v0
 sc: 1.1.1
 skill: name-role-state
 visionEvidence: [element-crop, surrounding-region]
+requiresVision: true
 ---
 
 # 1.1.1 — alt-text adequacy (v0 atomic rubric)
@@ -75,6 +76,13 @@ deterministic runner already disposed this obligation, DEFER — you are only ha
   `file://`), you cannot compare name-to-pixels — return PARTIAL, do not assume a mismatch. A broken-image
   placeholder or missing-asset glyph is NOT the image's depicted content — do not read it as either a
   match or a mismatch; return PARTIAL.
+- **`signals.elementNotPerceivable === true` means there is NO `element-crop` AND NO `surrounding-region` at
+  all — not a blank/broken one, an ABSENT one.** You are being asked to judge with literally zero pixels of
+  this element. The "Incorrect / MISMATCHED (compare the name to the PIXELS)" failure mode is IMPOSSIBLE to
+  support in this state — do NOT name what the image "actually depicts," "shows," or "is a cover for"; you
+  cannot know that. Judge ONLY what the text signals themselves can tell you (is the accessible name itself
+  empty/placeholder-looking?); if that alone doesn't resolve it, return PARTIAL. Fabricating a specific
+  visual description you were never shown a picture for is a hallucinated barrier, not a grounded one.
 - You cannot see the page's intent for an ambiguous image — when the crop is inconclusive, return PARTIAL.
 - Do not judge contrast/sizing here; another rubric owns those.
 

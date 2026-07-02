@@ -1175,11 +1175,16 @@ async function runRubricJudgments(rubricSubjects, opts = {}) {
     // TEXT-ONLY rather than silently abstaining — a real recall loss otherwise. This fires ONLY on a legitimately
     // non-visual element (capture set the flag), NOT on a transient capture FAILURE (flag absent ⇒ still abstain), so
     // it is not the FP-inflating blanket no-vision bypass. A signal tells the rubric the element is not perceivable.
-    if (avail.__nonVisual === '1') signals.elementNotPerceivable = true;
+    // #15 fix: `rub.requiresVision` (frontmatter) OPTS OUT of this exception — a rubric whose judgment is a PIXEL
+    // comparison (not a name/role fact) cannot be answered text-only; confirmed live, a model fabricated a
+    // specific "the image actually depicts X" claim with zero pixels rather than abstaining. For such a rubric,
+    // __nonVisual now falls through to the SAME auto-PARTIAL abstain as a genuine capture failure.
+    const nonVisualUsable = avail.__nonVisual === '1' && !rub.requiresVision;
+    if (nonVisualUsable) signals.elementNotPerceivable = true;
     // NO-VISION ablation fairness (V3_NO_VISION_RUBRIC): BYPASS the gate so the LLM is actually CALLED without the
     // crops — otherwise a no-vision run abstains here before the model ever runs, and its 0 recall is a gate
     // artifact, not a measurement of what the model can do from text. (Paired with the de-visioned rubric note.)
-    if (declaredVision.length && frames.length < declaredVision.length && avail.__nonVisual !== '1' && process.env.V3_NO_VISION_RUBRIC !== '1') return null;
+    if (declaredVision.length && frames.length < declaredVision.length && !nonVisualUsable && process.env.V3_NO_VISION_RUBRIC !== '1') return null;
     const checkerHint = (checkerHintsByXpath[subj.xpath] || []).find((h) => h.sc === subj.sc) || null;
     const messages = buildMessages({ xpath: subj.xpath, skill: subj.skill, sc: subj.sc, claimFamily: subj.claimFamily }, signals, transcriptByXpath[subj.xpath], frames, { rubric: rub.text, checkerHint, toolsEnabled: opts.toolsEnabled });
     let out; const t0 = Date.now();
