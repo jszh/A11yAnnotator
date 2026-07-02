@@ -5,12 +5,16 @@
 // where it lives (budget.js makeRunBudget/withDeadline; the SDK transport in llm-agent-adapter.js); only the
 // numbers' HOME moves here. Values are UNCHANGED from where they were inlined — this is behavior-preserving.
 
-// Experiment-lane ceiling (R2.2e/Q3): DEFAULT 300000 (5 min). Raised from 120000 so the experiment lane RUNS TO
-// COMPLETION on heavy pages, which makes the claim-proposal set deterministic and removes the budget-deferral
+// Experiment-lane ceiling (R2.2e/Q3): DEFAULT 600000 (10 min). Raised from 120000→300000 so the experiment lane
+// RUNS TO COMPLETION on heavy pages, which makes the claim-proposal set deterministic and removes the budget-deferral
 // `autoPartial` drift (measured: unrun 17-19 → 0, ledger flips → 0, ~+20s/case; the deferred experiments are fast, so
-// the ceiling rarely binds and most pages finish well under it). `V3_ACT_RUN_WALLCLOCK_MS` overrides (e.g. =120000 to
-// reproduce the old behaviour). caseTimeoutMs MUST stay above the ceiling (it is the hard hang-guard), so it tracks it.
-const ACT_RUN_CEILING_MS = Number(process.env.V3_ACT_RUN_WALLCLOCK_MS) || 300000;
+// the ceiling rarely binds and most pages finish well under it). Doubled 300000→600000 after the `tt-budget2x-244`/
+// `tt-budget2x-247` probes (`--run-wall-ms=600000`) on stuck DHS Trusted-Tester cases: 2.4.7 flipped from stuck
+// (noObligation/noVerdict at the 300000 ceiling) to `caught` with the doubled headroom; 2.4.4 stayed noVerdict
+// either way (that stall is a different, unrelated gap — see 2.4.4 link-lane notes elsewhere). `V3_ACT_RUN_WALLCLOCK_MS`
+// overrides (e.g. =120000 to reproduce the old behaviour). caseTimeoutMs MUST stay above the ceiling (it is the hard
+// hang-guard), so it tracks it.
+const ACT_RUN_CEILING_MS = Number(process.env.V3_ACT_RUN_WALLCLOCK_MS) || 600000;
 
 const LIMITS = Object.freeze({
   // ── A. Formal cost budgets (budget.js · Rule 8 "bounded cost"). Exhaustion ⇒ an explicit unrun/deferred
