@@ -97,15 +97,26 @@ real list is NOT. Common failure patterns:
   reader perceives the section break, AT users do not (technique H69). The same applies to a heading that is
   only *styled* large (e.g. `<strong style="font-size:18pt">`) standing in for an `<h1>`.
   **REQUIRED before flagging this: the text must ACTUALLY FUNCTION as a section heading — visually
-  distinguished from surrounding body text by ANY presentational means (size, weight, color, all-caps/
-  letter-spacing, extra spacing, or a top/bottom rule/underline — H69 does not require "larger/bolder"
-  specifically) AND labelling a distinct block of content BELOW it.** Prominent text is NOT automatically a heading: a site title / logo / masthead wordmark,
+  distinguished from surrounding body text by a presentational difference you can NAME AND SEE in the
+  viewport (a size, weight, color, all-caps/letter-spacing, extra-spacing, or top/bottom-rule/underline
+  difference — H69 does not require "larger/bolder" specifically, but it DOES require a visible
+  distinction) AND labelling a distinct block of content BELOW it.** The cue-agnostic list does NOT lower
+  the bar: text rendered IDENTICALLY to the surrounding prose (same size, weight, color, casing, spacing)
+  is NOT a heading candidate no matter its content, position, or punctuation — if you cannot state which
+  SPECIFIC visible difference sets the candidate off from adjacent body text, there is no candidate.
+  Prominent text is NOT automatically a heading: a site title / logo / masthead wordmark,
   a banner or hero tagline, the first line of a paragraph, a byline, a pull-quote, or inline emphasis is not
-  a section heading, and body prose that merely happens to be the first/topmost text is not one either. If the
+  a section heading, the page `<title>` echoed as the first line of prose is not one either, and body prose
+  that merely happens to be the first/topmost text is not one. If the
   page has NO text that both looks like a heading AND introduces a subordinate section (a page can legitimately
   have zero headings — that is `inapplicable`, not a barrier), do NOT invent one; return NOT REPRODUCED, or
   PARTIAL if the viewport is ambiguous about whether a candidate is a true section heading. Never describe "a
   visual heading at the top" you cannot point to as visually-heading-styled AND section-introducing.
+  **The mismatch direction is VISUAL → PROGRAMMATIC only.** 1.3.1 requires structure a sighted user
+  perceives to be programmatically determinable — never the reverse. A programmatic heading/landmark that
+  is VISUALLY HIDDEN (an sr-only/clip-pattern `<h1>`, an off-screen navigation heading) is a standard,
+  conforming technique that HELPS AT users; do NOT flag "a programmatic heading is invisible in the visual
+  layout" as a 1.3.1 mismatch — that inversion is not a failure mode of this SC.
 - **Heading LEVEL does not logically nest (TT 10.C):** distinct from "not marked up" above — a REAL heading
   whose programmatic LEVEL NUMBER contradicts its visual nesting relative to a nearby heading. Consult
   `signals.structure.headingOutline.sequence` — each entry may carry `suspect: 'SKIP_DEEPER'` (this heading's
@@ -191,5 +202,10 @@ from the roles + viewport — but judge it RIGHT, and do not invent a barrier th
 - For a table-association call, you must be able to see the table's structure (headers + the cells they
   should govern); if the `viewport` does not show enough of the grid, return PARTIAL.
 - Missing landmark / heading-skip is a best-practice concern, NOT automatically a 1.3.1 failure.
+- **A REPRODUCED verdict must NAME the relationship: which visually-conveyed structure (this heading /
+  this list / this table association / this group) lacks or contradicts which programmatic equivalent.**
+  A verdict you can only justify with a restatement ("the issue was reproduced"), a bare measurement, or
+  a generic suspicion is NOT evidence of a 1.3.1 failure — return PARTIAL (or NOT REPRODUCED if the
+  structures you CAN name are all correctly conveyed). The summary must carry that named relationship.
 
 **Output:** STRICT JSON `{verdict, confidence, summary, reasoning, evidenceRefs}`.

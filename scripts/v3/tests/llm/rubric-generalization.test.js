@@ -176,10 +176,25 @@ test('#8 correctly-nested outlines stay un-flagged (no-suspect fast path intact)
 
 test('#11 RECALL: a visual heading distinguished by caps/color/rule (not size) is now in scope', () => {
   const t = R['info-relationships-v0'].text;
-  assert.match(t, phrase('visually distinguished from surrounding body text by ANY presentational means (size, weight, color, all-caps/'),
-    'the cue list is general — not size-only');
-  assert.match(t, phrase('letter-spacing, extra spacing, or a top/bottom rule/underline'), 'caps/spacing/rule cues are in scope (H69 does not require larger/bolder)');
+  assert.match(t, phrase('a presentational difference you can NAME AND SEE in the'),
+    'the cue is generalized but HARD: the judge must name a visible difference');
+  assert.match(t, phrase('size, weight, color, all-caps/'), 'the cue list is general — not size-only');
+  assert.match(t, phrase('letter-spacing, extra-spacing, or top/bottom-rule/underline'), 'caps/spacing/rule cues are in scope (H69 does not require larger/bolder)');
   assert.doesNotMatch(t, phrase('clearly larger/bolder than the body text'), 'the narrowed size-only cue is gone');
+});
+
+test('#11 TT-validation hardening: identical-to-prose text is never a candidate; sr-only headings are conforming', () => {
+  // Round-1 TT validation (tt-overfitfix-gemini) regressed 10_B (invented lorem "heading") and 10_D-2
+  // (flagged an sr-only h1 as a "mismatch"). These pins hold the two guards that closed those modes.
+  const t = R['info-relationships-v0'].text;
+  assert.match(t, phrase('text rendered IDENTICALLY to the surrounding prose (same size, weight, color, casing, spacing)'),
+    'no visible difference ⇒ no heading candidate — soft cue-agnosticism must not license invention');
+  assert.match(t, /page `<title>` echoed as the first line of prose is not one either/,
+    'title-echo first line is an explicit negative control');
+  assert.match(t, phrase('The mismatch direction is VISUAL → PROGRAMMATIC only.'),
+    'sr-only/visually-hidden programmatic headings are conforming — the inverted mismatch is not a 1.3.1 failure');
+  assert.match(t, phrase('A REPRODUCED verdict must NAME the relationship'),
+    'degenerate justifications (restatement / bare measurement) cannot carry a page-level barrier');
 });
 
 test('#11 OVER-FIRE guards KEPT: the negative controls and the labels-a-block-below conjunct are intact', () => {
