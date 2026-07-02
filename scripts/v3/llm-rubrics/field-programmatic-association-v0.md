@@ -52,11 +52,18 @@ enclosing `<table>` grid), the field's role/type, its accessible name/descriptio
   trailing-colon differences are NOT a barrier.
 - Per TT 5.C: form fields are NOT required to be programmatically associated with form SECTION HEADINGS
   unless there's a significant risk of confusion without it — do not invent a barrier for a field simply
-  because it isn't tied to a `<h2>`/`<fieldset><legend>` section title elsewhere on the page.
-- At minimum, radio buttons and checkboxes should be programmatically associated with both their own
-  response text AND (via a shared `<fieldset><legend>` or equivalent) the overall question — a checkbox/radio
-  named only by its own value with no group context, where the group question is visually apparent but not
-  associated, IS a barrier.
+  because it isn't tied to a `<h2>`/`<fieldset><legend>` section title elsewhere on the page. This applies to
+  radio buttons and checkboxes too: a `<fieldset><legend>` (or equivalent) tying the group to its overall
+  question is GOOD PRACTICE, not an absolute 1.3.1 requirement — confirmed against TT 5.C's own worked example
+  (a "Choose Payment Method" `<h2>` followed by two `<label for>`-associated radio options, "Credit Card" /
+  "Online Banking", with NO fieldset/legend, scored Pass: each option's own accessible name already tells a
+  screen-reader user what it does). Do NOT flag a missing group association as a barrier merely because a
+  section heading/question exists nearby and isn't programmatically tied to the group.
+- The one exception: flag it ONLY when the option's own accessible name is GENUINELY AMBIGUOUS without the
+  group question — e.g. options literally named "Yes"/"No"/"Option A" with no visible common question nearby,
+  where a screen-reader user hearing just the option name in isolation could not tell what they're choosing
+  between. A self-explanatory option name ("Credit Card", "Online Banking", "Email me", "Call me") is NOT
+  ambiguous even without the group context — do not flag it.
 - If the crop is inconclusive about what's actually visible (label text unreadable, table context cropped
   out), return PARTIAL rather than inventing a mismatch.
 - Do not judge whether a visible label exists AT ALL (3.3.2), error-message wording, or required-field
