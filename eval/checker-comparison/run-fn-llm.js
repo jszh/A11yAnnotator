@@ -228,24 +228,39 @@ const runAgent = wrapAgent(baseAgent);
 //   1. Eligibility uses the STANDARD's applicability — e88epe applies to an image NOT in the a11y tree — NOT our
 //      decorativeSuspect routing. A genuinely-clean page (NO removed image: the 7d6734 yellow circle, the e88epe
 //      pdf-icon with alt="PDF") is therefore NOT excluded, and a real over-flag on it still counts as an FP.
-//   2. INDETERMINACY size: below INDETERMINACY_MIN_DIM a removed image is an icon/spacer/sliver — unambiguously
-//      decorative — so e88epe's verdict is deterministic and the single label IS valid ⇒ NOT excluded. (Independent of
-//      the oracle's routing gate; it happens to be the same physical boundary — where decorativeness becomes a judgment.)
+//   2. INDETERMINACY needs the removed image to PLAUSIBLY CARRY INFORMATION. e88epe's applicability is SIZE-FREE
+//      (an <img> that is visible AND not included in the accessibility tree), so the scorer must not import the
+//      harness's routing geometry (finding #14: the old 24px floor mirrored the oracle's V3_DECORATIVE_MIN_DIM
+//      routing constant — lockstep with the system under test; the scorer's floors are now local + spacer-only).
+//      The only size-based certainty retained is what a SPACER definitionally is: an image with NO rendered pixels
+//      is not "visible" (e88epe inapplicable); a sliver (narrow dimension under ~5 CSS px — a 1–2px rule/shim that
+//      cannot render a glyph) and a degenerate-aspect stripe (an extreme-aspect strip whose ONLY plausible payload
+//      is rendered text, yet too narrow for legible text — min font-size ≈ 9–10 CSS px; e.g. a 300×6 border stripe)
+//      are determinately decorative — for those e88epe's verdict is deterministic and the single label IS valid ⇒
+//      NOT excluded. Anything larger COULD convey information (a 320×20 image-of-text, a 16×16 pictograph), so its
+//      decorativeness is a judgment and the label does not determine the SC ⇒ excluded.
 //   3. e88epe's OWN cases are never excluded — the owning rule's label is present, so the SC status IS determined.
-const INDETERMINACY_MIN_DIM = 24; // px (min of width/height): below this a removed-from-tree image is unambiguously decorative
+// Scorer-LOCAL floors — deliberately NOT the oracle's routing gate; never reads V3_DECORATIVE_MIN_DIM:
+const SCORER_SLIVER_MIN_DIM = 5;      // px (min of width/height) — below this no glyph/pictograph renders at all
+const SCORER_STRIPE_ASPECT = 4;       // max/min — at ≥4:1 only rendered text plausibly informs (one word ≳ 4:1) …
+const SCORER_STRIPE_TEXT_HEIGHT = 10; // px — … and legible text needs ~10 CSS px of narrow-dimension height
 const E88EPE_SIBLINGS_111 = new Set(['23a2a8', 'qt1vmo', '7d6734', '8fc3b6', '59796f']); // 1.1.1 IN-tree image rules; e88epe owns REMOVED images
 function crossRuleIndeterminate(tc, collect) {
   if (tc.expected === 'failed') return null;                     // only NEGATIVE-labeled cases are ever excluded
   if (!(tc.sc || []).includes('1.1.1')) return null;             // v1 encodes only the 1.1.1 in-tree/removed image partition
   if (!E88EPE_SIBLINGS_111.has(tc.ruleId)) return null;          // e88epe's own + unrelated rules: the label determines the SC
-  const removedSubstantialImg = ((collect && collect.elements) || []).some((el) => {
+  const removedInformativeCandidate = ((collect && collect.elements) || []).some((el) => {
     if (!(el.isImage === true || el.tag === 'img')) return false;
     if (el.removedFromA11yTree !== true) return false;           // e88epe applicability: image NOT in the accessibility tree
     const b = el.box; if (!b) return false;                      // two collectors: {width,height} (act-page) / {w,h} (eval-page)
     const w = b.width != null ? b.width : b.w; const h = b.height != null ? b.height : b.h;
-    return w > 0 && h > 0 && Math.min(w, h) >= INDETERMINACY_MIN_DIM; // indeterminacy: large enough that decorativeness is a judgment
+    if (!(w > 0 && h > 0)) return false;                         // e88epe applicability: zero-area render ⇒ not visible
+    const minDim = Math.min(w, h);
+    if (minDim < SCORER_SLIVER_MIN_DIM) return false;            // 1–2px sliver/shim: determinately decorative
+    if (Math.max(w, h) / minDim >= SCORER_STRIPE_ASPECT && minDim < SCORER_STRIPE_TEXT_HEIGHT) return false; // degenerate-aspect stripe: too narrow for text, its only plausible payload
+    return true;                                                 // plausibly carries information ⇒ decorativeness is a judgment
   });
-  return removedSubstantialImg ? 'cross-rule-indeterminate:e88epe(1.1.1-removed-image)' : null;
+  return removedInformativeCandidate ? 'cross-rule-indeterminate:e88epe(1.1.1-removed-image)' : null;
 }
 
 // ============================ criterion-level GT override (*) ============================
