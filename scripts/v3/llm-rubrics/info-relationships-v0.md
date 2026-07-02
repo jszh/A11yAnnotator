@@ -28,6 +28,17 @@ table/header-association barrier ONLY for a table whose `perTable` verdict is `U
   decide from the grid whether position alone conveys the header→data association. A `<th>` being hidden from AT
   (`aria-hidden`) does NOT by itself break a simple positional 2-cell table — flag only if a sighted reader's
   row/column association is genuinely lost to AT users.
+  **"Position alone conveys the association" REQUIRES an actual `<th>` cell to be sitting in that position — it
+  is NEVER true for a plain `<td>`, no matter how visually header-like its text looks (bold, first row, column
+  label text).** Position-based (implicit) header association is an algorithm over REAL `<th>` elements; a `<td>`
+  is never promoted to a header by its screen position. Before crediting a row/column as positionally associated,
+  cross-check `signals.structure.tables[i].headers[]` (the actual `<th>` cells collected, with their text) against
+  what the viewport shows in that position: if the visually-header-looking text in that row/column is NOT one of
+  the `headers[]` entries, NO `<th>` exists there — the association is BROKEN regardless of how "clear" the
+  layout looks to a sighted user, and you MUST flag it (DHS Trusted-Tester 511654-19: a table's ROW labels
+  ["Rank"/"Name"/"Year"] are real `<th>`, but its COLUMN labels ["First"/"Second"/"Third"] are plain `<td>` —
+  `thCount` and `headers[]` will show ONLY 3 headers, one per row, none matching the column labels — that
+  mismatch between what's visually a header and what's actually in `headers[]` IS the barrier).
 
 This gate governs ONLY the table facet. Judge headings, lists, groups, and emphasis on their own merits below.
 
@@ -91,15 +102,22 @@ real list is NOT. Common failure patterns:
   level jumps more than one level deeper than the heading before it, e.g. h2 straight to h4, skipping h3 — a
   classic anti-pattern) or `suspect: 'JUMP_SHALLOWER'` (this heading's level lands MORE than one level shallower
   than the heading before it, on a level other than 1 — e.g. an `<h6>` section immediately followed by an
-  `<h4>`/`<h5>` that visually reads as ITS subsection). **A `suspect` flag is a hint to LOOK, never a verdict —
-  most flagged transitions are fine.** For each suspect entry, check the `viewport`: does the flagged heading's
-  VISUAL size/weight match its programmatic rank relative to the heading it appears to sit under or continue
-  from? If a numerically-SHALLOWER heading (fewer nesting, e.g. h4) renders SMALLER/less prominent than a
-  numerically-DEEPER heading (e.g. h6) it visually follows as if introducing a subsection of it, the programmatic
-  hierarchy contradicts what a sighted user perceives ⇒ barrier. A suspect entry whose visual sizing is
-  consistent with its own level (or where you cannot tell heading size from the viewport) is NOT a defect —
-  return PARTIAL only if genuinely inconclusive, otherwise clear it. A heading sequence with NO suspect entries
-  needs no special heading-level scrutiny — TT 10.C is not a concern there.
+  `<h4>`/`<h5>` that visually reads as ITS subsection). **A `suspect` flag is deterministic, not a hallucination
+  risk — it is a HARD numeric fact about the level sequence, ALREADY tuned to exclude the common benign case (a
+  full reset to `<h1>`, closing several sections and starting fresh — never flagged).** A corpus-wide scan found
+  this signal fires on well under 15% of real multi-section pages, so when it DOES fire it is a targeted,
+  uncommon anomaly, not routine noise — treat a suspect entry as LIKELY a real mismatch until the viewport
+  affirmatively shows otherwise, not the reverse. For each suspect entry, check the `viewport`: does the flagged
+  heading's VISUAL size/weight match its programmatic rank relative to the heading it appears to sit under or
+  continue from? If a numerically-SHALLOWER heading (fewer nesting, e.g. h4) renders SMALLER/less prominent than
+  a numerically-DEEPER heading (e.g. h6) it visually follows as if introducing a subsection of it, the
+  programmatic hierarchy contradicts what a sighted user perceives ⇒ barrier — this is the DEFAULT reading of a
+  suspect entry; do not talk yourself out of it by reasoning that the levels "could" be a deliberate style choice
+  without POINTING TO a specific visual cue (an actually-larger/bolder rendering of the shallower heading) that
+  justifies clearing it. Only clear a suspect entry when you can name the visual evidence that resolves it; if
+  the viewport doesn't show heading sizes clearly, return PARTIAL — do NOT default to "not a defect" from
+  inconclusive evidence. A heading sequence with NO suspect entries needs no special heading-level scrutiny — TT
+  10.C is not a concern there.
 - **Broken table header association:** a DATA table (it has both header cells AND data cells) whose column/row
   HEADER cells do not actually associate with the data cells a sighted user reads under/beside them — e.g. a header
   whose column/row holds data but is not linked to it, or a visual grid with no programmatic `th`/`scope`/`headers=`

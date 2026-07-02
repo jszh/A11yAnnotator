@@ -509,6 +509,16 @@ async function collectActPage(page, opts = {}) {
       const autoMotion = tag === 'marquee'
         || (_mcs.animationName && _mcs.animationName !== 'none' && (_mcs.animationIterationCount === 'infinite' || parseFloat(_mcs.animationDuration) > 5))
         || ((tag === 'video' || tag === 'audio') && el.hasAttribute('autoplay') && !el.hasAttribute('controls'));
+      // AUTO-UPDATING CONTENT (#9 fix, TT 4.1.2 Test 2.D): a carousel/slideshow/ticker whose VISIBLE content changes
+      // on a timer without user action — distinct from autoMotion (which is about the ANIMATION itself needing a
+      // pause/stop, 2.2.2) and from liveRegion (an aria-live container, 4.1.3). Bootstrap's carousel (data-ride=
+      // "carousel" / Bootstrap 5's data-bs-ride) swaps slides via setInterval + a CSS *transition*, not @keyframes,
+      // so autoMotion's animationName check never fires on it — this was a real gap (a real DHS Trusted-Tester page,
+      // a Bootstrap carousel with zero aria-live anywhere, minted NO obligation for "does this announce its own
+      // automatic changes", only an unrelated name-adequacy check on its prev/next buttons). Narrowly scoped to the
+      // known carousel-library marker (not a broad "any timer-driven DOM write" heuristic) to avoid flooding.
+      const autoUpdatingContent = el.hasAttribute('data-ride') && /carousel|slider|slideshow/i.test(el.getAttribute('data-ride') || '')
+        || el.hasAttribute('data-bs-ride') && /carousel|slider|slideshow/i.test(el.getAttribute('data-bs-ride') || '');
       const isMedia = tag === 'video' || tag === 'audio';
       let mediaInfo = null;
       if (isMedia) {
@@ -613,6 +623,7 @@ async function collectActPage(page, opts = {}) {
         isMedia,
         mediaInfo,
         autoMotion,
+        autoUpdatingContent, // #9 fix (TT 4.1.2 2.D): carousel/slideshow auto-rotation notification obligation
         underOverlay: focusable && _underOverlay(box),
         hasHoverContent: _hasHoverContent(el),
         backgroundImageMeaningful, backgroundImageUrl, isCaptcha, // TT gaps G2/G3 (1.1.1)

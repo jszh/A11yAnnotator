@@ -1106,7 +1106,17 @@ async function resolveDestination(page, args, opts = {}) {
   const allowCrossOrigin = opts.allowCrossOrigin !== false;
   const ssrfCheck = opts.ssrfCheck || ((u) => ssrfSafeUrl(u, opts.lookup));
   const { linkXpath, linkXpaths } = args || {};
-  const xpaths = (Array.isArray(linkXpaths) && linkXpaths.length) ? linkXpaths : (typeof linkXpath === 'string' && linkXpath ? [linkXpath] : []);
+  // #8 fix: self-coalesce a single-target call into its KNOWN same-name-link set (opts.linkPeerGroups, threaded
+  // from orchestrator.js's computeLinkPeerGroups) — closes a documented, cross-model failure where the model issues
+  // SEPARATE resolve_destination calls per same-named link instead of batching (limits.js's toolMaxTurns comment;
+  // independently reproduced on gpt-5.4-mini) and burns its whole turn budget with zero usable output. An EXPLICIT
+  // `linkXpaths[]` from the model is respected as-is (it already knows the set); only a single `linkXpath` with no
+  // array gets expanded, and only when the xpath is actually a member of a known 2+ set.
+  const knownGroup = (!Array.isArray(linkXpaths) || !linkXpaths.length) && typeof linkXpath === 'string' && linkXpath
+    && opts.linkPeerGroups && typeof opts.linkPeerGroups.get === 'function' ? opts.linkPeerGroups.get(linkXpath) : null;
+  const xpaths = (Array.isArray(linkXpaths) && linkXpaths.length) ? linkXpaths
+    : (knownGroup && knownGroup.length) ? knownGroup
+    : (typeof linkXpath === 'string' && linkXpath ? [linkXpath] : []);
   if (!xpaths.length) return { error: 'linkXpath (string) or linkXpaths (array) required' };
   const dir = (u) => u.pathname.slice(0, u.pathname.lastIndexOf('/') + 1);
   // file:// "same origin" for the OFFLINE local mirror: a BOUNDED common-ancestor sandbox, NOT same-directory.
@@ -1412,7 +1422,7 @@ async function buildCdpToolServer(session) {
   const { tool, createSdkMcpServer } = await import('@anthropic-ai/claude-agent-sdk');
   const { z } = await import('zod');
   const page = session.page;
-  const ctx = { freshClone: session.freshClone, ocr: session.ocr };
+  const ctx = { freshClone: session.freshClone, ocr: session.ocr, linkPeerGroups: session.linkPeerGroups };
   const wrap = (fn, args) => fn(page, args, ctx).then((r) => ({ content: [{ type: 'text', text: JSON.stringify(r) }] })).catch((e) => ({ content: [{ type: 'text', text: JSON.stringify({ error: String(e && e.message || e) }) }], isError: true }));
   const tools = [
     tool('query_ax_node', 'Read-only: resolve a node (by xpath OR by a screenshot pixel x/y) to its live accessibility facts — role, role source, heading level, name provenance (nameFrom), aria-labelledby/describedby IDREF resolve status, required states, focusability, aria-hidden, and — when the node sits in a data-table cell — its associated column/row HEADER text (cellHeaders: colHeaders/rowHeaders/headerSource/danglingHeaderIds), the programmatic header context for a cell or a link inside one. Returns raw facts, NEVER a pass/fail.',
@@ -1459,7 +1469,7 @@ async function buildCdpToolServer(session) {
 // Descriptions are intentionally verbatim copies of buildCdpToolServer's (keep the two in sync if either changes).
 function buildCdpToolDispatch(session) {
   const page = session.page;
-  const ctx = { freshClone: session.freshClone, ocr: session.ocr };
+  const ctx = { freshClone: session.freshClone, ocr: session.ocr, linkPeerGroups: session.linkPeerGroups };
   const HANDLERS = {
     query_ax_node: queryAxNode, observe_state_after_activation: observeStateAfterActivation,
     set_state_and_capture: setStateAndCapture, probe_screen_reader_after_action: probeScreenReaderAfterAction,

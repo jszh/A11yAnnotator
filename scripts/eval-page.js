@@ -350,6 +350,11 @@ function parseRGB(s) {
         const autoMotion = r.tagName.toLowerCase() === 'marquee'
           || (cs.animationName && cs.animationName !== 'none' && (cs.animationIterationCount === 'infinite' || parseFloat(cs.animationDuration) > 5))
           || ((r.tagName.toLowerCase() === 'video' || r.tagName.toLowerCase() === 'audio') && r.hasAttribute('autoplay') && !r.hasAttribute('controls'));
+        // #9 fix (TT 4.1.2 2.D parity): a carousel/slideshow whose content auto-rotates on a timer (Bootstrap's
+        // data-ride/data-bs-ride="carousel") — distinct from autoMotion (the animation itself, 2.2.2) and liveRegion
+        // (an aria-live container, 4.1.3); narrowly scoped to the known carousel-library marker.
+        const autoUpdatingContent = r.hasAttribute('data-ride') && /carousel|slider|slideshow/i.test(r.getAttribute('data-ride') || '')
+          || r.hasAttribute('data-bs-ride') && /carousel|slider|slideshow/i.test(r.getAttribute('data-bs-ride') || '');
         // Item 10 (1.2.x media parity): a <video>/<audio> + its <track> children.
         const _mtag = r.tagName.toLowerCase();
         const isMedia = _mtag === 'video' || _mtag === 'audio';
@@ -599,6 +604,7 @@ function parseRGB(s) {
           liveRegion, // Item 11: 4.1.3 status-message family
           isMedia, mediaInfo, // Item 10: 1.2.x media family
           autoMotion, // Item 14d: 2.2.2 motion-control family
+          autoUpdatingContent, // #9 fix: 4.1.2 auto-update-notification family
           backgroundImageMeaningful, backgroundImageUrl, isCaptcha, // TT gaps G2/G3 (1.1.1)
           // 2.1.2 focus-trap risk (coverage audit) — parity with act-page-collect so the widened gate fires on real pages too.
           focusRisk: r.hasAttribute('onblur') || r.hasAttribute('onfocus') || r.hasAttribute('onfocusout')

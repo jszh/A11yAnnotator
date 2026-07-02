@@ -64,6 +64,12 @@ const FAMILIES = Object.freeze({
   'meaningful-sequence':     Object.freeze({ sc: '1.3.2', skills: ['grouping-and-reading-order'] }),      // 1.3.2 (Item 14c, rubric sequence-meaning-v0) — page-level, gated on a vsr reading-order divergence
   'media-alternatives':      Object.freeze({ sc: '1.2.2', skills: ['media-alternatives'] }),             // 1.2.2 (Item 10, rubric media-alternatives-v0) — a <video> owes captions; presence+plausibility, abstain on sync
   'motion-control':          Object.freeze({ sc: '2.2.2', skills: ['timing-and-motion'] }),              // 2.2.2 (Item 14d, rubric motion-control-v0) — auto-moving >5s/looping/autoplay content owes a pause/stop
+  // #9 fix (TT 4.1.2 Test 2.D): a carousel/slideshow's automatic content change owes AT NOTIFICATION — distinct
+  // from motion-control (2.2.2, owes pause/stop) and status-message (4.1.3, an ALREADY-live-region-marked
+  // container's announcement adequacy). Confirmed via refs/trusted-tester/sc-4.1.2-name-role-value.md that TT
+  // scores this under 4.1.2, not 4.1.3, despite the conceptual overlap — a shared multi-SC rubric is unsafe here
+  // (llm-adjudicator.js's bySc construction string-coerces an array `sc`, breaking routing), hence its own family.
+  'auto-update-notification': Object.freeze({ sc: '4.1.2', skills: ['dynamic-announcement'] }),
   // TT gap G3 (TT 7.D, 1.1.1): a CAPTCHA owes a non-visual AND non-auditory alternative. Its own skill+rubric
   // (captcha-alternative-v0) asks the multi-modal question and returns review/PARTIAL — never a hard verdict.
   // (The 1.1.1 background-image-meaning gap G2 reuses the existing non-text-content family + alt-text-adequacy rubric.)
@@ -190,6 +196,10 @@ function familiesFor(el) {
   // probe_screen_reader_after_action CDP tools when enabled). "absence ≠ pass": a detector that found no insertion
   // is NOT a clear (the un-hide case is exactly what it misses).
   if (el.liveRegion === true) fams.push('status-message');
+  // #9 fix (TT 4.1.2 2.D): auto-updating content (carousel/slideshow) that is NOT already inside a live region —
+  // if it IS (liveRegion:true), status-message-v0 already owns judging whether the announcement is adequate;
+  // this family owns the prior question ("is there ANY notification mechanism at all").
+  if (el.autoUpdatingContent === true && el.liveRegion !== true) fams.push('auto-update-notification');
   // 1.2.x TIME-BASED MEDIA (Item 10): a <video> owes a captions alternative (1.2.2) — does an adequate captions
   // track exist (presence + plausibility; sync/quality are not judgeable from a static crop → abstain). No checker
   // decides caption ADEQUACY. "absence ≠ pass": a present-but-empty <track> must NOT read as "has captions".

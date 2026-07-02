@@ -181,6 +181,11 @@ const RUBRIC_GATE = {
   // ...and NOT a decorative-suspect (unnamed removed-from-tree image): there is no author name/alt to judge there, so
   // the empty-alt would only false-barrier — the decorative-image-verification rubric owns that image's 1.1.1 instead.
   'alt-text-adequacy-v0': (el) => (!el || el.isCaptcha !== true || el.isImage === true) && !oracle.decorativeSuspect(el),
+  // #9 fix: accessible-name-adequacy-v0 ALSO shares sc:'4.1.2' (frame-title/iframe-name/accessible-name rows) —
+  // without this gate auto-update-notification-v0 would fire on every 4.1.2 row (any iframe/link/button), not just
+  // the timer-driven carousel the collector actually flagged. Confirmed live: without this gate, real DHS pages
+  // routed the rubric onto plain iframes/links and produced malformed/empty prompts that OpenAI rejected outright.
+  'auto-update-notification-v0': (el) => !!el && el.autoUpdatingContent === true,
 };
 
 // v2.9 PURE SIGNAL PRE-COMPUTE (3.1 §3): reuse a11y-eval verbatim where the inputs exist on the
@@ -641,7 +646,13 @@ function precomputeSignals(element, skill, sc) {
   // V3_HTML_KEEP_STYLE (keep inline style). (V3_HTML_AUGMENT/_NOSTYLE/_FACET_GATE are now the default and retired.)
   const augHtml = process.env.V3_NO_HTML_EVIDENCE !== '1';
   const gateHtml = process.env.V3_HTML_NO_GATE !== '1';
-  if (augHtml && !(gateHtml && HTML_RUNNER_OWNED_SC.has(sc))) {
+  // #9 fix: the 4.1.2 HTML gate exists because accessible-name-adequacy-v0 (skill:name-role-state) over-flagged
+  // on visible inline markup (aria-hidden, etc.) — but auto-update-notification-v0 (skill:dynamic-announcement)
+  // needs raw markup for the OPPOSITE reason: confirming aria-live/role=status PRESENCE is a structural fact a
+  // screenshot cannot show at all, so blanket-gating it off left the rubric evidence-starved (confirmed live: the
+  // model correctly abstained UNCERTAIN — "cannot determine ... whether ... announces" — rather than hallucinate).
+  const htmlGateExempt = sc === '4.1.2' && skill === 'dynamic-announcement';
+  if (augHtml && !(gateHtml && HTML_RUNNER_OWNED_SC.has(sc) && !htmlGateExempt)) {
     const he = htmlEvidence(element, process.env.V3_HTML_KEEP_STYLE !== '1');
     s.rawElementHtml = he.rawElementHtml; s.enclosingHtml = he.enclosingHtml;
   }
@@ -969,18 +980,11 @@ const mapToRubricVerdict = (v29) => RUBRIC_VERDICT_FROM_V29[v29] || null;
 
 // Build (element, rubric) judging subjects: each auto-PARTIAL obligation × every atomic rubric whose
 // `sc` matches the obligation's SC. `rubrics` is loadRubrics().rubrics ({ [id]: {id, sc, skill, text, visionEvidence} }).
-function selectRubricSubjects(collect, ledger, rubrics, { onlyAutoPartial = true, confinement = null, contrastExempt = null } = {}) {
-  // 2.1.2 keyboard-trap: `confinement` maps each CONFINED element xpath → { members:[{xpath,label}], setSize } (built
-  // from the deterministic confinement instrument's REVIEW findings — the lying-static-advisory ones were already
-  // promoted to a barrier and are excluded). The keyboard-trap-v0 rubric fires ONLY on a confined member, carrying
-  // the trapped set so the regular LLM judge can reveal a buried advisory + verify the key with the tools.
-  const confinementFor = (xpath) => (confinement && Object.prototype.hasOwnProperty.call(confinement, xpath)) ? confinement[xpath] : null;
-  const elByXpath = {};
-  for (const el of (collect && collect.elements) || []) if (el && el.xpath) elByXpath[el.xpath] = el;
-  const structure = (collect && collect.structure) || null; // page facts threaded to page-structure subjects (Tier-0 #3)
-  // Item 14a (2.4.4 in-context, set-not-element): a per-page index of links sharing an accessible name. A
-  // link-purpose subject is handed the OTHER same-named links + their destinations so the rubric can judge whether
-  // identically-named links go to DIFFERENT places (ACT fd3a94) — the equivalence call a single-element view misses.
+// per-page index of links sharing an accessible name (2.4.4 set test) — {xpath, name, href} grouped by lowercased
+// name. Extracted so both selectRubricSubjects (the __sameNameLinks prompt evidence) and orchestrator.js's tool
+// session (the #8 resolve_destination self-coalescing fix, below) build this from the SAME logic, not two copies
+// that could drift.
+function buildLinksByName(collect) {
   const linksByName = {};
   for (const el of (collect && collect.elements) || []) {
     if (!el || !el.xpath) continue;
@@ -996,6 +1000,43 @@ function selectRubricSubjects(collect, ledger, rubrics, { onlyAutoPartial = true
     // href — fall back so same-named JS-links are destination-compared like anchor links (and resolve_destination follows it).
     (linksByName[k] = linksByName[k] || []).push({ xpath: el.xpath, name: nm, href: el.href || el.jsHref || null });
   }
+  return linksByName;
+}
+
+// #8 fix (2.4.4 resolve_destination self-coalescing): a page-level xpath -> [peer xpaths] map, threaded onto the
+// tool session (orchestrator.js) so resolve_destination can auto-expand a single-target call into the WHOLE known
+// same-name-link set server-side. Root cause this closes: a documented, cross-model failure (limits.js's
+// toolMaxTurns comment; reproduced independently on gpt-5.4-mini on a real DHS Trusted-Tester page) where the model
+// issues SEPARATE resolve_destination calls per same-named link instead of batching, burning its whole turn budget
+// with zero usable output. The rubric directive to batch ("pass the WHOLE set in one call") already exists
+// (link-name-equivalence-v0.md) and the tool already ACCEPTS a batch (`linkXpaths[]`) — the gap is that both are
+// purely LLM-discretionary. This makes the batching happen regardless of whether the model complies: even a
+// single-target call resolves the full set (and subsequent calls for other members of the SAME set hit
+// resolveDestination's own `_DEST_CACHE`, so redundant model calls are cheap, not turn-exhausting).
+function computeLinkPeerGroups(collect) {
+  const linksByName = buildLinksByName(collect);
+  const groups = new Map();
+  for (const peers of Object.values(linksByName)) {
+    if (peers.length < 2) continue; // a lone link has no set to coalesce
+    const xpaths = peers.map((p) => p.xpath);
+    for (const xp of xpaths) groups.set(xp, xpaths);
+  }
+  return groups;
+}
+
+function selectRubricSubjects(collect, ledger, rubrics, { onlyAutoPartial = true, confinement = null, contrastExempt = null } = {}) {
+  // 2.1.2 keyboard-trap: `confinement` maps each CONFINED element xpath → { members:[{xpath,label}], setSize } (built
+  // from the deterministic confinement instrument's REVIEW findings — the lying-static-advisory ones were already
+  // promoted to a barrier and are excluded). The keyboard-trap-v0 rubric fires ONLY on a confined member, carrying
+  // the trapped set so the regular LLM judge can reveal a buried advisory + verify the key with the tools.
+  const confinementFor = (xpath) => (confinement && Object.prototype.hasOwnProperty.call(confinement, xpath)) ? confinement[xpath] : null;
+  const elByXpath = {};
+  for (const el of (collect && collect.elements) || []) if (el && el.xpath) elByXpath[el.xpath] = el;
+  const structure = (collect && collect.structure) || null; // page facts threaded to page-structure subjects (Tier-0 #3)
+  // Item 14a (2.4.4 in-context, set-not-element): a per-page index of links sharing an accessible name. A
+  // link-purpose subject is handed the OTHER same-named links + their destinations so the rubric can judge whether
+  // identically-named links go to DIFFERENT places (ACT fd3a94) — the equivalence call a single-element view misses.
+  const linksByName = buildLinksByName(collect);
   const sameNameLinksFor = (el) => {
     const nm = (typeof el.axName === 'string' && el.axName.trim()) || (typeof el.text === 'string' && el.text.trim()) || '';
     if (!nm) return null;
@@ -1161,6 +1202,6 @@ async function runRubricJudgments(rubricSubjects, opts = {}) {
 module.exports = {
   MECHANISM, V2_9_VERDICTS, validateLlmShape, processLlm, mapToRubricVerdict,
   selectSubjects, selectRubricSubjects, precomputeSignals, buildPrompt, buildMessages,
-  runAdjudication, runRubricJudgments, scrubRefs, isLegacyToken,
+  runAdjudication, runRubricJudgments, scrubRefs, isLegacyToken, computeLinkPeerGroups,
   runPool, // the one audited order-preserving worker pool — shared by the deterministic experiment lane
 };

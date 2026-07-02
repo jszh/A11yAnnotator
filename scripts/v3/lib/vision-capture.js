@@ -45,8 +45,24 @@ async function captureVision(page, xpaths, opts = {}) {
     // so we ALWAYS restore — otherwise the page is left at 320px and EVERY later crop is silently corrupted.
     const orig = page.viewport();
     const cur = orig || await page.evaluate(() => ({ width: window.innerWidth, height: window.innerHeight })).catch(() => null);
-    try { await page.setViewport({ width: 320, height: (cur && cur.height) || 800 }); await require('./settle.js').awaitSettle(page); viewport320 = await shot(null); }
-    finally { if (cur && cur.width) await page.setViewport(cur).catch(() => {}); }
+    // #7b fix: a SECOND unguarded setViewport, structurally identical to captureVisionForUrl's #7 fix — this one
+    // is even more dangerous because `want` DEFAULTS to ALL FOUR states (orchestrator.js never passes opts.states),
+    // so this 320px resize runs on EVERY page's vision capture regardless of whether any subject on it actually
+    // declared viewport-320 evidence. A throw here under tab contention still propagated out of captureVision ⇒
+    // captureVisionForUrl ⇒ orchestrator's top-level .catch(() => ({})) — the exact whole-page vision collapse
+    // #7 was built to prevent, just from a different call site. Confirmed live: a real DHS page (1.4.5
+    // image-of-text, 402180-16) still showed 12 minted obligations / vision-stage timing / zero rubric verdicts
+    // after #7 shipped — consistent with THIS call throwing instead. Retry once, then degrade to no 320p crop
+    // (viewport320 stays null) rather than losing every OTHER element's element-crop/surrounding-region too.
+    let resized = false;
+    try { await page.setViewport({ width: 320, height: (cur && cur.height) || 800 }); resized = true; }
+    catch (e) {
+      await new Promise((r) => setTimeout(r, 200));
+      try { await page.setViewport({ width: 320, height: (cur && cur.height) || 800 }); resized = true; } catch (e2) { resized = false; }
+    }
+    try {
+      if (resized) { await require('./settle.js').awaitSettle(page); viewport320 = await shot(null); }
+    } finally { if (cur && cur.width) await page.setViewport(cur).catch(() => {}); }
   }
 
   for (const xpRaw of xpaths) {
@@ -290,7 +306,23 @@ async function captureVisionForUrl(url, xpaths, opts = {}) {
   // Acquire-before-work ⇒ a queued tab's wait is NOT charged to the goto/capture deadlines (timer-pause).
   const { withLanePage } = require('./page-lease.js');
   return withLanePage(opts, async (page) => {
-    await page.setViewport({ width: opts.width || 1280, height: opts.height || 900 });
+    // #7 fix: setViewport sends a raw CDP command and can throw ("Target closed"/"Protocol error") under real
+    // concurrent-tab pressure (memory contention, a tab-allocator reap racing this lease) — the ONE unguarded call
+    // in this function, unlike every other await here (goto/settle/screenshot all degrade to null/{} on failure).
+    // Before this fix, that single throw propagated out of captureVisionForUrl entirely, and orchestrator.js's
+    // top-level `.catch(() => ({}))` silently collapsed vision to EMPTY for the WHOLE page — every vision-requiring
+    // rubric subject on that page then hit the required-evidence gate and abstained with ZERO LLM calls attempted,
+    // not just this one setViewport call (confirmed: real 12/17/13-obligation pages went to 0 verdicts as a single
+    // atomic failure, and reducing page-concurrency — less tab contention — made it disappear). Retry once (a
+    // transient target hiccup often clears), then degrade to a best-effort continue rather than aborting the whole
+    // page's vision — a wrong/default viewport still lets goto/screenshot produce SOMETHING for most elements,
+    // which is strictly better than zero for every element.
+    try {
+      await page.setViewport({ width: opts.width || 1280, height: opts.height || 900 });
+    } catch (e) {
+      await new Promise((r) => setTimeout(r, 200));
+      await page.setViewport({ width: opts.width || 1280, height: opts.height || 900 }).catch(() => {});
+    }
     await page.goto(url, { waitUntil: 'load', timeout: opts.gotoTimeoutMs || 30000 }).catch(() => {});
     await require('./settle.js').awaitSettle(page); // gated V3_SETTLE_WAIT — settle fonts+layout before any screenshot
     const stat = await captureVision(page, xpaths, opts);          // static crops first (no page mutation)

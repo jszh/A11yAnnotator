@@ -455,6 +455,49 @@ test('resolve_destination: single-link reports redirect timing; linkXpaths[] ret
   });
 });
 
+// ───────────── #8 fix: resolve_destination self-coalescing (2.4.4 tool-loop batching) ─────────────
+const XP_SAMENAME_A = '/html[1]/body[1]/a[3]', XP_SAMENAME_B = '/html[1]/body[1]/a[4]';
+
+test('resolve_destination #8 FIX: a single linkXpath that is a KNOWN member of a same-name set self-coalesces into resolving the WHOLE set', { skip: !chromeOK, concurrency: false }, async () => {
+  await withPage(async (page) => {
+    const linkPeerGroups = new Map([
+      [XP_SAMENAME_A, [XP_SAMENAME_A, XP_SAMENAME_B]],
+      [XP_SAMENAME_B, [XP_SAMENAME_A, XP_SAMENAME_B]],
+    ]);
+    const r = await resolveDestination(page, { linkXpath: XP_SAMENAME_A }, { linkPeerGroups });
+    assert.equal(r.fingerprints.length, 2, 'a single-target call for a known-set member resolved BOTH members, not just the one named');
+    assert.ok(!('verdict' in r.equality) && !('same' in r.equality), 'still only a byte-equality grid, never a verdict');
+  });
+});
+
+test('resolve_destination #8 FIX REGRESSION GUARD: an EXPLICIT linkXpaths[] is respected as-is even when a peer group exists (the model already knows the set — do not second-guess it)', { skip: !chromeOK, concurrency: false }, async () => {
+  await withPage(async (page) => {
+    const linkPeerGroups = new Map([
+      [XP_SAMENAME_A, [XP_SAMENAME_A, XP_SAMENAME_B]],
+      [XP_SAMENAME_B, [XP_SAMENAME_A, XP_SAMENAME_B]],
+    ]);
+    const r = await resolveDestination(page, { linkXpaths: [XP_SAMENAME_A] }, { linkPeerGroups });
+    assert.equal((r.fingerprints || [r]).length, 1, 'an explicit linkXpaths array of length 1 is honored exactly — not silently expanded');
+  });
+});
+
+test('resolve_destination #8 NO OVER-COALESCING: a single linkXpath with NO known peer group behaves exactly as before (single-target only)', { skip: !chromeOK, concurrency: false }, async () => {
+  await withPage(async (page) => {
+    const linkPeerGroups = new Map([[XP_SAMENAME_A, [XP_SAMENAME_A, XP_SAMENAME_B]]]); // destlink is NOT a member of any group
+    const r = await resolveDestination(page, { linkXpath: XP.destlink }, { linkPeerGroups });
+    assert.ok('instantRedirect' in r && !('fingerprints' in r), 'a lone-link call stays single-target shaped, unaffected by an unrelated peer-group map');
+  });
+});
+
+test('resolve_destination #8 NO OVER-COALESCING: a missing/malformed linkPeerGroups (undefined, or not a Map) never throws — degrades to single-target', { skip: !chromeOK, concurrency: false }, async () => {
+  await withPage(async (page) => {
+    const r1 = await resolveDestination(page, { linkXpath: XP.destlink }); // no opts at all
+    assert.ok('instantRedirect' in r1);
+    const r2 = await resolveDestination(page, { linkXpath: XP.destlink }, { linkPeerGroups: { not: 'a map' } });
+    assert.ok('instantRedirect' in r2, 'a malformed linkPeerGroups (no .get method) degrades gracefully, does not throw');
+  });
+});
+
 test('observe_state_after_activation: activationKind classifies in-page vs navigating-link (isSafe awareness)', { skip: !chromeOK, concurrency: false }, async () => {
   await withPage(async (page, freshClone) => {
     const btn = await observeStateAfterActivation(page, { targetXpath: XP.reveal }, { freshClone });

@@ -332,6 +332,9 @@ async function orchestrate(collect, drive, opts = {}) {
         const reapAgeMs = (Number(opts.llmToolRunTimeoutMs) || LIMITS.llm.toolRunTimeoutMs) + LIMITS.concurrency.reapAgeMarginMs; // strictly above the whole-run abort
         // the tool session draws its base page + clones from the SHARED pool (same browser+allocator as every lane).
         toolSession = await openToolSession(turl, { executablePath: opts.executablePath, reapAgeMs, browser, tabAllocator }).catch(() => null);
+        // #8 fix: thread the page's known same-name-link groups onto the session so resolve_destination can
+        // self-coalesce a single-target call into the whole set (see llm-adjudicator.js's computeLinkPeerGroups).
+        if (toolSession) toolSession.linkPeerGroups = llmAdj.computeLinkPeerGroups(collect);
         // PROVIDER tool surface (SAME CDP handlers, different protocol): 'claude' wraps them as an in-process Agent-SDK
         // MCP server the query() loop drives; 'gemini' builds a direct dispatch the hand-rolled function-calling loop
         // drives; 'codex' exposes them as an in-process Streamable-HTTP MCP server the Codex agent connects to by URL.
