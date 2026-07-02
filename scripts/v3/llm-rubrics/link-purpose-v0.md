@@ -64,6 +64,12 @@ Three failure modes:
   report" — that is fine.)
 - **Generic-in-context:** a vague name ("More", "Read more") whose enclosing sentence/list item still does not
   say where it goes — the context restates the topic but never resolves the link's DESTINATION ⇒ barrier.
+  **A DEMONSTRATIVE name ("this product", "this page", "this article") is NOT the generic/format failure mode
+  — apply the SELF-REFERENTIAL caveat below BEFORE flagging it.** That caveat covers RESOLVABLE REFERENCES
+  only — it does not exempt any other name class. A bare generic NOUN ("Workshop", "Agenda", "Report",
+  "Minutes") that does not identify WHICH one, alone in its block, is STILL this generic-in-context failure —
+  being a noun rather than an action/format word exempts nothing; the question is always whether name-plus-
+  ENCLOSING-context identifies the specific destination.
 - **Identical names, DIFFERENT purpose:** two or more links with the SAME accessible name in the same
   context that go to DIFFERENT destinations / serve DIFFERENT purposes — e.g. two same-named links pointing to
   unrelated pages. If the `surrounding-region` (or the handed sibling-link list) shows a same-named link
@@ -107,9 +113,16 @@ with their destinations (needed to judge the identical-names mode).
 - Context counts: a generic name disambiguated by its programmatic context (same list item, heading) is
   NOT a 2.4.4 failure — only flag when neither name nor context resolves the purpose.
 - **A SELF-REFERENTIAL phrase whose referent the enclosing context fixes is determinable — do NOT demand the
-  name restate the subject.** "See the description of this product", "Read this page", "this article" — when the
+  name restate the subject. This caveat takes PRECEDENCE over the specificity/governance bars above (those
+  govern bare format/action words, not resolvable references).** "See the description of this product",
+  "Read this page", "this article" — when the
   enclosing sentence / list-item / the page's evident single subject establishes WHICH product/page/article it
-  refers to, the purpose IS determinable (the reader follows the reference) ⇒ **NOT REPRODUCED**. Do not flag such
+  refers to, the purpose IS determinable (the reader follows the reference) ⇒ **NOT REPRODUCED**. The page's
+  evident single subject counts even when NO text names the product: a page presenting one product with
+  "See the description of this product" has exactly one candidate referent. And a link whose stated purpose
+  is "the description/details of X" and whose DESTINATION is that very description (e.g. a same-page
+  `#fragment` pointing at the description paragraph) is determinable BY CONSTRUCTION — the name says where
+  it goes and it goes there (ACT 5effbb Passed Example 3 is this shape). Do not flag such
   a link merely because the name alone does not NAME the subject; 2.4.4 is satisfied by name-PLUS-context, and a
   resolvable "this X" reference is context-resolved. Flag it only when the context does NOT fix the referent
   (several products in scope, no enclosing subject).

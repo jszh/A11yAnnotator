@@ -97,6 +97,25 @@ test('#4 unchanged failure mode: a generic category header still resolves nothin
   assert.match(t, /H79/, 'cites the general technique, not a fixture');
 });
 
+test('#4 spillover guard (live-validation fix): the self-referential caveat outranks the specificity bars', () => {
+  // Claude post-fix run reproducibly FP\'d 5effbb Passed Example 3 ("See the description of this product"
+  // → #desc): the governance emphasis dominated the self-referential caveat. These pins hold the precedence
+  // cross-reference (failure-modes side) and the strengthened caveat (single evident subject; a description
+  // link whose destination IS the description is determinable by construction).
+  const t = R['link-purpose-v0'].text;
+  assert.match(t, phrase('apply the SELF-REFERENTIAL caveat below BEFORE flagging it.'),
+    'demonstrative names are routed to the caveat before the generic/format failure modes');
+  assert.match(t, phrase('takes PRECEDENCE over the specificity/governance bars above'),
+    'the caveat explicitly outranks the #4 governance language');
+  assert.match(t, phrase('determinable BY CONSTRUCTION'),
+    'a description link targeting the description itself is a sanctioned resolution mode');
+  // second live-validation iteration: the first precedence wording over-scoped — a Claude judge read
+  // "bars govern bare format/action words" as exempting generic NOUNS and cleared 5effbb Failed Example 4
+  // (a bare "Workshop" link alone in its block). This pin holds the noun counter-guard.
+  assert.match(t, phrase('being a noun rather than an action/format word exempts nothing'),
+    'generic nouns alone in a block remain the generic-in-context failure');
+});
+
 // ─────────────────────────── #6 — 2.1.2 keyboard-trap: exit advice must be REACHABLE from inside ───────────────────────────
 
 test('#6 RECALL: a working exit key documented only OUTSIDE the trapped user\'s reach ⇒ REPRODUCED', () => {
