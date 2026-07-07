@@ -34,7 +34,7 @@ const SKILL_SCS = {
   'reflow-and-pointer-affordances': ['1.4.10', '2.5.8', '1.4.13', '2.5.5'],
   'forms-instructions-errors': ['3.3.1', '3.3.2', '3.3.3', '1.3.1'],
   'page-structure': ['2.4.2', '2.4.6', '1.3.1', '2.4.10', '2.4.1'],
-  'grouping-and-reading-order': ['1.3.1', '1.3.2', '2.4.3'],
+  'grouping-and-reading-order': ['1.3.1', '1.3.2', '2.4.3', '1.3.3'], // +1.3.3 sensory-characteristics (Round 3, LLM lane)
   'media-alternatives': ['1.2.2', '1.2.1'], // Item 10: captions (1.2.2) + audio/video-only alternative (1.2.1)
   'timing-and-motion': ['2.2.2', '2.2.1'], // Item 14d: pause/stop/hide auto-moving content; +2.2.1 meta-refresh (Round 1)
 };
@@ -57,6 +57,7 @@ const SC_LEVEL = {
   '1.2.2': 'A', '1.2.1': 'A', '2.2.2': 'A', // Item 10 media captions/alternative + Item 14d pause-stop-hide
   '1.3.5': 'AA', '1.4.12': 'AA', '1.4.4': 'AA', '2.2.1': 'A', // ACT-REST expansion Round 1 (out of paper scope)
   '2.4.1': 'A', // ACT-REST expansion Round 2 (2.4.1 bypass-blocks; 1.4.4 + 2.2.2 already present)
+  '1.3.3': 'A', // ACT-REST expansion Round 3 (1.3.3 sensory-characteristics, LLM lane)
 };
 
 // Pull the first WCAG SC code out of an `sc` field that may read "1.4.3 Contrast".

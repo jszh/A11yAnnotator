@@ -80,6 +80,8 @@ const SURFACES = Object.freeze([
   // ACT-REST expansion Round 2 — re-declared to match the oracle's new gates (Rule 16).
   Object.freeze({ id: 'zoom-clip-text', when: (el) => el.zoomClipApplicable === true, families: ['text-not-clipped-zoom'] }),              // 1.4.4 (59br37)
   Object.freeze({ id: 'bypass-page', when: (el) => el.bypassApplicable === true, families: ['bypass-blocks'] }),                           // 2.4.1
+  // ACT-REST expansion Round 3 — re-declared to match the oracle's new gate (Rule 16).
+  Object.freeze({ id: 'sensory-text', when: (el) => el.sensoryWordHint === true, families: ['sensory-characteristics'] }),                 // 1.3.3 (9bd38c)
 ]);
 
 // The families this registry requires for one element (independent of the oracle).

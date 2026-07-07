@@ -93,6 +93,10 @@ const FAMILIES = Object.freeze({
   //      feeds its rubric via abstention reasons, so no new 2.2.2 family is registered here. ----
   'text-not-clipped-zoom':   Object.freeze({ sc: '1.4.4', skills: ['color-and-visual-text'] }),          // 1.4.4 (59br37) — text clipped by overflow at the 640x512 zoom-equivalent viewport (a SECOND 1.4.4 family)
   'bypass-blocks':           Object.freeze({ sc: '2.4.1', skills: ['page-structure'] }),                  // 2.4.1 (cf77f2/ye5d6e/3e12e1) — a page bypass mechanism (landmark/heading/skip-link/collapse)
+  // ---- ACT-REST expansion, Round 3: judgment-heavy LLM lane. NO deterministic runner — the deterministic layer is
+  //      a REQUIREMENT-SOURCED sensory-word pre-filter (applicability only); the sensory-characteristics-v0 rubric
+  //      fills the auto-PARTIAL as a non-authoritative LLM PROVISIONAL (canary ceiling). ----
+  'sensory-characteristics': Object.freeze({ sc: '1.3.3', skills: ['grouping-and-reading-order'] }),      // 1.3.3 (9bd38c) — a text node using a visual-reference word to identify content owes a non-visual alternative
 });
 
 const WIDGET_ROLE = /^(button|link|checkbox|switch|tab|menuitem|combobox|radio|slider)$/;
@@ -322,6 +326,7 @@ function familiesFor(el) {
   // ---- Round 2 (each gated on a NEW collector fact detected at the RIGHT dynamic condition; runner re-verifies) ----
   if (el.zoomClipApplicable === true) fams.push('text-not-clipped-zoom');                      // 1.4.4 (59br37) — a clip-ancestor element wrapping visible text at the 640x512 viewport
   if (el.bypassApplicable === true) fams.push('bypass-blocks');                                // 2.4.1 — a page with repeated blocks + non-repeated content owes a bypass mechanism
+  if (el.sensoryWordHint === true) fams.push('sensory-characteristics');                       // 1.3.3 (9bd38c) — a text node containing a requirement-sourced visual-reference word (LLM judges the alternative)
   return [...new Set(fams)];
 }
 

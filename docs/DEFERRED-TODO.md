@@ -567,3 +567,33 @@ unless save/restored); the runners reload and drive the page (high mutationRisk)
 (3) bypass-blocks enumeration is cheap/static — portable first; (4) gate the port with the standard deterministic
 581 pre/post diff PLUS an in-scope geometry-fact diff (the specific corruption vector); (5) only after the R2
 must-fixes (multi-block skip-past; used-line-height measurement) are in.
+
+**Round 3 addition (1.3.3 sensory-characteristics, approved deferred 2026-07-07):** the `sensoryWordHint` collector
+fact (the requirement-sourced `sensory-lexicon.js` pre-filter over each element's OWN direct text) also lives ONLY
+in the eval collectForV3, so production runs do not enumerate the 1.3.3 obligation and the LLM rubric never fires
+outside the act-rest eval. Porting is CHEAP + non-mutating (a pure Node string scan over already-collected `ownText`
+— no browser pass), so it is the low-risk first candidate; the only requirement is collecting each element's direct
+text-node content (`ownText`) in act-page-collect.js / eval-page.js, then running `sensoryWordsIn` in the builder or
+collector. Also DEFERRED and FLAGGED: threading the sensory-term WHY + the instruction text explicitly into the
+rubric prompt needs a `precomputeSignals` branch (shared LLM prompt-assembly) — the Round-3 rubric relies on the
+`viewport` vision + `__pageStructure` instead, which the hard "don't touch shared LLM plumbing" constraint required.
+
+## K. 1.3.3 LLM-lane FP elimination — the three requirement-keyed paths (do NOT rubric-tune against the slice)
+**Approved deferred 2026-07-07** (act-rest Round 3 close-out). Measured honest floor on the 9bd38c 21-case slice
+(claude-sonnet-4-6, 2 independent post-fix runs): recall 4/4 both runs; fp 3/17 stable (e871d671, 09eef7b7,
+5c97d7f0) + 1 flip-flopping borderline (432e113b, the known ±1 sampling noise). Evidence:
+`upstream-evidence/v3-act-rest-r3llm-postfix-run{1,2}/`. The composition is genuinely earned — evidence-starvation
+(ba678638) was fixed by threading headings/landmarks into the eval collector, and the fixture-anchored rubric
+examples were genericized (which un-suppressed 5c97d7f0, previously masked by a spoon-fed worked example).
+
+Elimination paths, each keyed to the requirement, none tunable against the slice alone:
+1. **5c97d7f0-class (stable judge error, evidence present):** strengthen the rubric's accessible-words/name-match
+   principle GENERICALLY, validated exclusively on NOVEL non-fixture probes (build 5+ fresh sensory-instruction
+   pages first; accept only if the novel probes AND the slice both improve; a slice-only improvement = overfit, reject).
+2. **e871d671-class ("below/above" as reading-order):** a deterministic DOM-adjacency signal — does a matching
+   target immediately adjoin the instruction in content order? (Understanding 1.3.3 explicitly blesses reading-order
+   usage.) Requires a `precomputeSignals` branch (shared LLM prompt assembly) → targeted LLM validation of affected
+   slices per the gate policy when actioned.
+3. **09eef7b7-class (cross-page alternative):** route `resolve_destination` for 1.3.3 instructions that reference
+   linked content — eliminates the FP AND preserves the Failed-3-style recall properly (abstaining trades FP for FN;
+   resolution decides both directions). Shared-tool routing → same targeted-validation requirement.

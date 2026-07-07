@@ -22,10 +22,25 @@ const puppeteer = require('puppeteer');
 
 const { orchestrate } = require('../../scripts/v3/lib/orchestrator.js');
 const { CATALOG } = require('../../scripts/v3/lib/catalog.js');
+const { makeRunAgent, makeClaudeSdkTransport } = require('../../scripts/v3/lib/llm-agent-adapter.js');
 const LIMITS = require('../../scripts/v3/lib/limits.js');
+const { sensoryWordsIn } = require('../../scripts/v3/lib/sensory-lexicon.js'); // Round 3 (1.3.3) requirement-sourced pre-filter
 
 const REPO_ROOT = path.join(__dirname, '..', '..');
 require('../../scripts/v3/lib/load-env.js').loadEnv(REPO_ROOT);
+
+// LLM lane (Round 3, 1.3.3) — gated exactly like run-v3-act-suite.js: V3_LLM=1 activates the Claude Code
+// subscription judge (Agent SDK + CLAUDE_CODE_OAUTH_TOKEN in .env; no metered key). OFF by default = the
+// deterministic-only run. The rubric lane is non-authoritative (LLM PROVISIONAL ceiling); nothing gates.
+const LLM_ON = process.env.V3_LLM === '1';
+const LLM_TRANSPORT_CONFIG = LLM_ON ? {
+  oauthToken: process.env.CLAUDE_CODE_OAUTH_TOKEN,
+  model: process.env.V3_LLM_MODEL || 'claude-sonnet-4-6',
+  effort: process.env.V3_LLM_EFFORT || 'medium',
+  perTurnTimeoutMs: +(process.env.V3_LLM_TURN_TIMEOUT_MS || LIMITS.llm.perTurnTimeoutMs),
+  runTimeoutMs: +(process.env.V3_LLM_RUN_TIMEOUT_MS || LIMITS.llm.runTimeoutMs),
+} : undefined;
+const LLM_AGENT = LLM_ON ? makeRunAgent({ transport: makeClaudeSdkTransport(LLM_TRANSPORT_CONFIG), model: LLM_TRANSPORT_CONFIG.model }) : null;
 
 const CHROME = process.env.CHROME_PATH || process.env.PUPPETEER_EXECUTABLE_PATH
   || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
@@ -210,8 +225,11 @@ async function collectForV3(page, tc, runId) {
       const isFormField = fieldLike(el);
       const isInteractive = focusable || /^(button|link|checkbox|switch|tab|menuitem|combobox|radio|slider)$/.test(sampledRole);
       if (!focusable && !isFormField && !sampledRole && !text) continue;
+      // ownText = the element's OWN direct text nodes (for the 1.3.3 sensory pre-filter — target the text
+      // node's element, not every ancestor whose innerText transitively contains the word).
+      let ownText = ''; for (const c of el.childNodes) if (c.nodeType === 3) ownText += c.textContent;
       els.push({
-        xpath: xpathOf(el), text, hasText: text.length > 0, focusable, isInteractive, isFormField,
+        xpath: xpathOf(el), text, ownText: ownText.replace(/\s+/g, ' ').trim().slice(0, 400), hasText: text.length > 0, focusable, isInteractive, isFormField,
         roleAttr, sampledRole, axRole: sampledRole, axName: labelledText(el), tag, type,
         box: { x: Math.round(box.x), y: Math.round(box.y), width: Math.round(box.width), height: Math.round(box.height) },
         inModal: !!el.closest('[role="dialog"],dialog,[aria-modal="true"]'), underOverlay: false, hasHoverContent: false,
@@ -235,7 +253,24 @@ async function collectForV3(page, tc, runId) {
       metaEls.push({ xpath: xpathOf(keyedViewport), tag: 'meta', roleAttr: '', sampledRole: '', axRole: '', hasText: false, focusable: false, isFormField: false, metaViewportKeyed: true, metaContent: keyedViewport.getAttribute('content') });
     }
     for (const m of metaEls) if (els.length < cap) els.push(m);
-    return { title: document.title || '', lang: document.documentElement.getAttribute('lang') || '', elements: els, reflowApplicable: false };
+    // Round-3 FIX 1 (ba678638 evidence starvation): mirror the production collector (act-page-collect.js:942) —
+    // thread the heading tree + landmark set (role + accessible name) into `structure`. The 1.3.3 rubric's
+    // non-visual-reference alternative needs this: a page with exactly ONE `navigation` landmark UNAMBIGUOUSLY
+    // resolves "the navigation on the right" (ACT 9bd38c Passed Ex), whereas two unnamed navs do not; a heading's
+    // text supplies the "visible words" alternative. Names via the same labelledText heuristic used for elements
+    // (a plain <nav>/<h2> yields name:'' — an unnamed landmark carries role only, exactly the bare-nav case).
+    const headings = [...document.querySelectorAll('h1,h2,h3,h4,h5,h6,[role=heading]')].slice(0, 60).map((h) => {
+      const tg = h.tagName.toLowerCase();
+      return {
+        tag: tg, role: h.getAttribute('role') || (/^h[1-6]$/.test(tg) ? 'heading' : null),
+        level: h.getAttribute('aria-level') ? Number(h.getAttribute('aria-level')) : (/^h([1-6])$/.test(tg) ? Number(tg[1]) : null),
+        text: (h.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 120),
+        name: labelledText(h),
+      };
+    });
+    const landmarks = [...document.querySelectorAll('main,nav,header,footer,aside,[role=main],[role=navigation],[role=banner],[role=contentinfo],[role=complementary],[role=search],[role=region]')].slice(0, 40)
+      .map((l) => ({ tag: l.tagName.toLowerCase(), role: l.getAttribute('role') || null, name: labelledText(l) }));
+    return { title: document.title || '', lang: document.documentElement.getAttribute('lang') || '', elements: els, reflowApplicable: false, headings, landmarks };
   }, ELEMENT_CAP).catch(() => ({ elements: [] }));
 
   // Round 2 — SC 59br37 (1.4.4) applicability must be evaluated at the 640x512 zoom-equivalent viewport (some
@@ -291,10 +326,19 @@ async function collectForV3(page, tc, runId) {
   }).catch(() => false);
   if (hasRepeated) (data.elements = data.elements || []).push({ xpath: '/html/body', tag: 'bypass', hasText: false, focusable: false, isFormField: false, bypassApplicable: true });
 
+  // Round 3 — SC 9bd38c (1.3.3): the REQUIREMENT-SOURCED sensory-word pre-filter gates APPLICABILITY (which text
+  // nodes owe an obligation). Runs in NODE over each element's OWN direct text (not ancestors) so the obligation
+  // targets the text node's element; the LLM rubric judges whether a non-visual alternative exists.
+  for (const el of (data.elements || [])) {
+    if (el.tag === 'meta' || el.tag === 'zoomclip' || el.tag === 'autoupdate' || el.tag === 'bypass') continue;
+    const words = sensoryWordsIn(el.ownText || '');
+    if (words.length) { el.sensoryWordHint = true; el.sensoryWords = words; }
+  }
+
   return {
     file: `act:${tc.testcaseId}`, sourceUrl: tc.url, runId, pageDigest: digestForUrl(tc.url), collectedAt,
     elements: data.elements || [], elementCount: (data.elements || []).length,
-    page: { reflowApplicable: false }, structure: { title: data.title || '', lang: data.lang || '' },
+    page: { reflowApplicable: false }, structure: { title: data.title || '', lang: data.lang || '', headings: data.headings || [], landmarks: data.landmarks || [] },
   };
 }
 
@@ -317,6 +361,23 @@ function comparableObservations(results, scs) {
     out.push({ sc: o.sc, claimFamily: o.claimFamily, mechanism: o.mechanism, outcome, targetXpath: o.observationScope && o.observationScope.actionTargetRef });
   }
   return out;
+}
+
+// LLM lane (Round 3) — score the LLM's PROVISIONAL ledger fills for the testcase's SC(s). The rubric verdict
+// maps: REPRODUCED → PROVISIONAL barrier (cleared:false); NOT REPRODUCED → PROVISIONAL clear (cleared:true);
+// PARTIAL/N-A → no fill (stays auto-PARTIAL = abstain). Non-authoritative (canary-ceiling), scored vs the ACT label.
+function scoreLlmLane(results, tc) {
+  const want = new Set(tc.sc);
+  const ledger = (results && results.obligationLedger) || [];
+  const prov = ledger.filter((r) => r.disposition === 'PROVISIONAL' && want.has(r.sc));
+  const provBarrier = prov.filter((r) => !r.cleared);
+  const provClear = prov.filter((r) => r.cleared);
+  const abstain = ledger.filter((r) => want.has(r.sc) && r.disposition === 'PARTIAL' && r.autoPartial).length;
+  const hasBarrier = provBarrier.length > 0; const hasClear = provClear.length > 0;
+  let bucket;
+  if (tc.expected === 'failed') bucket = hasBarrier ? 'tp' : (hasClear ? 'clearOnFailed' : 'fn');
+  else bucket = hasBarrier ? 'fp' : (hasClear ? 'tnWithClear' : 'tn');
+  return { bucket, provBarrier: provBarrier.length, provClear: provClear.length, abstain, barrierXpaths: provBarrier.map((r) => r.xpath).slice(0, 5), mechanisms: [...new Set(prov.map((r) => (r.provisional && r.provisional.mechanism) || '').filter(Boolean))] };
 }
 
 // SC-scoped confusion bucket vs the ACT expected label. barrier on failed = tp; barrier on passed/inapplicable
@@ -343,7 +404,17 @@ function summarize(raw) {
   }
   const rate = (c) => ({ ...c, recall: c.tp + c.fn ? +(c.tp / (c.tp + c.fn)).toFixed(3) : null, fpRate: c.fp + c.tn + c.tnWithClear ? +(c.fp / (c.fp + c.tn + c.tnWithClear)).toFixed(3) : null });
   const mapRates = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, rate(v)]));
-  return { generatedAt: new Date().toISOString(), n: raw.length, deterministicScs: [...DETERMINISTIC_SCS].sort(), byRule: mapRates(byRule), byRuleSplit: { dev: mapRates(byRuleSplit.dev), heldout: mapRates(byRuleSplit.heldout) }, perSc: mapRates(perSc), mismatches: raw.filter((r) => ['fp', 'fn', 'clearOnFailed'].includes(r.bucket) || r.error).map((r) => ({ ruleId: r.ruleId, testcaseId: r.testcaseId, expected: r.expected, bucket: r.error ? 'error' : r.bucket, heldOut: r.heldOut, observations: r.observations, error: r.error })) };
+  // LLM lane confusion (Round 3): per-rule, from rec.llm.bucket when the LLM ran.
+  const llmByRule = {}; let anyLlm = false;
+  for (const rec of raw) {
+    if (!rec.llm) continue; anyLlm = true;
+    llmByRule[rec.ruleId] = llmByRule[rec.ruleId] || confusion(); llmByRule[rec.ruleId].total++; llmByRule[rec.ruleId][rec.error ? 'error' : rec.llm.bucket]++;
+  }
+  const out = { generatedAt: new Date().toISOString(), n: raw.length, deterministicScs: [...DETERMINISTIC_SCS].sort(), byRule: mapRates(byRule), byRuleSplit: { dev: mapRates(byRuleSplit.dev), heldout: mapRates(byRuleSplit.heldout) }, perSc: mapRates(perSc), mismatches: raw.filter((r) => ['fp', 'fn', 'clearOnFailed'].includes(r.bucket) || r.error).map((r) => ({ ruleId: r.ruleId, testcaseId: r.testcaseId, expected: r.expected, bucket: r.error ? 'error' : r.bucket, heldOut: r.heldOut, observations: r.observations, error: r.error })) };
+  if (anyLlm) {
+    out.llm = { byRule: mapRates(llmByRule), cases: raw.filter((r) => r.llm).map((r) => ({ testcaseId: r.testcaseId, expected: r.expected, llmBucket: r.error ? 'error' : r.llm.bucket, provBarrier: r.llm.provBarrier, provClear: r.llm.provClear, abstain: r.llm.abstain })) };
+  }
+  return out;
 }
 
 async function main() {
@@ -376,10 +447,19 @@ async function main() {
         const { built } = await orchestrate(collect, drive, {
           resolveUrl: () => urlFor(tc), executablePath: CHROME, now: collect.collectedAt + 2,
           maxAutomatic: Number.isFinite(MAX_AUTO) ? MAX_AUTO : Infinity, budgetOpts: { maxRunWallClockMs: RUN_WALL },
-          runLlm: false, experimentConcurrency: 1,
+          experimentConcurrency: 1,
+          // LLM lane (Round 3): judge only THIS testcase's SC(s) (restrictScs) — the LLM is unscoreable off-target
+          // (per-SC ACT ground truth) and it caps the slice cost. Vision captured so the rubric sees the page.
+          runLlm: LLM_ON, runAgent: LLM_ON ? LLM_AGENT : undefined, captureVision: LLM_ON,
+          llmConcurrency: +(process.env.V3_LLM_CONCURRENCY || LIMITS.concurrency.llm),
+          restrictScs: LLM_ON ? new Set(tc.sc) : undefined,
         });
         if (!built.ok) rec.error = `v3 build refused: ${built.errors.slice(0, 6).join('; ')}`;
-        else { rec.observations = comparableObservations(built.results, tc.sc); rec.bucket = score(tc.expected, rec.observations); rec.obligations = built.results.summary.obligations; rec.autoPartial = built.results.summary.autoPartial; }
+        else {
+          rec.observations = comparableObservations(built.results, tc.sc); rec.bucket = score(tc.expected, rec.observations);
+          rec.obligations = built.results.summary.obligations; rec.autoPartial = built.results.summary.autoPartial;
+          if (LLM_ON) { rec.llm = scoreLlmLane(built.results, tc); }
+        }
       })(), CASE_TIMEOUT, `${tc.ruleId}/${tc.testcaseId.slice(0, 8)}`);
     } catch (e) { rec.error = String((e && e.stack) || e).slice(0, 400); }
     finally { await page.close().catch(() => {}); }
@@ -391,9 +471,17 @@ async function main() {
   await browser.close();
   const summary = summarize(raw);
   fs.writeFileSync(path.join(OUT, 'summary.json'), JSON.stringify(summary, null, 2));
-  console.log('\n=== per-rule confusion (dev + held-out combined) ===');
+  console.log('\n=== per-rule confusion (DETERMINISTIC lane; dev + held-out combined) ===');
   for (const [rid, c] of Object.entries(summary.byRule)) console.log(`  ${rid}: tp=${c.tp} fn=${c.fn} fp=${c.fp} tn=${c.tn} tnClear=${c.tnWithClear} clearOnFailed=${c.clearOnFailed} err=${c.error} | recall=${c.recall} fpRate=${c.fpRate}`);
+  if (summary.llm) {
+    console.log('\n=== LLM lane confusion (non-authoritative PROVISIONAL; shadow-scored vs ACT labels) ===');
+    for (const [rid, c] of Object.entries(summary.llm.byRule)) console.log(`  ${rid}: tp=${c.tp} fn=${c.fn} fp=${c.fp} tn=${c.tn} tnClear=${c.tnWithClear} clearOnFailed=${c.clearOnFailed} err=${c.error} | recall=${c.recall} fpRate=${c.fpRate}`);
+  }
   console.log(`wrote ${OUT}`);
 }
 
-main().catch((e) => { console.error(e.stack || e.message); process.exit(1); });
+// Export the eval collector + helpers so the fp-experiments freezer can reuse the EXACT eval-side collection
+// (the 1.3.3 sensory pre-filter + the FIX-1 headings/landmarks structure threading), which the production
+// collectActPage does not do (DEFERRED-TODO J). Only run the CLI when invoked directly.
+module.exports = { collectForV3, normalizeCollectRoles, urlFor, isHeldOut, REST_DIR, ELEMENT_CAP };
+if (require.main === module) main().catch((e) => { console.error(e.stack || e.message); process.exit(1); });
