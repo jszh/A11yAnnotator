@@ -613,6 +613,24 @@ function parseRGB(s) {
           // 2.1.2 focus-trap risk (coverage audit) — parity with act-page-collect so the widened gate fires on real pages too.
           focusRisk: r.hasAttribute('onblur') || r.hasAttribute('onfocus') || r.hasAttribute('onfocusout')
             || !!r.closest('[role=dialog],dialog,[aria-modal=true],[role=menu],[role=listbox],[role=grid],[role=tablist],[class*=modal i],[class*=overlay i],[class*=dialog i],[class*=popup i],[class*=lightbox i]'),
+          // ACT-REST Round 1 applicability facts (element-level; the runner re-measures the verdict).
+          autocompleteApplicable: (() => {
+            const EX = new Set(['hidden', 'button', 'submit', 'reset', 'image', 'checkbox', 'radio', 'file']);
+            const rl = (r.getAttribute('role') || '').toLowerCase();
+            if (!(['input', 'select', 'textarea'].includes(tag) || /^(textbox|combobox|listbox|spinbutton|searchbox)$/.test(rl))) return false;
+            const ac = r.getAttribute('autocomplete'); if (ac == null || ac.trim() === '') return false;
+            const first = ac.trim().toLowerCase().split(/\s+/)[0]; if (first === 'on' || first === 'off') return false;
+            if (r.disabled === true || r.getAttribute('aria-disabled') === 'true') return false;
+            if (tag === 'input' && EX.has((r.getAttribute('type') || '').toLowerCase())) return false;
+            return cs.display !== 'none' && cs.visibility !== 'hidden' && parseFloat(cs.opacity || '1') > 0 && b.width > 0 && b.height > 0;
+          })(),
+          spacingImportant: (() => {
+            const CK = new Set(['inherit', 'unset', 'revert', 'revert-layer']);
+            const locks = ['letter-spacing', 'word-spacing', 'line-height'].some((p) => r.style.getPropertyPriority(p) === 'important' && !CK.has((r.style.getPropertyValue(p) || '').trim().toLowerCase()));
+            if (!locks) return false;
+            const vis = cs.display !== 'none' && cs.visibility !== 'hidden' && parseFloat(cs.opacity || '1') > 0 && b.width > 0 && b.height > 0 && b.bottom > 0 && b.right > 0;
+            return vis && (r.textContent || '').trim().length > 0;
+          })(),
         };
       }, el.xpath, out.uaDefaults).catch(e => ({ _err: e.message }));
 
@@ -706,6 +724,23 @@ function parseRGB(s) {
 
       out.elements.push(rec);
     }
+    // ACT-REST Round 1: head <meta> element records — the viewport (1.4.4) + the FIRST valid refresh (2.2.1).
+    // Element-level (not page-level) so the applicability observer resolves the target and the runner's
+    // barrier can bind. Minimal records (no text/role/focusable), so they enumerate only their own family.
+    try {
+      const metaRecs = await page.evaluate(() => {
+        const xpathOf = (e) => { if (!e || !e.tagName) return ''; if (e === document.documentElement) return '/html'; const tag = e.tagName.toLowerCase(); let idx = 1; for (let s = e.previousElementSibling; s; s = s.previousElementSibling) if (s.tagName === e.tagName) idx++; return xpathOf(e.parentElement) + '/' + tag + '[' + idx + ']'; };
+        const validRefresh = (c) => { if (c == null) return false; const m = c.match(/^[ \t\n\f\r]*(\d+(?:\.\d+)?)/); if (!m) return false; const after = c.slice(m[0].length); return !(after.length && !/^[;,\s]/.test(after)); };
+        const recs = [];
+        const fr = [...document.querySelectorAll('meta[http-equiv="refresh" i]')].find((m) => validRefresh(m.getAttribute('content')));
+        if (fr) recs.push({ xpath: xpathOf(fr), tag: 'meta', metaRefreshValid: true, metaContent: fr.getAttribute('content') });
+        // the FIRST KEYED viewport meta is the obligation target; the runner reads ALL of them (b4f0c3 applies to each).
+        const vp = [...document.querySelectorAll('meta[name="viewport" i]')].find((m) => /(^|[,;\s])(user-scalable|maximum-scale)\s*=/i.test(m.getAttribute('content') || ''));
+        if (vp) recs.push({ xpath: xpathOf(vp), tag: 'meta', metaViewportKeyed: true, metaContent: vp.getAttribute('content') });
+        return recs;
+      }).catch(() => []);
+      for (const m of metaRecs) if (m && m.xpath) out.elements.push(m);
+    } catch (e) { /* head-meta pass is best-effort */ }
   } finally {
     await browser.close();
   }

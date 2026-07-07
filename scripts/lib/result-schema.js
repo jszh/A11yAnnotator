@@ -21,9 +21,12 @@ const DYNAMIC_SKILLS = ['keyboard-operability', 'focus-management', 'focus-visib
 const BEHAVIORAL_SKILLS = ['keyboard-operability', 'focus-management', 'focus-visibility', 'dynamic-announcement', 'forms-instructions-errors'];
 
 // Allowed SCs per skill (RESULT-CONTRACT.md). REPRODUCED/PARTIAL must cite one of these.
+// ACT-REST expansion SCs (Round 1 static-deterministic runners) fold into their host skill's SC list
+// so V3_SCHEMA.ALL_SCS covers them (resolveClaim gates on ALL_SCS). These are OUT of the paper's frozen
+// 22-SC scope (categories.json), scored only on the disjoint act-rest corpus — never the 581 gate.
 const SKILL_SCS = {
-  'name-role-state': ['1.1.1', '4.1.2', '2.4.4', '2.5.3'],
-  'color-and-visual-text': ['1.4.3', '1.4.11', '1.4.1', '1.4.5'],
+  'name-role-state': ['1.1.1', '4.1.2', '2.4.4', '2.5.3', '1.3.5'], // +1.3.5 autocomplete (Round 1)
+  'color-and-visual-text': ['1.4.3', '1.4.11', '1.4.1', '1.4.5', '1.4.12', '1.4.4'], // +1.4.12 text-spacing, +1.4.4 viewport zoom (Round 1)
   'keyboard-operability': ['2.1.1', '2.1.2', '2.1.4', '2.4.3'],
   'focus-management': ['2.4.3', '2.4.11', '2.4.7'],
   'focus-visibility': ['2.4.7', '2.4.13'],
@@ -33,7 +36,7 @@ const SKILL_SCS = {
   'page-structure': ['2.4.2', '2.4.6', '1.3.1', '2.4.10'],
   'grouping-and-reading-order': ['1.3.1', '1.3.2', '2.4.3'],
   'media-alternatives': ['1.2.2', '1.2.1'], // Item 10: captions (1.2.2) + audio/video-only alternative (1.2.1)
-  'timing-and-motion': ['2.2.2'], // Item 14d: pause/stop/hide auto-moving content
+  'timing-and-motion': ['2.2.2', '2.2.1'], // Item 14d: pause/stop/hide auto-moving content; +2.2.1 meta-refresh (Round 1)
 };
 
 // Page-level skills live in results.pageSkills (not per element). They MUST be
@@ -52,6 +55,7 @@ const SC_LEVEL = {
   '4.1.3': 'AA', '1.4.10': 'AA', '2.5.8': 'AA', '1.4.13': 'AA', '2.5.5': 'AAA',
   '3.3.1': 'A', '3.3.2': 'A', '3.3.3': 'AA', '2.4.2': 'A', '2.4.6': 'AA', '1.3.1': 'A', '1.3.2': 'A', '2.4.10': 'AAA',
   '1.2.2': 'A', '1.2.1': 'A', '2.2.2': 'A', // Item 10 media captions/alternative + Item 14d pause-stop-hide
+  '1.3.5': 'AA', '1.4.12': 'AA', '1.4.4': 'AA', '2.2.1': 'A', // ACT-REST expansion Round 1 (out of paper scope)
 };
 
 // Pull the first WCAG SC code out of an `sc` field that may read "1.4.3 Contrast".

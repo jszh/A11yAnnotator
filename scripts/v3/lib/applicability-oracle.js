@@ -81,6 +81,13 @@ const FAMILIES = Object.freeze({
   'multipart-field-grouping': Object.freeze({ sc: '4.1.2', skills: ['name-role-state'] }),               // 4.1.2 — split field with no group label + unnamed parts (gated on splitFieldGroup)
   'positive-tabindex-order': Object.freeze({ sc: '2.4.3', skills: ['focus-management'] }),               // 2.4.3 — tabindex>0 disrupting focus order, F44 (gated on tabindexEffective>0)
   'composite-arrow-trap':    Object.freeze({ sc: '2.1.2', skills: ['keyboard-operability'] }),           // 2.1.2 — C2 arrow-key roving-widget trap (gated on composite role); complements no-keyboard-trap
+  // ---- ACT-REST expansion, Round 1: static-deterministic runners (OUT of the paper's 22-SC scope; scored
+  //      only on the disjoint act-rest corpus). Each gates on a NEW collector fact minimal synthetic fixtures
+  //      lack, so no existing applicableScs drifts. See scripts/v3/lib/static-checks.js for the decision logic.
+  'autocomplete-valid':      Object.freeze({ sc: '1.3.5', skills: ['name-role-state'] }),                // 1.3.5 (73f2c2) — autocomplete token grammar
+  'text-spacing-adequate':   Object.freeze({ sc: '1.4.12', skills: ['color-and-visual-text'] }),         // 1.4.12 (24afc2/9e45ec/78fd32) — !important letter/word/line spacing wide enough
+  'no-meta-refresh-delay':   Object.freeze({ sc: '2.2.1', skills: ['timing-and-motion'] }),              // 2.2.1 (bc659a) — first meta refresh has no timed delay
+  'viewport-allows-zoom':    Object.freeze({ sc: '1.4.4', skills: ['color-and-visual-text'] }),          // 1.4.4 (b4f0c3) — meta viewport permits zoom
 });
 
 const WIDGET_ROLE = /^(button|link|checkbox|switch|tab|menuitem|combobox|radio|slider)$/;
@@ -302,6 +309,11 @@ function familiesFor(el) {
   if (el.splitFieldGroup === true) fams.push('multipart-field-grouping');                   // 4.1.2 (split field group)
   if (Number(el.tabindexEffective) > 0) fams.push('positive-tabindex-order');               // 2.4.3 (F44 positive tabindex)
   if (/^(menu|menubar|tablist|listbox|grid|treegrid|toolbar|radiogroup|tree)$/.test(role)) fams.push('composite-arrow-trap'); // 2.1.2 (C2 arrow-key trap)
+  // ---- ACT-REST expansion Round 1 (each gated on a NEW collector fact; runner re-measures in-page) ----
+  if (el.autocompleteApplicable === true) fams.push('autocomplete-valid');                   // 1.3.5 — a form field with a non-toggle autocomplete on an applicable, enabled, visible control
+  if (el.spacingImportant === true) fams.push('text-spacing-adequate');                       // 1.4.12 — an element whose inline style declares letter/word/line-spacing !important over visible text
+  if (el.metaRefreshValid === true) fams.push('no-meta-refresh-delay');                        // 2.2.1 — the first <meta http-equiv=refresh> with a valid (numeric-leading) content
+  if (el.metaViewportKeyed === true) fams.push('viewport-allows-zoom');                        // 1.4.4 — a <meta name=viewport> whose content declares user-scalable/maximum-scale
   return [...new Set(fams)];
 }
 

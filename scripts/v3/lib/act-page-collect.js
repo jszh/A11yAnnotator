@@ -760,7 +760,36 @@ async function collectActPage(page, opts = {}) {
         backgroundImageMeaningful, backgroundImageUrl, isCaptcha, // TT gaps G2/G3 (1.1.1)
         iframeTabExcluded, focusableInAriaHidden, prohibitedAriaAttr, // deterministic barrier flags (2.1.1 / 4.1.2)
         iframeSrc: (tag === 'iframe' || tag === 'frame') ? (el.getAttribute('src') || '') : undefined, // 4.1.2 (4b1c6c): same-name iframe purpose-equivalence
+        // ACT-REST Round 1 applicability facts (element-level; the runner re-measures the verdict).
+        autocompleteApplicable: (() => {
+          const EX = new Set(['hidden', 'button', 'submit', 'reset', 'image', 'checkbox', 'radio', 'file']);
+          if (!(['input', 'select', 'textarea'].includes(tag) || /^(textbox|combobox|listbox|spinbutton|searchbox)$/.test((roleAttr || '').toLowerCase()))) return false;
+          const ac = el.getAttribute('autocomplete'); if (ac == null || ac.trim() === '') return false;
+          const first = ac.trim().toLowerCase().split(/\s+/)[0]; if (first === 'on' || first === 'off') return false;
+          if (el.disabled === true || el.getAttribute('aria-disabled') === 'true') return false;
+          if (tag === 'input' && EX.has((el.getAttribute('type') || '').toLowerCase())) return false;
+          const c = getComputedStyle(el); return c.display !== 'none' && c.visibility !== 'hidden' && parseFloat(c.opacity || '1') > 0 && box.width > 0 && box.height > 0;
+        })(),
+        spacingImportant: (() => {
+          const CK = new Set(['inherit', 'unset', 'revert', 'revert-layer']);
+          const locks = ['letter-spacing', 'word-spacing', 'line-height'].some((p) => el.style.getPropertyPriority(p) === 'important' && !CK.has((el.style.getPropertyValue(p) || '').trim().toLowerCase()));
+          if (!locks) return false;
+          const c = getComputedStyle(el); const r = el.getBoundingClientRect();
+          const vis = c.display !== 'none' && c.visibility !== 'hidden' && parseFloat(c.opacity || '1') > 0 && r.width > 0 && r.height > 0 && r.bottom > 0 && r.right > 0;
+          return vis && (el.textContent || '').trim().length > 0;
+        })(),
       });
+    }
+    // ACT-REST Round 1: head <meta> element records — viewport (1.4.4) + FIRST valid refresh (2.2.1). Full-page
+    // collection only (a re-collected subset targets specific body elements). Metas live in <head>, so the
+    // body-scan loop never included them (no double-count). Minimal records ⇒ only their own family enumerates.
+    if (!_subset) {
+      const validRefresh = (c) => { if (c == null) return false; const m = c.match(/^[ \t\n\f\r]*(\d+(?:\.\d+)?)/); if (!m) return false; const after = c.slice(m[0].length); return !(after.length && !/^[;,\s]/.test(after)); };
+      const fr = [...document.querySelectorAll('meta[http-equiv="refresh" i]')].find((m) => validRefresh(m.getAttribute('content')));
+      if (fr) els.push({ xpath: xpathOf(fr), tag: 'meta', hasText: false, focusable: false, isFormField: false, metaRefreshValid: true, metaContent: fr.getAttribute('content') });
+      // the FIRST KEYED viewport meta is the obligation target; the runner reads ALL of them (b4f0c3 applies to each).
+      const vp = [...document.querySelectorAll('meta[name="viewport" i]')].find((m) => /(^|[,;\s])(user-scalable|maximum-scale)\s*=/i.test(m.getAttribute('content') || ''));
+      if (vp) els.push({ xpath: xpathOf(vp), tag: 'meta', hasText: false, focusable: false, isFormField: false, metaViewportKeyed: true, metaContent: vp.getAttribute('content') });
     }
     // IFRAME TRAVERSAL (coverage audit, akn7bn 2.1.1): descend ONE level into SAME-ORIGIN iframes and collect
     // their interactive content with a NAMESPACED xpath (`<iframeXpath>>>/<in-frame xpath>`) + inFrame:true.

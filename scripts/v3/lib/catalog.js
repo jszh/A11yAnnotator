@@ -216,6 +216,62 @@ const CATALOG = {
       },
       typedOutcomes: ['isCompositeWidget', 'widgetTrapBarrier', 'widgetEscapes'],
     },
+
+    // ---- ACT-REST expansion Round 1: static-DOM deterministic runners (AT-independent; low mutation risk —
+    // they read computed styles/attributes, never drive the page). Each shares the small-signal outcome shape:
+    // <applicable> gates, then exactly one of passConfirmed / barrierConfirmed. Ambiguous/could-not-measure ⇒
+    // neither ⇒ auto-PARTIAL (never a false clear/barrier). Decision logic: scripts/v3/lib/static-checks.js. ----
+    'autocomplete-valid': { // 1.3.5 (ACT 73f2c2)
+      sc: '1.3.5', claimFamily: 'autocomplete-valid',
+      accessibilitySupportDependent: { BARRIER_OBSERVED: false, NO_BARRIER_OBSERVED: false },
+      applicability: { requires: ['autocompleteApplicable'] },
+      supports: {
+        NO_BARRIER_OBSERVED: { requires: ['autocompleteApplicable', 'passConfirmed'] },
+        BARRIER_OBSERVED: { requires: ['autocompleteApplicable', 'barrierConfirmed'] },
+      },
+      typedOutcomes: ['autocompleteApplicable', 'passConfirmed', 'barrierConfirmed'],
+    },
+    'text-spacing-adequate': { // 1.4.12 (ACT 24afc2/9e45ec/78fd32)
+      sc: '1.4.12', claimFamily: 'text-spacing-adequate',
+      accessibilitySupportDependent: { BARRIER_OBSERVED: false, NO_BARRIER_OBSERVED: false },
+      applicability: { requires: ['spacingApplicable'] },
+      supports: {
+        NO_BARRIER_OBSERVED: { requires: ['spacingApplicable', 'passConfirmed'] },
+        BARRIER_OBSERVED: { requires: ['spacingApplicable', 'barrierConfirmed'] },
+      },
+      typedOutcomes: ['spacingApplicable', 'passConfirmed', 'barrierConfirmed'],
+    },
+    'no-meta-refresh-delay': { // 2.2.1 (ACT bc659a)
+      sc: '2.2.1', claimFamily: 'no-meta-refresh-delay',
+      accessibilitySupportDependent: { BARRIER_OBSERVED: false, NO_BARRIER_OBSERVED: false },
+      applicability: { requires: ['metaRefreshApplicable'] },
+      supports: {
+        NO_BARRIER_OBSERVED: { requires: ['metaRefreshApplicable', 'passConfirmed'] },
+        BARRIER_OBSERVED: { requires: ['metaRefreshApplicable', 'barrierConfirmed'] },
+      },
+      typedOutcomes: ['metaRefreshApplicable', 'passConfirmed', 'barrierConfirmed'],
+    },
+    'viewport-allows-zoom': { // 1.4.4 (ACT b4f0c3)
+      sc: '1.4.4', claimFamily: 'viewport-allows-zoom',
+      accessibilitySupportDependent: { BARRIER_OBSERVED: false, NO_BARRIER_OBSERVED: false },
+      applicability: { requires: ['viewportApplicable'] },
+      supports: {
+        NO_BARRIER_OBSERVED: { requires: ['viewportApplicable', 'passConfirmed'] },
+        BARRIER_OBSERVED: { requires: ['viewportApplicable', 'barrierConfirmed'] },
+      },
+      typedOutcomes: ['viewportApplicable', 'passConfirmed', 'barrierConfirmed'],
+    },
+    'label-in-name-match': { // 2.5.3 (ACT 2ee8b8) — authoritative deterministic containment; binds the EXISTING
+      // label-in-name family (rubric + IBM stay as non-authoritative corroboration, per standing decision #1).
+      sc: '2.5.3', claimFamily: 'label-in-name',
+      accessibilitySupportDependent: { BARRIER_OBSERVED: false, NO_BARRIER_OBSERVED: false },
+      applicability: { requires: ['labelInNameApplicable'] },
+      supports: {
+        NO_BARRIER_OBSERVED: { requires: ['labelInNameApplicable', 'passConfirmed'] },
+        BARRIER_OBSERVED: { requires: ['labelInNameApplicable', 'barrierConfirmed'] },
+      },
+      typedOutcomes: ['labelInNameApplicable', 'passConfirmed', 'barrierConfirmed'],
+    },
   },
 };
 

@@ -72,6 +72,11 @@ const SURFACES = Object.freeze([
   Object.freeze({ id: 'background-image', when: (el) => el.backgroundImageMeaningful === true, families: ['non-text-content', 'images-of-text'] }),
   // TT gap G3 — a CAPTCHA owes a captcha-alternative (1.1.1) review obligation; re-declared to match the oracle (Rule 16).
   Object.freeze({ id: 'captcha', when: (el) => el.isCaptcha === true, families: ['captcha-alternative'] }),
+  // ACT-REST expansion Round 1 — predicates RE-DECLARED to match the oracle's new gates exactly (Rule 16).
+  Object.freeze({ id: 'autocomplete-field', when: (el) => el.autocompleteApplicable === true, families: ['autocomplete-valid'] }),        // 1.3.5
+  Object.freeze({ id: 'important-text-spacing', when: (el) => el.spacingImportant === true, families: ['text-spacing-adequate'] }),        // 1.4.12
+  Object.freeze({ id: 'meta-refresh', when: (el) => el.metaRefreshValid === true, families: ['no-meta-refresh-delay'] }),                  // 2.2.1
+  Object.freeze({ id: 'meta-viewport', when: (el) => el.metaViewportKeyed === true, families: ['viewport-allows-zoom'] }),                 // 1.4.4
 ]);
 
 // The families this registry requires for one element (independent of the oracle).

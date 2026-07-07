@@ -1614,6 +1614,209 @@ async function runCompositeArrowTrap(page, request) {
   return mk(request, 'composite-arrow-trap', '2.1.2', o, { isCompositeWidget: true, hydrationReady }, { action: 'arrow-key-trap', valid, measurement: { reason: (r && r.reason) || null } });
 }
 
+// =====================================================================================
+// ACT-REST expansion Round 1 — static-DOM deterministic runners. Each: (1) EXTRACT raw DOM facts in-page,
+// (2) DECIDE in Node via the audited scripts/v3/lib/static-checks.js. Outcome shape mirrors the small
+// signals: <applicable> gates, then exactly one of passConfirmed / barrierConfirmed; neither ⇒ auto-PARTIAL.
+// These never drive the page (read attributes / computed styles only), so mutationRisk is low.
+// =====================================================================================
+const SC = require('./static-checks.js');
+
+// finalize a static runner outcome from an applicability + a verdict ('pass' | 'barrier' | null-abstain).
+function mkStatic(request, experimentId, sc, applicableFlag, applicable, verdict, action, measurement) {
+  const outcome = { [applicableFlag]: applicable === true, passConfirmed: verdict === 'pass', barrierConfirmed: verdict === 'barrier' };
+  const valid = applicable === true && (verdict === 'pass' || verdict === 'barrier');
+  return mk(request, experimentId, sc, outcome, { [applicableFlag]: applicable === true }, { action, state: 'static-dom', valid, measurement: measurement || {} });
+}
+
+// 1.3.5 — autocomplete has a valid value (ACT 73f2c2).
+async function runAutocompleteValid(page, request) {
+  const marker = String(request.candidateId || request.targetXpath);
+  const tagged = await page.evaluate(H.tagByXpath, request.targetXpath, marker).catch(() => false);
+  if (!tagged) return mkStatic(request, 'autocomplete-valid', '1.3.5', 'autocompleteApplicable', false, null, 'inspect-autocomplete');
+  const d = await page.evaluate((m) => {
+    const el = document.querySelector(`[data-v3-target="${m}"]`); if (!el) return null;
+    const tag = el.tagName.toLowerCase();
+    const type = (el.getAttribute('type') || '').toLowerCase();
+    const role = (el.getAttribute('role') || '').toLowerCase();
+    const cs = getComputedStyle(el); const r = el.getBoundingClientRect();
+    return {
+      tag, type,
+      autocomplete: el.getAttribute('autocomplete'),
+      disabled: el.disabled === true || el.getAttribute('aria-disabled') === 'true',
+      isField: ['input', 'select', 'textarea'].includes(tag) || /^(textbox|combobox|listbox|spinbutton|searchbox)$/.test(role),
+      // "visible OR in the a11y tree": display:none is excluded; an off-screen (in-tree) field stays applicable.
+      rendered: cs.display !== 'none' && cs.visibility !== 'hidden' && parseFloat(cs.opacity || '1') > 0 && r.width > 0 && r.height > 0,
+    };
+  }, marker).catch(() => null);
+  if (!d) return mkStatic(request, 'autocomplete-valid', '1.3.5', 'autocompleteApplicable', false, null, 'inspect-autocomplete');
+  const ac = d.autocomplete;
+  const applicable = d.isField && ac != null && ac.trim() !== '' && !SC.isAutocompleteToggle(ac) && !d.disabled && d.rendered
+    && !(d.tag === 'input' && SC.AUTOCOMPLETE_EXEMPT_INPUT_TYPES.has(d.type));
+  if (!applicable) return mkStatic(request, 'autocomplete-valid', '1.3.5', 'autocompleteApplicable', false, null, 'inspect-autocomplete', { autocomplete: ac });
+  const v = SC.validateAutocompleteTokens(ac);
+  return mkStatic(request, 'autocomplete-valid', '1.3.5', 'autocompleteApplicable', true, v.valid ? 'pass' : 'barrier', 'inspect-autocomplete', { autocomplete: ac, reason: v.reason });
+}
+
+// 1.4.4 — meta viewport allows zoom (ACT b4f0c3). The rule applies to EACH name=viewport meta independently;
+// a page fails if ANY keyed viewport meta restricts zoom — so read ALL of them (no navigation risk).
+async function runViewportZoom(page, request) {
+  const contents = await page.evaluate(() => [...document.querySelectorAll('meta[name="viewport" i]')].map((m) => m.getAttribute('content'))).catch(() => []);
+  if (!contents.length) return mkStatic(request, 'viewport-allows-zoom', '1.4.4', 'viewportApplicable', false, null, 'inspect-viewport');
+  const r = SC.evalViewportMetas(contents);
+  if (!r.applicable) return mkStatic(request, 'viewport-allows-zoom', '1.4.4', 'viewportApplicable', false, null, 'inspect-viewport', { contents, reason: r.reason });
+  return mkStatic(request, 'viewport-allows-zoom', '1.4.4', 'viewportApplicable', true, r.barrier ? 'barrier' : 'pass', 'inspect-viewport', { contents, reason: r.reason });
+}
+
+// 2.2.1 — first meta refresh has no timed delay (ACT bc659a). Reads the current DOM's first refresh meta.
+// On a 0-second (instant) fixture the page may already have navigated away ⇒ meta absent ⇒ abstain (auto-
+// PARTIAL); those cases are ACT-passed so an abstain scores correctly (no false clear/barrier). Long-delay
+// and invalid fixtures do not navigate within the window, so their meta is read reliably.
+async function runMetaRefreshDelay(page, request) {
+  // ACT applies to the FIRST meta refresh with a VALID content — an invalid one (e.g. "0: url", a colon
+  // after the time) schedules no refresh and is skipped, so a later valid meta ("5; url") is the target.
+  const contents = await page.evaluate(() => [...document.querySelectorAll('meta[http-equiv="refresh" i]')].map((m) => m.getAttribute('content'))).catch(() => []);
+  if (!contents.length) return mkStatic(request, 'no-meta-refresh-delay', '2.2.1', 'metaRefreshApplicable', false, null, 'inspect-meta-refresh');
+  let chosen = null, chosenContent = null;
+  for (const c of contents) { const r = SC.evalMetaRefreshContent(c); if (r.applicable) { chosen = r; chosenContent = c; break; } }
+  if (!chosen) return mkStatic(request, 'no-meta-refresh-delay', '2.2.1', 'metaRefreshApplicable', false, null, 'inspect-meta-refresh', { reason: 'no valid meta refresh content' });
+  return mkStatic(request, 'no-meta-refresh-delay', '2.2.1', 'metaRefreshApplicable', true, chosen.barrier ? 'barrier' : 'pass', 'inspect-meta-refresh', { content: chosenContent, delaySeconds: chosen.delaySeconds, reason: chosen.reason });
+}
+
+// 1.4.12 — text spacing wide enough (ACT 24afc2/9e45ec/78fd32). Measures the USED computed spacing at each
+// text-bearing leaf under the target (handles inheritance + font-size context), never parses the declared
+// string — so it catches the px-line-height case axe misses and never over-fires on mere !important presence.
+async function runTextSpacingAdequate(page, request) {
+  const marker = String(request.candidateId || request.targetXpath);
+  const tagged = await page.evaluate(H.tagByXpath, request.targetXpath, marker).catch(() => false);
+  if (!tagged) return mkStatic(request, 'text-spacing-adequate', '1.4.12', 'spacingApplicable', false, null, 'measure-text-spacing');
+  const d = await page.evaluate((m) => {
+    const el = document.querySelector(`[data-v3-target="${m}"]`); if (!el) return null;
+    const PROPS = ['letter-spacing', 'word-spacing', 'line-height'];
+    const CASCADE_KW = new Set(['inherit', 'unset', 'revert', 'revert-layer']); // defer to cascade ⇒ not a lock (inline; page.evaluate has no module scope)
+    // A property counts only when it LOCKS a concrete value at !important — a cascade-deferring keyword
+    // (inherit/unset/revert) does not block a user text-spacing override, so ACT rules it inapplicable.
+    const declared = PROPS.filter((p) => el.style.getPropertyPriority(p) === 'important'
+      && !CASCADE_KW.has((el.style.getPropertyValue(p) || '').trim().toLowerCase()));
+    const cs0 = getComputedStyle(el); const r0 = el.getBoundingClientRect();
+    // ACT "visible": not display:none/visibility:hidden/transparent AND not positioned off-screen (bottom<=0
+    // or right<=0 is the classic off-screen-hide, which renders NO in-viewport pixel ⇒ not visible).
+    const visible = cs0.display !== 'none' && cs0.visibility !== 'hidden' && parseFloat(cs0.opacity || '1') > 0
+      && r0.width > 0 && r0.height > 0 && r0.bottom > 0 && r0.right > 0;
+    const hasText = (el.textContent || '').trim().length > 0;
+    if (!declared.length || !visible || !hasText) return { applicable: false };
+    // text-bearing leaves = elements with a direct non-whitespace text node (incl. el itself).
+    const leaves = [];
+    const walk = (n) => {
+      for (const c of n.childNodes) if (c.nodeType === 3 && c.textContent.trim()) { leaves.push(n); break; }
+      for (const c of n.children) walk(c);
+    };
+    walk(el);
+    if (!leaves.length) return { applicable: false };
+    const perProp = {};
+    for (const p of declared) {
+      let worst = null; let status = 'unmeasured'; // 'measured' | 'single-line-only' | 'unmeasured'
+      for (const leaf of leaves) {
+        const cs = getComputedStyle(leaf);
+        const fontSize = parseFloat(cs.fontSize) || 0;
+        if (!fontSize) continue;
+        if (p === 'line-height') {
+          // Line COUNT from rendered text rects (reliable even where the sub-pixel line GAP is noisy).
+          const tops = new Set(); const range = document.createRange();
+          for (const c of leaf.childNodes) {
+            if (c.nodeType !== 3 || !c.textContent.trim()) continue;
+            range.selectNodeContents(c);
+            for (const rect of range.getClientRects()) if (rect.width > 0 && rect.height > 0) tops.add(Math.round(rect.top));
+          }
+          const lines = tops.size;
+          if (lines === 0) continue;                                   // this leaf is unmeasurable — NOT a pass
+          if (lines < 2) { if (status === 'unmeasured') status = 'single-line-only'; continue; } // ACT 78fd32 "less than two lines" exemption ⇒ definitive pass
+          // >= 2 lines: the USED value from getComputedStyle().lineHeight is EXACT (no rounding); only
+          // `normal` yields a keyword, so fall back to the measured line-box gap there (well below 1.5 anyway).
+          let usedLh;
+          if (cs.lineHeight === 'normal') { const s = [...tops].sort((a, b) => a - b); let g = Infinity; for (let i = 1; i < s.length; i++) g = Math.min(g, s[i] - s[i - 1]); usedLh = g; }
+          else usedLh = parseFloat(cs.lineHeight);
+          status = 'measured';
+          const ratio = usedLh / fontSize;
+          if (worst == null || ratio < worst) worst = ratio;
+        } else {
+          const raw = p === 'letter-spacing' ? cs.letterSpacing : cs.wordSpacing;
+          const spacingPx = (raw === 'normal') ? 0 : (parseFloat(raw) || 0);
+          status = 'measured';
+          const ratio = spacingPx / fontSize;
+          if (worst == null || ratio < worst) worst = ratio;
+        }
+      }
+      perProp[p] = { ratio: worst, status };
+    }
+    return { applicable: true, declared, perProp };
+  }, marker).catch(() => null);
+  if (!d || !d.applicable) return mkStatic(request, 'text-spacing-adequate', '1.4.12', 'spacingApplicable', false, null, 'measure-text-spacing');
+  let anyBarrier = false, anyUnmeasured = false; const detail = {};
+  for (const p of d.declared) {
+    const { ratio, status } = d.perProp[p] || { ratio: null, status: 'unmeasured' };
+    detail[p] = { ratio, status };
+    if (status === 'single-line-only') continue;              // definitive pass (ACT "< 2 lines" exemption)
+    if (status === 'unmeasured') { anyUnmeasured = true; continue; } // could not measure ⇒ never a confirmed pass
+    if (ratio != null && !SC.spacingRatioMeets(p, ratio)) anyBarrier = true; // measured below the WCAG metric
+  }
+  // barrier dominates; a genuinely-unmeasurable prop (with no barrier elsewhere) ABSTAINS rather than clearing.
+  const verdict = anyBarrier ? 'barrier' : (anyUnmeasured ? null : 'pass');
+  return mkStatic(request, 'text-spacing-adequate', '1.4.12', 'spacingApplicable', true, verdict, 'measure-text-spacing', { ratios: detail });
+}
+
+// 2.5.3 — visible label is part of the accessible name (ACT 2ee8b8). Authoritative containment; ABSTAINS
+// (auto-PARTIAL → rubric) when the visible text is a single character or renders via an icon font — the
+// two documented ACT passed-exceptions a pure string compare can't judge (so never a false barrier there).
+async function runLabelInNameMatch(page, request) {
+  const marker = String(request.candidateId || request.targetXpath);
+  const tagged = await page.evaluate(H.tagByXpath, request.targetXpath, marker).catch(() => false);
+  if (!tagged) return mkStatic(request, 'label-in-name-match', '2.5.3', 'labelInNameApplicable', false, null, 'inspect-label-in-name');
+  const d = await page.evaluate((m) => {
+    const el = document.querySelector(`[data-v3-target="${m}"]`); if (!el) return null;
+    const tag = el.tagName.toLowerCase();
+    const type = (el.getAttribute('type') || '').toLowerCase();
+    let role = (el.getAttribute('role') || '').toLowerCase();
+    if (!role) {
+      if (tag === 'a' && el.hasAttribute('href')) role = 'link';
+      else if (tag === 'button') role = 'button';
+      else if (tag === 'summary') role = 'button';
+      else if (tag === 'input') role = ({ checkbox: 'checkbox', radio: 'radio', button: 'button', submit: 'button', reset: 'button', search: 'searchbox' })[type] || 'textbox';
+      else if (tag === 'option') role = 'option';
+    }
+    const visible = (el.innerText || '').replace(/\s+/g, ' ').trim();
+    // accessible name from the EXPLICIT aria name only (2ee8b8 needs aria-label/labelledby present).
+    let name = null; let hasExplicit = false;
+    const al = el.getAttribute('aria-label');
+    if (al != null) { hasExplicit = true; if (al.trim()) name = al; }
+    const lb = el.getAttribute('aria-labelledby');
+    if (lb && lb.trim()) {
+      hasExplicit = true;
+      if (name == null) {
+        const parts = lb.trim().split(/\s+/).map((id) => { const n = document.getElementById(id); return n ? (n.innerText || n.textContent || '') : ''; });
+        const joined = parts.join(' ').replace(/\s+/g, ' ').trim();
+        if (joined) name = joined;
+      }
+    }
+    // Icon-font NAME allowlist (conservative — matched by name only, so plain text fonts Times/Arial/Roboto
+    // never trip it and the corpus's plain-font barriers are untouched). Broadening this beyond a name
+    // allowlist to "any non-generic font" was rejected: plain <button>/<a> resolve to named fonts (Times/
+    // Arial), so it would abstain the real barriers and crater recall. A truly custom-named icon font still
+    // barriers → the rubric corroboration covers that residual.
+    const ff = (getComputedStyle(el).fontFamily || '').toLowerCase();
+    const iconFont = /\bicon|\bglyph|awesome|ionicons?|feather|remixicon|boxicons?|dashicons?|typicons?|octicons?|fontello|entypo|material symbols|mdl2|webdings|wingdings/.test(ff);
+    return { role, visible, name, hasExplicit, iconFont, singleChar: [...visible].length === 1 };
+  }, marker).catch(() => null);
+  if (!d) return mkStatic(request, 'label-in-name-match', '2.5.3', 'labelInNameApplicable', false, null, 'inspect-label-in-name');
+  const applicable = SC.NAME_FROM_CONTENT_WIDGET_ROLES.has(d.role) && !!d.visible && d.hasExplicit && d.name != null;
+  if (!applicable) return mkStatic(request, 'label-in-name-match', '2.5.3', 'labelInNameApplicable', false, null, 'inspect-label-in-name');
+  if (SC.labelContainedInName(d.visible, d.name)) return mkStatic(request, 'label-in-name-match', '2.5.3', 'labelInNameApplicable', true, 'pass', 'inspect-label-in-name', { visible: d.visible, name: d.name });
+  // not contained: a single-char or icon-font visible label is not judgeable as text deterministically ⇒
+  // ABSTAIN to the rubric (the documented 2ee8b8 passed-exceptions), never a hard barrier.
+  if (d.singleChar || d.iconFont) return mkStatic(request, 'label-in-name-match', '2.5.3', 'labelInNameApplicable', true, null, 'inspect-label-in-name', { visible: d.visible, name: d.name, abstain: d.iconFont ? 'icon-font' : 'single-char' });
+  return mkStatic(request, 'label-in-name-match', '2.5.3', 'labelInNameApplicable', true, 'barrier', 'inspect-label-in-name', { visible: d.visible, name: d.name });
+}
+
 const RUNNERS = {
   'text-contrast-pixel': runTextContrastPixel,
   'field-label-probe': runFieldLabelProbe,
@@ -1630,6 +1833,12 @@ const RUNNERS = {
   'multipart-grouping': runSmallSignalExp,
   'positive-tabindex': runSmallSignalExp,
   'composite-arrow-trap': runCompositeArrowTrap,
+  // ACT-REST expansion Round 1 (static-DOM deterministic)
+  'autocomplete-valid': runAutocompleteValid,
+  'viewport-allows-zoom': runViewportZoom,
+  'no-meta-refresh-delay': runMetaRefreshDelay,
+  'text-spacing-adequate': runTextSpacingAdequate,
+  'label-in-name-match': runLabelInNameMatch,
 };
 
 module.exports = { RUNNERS, measureContrast, measureFieldLabel, measureReflow, measureObscured };

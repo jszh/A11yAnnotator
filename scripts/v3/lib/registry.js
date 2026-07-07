@@ -119,6 +119,43 @@ const EXPLICIT = {
     clearability: 'open-scope-never-clearable', accessibilitySupportDependent: false,
     rationale: 'N/A asserts no status message exists across the unbounded app-flow space; not provable by experiment (only a non-markup structural inapplicability could clear).',
   },
+
+  // ---- ACT-REST expansion Round 1: static-DOM deterministic runners. Each CLEARS on a closed decidable
+  // sub-domain (a spec-fixed grammar/threshold read from the DOM), so the clearing direction is
+  // closed-scope-clearable with a completeness predicate whose obligations are exactly the runner's
+  // NO_BARRIER support outcomes. All AT-INDEPENDENT (attribute/computed-style/string comparison). ----
+  '1.3.5/NO_BARRIER_OBSERVED': {
+    clearability: 'closed-scope-clearable', accessibilitySupportDependent: false,
+    completeness: { resolver: 'all-true-completeness-v1', requiredObligations: ['autocompleteApplicable', 'passConfirmed'], derivation: 'docs/analysis/coverage/ACT-REST-GAP-PLANS.md#3' },
+    rationale: 'Cleared only when the applicable field\'s autocomplete value is a valid ordered autofill-token sequence (full WHATWG field-name table); an unknown/mis-ordered token is a barrier, not a clear.',
+  },
+  '1.3.5/BARRIER_OBSERVED': { clearability: 'open-scope-never-clearable', accessibilitySupportDependent: false, rationale: 'An applicable form field whose autocomplete value contains an unknown or mis-ordered token is a positive observation; no completeness needed.' },
+  '1.4.12/NO_BARRIER_OBSERVED': {
+    clearability: 'closed-scope-clearable', accessibilitySupportDependent: false,
+    completeness: { resolver: 'all-true-completeness-v1', requiredObligations: ['spacingApplicable', 'passConfirmed'], derivation: 'docs/analysis/coverage/ACT-REST-GAP-PLANS.md#4' },
+    rationale: 'Cleared only when every !important letter/word/line-spacing declared over the element\'s visible text meets its WCAG text-spacing ratio (0.12/0.16/1.5), measured from the used computed values.',
+  },
+  '1.4.12/BARRIER_OBSERVED': { clearability: 'open-scope-never-clearable', accessibilitySupportDependent: false, rationale: 'An element locking a spacing property !important below the WCAG text-spacing metric over visible text is a positive observation; no completeness needed.' },
+  '2.2.1/NO_BARRIER_OBSERVED': {
+    clearability: 'closed-scope-clearable', accessibilitySupportDependent: false,
+    completeness: { resolver: 'all-true-completeness-v1', requiredObligations: ['metaRefreshApplicable', 'passConfirmed'], derivation: 'docs/analysis/coverage/ACT-REST-GAP-PLANS.md#5' },
+    rationale: 'Cleared only when the first valid meta refresh delay is 0 (instant redirect) or > 72000s (effectively none within a session); a delay in (0, 72000] is a barrier.',
+  },
+  '2.2.1/BARRIER_OBSERVED': { clearability: 'open-scope-never-clearable', accessibilitySupportDependent: false, rationale: 'A first meta refresh with a timed delay in (0, 72000] seconds is a positive observation; no completeness needed.' },
+  '1.4.4/NO_BARRIER_OBSERVED': {
+    clearability: 'closed-scope-clearable', accessibilitySupportDependent: false,
+    completeness: { resolver: 'all-true-completeness-v1', requiredObligations: ['viewportApplicable', 'passConfirmed'], derivation: 'docs/analysis/coverage/ACT-REST-GAP-PLANS.md#6a' },
+    rationale: 'Cleared only when a viewport declaring user-scalable/maximum-scale permits zoom (user-scalable yes or |n|>=1; maximum-scale undefined/>=2/device-*/negative); an unrecognized token is not a passing value.',
+  },
+  '1.4.4/BARRIER_OBSERVED': { clearability: 'open-scope-never-clearable', accessibilitySupportDependent: false, rationale: 'A meta viewport that restricts zoom (user-scalable=no/0/in-range, or maximum-scale < 2, or an unrecognized token) is a positive observation; no completeness needed.' },
+  // 2.5.3 — the containment is a STRUCTURAL string comparison of the collected visible label vs the computed
+  // accessible name; observing it needs no AT baseline, so this OVERRIDES the AT_DEPENDENT_CLEAR default.
+  '2.5.3/NO_BARRIER_OBSERVED': {
+    clearability: 'closed-scope-clearable', accessibilitySupportDependent: false,
+    completeness: { resolver: 'all-true-completeness-v1', requiredObligations: ['labelInNameApplicable', 'passConfirmed'], derivation: 'docs/analysis/coverage/ACT-REST-GAP-PLANS.md#7' },
+    rationale: 'Cleared only when the normalized visible label is a contiguous substring of the computed accessible name for a name-from-content widget with an explicit aria name; a genuinely different word is a barrier. Structural (no AT baseline needed).',
+  },
+  '2.5.3/BARRIER_OBSERVED': { clearability: 'open-scope-never-clearable', accessibilitySupportDependent: false, rationale: 'A name-from-content widget whose readable visible label is not contained in its accessible name is a positive observation; no completeness needed. Icon-font/single-char labels abstain to the rubric, never a hard barrier.' },
 };
 
 // Build full coverage: an explicit entry where given, else a default-closed entry for every
