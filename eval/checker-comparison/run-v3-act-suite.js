@@ -456,10 +456,10 @@ async function main() {
   if (RESUME && fs.existsSync(path.join(OUT, 'raw.json'))) {
     try {
       const prior = JSON.parse(fs.readFileSync(path.join(OUT, 'raw.json'), 'utf8'));
-      const done = new Set(prior.map((r) => r.testcaseId));
+      const done = new Set(prior.map((r) => `${r.ruleId}|${r.testcaseId}`)); // testcaseIds are shared across ACT rules — key on both
       raw.push(...prior);
       const before = selected.length;
-      selected = selected.filter((tc) => !done.has(tc.testcaseId));
+      selected = selected.filter((tc) => !done.has(`${tc.ruleId}|${tc.testcaseId}`));
       console.log(`resume: ${prior.length} prior records; skipping ${before - selected.length}, running ${selected.length} remaining`);
     } catch (e) { console.log(`resume: could not read prior raw.json (${e.message}); running full set`); }
   }

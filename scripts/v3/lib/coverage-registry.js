@@ -77,6 +77,9 @@ const SURFACES = Object.freeze([
   Object.freeze({ id: 'important-text-spacing', when: (el) => el.spacingImportant === true, families: ['text-spacing-adequate'] }),        // 1.4.12
   Object.freeze({ id: 'meta-refresh', when: (el) => el.metaRefreshValid === true, families: ['no-meta-refresh-delay'] }),                  // 2.2.1
   Object.freeze({ id: 'meta-viewport', when: (el) => el.metaViewportKeyed === true, families: ['viewport-allows-zoom'] }),                 // 1.4.4
+  // ACT-REST expansion Round 2 — re-declared to match the oracle's new gates (Rule 16).
+  Object.freeze({ id: 'zoom-clip-text', when: (el) => el.zoomClipApplicable === true, families: ['text-not-clipped-zoom'] }),              // 1.4.4 (59br37)
+  Object.freeze({ id: 'bypass-page', when: (el) => el.bypassApplicable === true, families: ['bypass-blocks'] }),                           // 2.4.1
 ]);
 
 // The families this registry requires for one element (independent of the oracle).

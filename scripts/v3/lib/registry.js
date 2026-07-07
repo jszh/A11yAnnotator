@@ -142,6 +142,12 @@ const EXPLICIT = {
     rationale: 'Cleared only when the first valid meta refresh delay is 0 (instant redirect) or > 72000s (effectively none within a session); a delay in (0, 72000] is a barrier.',
   },
   '2.2.1/BARRIER_OBSERVED': { clearability: 'open-scope-never-clearable', accessibilitySupportDependent: false, rationale: 'A first meta refresh with a timed delay in (0, 72000] seconds is a positive observation; no completeness needed.' },
+  // SHARED-SC GUARD (Round 2): SC 1.4.4 now has TWO families (viewport-allows-zoom + text-not-clipped-zoom), but a
+  // registry key is per (sc, direction), so this ONE completeness governs all 1.4.4 clears. Its obligations are the
+  // VIEWPORT experiment's flags (`viewportApplicable`); the zoom-clip experiment emits `zoomClipApplicable`, so a
+  // zoom-clip NO_BARRIER can never satisfy this completeness and stays PARTIAL (barrier-primary, intended). Do NOT
+  // add zoom-clip completeness by broadening requiredObligations here — that would silently mis-clear the other
+  // family. A future zoom-clip clear needs a per-family/experiment completeness resolver, not a shared superset.
   '1.4.4/NO_BARRIER_OBSERVED': {
     clearability: 'closed-scope-clearable', accessibilitySupportDependent: false,
     completeness: { resolver: 'all-true-completeness-v1', requiredObligations: ['viewportApplicable', 'passConfirmed'], derivation: 'docs/analysis/coverage/ACT-REST-GAP-PLANS.md#6a' },

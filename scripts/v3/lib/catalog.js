@@ -272,6 +272,50 @@ const CATALOG = {
       },
       typedOutcomes: ['labelInNameApplicable', 'passConfirmed', 'barrierConfirmed'],
     },
+
+    // ---- ACT-REST expansion Round 2: instrument-needing SCs. Dynamic browser probes (re-layout / drive controls),
+    // BARRIER-PRIMARY (a detected barrier fails; a "pass" does not resolve to an authoritative clear — matching
+    // each rule's "all-passed = needs further testing" mapping — and abstentions feed the existing rubrics). ----
+    'zoom-clip-probe': { // 1.4.4 (ACT 59br37) — re-lays out at the 640x512 zoom-equivalent viewport and detects
+      // text clipped by an ancestor overflow (with the ACT horizontal/vertical exceptions). A SECOND 1.4.4 family.
+      sc: '1.4.4', claimFamily: 'text-not-clipped-zoom',
+      cost: { maxWallClockMs: 20000, retries: 1, mutationRisk: 'low' }, // sets a 640x512 viewport + settles; reads geometry only
+      accessibilitySupportDependent: { BARRIER_OBSERVED: false, NO_BARRIER_OBSERVED: false },
+      applicability: { requires: ['zoomClipApplicable'] },
+      supports: {
+        NO_BARRIER_OBSERVED: { requires: ['zoomClipApplicable', 'passConfirmed'] },
+        BARRIER_OBSERVED: { requires: ['zoomClipApplicable', 'barrierConfirmed'] },
+      },
+      typedOutcomes: ['zoomClipApplicable', 'passConfirmed', 'barrierConfirmed'],
+    },
+    'auto-update-pausable': { // 2.2.2 (ACT efbfc7) — Round 2 instrument bound to the EXISTING motion-control family
+      // (its rubric stays the non-authoritative corroboration; this feeds it via abstention reasons). Confirms the
+      // text ticker updates, then DRIVES each candidate control on a fresh page to confirm one stops/hides it.
+      // BARRIER when updates are confirmed AND the page has NO interactive control; CLEAR when a driven control
+      // verifiably stops/hides the ticker; ABSTAIN (update-unconfirmed / control-effect-unclear) otherwise.
+      sc: '2.2.2', claimFamily: 'motion-control',
+      cost: { maxWallClockMs: 45000, retries: 0, mutationRisk: 'high' }, // reloads + clicks each control (drives the page)
+      accessibilitySupportDependent: { BARRIER_OBSERVED: false, NO_BARRIER_OBSERVED: false },
+      applicability: { requires: ['autoUpdateApplicable'] },
+      supports: {
+        NO_BARRIER_OBSERVED: { requires: ['autoUpdateApplicable', 'passConfirmed'] },
+        BARRIER_OBSERVED: { requires: ['autoUpdateApplicable', 'barrierConfirmed'] },
+      },
+      typedOutcomes: ['autoUpdateApplicable', 'passConfirmed', 'barrierConfirmed'],
+    },
+    'bypass-blocks': { // 2.4.1 (ACT cf77f2) — Round 2 composite-disjunction instrument, body-scoped. Decides on the
+      // four sufficient techniques (landmark/heading/skip-link/collapse) + document order; the collapse limb is
+      // activation-confirmed. BARRIER-PRIMARY; ambiguous boundary ⇒ abstain.
+      sc: '2.4.1', claimFamily: 'bypass-blocks',
+      cost: { maxWallClockMs: 30000, retries: 0, mutationRisk: 'high' }, // may reload + click collapse controls
+      accessibilitySupportDependent: { BARRIER_OBSERVED: false, NO_BARRIER_OBSERVED: false },
+      applicability: { requires: ['bypassApplicable'] },
+      supports: {
+        NO_BARRIER_OBSERVED: { requires: ['bypassApplicable', 'passConfirmed'] },
+        BARRIER_OBSERVED: { requires: ['bypassApplicable', 'barrierConfirmed'] },
+      },
+      typedOutcomes: ['bypassApplicable', 'passConfirmed', 'barrierConfirmed'],
+    },
   },
 };
 

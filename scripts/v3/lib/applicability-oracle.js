@@ -88,6 +88,11 @@ const FAMILIES = Object.freeze({
   'text-spacing-adequate':   Object.freeze({ sc: '1.4.12', skills: ['color-and-visual-text'] }),         // 1.4.12 (24afc2/9e45ec/78fd32) — !important letter/word/line spacing wide enough
   'no-meta-refresh-delay':   Object.freeze({ sc: '2.2.1', skills: ['timing-and-motion'] }),              // 2.2.1 (bc659a) — first meta refresh has no timed delay
   'viewport-allows-zoom':    Object.freeze({ sc: '1.4.4', skills: ['color-and-visual-text'] }),          // 1.4.4 (b4f0c3) — meta viewport permits zoom
+  // ---- ACT-REST expansion, Round 2: instrument-needing SCs (dynamic browser probes; barrier-primary).
+  //      2.2.2 (efbfc7) reuses the EXISTING motion-control family (above) — the auto-update-pausable instrument
+  //      feeds its rubric via abstention reasons, so no new 2.2.2 family is registered here. ----
+  'text-not-clipped-zoom':   Object.freeze({ sc: '1.4.4', skills: ['color-and-visual-text'] }),          // 1.4.4 (59br37) — text clipped by overflow at the 640x512 zoom-equivalent viewport (a SECOND 1.4.4 family)
+  'bypass-blocks':           Object.freeze({ sc: '2.4.1', skills: ['page-structure'] }),                  // 2.4.1 (cf77f2/ye5d6e/3e12e1) — a page bypass mechanism (landmark/heading/skip-link/collapse)
 });
 
 const WIDGET_ROLE = /^(button|link|checkbox|switch|tab|menuitem|combobox|radio|slider)$/;
@@ -314,6 +319,9 @@ function familiesFor(el) {
   if (el.spacingImportant === true) fams.push('text-spacing-adequate');                       // 1.4.12 — an element whose inline style declares letter/word/line-spacing !important over visible text
   if (el.metaRefreshValid === true) fams.push('no-meta-refresh-delay');                        // 2.2.1 — the first <meta http-equiv=refresh> with a valid (numeric-leading) content
   if (el.metaViewportKeyed === true) fams.push('viewport-allows-zoom');                        // 1.4.4 — a <meta name=viewport> whose content declares user-scalable/maximum-scale
+  // ---- Round 2 (each gated on a NEW collector fact detected at the RIGHT dynamic condition; runner re-verifies) ----
+  if (el.zoomClipApplicable === true) fams.push('text-not-clipped-zoom');                      // 1.4.4 (59br37) — a clip-ancestor element wrapping visible text at the 640x512 viewport
+  if (el.bypassApplicable === true) fams.push('bypass-blocks');                                // 2.4.1 — a page with repeated blocks + non-repeated content owes a bypass mechanism
   return [...new Set(fams)];
 }
 

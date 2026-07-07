@@ -62,7 +62,10 @@ const HELD_OUT_PREFIXES = new Set([
   // 1.4.12 78fd32 — the px line-height case axe misses (20px/20px) + an empty-div inapplicable
   '67159173',
 ]);
-const isHeldOut = (tc) => [...HELD_OUT_PREFIXES].some((p) => tc.testcaseId.startsWith(p));
+// 2.4.1 (Round 2): develop against cf77f2 only; ye5d6e + 3e12e1 are the RULE-LEVEL held-out generalization check
+// (the individual skip-link-focus-move / collapse limbs), run once at the end.
+const HELD_OUT_RULES = new Set(['ye5d6e', '3e12e1']);
+const isHeldOut = (tc) => HELD_OUT_RULES.has(tc.ruleId) || [...HELD_OUT_PREFIXES].some((p) => tc.testcaseId.startsWith(p));
 
 function withTimeout(promise, ms, label) {
   let t;
@@ -235,6 +238,59 @@ async function collectForV3(page, tc, runId) {
     return { title: document.title || '', lang: document.documentElement.getAttribute('lang') || '', elements: els, reflowApplicable: false };
   }, ELEMENT_CAP).catch(() => ({ elements: [] }));
 
+  // Round 2 — SC 59br37 (1.4.4) applicability must be evaluated at the 640x512 zoom-equivalent viewport (some
+  // fixtures only clip via @media (max-width:640px)). A dedicated 640x512 pass finds each nearest clip-ancestor
+  // wrapping a visible applicable text node and mints ONE obligation targeting it; the runner (also at 640x512)
+  // decides clipped-or-not. Done AFTER the main collection so the default-viewport facts are unaffected.
+  await page.setViewport({ width: 640, height: 512, deviceScaleFactor: 1 }).catch(() => {});
+  await new Promise((r) => setTimeout(r, 120));
+  const clipEls = await page.evaluate(() => {
+    function xpathOf(e) { if (!e || !e.tagName) return ''; if (e === document.documentElement) return '/html'; const tag = e.tagName.toLowerCase(); let idx = 1; for (let s = e.previousElementSibling; s; s = s.previousElementSibling) if (s.tagName === e.tagName) idx++; return xpathOf(e.parentElement) + '/' + tag + '[' + idx + ']'; }
+    const seen = new Set(); const out = [];
+    const tw = document.createTreeWalker(document.body || document.documentElement, NodeFilter.SHOW_TEXT);
+    let n; while ((n = tw.nextNode())) {
+      if (!n.textContent.trim()) continue;
+      const p = n.parentElement; if (!p) continue;
+      if (p.namespaceURI && p.namespaceURI !== 'http://www.w3.org/1999/xhtml') continue; // SVG/MathML parent ⇒ inapplicable
+      const pc = getComputedStyle(p); if (pc.display === 'none' || pc.visibility === 'hidden') continue; // not visible
+      let ah = false; for (let a = p; a; a = a.parentElement) if (a.getAttribute && a.getAttribute('aria-hidden') === 'true') { ah = true; break; }
+      if (ah) continue;
+      // nearest ancestor with overflow-x/y hidden or clip
+      let clip = null; for (let a = p; a; a = a.parentElement) { const cs = getComputedStyle(a); if (/(hidden|clip)/.test(cs.overflowX) || /(hidden|clip)/.test(cs.overflowY)) { clip = a; break; } }
+      if (!clip || !clip.tagName) continue;
+      const xp = xpathOf(clip); if (seen.has(xp)) continue; seen.add(xp);
+      out.push(xp);
+      if (out.length >= 40) break;
+    }
+    return out;
+  }).catch(() => []);
+  for (const xp of clipEls) (data.elements = data.elements || []).push({ xpath: xp, tag: 'zoomclip', hasText: false, focusable: false, isFormField: false, zoomClipApplicable: true });
+
+  // Round 2 — SC efbfc7 (2.2.2): detect auto-updating INNER TEXT via two snapshots ~1.6s apart (only when the
+  // page runs script — auto-updating text needs JS). Mints a motion-control obligation on each element whose OWN
+  // text node changed (the innermost ticker). The runner re-confirms + drives the pause controls.
+  await page.setViewport({ width: 1280, height: 900, deviceScaleFactor: 1 }).catch(() => {});
+  const autoUpdated = await page.evaluate(async () => {
+    if (!document.querySelector('script')) return [];
+    function xpathOf(e) { if (!e || !e.tagName) return ''; if (e === document.documentElement) return '/html'; const t = e.tagName.toLowerCase(); let i = 1; for (let s = e.previousElementSibling; s; s = s.previousElementSibling) if (s.tagName === e.tagName) i++; return xpathOf(e.parentElement) + '/' + t + '[' + i + ']'; }
+    const directText = (el) => { let t = ''; for (const c of el.childNodes) if (c.nodeType === 3) t += c.textContent; return t.trim(); };
+    const cand = [...document.querySelectorAll('body *')].filter((el) => directText(el).length > 0);
+    const before = new Map(cand.map((el) => [el, directText(el)]));
+    await new Promise((r) => setTimeout(r, 1600));
+    const changed = [];
+    for (const el of cand) { if (directText(el) !== before.get(el)) { changed.push({ xpath: xpathOf(el), liveRegion: !!el.closest('[aria-live],[role=status],[role=alert],[role=log],output') }); } if (changed.length >= 10) break; }
+    return changed;
+  }).catch(() => []);
+  for (const c of autoUpdated) (data.elements = data.elements || []).push({ xpath: c.xpath, tag: 'autoupdate', hasText: false, focusable: false, isFormField: false, autoUpdatingText: true, liveRegion: c.liveRegion });
+
+  // Round 2 — SC cf77f2 (2.4.1): mint ONE body-scoped bypass obligation when the page has ≥1 visible repeated
+  // block (nav/aside/header/footer or the matching landmark roles). The runner does the full limb analysis.
+  const hasRepeated = await page.evaluate(() => {
+    const REPEATED = 'nav,aside,header,footer,[role=navigation],[role=complementary],[role=banner],[role=contentinfo]';
+    return [...document.querySelectorAll(REPEATED)].some((el) => { const cs = getComputedStyle(el); const r = el.getBoundingClientRect(); return cs.display !== 'none' && cs.visibility !== 'hidden' && r.width > 0 && r.height > 0; });
+  }).catch(() => false);
+  if (hasRepeated) (data.elements = data.elements || []).push({ xpath: '/html/body', tag: 'bypass', hasText: false, focusable: false, isFormField: false, bypassApplicable: true });
+
   return {
     file: `act:${tc.testcaseId}`, sourceUrl: tc.url, runId, pageDigest: digestForUrl(tc.url), collectedAt,
     elements: data.elements || [], elementCount: (data.elements || []).length,
@@ -292,7 +348,10 @@ function summarize(raw) {
 
 async function main() {
   const all = JSON.parse(fs.readFileSync(path.join(REST_DIR, 'subset.json'), 'utf8'));
-  const roundRules = new Set(Object.values(SCOPE.rounds[ROUND] || {}).flat());
+  // --round: a single round key, or 'all' to union the IMPLEMENTED rounds (R1+R2 = the 197-case regression view;
+  // round 3's LLM lane is not built, so 'all' excludes it to avoid scoring an unimplemented SC).
+  const roundKeys = ROUND === 'all' ? ['1-static-deterministic', '2-dynamic-instruments'] : [ROUND];
+  const roundRules = new Set(roundKeys.flatMap((k) => Object.values(SCOPE.rounds[k] || {}).flat()));
   let selected = all.filter((tc) => roundRules.has(tc.ruleId) && ['failed', 'passed', 'inapplicable'].includes(tc.expected));
   if (RULE) selected = selected.filter((tc) => tc.ruleId === RULE);
   selected = selected.map((tc) => ({ ...tc, heldOut: isHeldOut(tc) }));

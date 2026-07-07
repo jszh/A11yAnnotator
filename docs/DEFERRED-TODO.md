@@ -549,3 +549,21 @@ destination byte-equality grid as a DETERMINISTIC signal on those subjects (the 
 passive models the answer so they don't need to call the tool). Removes the compliance dependency entirely and clears
 the fd3a94 cluster the right way. Non-trivial (browser fetches at setup, signal threading, live-browser tests against
 the b20e66 mirror) — its own scoped task + a 2.4.4 re-run watching recall, not folded into a rubric edit.
+
+## J. Port the act-rest R2 detection passes to the PRODUCTION collectors (act-page-collect.js / eval-page.js)
+**Approved deferred 2026-07-07** (act-rest expansion Round 2; adversarial verifier recommended defer, lead concurred).
+The three R2 instrument detections — 59br37 zoom-clip (640×512 relayout pass), efbfc7 auto-update (timed innerText
+snapshot pass), 2.4.1 bypass-blocks (repeated-block/limb enumeration) — live ONLY in the eval harness collector
+(`eval/checker-comparison/run-v3-act-rest-suite.js` collectForV3). Production runs do not enumerate R2 obligations,
+so the 3 runners (shadow authority) are invisible outside the act-rest eval.
+
+**Why deferred, not shipped:** the passes are expensive and mutating for production — efbfc7 adds a ~1.6 s blocking
+snapshot window; zoom-clip thrashes the viewport to 640×512 mid-collection (corrupts geometry-derived in-scope facts
+unless save/restored); the runners reload and drive the page (high mutationRisk). Porting naively risks regressing the
+22-SC in-scope metrics for zero gating benefit while the R2 lanes are shadow-only.
+
+**Design when actioned:** (1) viewport save/restore bracketing (or a dedicated post-pass browser context) for the
+640 pass; (2) the efbfc7 snapshot behind a time-budget flag (skip when the page shows no timer/mutation activity);
+(3) bypass-blocks enumeration is cheap/static — portable first; (4) gate the port with the standard deterministic
+581 pre/post diff PLUS an in-scope geometry-fact diff (the specific corruption vector); (5) only after the R2
+must-fixes (multi-block skip-past; used-line-height measurement) are in.

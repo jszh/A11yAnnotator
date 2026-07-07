@@ -1817,6 +1817,261 @@ async function runLabelInNameMatch(page, request) {
   return mkStatic(request, 'label-in-name-match', '2.5.3', 'labelInNameApplicable', true, 'barrier', 'inspect-label-in-name', { visible: d.visible, name: d.name });
 }
 
+// 1.4.4 — zoomed text node not clipped by CSS overflow (ACT 59br37). Round 2 instrument: re-lays out at the
+// 640x512 zoom-equivalent viewport and checks the target clip-ancestor for clipped text, applying the two ACT
+// exceptions. BARRIER-PRIMARY. The clip-geometry PATTERN is adapted from reflow-runner.js's captureInventory
+// (copied, NOT shared — the reflow runner stays untouched). The vertical exception is derived from the ACT test
+// fixtures (measured at 640x512): a clip is exempt only when it falls on a CLEAN LINE BOUNDARY (clientHeight ≈ an
+// integer multiple of the used line-height, so only complete lines are hidden) — the literal prose "line-height
+// >= box height" mis-classifies Failed Example 4 (box 10px < line 18px), which the corpus marks failed.
+async function runZoomClipProbe(page, request) {
+  const marker = String(request.candidateId || request.targetXpath);
+  await page.setViewport({ width: 640, height: 512, deviceScaleFactor: 1 }).catch(() => {});
+  await require('./settle.js').awaitSettle(page).catch(() => {});
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))).catch(() => {});
+  const tagged = await page.evaluate(H.tagByXpath, request.targetXpath, marker).catch(() => false);
+  if (!tagged) return mkStatic(request, 'zoom-clip-probe', '1.4.4', 'zoomClipApplicable', false, null, 'zoom-clip-640');
+  const d = await page.evaluate((m) => {
+    const SLOP = 1;
+    const el = document.querySelector(`[data-v3-target="${m}"]`); if (!el) return null;
+    const cs = getComputedStyle(el);
+    const r = el.getBoundingClientRect();
+    const visible = cs.display !== 'none' && cs.visibility !== 'hidden' && parseFloat(cs.opacity || '1') > 0 && r.width > 0 && r.height > 0;
+    const clipX = /(hidden|clip)/.test(cs.overflowX);
+    const clipY = /(hidden|clip)/.test(cs.overflowY);
+    if (!visible || !(clipX || clipY)) return { applicable: false };
+    // ACT "visible": a clip window smaller than ~4x4px (the classic 1x1 visually-hidden / off-screen idiom)
+    // renders NO perceivable text ⇒ the text node is fully hidden ⇒ the rule is INAPPLICABLE (not a barrier).
+    if (el.clientWidth < 4 && el.clientHeight < 4) return { applicable: false };
+    // a visible non-whitespace text node under el, with an HTML-element parent (not SVG/MathML), not aria-hidden.
+    let hasText = false;
+    const tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    let n; while ((n = tw.nextNode())) {
+      if (!n.textContent.trim()) continue;
+      const p = n.parentElement; if (!p) continue;
+      if (p.namespaceURI && p.namespaceURI !== 'http://www.w3.org/1999/xhtml') continue;
+      let ah = false; for (let a = p; a; a = a.parentElement) if (a.getAttribute && a.getAttribute('aria-hidden') === 'true') { ah = true; break; }
+      if (ah) continue;
+      const pc = getComputedStyle(p); if (pc.display === 'none' || pc.visibility === 'hidden') continue;
+      hasText = true; break;
+    }
+    if (!hasText) return { applicable: false };
+    // USED line-height = the vertical distance between successive rendered line-box TOPS (getClientRects returns
+    // ALL layout lines, incl. the overflow-clipped ones — verified). getClientRects()[0].height is the GLYPH-RUN
+    // height (~1.15x font-size), NOT the used line-height, so it wrongly barriered line-height:1.5 boxes. Fall back
+    // to the getComputedStyle used px value, then font x 1.2.
+    let lineH = 0;
+    try {
+      const range = document.createRange(); range.selectNodeContents(el);
+      const tops = [...new Set([...range.getClientRects()].filter((q) => q.width > 0 && q.height > 0).map((q) => Math.round(q.top)))].sort((x, y) => x - y);
+      for (let i = 1; i < tops.length; i++) { const d = tops[i] - tops[i - 1]; if (d > 0 && (lineH === 0 || d < lineH)) lineH = d; }
+    } catch (e) { /* fall through */ }
+    if (!(lineH > 0)) { const c = parseFloat(cs.lineHeight); lineH = (cs.lineHeight !== 'normal' && c > 0) ? c : (parseFloat(cs.fontSize) || 16) * 1.2; }
+    // Expectation 1 (horizontal): clipped UNLESS the clipping ancestor is white-space:nowrap AND text-overflow != clip.
+    let hBarrier = false;
+    if (clipX && el.scrollWidth > el.clientWidth + SLOP) hBarrier = !(cs.whiteSpace === 'nowrap' && cs.textOverflow !== 'clip');
+    // Expectation 2 (vertical): clipped UNLESS the clip falls on a clean line boundary — clientHeight is (within a
+    // FRACTION of a line, so the tolerance scales naturally with line count) an integer multiple of the used
+    // line-height, i.e. only complete lines are hidden.
+    let vBarrier = false; let ratio = null;
+    if (clipY && el.scrollHeight > el.clientHeight + SLOP) {
+      ratio = el.clientHeight / lineH;
+      const cleanBoundary = Math.round(ratio) >= 1 && Math.abs(ratio - Math.round(ratio)) < 0.2;
+      vBarrier = !cleanBoundary;
+    }
+    return { applicable: true, barrier: hBarrier || vBarrier, detail: { clientH: el.clientHeight, scrollH: el.scrollHeight, clientW: el.clientWidth, scrollW: el.scrollWidth, lineH: +lineH.toFixed(1), ratio: ratio != null ? +ratio.toFixed(2) : null, ws: cs.whiteSpace, to: cs.textOverflow, hBarrier, vBarrier } };
+  }, marker).catch(() => null);
+  if (!d || !d.applicable) return mkStatic(request, 'zoom-clip-probe', '1.4.4', 'zoomClipApplicable', false, null, 'zoom-clip-640');
+  return mkStatic(request, 'zoom-clip-probe', '1.4.4', 'zoomClipApplicable', true, d.barrier ? 'barrier' : 'pass', 'zoom-clip-640', d.detail);
+}
+
+// 2.2.2 — auto-updating text can be paused (ACT efbfc7). Round 2 instrument bound to the EXISTING motion-control
+// family. (1) CONFIRM the target's innerText updates over a ~2.6s window. (2) enumerate visible interactive
+// controls. (3) BARRIER when updates are confirmed and the page has NO control at all (the ACT failed signature).
+// (4) else DRIVE each control on a FRESH page reload and CLEAR when one verifiably STOPS or HIDES the ticker.
+// (5) else ABSTAIN (control-effect-unclear — e.g. a frequency control) → the existing rubric judges it. NO
+// pause-label string heuristics. This drives the page, so mutationRisk is high and each control test is isolated.
+async function runAutoUpdatePausable(page, request) {
+  const targetXpath = request.targetXpath;
+  const NF = () => mkStatic(request, 'auto-update-pausable', '2.2.2', 'autoUpdateApplicable', false, null, 'auto-update-observe');
+  const wait = (ms) => page.evaluate((m) => new Promise((r) => setTimeout(r, m)), ms).catch(() => {});
+  const readTicker = (xp) => page.evaluate((x) => {
+    const r = document.evaluate(x, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+    if (!r) return { present: false };
+    const cs = getComputedStyle(r); const rect = r.getBoundingClientRect();
+    return { present: true, text: (r.innerText || r.textContent || '').trim(), visible: cs.display !== 'none' && cs.visibility !== 'hidden' && rect.width > 0 && rect.height > 0 };
+  }, xp).catch(() => ({ present: false }));
+  // distinct ticker texts sampled across a window (robust to a rare repeated random value).
+  const sampleWindow = async (xp, total = 2600) => {
+    const vals = new Set(); const steps = 3; const each = Math.max(1, Math.floor(total / steps));
+    for (let i = 0; i < steps; i++) { const s = await readTicker(xp); if (s.present) vals.add(s.text); else vals.add('__gone__'); if (i < steps - 1) await wait(each); }
+    const last = await readTicker(xp);
+    return { distinct: vals.size, present: last.present, visible: last.visible };
+  };
+
+  const url = page.url();
+  await H.hydrate(page);
+  // (1) confirm the ticker updates (1000ms interval ⇒ ≥2 distinct values in ~2.6s).
+  const s0 = await readTicker(targetXpath);
+  if (!s0.present) return NF();
+  // "not alone" (ACT applicability): the auto-updating content must not be the ONLY content on the page — there
+  // must be OTHER visible text the user is trying to read. A page that is just the ticker is INAPPLICABLE.
+  const notAlone = await page.evaluate((x) => {
+    const t = document.evaluate(x, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+    if (!t || !document.body) return false;
+    const tw = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    let n; while ((n = tw.nextNode())) {
+      if (!n.textContent.trim()) continue;
+      const p = n.parentElement; if (!p || t.contains(p)) continue; // skip text inside the ticker
+      const cs = getComputedStyle(p); if (cs.display === 'none' || cs.visibility === 'hidden') continue;
+      return true; // other visible text exists ⇒ not alone
+    }
+    return false;
+  }, targetXpath).catch(() => true);
+  if (!notAlone) return NF(); // the ticker is the only content ⇒ inapplicable
+  const w0 = await sampleWindow(targetXpath, 2600);
+  if (w0.distinct < 2) return mkStatic(request, 'auto-update-pausable', '2.2.2', 'autoUpdateApplicable', true, null, 'auto-update-observe', { reason: 'update-unconfirmed' });
+  // (2) enumerate visible interactive controls.
+  const controls = await page.evaluate(() => {
+    function xpathOf(e) { if (!e || !e.tagName) return ''; if (e === document.documentElement) return '/html'; const t = e.tagName.toLowerCase(); let i = 1; for (let s = e.previousElementSibling; s; s = s.previousElementSibling) if (s.tagName === e.tagName) i++; return xpathOf(e.parentElement) + '/' + t + '[' + i + ']'; }
+    const out = [];
+    for (const el of document.querySelectorAll('button,input[type=button],input[type=submit],input[type=reset],input[type=checkbox],[role=button],a[href],[onclick]')) {
+      const cs = getComputedStyle(el); const r = el.getBoundingClientRect();
+      if (cs.display === 'none' || cs.visibility === 'hidden' || r.width <= 0 || r.height <= 0) continue;
+      out.push(xpathOf(el)); if (out.length >= 12) break;
+    }
+    return out;
+  }).catch(() => []);
+  // (3) confirmed updates + NO control anywhere ⇒ BARRIER (the efbfc7 failed signature).
+  if (!controls.length) return mkStatic(request, 'auto-update-pausable', '2.2.2', 'autoUpdateApplicable', true, 'barrier', 'auto-update-observe', { reason: 'auto-updating text with no control to pause/stop/hide it' });
+  // (4) drive each control on a FRESH page; CLEAR if one stops (post-click text no longer changes) or hides it.
+  for (const cxp of controls) {
+    await page.goto(url, { waitUntil: 'load' }).catch(() => {});
+    await H.hydrate(page);
+    await wait(1200); // let it tick at least once before we act
+    const clicked = await page.evaluate((x) => { const el = document.evaluate(x, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue; if (!el) return false; try { el.click(); } catch (e) { return false; } return true; }, cxp).catch(() => false);
+    if (!clicked) continue;
+    await wait(150);
+    const post = await sampleWindow(targetXpath, 2600); // sample AFTER the click
+    const stopped = post.present && post.distinct === 1;         // text no longer changes
+    const hidden = !post.present || !post.visible;                // ticker removed / hidden
+    if (stopped || hidden) return mkStatic(request, 'auto-update-pausable', '2.2.2', 'autoUpdateApplicable', true, 'pass', 'auto-update-observe', { reason: hidden ? 'a control hides the auto-updating text' : 'a control stops the auto-updating text', control: cxp });
+  }
+  // controls exist but none verifiably stops/hides the ticker ⇒ ABSTAIN → the motion-control rubric judges it.
+  // KNOWN RECALL GAP (deliberate, conservative): ACT efbfc7 FAILS a page whose only control is INEFFECTIVE (a
+  // present-but-broken pause), which this abstains on ('control-effect-unclear') rather than barriers — driving
+  // cannot always distinguish "broken control" from "a valid frequency/hidden-effect control I couldn't confirm",
+  // so we defer to the rubric rather than risk a false barrier. No such case exists in the corpus.
+  return mkStatic(request, 'auto-update-pausable', '2.2.2', 'autoUpdateApplicable', true, null, 'auto-update-observe', { reason: 'control-effect-unclear' });
+}
+
+// 2.4.1 — bypass blocks of repeated content (ACT cf77f2, a COMPOSITE disjunction). Round 2 instrument, body-scoped.
+// Decisions are keyed to the SUFFICIENT TECHNIQUES (ARIA11 landmark / H69 heading / G1-G124 skip-link / SCR28
+// collapse), NOT to the fixture DOM (the plan's #1 overfit risk). A page passes if ANY limb holds OR the repeated
+// blocks are all AFTER the non-repeated content (bypassable by the user agent — the rule's stated assumption).
+// BARRIER only when a repeated block PRECEDES the non-repeated content AND every limb affirmatively fails; an
+// ambiguous non-repeated boundary ⇒ ABSTAIN. The collapse limb is activation-confirmed.
+async function runBypassBlocks(page, request) {
+  const NF = () => mkStatic(request, 'bypass-blocks', '2.4.1', 'bypassApplicable', false, null, 'bypass-analyze');
+  const done = (verdict, reason) => mkStatic(request, 'bypass-blocks', '2.4.1', 'bypassApplicable', true, verdict, 'bypass-analyze', { reason });
+  await H.hydrate(page);
+  const url = page.url();
+  const a = await page.evaluate(() => {
+    function xpathOf(e) { if (!e || !e.tagName) return ''; if (e === document.documentElement) return '/html'; const t = e.tagName.toLowerCase(); let i = 1; for (let s = e.previousElementSibling; s; s = s.previousElementSibling) if (s.tagName === e.tagName) i++; return xpathOf(e.parentElement) + '/' + t + '[' + i + ']'; }
+    const vis = (el) => { const cs = getComputedStyle(el); const r = el.getBoundingClientRect(); return cs.display !== 'none' && cs.visibility !== 'hidden' && r.width > 0 && r.height > 0; };
+    const REPEATED = 'nav,aside,header,footer,[role=navigation],[role=complementary],[role=banner],[role=contentinfo]';
+    const repeated = [...document.querySelectorAll(REPEATED)].filter(vis);
+    if (!repeated.length) return { applicable: false }; // no repeated blocks ⇒ inapplicable
+    // non-repeated content region: a main landmark, else a #main/#content container (the ACT fixtures' convention).
+    const mainLandmark = document.querySelector('main,[role=main]');
+    const main = mainLandmark || document.getElementById('main') || document.getElementById('content');
+    if (!main) return { applicable: true, ambiguous: true };
+    // is any repeated block BEFORE the non-repeated content in document order?
+    let repeatedBeforeMain = false;
+    for (const rb of repeated) { if (rb !== main && !rb.contains(main) && (main.compareDocumentPosition(rb) & Node.DOCUMENT_POSITION_PRECEDING)) { repeatedBeforeMain = true; break; } }
+    const repeatedIds = new Set(repeated.map((r) => r.id).filter(Boolean));
+    // heading limb: a heading NOT inside a repeated block (marks the non-repeated content).
+    const hasHeading = [...document.querySelectorAll('h1,h2,h3,h4,h5,h6,[role=heading]')].some((h) => vis(h) && !repeated.some((rb) => rb.contains(h)));
+    // skip-link limb: an internal link/button whose fragment target moves focus PAST ALL the LEADING repeated
+    // blocks (those before the non-repeated content) — WCAG G1/G123/G124. A target that lands before the last
+    // leading repeated block still leaves repeated content ahead ⇒ broken. Includes JS location.assign('#id').
+    const leadingRepeated = repeated.filter((rb) => rb !== main && !rb.contains(main) && (main.compareDocumentPosition(rb) & Node.DOCUMENT_POSITION_PRECEDING));
+    // the last leading repeated block (closest to the non-repeated content).
+    let lastLeading = leadingRepeated[0] || null;
+    for (const rb of leadingRepeated) if (lastLeading && (lastLeading.compareDocumentPosition(rb) & Node.DOCUMENT_POSITION_FOLLOWING)) lastLeading = rb;
+    const fragOf = (el) => {
+      const href = el.getAttribute && el.getAttribute('href');
+      if (href && href.startsWith('#') && href.length > 1) return href.slice(1);
+      const oc = (el.getAttribute && el.getAttribute('onclick')) || '';
+      const m = oc.match(/['"]#([^'"]+)['"]/); return m ? m[1] : null;
+    };
+    let skipLink = false;
+    for (const el of document.querySelectorAll('a[href],button,[role=button],[onclick]')) {
+      if (!vis(el)) continue;
+      const id = fragOf(el); if (!id) continue;
+      const tgt = document.getElementById(id); if (!tgt) continue;
+      const containing = leadingRepeated.find((r) => r.contains(tgt));
+      if (containing) {
+        // target inside a LEADING repeated block is valid ONLY when that block is the LAST leading one AND the
+        // target is a "skip-PAST" anchor (no repeated text in its subtree or after it in the block) — G123. A
+        // target inside an earlier leading block (with more repeated blocks still ahead) is broken.
+        if (containing !== lastLeading) continue;
+        if ((tgt.textContent || '').trim()) continue;
+        let textAfter = false;
+        const walker = document.createTreeWalker(containing, NodeFilter.SHOW_TEXT);
+        let tn; while ((tn = walker.nextNode())) { if (!tn.textContent.trim()) continue; const pp = tn.parentElement; if (!pp || tgt.contains(pp)) continue; if (tgt.compareDocumentPosition(pp) & Node.DOCUMENT_POSITION_FOLLOWING) { textAfter = true; break; } }
+        if (textAfter) continue;
+        skipLink = true; break;
+      }
+      // target NOT inside a leading repeated block: valid if it's the non-repeated content, or positioned at/after
+      // the LAST leading repeated block (past ALL of them).
+      const isMain = tgt === main || main.contains(tgt) || tgt.contains(main);
+      const afterAllLeading = !lastLeading || (lastLeading.compareDocumentPosition(tgt) & Node.DOCUMENT_POSITION_FOLLOWING);
+      if (isMain || afterAllLeading) { skipLink = true; break; }
+    }
+    // collapse candidates: a control referencing a repeated block (onclick id / aria-controls) or a <details> wrapping one.
+    const collapse = [];
+    for (const el of document.querySelectorAll('a[href],button,[role=button],[onclick],summary')) {
+      if (!vis(el)) continue;
+      const oc = (el.getAttribute && el.getAttribute('onclick')) || '';
+      const ac = (el.getAttribute && el.getAttribute('aria-controls')) || '';
+      const refsRepeated = [...repeatedIds].some((id) => oc.includes(id) || ac.split(/\s+/).includes(id))
+        || (el.tagName === 'SUMMARY' && el.closest('details') && repeated.some((rb) => el.closest('details').contains(rb)));
+      if (refsRepeated) collapse.push(xpathOf(el));
+      if (collapse.length >= 6) break;
+    }
+    return { applicable: true, repeatedBeforeMain, hasMainLandmark: !!mainLandmark, hasHeading, skipLink, collapse, repeatedXpaths: repeated.map(xpathOf).slice(0, 8) };
+  }).catch(() => ({ applicable: true, ambiguous: true }));
+
+  if (!a.applicable) return NF();
+  if (a.ambiguous) return mkStatic(request, 'bypass-blocks', '2.4.1', 'bypassApplicable', true, null, 'bypass-analyze', { reason: 'non-repeated-content-boundary-ambiguous' });
+  if (!a.repeatedBeforeMain) return done('pass', 'repeated content is after the non-repeated content ⇒ bypassable by the user agent (no mechanism required)');
+  if (a.hasMainLandmark) return done('pass', 'a main landmark contains the non-repeated content (ARIA11)');
+  if (a.hasHeading) return done('pass', 'a heading marks the non-repeated content (H69)');
+  if (a.skipLink) return done('pass', 'an in-page link moves focus to the non-repeated content (G1/G124)');
+  // COLLAPSE limb — ACTIVATE each candidate on a fresh page and confirm a repeated block collapses (SCR28).
+  for (const cxp of a.collapse) {
+    await page.goto(url, { waitUntil: 'load' }).catch(() => {});
+    await H.hydrate(page);
+    const collapsed = await page.evaluate((cx, rxs) => {
+      const before = rxs.map((rx) => { const el = document.evaluate(rx, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue; if (!el) return null; const cs = getComputedStyle(el); const r = el.getBoundingClientRect(); return { vis: cs.display !== 'none' && cs.visibility !== 'hidden' && r.height > 0 }; });
+      const ctrl = document.evaluate(cx, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue; if (!ctrl) return false;
+      try { ctrl.click(); } catch (e) { return false; }
+      return new Promise((res) => setTimeout(() => {
+        for (let i = 0; i < rxs.length; i++) {
+          const el = document.evaluate(rxs[i], document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+          const nowVis = el ? (() => { const cs = getComputedStyle(el); const r = el.getBoundingClientRect(); return cs.display !== 'none' && cs.visibility !== 'hidden' && r.height > 0; })() : false;
+          if (before[i] && before[i].vis && !nowVis) return res(true); // a repeated block that was visible is now hidden/removed
+        }
+        res(false);
+      }, 200));
+    }, cxp, a.repeatedXpaths).catch(() => false);
+    if (collapsed) return done('pass', 'activating a control collapses a repeated block (SCR28)');
+  }
+  // repeated content precedes the non-repeated content and no limb holds ⇒ BARRIER.
+  return done('barrier', 'a repeated block precedes the non-repeated content with no bypass mechanism (no landmark, heading, skip-link, or collapse)');
+}
+
 const RUNNERS = {
   'text-contrast-pixel': runTextContrastPixel,
   'field-label-probe': runFieldLabelProbe,
@@ -1839,6 +2094,10 @@ const RUNNERS = {
   'no-meta-refresh-delay': runMetaRefreshDelay,
   'text-spacing-adequate': runTextSpacingAdequate,
   'label-in-name-match': runLabelInNameMatch,
+  // ACT-REST expansion Round 2 (instrument-needing)
+  'zoom-clip-probe': runZoomClipProbe,
+  'auto-update-pausable': runAutoUpdatePausable,
+  'bypass-blocks': runBypassBlocks,
 };
 
 module.exports = { RUNNERS, measureContrast, measureFieldLabel, measureReflow, measureObscured };
