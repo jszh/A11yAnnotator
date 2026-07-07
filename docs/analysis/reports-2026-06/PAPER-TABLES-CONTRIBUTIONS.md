@@ -170,6 +170,25 @@ axe 0.71) but zoom-reflow `59br37` review-only; **2.4.1 review-only** (all three
 only needs-review outcomes, zero hard verdicts); **1.3.3 (`9bd38c`) and 2.2.2 (`efbfc7`) uncovered by every
 engine**. 10/50 rules have no rule-level implementation in any tool.
 
+**Harness expansion Round 1 (run 2026-07-07, commit `a188a5d3`).** Five static-deterministic v3 runners
+(shadow authority; `expansion-scope.json` — categories.json + the 581 gate frozen) over the 7 static target
+rules (`node eval/checker-comparison/run-v3-act-rest-suite.js`):
+
+| v3 expansion runner (rule) | n | Recall ↑ | FP rate ↓ | vs best engine |
+|---|---:|---|---|---|
+| 1.3.5 autocomplete (73f2c2) | 30 | **1.0** (10/10) | 0 | ties axe/ibm/qualweb |
+| 1.4.12 spacing (24afc2/9e45ec/78fd32) | 62 | **1.0** (14/14) | 0 | ties ibm/qualweb; beats axe (over-fire + px-line-height miss) |
+| 2.2.1 meta-refresh (bc659a) | 15 | **1.0** (4/4) | 0 | ties axe/qualweb |
+| 1.4.4 meta-viewport (b4f0c3) | 16 | **1.0** (7/7) | 0 | beats qualweb tie; beats axe 0.71, ibm 0.0 |
+| 2.5.3 label-in-name (2ee8b8) | 15 | **1.0** (5/5) | 0 | ties ibm/qualweb; axe rule ships disabled |
+
+138/138 total; held-out blind-spot fixtures (px line-height, 72000 boundary, both invalid viewport tokens)
+caught on a single untouched run. Independently adversarially verified (11 novel probe fixtures): 3 bugs the
+ACT corpus cannot see were exposed and fixed pre-commit (`user-scalable=device-width` FP; only-first-viewport-
+meta FN; line-height 1.5-boundary rounding FP) — probes are now permanent spec-cited unit tests (suite
+850→869). Deterministic 581-gate: pre/post per-case diff = zero drift. Rounds 2 (59br37, 2.2.2, 2.4.1
+instruments) and 3 (1.3.3 LLM lane) pending.
+
 ## Table 1b — The evidence levers (reaches-LLM residual; the core ablation)
 
 On the reaches-LLM residual **axe = 0 by construction** (this set is precisely the existing-checker gap), so
