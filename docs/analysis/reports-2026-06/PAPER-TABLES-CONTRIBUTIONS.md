@@ -186,8 +186,22 @@ rules (`node eval/checker-comparison/run-v3-act-rest-suite.js`):
 caught on a single untouched run. Independently adversarially verified (11 novel probe fixtures): 3 bugs the
 ACT corpus cannot see were exposed and fixed pre-commit (`user-scalable=device-width` FP; only-first-viewport-
 meta FN; line-height 1.5-boundary rounding FP) — probes are now permanent spec-cited unit tests (suite
-850→869). Deterministic 581-gate: pre/post per-case diff = zero drift. Rounds 2 (59br37, 2.2.2, 2.4.1
-instruments) and 3 (1.3.3 LLM lane) pending.
+850→869). Deterministic 581-gate: pre/post per-case diff = zero drift.
+
+**Harness expansion Round 2 (run 2026-07-07, commit `b8cfef21`).** Three instrument runners (shadow;
+dynamic — relayout / timed observation / driven interaction), same eval path (`--round=all`, 197 cases):
+
+| v3 expansion runner (rule) | n | Recall ↑ | FP rate ↓ | note |
+|---|---:|---|---|---|
+| 1.4.4 zoom-clip @200% (59br37) | 14 | **1.0** (5/5) | 0 | best engine: qualweb review-only (0 verdicts) |
+| 2.2.2 auto-update-pausable (efbfc7) | 11 | **1.0** (1/1) | 0 | no engine implements; driven controls, no label heuristics |
+| 2.4.1 bypass-blocks (cf77f2/ye5d6e/3e12e1) | 34 | **1.0** (7/7) | 0 | all engines review-only; four-limb technique disjunction |
+
+R1's 138 rerun unchanged (197/197 combined); suite 874/874; efbfc7+59br37 3× flake-stable. Adversarial pass
+(15 novel probes): 2 probe-exposed FPs fixed pre-commit (multi-leading-block skip anchors; glyph-height vs used
+line-height at line-height:1.5). 2.4.1 held-out (ye5d6e/3e12e1) first-run surfaced 2 real soundness bugs
+(recall 0.667 → G123-semantics fixes → 1.0/0, then independently probe-verified — disclosed, not hidden).
+581-gate: zero drift. Round 3 (1.3.3 LLM lane) pending; production-collector port = DEFERRED-TODO J.
 
 ## Table 1b — The evidence levers (reaches-LLM residual; the core ablation)
 
