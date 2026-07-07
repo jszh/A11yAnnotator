@@ -201,7 +201,30 @@ R1's 138 rerun unchanged (197/197 combined); suite 874/874; efbfc7+59br37 3× fl
 (15 novel probes): 2 probe-exposed FPs fixed pre-commit (multi-leading-block skip anchors; glyph-height vs used
 line-height at line-height:1.5). 2.4.1 held-out (ye5d6e/3e12e1) first-run surfaced 2 real soundness bugs
 (recall 0.667 → G123-semantics fixes → 1.0/0, then independently probe-verified — disclosed, not hidden).
-581-gate: zero drift. Round 3 (1.3.3 LLM lane) pending; production-collector port = DEFERRED-TODO J.
+581-gate: zero drift. Production-collector port = DEFERRED-TODO J.
+
+**Harness expansion Round 3 (run 2026-07-07, commit `2373e3a1`).** 1.3.3 sensory-characteristics — the
+judgment-heavy SC no engine implements — as a NON-AUTHORITATIVE shadow LLM lane: requirement-sourced 84-word
+lexicon gates applicability only (adversarially verified fixture-free; broader than the ~11 words the corpus
+uses), new `sensory-characteristics-v0` rubric, deterministic layer abstains all 21 cases (correct — meaning is
+not deterministically judgeable).
+
+| 1.3.3 lane (9bd38c, n=21) | Recall on failed ↑ | FP rate ↓ |
+|---|---|---|
+| deterministic (abstain-all by design) | — (0 verdicts) | **0** |
+| + LLM shadow (sonnet-4-6), 2 independent runs | **1.0** (4/4 both runs) | 0.176–0.235 (3 stable + 1 noise-flip / 17) |
+
+The stable-FP floor is the HONEST un-overfit number: the adversarial pass exposed one "semantic" FP as eval
+evidence-starvation (landmarks never threaded to the rubric — fixed, ba678638 clears in both runs), and
+de-anchoring the rubric's fixture-phrased examples un-suppressed one latent judge error (5c97d7f0). Remaining
+residuals: "below"-as-reading-order (e871d671), cross-page alternative (09eef7b7 — abstaining verifiably trades
+this FP for a recall FN), 5c97d7f0. Requirement-keyed elimination paths (DOM-adjacency signal; resolve_destination
+routing; novel-probe-validated rubric strengthening) = DEFERRED-TODO K. 581-gate: zero drift. Suite 881/881.
+
+**Expansion total: all 8 target SCs / 13 ACT rules / 218 cases now addressed** — 197 deterministic
+(recall 1.0 / FP 0; 53/53 barriers, 93 hard verdicts + 104 conservative correct-abstentions) + 21 via the
+non-authoritative 1.3.3 LLM lane. Scope files (categories.json, the 581 corpus) untouched throughout —
+adopting the expansion SCs into the paper scope remains an explicit pending decision.
 
 ## Table 1b — The evidence levers (reaches-LLM residual; the core ablation)
 
