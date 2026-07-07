@@ -146,6 +146,30 @@ recovered cases are dynamic or semantic, which no *static* engine decides); **HT
 not decided catches — they are the LLM lane's evidence; only axe's `incomplete` is wired into the harness
 (verified end-to-end: the review-hint block appears in ~2 cases and the LLM reasons from it).
 
+## Table 1a-rest — Existing-checker baseline on the OUT-of-scope ACT complement (609-corpus)
+
+**Run 2026-07-07, commit `f098edc1`** (corpus + runner + summaries in that commit; command
+`node eval/checker-comparison/run-rest-suite.js --resume`). Corpus = the exact complement of the 581-corpus:
+**609 testcases / 50 ACT rules** (205 fail, 404 pass/inapplicable) that map to SCs *outside* the project's
+current 22 (or to no SC — 112 pure-ARIA/composite rows). Same five engines, scored at **ACT-rule level**
+(a finding counts only if the tool's own ACT-id metadata maps it to the case's rule — axe `actIds`, IBM `act`,
+QualWeb rule mapping; Alfa/HTML_CS expose no ACT ids and are scored SC-level only). Full analysis:
+`docs/analysis/coverage/ACT-REST-CHECKER-COVERAGE.md`; machine-readable per-rule:
+`eval/checker-comparison/upstream-evidence/act-rest/summary-by-rule.json`.
+
+| System (rule-level view) | Rules implemented (of 50) | Recall on failed ↑ | FP rate ↓ |
+|---|---:|---|---|
+| **QualWeb** (W3C ACT reference) | **40** | **97.1** (102/105) | **0.0** (0/238 graded) |
+| IBM Equal Access | 14 | 89.7 (61/68) | 4.0 (6/149) |
+| axe-core | 26 | 63.4 (71/112) | 3.0 (7/236) |
+| Alfa / HTML_CS | no ACT-id metadata | SC-level only: 49.0 / 20.0 | 4.2 / 10.9 |
+
+Target-SC coverage picture (feeds the harness gap plan): **1.3.5, 1.4.12, 2.2.1, 2.5.3** strongly covered by
+existing checkers (recall ≈ 1.0 by ≥ 2 engines); **1.4.4 split** — meta-viewport `b4f0c3` covered (QualWeb 1.0,
+axe 0.71) but zoom-reflow `59br37` review-only; **2.4.1 review-only** (all three bypass-blocks rules produce
+only needs-review outcomes, zero hard verdicts); **1.3.3 (`9bd38c`) and 2.2.2 (`efbfc7`) uncovered by every
+engine**. 10/50 rules have no rule-level implementation in any tool.
+
 ## Table 1b — The evidence levers (reaches-LLM residual; the core ablation)
 
 On the reaches-LLM residual **axe = 0 by construction** (this set is precisely the existing-checker gap), so
