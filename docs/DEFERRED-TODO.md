@@ -579,12 +579,15 @@ rubric prompt needs a `precomputeSignals` branch (shared LLM prompt-assembly) �
 `viewport` vision + `__pageStructure` instead, which the hard "don't touch shared LLM plumbing" constraint required.
 
 ## K. 1.3.3 LLM-lane FP elimination — the three requirement-keyed paths (do NOT rubric-tune against the slice)
-**Approved deferred 2026-07-07** (act-rest Round 3 close-out). Measured honest floor on the 9bd38c 21-case slice
-(claude-sonnet-4-6, 2 independent post-fix runs): recall 4/4 both runs; fp 3/17 stable (e871d671, 09eef7b7,
-5c97d7f0) + 1 flip-flopping borderline (432e113b, the known ±1 sampling noise). Evidence:
-`upstream-evidence/v3-act-rest-r3llm-postfix-run{1,2}/`. The composition is genuinely earned — evidence-starvation
-(ba678638) was fixed by threading headings/landmarks into the eval collector, and the fixture-anchored rubric
-examples were genericized (which un-suppressed 5c97d7f0, previously masked by a spoon-fed worked example).
+**Approved deferred 2026-07-07** (act-rest Round 3 close-out). **Team-lead decision: accept fp = 3/17 (0.176) as the
+honest documented floor; do NOT chase 5c97d7f0 with slice-directed rubric re-emphasis — the three paths below are the
+only sanctioned eliminations, each validated OFF the slice.** Measured on the 9bd38c 21-case slice (claude-sonnet-4-6,
+2 independent post-fix runs): recall 4/4 both runs; fp 3/17 stable {e871d671, 09eef7b7, 5c97d7f0}. Evidence:
+`upstream-evidence/v3-act-rest-r3llm-postfix-run{1,2}/` (per-run confusion) + the controlled replay below (which
+proved the floor is exactly 3 with sd=0 and that 432e113b — a live ±1 flip — is a STABLE clear whose flip was
+evidence, not judge, variance). The composition is genuinely earned — evidence-starvation (ba678638) was fixed by
+threading headings/landmarks into the eval collector, and the fixture-anchored rubric examples were genericized
+(which un-suppressed 5c97d7f0, previously masked by a spoon-fed worked example).
 
 Elimination paths, each keyed to the requirement, none tunable against the slice alone:
 1. **5c97d7f0-class (stable judge error, evidence present):** strengthen the rubric's accessible-words/name-match
