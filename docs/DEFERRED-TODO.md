@@ -597,3 +597,24 @@ Elimination paths, each keyed to the requirement, none tunable against the slice
 3. **09eef7b7-class (cross-page alternative):** route `resolve_destination` for 1.3.3 instructions that reference
    linked content — eliminates the FP AND preserves the Failed-3-style recall properly (abstaining trades FP for FN;
    resolution decides both directions). Shared-tool routing → same targeted-validation requirement.
+
+**Controlled fixed-evidence root-cause (2026-07-07).** Froze the 21-case 9bd38c evidence with the EVAL collector
+(`fp-experiments/freeze-actrest-133.js`, packs at `results/fp-experiments/packs-133`; the production `collectActPage`
+can't be used — no 1.3.3 pre-filter) and replayed the judge on byte-fixed evidence (`replay-judge.js --scs=1.3.3`),
+so any FP/recall delta is the judge design, NOT collect/vision noise. Results (`results/fp-experiments/runs/fp133-rep-*`):
+- **baseline rep=8: FP=3 sd=0, recall=4/4 sd=0.** The three FPs {5c97d7f0, e871d671, 09eef7b7} are FULLY STABLE
+  (zero judge sampling noise) — they are rubric/judge-design gaps, not the ±1 the slice showed.
+- **CORRECTION to the "432e113b = ±1 sampling noise" note above:** on frozen evidence the judge clears 432e113b in
+  EVERY rep (stable-correct). Its live flip was EVIDENCE variance (the `transform:rotate` vision crop differs
+  run-to-run), NOT judge sampling. So the honest floor is a rock-solid 3/17, and 432e113b is a stable CLEAR.
+- **09eef7b7 is PROVEN irreducible tools-off:** its failed twin **1527ef77** (same "the triangle menu / information
+  page" instruction; the ONLY difference — a heading on the LINKED page — is invisible to the judge) is judge-identical.
+  Every tools-off lever that clears 09eef7b7 (grounded rep=4: FP→1) simultaneously wobbles 1527ef77 recall (3/4). This
+  is the FP↔FN trade; path 3 (`resolve_destination`) is the SOLE fix. Empirically confirmed, not asserted.
+- **Generic spec-derived levers (non-fixture, from `methods.js`), FP-vs-recall on frozen evidence:** `grounded` FP 3→1
+  but recall 4→3.75 (leaks into the cross-page pair); `refute` FP→1 recall→3.25 (worse); `abstain-high` no help (all
+  3 FPs go noisy, recall intact); **`boundary` (WCAG "when-NOT-to-flag" guardrails) CLEANLY eliminates 5c97d7f0 with
+  ZERO recall loss** (n=10 across rep4+rep6: 5c97d7f0 cleared every rep, recall 4/4 sd=0; e871d671+09eef7b7 remain).
+  So path-1 (5c97d7f0) has a validated NON-rubric-tuning elimination — but `V3_FP_BOUNDARY` is a GLOBAL adjudicator
+  flag (affects all 22 paper SCs), so shipping it needs the full 581 re-validation, OR fold the specific guardrail
+  into the 1.3.3 rubric (rubric-local) and validate on NOVEL probes per path 1. NOT shipped — team-lead decision.
