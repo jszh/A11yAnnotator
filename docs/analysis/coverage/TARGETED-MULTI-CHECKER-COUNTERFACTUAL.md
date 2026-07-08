@@ -20,9 +20,17 @@ alfa/htmlcs as barriers add 17 / 35 new FPs). All numbers below are raw ACT labe
 | policy (verified) | TP/FN/FP/TN | R | P | F1 |
 |---|---|---|---|---|
 | baseline (current splice) | 232/2/30/535 | 99.1 | 88.5 | 0.935 |
-| **QW trusted barrier + clear lane** | 233/1/22/543 | **99.6** | **91.4** | **0.953** |
+| **QW trusted barrier + clear lane** (both lanes on the curated set) | 233/1/22/543 | **99.6** | **91.4** | **0.953** |
 | + clear extended over pre-settled axe FPs on trusted rules | 233/1/17/548 | 99.6 | 93.2 | 0.963 |
-| production-honest variant (definitive-silent, no curated set) | 232/2/21/544 | 99.1 | 91.7 | 0.951 |
+| hybrid: curated barrier + definitive-silent clear | 232/2/21/544 | 99.1 | 91.7 | 0.953 |
+| **fully production-honest** (barrier everywhere + definitive-silent clear; no curated list anywhere) | 232/2/22/543 | 99.1 | 91.3 | 0.951 |
+
+The last row is the number to believe transfers: neither lane consults a corpus-derived rule list.
+Its barrier trusts every QualWeb rule-level violation (costs the one QualWeb rule-level FP in the 799,
+`afw4f7/ab4691ef`, while rescuing `d0f69e`); its clear lane suppresses the LLM only on **definitive
+silence** — QualWeb implements the applicable rule (its own ACT-id metadata) and emitted *neither a
+violation nor a review* (kills 9 FPs incl. `afw4f7/fc92e273`; loses 1 TP, `fd3a94/8dc58c48`). Starred:
+232/4/22/541 → R 98.3 / F1 0.947.
 
 - **Barrier:** a QualWeb rule-level violation (its own ACT-id metadata) on a trusted rule publishes as
   an authoritative barrier. Rescues 1 of our 2 residual FNs — `d0f69e/6bb6ca5d` (1.3.1
@@ -57,9 +65,9 @@ target-SC verdict at all.
   d0f69e) have **zero** cases in the act-rest 609 — no independent-sample confirmation exists, unlike
   the two-corpus evidence behind QualWeb's overall fp=0 profile. Per-rule failed-counts are thin
   (akn7bn n=1). "Zero cost" is partly definitional: the trusted set is derived from the same cases it
-  is scored on. The production-honest **definitive-silent** variant (trust QualWeb's own implements
-  metadata; suppress only when it emitted neither violation nor review) needs no curated list and
-  still lands F1 0.951 (kills 9 FP incl. `afw4f7/fc92e273`, loses 1 TP — `fd3a94/8dc58c48`).
+  is scored on. The fully production-honest portfolio (barrier everywhere + **definitive-silent**
+  clear: trust QualWeb's own implements metadata, suppress only when it emitted neither violation nor
+  review) needs no curated list anywhere and still lands F1 0.951 — see the table.
 - **Starred accounting trade-off.** The clear lane suppresses the LLM exactly where it catches
   cross-rule barriers the raw label doesn't cover: the two aria-hidden W3C wordmarks
   (`23a2a8/25e5364c`, `e15b9aca`) are FPs raw but TPs under the Table-1d override — starred portfolio
