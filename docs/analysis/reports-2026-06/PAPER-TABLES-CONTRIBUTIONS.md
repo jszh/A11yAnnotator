@@ -226,6 +226,27 @@ routing; novel-probe-validated rubric strengthening) = DEFERRED-TODO K. 581-gate
 non-authoritative 1.3.3 LLM lane. Scope files (categories.json, the 581 corpus) untouched throughout —
 adopting the expansion SCs into the paper scope remains an explicit pending decision.
 
+## Table 1a-full — Five-engine per-rule baseline on the 581 + composed 799-corpus system P/R
+
+**Run 2026-07-07, code state `3418074e`** (runner `run-subset-checkers-coverage.js` = the act-rest runner
+pointed at `act-subset/`; evidence `upstream-evidence/act-subset-checkers/`, 581/581, 0 missing). This
+completes the five-engine picture at **per-ACT-rule** granularity on the in-scope corpus (Table 1a was
+aggregate-only) and, combined with the Table 1a-rest run, tiers all **50** rules of the full selected corpus
+(581 + 218 expansion = **799** cases): **28 rules fully coverable by ≥1 engine** (hard recall 1.0, 0 FP, 0
+errors on every case of the rule) / **22 rules (348 cases, 102 GT-fail) not fully coverable** — where a rule
+is taken in full if any of its cases is uncovered. Composed system P/R (Sonnet-4.6 lane; pre-settled 123 +
+reaches-LLM 458 [`skip-sonnet-46` + post-round-3 slice splices] + expansion 218):
+
+| slice (raw ACT labels, current splice) | Recall ↑ | Precision ↑ | FP rate ↓ | F1 ↑ |
+|---|---|---|---|---|
+| **full selected corpus (799)** | 99.1 (232/234) | 88.5 | 5.3 (30/565) | 0.935 |
+| checker-uncoverable rules (22 rules / 348 cases) | **99.0** (101/102) | **87.1** | 6.1 (15/246) | **0.927** |
+| checker-coverable complement (451 cases) | 99.2 (131/132) | 89.7 | 4.7 (15/319) | 0.942 |
+
+Read-off: on the 348-case slice **no rule engine can decide**, the harness holds within ~2.5 F1 points of its
+coverable-slice performance. Full analysis + per-SC tables + machine-readable JSONs:
+`docs/analysis/coverage/ACT-799-SYSTEM-PR-AND-CHECKER-COVERAGE.md` (+ `act-799-*.json` siblings).
+
 ## Table 1b — The evidence levers (reaches-LLM residual; the core ablation)
 
 On the reaches-LLM residual **axe = 0 by construction** (this set is precisely the existing-checker gap), so
