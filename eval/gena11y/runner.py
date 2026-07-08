@@ -104,6 +104,40 @@ def load_act_cases(scs_filter: list[str] | None = None) -> list[dict]:
     return out
 
 
+# The 8-SC harness-expansion slice of act-rest (13 ACT rules / 218 cases) — see
+# eval/checker-comparison/expansion-scope.json. GenA11y has element extraction for NONE
+# of the 8 SCs (they are outside its COVERED_SCS design), so every case loads with
+# covered=False and run_page() short-circuits to a structural 'uncovered' abstain
+# (no driver, no LLM call). The run still writes full artifacts so the structural
+# result is provenanced like any other run.
+ACT_REST_DIR = PROJECT_ROOT / 'eval/checker-comparison/act-rest'
+EXPANSION_RULES = {'73f2c2', '24afc2', '9e45ec', '78fd32', 'bc659a', 'b4f0c3', '2ee8b8',
+                   '59br37', 'efbfc7', 'cf77f2', 'ye5d6e', '3e12e1', '9bd38c'}
+
+
+def load_act_rest_cases() -> list[dict]:
+    rows = json.loads((ACT_REST_DIR / 'subset.json').read_text())
+    out = []
+    for r in rows:
+        if r.get('ruleId') not in EXPANSION_RULES:
+            continue
+        fixture = ACT_REST_DIR / r['localPath']
+        if not fixture.exists():
+            continue
+        scs = r['sc'] if isinstance(r.get('sc'), list) else [r.get('sc')]
+        primary = next((s for s in scs if s in COVERED_SCS), None)
+        out.append({
+            'file': str(fixture.relative_to(PROJECT_ROOT)),
+            'abs_path': str(fixture.resolve()),
+            'sc': primary or (scs[0] if scs and scs[0] else 'none'),
+            'covered': primary is not None,
+            'expected': r.get('expected', 'unknown'),
+            'ruleId': r.get('ruleId'),
+            'testcaseId': r.get('testcaseId'),
+        })
+    return out
+
+
 def discover_pages(sc: str) -> list[dict]:
     """act-augmented corpus: valid HTML pages for one SC (labels from summary.json)."""
     sc_dir = Path(EVAL_DIR) / sc / 'pages'
@@ -160,6 +194,17 @@ def collect_augmented(scs: list[str], limit: int | None) -> list[dict]:
 
 def run_page(page: dict) -> dict:
     """Extraction + detection for one page. A driver-slot semaphore caps live Chromes."""
+    if page.get('covered') is False:
+        # Structural abstain: GenA11y has no extraction for this SC — no driver, no LLM.
+        # Scored as uncovered=Negative (GT-fail -> FN, GT-pass/NA -> TN), same accounting
+        # as analyze.py applies to load-time-excluded cases on the act corpus.
+        return {
+            'file': page['file'], 'sc': page['sc'], 'expected': page['expected'],
+            'ruleId': page.get('ruleId'), 'testcaseId': page.get('testcaseId'),
+            'polarity': 'recall' if page['expected'] == 'failed' else 'specificity',
+            'outcome': 'uncovered', 'gena11y': None,
+            'correct': page['expected'] != 'failed', 'error': None,
+        }
     sc = page['sc']
     url = f"file://{page['abs_path']}"
     a11y_detector.set_context(sc, page['file'])
@@ -333,7 +378,7 @@ class Telemetry:
 
 def main():
     p = argparse.ArgumentParser(description='Run GenA11y over an ACT corpus with a chosen model.')
-    p.add_argument('--corpus', choices=['act', 'act-augmented'], default='act')
+    p.add_argument('--corpus', choices=['act', 'act-rest', 'act-augmented'], default='act')
     p.add_argument('--model', default=CLAUDE_MODEL)
     p.add_argument('--sc', help='Restrict to a single SC.')
     p.add_argument('--limit', type=int, help='Cap total cases.')
@@ -359,6 +404,8 @@ def main():
 
     if args.corpus == 'act':
         pages = load_act_cases(scs_filter)
+    elif args.corpus == 'act-rest':
+        pages = load_act_rest_cases()
     else:
         scs = scs_filter or sorted(COVERED_SCS)
         pages = collect_augmented(scs, None)

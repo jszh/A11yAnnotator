@@ -63,6 +63,38 @@ def load_act_cases():
     return out
 
 
+# The 8-SC harness-expansion slice of act-rest (13 ACT rules / 218 cases) — see
+# eval/checker-comparison/expansion-scope.json. AccessGuru is page-level so it runs
+# natively here too; SCs neither detector maps to (1.3.3, 2.2.2) are structural
+# abstains. No axe/v3 pre-settle split exists for this corpus, so `reaches` is not
+# meaningful — set False for every row (the reaches-slice accounting stays empty).
+ACT_REST_DIR = PROJECT_ROOT / 'eval/checker-comparison/act-rest'
+EXPANSION_RULES = {'73f2c2', '24afc2', '9e45ec', '78fd32', 'bc659a', 'b4f0c3', '2ee8b8',
+                   '59br37', 'efbfc7', 'cf77f2', 'ye5d6e', '3e12e1', '9bd38c'}
+
+
+def load_act_rest_cases():
+    rows = json.loads((ACT_REST_DIR / 'subset.json').read_text())
+    out = []
+    for r in rows:
+        if r.get('ruleId') not in EXPANSION_RULES:
+            continue
+        fixture = ACT_REST_DIR / r['localPath']
+        if not fixture.exists():
+            continue
+        scs = r['sc'] if isinstance(r.get('sc'), list) else [r.get('sc')]
+        out.append({
+            'file': str(fixture.relative_to(PROJECT_ROOT)),
+            'abs_path': str(fixture.resolve()),
+            'sc': scs[0],
+            'all_scs': [s for s in scs if s],
+            'expected': r.get('expected', 'unknown'),
+            'reaches': False,
+            'ruleId': r.get('ruleId'), 'testcaseId': r.get('testcaseId'),
+        })
+    return out
+
+
 # ---------------------------------------------------------------------------
 # Per-page detection
 # ---------------------------------------------------------------------------
@@ -253,6 +285,7 @@ class Telemetry:
 
 def main():
     p = argparse.ArgumentParser(description='Run AccessGuru (axe + LLM semantic) over the ACT corpus.')
+    p.add_argument('--corpus', choices=['act', 'act-rest'], default='act')
     p.add_argument('--model', default='gemini-3.5-flash')
     p.add_argument('--limit', type=int)
     p.add_argument('--pages', type=int, default=25)
@@ -268,14 +301,15 @@ def main():
     out_dir = PROJECT_ROOT / 'results' / args.out
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    pages = load_act_cases()
+    pages = load_act_cases() if args.corpus == 'act' else load_act_rest_cases()
     if args.limit:
         pages = pages[:args.limit]
 
     if args.dry_run:
         from collections import Counter
-        print(f'AccessGuru | model={args.model} | {len(pages)} cases (full ACT corpus)')
+        print(f'AccessGuru | corpus={args.corpus} | model={args.model} | {len(pages)} cases')
         print('expected:', dict(Counter(p['expected'] for p in pages)))
+        print('by SC   :', dict(Counter(p['sc'] for p in pages)))
         return
 
     trace_fh = open(out_dir / 'llm-trace.jsonl', 'w')

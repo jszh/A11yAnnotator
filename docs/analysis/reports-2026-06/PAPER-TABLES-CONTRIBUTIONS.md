@@ -661,6 +661,34 @@ are both reported — `*` is the fair cross-tool comparison, faithful is what Ac
 AccessGuru (Selenium axe injection; structured element markers for parseable output), faithful to the axe∪semantic
 detection design but not byte-identical to upstream's OpenRouter multi-model original.
 
+## Table 1h — External baselines on the 8-SC expansion corpus (218) + SC-support gap audit
+
+**Run 2026-07-08** (`--corpus act-rest` added to both adapter runners). Both external baselines were run
+on the expansion slice (218 cases / 13 rules / 8 SCs; 57 fail, 161 pass+inapplicable), and their
+**explicit SC support** was audited structurally (extraction routines / mapping dicts) and verified
+empirically per run, on BOTH corpora. Full audit: `docs/analysis/coverage/BASELINE-SC-SUPPORT-GAPS.md`
+(+ companion `.json` with per-rule counts and per-run `neverFlagged` verification).
+
+| System (expansion 218, per-SC, uncovered=Negative) | model | Recall ↑ | Prec ↑ | FP rate ↓ | F1 ↑ |
+|---|---|---|---|---|---|
+| GenA11y (supports 0/8 expansion SCs — structural abstain-all, 0 LLM calls) | — | 0.0 (0/57) | — | 0.0 | — |
+| AccessGuru axe`*` ∪ LLM (element-scoped) | Gemini 3.5-flash | 50.9 (29/57) | 40.8 | 26.1 (42/161) | 0.453 |
+| AccessGuru axe`*` ∪ LLM (element-scoped) | GPT-5.4-mini | 50.9 (29/57) | 41.4 | 25.5 | 0.457 |
+| _AccessGuru faithful ∪ LLM_ | either | _59.6_ | _44.2–44.7_ | _26.1–26.7_ | _0.51_ |
+| **Harness expansion lanes (Table 1a-rest R1–R3)** | sonnet-4-6 (1.3.3 only) | **100** (57/57) | **95.0** | **1.9** (3/161) | **0.974** |
+
+Support-gap read-off: **GenA11y** explicitly supports none of the 8 expansion SCs (its 15-SC extraction
+design has no routine for input-purpose, spacing/zoom relayout, timing, sensory language, bypass, or
+label-in-name); on the 581 it lacks 2.1.1/2.1.2/2.4.7 (50 cases — the interaction SCs, matching its 531
+native slice). **AccessGuru** structurally lacks 1.3.3 + 2.2.2 (+1.4.4 element-scoped: reachable only via
+the best-practice-only `meta-viewport` rule) on the expansion set and 1.4.5/2.1.2/2.4.7/3.3.1 on the 581;
+empirically its mapped 2.4.1 bypass rule fired on 0/34 fixtures (mapped-but-inert) and its 2.5.3 axe rule
+ships disabled (semantic caught 1/5). AccessGuru's catches concentrate where axe already fires —
+1.4.12 (14/14 but 33/48 FP over-fire) and 2.2.1 (4/4 with sibling-exception cross-fire FPs) — while the
+semantic LLM adds exactly 1 TP; the model again barely matters. The expansion SCs sit squarely in both
+baselines' structural blind spots, which is the external corroboration that the round-1–3 harness lanes
+add coverage no published LLM baseline provides.
+
 ## Table 2 — Held-out generalization gate (581-case full corpus)
 
 Each new deterministic detector evaluated over its **entire** ACT rule, not its tuned examples. Over-fire =
