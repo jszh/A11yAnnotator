@@ -21,6 +21,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const http = require('http');
 const crypto = require('crypto');
 const puppeteer = require('puppeteer');
 
@@ -28,6 +29,9 @@ const { orchestrate } = require('../../scripts/v3/lib/orchestrator.js');
 const { CATALOG } = require('../../scripts/v3/lib/catalog.js');
 const { makeRunAgent, makeClaudeSdkTransport } = require('../../scripts/v3/lib/llm-agent-adapter.js');
 const LIMITS = require('../../scripts/v3/lib/limits.js'); // budget/concurrency/ACT DEFAULTS (tiers C/D)
+const qwLib = require('../../scripts/v3/lib/checker-qualweb.js'); // C2 QualWeb two-lane checker
+const qwMap = require('../../scripts/v3/lib/data/qualweb-act-map.json'); // code→{actId,sc} for the rule-level eval flag
+require('events').defaultMaxListeners = 200; // QualWeb's reused cluster adds a taskerror listener per evaluate()
 
 // SINGLE LLM ACTIVATION GATE (shared with run-evaluation.js): V3_LLM=1 turns the judge ON via the Claude
 // Code SUBSCRIPTION (Agent SDK + CLAUDE_CODE_OAUTH_TOKEN — no metered key; .env never committed). Unset/0 =
@@ -79,6 +83,11 @@ const SUBSET = !!arg('subset', false);
 const LOCAL = !!arg('local', false);
 const AXE = !!arg('axe', false);
 const PROPOSED = !!arg('proposed', false); // include non-approved (draft) ACT rules from the subset (default: approved-only)
+// C2 QualWeb two-lane: DEFAULT ON. V3_QUALWEB=0 disables (POST vs PRE isolates the lane's effect). Runs
+// over a localhost static server (QualWeb renders file:// blank) via a single shared instance restarted
+// every QW_RESTART_EVERY cases (the reused puppeteer-cluster leaks one taskerror listener per evaluate()).
+const QUALWEB = process.env.V3_QUALWEB !== '0';
+const QW_RESTART_EVERY = Number(process.env.V3_QW_RESTART_EVERY || 50);
 // --resume: skip testcases already in OUT/raw.json (append the remainder). --case-timeout: per-case wall clock
 // (a hung page/orchestrate becomes rec.error and the run moves on, instead of stalling the whole suite).
 const RESUME = !!arg('resume', false);
@@ -157,6 +166,16 @@ function scoreLane(expected, flagged, comparable) {
   if (!comparable) return 'outOfScope';
   if (expected === 'failed') return flagged ? 'tp' : 'fn';
   return flagged ? 'fp' : 'tn';
+}
+
+// C2 — rule-level QualWeb barrier flag (mirrors the counterfactual + axeFlag): a case is QualWeb-flagged
+// iff QualWeb emitted a `failed` aggregate outcome for a code whose ACT id is the ROW's ACT rule. This is
+// the barrier the harness turns into an authoritative disposition; here it is the per-case flag we diff.
+const QW_ACTID_BY_CODE = Object.fromEntries(Object.entries(qwMap.rules || {}).map(([code, m]) => [code, m.actId]));
+function qwRuleLevelFlag(ruleOutcomes, rowRuleId) {
+  if (!ruleOutcomes) return false;
+  for (const [code, oc] of Object.entries(ruleOutcomes)) if (oc === 'failed' && QW_ACTID_BY_CODE[code] === rowRuleId) return true;
+  return false;
 }
 
 function nativeRole(tag, type, href) {
@@ -465,6 +484,32 @@ async function main() {
   }
 
   const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+
+  // C2 QualWeb: a shared localhost static server (QualWeb renders file:// blank — it launches its OWN
+  // browser) + a single reused QualWeb instance restarted every QW_RESTART_EVERY cases. Only stood up when
+  // the lane is ON; when OFF the run is byte-identical to pre-QualWeb.
+  let qwServer = null; let qwHttpBase = null; let qw = null; let qwStartedAt = 0;
+  const startQw = async () => {
+    const { QualWeb } = require('@qualweb/core'); // resolves from eval/checker-comparison/node_modules
+    qw = new QualWeb({});
+    await qw.start({ maxConcurrency: 1, timeout: 60000 }, { headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'], executablePath: CHROME });
+  };
+  if (QUALWEB) {
+    if (LOCAL) {
+      qwServer = http.createServer((req, res) => {
+        const rel = decodeURIComponent(req.url.split('?')[0]).replace(/^\/+/, '');
+        const p = path.join(SUBSET_DIR, rel);
+        if (!p.startsWith(SUBSET_DIR)) { res.writeHead(403); res.end(); return; }
+        fs.readFile(p, (e, buf) => { if (e) { res.writeHead(404); res.end(); return; } res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); res.end(buf); });
+      });
+      await new Promise((r) => qwServer.listen(0, '127.0.0.1', r));
+      qwHttpBase = `http://127.0.0.1:${qwServer.address().port}/`;
+      console.log(`qualweb static server: ${qwHttpBase} (root=act-subset/)`);
+    }
+    try { await startQw(); } catch (e) { console.log(`qualweb start failed (lane inert this run): ${e.message}`); qw = null; }
+  }
+  const qwUrlFor = (tc) => (LOCAL && tc.localPath && qwHttpBase) ? (qwHttpBase + tc.localPath) : tc.url;
+
   for (const [i, tc] of selected.entries()) {
     const runId = `v3-act-${tc.testcaseId}`;
     const rec = {
@@ -480,6 +525,14 @@ async function main() {
       observations: [],
     };
     console.log(`[${i + 1}/${selected.length}] ${tc.ruleId} ${tc.expected} ${tc.sc.join(',')} ${tc.testcaseTitle || ''}`);
+    // C2: run QualWeb (own browser, shared instance) BEFORE the case body so a QualWeb hang can't corrupt
+    // the shared instance under the case timeout. Restart the instance every QW_RESTART_EVERY cases.
+    let qwResult = null;
+    if (QUALWEB && qw) {
+      if (QW_RESTART_EVERY > 0 && i - qwStartedAt >= QW_RESTART_EVERY) { await qw.stop().catch(() => {}); try { await startQw(); qwStartedAt = i; } catch (e) { qw = null; } }
+      if (qw) qwResult = await qwLib.runQualweb(qwUrlFor(tc), { qw }).catch((e) => ({ checkerUnavailable: true, reason: e && e.message }));
+    }
+    rec.qwRan = !!(qwResult && qwResult.ran);
     const page = await browser.newPage();
     try {
       await withTimeout((async () => {
@@ -489,6 +542,7 @@ async function main() {
       const { built, experiments } = await orchestrate(collect, drive, {
         resolveUrl: () => urlFor(tc),
         executablePath: CHROME,
+        checkerQualweb: (qwResult && qwResult.ran) ? { ran: true, ruleOutcomes: qwResult.ruleOutcomes, barrierTargets: qwResult.barrierTargets } : undefined,
         now: collect.collectedAt + 2,
         maxAutomatic: Number.isFinite(MAX_AUTO) ? MAX_AUTO : Infinity,
         budgetOpts: { maxRunWallClockMs: RUN_WALL }, // deterministic lane bounded by TIME (2 min), not count
@@ -508,6 +562,7 @@ async function main() {
         rec.v3Summary = built.results.summary;
         rec.obligations = built.results.summary.obligations;
         rec.autoPartial = built.results.summary.autoPartial;
+        rec.qualweb = built.results.summary.qualweb; // C2: barrier/clear obligation ids the harness applied
         rec.observations = comparableObservations(built.results, tc.sc);
         rec.experimentResults = ((experiments && experiments.results) || [])
           .filter((r) => (tc.sc || []).includes(r.sc))
@@ -538,18 +593,29 @@ async function main() {
     // review signal — NOT folded into axeFlag (review is not a decided barrier; folding it would over-flag).
     const axeReview = !!(AXE && rec.axe && Array.isArray(rec.axe.incomplete) && rec.axe.incomplete.some((v) => tc.sc.includes(v.sc)));
     rec.v3Flag = v3Flag; rec.axeFlag = axeFlag; rec.axeReview = axeReview;
+    // C2 — rule-level QualWeb barrier flag + the harness's applied clear/barrier obligation counts. The
+    // `system` lane is the composed deterministic verdict (v3 ∪ axe ∪ QualWeb barrier) — the flag the PRE/
+    // POST diff isolates (v3Flag/axeFlag are unchanged by QualWeb, so the delta is exactly qwFlag).
+    const qwFlag = QUALWEB ? qwRuleLevelFlag(qwResult && qwResult.ruleOutcomes, tc.ruleId) : false;
+    rec.qwFlag = qwFlag;
+    rec.qwBarrierCount = (rec.qualweb && rec.qualweb.barrierObligations) ? rec.qualweb.barrierObligations.length : 0;
+    rec.qwClearCount = (rec.qualweb && rec.qualweb.clearObligations) ? rec.qualweb.clearObligations.length : 0;
+    rec.qwClearObligations = (rec.qualweb && rec.qualweb.clearObligations) || [];
     // COVERAGE view: all lanes scored over the WHOLE subset (a lane that structurally doesn't attempt an SC
     // scores it as uncovered, not "out of scope") — so v3-deterministic's gaps on its non-catalog SCs and
     // axe's fill-in are both visible on one denominator. (summary.v3 above keeps the catalog-only view.)
     rec.lanes = {
       v3: scoreLane(tc.expected, v3Flag, true),
       ...(AXE ? { axe: scoreLane(tc.expected, axeFlag, true), union: scoreLane(tc.expected, v3Flag || axeFlag, true) } : {}),
+      ...(QUALWEB ? { qualweb: scoreLane(tc.expected, qwFlag, true), system: scoreLane(tc.expected, v3Flag || axeFlag || qwFlag, true) } : {}),
     };
     raw.push(rec);
     fs.writeFileSync(path.join(OUT, 'raw.json'), JSON.stringify(raw, null, 2));
     fs.writeFileSync(path.join(OUT, 'summary.json'), JSON.stringify(summarize(raw), null, 2));
   }
   await browser.close();
+  if (qw) await qw.stop().catch(() => {});
+  if (qwServer) qwServer.close();
   const summary = summarize(raw);
   fs.writeFileSync(path.join(OUT, 'raw.json'), JSON.stringify(raw, null, 2));
   fs.writeFileSync(path.join(OUT, 'summary.json'), JSON.stringify(summary, null, 2));

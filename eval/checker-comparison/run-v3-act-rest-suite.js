@@ -17,6 +17,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const http = require('http');
 const crypto = require('crypto');
 const puppeteer = require('puppeteer');
 
@@ -25,6 +26,10 @@ const { CATALOG } = require('../../scripts/v3/lib/catalog.js');
 const { makeRunAgent, makeClaudeSdkTransport } = require('../../scripts/v3/lib/llm-agent-adapter.js');
 const LIMITS = require('../../scripts/v3/lib/limits.js');
 const { sensoryWordsIn } = require('../../scripts/v3/lib/sensory-lexicon.js'); // Round 3 (1.3.3) requirement-sourced pre-filter
+const qwLib = require('../../scripts/v3/lib/checker-qualweb.js'); // C2 QualWeb two-lane checker (default ON; V3_QUALWEB=0 disables)
+require('events').defaultMaxListeners = 200;
+const QUALWEB = process.env.V3_QUALWEB !== '0';
+const QW_RESTART_EVERY = Number(process.env.V3_QW_RESTART_EVERY || 50);
 
 const REPO_ROOT = path.join(__dirname, '..', '..');
 require('../../scripts/v3/lib/load-env.js').loadEnv(REPO_ROOT);
@@ -436,9 +441,33 @@ async function main() {
   }
 
   const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage', '--allow-file-access-from-files'] });
+
+  // C2 QualWeb: localhost static server (root=act-rest/) + one reused instance restarted every N cases.
+  let qwServer = null; let qwHttpBase = null; let qw = null; let qwStartedAt = 0;
+  const startQw = async () => { const { QualWeb } = require('@qualweb/core'); qw = new QualWeb({}); await qw.start({ maxConcurrency: 1, timeout: 60000 }, { headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'], executablePath: CHROME }); };
+  if (QUALWEB) {
+    qwServer = http.createServer((req, res) => {
+      const rel = decodeURIComponent(req.url.split('?')[0]).replace(/^\/+/, '');
+      const p = path.join(REST_DIR, rel);
+      if (!p.startsWith(REST_DIR)) { res.writeHead(403); res.end(); return; }
+      fs.readFile(p, (e, buf) => { if (e) { res.writeHead(404); res.end(); return; } res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); res.end(buf); });
+    });
+    await new Promise((r) => qwServer.listen(0, '127.0.0.1', r));
+    qwHttpBase = `http://127.0.0.1:${qwServer.address().port}/`;
+    console.log(`qualweb static server: ${qwHttpBase} (root=act-rest/)`);
+    try { await startQw(); } catch (e) { console.log(`qualweb start failed (lane inert this run): ${e.message}`); qw = null; }
+  }
+  const qwUrlFor = (tc) => (tc.localPath && qwHttpBase) ? (qwHttpBase + tc.localPath) : tc.url;
+
   for (const [i, tc] of selected.entries()) {
     const rec = { testcaseId: tc.testcaseId, ruleId: tc.ruleId, ruleName: tc.ruleName, sc: tc.sc, expected: tc.expected, heldOut: tc.heldOut, url: tc.url, observations: [] };
     console.log(`[${i + 1}/${selected.length}] ${tc.ruleId} ${tc.expected}${tc.heldOut ? ' (held-out)' : ''} ${tc.testcaseId.slice(0, 8)}`);
+    let qwResult = null;
+    if (QUALWEB && qw) {
+      if (QW_RESTART_EVERY > 0 && i - qwStartedAt >= QW_RESTART_EVERY) { await qw.stop().catch(() => {}); try { await startQw(); qwStartedAt = i; } catch (e) { qw = null; } }
+      if (qw) qwResult = await qwLib.runQualweb(qwUrlFor(tc), { qw }).catch((e) => ({ checkerUnavailable: true, reason: e && e.message }));
+    }
+    rec.qwRan = !!(qwResult && qwResult.ran);
     const page = await browser.newPage();
     try {
       await withTimeout((async () => {
@@ -446,6 +475,7 @@ async function main() {
         const drive = { file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest, drivenAt: collect.collectedAt + 1, elements: [] };
         const { built } = await orchestrate(collect, drive, {
           resolveUrl: () => urlFor(tc), executablePath: CHROME, now: collect.collectedAt + 2,
+          checkerQualweb: (qwResult && qwResult.ran) ? { ran: true, ruleOutcomes: qwResult.ruleOutcomes, barrierTargets: qwResult.barrierTargets } : undefined,
           maxAutomatic: Number.isFinite(MAX_AUTO) ? MAX_AUTO : Infinity, budgetOpts: { maxRunWallClockMs: RUN_WALL },
           experimentConcurrency: 1,
           // LLM lane (Round 3): judge only THIS testcase's SC(s) (restrictScs) — the LLM is unscoreable off-target
@@ -458,6 +488,7 @@ async function main() {
         else {
           rec.observations = comparableObservations(built.results, tc.sc); rec.bucket = score(tc.expected, rec.observations);
           rec.obligations = built.results.summary.obligations; rec.autoPartial = built.results.summary.autoPartial;
+          rec.qualweb = built.results.summary.qualweb; // C2: barrier/clear obligation ids (confirm 9bd38c untouched + buckets unaffected)
           if (LLM_ON) { rec.llm = scoreLlmLane(built.results, tc); }
         }
       })(), CASE_TIMEOUT, `${tc.ruleId}/${tc.testcaseId.slice(0, 8)}`);
@@ -469,6 +500,8 @@ async function main() {
     fs.writeFileSync(path.join(OUT, 'summary.json'), JSON.stringify(summarize(raw), null, 2));
   }
   await browser.close();
+  if (qw) await qw.stop().catch(() => {});
+  if (qwServer) qwServer.close();
   const summary = summarize(raw);
   fs.writeFileSync(path.join(OUT, 'summary.json'), JSON.stringify(summary, null, 2));
   console.log('\n=== per-rule confusion (DETERMINISTIC lane; dev + held-out combined) ===');

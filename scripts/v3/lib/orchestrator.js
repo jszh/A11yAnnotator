@@ -195,6 +195,23 @@ async function orchestrate(collect, drive, opts = {}) {
     bundle.checkerFindings = { file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest, engines, ran: engines.length > 0, findings: checkerFindings };
     if (checkerUnavailable) bundle.checkerFindings.checkerUnavailable = checkerUnavailable;
   }
+  // C2 (Harness 3.3): QualWeb as the AUTHORITATIVE two-lane checker (barrier + definitive-silent clear).
+  // DEFAULT-ON, killed by V3_QUALWEB=0. Two entry shapes: the eval twins run QualWeb over their own shared
+  // localhost instance (file:// renders blank in QualWeb's browser) and hand the per-rule outcomes in via
+  // `opts.checkerQualweb`; the production path (real http URLs) can `opts.runQualweb` to have the lane run
+  // lazily here. Either way the per-rule aggregate outcomes ride `bundle.checkerQualweb.ruleOutcomes` and
+  // build-v3 resolves them to obligation dispositions. Absent/unavailable ⇒ the field is omitted and the
+  // build behaves exactly as pre-QualWeb.
+  if (String(process.env.V3_QUALWEB || '') !== '0') {
+    if (opts.checkerQualweb && opts.checkerQualweb.ruleOutcomes) {
+      bundle.checkerQualweb = { file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest, ...opts.checkerQualweb };
+    } else if (opts.runQualweb && opts.resolveUrl) {
+      const url = opts.resolveUrl(plan.requests && plan.requests[0] ? plan.requests[0] : { targetXpath: '/html' });
+      const r = await timings.stage('checker-qualweb', () => require('./checker-qualweb.js').runQualweb(url, { executablePath: opts.executablePath, qw: opts.qwInstance }).catch((e) => ({ checkerUnavailable: true, reason: e && e.message })));
+      if (r && r.ran) bundle.checkerQualweb = { file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest, ran: true, ruleOutcomes: r.ruleOutcomes, barrierTargets: r.barrierTargets, engineVersion: r.engineVersion };
+      else if (r && r.checkerUnavailable) bundle.checkerQualweb = { file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest, ran: false, checkerUnavailable: r.reason || 'QualWeb unavailable' };
+    }
+  }
   // BROAD-SCOPE SIDECAR (experimental): WCAG/TT/EN scope + review candidates that do NOT publish
   // conformance outcomes. This is opt-in and identity-bound like instruments/checkers. It opens fresh
   // pages for mutating probes (text spacing / reduced motion / forced colors) so the main run state is

@@ -87,6 +87,36 @@ picked because none is authoritative; agreement just raises review priority and 
 hard findings" sampling. **For non-authoritative cross-signals: union the evidence, count agreement; never
 consolidate to a verdict.** Tie-breaks live only in the authoritative ledger, which these never touch.
 
+> **C2 QualWeb EXCEPTION to the §2 invariant (user-approved, verified counterfactual b49c0236; adversarially
+> re-verified — SHIP-WITH-FIXES).** QualWeb — and QualWeb ALONE — is wired as an **authoritative BARRIER
+> disposition**, not a side cross-signal. A QualWeb ACT-rule `failed` (aggregate outcome per its own ACT-id
+> metadata) publishes a barrier on the matching obligation(s), `source:'checker-qualweb'`
+> ([checker-qualweb.js](../../scripts/v3/lib/checker-qualweb.js), wired at
+> [build-v3.js](../../scripts/v3/lib/build-v3.js) after the obligation array is built). This is the lane that
+> carries the measured benefit (on the 581: 5 GT-fail rescues incl. the residual 1.3.1 FN d0f69e via
+> QW-ACT-R39, at a cost of the single contrast FP afw4f7/ab4691ef). Barrier rails: (a) it fills **only a true
+> auto-PARTIAL obligation** — a v3 CLAIM/PARTIAL is never overridden, so `reconcile()` never collides; (b) it
+> is **construct-granular** via `MATCHERS` (an image barrier only targets in-tree `<img>`, the 1.3.1
+> structural rules barrier the page-level info-relationships obligation, etc.).
+>
+> **The CLEAR lane is CURRENTLY EMPTY.** The counterfactual's definitive-silent clear (a `passed`,
+> no-`failed`/`warning` rule settling its obligation to suppress the LLM ask) was found UNSOUND by adversarial
+> verification: every candidate family has a live cross-lane sibling on the same v3 obligation that a
+> name/title-PRESENCE pass cannot decide — `page-title-v0` (title descriptiveness; QualWeb's own sibling
+> c4a8a4), `accessible-name-adequacy-v0` (present-but-content-free 4.1.2 names), the `alt-text-adequacy` /
+> e88epe decorative lanes (1.1.1 images), and iframe name-equivalence (4b1c6c). A clear would discard those
+> barriers — invisible to the deterministic corpus, which runs with no LLM/instrument observations. So every
+> `QW_POLICY` family is `clear:false` and no obligation is QualWeb-cleared. **Eligibility criterion to ADD a
+> clear family later:** the QualWeb rule's `passed` must fully decide the v3 obligation's WHOLE question with
+> NO LLM-rubric / instrument / cross-ACT-rule sibling on that obligation; and build-v3's **cross-lane
+> barrier-dominance guard** (a QualWeb clear may never pre-empt an obligation any §5b lane — LLM/instrument/
+> axe-promoted/target-size — would barrier) must continue to hold. That guard is in place today as
+> defense-in-depth (unit-pinned) even though the clear lane is empty. A `warning` also blocks any future clear.
+> axe/IBM/det-precheck keep the original invariant — they remain non-authoritative side cross-signals.
+> DEFAULT-ON, killed by `V3_QUALWEB=0` (degrades to exactly the pre-QualWeb ledger). The `checkerQualweb`
+> bundle stage carries the per-rule outcomes; `results.summary.qualweb` records the barrier/clear obligation
+> ids the build actually applied (clears: empty).
+
 Mechanically this needs:
 - `'axe'` and `'checker'` added to `EVIDENCE_SOURCES` ([v3-schema.js:16](../../scripts/v3/lib/v3-schema.js#L16)).
 - `['instruments',…]`, `['checkerFindings',…]`, `['triageCandidates',…]` added to the identity gate's

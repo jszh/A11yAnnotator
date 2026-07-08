@@ -19,6 +19,7 @@ const auth = require('./authority.js');
 const xa = require('./cross-artifact.js');
 const obl = require('./obligations.js');
 const oracle = require('./applicability-oracle.js');
+const qualweb = require('./checker-qualweb.js'); // C2: QualWeb authoritative two-lane checker (barrier + definitive-silent clear)
 const schemas = require('./schemas.js');
 const attest = require('./attestation.js');
 const manifest = require('./manifest.js');
@@ -472,6 +473,50 @@ function buildV3(bundle, opts = {}) {
     if (!existingOblIds.has(sid)) sequenceObligations.push({ obligationId: sid, xpath: oracle.PAGE_MEANINGFUL_SEQUENCE_XPATH, sc: '1.3.2', claimFamily: 'meaningful-sequence' });
   }
   const obligations = [...staticObligations, ...dynamicObligations, ...checkerObligations, ...axeDecidedObligations, ...detBarrierObligations, ...sequenceObligations];
+  // C2 — QUALWEB TWO-LANE (barrier + definitive-silent clear): the ONE checker wired as an AUTHORITATIVE
+  // obligation disposition (the §2 invariant is carved out for QualWeb — verified counterfactual b49c0236).
+  // The pure core turns QualWeb's own per-rule aggregate outcome into barrier/clear/review lane decisions
+  // (checker-qualweb.js); here we resolve those to obligations CONSTRUCT-GRANULARLY. A BARRIER (rule
+  // `failed`) mints its obligation if the oracle didn't enumerate one (like axe-decided); a CLEAR
+  // (applicable-silent `passed`, no failed/warning) settles ONLY an ALREADY-enumerated obligation whose
+  // element matches the rule's applicability predicate — never minting, never whole-SC (the R17 in-tree
+  // image clear must not touch a removed-from-tree decorative obligation). Dispositions are added below,
+  // guarded to fill only true auto-PARTIAL obligations so reconcile sees no collision.
+  const qwLane = qualweb.normalizeQualweb((bundle.checkerQualweb && bundle.checkerQualweb.ruleOutcomes) || null);
+  const qwBarrierIds = new Set();
+  const qwClearIds = new Set();
+  const qwProvenance = Object.create(null); // obligationId → 'qualweb:<code>' (for the summary trail)
+  const qwMintedObligations = [];
+  const qwEnumeratedIds = new Set(obligations.map((o) => o.obligationId));
+  const qwCollectEls = (bundle.collect && Array.isArray(bundle.collect.elements)) ? bundle.collect.elements : [];
+  const qwPageXpath = (fam) => (fam.matchId === 'pageTitle' ? oracle.PAGE_TITLE_XPATH : fam.matchId === 'pageInfoRel' ? oracle.PAGE_INFOREL_XPATH : null);
+  const qwResolveTargets = (fam) => {
+    const page = qwPageXpath(fam);
+    if (page) return [page];
+    const matcher = qualweb.MATCHERS[fam.matchId];
+    if (typeof matcher !== 'function') return [];
+    const out = [];
+    for (const el of qwCollectEls) { if (el && typeof el.xpath === 'string' && el.xpath && matcher(el)) out.push(el.xpath); }
+    return out;
+  };
+  if (qwLane.ran) {
+    for (const b of qwLane.barriers) for (const fam of b.families) {
+      for (const xpath of qwResolveTargets(fam)) {
+        const id = oracle.oblId(xpath, fam.sc, fam.family);
+        qwBarrierIds.add(id); qwProvenance[id] = 'qualweb:' + b.code;
+        if (!qwEnumeratedIds.has(id)) { qwEnumeratedIds.add(id); qwMintedObligations.push({ obligationId: id, xpath, sc: fam.sc, claimFamily: fam.family }); }
+      }
+    }
+    for (const c of qwLane.clears) for (const fam of c.families) {
+      for (const xpath of qwResolveTargets(fam)) {
+        const id = oracle.oblId(xpath, fam.sc, fam.family);
+        if (qwBarrierIds.has(id)) continue;          // barrier-dominates-clear (fail-closed)
+        if (!qwEnumeratedIds.has(id)) continue;      // CLEAR never mints — only settles an already-enumerated obligation
+        qwClearIds.add(id); if (!qwProvenance[id]) qwProvenance[id] = 'qualweb:' + c.code;
+      }
+    }
+    for (const o of qwMintedObligations) obligations.push(o);
+  }
   // 2.1.2 PRECEDENCE (self-refocus FN, 80af7b): the keyboard-trap-escape EXPERIMENT provably cannot decide an
   // ASYNC self-refocus trap (onblur→focus snap-back) — it abstains (INCONCLUSIVE) and records a NON-authoritative
   // SHADOW PARTIAL on the no-keyboard-trap obligation. That shadow PARTIAL was shutting out the hardened (~0-FP)
@@ -495,6 +540,41 @@ function buildV3(bundle, opts = {}) {
     const sid = oracle.oblId(s.observationScope && s.observationScope.actionTargetRef, s.sc, s.claimFamily);
     if (instrumentBarrierIds.has(sid)) continue; // a confirmed instrument BARRIER outranks an abstaining shadow PARTIAL (2.1.2 async trap)
     dispositions.push({ obligationId: sid, kind: 'PARTIAL', cleared: false, shadow: true });
+  }
+  // C2 QUALWEB DISPOSITIONS (authoritative). A barrier/clear fills ONLY a true auto-PARTIAL obligation
+  // (no existing deterministic disposition) so reconcile never collides and a v3 CLAIM/PARTIAL is never
+  // overridden. As a DETERMINISTIC disposition a BARRIER becomes the obligation's decision (the LLM cannot
+  // clear it away) and a CLEAR settles it so §5b (below) skips the obligation and the LLM PROVISIONAL fill
+  // is discarded. NOTE: the CLEAR lane is currently EMPTY (every QW_POLICY family is `clear:false` — no
+  // QualWeb rule's `passed` fully decides its v3 family; each has an LLM adequacy/descriptiveness sibling),
+  // so `qwClearIds` is empty in practice; the machinery + guards below stay as the sound contract for any
+  // future clear-eligible family.
+  //
+  // BUG-3 GUARD — barrier-dominates-clear ACROSS lanes. A QualWeb clear is a DETERMINISTIC disposition, so
+  // it lands in `deterministicIds` BEFORE §5b runs; §5b skips deterministic obligations, so a naive QW clear
+  // would silently DISCARD a barrier another lane fills via §5b (a confirmed ~0-FP instrument barrier like
+  // focus-rests-in-aria-hidden, an axe-promoted barrier, a target-size/deterministic barrier, or an LLM
+  // adequacy barrier). Compute the set of obligations ANY §5b-fill lane would BARRIER and NEVER clear one —
+  // barrier-dominates-clear must hold between QualWeb and those lanes, not only within QualWeb.
+  const crossLaneBarrierIds = new Set();
+  for (const o of [...annotationObs, ...trapObs, ...axeObs, ...targetSizeObs, ...detBarrierObs]) {
+    if (o && o.wouldBe && o.wouldBe.observationOutcome === 'BARRIER_OBSERVED') {
+      crossLaneBarrierIds.add(oracle.oblId(o.observationScope && o.observationScope.actionTargetRef, o.sc, o.claimFamily));
+    }
+  }
+  const qwDetIds = new Set(dispositions.map((d) => d.obligationId));
+  const qwAppliedBarriers = [];
+  const qwAppliedClears = [];
+  for (const id of qwBarrierIds) {
+    if (qwDetIds.has(id)) continue; // a v3 deterministic disposition owns it — QualWeb does not override the harness's own decision
+    qwDetIds.add(id); qwAppliedBarriers.push(id);
+    dispositions.push({ obligationId: id, kind: 'CLAIM', cleared: false, source: 'checker-qualweb' });
+  }
+  for (const id of qwClearIds) {
+    if (qwDetIds.has(id)) continue;
+    if (crossLaneBarrierIds.has(id)) continue; // BUG-3: never pre-empt a §5b barrier fill (LLM/instrument/axe/target-size) — barrier-dominates across lanes
+    qwDetIds.add(id); qwAppliedClears.push(id);
+    dispositions.push({ obligationId: id, kind: 'CLAIM', cleared: true, source: 'checker-qualweb' });
   }
 
   // (5b) PROVISIONAL FILL (Harness 3.2): a calibrated/ungated LLM verdict FILLS an obligation the
@@ -856,6 +936,18 @@ function buildV3(bundle, opts = {}) {
       triageCandidates: triageCandidates.length, // non-ledger semantic review candidates (E)
       deterministicSignals: deterministicSignals.length, // F: shadow 2.5.8 geometry + 2.5.3 label-in-name facts
       deterministicSignalsBySc: deterministicSignals.reduce((m, s) => { m[s.sc] = (m[s.sc] || 0) + 1; return m; }, Object.create(null)),
+      // C2 QUALWEB (authoritative two-lane): the obligation ids barriered / cleared by QualWeb this build,
+      // for downstream diffing and per-lane accounting. Empty/absent ⇒ the lane did not run (kill-switch or
+      // no @qualweb) and behaviour is exactly pre-QualWeb. barrierObligations/clearObligations are the
+      // dispositions ACTUALLY applied (a v3-owned obligation is never overridden, so it is excluded here).
+      qualweb: qwLane.ran ? {
+        ran: true,
+        barrierObligations: qwAppliedBarriers.slice().sort(),
+        clearObligations: qwAppliedClears.slice().sort(),
+        reviews: qwLane.reviews.length,
+        barrierCodes: [...new Set(qwLane.barriers.map((b) => b.code))].sort(),
+        provenance: Object.fromEntries([...qwAppliedBarriers, ...qwAppliedClears].map((id) => [id, qwProvenance[id]])),
+      } : { ran: false },
       // EVIDENCE MODE (Harness 3.3, B): which non-authoritative lanes contributed, visible without reading
       // logs. provisionalMode is the build option; the rest are derived from which artifacts the bundle
       // carries (so the run summary records exactly what produced its evidence). Authoritative output is
@@ -865,7 +957,7 @@ function buildV3(bundle, opts = {}) {
         runLlm: !!(bundle.llm || bundle.judgments),
         runInstruments: !!bundle.instruments,
         runBroadScope: !!bundle.broadScope,
-        checkers: [...new Set(checkerFindings.map((f) => f.source))].sort(), // 'axe' (C0) and/or 'checker' (IBM, C1)
+        checkers: [...new Set([...checkerFindings.map((f) => f.source), ...(qwLane.ran ? ['checker-qualweb'] : [])])].sort(), // 'axe' (C0), 'checker' (IBM, C1), 'checker-qualweb' (C2 authoritative)
         // C1: surface that an opt-in IBM run was requested but could not contribute (package/CDN absent), so
         // a skipped external checker is visible in the summary rather than indistinguishable from "ran clean".
         ...(bundle.checkerFindings && bundle.checkerFindings.checkerUnavailable ? { checkerUnavailable: String(bundle.checkerFindings.checkerUnavailable) } : {}),
