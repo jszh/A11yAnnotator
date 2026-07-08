@@ -83,3 +83,19 @@ target-SC verdict at all.
 **Status:** analysis only — nothing wired. Adoption decision (and whether to gate on a DHS-TT
 held-out probe first) is with the user. Verifier artifacts:
 `scratchpad/checker-verify/VERDICT.md`; analyst: `scratchpad/checker-counterfactual/REPORT.md`.
+
+## SHIPPED OUTCOME (2026-07-08, commit `36c53920`) — barrier lane only; the clear-lane gain did not survive obligation-level semantics
+
+The lane was implemented default-on and adversarially verified live. The **barrier lane shipped intact**
+(5 GT-fail rescues incl. d0f69e ×3, +1 known contrast FP `afw4f7/ab4691ef`, 0 lost flags — exactly this
+doc's prediction). The **clear lane shipped EMPTY**: live probes showed every clear-eligible family
+suppresses a real v3 rubric/instrument barrier this doc's case-level scoring could not see — 2779a5's
+pass gates only title *presence* while `page-title-v0` judges descriptiveness (QualWeb's own `c4a8a4` is
+the sibling this doc's no-sibling premise missed); every 4.1.2 name-presence pass leaves
+`accessible-name-adequacy-v0` live (present-but-content-free names); and a QualWeb clear could discard
+§5b instrument/axe-promoted barriers (fixed structurally: `crossLaneBarrierIds`). So the counterfactual's
+FP-kill (30→22) was an artifact of case-level scoring against a single rule's label; at v3's obligation
+granularity the honest clear-eligible family set is empty, and the LLM-FP reduction must come from other
+means. Net shipped effect on the composed 799: **FN 2→1, FP 30→31** (raw), i.e. recall 99.1→99.6 at one
+FP of cost — not the table above. The eligibility criterion for ever adding a clear family is now
+documented in `checker-qualweb.js` (QW_POLICY header) and HARNESS-3.3-IMPLEMENTATION.md §2.

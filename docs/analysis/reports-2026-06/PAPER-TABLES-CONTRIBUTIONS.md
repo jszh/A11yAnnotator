@@ -689,6 +689,29 @@ semantic LLM adds exactly 1 TP; the model again barely matters. The expansion SC
 baselines' structural blind spots, which is the external corroboration that the round-1–3 harness lanes
 add coverage no published LLM baseline provides.
 
+## Table 1i — QualWeb authoritative barrier lane shipped (C2, default-on)
+
+**Run 2026-07-08, commit `36c53920`** (implementer + independent adversarial-verifier subagents; the
+verifier's live probes found 3 corpus-invisible false-clear bugs — the pattern of every round held). The
+verified counterfactual's (Table above `b49c0236`) production-honest QualWeb config was wired as harness
+default: **barrier lane authoritative** (QualWeb rule-level `failed` → disposition on matching construct
+obligations, guarded to auto-PARTIAL; `V3_QUALWEB=0` kill-switch; degrades exactly to pre-lane behavior
+when the package is absent). The **clear lane shipped EMPTY**: probes proved every candidate family's
+pass leaves a live adequacy/descriptiveness rubric sibling (page-title-v0, accessible-name-adequacy-v0)
+or could discard §5b instrument/axe barriers — the counterfactual's FP-kill was a case-level-scoring
+artifact; a structural cross-lane guard (`crossLaneBarrierIds`) now makes any future clear family unable
+to pre-empt a barrier.
+
+| gate (deterministic, LLM off) | result |
+|---|---|
+| PRE(kill-switch)/POST 581 per-case diff | +5 GT-fail flags (d0f69e ×3, akn7bn, 6cfa84) / +1 GT-negative (afw4f7/ab4691ef, QualWeb R37 gradient over-flag) / 0 lost / 0 false-clears / v3-axe isolation 0 |
+| post-fix flag stability | byte-identical (clears 709→0; 184 barriers unchanged) |
+| expansion 218 (`--round=all`) | 197/197 recall 1.0 / FP 0; 9bd38c statically unreachable by the lane |
+| suite | 905/905 |
+
+Composed-799 effect: FN 2→1 (recall 99.1→99.6), FP 30→31. Evidence `upstream-evidence/qw-{pre,post,post-v2,rest-all-v2}`;
+audit trail `docs/analysis/coverage/TARGETED-MULTI-CHECKER-COUNTERFACTUAL.md` (shipped-outcome addendum).
+
 ## Table 2 — Held-out generalization gate (581-case full corpus)
 
 Each new deterministic detector evaluated over its **entire** ACT rule, not its tuned examples. Over-fire =
