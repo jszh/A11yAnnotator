@@ -4,24 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cart — Maple &amp; Oak Roastery</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS:
-  This is an APG spinbutton (role="spinbutton", aria-valuemin/valuemax/valuenow,
-  aria-label) wired into a live error region. On an invalid quantity the error is
-  announced via aria-describedby + an aria-live="assertive" status, aria-invalid is set,
-  and contrast/roles are clean. axe / WAVE / Lighthouse confirm: spinbutton role +
-  bounded values present, error programmatically associated, status live. 3.3.1 passes
-  and a "mentions a problem / fix?" heuristic passes ("Enter a valid value" is the
-  default library validity string and reads as instructional).
-  THE DEFECT IS SEMANTIC ADEQUACY (3.3.3): the bounds the field enforces — 1 to 10 — are
-  literally encoded in aria-valuemin="1" and aria-valuemax="10", i.e. the correct range
-  is not just knowable, it is already in the DOM. Yet the error says only "Enter a valid
-  value." — it never states the 1-10 range it is rejecting against. The SECOND product
-  row (the PASS twin) uses the same spinbutton and emits an ADEQUATE message ("Enter a
-  quantity between 1 and 6 — only 6 left in stock."). No checker can judge that one
-  message is content-free filler while the other tells the user exactly what to change;
-  comparing "valid value" against the known 1-10 bound to decide adequacy is a human call.
--->
 <style>
   :root{ --ink:#2b211a; --muted:#7a6b5d; --line:#e4d8cb; --bean:#6b3e23; --bean-d:#512d18;
          --danger:#a5301e; --bg:#faf6f0; --paper:#fff; --focus:#1a5fb4; }
@@ -64,7 +46,6 @@
     <div class="wrap">
       <h1>Your cart</h1>
 
-      <!-- DEFECTIVE ROW: spinbutton enforces 1-10; error says only "Enter a valid value." -->
       <div class="row">
         <div class="thumb" aria-hidden="true"></div>
         <div class="meta">
@@ -82,7 +63,6 @@
         </div>
       </div>
 
-      <!-- PASS-TWIN ROW: same spinbutton component, ADEQUATE message naming the range. -->
       <div class="row">
         <div class="thumb" aria-hidden="true"></div>
         <div class="meta">
@@ -116,8 +96,6 @@
     el.setAttribute('aria-invalid', ok ? 'false' : 'true');
     return ok;
   }
-  // Stepper buttons mutate the value; the DEFECTIVE row keeps its vague message,
-  // the PASS row keeps its adequate one — wording is the only difference.
   document.querySelectorAll('.step').forEach(function(b){
     b.addEventListener('click', function(){
       var el = document.getElementById(b.dataset.for);
@@ -132,7 +110,7 @@
   document.getElementById('checkout').addEventListener('click', function(){
     var q1 = document.getElementById('q1');
     document.getElementById('live').textContent = q1.getAttribute('aria-invalid') === 'true'
-      ? document.getElementById('q1-err').textContent   // re-announces "Enter a valid value."
+      ? document.getElementById('q1-err').textContent   
       : 'Order ready.';
     if (q1.getAttribute('aria-invalid') === 'true') q1.focus();
   });

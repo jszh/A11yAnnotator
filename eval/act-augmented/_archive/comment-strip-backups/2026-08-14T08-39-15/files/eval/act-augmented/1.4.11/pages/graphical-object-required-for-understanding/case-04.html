@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Delivery zones — Marisol's Bakery online ordering</title>
+<style>
+  body { font-family: "Nunito", "Segoe UI", system-ui, sans-serif; margin: 0; background: #fff8f0; color: #3a2a20; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 26px 20px 64px; }
+  .crumbs { font-size: .8rem; color: #9a8270; margin-bottom: 14px; }
+  .crumbs a { color: #b5651d; text-decoration: none; }
+  h1 { font-size: 1.45rem; margin: 0 0 4px; }
+  p.lede { color: #6b5849; margin: 0 0 22px; }
+  .map-card { background: #fff; border: 1px solid #f0e2d2; border-radius: 16px; padding: 22px; }
+  figcaption { font-weight: 800; margin-bottom: 2px; }
+  .hint { color: #6b5849; font-size: .85rem; margin: 0 0 16px; }
+  svg.map { width: 100%; height: 360px; display: block; }
+  .rlabel { font-size: 14px; font-weight: 700; fill: #3a2a20; font-family: inherit; }
+  .key { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 16px; font-size: .85rem; }
+  .key .k { display: inline-flex; align-items: center; gap: 7px; }
+  .key .ch { width: 16px; height: 16px; border-radius: 3px; display: inline-block; }
+  .foot { font-size: .78rem; color: #9a8270; margin-top: 18px; border-top: 1px solid #f3e7d8; padding-top: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="crumbs"><a href="#">Home</a> › <a href="#">Delivery</a> › Zones</p>
+  <h1>Same-day delivery zones</h1>
+  <p class="lede">We hand-deliver fresh from the Old Mill kitchen. Find your zone to see the
+     cut-off time and fee.</p>
+
+  <section class="map-card" aria-labelledby="map-title">
+    <figure>
+      <figcaption id="map-title">Delivery zone map — central Eastbrook</figcaption>
+      <p class="hint">Your zone determines the order cut-off. Match your neighbourhood on the map.</p>
+
+      <!--
+        A simple stylised map split into four adjoining regions, each filled with a
+        different PASTEL. Adjoining fills differ by ~1.05-1.1:1 and each is ~1.2:1
+        against the white card -- nowhere near 3:1. There are NO boundary lines
+        between regions (stroke="none"). Reading the map requires perceiving where
+        one zone ends and the next begins -- those boundaries are graphical objects
+        required for understanding. With <3:1 adjoining colours and no 3:1 border,
+        a low-vision user sees one undifferentiated blob and cannot tell which zone
+        they live in. FAILS 1.4.11 / G209 (the map-boundaries example).
+        The text labels name the zones but do NOT establish the boundaries: knowing
+        "Zone A exists" doesn't tell you where A stops and B starts. Cut-off times
+        are given in the key by zone NAME, but you still must read the map boundaries
+        to know WHICH zone is yours.
+      -->
+      <svg class="map" viewBox="0 0 600 360" role="img"
+           aria-label="Map of central Eastbrook divided into four same-day delivery zones.">
+        <!-- card-coloured frame -->
+        <rect x="0" y="0" width="600" height="360" fill="#ffffff"/>
+        <!-- Four adjoining regions, pastel fills, NO separating borders -->
+        <!-- Zone A (NW) -->
+        <path d="M20,20 L300,20 L300,180 L160,180 L20,120 Z" fill="#FBE3C2" stroke="none"/>
+        <!-- Zone B (NE) -->
+        <path d="M300,20 L580,20 L580,200 L420,160 L300,180 Z" fill="#FAD7B0" stroke="none"/>
+        <!-- Zone C (SW) -->
+        <path d="M20,120 L160,180 L300,180 L300,340 L20,340 Z" fill="#F8CDA0" stroke="none"/>
+        <!-- Zone D (SE) -->
+        <path d="M300,180 L420,160 L580,200 L580,340 L300,340 Z" fill="#F6DFC0" stroke="none"/>
+        <text class="rlabel" x="150" y="100">Zone A</text>
+        <text class="rlabel" x="440" y="100">Zone B</text>
+        <text class="rlabel" x="150" y="270">Zone C</text>
+        <text class="rlabel" x="440" y="270">Zone D</text>
+      </svg>
+
+      <div class="key" aria-hidden="false">
+        <span class="k"><span class="ch" style="background:#FBE3C2"></span>A · cut-off 10am</span>
+        <span class="k"><span class="ch" style="background:#FAD7B0"></span>B · cut-off 11am</span>
+        <span class="k"><span class="ch" style="background:#F8CDA0"></span>C · cut-off 12pm</span>
+        <span class="k"><span class="ch" style="background:#F6DFC0"></span>D · cut-off 1pm</span>
+      </div>
+
+      <p class="foot">
+        Outside these zones? Choose nationwide courier at checkout (next-day).
+      </p>
+    </figure>
+  </section>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS
+    The map SVG is labelled and the zones carry text names, so axe/WAVE/Lighthouse
+    pass it. None of them compute adjoining-region fill contrast, and none can reason
+    that the region BOUNDARIES (not the names) are what a user needs to perceive to
+    answer "which zone am I in?". The key lists cut-off times by zone NAME, which a
+    naive heuristic might count as "the data is in text" -- but it isn't equivalent,
+    because you must still read the (sub-3:1, border-less) map boundaries to find
+    your zone. That this is a G209 map-boundary failure, not exempted by the labels,
+    is a meaning-level judgment automation cannot perform.
+  -->
+</div>
+</body>
+</html>

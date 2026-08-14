@@ -19,10 +19,9 @@
     width:100%; box-sizing:border-box; padding:11px 12px; font-size:1rem;
     border:1px solid var(--line); border-radius:7px; background:#fff; }
   input:focus { outline:2px solid #2b6cb0; outline-offset:1px; }
-  /* The post-submit error state: the ONLY signal that the value is wrong. */
   input.flagged {
     border:2px solid #d11f2d;
-    background:#fdecee;          /* soft red tint */
+    background:#fdecee;          
   }
   .btn { background:#2f5d8a; color:#fff; border:0; border-radius:7px;
          padding:12px 22px; font-size:1rem; font-weight:600; cursor:pointer; }
@@ -38,11 +37,6 @@
   </header>
 
   <main>
-    <!-- Server re-rendered the form after a failed submit. The learner asked for 6 seats but
-         this workshop is capped at 4 places, so the server added class="flagged" to that one
-         input. No message string was emitted anywhere on the page. The field is plain
-         type="text" with no required/pattern/min/max, so the browser raises NO native
-         constraint-validation error and the value is fully valid to the platform. -->
     <form class="card" action="/enrol" method="post" novalidate>
       <div class="field">
         <label for="learner">Name on your library record</label>
@@ -67,22 +61,5 @@
   </main>
 </div>
 
-<!--
-  WHY AUTOMATED TOOLS MISS THIS
-  The markup is flawless: every input has a programmatic <label>, the document has a title,
-  headings are sound, contrast passes. The "places" field carries a 2px red border and a
-  red-tinted background (class="flagged") that a sighted user reads unmistakably as "this
-  value is wrong." But the error is a BUSINESS RULE the server enforced (the class is full —
-  6 places exceeds the cap of 4), not anything the platform can see: the field is plain
-  type="text" with no required/pattern/min/max/maxlength, so validity.valid is true, the
-  browser raises no native constraint message, and the accessibility tree carries NO "invalid"
-  property. There is also NO text — no message span, no aria-label, no visually-hidden text,
-  no aria-invalid, no title attribute — stating that an error occurred or what it is.
-  axe/WAVE/Lighthouse have no concept that a red border IS an error indicator, so the page
-  passes vacuously, and ACT rule 36b590 finds no error-describing text to evaluate and is
-  inapplicable. A non-visual user hears "Number of places to reserve, edit, 6" — identical to
-  a valid field. Only a human looking at the rendered page can see that the sole conveyance of
-  the error is colour styling, with the meaning absent from text.
--->
 </body>
 </html>

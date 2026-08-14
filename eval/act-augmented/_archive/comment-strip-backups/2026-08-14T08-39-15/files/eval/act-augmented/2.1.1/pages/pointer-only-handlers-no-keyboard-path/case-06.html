@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Aria armchair — Hearthwood Furniture</title>
+  <!--
+    WHY THIS IS A BOUNDARY *PASS* (SC 2.1.1) DESPITE A POINTER-ONLY CONTROL:
+    The colour swatches are <li onclick="pickColour(...)"> with no tabindex/role/keydown —
+    in isolation that is exactly the F54 shape and looks like a failure. The discriminating
+    fact is that the SAME function (choosing the armchair colour) is ALSO provided by a
+    fully keyboard-operable native control: the labelled <select id="colour"> directly above
+    the swatches, bound to the identical pickColour() routine. Per WCAG 2.2 Understanding
+    (Example 7 / the dual-method Note), 2.1.1 does not require every mouse-activatable
+    control to be focusable — it requires that keyboard users have a way to perform the same
+    action. They do, via the <select>. So this page PASSES 2.1.1. It is included to sharpen
+    the aspect: the presence of a pointer-only handler is NOT automatically a failure; the
+    verdict turns on whether an equivalent keyboard path exists. An automated tool can't make
+    THIS judgment either — it can neither confirm the swatch is the failing F54 pattern nor
+    recognise that the <select> is the equivalent keyboard route for the same function.
+    (Contrast with case-04, where the slider's value had no keyboard alternative anywhere.)
+  -->
+  <style>
+    :root { --ink:#241f1a; --muted:#6b6258; --line:#e4ddd2; --brand:#4a3b2a; --accent:#9a5b2e; }
+    * { box-sizing: border-box; }
+    body { font: 16px/1.55 "Helvetica Neue", Arial, sans-serif; color: var(--ink); margin: 0; background: #faf6f0; }
+    header { background: #fff; border-bottom: 1px solid var(--line); padding: 14px 24px; display: flex; gap: 16px; align-items: center; }
+    header .brand { font-weight: 800; color: var(--brand); letter-spacing: .3px; }
+    header nav a { color: var(--muted); text-decoration: none; margin-right: 14px; font-size: .9rem; }
+    header nav a:hover, header nav a:focus-visible { color: var(--ink); text-decoration: underline; }
+    main { max-width: 940px; margin: 28px auto; padding: 0 18px; display: grid; grid-template-columns: 1fr 360px; gap: 30px; }
+    @media (max-width: 760px){ main{ grid-template-columns: 1fr; } }
+    .hero { background: #fff; border: 1px solid var(--line); border-radius: 14px; aspect-ratio: 4/3; display:flex; align-items:center; justify-content:center; }
+    .swatch-preview { width: 70%; height: 60%; border-radius: 16px; transition: background .15s ease; background: #6b8f71; box-shadow: inset 0 0 40px rgba(0,0,0,.12); }
+    h1 { font-size: 1.6rem; margin: 0 0 4px; }
+    .price { color: var(--accent); font-weight: 800; font-size: 1.3rem; margin: 0 0 16px; }
+    .field { margin-bottom: 18px; }
+    label { display: block; font-weight: 700; margin-bottom: 6px; }
+    select { width: 100%; font: inherit; padding: 10px 12px; border: 1px solid #b9ad99; border-radius: 8px; background: #fff; }
+    select:focus-visible, button:focus-visible, a:focus-visible { outline: 3px solid #1652a8; outline-offset: 2px; }
+    .swatch-help { color: var(--muted); font-size: .82rem; margin: 8px 0 0; }
+    /* Pointer-only swatches — a convenience shortcut, NOT the only path */
+    .swatches { list-style: none; display: flex; gap: 12px; padding: 10px 0 0; margin: 0; }
+    .swatches li { width: 38px; height: 38px; border-radius: 50%; cursor: pointer; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--line); }
+    .swatches li[aria-hidden] { } /* decorative duplicates of the select options */
+    .c-moss { background: #6b8f71; } .c-clay { background: #b5764e; } .c-slate { background: #5d6b78; } .c-ink { background: #2c2f36; }
+    .addcart { font: inherit; font-weight: 800; color: #fff; background: var(--accent); border: 0; border-radius: 9px; padding: 13px 22px; cursor: pointer; width: 100%; margin-top: 6px; }
+    .specs { margin-top: 20px; } .specs h2 { font-size: 1rem; } .specs li { color: var(--muted); }
+    .result { margin-top: 14px; font-weight: 700; color: var(--accent); min-height: 1.2em; }
+    footer { grid-column: 1 / -1; color: var(--muted); font-size: .8rem; text-align: center; margin: 24px 0 6px; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="brand">Hearthwood Furniture</span>
+    <nav aria-label="Primary"><a href="#sofas">Sofas</a><a href="#chairs">Chairs</a><a href="#tables">Tables</a><a href="#sale">Sale</a></nav>
+  </header>
+
+  <main>
+    <section>
+      <div class="hero"><div class="swatch-preview" id="preview" aria-hidden="true"></div></div>
+      <div class="specs">
+        <h2>About the Aria armchair</h2>
+        <ul>
+          <li>Kiln-dried oak frame, hand-finished</li>
+          <li>High-resilience foam, feather-wrapped cushions</li>
+          <li>Removable, washable covers</li>
+        </ul>
+      </div>
+    </section>
+
+    <aside>
+      <h1>Aria armchair</h1>
+      <p class="price">£640</p>
+
+      <form action="#" method="post">
+        <div class="field">
+          <label for="colour">Colour</label>
+          <!--
+            PRIMARY, fully keyboard-operable control for choosing colour. Bound to the
+            SAME pickColour() routine the swatches use. This is the keyboard path.
+          -->
+          <select id="colour" name="colour" onchange="pickColour(this.value)">
+            <option value="moss" selected>Moss green</option>
+            <option value="clay">Clay brown</option>
+            <option value="slate">Slate grey</option>
+            <option value="ink">Ink black</option>
+          </select>
+
+          <!--
+            CONVENIENCE swatches: pointer-only (onclick, no tabindex/role/keydown). On
+            their own this is the F54 shape, but they only duplicate the <select> above, so
+            keyboard users still have a full path to the same function. Marked aria-hidden
+            so AT users are routed to the real <select> rather than to dead duplicates.
+          -->
+          <ul class="swatches" aria-hidden="true">
+            <li class="c-moss" onclick="pickColour('moss')" title="Moss green"></li>
+            <li class="c-clay" onclick="pickColour('clay')" title="Clay brown"></li>
+            <li class="c-slate" onclick="pickColour('slate')" title="Slate grey"></li>
+            <li class="c-ink" onclick="pickColour('ink')" title="Ink black"></li>
+          </ul>
+          <p class="swatch-help">Choose from the menu, or click a colour chip for a shortcut.</p>
+        </div>
+
+        <button type="submit" class="addcart">Add to basket — £640</button>
+        <p class="result" id="result" role="status" aria-live="polite"></p>
+      </form>
+    </aside>
+
+    <footer>Hearthwood Furniture · Free white-glove delivery · 10-year frame guarantee</footer>
+  </main>
+
+  <script>
+    var COLOURS = {
+      moss:  { hex: '#6b8f71', label: 'Moss green' },
+      clay:  { hex: '#b5764e', label: 'Clay brown' },
+      slate: { hex: '#5d6b78', label: 'Slate grey' },
+      ink:   { hex: '#2c2f36', label: 'Ink black' }
+    };
+    function pickColour(key) {
+      var c = COLOURS[key]; if (!c) return;
+      document.getElementById('preview').style.background = c.hex;
+      // keep the keyboard control in sync when a swatch is clicked
+      document.getElementById('colour').value = key;
+      document.getElementById('result').textContent = 'Colour: ' + c.label;
+    }
+  </script>
+</body>
+</html>

@@ -71,27 +71,22 @@
   var msg = document.getElementById('msg');
 
   var CORRECT_PIN = '481902';
-  // Keystroke-dynamics gate: every gap between consecutive PIN keystrokes must be
-  // FAST (<= 400 ms). If any inter-keystroke gap is slow, the typing "rhythm" is
-  // rejected as not matching the enrolled profile — even when the PIN itself is correct.
   var MAX_GAP_MS = 400;
   var lastKeyAt = 0;
   var slowGapSeen = false;
   var keystrokeCount = 0;
 
   pin.addEventListener('keydown', function (e) {
-    // count only character-producing keys (the actual PIN digits)
     if (e.key.length === 1) {
       var now = Date.now();
       if (keystrokeCount > 0 && (now - lastKeyAt) > MAX_GAP_MS) {
-        slowGapSeen = true;            // a slow gap taints the whole rhythm
+        slowGapSeen = true;            
       }
       lastKeyAt = now;
       keystrokeCount++;
     }
   });
 
-  // Reset rhythm tracking if the field is cleared/edited fresh.
   pin.addEventListener('input', function () {
     if (pin.value.length === 0) { keystrokeCount = 0; slowGapSeen = false; lastKeyAt = 0; }
   });
@@ -103,7 +98,6 @@
       msg.textContent = 'Member number or PIN is incorrect.';
       return;
     }
-    // PIN is correct here — but the timing/rhythm gate can still deny access.
     if (slowGapSeen || keystrokeCount < pin.value.length) {
       msg.className = 'msg err';
       msg.textContent = 'We could not verify your identity. Please re-enter your PIN.';

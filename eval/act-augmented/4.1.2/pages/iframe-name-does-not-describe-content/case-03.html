@@ -14,7 +14,6 @@
     .byline { font: 14px/1.4 -apple-system, Segoe UI, sans-serif; color: #8a7f72; margin: 0 0 26px; }
     p { margin: 0 0 18px; }
     aside.promo { margin: 30px 0; border: 1px dashed #d9c7ad; border-radius: 10px; padding: 14px 16px 16px; background: #fbf4e9; }
-    /* The label heading is presented visually as a small caption above the embed. */
     .promo h2 { font: 12px/1.3 -apple-system, Segoe UI, sans-serif; text-transform: uppercase; letter-spacing: 1px; color: #9a8c79; margin: 0 0 10px; }
     iframe { width: 100%; height: 230px; border: 0; border-radius: 8px; display: block; }
     .vh { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -34,13 +33,6 @@
        coax, never yank.</p>
 
     <aside class="promo">
-      <!--
-        This <h2> was wired as the iframe's accessible name via aria-labelledby when the
-        slot was first built to hold a newsletter sign-up form. Months later the growth
-        team swapped the embedded resource for a paid plant-food advertisement but left
-        the labelling heading (and its id) untouched, so the frame's accessible name now
-        announces "Newsletter signup" over advertising content.
-      -->
       <h2 id="promo-label">Newsletter signup</h2>
       <iframe aria-labelledby="promo-label" srcdoc='
         <!DOCTYPE html><html lang=&quot;en&quot;><head><meta charset=&quot;utf-8&quot;>
@@ -70,16 +62,5 @@
        growth within a month means the repot took.</p>
   </article>
 
-  <!--
-    WHY AUTOMATED TOOLS MISS THIS
-    The iframe's accessible name is computed from aria-labelledby -> the visible <h2>
-    "Newsletter signup", so it is non-empty and cae760 PASSES. Only one iframe is
-    present, so 4b1c6c is inapplicable. The markup is well formed and the labelledby
-    reference resolves correctly, so axe/WAVE/Lighthouse see a properly named frame
-    and report nothing. They cannot render the frame to discover its content is a
-    GrowFast plant-food advertisement, not a newsletter form. The defect — an accessible
-    name that actively describes DIFFERENT content than the frame contains — only
-    surfaces when a human reads the name against the rendered frame (Trusted Tester 12.D).
-  -->
 </body>
 </html>

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.4.1 (and 1.1.1) FAILURE — F13: an informational INLINE SVG pie chart conveys the
+    category-to-share mapping ENTIRELY through color, and the text alternative restates the
+    rule and the totals but never resolves which category is the largest slice.
+
+    A nonprofit's "where your donation goes" pie chart is drawn with five colored <path>
+    wedges. The wedges carry NO labels and NO data-text inside the SVG; the only thing that
+    ties a color to a program name is the LEGEND below, whose swatches are color-only squares
+    sitting next to program names. The SVG has role="img" and an aria-label (so it is a single
+    named graphic to AT), plus a caption that lists every program's dollar figure.
+
+    The catch: the caption lists the five programs and five dollar amounts as two unordered
+    facts, and it states the color rule ("the largest wedge, in teal, is our biggest cost
+    centre") — but it NEVER says which PROGRAM the teal wedge is. To know that "Direct food
+    aid" is the teal/biggest wedge, you must visually match the teal swatch in the legend to
+    the teal wedge in the pie and read the program name beside that swatch. A colour-blind or
+    screen-reader user gets: five programs, five amounts, and "teal is biggest" — but cannot
+    bind teal to a program, so the headline message ("most of your money goes to direct food
+    aid") is unrecoverable.
+
+    WHY AUTOMATED TOOLS MISS IT: the SVG has role="img" + a non-empty accessible name, the
+    legend swatches are decorative <span>s the scanner ignores, and the caption is valid prose.
+    axe/WAVE/Lighthouse see a named graphic and pass. They cannot perceive that the wedge<->
+    program binding exists ONLY as a shared CSS/fill color, nor that the caption never spells
+    that binding out. Reading the pie, reading the legend colors, reading the caption, and
+    noticing the missing binding is pure human visual-semantic judgment.
+  -->
+  <title>Where Your Gift Goes — Harvest Hope Food Network</title>
+  <style>
+    :root { --ink:#22302a; --muted:#5f6f67; --line:#dfe8e3; --bg:#f3f8f5; --teal:#1f8a82; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Georgia,"Times New Roman",serif; color:var(--ink); background:var(--bg); }
+    .page { max-width:760px; margin:0 auto; padding:30px 22px 50px; }
+    .brand { display:flex; align-items:baseline; gap:10px; }
+    .brand h1 { font-size:22px; margin:0; }
+    .brand .tag { color:var(--muted); font-style:italic; font-size:14px; }
+    .card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:26px; margin-top:22px; }
+    .card h2 { font-size:18px; margin:0 0 6px; }
+    .lede { color:var(--muted); font-size:14px; line-height:1.6; margin:0 0 20px; }
+    .chartrow { display:flex; gap:26px; flex-wrap:wrap; align-items:center; }
+    svg.pie { width:240px; height:240px; flex:0 0 auto; }
+    .legend { list-style:none; margin:0; padding:0; font-size:14px; }
+    .legend li { display:flex; align-items:center; gap:10px; padding:5px 0; }
+    .legend .sw { width:16px; height:16px; border-radius:3px; flex:0 0 auto; }
+    figcaption { color:var(--muted); font-size:13px; line-height:1.6; margin-top:20px; border-top:1px solid var(--line); padding-top:14px; }
+    .donate { display:inline-block; margin-top:18px; background:var(--teal); color:#fff; text-decoration:none; padding:11px 20px; border-radius:8px; font-family:Arial,sans-serif; font-weight:700; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="brand">
+      <h1>Harvest Hope Food Network</h1>
+      <span class="tag">feeding neighbours since 1994</span>
+    </div>
+
+    <section class="card">
+      <h2>Where your gift goes</h2>
+      <p class="lede">Every dollar is allocated across our five programs. Last year donors gave
+        $2.40&nbsp;million; the breakdown below shows how it was spent.</p>
+
+      <figure>
+        <div class="chartrow">
+          <!--
+            Pie wedges (clockwise from 12 o'clock), each a colored <path>, NO inline labels:
+              teal   #1f8a82 -> Direct food aid        (45%, largest)
+              gold   #e0a72e -> Mobile pantry routes   (22%)
+              clay   #c4623d -> Community kitchens      (16%)
+              sage   #7aa66b -> Nutrition education     (10%)
+              slate  #5c6b8a -> Administration          (7%)
+            The wedge<->program binding exists ONLY via matching fill color to the legend
+            swatch. The SVG is a single named graphic. role/aria-label give a TITLE, not the
+            binding.
+          -->
+          <svg class="pie" viewBox="0 0 100 100" role="img"
+               aria-label="Pie chart of how donations were spent across five programs last year.">
+            <!-- center 50,50 r 50; paths computed for the percentages above -->
+            <path d="M50 50 L50 0 A50 50 0 0 1 97.55 65.45 Z" fill="#1f8a82"></path>
+            <path d="M50 50 L97.55 65.45 A50 50 0 0 1 55.23 99.69 Z" fill="#e0a72e"></path>
+            <path d="M50 50 L55.23 99.69 A50 50 0 0 1 7.32 73.51 Z" fill="#c4623d"></path>
+            <path d="M50 50 L7.32 73.51 A50 50 0 0 1 1.25 38.83 Z" fill="#7aa66b"></path>
+            <path d="M50 50 L1.25 38.83 A50 50 0 0 1 50 0 Z" fill="#5c6b8a"></path>
+          </svg>
+
+          <ul class="legend">
+            <li><span class="sw" style="background:#1f8a82" aria-hidden="true"></span> Direct food aid</li>
+            <li><span class="sw" style="background:#e0a72e" aria-hidden="true"></span> Mobile pantry routes</li>
+            <li><span class="sw" style="background:#c4623d" aria-hidden="true"></span> Community kitchens</li>
+            <li><span class="sw" style="background:#7aa66b" aria-hidden="true"></span> Nutrition education</li>
+            <li><span class="sw" style="background:#5c6b8a" aria-hidden="true"></span> Administration</li>
+          </ul>
+        </div>
+
+        <figcaption>
+          Figure: FY23 program spending of $2.40&nbsp;million. The five programs were Direct
+          food aid, Mobile pantry routes, Community kitchens, Nutrition education, and
+          Administration, which together received $1.08M, $528K, $384K, $240K and $168K.
+          The largest wedge, shown in teal, is by far our biggest commitment — most of your
+          gift goes there.
+        </figcaption>
+      </figure>
+
+      <a class="donate" href="https://give.example.org/harvesthope">Give monthly</a>
+    </section>
+  </div>
+</body>
+</html>

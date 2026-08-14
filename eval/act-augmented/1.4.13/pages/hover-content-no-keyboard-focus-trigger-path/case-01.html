@@ -42,8 +42,6 @@
   .rate .pct { font-size: 40px; font-weight: 800; color: #0b3d62; }
   .rate .label { font-size: 15px; color: #4c5663; }
 
-  /* The information icon. It is a styled span — looks like a control, but it is
-     not a button, has no tabindex, and no focus handler. */
   .info {
     display: inline-flex;
     align-items: center;
@@ -61,7 +59,6 @@
     top: -1px;
     user-select: none;
   }
-  /* The definition pop-up. Hidden until JS shows it on mouseover. */
   .apy-popup {
     position: absolute;
     z-index: 20;
@@ -130,10 +127,6 @@
   </footer>
 
   <script>
-    // The "i" icon reveals the APY definition ON MOUSEOVER ONLY.
-    // There is intentionally no focus/focusin handler, and the span carries no
-    // tabindex — so the Tab key never lands on it and keyboard users never see
-    // the tiered-rate caveat (the only place the $250k cap is disclosed on screen).
     (function () {
       var icon = document.getElementById('apy-info');
       var popup = document.getElementById('apy-popup');
@@ -152,22 +145,5 @@
     })();
   </script>
 
-  <!--
-    WHY AUTOMATED TOOLS MISS IT (and why this FAILS 1.4.13 on the focus limb):
-    Everything an automated checker inspects is clean. The popup has role="tooltip",
-    the icon has aria-describedby pointing at a real, non-empty element, the title is
-    descriptive, every control has an accessible name, and there is no contrast issue.
-    axe/WAVE/Lighthouse therefore report no error. What they cannot do is OPERATE the
-    page: only a human who (a) reads the popup and recognizes it carries UNIQUE, material
-    information (the $250k tiered-rate cap, disclosed nowhere else on screen) AND (b) Tabs
-    through the page and observes the popup never appears can conclude this violates the
-    1.4.13 Additional Note that "content which can be triggered via pointer hover should
-    also be able to be triggered by keyboard focus." The trigger is a <span> with no
-    tabindex and only a mouseover/mouseout handler, so keyboard and many AT users can never
-    perceive the caveat. (aria-describedby exposes the text to *some* screen readers when
-    they reach the icon — but the icon is not in the tab order or accessibility tree as an
-    interactive node, and sighted keyboard / magnifier users get nothing.) Present-but-
-    unreachable, not absent. Verdict: FAILED.
-  -->
 </body>
 </html>

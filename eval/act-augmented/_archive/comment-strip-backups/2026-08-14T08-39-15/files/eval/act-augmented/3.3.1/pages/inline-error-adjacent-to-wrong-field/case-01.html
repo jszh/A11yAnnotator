@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Payment details — Northwind Outfitters checkout</title>
+<style>
+  :root { --ink:#1c1c28; --line:#c7c9d4; --danger:#b4231f; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+         color: var(--ink); background:#f4f5f8; margin:0; padding:32px 16px; }
+  .card { max-width: 640px; margin:0 auto; background:#fff; border:1px solid var(--line);
+          border-radius:10px; padding:28px 26px 32px; box-shadow:0 1px 2px rgba(20,20,40,.06); }
+  h1 { font-size:1.25rem; margin:0 0 4px; }
+  .sub { color:#5a5d70; font-size:.85rem; margin:0 0 22px; }
+  .pay-row { display:flex; gap:16px; }
+  .field { flex:1 1 0; min-width:0; }
+  .field.card-no { flex:2 1 0; }
+  label { display:block; font-weight:600; font-size:.82rem; margin:0 0 6px; }
+  input { width:100%; padding:10px 11px; font-size:.95rem; border:1px solid var(--line);
+          border-radius:6px; }
+  input.invalid { border-color: var(--danger); background:#fdf3f2; }
+  /* Each field reserves a slot directly beneath it for an inline message. */
+  .msg-slot { min-height: 1.25rem; margin-top:6px; }
+  .err { color: var(--danger); font-size:.78rem; line-height:1.2; display:flex; gap:5px; }
+  .err::before { content:"\26A0"; } /* warning triangle, decorative */
+  .actions { margin-top:26px; }
+  button { background:#1f4ed8; color:#fff; border:0; border-radius:7px; padding:12px 22px;
+           font-size:.95rem; font-weight:600; cursor:pointer; }
+  .lock { color:#5a5d70; font-size:.78rem; margin-top:14px; }
+</style>
+</head>
+<body>
+  <main class="card">
+    <h1>Payment details</h1>
+    <p class="sub">Step 3 of 4 — Northwind Outfitters secure checkout. Order #NW-50281.</p>
+
+    <form action="#" novalidate aria-label="Payment details">
+      <div class="pay-row">
+        <!-- CARD NUMBER -->
+        <div class="field card-no">
+          <label for="cc-number">Card number</label>
+          <input id="cc-number" name="cardNumber" type="text" inputmode="numeric"
+                 autocomplete="cc-number" value="4111 1111 1111 1111" class="invalid">
+          <!-- The message physically rendered under Card number actually names the CVV field. -->
+          <div class="msg-slot">
+            <span class="err">CVV must be exactly 3 digits.</span>
+          </div>
+        </div>
+
+        <!-- EXPIRY -->
+        <div class="field">
+          <label for="cc-exp">Expiry (MM/YY)</label>
+          <input id="cc-exp" name="cardExpiry" type="text" inputmode="numeric"
+                 autocomplete="cc-exp" value="08/27">
+          <div class="msg-slot"></div>
+        </div>
+
+        <!-- CVV -->
+        <div class="field">
+          <label for="cc-cvv">CVV</label>
+          <input id="cc-cvv" name="cardCvv" type="text" inputmode="numeric"
+                 autocomplete="cc-csc" value="12">
+          <div class="msg-slot"></div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button type="submit">Pay $148.00</button>
+        <p class="lock">&#128274; Your card is encrypted and never stored.</p>
+      </div>
+    </form>
+  </main>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS IT
+    Every programmatic facet of ACT 36b590 passes: the error is non-empty, visible, in
+    the accessibility tree, and describes the cause ("CVV must be exactly 3 digits"). No
+    aria-describedby / for-id linkage exists anywhere, so a rule has NO programmatic
+    association to evaluate and falls back on "identification through presentation"
+    (proximity), which it treats as sufficient. The defect is purely spatial-semantic:
+    the message sits in the slot belonging to the Card number field while its TEXT names
+    the CVV field. The actually-invalid value here is the CVV ("12", two digits), but the
+    field flagged red and visually annotated is the Card number. axe/WAVE/Lighthouse have
+    no model of "which field does this span visually adjoin" vs "which field does its text
+    name", so they cannot detect the mismatch.
+  -->
+</body>
+</html>

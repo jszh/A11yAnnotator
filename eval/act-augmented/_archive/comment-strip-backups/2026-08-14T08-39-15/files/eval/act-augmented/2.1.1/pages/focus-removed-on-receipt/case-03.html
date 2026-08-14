@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Meridian Dispatch — Politics</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:Georgia,"Times New Roman",serif; color:#1a1a1a; background:#fff; }
+  .masthead {
+    position:sticky; top:0; z-index:50; background:#fff; border-bottom:2px solid #111;
+    display:flex; align-items:center; justify-content:space-between; padding:10px 28px;
+  }
+  .masthead a.logo {
+    font-family:Georgia,serif; font-weight:700; font-size:1.5rem; letter-spacing:.5px;
+    color:#111; text-decoration:none;
+  }
+  .masthead a.logo:focus { outline:3px solid #b5121b; outline-offset:3px; }
+  .masthead nav { font-family:Arial,sans-serif; font-size:.82rem; text-transform:uppercase; letter-spacing:.4px; }
+  .masthead nav a { color:#444; text-decoration:none; margin-left:16px; }
+  .masthead nav a:focus { outline:2px solid #b5121b; }
+  .wrap { max-width:720px; margin:30px auto; padding:0 28px; }
+  .kicker { font-family:Arial,sans-serif; text-transform:uppercase; letter-spacing:1px; color:#b5121b; font-size:.75rem; font-weight:700; }
+  h1.headline { font-size:2.1rem; line-height:1.15; margin:6px 0 10px; }
+  .byline { font-family:Arial,sans-serif; font-size:.8rem; color:#666; margin-bottom:22px; }
+  article p { font-size:1.06rem; line-height:1.65; margin:0 0 18px; }
+  article a { color:#b5121b; }
+  .tools { font-family:Arial,sans-serif; display:flex; gap:10px; margin:24px 0; }
+  .tools button {
+    border:1px solid #ccc; background:#f7f7f7; padding:8px 14px; border-radius:4px; font-size:.85rem; cursor:pointer;
+  }
+  .tools button:focus { outline:3px solid #b5121b; outline-offset:1px; }
+  .newsletter { border:1px solid #ddd; background:#faf8f4; padding:18px 20px; border-radius:6px; margin:28px 0; font-family:Arial,sans-serif; }
+  .newsletter label { display:block; font-size:.85rem; font-weight:700; margin-bottom:8px; }
+  .newsletter input { padding:9px 11px; border:1px solid #bbb; border-radius:4px; width:62%; font-size:.95rem; }
+  .newsletter button { padding:9px 16px; border:0; background:#111; color:#fff; border-radius:4px; margin-left:6px; cursor:pointer; }
+  footer { border-top:1px solid #ddd; margin-top:40px; padding:22px 28px; font-family:Arial,sans-serif; font-size:.78rem; color:#777; }
+</style>
+</head>
+<body>
+<header class="masthead">
+  <a href="#top" class="logo" id="brandLogo">The Meridian Dispatch</a>
+  <nav aria-label="Sections">
+    <a href="#politics">Politics</a>
+    <a href="#business">Business</a>
+    <a href="#opinion">Opinion</a>
+    <a href="#subscribe">Subscribe</a>
+  </nav>
+</header>
+
+<div class="wrap">
+  <p class="kicker">Politics</p>
+  <h1 class="headline">City Council Approves Transit Levy After Marathon Session</h1>
+  <p class="byline">By Dana Okafor · Updated 6:14 a.m.</p>
+
+  <article>
+    <p>The council voted 7–4 early Wednesday to place a half-cent transit levy before voters
+       in November, ending a debate that stretched past midnight and drew an overflow crowd
+       to the chamber.</p>
+
+    <div class="tools" aria-label="Article tools">
+      <button type="button">Share</button>
+      <button type="button">Save</button>
+      <button type="button">Comment</button>
+      <button type="button">Print</button>
+    </div>
+
+    <p>Supporters argued the measure would stabilize bus service in the east end, where routes
+       were cut twice last year. Opponents, including two members who represent suburban wards,
+       said the city had not exhausted other <a href="#funding">funding options</a>.</p>
+
+    <div class="newsletter">
+      <label for="nl">Get the Morning Dispatch in your inbox</label>
+      <input type="email" id="nl" placeholder="you@example.com">
+      <button type="button">Sign up</button>
+    </div>
+
+    <p>The levy now heads to the county elections office for certification. If approved by
+       voters, collection would begin in the next fiscal year, officials said.</p>
+
+    <!--
+      THE DEFECT (F55 variant: page-wide focusin handler yanks focus back to the masthead logo).
+      A "sticky brand" growth experiment wanted the logo "always reachable" so readers could
+      jump home. A junior dev implemented it as a document-level focusin listener that, on ANY
+      focus change, re-focuses #brandLogo "so the brand is the anchor of attention." The guard
+      meant to exclude the logo itself is comparing the wrong property (e.tabIndex vs the node),
+      so it never excludes anything. RESULT: every Tab to a section link, an article tool button,
+      the newsletter field, or the in-article link instantly bounces focus back to the logo.
+      Static DOM is pristine: real <a>/<button>/<input>, all focusable, all named. The page is
+      effectively keyboard-frozen at the masthead — discoverable only by tabbing and watching the
+      focus ring snap back to "The Meridian Dispatch" on every press.
+    -->
+  </article>
+</div>
+
+<footer>© The Meridian Dispatch. All rights reserved. Terms · Privacy · Accessibility</footer>
+
+<script>
+  (function () {
+    var logo = document.getElementById('brandLogo');
+    document.addEventListener('focusin', function (e) {
+      // INTENDED: keep the brand reachable, but don't fight the logo itself.
+      // BUG: 'e.tabIndex' is undefined on a FocusEvent (the author meant e.target),
+      // so the guard is always falsy and never excludes the logo — every focusin
+      // anywhere on the page re-focuses the masthead.
+      if (e.tabIndex === logo) return;
+      logo.focus();
+    });
+  })();
+</script>
+</body>
+</html>

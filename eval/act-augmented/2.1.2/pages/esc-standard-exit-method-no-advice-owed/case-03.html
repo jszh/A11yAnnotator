@@ -124,7 +124,6 @@
   var loadBtn = document.getElementById('loadBtn');
   var signLink = document.getElementById('signLink');
 
-  // Spreadsheet-style: Tab and arrows move BETWEEN cells and never leave the grid.
   function indexOfCell(el){ return cells.indexOf(el); }
   function focusCell(i){ if (i < 0) i = cells.length - 1; if (i >= cells.length) i = 0; cells[i].focus(); }
 
@@ -133,7 +132,6 @@
     if (i === -1) return;
 
     if (e.key === 'Tab') {
-      // Captured: Tab is repurposed to walk cells, so it never moves focus OUT of the grid.
       e.preventDefault();
       focusCell(e.shiftKey ? i - 1 : i + 1);
       return;
@@ -141,19 +139,14 @@
     if (e.key === 'ArrowDown' || e.key === 'ArrowRight') { e.preventDefault(); focusCell(i + 1); return; }
     if (e.key === 'ArrowUp'   || e.key === 'ArrowLeft')  { e.preventDefault(); focusCell(i - 1); return; }
 
-    // Esc is also swallowed so it cannot be a fallback standard exit.
     if (e.key === 'Escape') { e.preventDefault(); return; }
 
-    // DEFECT: the advice tells users to press Ctrl+Alt+G to leave the grid, but the dev wired the
-    // handler to Ctrl+Alt+B (e.code === 'KeyB'). The advertised non-standard exit therefore never
-    // fires. Because Tab/arrows/Esc are all captured, NO keyboard method moves focus away — a trap.
     if (e.ctrlKey && e.altKey && e.code === 'KeyB') {
       e.preventDefault();
       signLink.focus();
     }
   });
 
-  // The mouse path works fine (so the bug ships unnoticed): clicking the link leaves the grid.
   loadBtn.addEventListener('click', function () {
     cells[0].textContent = '7.8';
     cells[2].textContent = '4.9';

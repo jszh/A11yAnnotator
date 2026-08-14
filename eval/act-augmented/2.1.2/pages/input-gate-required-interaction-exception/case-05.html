@@ -4,25 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Shipping address — Pinewood Supply Co.</title>
-  <!--
-    WHY AUTOMATED TOOLS MISS THIS (SC 2.1.2 — gate whose required fix is mouse-only):
-    The checkout's "Street address" field is gated by an inline validation error: forward Tab
-    past the address field is suppressed until the value EXACTLY matches the
-    address-verification service's canonical form (street fully spelled out, e.g.
-    "1450 Pinewood Avenue Northwest, Suite 200"). The user typed "1450 Pinewood Ave NW Ste
-    200", which the verifier rejects. The ONLY offered way to resolve the error is a
-    "Use suggested address" button — implemented as a <div onclick> that is not focusable, has
-    no role and no keydown. A keyboard user cannot click it and, in practice, cannot blindly
-    retype the exact canonical string the verifier wants, so they can satisfy NOTHING and Tab
-    never advances to the city/ZIP fields, the "Continue to payment" button, or the rest of
-    the page.
-    This is a trap, not the input-gate exception: the required interaction is not
-    keyboard-performable. axe / WAVE / Lighthouse see a labelled <input>, an alert region with
-    text, and a <div> with an onclick (no role/name rule fires). They never run validation,
-    never Tab, and cannot tell the only escape is a pointer-only control. A human must
-    discover (by mouse) that the "Use suggested address" div is the only fix and confirm it is
-    keyboard-unreachable.
-  -->
   <style>
     :root { --ink:#23211d; --muted:#6a6358; --line:#e0dacd; --brand:#7a4d12; --bg:#faf8f3; --err:#9a2b1f; }
     * { box-sizing: border-box; }
@@ -73,19 +54,12 @@
 
       <div class="row">
         <label for="street">Street address (required)</label>
-        <!-- Pre-filled with the user's input; the verifier wants a different canonical form. -->
         <input type="text" id="street" name="street" class="invalid"
                value="1450 Pinewood Ave NW Ste 200"
                aria-describedby="street-alert" aria-invalid="true" required>
         <div class="alert show" id="street-alert" role="alert">
           We couldn't verify that address. Suggested:
           <span class="suggested">1450 Pinewood Avenue Northwest, Suite 200</span>.
-          <!--
-            The ONLY offered resolution is this button — but it is a pointer-only <div>:
-            no tabindex, no role, no keydown. Keyboard users cannot activate it, and the
-            verifier won't accept anything but the exact canonical string, so they can
-            resolve the error by NO keyboard means. Forward Tab stays blocked. Trap.
-          -->
           <div class="fix" onclick="useSuggested()">Use suggested address</div>
         </div>
       </div>
@@ -110,28 +84,19 @@
   <footer>Pinewood Supply Co. · Free returns within 30 days · Ships from Atlanta, GA.</footer>
 
   <script>
-    // The street field is gated by an unresolved verification error. Forward Tab is
-    // suppressed until the value matches the verifier's exact canonical form. The user's
-    // typed value does not match, and the only offered resolution is the pointer-only
-    // "Use suggested address" <div onclick>. A keyboard user therefore has no way to clear
-    // the error (they can edit the field, but cannot know/produce the exact canonical string
-    // the verifier requires), so forward Tab never releases. Genuine trap dressed as
-    // validation.
     var street = document.getElementById('street');
     var alertEl = document.getElementById('street-alert');
     var CANON = '1450 Pinewood Avenue Northwest, Suite 200';
 
     function verified() { return street.value.trim() === CANON; }
 
-    function useSuggested() {          // reachable ONLY via the div's onclick (pointer)
+    function useSuggested() {          
       street.value = CANON;
       street.classList.remove('invalid');
       street.setAttribute('aria-invalid', 'false');
       alertEl.classList.remove('show');
     }
 
-    // Re-validate as the user edits; but free-typed text essentially never equals CANON,
-    // so editing does not clear the gate in practice.
     street.addEventListener('input', function () {
       if (verified()) {
         street.classList.remove('invalid');
@@ -144,7 +109,6 @@
       }
     });
 
-    // Suppress forward Tab while the address is unverified.
     street.addEventListener('keydown', function (e) {
       if (e.key === 'Tab' && !e.shiftKey && !verified()) {
         e.preventDefault();

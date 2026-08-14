@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.4.5 FAILURE — a section HEADING dressed up with class="logo" + role="img" to claim
+    the logotype exemption, on a SaaS pricing page.
+
+    The page has a real brand logo in the top bar: <span> with the live word "Quanta" — that
+    is fine (and it is even live text, no issue). The 1.4.5 trap is further down: the pricing
+    section's heading "Our 2026 Pricing Plans" is rendered as an inline-SVG <text> IMAGE,
+    wrapped in <div class="logo" role="img" aria-label="Our 2026 Pricing Plans">, using the
+    same brand display face. The author argues "the section title is part of the brand look,
+    so it's branding and exempt."
+
+    It is NOT. "Our 2026 Pricing Plans" is the page's section HEADING — ordinary informational
+    text. WCAG even lists "Styled Headings" as the canonical thing that must be CSS text, not a
+    bitmap. A heading is not a logo or brand name; the branding/logotype exemption does not
+    reach it. The text should be a live <h2> styled with CSS so a user can resize/recolour it.
+
+    Note the heading is ALSO not exposed as a heading to AT (it's role="img"), but the ASPECT
+    under test is the 1.4.5 image-of-text-styled-as-branding judgment, not the missing heading
+    role.
+
+    WHY AUTOMATED TOOLS MISS IT: the role="img" element HAS an accessible name (aria-label), so
+    axe's "image must have alt"/"role=img needs name" checks PASS. Nothing flags that the
+    image's pixels are the section heading rather than a logo. Deciding "this styled title is
+    informational text, not branding" is a human semantic call.
+  -->
+  <title>Pricing — Quanta Analytics</title>
+  <style>
+    :root { --ink:#16181d; --violet:#5b3df5; --muted:#6a7180; --line:#e7e9ef; --bg:#fbfbfe; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Segoe UI", system-ui, Arial, sans-serif; color:var(--ink); background:var(--bg); }
+    .topbar { display:flex; align-items:center; gap:10px; padding:14px 26px; border-bottom:1px solid var(--line); background:#fff; }
+    .topbar .brand { font-family:Georgia, serif; font-weight:700; font-size:22px; color:var(--violet); letter-spacing:.01em; }
+    .topbar nav { margin-left:auto; display:flex; gap:20px; }
+    .topbar nav a { color:var(--ink); text-decoration:none; font-size:14px; }
+    .topbar nav a:hover { color:var(--violet); }
+    main { max-width:980px; margin:0 auto; padding:40px 24px; }
+    /* The section heading is delivered as an IMAGE wearing the brand styling. */
+    .section-head { text-align:center; margin-bottom:8px; }
+    .section-head .logo { display:inline-block; }
+    .section-head .logo img, .section-head .logo svg { height:40px; width:auto; }
+    .lede { text-align:center; color:var(--muted); font-size:16px; margin:0 auto 30px; max-width:560px; }
+    .plans { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
+    .plan { background:#fff; border:1px solid var(--line); border-radius:12px; padding:24px; }
+    .plan.featured { border-color:var(--violet); box-shadow:0 6px 24px rgba(91,61,245,.12); }
+    .plan h3 { margin:0 0 4px; font-size:18px; }
+    .plan .price { font-size:32px; font-weight:700; margin:8px 0; }
+    .plan .price span { font-size:14px; font-weight:400; color:var(--muted); }
+    .plan ul { list-style:none; padding:0; margin:14px 0; }
+    .plan li { padding:6px 0; font-size:14px; border-top:1px solid var(--line); }
+    .plan button { width:100%; padding:11px; border:0; border-radius:8px; background:var(--violet); color:#fff; font-size:15px; cursor:pointer; }
+    @media (max-width:760px){ .plans{ grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <!-- Genuine brand name as LIVE text — fine, no 1.4.5 issue here. -->
+    <span class="brand">Quanta</span>
+    <nav aria-label="Primary">
+      <a href="#product">Product</a>
+      <a href="#pricing" aria-current="page">Pricing</a>
+      <a href="#docs">Docs</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="section-head">
+      <!--
+        THE 1.4.5 VIOLATION: the section heading is a flat IMAGE wrapped as class="logo"
+        role="img" so it is argued to be "branding". It is a styled heading = informational
+        text that must be live, resizable CSS text.
+      -->
+      <div class="logo" role="img" aria-label="Our 2026 Pricing Plans">
+        <img alt=""
+             src="data:image/svg+xml;utf8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='460'%20height='48'%20viewBox='0%200%20460%2048'%3E%3Ctext%20x='230'%20y='38'%20fill='%235b3df5'%20font-family='Georgia,serif'%20font-size='38'%20font-weight='bold'%20text-anchor='middle'%3EOur%202026%20Pricing%20Plans%3C/text%3E%3C/svg%3E">
+      </div>
+    </div>
+    <p class="lede">Simple, transparent pricing. Switch or cancel any time. All plans include
+       unlimited dashboards and SSO.</p>
+
+    <section class="plans" aria-label="Plans">
+      <div class="plan">
+        <h3>Starter</h3>
+        <div class="price">$19<span>/mo</span></div>
+        <ul><li>3 seats</li><li>10 dashboards</li><li>Email support</li></ul>
+        <button type="button">Choose Starter</button>
+      </div>
+      <div class="plan featured">
+        <h3>Team</h3>
+        <div class="price">$59<span>/mo</span></div>
+        <ul><li>15 seats</li><li>Unlimited dashboards</li><li>Priority support</li></ul>
+        <button type="button">Choose Team</button>
+      </div>
+      <div class="plan">
+        <h3>Enterprise</h3>
+        <div class="price">Custom</div>
+        <ul><li>SSO &amp; SCIM</li><li>Dedicated manager</li><li>99.9% SLA</li></ul>
+        <button type="button">Contact sales</button>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

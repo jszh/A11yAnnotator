@@ -31,8 +31,6 @@
   .kpi .delta.up { color: #137a4b; }
   .kpi .delta.down { color: #b23a2e; }
 
-  /* The metric-help button. It is a real <button>, so it IS focusable and IS a
-     tab stop — but its tooltip is wired only to mouseover/mouseout in JS. */
   .help-btn {
     appearance: none;
     border: 0;
@@ -108,13 +106,6 @@
   </div>
 
   <script>
-    // The "?" tooltip explains a non-obvious attribution definition that differs from the
-    // ad platform's own counting — material context for interpreting the KPI.
-    //
-    // The button is a real, focusable <button> and IS a tab stop. But the tooltip is wired
-    // ONLY to mouseover/mouseout. focus/focusin is never bound. So a keyboard user can Tab
-    // TO the button (and even see a focus ring) yet the tooltip never appears — the
-    // attribution caveat is silently withheld from keyboard and AT users.
     (function () {
       var btn = document.getElementById('conv-help');
       var tip = document.getElementById('metric-tip');
@@ -127,25 +118,8 @@
       function hide() { tip.style.display = 'none'; }
       btn.addEventListener('mouseover', show);
       btn.addEventListener('mouseout', hide);
-      // NOTE: no btn.addEventListener('focus', ...) / 'focusin' — the keyboard path is missing.
     })();
   </script>
 
-  <!--
-    WHY AUTOMATED TOOLS MISS IT (and why this FAILS 1.4.13 on the focus limb):
-    This is the subtle, common version of the failure. The trigger is a genuine, focusable
-    <button> WITH an accessible name (aria-label) AND aria-describedby pointing at the
-    tooltip — so it is a tab stop and even has a visible focus ring. An automated checker
-    sees a fully "correct" button: name present, role correct, describedby resolves, contrast
-    fine, title descriptive => no error from axe/WAVE/Lighthouse. The defect is in the
-    EVENT WIRING, which static analysis does not execute: the JS binds show() to 'mouseover'
-    but never to 'focus'/'focusin'. A keyboard user Tabs to the button, sees focus, and the
-    tooltip still does not appear. The withheld text is material (the 7-day post-click
-    attribution model that explains why this number differs from the ad platform). Catching
-    this requires Tab-testing the button and reading the tooltip for meaning — present-but-
-    unreachable-on-focus. Note also that aria-describedby may let some screen readers announce
-    the text, but the visible tooltip never renders, so sighted keyboard and magnifier users
-    are excluded and the perceive-on-focus intent is unmet. Verdict: FAILED.
-  -->
 </body>
 </html>

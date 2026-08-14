@@ -4,19 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Your itinerary — AeroSur booking VK7Q2P</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS:
-  All times, codes and labels are real text; nothing is empty or unlabeled. The itinerary
-  uses grid-template-areas so each leg visually shows DEPART -> ARRIVE in the right cell.
-  But the markup authors all DEPART times first, then all ARRIVE times (a localization
-  refactor split the template into "departures block" + "arrivals block" so the i18n team
-  could translate them in two passes). Grid placement re-interleaves them on screen, but the
-  source order is: depart-out, depart-return, arrive-out, arrive-return. Linearized, a screen
-  reader reads "Departs 07:15 ... Departs 19:40 ... Arrives 10:05 ... Arrives 22:30", so a
-  blind traveller binds the RETURN departure to the OUTBOUND arrival and books a connection
-  that doesn't exist. No automated tool models that a flight leg's depart and arrive must be
-  read adjacently; judging the scrambled meaning needs a human reading the linear stream.
--->
 <style>
   :root { --ink:#15202b; --air:#22577a; --paper:#fff; --line:#dbe3ea; }
   * { box-sizing:border-box; }
@@ -41,11 +28,10 @@
     row-gap:6px; column-gap:30px;
   }
   .leg-label { font-weight:700; color:var(--air); margin-top:14px; }
-  .ol  { grid-area:outlabel; }   /* outbound label */
-  .rl  { grid-area:retlabel; }   /* return label   */
+  .ol  { grid-area:outlabel; }   
+  .rl  { grid-area:retlabel; }   
   .time { font-size:1.5rem; font-weight:800; }
   .time small { display:block; font-size:.8rem; font-weight:500; color:#5e6c78; }
-  /* placement: each leg's depart sits left, arrive sits right */
   .od { grid-area:outdep; }  .oa { grid-area:outarr; }
   .rd { grid-area:retdep; }  .ra { grid-area:retarr; }
 
@@ -62,25 +48,13 @@
 <main>
   <h2>Flights</h2>
 
-  <!-- Visual (grid-area) layout per leg:
-         OUTBOUND  Sat 14 Jun
-           Depart 07:15 BUE        Arrive 10:05 SCL
-         RETURN    Sat 21 Jun
-           Depart 19:40 SCL        Arrive 22:30 BUE
-       But the SOURCE/linearized order, after the i18n "all departures, then all arrivals"
-       split, is:
-         "Outbound" "Return"  Depart 07:15  Depart 19:40  Arrive 10:05  Arrive 22:30
-       A screen-reader user hears the two DEPARTURE times back to back, then the two
-       ARRIVALS — binding the 19:40 return departure to the 10:05 outbound arrival. -->
   <section class="legs" aria-label="Flight times">
     <div class="leg-label ol">Outbound · Sat 14 Jun</div>
     <div class="leg-label rl">Return · Sat 21 Jun</div>
 
-    <!-- DEPARTURES block (both legs) authored first -->
     <div class="time od">07:15<small>Depart · Buenos Aires (BUE)</small></div>
     <div class="time rd">19:40<small>Depart · Santiago (SCL)</small></div>
 
-    <!-- ARRIVALS block (both legs) authored second -->
     <div class="time oa">10:05<small>Arrive · Santiago (SCL)</small></div>
     <div class="time ra">22:30<small>Arrive · Buenos Aires (BUE)</small></div>
   </section>

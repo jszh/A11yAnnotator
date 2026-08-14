@@ -15,7 +15,6 @@
     gap:1.25rem; padding:1.75rem 2rem 3rem;
   }
   figure.exhibit { margin:0; background:#181a1f; border:1px solid #262a32; border-radius:10px; overflow:hidden; }
-  /* The clickable artwork "enter exhibit" image — focusable, with an onkeypress that looks wired up */
   .exhibit img.cover {
     display:block; width:100%; height:190px; object-fit:cover; cursor:pointer; outline:none;
   }
@@ -45,9 +44,6 @@
    to enter its virtual room, where you can pan, zoom and read the curator's notes.</p>
 
 <div class="gallery-grid">
-  <!-- Each cover image is the clickable entry point. tabindex makes it focusable; the
-       onkeypress LOOKS like keyboard support but calls preventDefault() and returns
-       before ever invoking enterRoom(), so Enter/Space silently do nothing. -->
   <figure class="exhibit">
     <img class="cover" tabindex="0" role="button" alt="Enter the exhibit: Vessels of Memory"
          src="data:image/svg+xml;utf8,&lt;svg xmlns='http://www.w3.org/2000/svg' width='260' height='190'&gt;&lt;rect width='260' height='190' fill='%23463a2e'/&gt;&lt;circle cx='130' cy='95' r='52' fill='%23caa15c'/&gt;&lt;/svg&gt;"
@@ -103,16 +99,9 @@
   function closeRoom() {
     document.getElementById('curtain').classList.remove('open');
   }
-  // The developer intended keyboard support, but the guard logic is wrong: it calls
-  // preventDefault() to "stop the page scrolling on Space" and then returns immediately
-  // for EVERY key — including Enter and Space — so enterRoom() is never reached from the
-  // keyboard. The handler is present (so the markup reads as keyboard-ready) but it
-  // swallows activation. There is no fallback link or button to enter a room.
   function handleKey(event, name) {
-    event.preventDefault();   // stop default scroll/activation
-    return false;             // early-out before activation — kills Enter AND Space
-    // (the intended `if (event.key === 'Enter' || event.key === ' ') enterRoom(name);`
-    //  was never reached)
+    event.preventDefault();   
+    return false;             
   }
 </script>
 </body>

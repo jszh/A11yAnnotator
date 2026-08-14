@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>نسيج — المحفظة الرقمية</title>
+  <style>
+    :root { font-family: "Tajawal", "Segoe UI", system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f4f6f8; color: #14181d; }
+    .shell { max-width: 420px; margin: 0 auto; min-height: 100vh; background: #ffffff;
+      box-shadow: 0 0 24px rgba(0,0,0,.06); }
+    .appbar { display: flex; align-items: baseline; justify-content: space-between;
+      padding: 14px 18px; border-bottom: 1px solid #eceff2; }
+
+    /* The home link is one <a>. Inside it sit TWO visible strings:
+         .mark  — the bank wordmark "نسيج" (the logotype itself), in brand "sky" #6cbfb2
+                  on white ≈ 2.16:1. As the logotype, this string carries NO 1.4.3 contrast
+                  requirement (the exemption covers it whether or not it is a link).
+         .dest  — a normal-size descriptor "الرئيسية" ("Home") the team appended so users
+                  can tell where the link goes. It is informative wayfinding text, NOT the
+                  brand mark. At #9aa7b0 on white ≈ 2.46:1, 13px normal weight, it is
+                  normal-size text, so the 4.5:1 threshold applies and it fails. */
+    a.brand { text-decoration: none; display: inline-flex; align-items: baseline; gap: 6px; }
+    a.brand .mark { font-family: "Tajawal", serif; font-weight: 800; font-size: 26px;
+      color: #6cbfb2; }                 /* logotype — exempt regardless of contrast */
+    a.brand .dest { font-size: 13px; font-weight: 400; color: #9aa7b0; }  /* NOT the logo */
+    a.brand:focus-visible { outline: 2px solid #1a73e8; outline-offset: 2px; }
+
+    .menu-btn { background: none; border: 0; font-size: 22px; color: #14181d; padding: 6px; }
+    .balance { padding: 26px 18px; }
+    .balance .label { font-size: 13px; color: #5b6470; margin: 0; }
+    .balance .amount { font-size: 34px; font-weight: 800; margin: 6px 0 0; }
+    .actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+      padding: 0 18px 18px; }
+    .actions button { background: #eef6f4; border: 0; border-radius: 12px; padding: 16px 0;
+      font-size: 14px; color: #14543a; font-weight: 600; }
+    .txns { padding: 0 18px 28px; }
+    .txns h2 { font-size: 15px; margin: 8px 0 12px; }
+    .txn { display: flex; justify-content: space-between; padding: 12px 0;
+      border-bottom: 1px solid #f0f2f4; font-size: 14px; }
+    .txn .neg { color: #b3261e; }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="appbar">
+      <!-- The wordmark "نسيج" is the exempt logotype. The appended "الرئيسية" ("Home")
+           is a functional destination label, not the brand — informative interactive
+           text that must meet 4.5:1, and at ~2.46:1 (13px, normal) it does not. -->
+      <a class="brand" href="/wallet">
+        <span class="mark">نسيج</span>
+        <span class="dest">الرئيسية</span>
+      </a>
+      <button class="menu-btn" type="button" aria-label="القائمة">☰</button>
+    </header>
+
+    <section class="balance">
+      <p class="label">الرصيد المتاح</p>
+      <p class="amount">12,480.50 ر.س</p>
+    </section>
+
+    <div class="actions">
+      <button type="button">تحويل</button>
+      <button type="button">دفع</button>
+      <button type="button">إيداع</button>
+    </div>
+
+    <section class="txns">
+      <h2>آخر العمليات</h2>
+      <div class="txn"><span>سوبر ماركت الواحة</span><span class="neg">−84.00 ر.س</span></div>
+      <div class="txn"><span>راتب — يونيو</span><span>+9,200.00 ر.س</span></div>
+      <div class="txn"><span>فاتورة الكهرباء</span><span class="neg">−212.30 ر.س</span></div>
+    </section>
+  </div>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS (and where the human judgment lives):
+    The home link wraps two visible strings. "نسيج" is the bank's WORDMARK — the logotype —
+    at #6cbfb2 on white (~2.16:1). Per SC 1.4.3, text that is part of a logo or brand name
+    has no contrast requirement, so that string is exempt EVEN THOUGH the link is interactive;
+    we do not rely on any contested "the link erodes the logo's exemption" argument.
+    Beside it the team appended "الرئيسية" ("Home") — a normal-size (13px, weight 400)
+    destination descriptor at #9aa7b0 on white (~2.46:1). That string is NOT the logo or
+    logotype: it is informative wayfinding text the exemption does not reach ("Corporate
+    identity or brand guidelines beyond logo and logotype are not included in the
+    exception"). Because it is normal-size text, the 4.5:1 threshold applies, and 2.46:1
+    fails AA — the page FAILS.
+    Two human judgments stack: (1) recognising, across Arabic script, that "نسيج" is the
+    brand wordmark (exempt) while "الرئيسية" is an ordinary functional label (not exempt);
+    and (2) holding the two to DIFFERENT bars within one link. A naive scanner computes both
+    ratios but cannot tell which span is the logotype and which is informative text, so it
+    cannot reach the correct, scoped "failed" for the descriptor while leaving the wordmark
+    alone. axe/WAVE/Lighthouse model neither the logotype identity nor the logo-vs-beyond-
+    logo boundary that ACT rule 09o5cg / afw4f7 sets aside as an assumption.
+  -->
+</body>
+</html>

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Compose — Larkmail Webmail</title>
+<style>
+  body { margin: 0; font-family: Inter, "Helvetica Neue", Arial, sans-serif; background: #fafafa; color: #202124; }
+  .app { display: grid; grid-template-columns: 200px 1fr; min-height: 100vh; }
+  nav { background: #f1f3f4; border-right: 1px solid #dadce0; padding: 16px 12px; }
+  nav a { display: block; padding: 8px 10px; border-radius: 16px; color: #3c4043; text-decoration: none; font-size: .9rem; }
+  nav a.active { background: #d3e3fd; color: #041e49; font-weight: 600; }
+  main { padding: 20px 28px; }
+  h1 { font-size: 1.1rem; margin: 0 0 12px; }
+  .compose { border: 1px solid #dadce0; border-radius: 10px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .compose-head { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid #eee; background: #f8f9fa; border-radius: 10px 10px 0 0; }
+  .compose-head .title { font-weight: 600; font-size: .9rem; flex: 1; }
+  .editor-tools { display: flex; gap: 6px; padding: 8px 14px; border-bottom: 1px solid #eee; align-items: center; }
+  .editor-tools button { border: 0; background: transparent; font-size: 1rem; width: 30px; height: 30px; border-radius: 6px; cursor: pointer; color: #5f6368; }
+  .editor-tools button:hover, .editor-tools button:focus { background: #e8eaed; }
+  .kbd-hint { margin-left: auto; width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: #e8f0fe; color: #1967d2; font-weight: 700; font-size: .9rem; cursor: default; }
+  .editor { min-height: 220px; padding: 16px; font-size: .95rem; outline: none; }
+  .send-row { padding: 10px 14px; border-top: 1px solid #eee; }
+  .send { background: #0b57d0; color: #fff; border: 0; border-radius: 18px; padding: 9px 22px; font-size: .9rem; cursor: pointer; }
+  footer { padding: 14px 28px 40px; font-size: .78rem; color: #80868b; }
+</style>
+</head>
+<body>
+<div class="app">
+  <nav aria-label="Mailboxes">
+    <a href="#inbox" class="active">Inbox</a>
+    <a href="#starred">Starred</a>
+    <a href="#sent">Sent</a>
+    <a href="#drafts">Drafts</a>
+    <a href="#spam">Spam</a>
+  </nav>
+  <main>
+    <h1>New message</h1>
+
+    <!-- The rich-text editor is a focus-trapping region: once the contenteditable body has focus,
+         Tab is captured to insert indentation (a real WYSIWYG behaviour), and a custom Alt+0 returns
+         focus to the toolbar / out of the editor. That custom exit WORKS. Its ONLY documentation is
+         the title= tooltip on the round "?" badge — revealed on mouse hover, and the badge is a
+         non-focusable, non-interactive <span>. A keyboard user inside the editor is never told how
+         to escape, because the advice is hover-only and not in the accessibility tree as instruction. -->
+    <form class="compose" id="compose" onsubmit="return false">
+      <div class="compose-head">
+        <span class="title">Re: Q3 onboarding cohort — schedule</span>
+      </div>
+      <div class="editor-tools" role="toolbar" aria-label="Formatting">
+        <button type="button" aria-label="Bold"><strong>B</strong></button>
+        <button type="button" aria-label="Italic"><em>I</em></button>
+        <button type="button" aria-label="Insert link">&#128279;</button>
+        <button type="button" aria-label="Bulleted list">&#8226;&#8226;</button>
+        <span class="kbd-hint" title="Tab indents inside the message. To move focus out of the editor, press Alt+0." aria-hidden="false">?</span>
+      </div>
+      <div class="editor" id="editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Message body">Hi Dana,&nbsp;</div>
+      <div class="send-row">
+        <button class="send" type="submit">Send</button>
+      </div>
+    </form>
+  </main>
+</div>
+<footer>
+  Larkmail &middot; Keyboard shortcuts &middot; Privacy
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS:
+    The "?" badge has a title attribute, so a static scan sees text associated with the element and
+    raises no flag. The editor has role=textbox and an aria-label; the toolbar buttons all have
+    accessible names. Nothing is empty or malformed. What a checker cannot judge: the escape
+    instruction is delivered ONLY through a title tooltip that appears on POINTER HOVER, on a
+    non-focusable <span> that a keyboard user can neither focus nor hover. The instruction is not a
+    label of any control the trapped user can reach, and screen readers do not reliably announce title
+    on a non-interactive span. So the documented exit is present in markup but unavailable to the
+    keyboard user who is actually trapped. Determining that requires knowing how title is exposed and
+    actually trying to reach the advice from inside the trap.
+  -->
+</footer>
+
+<script>
+(function () {
+  var editor = document.getElementById('editor');
+  var trapOn = false;
+
+  editor.addEventListener('focus', function () { trapOn = true; });
+
+  // WYSIWYG indent behaviour: Tab is captured inside the editor (so it cannot leave by Tab).
+  editor.addEventListener('keydown', function (e) {
+    if (e.key === 'Tab' && trapOn) {
+      e.preventDefault();
+      document.execCommand && document.execCommand('insertText', false, ' ');
+    }
+    // Working custom exit: Alt+0 moves focus back to the toolbar's first button.
+    if (e.altKey && e.key === '0') {
+      e.preventDefault();
+      trapOn = false;
+      document.querySelector('.editor-tools button').focus();
+    }
+  });
+})();
+</script>
+</body>
+</html>

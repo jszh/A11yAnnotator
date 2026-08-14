@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Saffron &amp; Smoke — Order Online</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family: Georgia, "Times New Roman", serif; color:#2a2017; background:#fbf7f0; }
+  a { color:#a5511f; }
+  .topbar { background:#2a2017; color:#f6ede0; display:flex; align-items:center; gap:20px; padding:14px 24px; }
+  .topbar .logo { font-size:1.25rem; font-weight:bold; letter-spacing:.5px; }
+  .menu-btn {
+    margin-left:auto; font:inherit; font-size:1rem; cursor:pointer;
+    background:#a5511f; color:#fff; border:0; border-radius:6px; padding:9px 18px;
+  }
+  .hero { padding:40px 24px; max-width:880px; margin:0 auto; }
+  .hero h1 { font-size:2rem; margin:0 0 .3em; }
+  .hero p { font-size:1.05rem; max-width:60ch; }
+  .order-cta { display:inline-block; margin-top:14px; background:#2a7d4f; color:#fff;
+    padding:11px 22px; border-radius:6px; text-decoration:none; }
+  .featured { max-width:880px; margin:10px auto 40px; padding:0 24px; }
+  .featured h2 { border-bottom:2px solid #e3d6c2; padding-bottom:6px; }
+  .dish { display:flex; gap:16px; padding:14px 0; border-bottom:1px solid #efe6d6; }
+  .dish .meta { flex:1; }
+  .dish h3 { margin:0 0 4px; font-size:1.1rem; }
+  .dish .price { font-weight:bold; white-space:nowrap; }
+  .dish a.add { display:inline-block; margin-top:6px; }
+  footer { background:#efe6d6; padding:24px; font-size:.92rem; }
+  footer a { margin-right:14px; }
+
+  /* The flyout menu is fixed under the top bar, visually attached to the Menu button */
+  .flyout {
+    display:none; position:fixed; top:58px; right:24px; width:240px; z-index:50;
+    background:#fff; border:1px solid #e3d6c2; border-radius:8px;
+    box-shadow:0 14px 34px rgba(0,0,0,.18); padding:8px;
+  }
+  .flyout.open { display:block; }
+  .flyout a {
+    display:block; padding:10px 12px; border-radius:5px; color:#2a2017; text-decoration:none;
+  }
+  .flyout a:hover, .flyout a:focus { background:#f6ede0; }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <span class="logo">Saffron &amp; Smoke</span>
+  <!-- Trigger near the top-right. The flyout it controls is at the very end of the DOM. -->
+  <button class="menu-btn" id="menuToggle" aria-haspopup="true" aria-expanded="false"
+          aria-controls="navFlyout">Menu ▾</button>
+</header>
+
+<section class="hero">
+  <h1>Wood-fired Indian, made to order</h1>
+  <p>Order ahead for pickup in 20 minutes, or schedule delivery across the East Side.
+     Everything from our tandoor, plus weekend biryani specials.</p>
+  <a class="order-cta" href="#start-order">Start your order</a>
+</section>
+
+<section class="featured">
+  <h2>Today's featured dishes</h2>
+
+  <div class="dish">
+    <div class="meta">
+      <h3>Lamb Seekh Kebab</h3>
+      <p>Charcoal-grilled minced lamb, mint chutney, sliced onion.</p>
+      <a class="add" href="#add-seekh">Add to order</a>
+    </div>
+    <span class="price">$14</span>
+  </div>
+
+  <div class="dish">
+    <div class="meta">
+      <h3>Paneer Tikka</h3>
+      <p>Marinated cottage cheese, bell pepper, smoked yogurt.</p>
+      <a class="add" href="#add-paneer">Add to order</a>
+    </div>
+    <span class="price">$12</span>
+  </div>
+
+  <div class="dish">
+    <div class="meta">
+      <h3>Hyderabadi Chicken Biryani</h3>
+      <p>Basmati, saffron, fried shallots, raita. Weekend special.</p>
+      <a class="add" href="#add-biryani">Add to order</a>
+    </div>
+    <span class="price">$17</span>
+  </div>
+
+  <div class="dish">
+    <div class="meta">
+      <h3>Garlic Naan (2)</h3>
+      <p>Clay-oven flatbread brushed with garlic butter.</p>
+      <a class="add" href="#add-naan">Add to order</a>
+    </div>
+    <span class="price">$5</span>
+  </div>
+</section>
+
+<footer>
+  <nav aria-label="Footer">
+    <a href="#hours">Hours &amp; Location</a>
+    <a href="#catering">Catering</a>
+    <a href="#allergens">Allergen Guide</a>
+    <a href="#careers">Careers</a>
+    <a href="#gift">Gift Cards</a>
+  </nav>
+  <p>1180 Maple Ave · Open daily 11am–10pm · (555) 010-7788</p>
+</footer>
+
+<!--
+  THE BUG (F85, open branch): this navigation flyout is the LAST element in the DOM,
+  but its trigger (#menuToggle) is in the top bar. The toggle script only flips the
+  .open class and aria-expanded; it never moves focus into the flyout. So a keyboard
+  user who opens "Menu ▾" stays on the button, and the next Tab goes to the FIRST link
+  on the page in source order ("Start your order"), NOT to the menu items that just
+  appeared visually below the button. To reach "Reservations" they must Tab past the
+  hero, every dish "Add to order" link, and the whole footer.
+-->
+<div class="flyout" id="navFlyout" role="menu" aria-label="Main menu">
+  <a href="#full-menu" role="menuitem">Full Menu</a>
+  <a href="#reservations" role="menuitem">Reservations</a>
+  <a href="#order" role="menuitem">Order Online</a>
+  <a href="#catering2" role="menuitem">Catering &amp; Events</a>
+  <a href="#about" role="menuitem">Our Story</a>
+  <a href="#contact" role="menuitem">Contact &amp; Directions</a>
+</div>
+
+<script>
+  // jQuery-flavored snippet rewritten in vanilla JS for a no-dependency page.
+  // Toggles visibility + aria-expanded only. NO focus move into the menu.
+  (function () {
+    var btn = document.getElementById('menuToggle');
+    var menu = document.getElementById('navFlyout');
+    btn.addEventListener('click', function () {
+      var open = menu.classList.toggle('open');
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      // Intentionally no menu.querySelector('a').focus() and no focus trap.
+    });
+    // Click outside closes it.
+    document.addEventListener('click', function (e) {
+      if (!menu.contains(e.target) && e.target !== btn) {
+        menu.classList.remove('open');
+        btn.setAttribute('aria-expanded', 'false');
+      }
+    });
+  })();
+</script>
+</body>
+</html>

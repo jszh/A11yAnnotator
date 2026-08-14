@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Transfer limits — Meridian Online Banking</title>
+<style>
+  :root { font-family: system-ui, "Segoe UI", Arial, sans-serif; }
+  body { margin: 0; background: #f4f6f9; color: #1c2733; }
+  header { background: #0b3d62; color: #fff; padding: 14px 28px; }
+  header h1 { font-size: 18px; margin: 0; font-weight: 600; }
+  main { max-width: 640px; margin: 28px auto; background: #fff;
+         border: 1px solid #d7dee6; border-radius: 8px; padding: 26px 30px; }
+  h2 { font-size: 20px; margin-top: 0; }
+  .field { margin: 18px 0; }
+  label { display: block; font-weight: 600; margin-bottom: 6px; }
+  input[type="text"] { width: 100%; box-sizing: border-box; padding: 9px 11px;
+        font-size: 15px; border: 1px solid #9aa7b4; border-radius: 5px; }
+  .limit-row { display: flex; align-items: center; gap: 8px; position: relative; }
+  .info-btn { width: 22px; height: 22px; border-radius: 50%; border: 1px solid #0b3d62;
+        background: #e8f0f7; color: #0b3d62; font-weight: 700; font-size: 13px;
+        cursor: pointer; line-height: 1; }
+  .info-btn:focus { outline: 3px solid #1a73e8; outline-offset: 2px; }
+  /* Tooltip is absolutely positioned BELOW the trigger and overlaps the
+     paragraph + the "Continue" button that follow it. */
+  .tip { position: absolute; top: 30px; left: 0; width: 320px; z-index: 5;
+        background: #1c2733; color: #fff; padding: 12px 14px; border-radius: 6px;
+        font-size: 14px; line-height: 1.45; box-shadow: 0 6px 18px rgba(0,0,0,.28);
+        display: none; }
+  .info-btn:focus + .tip, .info-btn:hover + .tip { display: block; }
+  .tip::after { content: ""; position: absolute; top: -7px; left: 6px;
+        border: 7px solid transparent; border-bottom-color: #1c2733; border-top: 0; }
+  .helptext { color: #4a5763; font-size: 14px; margin: 10px 0 18px; }
+  .actions button { background: #0b3d62; color: #fff; border: 0; border-radius: 5px;
+        padding: 11px 22px; font-size: 15px; font-weight: 600; cursor: pointer; }
+  .note { font-size: 12px; color: #6b7884; border-top: 1px dashed #cfd8e0;
+        margin-top: 26px; padding-top: 12px; }
+</style>
+</head>
+<body>
+<header><h1>Meridian Online Banking</h1></header>
+<main>
+  <h2>Move money — Daily transfer limit</h2>
+
+  <div class="field">
+    <label for="amount">Amount to transfer (USD)</label>
+    <input type="text" id="amount" inputmode="decimal" value="2,500.00">
+  </div>
+
+  <div class="field">
+    <div class="limit-row">
+      <span>Your remaining daily limit</span>
+      <button type="button" class="info-btn" id="limitInfo"
+              aria-describedby="limitTip" aria-label="About your daily transfer limit">i</button>
+      <!-- Tooltip text covers the helptext paragraph and the Continue button below. -->
+      <span class="tip" role="tooltip" id="limitTip">
+        Standard accounts can transfer up to <strong>$10,000</strong> per
+        calendar day across all linked external accounts. Limit resets at
+        12:00 a.m. Eastern. Wire transfers are counted separately.
+      </span>
+    </div>
+    <p class="helptext">You have <strong>$7,500.00</strong> of your daily limit
+       remaining. Transfers above your limit will be scheduled for the next
+       business day.</p>
+  </div>
+
+  <div class="actions">
+    <button type="button">Continue</button>
+  </div>
+
+  <p class="note">Tooltip appears on hover AND on keyboard focus of the round
+     "i" button, and it overlaps the help paragraph plus the Continue button.
+     There is no keyboard mechanism (no Esc, no documented shortcut, and
+     activating the button does not toggle it) to clear it. The only way to
+     hide it is to move focus or the pointer off the trigger.</p>
+</main>
+
+<script>
+  // The tooltip is driven purely by :hover and :focus CSS above.
+  // INTENTIONAL DEFECT: there is NO keydown / Escape handler anywhere, and
+  // clicking the trigger does not toggle the tooltip off. Once the button is
+  // focused, the tip obscures the paragraph + Continue button, and a keyboard
+  // user can only get rid of it by Tab-ing focus away from the trigger —
+  // i.e. they cannot dismiss it without moving focus. (Dismissible FAIL.)
+  var btn = document.getElementById('limitInfo');
+  btn.addEventListener('click', function () {
+    // Deliberately a no-op for dismissal: it merely keeps focus on itself,
+    // re-asserting the visible tooltip rather than clearing it.
+    this.focus();
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Harbor City Tram — Network Map</title>
+  <style>
+    :root { font-family: "Segoe UI", system-ui, sans-serif; }
+    body { margin: 0; background: #eef1f5; color: #1c2733; }
+    header { background: #0d3b66; color: #fff; padding: 18px 24px; }
+    header h1 { margin: 0; font-size: 1.4rem; }
+    header p { margin: 4px 0 0; font-size: .85rem; color: #c5d6e8; }
+    main { max-width: 880px; margin: 0 auto; padding: 24px; }
+    .map-card { background: #fff; border: 1px solid #d6dee7; border-radius: 10px; padding: 16px; }
+    .legend { display: flex; gap: 30px; flex-wrap: wrap; margin: 14px 4px 0; }
+    .legend .item { display: flex; align-items: center; gap: 9px; font-size: .9rem; }
+    .legend svg { width: 22px; height: 16px; }
+    figcaption { font-size: .8rem; color: #5b6b7b; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Harbor City Tram</h1>
+    <p>Network map · 2026 service plan</p>
+  </header>
+
+  <main>
+    <div class="map-card">
+      <figure style="margin:0">
+        <svg viewBox="0 0 760 340" role="img"
+             aria-label="Harbor City Tram map. The Bay line stations are diamonds, the Hill line stations are squares, and the Coast line stations are circles, so each route is identifiable by station shape as well as color.">
+          <rect x="0" y="0" width="760" height="340" fill="#ffffff"></rect>
+
+          <!-- Routes (color) -->
+          <polyline points="60,80 200,80 340,80 480,80 620,80 700,80"
+                    fill="none" stroke="#0b8457" stroke-width="7" stroke-linecap="round"></polyline>
+          <polyline points="60,180 200,180 340,120 480,180 620,180 700,180"
+                    fill="none" stroke="#c0392b" stroke-width="7" stroke-linecap="round"></polyline>
+          <polyline points="60,280 200,280 340,280 480,240 620,280 700,280"
+                    fill="none" stroke="#2e86c1" stroke-width="7" stroke-linecap="round"></polyline>
+
+          <!-- Bay line: DIAMOND stations (rotated squares) -->
+          <g fill="#ffffff" stroke="#0b8457" stroke-width="3">
+            <rect x="-7" y="-7" width="14" height="14" transform="translate(60,80) rotate(45)"></rect>
+            <rect x="-7" y="-7" width="14" height="14" transform="translate(200,80) rotate(45)"></rect>
+            <rect x="-7" y="-7" width="14" height="14" transform="translate(340,80) rotate(45)"></rect>
+            <rect x="-7" y="-7" width="14" height="14" transform="translate(480,80) rotate(45)"></rect>
+            <rect x="-7" y="-7" width="14" height="14" transform="translate(620,80) rotate(45)"></rect>
+            <rect x="-7" y="-7" width="14" height="14" transform="translate(700,80) rotate(45)"></rect>
+          </g>
+          <!-- Hill line: SQUARE stations -->
+          <g fill="#ffffff" stroke="#c0392b" stroke-width="3">
+            <rect x="53" y="173" width="14" height="14"></rect>
+            <rect x="193" y="173" width="14" height="14"></rect>
+            <rect x="333" y="113" width="14" height="14"></rect>
+            <rect x="473" y="173" width="14" height="14"></rect>
+            <rect x="613" y="173" width="14" height="14"></rect>
+            <rect x="693" y="173" width="14" height="14"></rect>
+          </g>
+          <!-- Coast line: CIRCLE stations -->
+          <g fill="#ffffff" stroke="#2e86c1" stroke-width="3">
+            <circle cx="60" cy="280" r="8"></circle><circle cx="200" cy="280" r="8"></circle>
+            <circle cx="340" cy="280" r="8"></circle><circle cx="480" cy="240" r="8"></circle>
+            <circle cx="620" cy="280" r="8"></circle><circle cx="700" cy="280" r="8"></circle>
+          </g>
+
+          <text x="334" y="106" font-size="13" fill="#0d3b66" font-family="sans-serif">Quay Interchange</text>
+          <text x="44" y="68" font-size="12" fill="#3f566b" font-family="sans-serif">North Pier</text>
+          <text x="676" y="68" font-size="12" fill="#3f566b" font-family="sans-serif">Summit</text>
+        </svg>
+
+        <div class="legend">
+          <span class="item">
+            <svg viewBox="0 0 22 16"><rect x="3" y="3" width="10" height="10" transform="translate(0,0) rotate(45 8 8)" fill="#fff" stroke="#0b8457" stroke-width="2"></rect></svg>
+            Bay line (diamond stations)
+          </span>
+          <span class="item">
+            <svg viewBox="0 0 22 16"><rect x="4" y="3" width="10" height="10" fill="#fff" stroke="#c0392b" stroke-width="2"></rect></svg>
+            Hill line (square stations)
+          </span>
+          <span class="item">
+            <svg viewBox="0 0 22 16"><circle cx="9" cy="8" r="5" fill="#fff" stroke="#2e86c1" stroke-width="2"></circle></svg>
+            Coast line (circle stations)
+          </span>
+        </div>
+        <figcaption>
+          Each route is identifiable by its station shape — diamond, square, or circle — in
+          addition to its color, so the lines stay distinguishable without color vision.
+        </figcaption>
+      </figure>
+    </div>
+
+    <!--
+      WHY THIS PASSES (true negative):
+      This is the G111 transit example done correctly. Each route is encoded redundantly:
+      color AND a distinct station shape (Bay = diamonds, Hill = squares, Coast = circles),
+      and the legend repeats both the shape and the route name in text. In grayscale the
+      shapes still tell the three routes apart, so a color-blind or monochrome user can
+      follow a single line and match it to the legend. Color is no longer the SOLE
+      distinguishing cue. An automated checker would also pass this — but for the wrong
+      reason (it never evaluated the shapes); a human evaluator passes it for the RIGHT
+      reason. This page exists to sharpen the failing/passing boundary against case-01.
+    -->
+  </main>
+</body>
+</html>

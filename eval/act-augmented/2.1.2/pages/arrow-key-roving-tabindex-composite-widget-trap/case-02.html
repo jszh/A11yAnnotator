@@ -96,7 +96,6 @@
           <tr><th>Su</th><th>Mo</th><th>Tu</th><th>We</th><th>Th</th><th>Fr</th><th>Sa</th></tr>
         </thead>
         <tbody id="calGrid" role="grid" aria-labelledby="depLbl">
-          <!-- one row built; gridcells carry roving tabindex -->
         </tbody>
       </table>
     </div>
@@ -124,8 +123,7 @@
   var cal  = document.getElementById('depCal');
   var grid = document.getElementById('calGrid');
 
-  // Build a 5x7 October-2026 grid (Oct 1 2026 = Thursday).
-  var firstDow = 4; // Thu
+  var firstDow = 4; 
   var days = 31;
   var cells = [];
   var row = document.createElement('tr');
@@ -141,7 +139,7 @@
     if ((firstDow + d) % 7 === 0) { grid.appendChild(row); row = document.createElement('tr'); }
   }
   if (row.children.length) { grid.appendChild(row); }
-  cells[0].tabIndex = 0; // roving start
+  cells[0].tabIndex = 0; 
   var cur = 0;
 
   function focusCell(n) {
@@ -164,9 +162,6 @@
     } else { openCal(); }
   });
 
-  // Arrows move among day cells (the Understanding's calendar model — correct).
-  // BUG: Tab AND Shift+Tab are ALSO preventDefault()'d and remapped to day movement,
-  // so focus can never exit the grid to the Search button. No Esc, no advice.
   grid.addEventListener('keydown', function (e) {
     switch (e.key) {
       case 'ArrowRight': e.preventDefault(); focusCell(cur + 1); break;
@@ -176,7 +171,6 @@
       case 'Home':       e.preventDefault(); focusCell(cur - (cur % 7)); break;
       case 'End':        e.preventDefault(); focusCell(cur - (cur % 7) + 6); break;
       case 'Tab':
-        // "Don't let the user tab out of the calendar before choosing a date."
         e.preventDefault();
         if (e.shiftKey) { focusCell(cur - 1); } else { focusCell(cur + 1); }
         break;
@@ -184,8 +178,6 @@
       case ' ':
         e.preventDefault();
         btn.textContent = 'Oct ' + cells[cur].dataset.day + ', 2026';
-        // closes visually but focus stays trapped on the (now hidden) grid cell until then;
-        // and re-opening re-traps. No keyboard exit is ever exposed.
         cal.classList.remove('open');
         btn.setAttribute('aria-expanded', 'false');
         btn.focus();

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Find a Clinic — Northshore Health Directory</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Segoe UI",Roboto,sans-serif; color:#16242e; background:#f3f7f9; }
+  a { color:#0a6b7a; }
+  header.site { background:#0a3d49; color:#eaf6f8; padding:14px 24px; display:flex; gap:24px; align-items:center; }
+  header.site .brand { font-weight:700; }
+  header.site nav a { color:#bfe2e8; text-decoration:none; font-size:.92rem; }
+  header.site nav a:focus { outline:3px solid #ffd24a; outline-offset:2px; }
+  main { max-width:1000px; margin:0 auto; padding:26px 24px 60px; }
+  h1 { font-size:1.55rem; margin:.2em 0 .4em; }
+  section.block { background:#fff; border:1px solid #d7e3e6; border-radius:10px; padding:18px 20px; margin:0 0 22px; }
+  section.block h2 { margin:.1em 0 .6em; font-size:1.15rem; }
+  .results-top a.result { display:block; padding:8px 10px; border:1px solid #e2ecee; border-radius:8px; margin:0 0 8px; text-decoration:none; color:#0a4956; }
+  .results-top a.result:focus { outline:3px solid #0a6b7a; outline-offset:2px; }
+  .filters { background:#eef6f7; border:1px solid #cfe3e7; border-radius:10px; padding:16px 18px; margin:0 0 22px; }
+  .filters h2 { font-size:1.05rem; margin:.1em 0 .8em; }
+  .filters .row { display:flex; gap:14px; flex-wrap:wrap; align-items:end; }
+  .filters label { display:flex; flex-direction:column; font-size:.85rem; color:#2c4751; gap:4px; }
+  .filters select, .filters input { padding:7px 9px; border:1px solid #b9d2d7; border-radius:6px; font-size:.9rem; min-width:150px; }
+  .filters button { padding:8px 16px; border:0; border-radius:6px; background:#0a6b7a; color:#fff; cursor:pointer; font-size:.92rem; }
+  .filters :focus { outline:3px solid #ffd24a; outline-offset:2px; }
+  .results-bottom a.result { display:block; padding:8px 10px; border:1px solid #e2ecee; border-radius:8px; margin:0 0 8px; text-decoration:none; color:#0a4956; }
+  .results-bottom a.result:focus { outline:3px solid #0a6b7a; outline-offset:2px; }
+  .docnote { max-width:1000px; margin:6px auto 0; padding:14px 18px; background:#fff8e1; border:1px dashed #d9c98e; border-radius:8px; font-size:.82rem; color:#5a4f2a; }
+</style>
+</head>
+<body>
+<header class="site">
+  <span class="brand">Northshore Health</span>
+  <nav aria-label="Primary">
+    <a href="#clinics">Find a clinic</a>
+    <a href="#services">Services</a>
+    <a href="#insurance">Insurance</a>
+    <a href="#myhealth">MyHealth login</a>
+  </nav>
+</header>
+
+<main>
+  <h1>Find a clinic near you</h1>
+
+  <section class="block results-top" aria-label="Nearest clinics">
+    <h2>Closest to you</h2>
+    <a class="result" href="#c1">Cedar Street Family Practice — 0.8 mi</a>
+    <a class="result" href="#c2">Northshore Urgent Care — 1.4 mi</a>
+  </section>
+
+  <section class="filters" aria-label="Refine results">
+    <h2 id="filt">Refine results</h2>
+    <div class="row" role="group" aria-labelledby="filt">
+      <label>Specialty
+        <select id="firstFilter">
+          <option>Any</option><option>Family medicine</option><option>Paediatrics</option><option>Cardiology</option>
+        </select>
+      </label>
+      <label>Distance
+        <select>
+          <option>Within 5 mi</option><option>Within 10 mi</option><option>Within 25 mi</option>
+        </select>
+      </label>
+      <label>Accepts insurance
+        <select>
+          <option>Any plan</option><option>BlueCross</option><option>Aetna</option><option>Medicare</option>
+        </select>
+      </label>
+      <label>Available
+        <input type="text" placeholder="e.g. this week">
+      </label>
+      <button id="applyBtn" type="button">Apply filters</button>
+    </div>
+  </section>
+
+  <section class="block results-bottom" aria-label="More clinics matching your area">
+    <h2>More clinics in your area</h2>
+    <a class="result" href="#c3" id="afterLink">Harbourview Women's Health — 2.1 mi</a>
+    <a class="result" href="#c4">Maple Grove Pediatrics — 2.6 mi</a>
+    <a class="result" href="#c5">Eastbay Cardiology Associates — 3.0 mi</a>
+  </section>
+</main>
+
+<p class="docnote"><strong>Why automated tools miss this:</strong> All filter controls have associated
+<code>&lt;label&gt;</code>s, the group has an accessible name, and the markup validates — no
+empty-attribute or labelling defect. The trap is dynamic: pressing Tab on the last filter control
+("Apply filters") is intercepted and focus returns to the first filter (Specialty), so the second
+results section ("More clinics in your area") and everything after it can never be reached by
+keyboard. Static scanners do not press Tab, so they cannot see that the bottom results are walled off.
+No advice is given.</p>
+
+<script>
+  // "Stay on the form until you've applied your filters" pattern from a search-UX article. The
+  // author wanted the form to feel self-contained, so on the last control they send focus back to
+  // the first filter when the user Tabs — unintentionally walling off the second results section
+  // below the panel. No instruction tells keyboard users how to escape.
+  (function () {
+    var first = document.getElementById('firstFilter');
+    var last = document.getElementById('applyBtn');
+    last.addEventListener('keydown', function (e) {
+      if (e.key === 'Tab' && !e.shiftKey) {
+        e.preventDefault();   // cancel the Tab that would reach the bottom results section
+        first.focus();        // wrap to the first filter — the panel becomes a loop
+      }
+    });
+  })();
+</script>
+</body>
+</html>

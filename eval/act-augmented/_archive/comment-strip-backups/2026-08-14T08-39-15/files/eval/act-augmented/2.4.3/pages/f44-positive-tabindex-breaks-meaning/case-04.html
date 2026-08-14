@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 2.4.3 (Focus Order), failure F44 — interleaving INTERDEPENDENT columns.
+
+    This is a two-plan side-by-side comparison ("Configure & compare" mortgage
+    rate locks). Two columns: PLAN A (30-year fixed) on the left, PLAN B (15-year
+    fixed) on the right. Each column has the SAME three inputs stacked vertically:
+    Loan amount, Down payment, Points. The whole point of the UI is to fill in ONE
+    plan completely, then the other, and compare the resulting monthly payment —
+    the columns are INTERDEPENDENT only as wholes, but WITHIN a column the three
+    fields form a meaningful, must-be-completed-together group.
+
+    The positive tabindex values INTERLEAVE the two columns row by row:
+      A.amount(1) -> B.amount(2) -> A.down(3) -> B.down(4) -> A.points(5) -> B.points(6) -> Compare(7)
+    So Tab ping-pongs left-right-left-right across the gutter. The Understanding
+    doc says interleaving is fine IF the columns are independent and meaning is not
+    affected — but here it forces the user to abandon Plan A mid-entry, jump to
+    Plan B's amount, jump back to Plan A's down payment, etc. For a screen-magnifier
+    user at 300% (who can only see one column at a time) focus leaps off-screen to
+    the other column and back on every Tab, and the relationship "these three fields
+    belong to Plan A" is destroyed.
+
+    The HARD part: a row-interleaved order is EXACTLY the order the Understanding
+    doc says CAN be valid for a data table navigated column-by-column vs row-by-row.
+    The judge must recognise that THESE columns are configuration inputs meant to be
+    completed as units, so interleaving breaks meaning — whereas for an independent
+    table either order is fine. That distinction is the human judgment.
+
+    WHY AUTOMATED TOOLS MISS IT: markup is valid, labels present, contrast fine.
+    axe only notes positive tabindex as best-practice. Whether row-interleaving the
+    two columns preserves or breaks meaning depends on whether the columns are
+    independent — a semantic judgment about the task, plus a visual judgment about
+    magnifier viewport behavior. No scanner makes it.
+  -->
+  <title>Configure &amp; Compare Rate Locks | Coastline Mortgage</title>
+  <style>
+    :root { --ink:#14202e; --muted:#5c6b7a; --rule:#cdd7e0; --brand:#0d3b66; --a:#0d3b66; --b:#7a3b00; --bg:#eef2f6; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Segoe UI",Arial,sans-serif; color:var(--ink); background:var(--bg); line-height:1.5; }
+    header { background:var(--brand); color:#fff; padding:1rem 1.3rem; }
+    header h1 { margin:0; font-size:1.25rem; }
+    header p { margin:.2rem 0 0; font-size:.85rem; opacity:.92; }
+    .wrap { max-width:860px; margin:1.4rem auto; padding:0 1rem 3rem; }
+    .instructions { background:#fff; border:1px solid var(--rule); border-left:5px solid var(--brand); border-radius:8px; padding:.9rem 1.1rem; font-size:.9rem; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:1.2rem; margin-top:1.2rem; }
+    @media (max-width:640px){ .grid{ grid-template-columns:1fr; } }
+    .col { background:#fff; border:1px solid var(--rule); border-radius:12px; padding:1.1rem 1.2rem 1.3rem; }
+    .col.a { border-top:5px solid var(--a); }
+    .col.b { border-top:5px solid var(--b); }
+    .col h2 { margin:.1rem 0 .2rem; font-size:1.1rem; }
+    .col .term { color:var(--muted); font-size:.82rem; margin:0 0 1rem; }
+    label { display:block; font-weight:600; font-size:.88rem; margin:.7rem 0 .3rem; }
+    .money { position:relative; }
+    .money span { position:absolute; left:.6rem; top:50%; transform:translateY(-50%); color:var(--muted); }
+    input { width:100%; padding:.55rem .65rem .55rem 1.5rem; font-size:1rem; border:1px solid var(--rule); border-radius:6px; }
+    input.plain { padding-left:.65rem; }
+    input:focus { outline:3px solid #ffbf47; outline-offset:1px; border-color:var(--brand); }
+    .est { margin-top:1rem; background:#f4f7fa; border-radius:8px; padding:.7rem .9rem; font-size:.85rem; color:var(--muted); }
+    .actions { margin-top:1.3rem; text-align:center; }
+    button { font-size:1rem; font-weight:800; padding:.75rem 2rem; border:0; border-radius:8px; background:var(--brand); color:#fff; cursor:pointer; }
+    button:focus { outline:3px solid #ffbf47; outline-offset:2px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Configure &amp; compare rate locks</h1>
+    <p>Fill in each plan completely, then compare the estimated monthly payment.</p>
+  </header>
+
+  <main class="wrap">
+    <p class="instructions">Enter the loan amount, down payment, and discount points for <strong>each</strong> plan. We'll estimate the monthly principal &amp; interest for both so you can choose.</p>
+
+    <form class="grid" action="/compare" method="post" novalidate>
+      <!--
+        LEFT COLUMN = Plan A. Its three inputs (amount, down, points) form a unit.
+        tabindex 1,3,5 INTERLEAVE with Plan B's 2,4,6, so Tab leaves Plan A after
+        every single field and lands in Plan B, then comes back.
+      -->
+      <section class="col a" aria-labelledby="a-h">
+        <h2 id="a-h">Plan A</h2>
+        <p class="term">30-year fixed · 6.75% APR</p>
+
+        <label for="a-amt">Loan amount</label>
+        <div class="money"><span>$</span><input id="a-amt" name="a_amount" inputmode="numeric" tabindex="1"></div>
+
+        <label for="a-down">Down payment</label>
+        <div class="money"><span>$</span><input id="a-down" name="a_down" inputmode="numeric" tabindex="3"></div>
+
+        <label for="a-pts">Discount points</label>
+        <input class="plain" id="a-pts" name="a_points" inputmode="decimal" tabindex="5">
+
+        <div class="est">Estimated P&amp;I: <strong>—</strong> (fill all fields)</div>
+      </section>
+
+      <!--
+        RIGHT COLUMN = Plan B. Same unit. tabindex 2,4,6.
+      -->
+      <section class="col b" aria-labelledby="b-h">
+        <h2 id="b-h">Plan B</h2>
+        <p class="term">15-year fixed · 5.99% APR</p>
+
+        <label for="b-amt">Loan amount</label>
+        <div class="money"><span>$</span><input id="b-amt" name="b_amount" inputmode="numeric" tabindex="2"></div>
+
+        <label for="b-down">Down payment</label>
+        <div class="money"><span>$</span><input id="b-down" name="b_down" inputmode="numeric" tabindex="4"></div>
+
+        <label for="b-pts">Discount points</label>
+        <input class="plain" id="b-pts" name="b_points" inputmode="decimal" tabindex="6">
+
+        <div class="est">Estimated P&amp;I: <strong>—</strong> (fill all fields)</div>
+      </section>
+
+      <div class="actions" style="grid-column:1 / -1">
+        <button type="submit" tabindex="7">Compare monthly payments</button>
+      </div>
+    </form>
+  </main>
+</body>
+</html>

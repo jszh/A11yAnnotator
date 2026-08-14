@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Northwind Outfitters — Checkout</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (SC 2.4.3 Focus Order):
+  Every field has a real, visible <label for=...>, a correct programmatic name/role,
+  and is fully keyboard-operable. There is NO tabindex anywhere — the tab order is the
+  pure DOM source order. axe/WAVE/Lighthouse therefore find nothing: no empty label,
+  no missing name, no contrast issue, no out-of-range tabindex.
+  The defect is purely SEMANTIC GROUPING. Visually this is two boxed sections under two
+  headings — "Billing address" (left) and "Shipping address" (right) — each box holding
+  Full name / Street / Apt / City / Postal in the correct order (placed with CSS Grid).
+  But the underlying DOM is ONE flat sequence that interleaves the two addresses
+  line-by-line: billing-name, shipping-name, billing-street, shipping-street, ...
+  A keyboard user therefore types the billing recipient, is yanked to the SHIPPING
+  recipient, back to the billing street, over to the shipping street, etc. — focus
+  zig-zags across the billing/shipping boundary on every Tab and the user's mental model
+  ("I'm filling in my billing address") is destroyed on the second keystroke.
+  No tool has a model of which fields "belong together," so none can tell that
+  "shipping street" should NOT come between "billing name" and "billing street." This is
+  the exact human-judgment failure from the Understanding's own marketing-data example.
+-->
+<style>
+  :root { --ink:#1b2430; --brand:#0a5; --line:#d9e0e6; --muted:#5b6b78; --bg:#f4f7f9; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.55 system-ui,"Segoe UI",sans-serif; color:var(--ink); background:var(--bg); }
+  header { background:#10324a; color:#fff; padding:22px 28px; }
+  header h1 { margin:0; font-size:1.45rem; letter-spacing:.3px; }
+  header p { margin:.3rem 0 0; opacity:.85; font-size:.92rem; }
+  main { max-width:920px; margin:0 auto; padding:30px 24px 80px; }
+  .lede { color:var(--muted); margin:0 0 26px; }
+
+  /* The whole form is ONE CSS grid. Two columns (billing | shipping); rows for the
+     section heading + the five address lines. Each field is pinned to a named cell, so
+     visual placement is independent of DOM source order. */
+  form { display:grid;
+         grid-template-columns:1fr 1fr;
+         grid-template-areas:
+           "b-head  s-head"
+           "b-name  s-name"
+           "b-street s-street"
+           "b-apt   s-apt"
+           "b-city  s-city"
+           "b-postal s-postal"
+           "actions actions";
+         gap:14px 34px;
+         position:relative; }
+
+  /* Two card backgrounds drawn behind the grid cells to read as boxed sections. */
+  form::before, form::after {
+    content:""; position:absolute; top:0; bottom:54px; width:calc(50% - 17px);
+    border:1px solid var(--line); border-radius:12px; background:#fff; z-index:0; }
+  form::before { left:0; }
+  form::after  { right:0; }
+
+  .sec { z-index:1; padding:16px 20px 4px; }
+  .sec h2 { margin:0; font-size:1.05rem; color:#10324a; }
+  .sec p  { margin:.25rem 0 0; color:var(--muted); font-size:.85rem; }
+  .b-head { grid-area:b-head; } .s-head { grid-area:s-head; }
+
+  .field { z-index:1; padding:0 20px; }
+  label { display:block; font-weight:600; font-size:.9rem; margin-bottom:5px; }
+  input { width:100%; padding:9px 11px; border:1px solid #b9c4cd; border-radius:8px; font-size:.95rem; }
+  input:focus { outline:3px solid #0a5; outline-offset:1px; }
+
+  .b-name{grid-area:b-name}  .s-name{grid-area:s-name}
+  .b-street{grid-area:b-street} .s-street{grid-area:s-street}
+  .b-apt{grid-area:b-apt}    .s-apt{grid-area:s-apt}
+  .b-city{grid-area:b-city}  .s-city{grid-area:s-city}
+  .b-postal{grid-area:b-postal} .s-postal{grid-area:s-postal}
+
+  .actions { grid-area:actions; z-index:1; padding:14px 0 0; }
+  button { background:var(--brand); color:#fff; border:0; border-radius:9px;
+           padding:12px 26px; font-size:1rem; font-weight:700; cursor:pointer; }
+  button:focus { outline:3px solid #10324a; outline-offset:2px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Northwind Outfitters</h1>
+  <p>Secure checkout — Step 2 of 3: Addresses</p>
+</header>
+<main>
+  <p class="lede">Enter the address you'd like billed and the address you'd like your
+     gear shipped to.</p>
+
+  <!--
+    DOM / TAB ORDER (no tabindex, pure source order) is INTERLEAVED line-by-line:
+      billing-name -> shipping-name -> billing-street -> shipping-street ->
+      billing-apt -> shipping-apt -> billing-city -> shipping-city ->
+      billing-postal -> shipping-postal
+    The CSS grid-areas above re-route each field to its correct visual card, so on
+    screen the two boxes look perfectly grouped. The failure exists ONLY in focus order.
+  -->
+  <form action="#" method="post" novalidate aria-label="Billing and shipping addresses">
+    <div class="sec b-head"><h2>Billing address</h2><p>The address on file with your card issuer.</p></div>
+    <div class="sec s-head"><h2>Shipping address</h2><p>Where we'll send your order.</p></div>
+
+    <div class="field b-name"><label for="b-name">Full name</label>
+      <input id="b-name" name="billing_name" type="text" autocomplete="billing name"></div>
+    <div class="field s-name"><label for="s-name">Full name</label>
+      <input id="s-name" name="shipping_name" type="text" autocomplete="shipping name"></div>
+
+    <div class="field b-street"><label for="b-street">Street address</label>
+      <input id="b-street" name="billing_street" type="text" autocomplete="billing address-line1"></div>
+    <div class="field s-street"><label for="s-street">Street address</label>
+      <input id="s-street" name="shipping_street" type="text" autocomplete="shipping address-line1"></div>
+
+    <div class="field b-apt"><label for="b-apt">Apartment / suite (optional)</label>
+      <input id="b-apt" name="billing_apt" type="text" autocomplete="billing address-line2"></div>
+    <div class="field s-apt"><label for="s-apt">Apartment / suite (optional)</label>
+      <input id="s-apt" name="shipping_apt" type="text" autocomplete="shipping address-line2"></div>
+
+    <div class="field b-city"><label for="b-city">City</label>
+      <input id="b-city" name="billing_city" type="text" autocomplete="billing address-level2"></div>
+    <div class="field s-city"><label for="s-city">City</label>
+      <input id="s-city" name="shipping_city" type="text" autocomplete="shipping address-level2"></div>
+
+    <div class="field b-postal"><label for="b-postal">Postal code</label>
+      <input id="b-postal" name="billing_postal" type="text" inputmode="numeric" autocomplete="billing postal-code"></div>
+    <div class="field s-postal"><label for="s-postal">Postal code</label>
+      <input id="s-postal" name="shipping_postal" type="text" inputmode="numeric" autocomplete="shipping postal-code"></div>
+
+    <div class="actions"><button type="submit">Continue to payment</button></div>
+  </form>
+</main>
+</body>
+</html>

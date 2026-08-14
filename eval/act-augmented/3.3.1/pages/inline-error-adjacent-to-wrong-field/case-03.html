@@ -15,19 +15,6 @@
   fieldset { border:1px solid #e1e6ec; border-radius:10px; margin:0 0 18px; padding:14px 16px 18px; }
   legend { font-weight:700; font-size:.9rem; padding:0 6px; color:#324; }
 
-  /*
-    Each leg is its own fieldset with an IDENTICAL visible label, "Travel date", and an
-    IDENTICAL message slot beneath the input. The error string is generic and label-only:
-    "Travel date is invalid." — it does NOT name which leg, because both legs use the same
-    label text. The ONLY thing that could disambiguate which leg is in error is which slot
-    the message visually appears under (presentation / proximity).
-
-    The validation map keys errors by leg id ("return" is the leg whose date is in the past),
-    but the render helper appends the message into the FIRST empty .msg slot it finds while
-    walking the form top-to-bottom. The outbound leg's slot is first, so the return-leg error
-    is painted under the OUTBOUND input. The outbound date (next month) is perfectly valid;
-    the return date (last year) is the real error and shows no message.
-  */
   .leg { display:flex; flex-direction:column; }
   label { font-weight:600; font-size:.82rem; margin-bottom:5px; }
   input { width:100%; box-sizing:border-box; padding:9px 11px; font-size:.95rem;
@@ -44,21 +31,16 @@
     <p class="sub">Round trip · Portland (PDX) ⇄ Denver (DEN)</p>
 
     <form action="#" novalidate>
-      <!-- OUTBOUND leg. Its date is valid (next month). But the misplaced error sits here. -->
       <fieldset>
         <legend>Outbound flight</legend>
         <div class="leg">
           <label for="leg-out">Travel date</label>
           <input class="flagged" id="leg-out" name="leg-out" type="text"
                  inputmode="numeric" value="2026-07-14">
-          <!-- The return leg's error is rendered HERE, under the (valid) outbound input,
-               because the render helper filled the first message slot. -->
           <div class="msg">Travel date is invalid.</div>
         </div>
       </fieldset>
 
-      <!-- RETURN leg. Its date is in the past (last year) — this is the real error,
-           but its message slot is empty. -->
       <fieldset>
         <legend>Return flight</legend>
         <div class="leg">
@@ -73,27 +55,5 @@
     </form>
   </section>
 
-  <!--
-    WHY THIS FAILS SC 3.3.1 (and is not rescued by "through text")
-    Two legs carry the SAME visible label, "Travel date". The error string is label-only and
-    generic: "Travel date is invalid." Reading the text ALONE cannot tell you whether the
-    outbound or the return leg is meant — both are "Travel date". So identification THROUGH
-    TEXT does not succeed: the text is ambiguous between two controls (cf. ACT 36b590 Failed
-    Example 5, where the same label in different fieldsets defeats identification).
-    The only remaining disambiguator is PRESENTATION (which slot the message sits under), and
-    that points at the OUTBOUND leg — whose date 2026-07-14 is valid. The leg actually in
-    error (Return, 2025-03-02, a past date) has an empty message slot. So presentation
-    identifies the wrong leg, and text cannot identify either. The item in error is not
-    identified through any channel.
-
-    WHY AUTOMATED TOOLS MISS IT
-    The message is non-empty, visible, in the accessibility tree, and "describes" a cause
-    ("is invalid"); there is no aria-describedby to flag. A scanner sees one error message and
-    two textboxes with the same label and cannot tell (a) that the two labels collide, (b)
-    that the message sits under the valid leg, or (c) that 2025-03-02 (not 2026-07-14) is the
-    out-of-range value. Resolving this needs a human to read the legend context, compare the
-    rendered position, and judge which date is actually wrong — a semantic + spatial judgment
-    axe/WAVE/Lighthouse do not perform.
-  -->
 </body>
 </html>

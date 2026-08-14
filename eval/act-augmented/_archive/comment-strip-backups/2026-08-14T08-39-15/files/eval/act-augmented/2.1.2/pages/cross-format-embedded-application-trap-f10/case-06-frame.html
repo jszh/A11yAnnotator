@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Audio player</title>
+  <style>
+    body { font: 14px/1.4 -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #1a1d29; margin: 0; padding: 16px 18px; background: #fbfbff; }
+    .now { font-weight: 700; margin: 0 0 12px; font-size: .92rem; }
+    .controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    button { font: inherit; font-weight: 700; color: #2a1466; background: #ece8fb; border: 1px solid #cfc3f3;
+      border-radius: 9px; padding: 8px 12px; cursor: pointer; }
+    button.primary { color: #fff; background: #6d28d9; border-color: #6d28d9; }
+    button:focus-visible { outline: 3px solid #3b0e85; outline-offset: 2px; }
+    input[type="range"] { flex: 1; min-width: 120px; accent-color: #6d28d9; }
+    input[type="range"]:focus-visible { outline: 3px solid #3b0e85; outline-offset: 3px; }
+    select { font: inherit; padding: 7px 8px; border: 1px solid #cfc3f3; border-radius: 9px; background: #fff; }
+    select:focus-visible { outline: 3px solid #3b0e85; outline-offset: 2px; }
+    .time { color: #5d6477; font-variant-numeric: tabular-nums; font-size: .82rem; }
+  </style>
+</head>
+<body>
+  <p class="now">Now playing: The Tidal Marsh</p>
+  <div class="controls">
+    <button id="play" class="primary" type="button" aria-label="Play">▶ Play</button>
+    <button id="back" type="button" aria-label="Rewind 15 seconds">⟲ 15s</button>
+    <button id="fwd" type="button" aria-label="Forward 15 seconds">15s ⟳</button>
+    <input id="seek" type="range" min="0" max="2280" value="312" aria-label="Seek within episode">
+    <span class="time" id="t">05:12 / 38:00</span>
+    <label for="speed" style="font-size:.82rem;color:#5d6477">Speed</label>
+    <select id="speed" aria-label="Playback speed">
+      <option value="1">1×</option>
+      <option value="1.25">1.25×</option>
+      <option value="1.5">1.5×</option>
+      <option value="2">2×</option>
+    </select>
+  </div>
+  <script>
+    /* PASS (G21 mechanism #1): controls are ordinary focusable elements. We add real
+       widget behavior (Play toggles label; the range responds to arrows natively) but we
+       DELIBERATELY do NOT intercept Tab anywhere. After the last control (the speed
+       <select>), a forward Tab is allowed to fall through and exit the iframe to the host
+       document's "Show transcript" link — focus is never trapped. */
+    var play = document.getElementById('play');
+    var playing = false;
+    play.addEventListener('click', function () {
+      playing = !playing;
+      play.textContent = playing ? '⏸ Pause' : '▶ Play';
+      play.setAttribute('aria-label', playing ? 'Pause' : 'Play');
+    });
+    // No keydown Tab handlers, no focus/blur re-grab, no focus loop. Tab flows freely.
+  </script>
+</body>
+</html>

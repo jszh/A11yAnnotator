@@ -4,27 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Campaign analytics — Pulse Marketing Suite</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS:
-  A tablist where the UNSELECTED tabs read dark (#283543 on #eef2f6, ~11.1:1) and pass,
-  but the SELECTED tab is styled with a white-on-pale-teal "pill" treatment:
-  color:#ffffff on background:#9ad8d4 => ~1.60:1. The selected-tab label is unreadable.
-  Why scanners miss it:
-    - At initial render exactly one tab is selected and the others are not. A contrast
-      engine measures the selected tab's white text against... what? Its computed
-      background is the pale-teal pill (#9ad8d4), so in principle a tool COULD flag this
-      one. But the pill background is painted on a ::before-style inset / the label sits
-      on a gradient pill whose effective backdrop varies, and crucially the selection can
-      MOVE: when the user activates a different tab, THAT tab inherits the same failing
-      white-on-pale-teal treatment while the previously-selected tab returns to passing
-      dark text. The failure is a property of the SELECTED STATE, not of one fixed node.
-    - To verify every tab fails when selected, a human must activate each tab in turn and
-      re-measure. A static scan only ever sees one tab in the selected state and the rest
-      passing, and many engines down-rank/skip the selected pill because its text sits on
-      a rounded gradient region they treat as a component, not a solid text background.
-  The selected-state white label is genuine, meaningful tab text that drops below 4.5:1
-  only while that tab is selected — a driven, per-state contrast judgment.
--->
 <style>
   :root { --ink:#283543; --panelbg:#fff; --bar:#eef2f6; }
   * { box-sizing:border-box; }
@@ -37,14 +16,13 @@
   [role="tablist"] { display:flex; gap:6px; padding:0 24px; background:var(--bar); border-bottom:1px solid #dde4ec; }
   [role="tab"] {
     appearance:none; border:0; background:transparent; cursor:pointer;
-    padding:12px 16px; font-size:.92rem; font-weight:600; color:var(--ink);   /* unselected ~11.1:1 — passes */
+    padding:12px 16px; font-size:.92rem; font-weight:600; color:var(--ink);   
     border-radius:8px 8px 0 0; position:relative;
   }
   [role="tab"]:focus-visible { outline:2px solid #2f6fd6; outline-offset:-2px; }
-  /* === The defect: SELECTED tab => white label on pale teal => ~1.60:1 === */
   [role="tab"][aria-selected="true"] {
     color:#ffffff;
-    background:linear-gradient(#a9dedb,#9ad8d4);   /* effective bg ~#9ad8d4; white on it ~1.60:1 */
+    background:linear-gradient(#a9dedb,#9ad8d4);   
     box-shadow:0 -2px 0 #6fc4bf inset;
   }
   [role="tabpanel"] { padding:22px 24px 26px; }
@@ -95,7 +73,6 @@
   </div>
 
   <script>
-    // Standard APG tablist behavior so the selected state can be driven across tabs.
     const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
     const panels = id => document.getElementById(id);
     function select(tab) {

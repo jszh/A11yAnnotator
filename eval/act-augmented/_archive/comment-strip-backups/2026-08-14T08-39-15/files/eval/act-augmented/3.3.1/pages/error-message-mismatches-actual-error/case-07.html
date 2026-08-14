@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reserve tickets — Foundry Live</title>
+<!--
+  WHY THIS PAGE IS THE CONTROL (PASS) — DISCRIMINATION FOIL:
+  This is the deliberately CORRECT counterpart to case-01. Same component (a digits-only
+  phone field in a post-submit error state with an aria-describedby error), but here the
+  message TRULY matches the entered value's actual defect. The retained value is
+  "(202) 555-CALL" — it genuinely contains parentheses, a space, and the letters C A L L.
+  The field's stated constraint is "digits only". The visible, associated error reads:
+  "Phone number must contain only digits. Remove the letters, spaces, and parentheses."
+  That cause DID occur and is the correct, actionable description of THIS value's defect.
+  This page tests DISCRIMINATION: an evaluator must not blanket-fail every "phone digits"
+  page — when the message correctly identifies the actual error, 3.3.1 is satisfied. It
+  also confirms the aspect is about value↔message AGREEMENT, not about the message's
+  wording in isolation (case-01's wording would be FINE for THIS value).
+  ACT 36b590 passes here too — and it SHOULD, because this is a genuine pass.
+-->
+<style>
+  :root{ --ink:#181421; --muted:#615a6e; --line:#d6d0de; --brand:#6d28d9; --danger:#c2261d; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font:16px/1.55 "Inter","Segoe UI",system-ui,sans-serif; color:var(--ink);
+        background:#f5f2fb; }
+  .wrap{ max-width:560px; margin:40px auto; padding:0 18px; }
+  .brand{ display:flex; align-items:center; gap:10px; margin-bottom:20px; }
+  .brand .tri{ width:0; height:0; border-left:15px solid transparent; border-right:15px solid transparent;
+        border-bottom:26px solid var(--brand); }
+  .brand strong{ font-size:1.1rem; }
+  .card{ background:#fff; border:1px solid var(--line); border-radius:12px; padding:28px 26px;
+         box-shadow:0 4px 18px rgba(40,20,70,.06); }
+  h1{ font-size:1.35rem; margin:0 0 4px; }
+  .lede{ color:var(--muted); font-size:.92rem; margin:0 0 22px; }
+  label{ display:block; font-weight:600; font-size:.9rem; margin-bottom:6px; }
+  .hint{ color:var(--muted); font-size:.82rem; margin:0 0 8px; }
+  input[type=tel]{ width:100%; padding:11px 12px; font-size:1.05rem; letter-spacing:.5px;
+        border:2px solid var(--line); border-radius:8px; }
+  input[aria-invalid="true"]{ border-color:var(--danger); }
+  input:focus{ outline:2px solid var(--brand); outline-offset:1px; }
+  .err{ display:flex; gap:7px; align-items:flex-start; margin-top:8px; color:var(--danger);
+        font-size:.86rem; }
+  .err svg{ flex:0 0 auto; margin-top:2px; }
+  button{ margin-top:8px; width:100%; padding:12px; font-size:1rem; font-weight:600; color:#fff;
+          background:var(--brand); border:0; border-radius:8px; cursor:pointer; }
+  .foot{ margin-top:18px; color:var(--muted); font-size:.8rem; text-align:center; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand"><span class="tri" aria-hidden="true"></span><strong>Foundry Live</strong></div>
+    <main class="card">
+      <h1>Reserve your tickets</h1>
+      <p class="lede">We'll text your e-tickets to this number.</p>
+
+      <form action="#" method="post" novalidate>
+        <label for="phone">Mobile number</label>
+        <p class="hint" id="phone-hint">Enter digits only — no spaces, dashes, or symbols.</p>
+        <!--
+          Value "(202) 555-CALL" genuinely contains parentheses, a space, a dash, and
+          the letters C A L L. The error correctly identifies exactly this defect.
+        -->
+        <input type="tel" id="phone" name="phone"
+               aria-describedby="phone-hint error-phone" aria-invalid="true"
+               value="(202) 555-CALL" autocomplete="tel-national">
+        <p class="err" id="error-phone">
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+            <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M8 4.2v4.4M8 11.0h.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+          <span>Phone number must contain only digits. Remove the letters, spaces, and parentheses (for example, enter 2025550143).</span>
+        </p>
+
+        <button type="submit">Continue</button>
+      </form>
+    </main>
+    <p class="foot">Foundry Live · Box office 1-800-555-0143 · Renders from file://</p>
+  </div>
+</body>
+</html>

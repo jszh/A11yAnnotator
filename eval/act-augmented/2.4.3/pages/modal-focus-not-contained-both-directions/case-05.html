@@ -4,23 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Submit assignment — Brightpath LMS</title>
-<!--
-  SC 2.4.3 — modal-focus-not-contained-both-directions — case-05 (PASS)
-  CONTAINED BUT NON-MIRRORED BACKWARD ORDER. A "Submit assignment" modal is opened with the
-  native dialog.showModal() API, so the user agent itself makes the rest of the page inert
-  and confines focus. INSIDE the dialog the author deliberately gives backward (Shift+Tab) a
-  DIFFERENT order than forward: the toolbar (Bold/Italic) is a single roving-tabindex group,
-  so Shift+Tab visits it as one stop and skips straight to the file field, whereas forward
-  Tab walks through each toolbar button. Both directions stay WITHIN the dialog and every
-  control remains reachable and operable; only the *sequence* differs. Per TT 4.F step 2d,
-  "Backward focus order does not have to mirror the forward focus order" as long as meaning
-  and operability are preserved — so this is a PASS, and a tool/heuristic that flags any
-  forward!=backward asymmetry would WRONGLY fail it.
-  WHY THIS IS A PASS A HUMAN MUST CONFIRM: an over-eager checker (or a naive LLM) might see
-  "Shift+Tab order != Tab order" and assume a containment bug. A human must verify that (a)
-  focus never leaves the dialog in either direction, and (b) the non-mirrored order still
-  lets the user reach and operate every control — which it does.
--->
 <style>
   :root { font-family: "Source Sans 3", system-ui, sans-serif; color: #21262e; }
   body { margin: 0; background: #eef1f5; }
@@ -67,7 +50,6 @@
 <dialog id="dlg" aria-labelledby="sub-title">
   <div class="dh"><h2 id="sub-title">Submit Lab Report 3</h2></div>
   <div class="db">
-    <!-- Roving-tabindex toolbar: ONE tab stop; arrow keys move between buttons -->
     <div class="toolbar" role="toolbar" aria-label="Comment formatting" id="toolbar">
       <button type="button" id="b-bold" aria-pressed="false" tabindex="0">B</button>
       <button type="button" id="b-ital" aria-pressed="false" tabindex="-1"><em>I</em></button>
@@ -86,13 +68,9 @@
 
 <script>
   const dlg = document.getElementById('dlg');
-  // Native modal: the UA makes the rest of the page inert and confines focus for us.
   document.getElementById('open-submit').addEventListener('click', () => dlg.showModal());
-  // For this fixture, open on load so the modal state is testable immediately.
   window.addEventListener('load', () => { dlg.showModal(); document.getElementById('b-bold').focus(); });
 
-  // Roving tabindex toolbar: forward Tab walks INTO it at whichever button is "current",
-  // and arrow keys move among the three buttons (only one is in the tab order at a time).
   const tb = document.getElementById('toolbar');
   const btns = Array.from(tb.querySelectorAll('button'));
   let idx = 0;
@@ -107,9 +85,6 @@
   });
   btns.forEach(b => b.addEventListener('click', () => b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') === 'true' ? 'false' : 'true')));
 
-  // Cancel / Esc close the dialog (native dialog also closes on Esc). Focus returns to the
-  // trigger, as the native dialog handles. Containment in BOTH directions is the UA's job
-  // here, and the roving toolbar is the only thing that makes backward != forward.
   document.getElementById('cancel').addEventListener('click', () => dlg.close());
   document.getElementById('submit').addEventListener('click', () => { document.getElementById('submit').textContent = 'Submitted ✓'; });
 </script>

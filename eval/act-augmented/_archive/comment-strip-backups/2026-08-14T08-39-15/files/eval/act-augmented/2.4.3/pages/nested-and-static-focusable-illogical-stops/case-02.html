@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Secure checkout — Northwind Tickets</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font: 16px/1.5 "Helvetica Neue", Arial, sans-serif; color:#16202c;
+           background:#eef2f6; margin:0; }
+    .shell { max-width: 560px; margin: 32px auto; background:#fff; border-radius:12px;
+             box-shadow: 0 2px 14px rgba(0,0,0,.08); overflow:hidden; }
+    .head { background:#102a43; color:#fff; padding: 18px 26px; }
+    .head h1 { margin:0; font-size:1.2rem; }
+    .head p { margin:4px 0 0; color:#9fb3c8; font-size:.85rem; }
+    form { padding: 24px 26px 30px; }
+    fieldset { border:none; margin:0 0 18px; padding:0; }
+    legend { font-weight:700; font-size:.95rem; margin-bottom:10px; color:#243b53; }
+    .field { margin-bottom: 14px; }
+    label { display:block; font-size:.85rem; font-weight:600; margin-bottom:5px; color:#334e68; }
+    input { width:100%; padding:10px 12px; border:1px solid #bcccdc; border-radius:7px; font:inherit; }
+    input:focus { outline:3px solid #2bb0ed; outline-offset:1px; }
+    .row { display:flex; gap:14px; }
+    .row .field { flex:1; }
+
+    /* A "design accent" the marketing team wanted between fields. The author made it
+       tabindex="0" so they could attach a scroll-reveal animation that triggers on focus.
+       It is purely decorative text but now sits IN the tab sequence, mid-form. */
+    .accent { text-align:center; color:#627d98; font-size:.8rem; letter-spacing:.14em;
+              text-transform:uppercase; margin: 4px 0 14px; }
+    .accent:focus { outline:3px solid #2bb0ed; outline-offset:3px; }
+    .accent::before, .accent::after { content:"———"; color:#bcccdc; margin:0 10px; }
+
+    button.pay { width:100%; padding:13px; font:inherit; font-weight:700; color:#fff;
+                 background:#0a6c0a; border:none; border-radius:8px; cursor:pointer; margin-top:6px; }
+    button.pay:focus { outline:3px solid #2bb0ed; outline-offset:2px; }
+    .lock { font-size:.8rem; color:#627d98; text-align:center; margin-top:12px; }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="head">
+      <h1>Secure checkout</h1>
+      <p>Order #NW-558210 &middot; 2 &times; Symphony Hall, Row F</p>
+    </div>
+
+    <form action="#" method="post" novalidate>
+      <fieldset>
+        <legend>Payment card</legend>
+
+        <div class="field">
+          <label for="name">Name on card</label>
+          <input id="name" name="name" autocomplete="cc-name" type="text">
+        </div>
+
+        <div class="field">
+          <label for="cardnum">Card number</label>
+          <input id="cardnum" name="cardnum" autocomplete="cc-number"
+                 inputmode="numeric" type="text" placeholder="1234 5678 9012 3456">
+        </div>
+
+        <!--
+          THE DEFECT: a focusable decorative divider lands in the middle of the card-entry
+          sequence, between "Card number" and "Expiry". Tab goes:
+          Card number  ->  (this meaningless "PAYMENT DETAILS" accent stop)  ->  Expiry.
+          The injected stop breaks the entry flow of a tightly-coupled numeric sequence.
+        -->
+        <div class="accent" tabindex="0">Payment details</div>
+
+        <div class="row">
+          <div class="field">
+            <label for="exp">Expiry (MM/YY)</label>
+            <input id="exp" name="exp" autocomplete="cc-exp" inputmode="numeric"
+                   type="text" placeholder="MM/YY">
+          </div>
+          <div class="field">
+            <label for="cvc">CVC</label>
+            <input id="cvc" name="cvc" autocomplete="cc-csc" inputmode="numeric"
+                   type="text" placeholder="123">
+          </div>
+        </div>
+      </fieldset>
+
+      <button type="submit" class="pay">Pay $148.00</button>
+      <p class="lock">&#128274; Payments are encrypted end-to-end.</p>
+    </form>
+  </div>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS IT:
+    The decorative divider is a valid <div> with tabindex="0" — perfectly legal. It has no
+    role, no broken ARIA, no missing label (it is not a control). axe/WAVE/Lighthouse cannot
+    know that a non-interactive text accent dropped BETWEEN "Card number" and "Expiry"
+    interrupts a meaningful, sequential data-entry flow. Whether the extra stop "impedes
+    operation" (it forces the user to Tab past dead content right in the middle of typing
+    their card) versus being a harmless focusable element elsewhere is a contextual,
+    position-dependent human judgment.
+  -->
+</body>
+</html>

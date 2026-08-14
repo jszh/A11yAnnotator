@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cohort report — Pulse Analytics</title>
+<!--
+  ACCESSIBILITY DEFECT (SC 1.4.11 Non-text Contrast, Level AA) — present-but-wrong.
+  GEOMETRY ASPECT: an OUTER focus ring is measured against the PAGE the component sits on,
+  and the 3:1 threshold is exact (2.999:1 does NOT pass; values are not rounded up).
+
+  An icon-only toolbar of grid actions sits on a white (#fff) toolbar surface. Every button
+  gets the SAME outer grey focus ring style EXCEPT the colour differs by one design token:
+    - Most buttons (.tool):   ring grey #949494  vs white = 3.033:1 -> PASS (the canonical
+                              "#949494 against white = 3:1" focus indicator from the spec).
+    - One button   (#tool-export): ring grey #aaaaaa vs white = 2.323:1 -> FAIL.
+  The two greys are visually almost identical and only ~0.7 contrast apart; the failing one
+  sits just below the exact 3:1 threshold. Same geometry (outer ring on white), so the
+  verdict is decided purely by the page-adjacency contrast number near the threshold.
+
+  WHY AUTOMATED TOOLS MISS IT: a focus ring is present and changes on focus, so focus-visible
+  heuristics pass for ALL buttons. axe/WAVE/Lighthouse do not measure the contrast of an
+  author focus RING against the page surface, and certainly do not police the exact (un-
+  rounded) 3:1 boundary that separates #949494 (pass) from #aaaaaa (fail). The two greys
+  are indistinguishable to a casual eye, so manual spot-checks miss it too.
+-->
+<style>
+  :root { --ink:#1f2733; }
+  body { font:14px/1.5 "Segoe UI",system-ui,sans-serif; color:var(--ink);
+         background:#eef1f4; margin:0; }
+  .panel { max-width:840px; margin:30px auto; background:#fff; border:1px solid #dde2e8;
+           border-radius:10px; overflow:hidden; }
+  .panel-head { display:flex; align-items:center; justify-content:space-between;
+                padding:14px 18px; border-bottom:1px solid #eef1f4; }
+  .panel-head h1 { font-size:1.05rem; margin:0; }
+  /* The toolbar surface is white (#fff): the focus rings are measured against this. */
+  .toolbar { display:flex; gap:6px; background:#fff; padding:4px; border-radius:8px; }
+  .tool {
+    appearance:none; cursor:pointer; width:34px; height:34px; border:0; border-radius:6px;
+    background:transparent; color:#42505f; display:grid; place-items:center;
+  }
+  .tool:hover { background:#f2f4f7; }
+  .tool svg { width:18px; height:18px; }
+  /* Shared OUTER focus ring; only the token colour differs between buttons. */
+  .tool:focus       { outline:none; box-shadow:0 0 0 3px #949494; } /* vs #fff = 3.033:1 PASS */
+  #tool-export:focus{ outline:none; box-shadow:0 0 0 3px #aaaaaa; } /* vs #fff = 2.323:1 FAIL */
+
+  table { width:100%; border-collapse:collapse; font-size:.9rem; }
+  th, td { text-align:left; padding:9px 18px; border-bottom:1px solid #eef1f4; }
+  th { color:#5c6b7c; font-weight:600; background:#fafbfc; }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; }
+</style>
+</head>
+<body>
+<section class="panel" aria-label="Cohort report">
+  <div class="panel-head">
+    <h1>Weekly retention by cohort</h1>
+    <div class="toolbar" role="toolbar" aria-label="Report actions">
+      <button class="tool" id="tool-refresh" type="button" aria-label="Refresh data">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>
+      </button>
+      <button class="tool" id="tool-filter" type="button" aria-label="Filter">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5h18l-7 8v6l-4-2v-4z"/></svg>
+      </button>
+      <button class="tool" id="tool-columns" type="button" aria-label="Choose columns">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="6" height="16"/><rect x="11" y="4" width="6" height="16"/></svg>
+      </button>
+      <button class="tool" id="tool-export" type="button" aria-label="Export to CSV">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <table>
+    <thead><tr><th>Cohort</th><th class="num">Wk 1</th><th class="num">Wk 2</th><th class="num">Wk 4</th></tr></thead>
+    <tbody>
+      <tr><td>Apr 2026</td><td class="num">100%</td><td class="num">71%</td><td class="num">58%</td></tr>
+      <tr><td>May 2026</td><td class="num">100%</td><td class="num">68%</td><td class="num">54%</td></tr>
+      <tr><td>Jun 2026</td><td class="num">100%</td><td class="num">74%</td><td class="num">—</td></tr>
+    </tbody>
+  </table>
+</section>
+</body>
+</html>

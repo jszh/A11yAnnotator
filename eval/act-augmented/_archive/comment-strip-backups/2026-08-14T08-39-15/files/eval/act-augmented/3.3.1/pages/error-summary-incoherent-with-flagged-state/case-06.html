@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Get a Home Insurance Quote — Step 2: Property — Aldermont Insurance</title>
+<style>
+  :root { --ink:#1a1f2b; --muted:#646e80; --brand:#3b3f8f; --err:#c0392b; --bg:#f4f5fa; --disabled:#9aa1ad; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Lato", Arial, sans-serif; color:var(--ink); background:var(--bg); }
+  .bar { background:var(--brand); color:#fff; padding:14px 0; }
+  .wrap { max-width:700px; margin:0 auto; padding:0 20px; }
+  .bar .wrap { display:flex; align-items:center; justify-content:space-between; font-weight:700; }
+  .progress { font-size:.82rem; color:#cdd0f0; font-weight:400; }
+  main { padding:26px 0 70px; }
+  .sheet { background:#fff; border:1px solid #e1e3ee; border-radius:10px; padding:26px 30px; }
+  h1 { font-size:1.45rem; margin:0 0 18px; }
+  .errbox { border:2px solid var(--err); border-radius:8px; background:#fdeeed; padding:14px 18px; margin:0 0 26px; }
+  .errbox h2 { margin:0 0 8px; color:var(--err); font-size:1.1rem; }
+  .errbox ul { margin:0; padding-left:20px; }
+  .errbox li { margin-bottom:5px; }
+  .field { margin-bottom:20px; }
+  label { display:block; font-weight:600; margin-bottom:4px; }
+  input, select { width:100%; padding:9px 11px; border:1px solid #c3cad6; border-radius:6px; font-size:1rem; background:#fff; }
+  .field.bad input, .field.bad select { border:2px solid var(--err); background:#fff7f6; }
+  /* Disabled control: greyed, not editable, cannot have produced user input */
+  select:disabled, input:disabled { background:#eceef2; color:var(--disabled); border-color:#d4d8e0; cursor:not-allowed; }
+  .msg { color:var(--err); font-weight:600; font-size:.85rem; margin:5px 0 0; }
+  .lock { color:var(--muted); font-size:.82rem; margin:4px 0 0; }
+  .cta { background:var(--brand); color:#fff; border:0; padding:12px 24px; font-size:1rem; border-radius:7px; cursor:pointer; }
+  .why { background:#eef0f8; border-left:4px solid var(--brand); padding:12px 16px; margin-top:30px; font-size:.81rem; color:#2a2f4a; }
+</style>
+</head>
+<body>
+<div class="bar"><div class="wrap"><span>Aldermont Insurance</span><span class="progress">Home quote &mdash; Step 2 of 4: Property</span></div></div>
+<main>
+<div class="wrap">
+  <div class="sheet">
+    <h1>About your property</h1>
+
+    <!-- Summary lists TWO errors. "Year built" corresponds to a real flagged field. But "Country must
+         be selected" names the Country control, which is DISABLED and pre-set to "United Kingdom"
+         (locked because this quote product is UK-only). A disabled control cannot have produced input
+         and cannot be corrected by the user, so blaming it is incoherent with the page state. -->
+    <div class="errbox" role="alert" aria-labelledby="eb-h">
+      <h2 id="eb-h">Please fix 2 things to continue</h2>
+      <ul>
+        <li>Country must be selected.</li>
+        <li>Year the property was built must be a 4-digit year, for example 1987.</li>
+      </ul>
+    </div>
+
+    <form novalidate>
+      <!-- Country: DISABLED and pre-filled. Greyed out, not focusable, cannot be changed by the user.
+           It is NOT flagged (no aria-invalid, no red), yet the summary says it is in error. -->
+      <div class="field">
+        <label for="country">Country</label>
+        <select id="country" name="country" disabled aria-describedby="country-lock">
+          <option value="uk" selected>United Kingdom</option>
+        </select>
+        <p class="lock" id="country-lock">This quote is available for UK properties only, so the country is fixed.</p>
+      </div>
+
+      <div class="field">
+        <label for="postcode">Property postcode</label>
+        <input type="text" id="postcode" value="LS6 2QT" autocomplete="postal-code">
+      </div>
+
+      <!-- Year built: THE field genuinely in error. Red, inline message, aria-invalid. -->
+      <div class="field bad">
+        <label for="year">Year the property was built</label>
+        <input type="text" id="year" value="nineteen eighty" aria-invalid="true" aria-describedby="year-msg" inputmode="numeric">
+        <p class="msg" id="year-msg">Enter a 4-digit year, for example 1987.</p>
+      </div>
+
+      <button type="submit" class="cta">Continue to cover options</button>
+    </form>
+
+    <div class="why">
+      <strong>Why automated checkers pass this page:</strong> The summary is a valid, visible
+      <code>role="alert"</code> region with two fluent, specific messages. The genuinely-flagged "Year
+      built" field carries <code>aria-invalid="true"</code> and an associated descriptive message, so
+      36b590 passes. The Country control is a perfectly valid, properly-labelled
+      <code>&lt;select disabled&gt;</code> with a single pre-selected option &mdash; nothing is broken.
+      The defect is that the summary asserts an error for a control that is <em>disabled and pre-set</em>,
+      meaning the user never could have supplied a wrong value and cannot edit it to fix the claimed
+      error. A linter sees a valid disabled select and a valid summary line; it has no notion that "in
+      error" is incoherent with "disabled / not user-editable". Connecting the summary's claim to the
+      control's disabled, locked state is a contextual human judgment.
+    </div>
+  </div>
+</div>
+</main>
+</body>
+</html>

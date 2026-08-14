@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.4.10 FAILURE — GRATUITOUS non-wrapping prose (the "must reflow" limb of G224).
+
+    Context: a public-library blog. The author wrote a normal multi-paragraph announcement
+    in a Markdown editor. Because every paragraph was indented FOUR SPACES in the source
+    (they were copy-pasting from an email where the body happened to be indented), the
+    Markdown renderer interpreted each paragraph as an *indented code block* and wrapped it
+    in <pre><code>. The renderer's CSS gives <pre> `white-space: pre` and `overflow-x: auto`,
+    so the prose now refuses to wrap: each "line" is the entire paragraph on one physical
+    line that runs hundreds of CSS pixels past the right edge.
+
+    THE JUDGMENT: this is ordinary English announcement prose. Its layout carries NO meaning
+    whatsoever — there is no code, no indentation hierarchy, no ascii-art, nothing that would
+    be lost by wrapping. So the G224 / Understanding "Preformatted text conveys meaning"
+    EXCEPTION does NOT apply. At a 320px viewport a low-vision reader must scroll the text
+    block left-and-right to read every sentence. This MUST reflow -> FAIL.
+
+    WHY AUTOMATED TOOLS MISS IT: the markup is flawless. <pre> + <code> is the *correct,
+    semantic* element for preformatted text, so no linter complains. axe/WAVE/Lighthouse have
+    no rule that computes layout at 320px, and even if they detected horizontal overflow they
+    cannot read the bytes inside <pre> and decide "this is prose with no meaningful layout, so
+    it should have wrapped" versus "this is Python where indentation is load-bearing, so the
+    overflow is exempt". That read-the-content semantic call is the entire SC 1.4.10 exception
+    test and is unavailable to a static scanner.
+  -->
+  <title>Summer Reading Program 2026 — Maple Ridge Public Library</title>
+  <style>
+    :root { --ink:#22272b; --muted:#5b6670; --line:#dfe5ea; --bg:#f5f7f9; --brand:#7a4b1e; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Georgia,"Times New Roman",serif; color:var(--ink); background:var(--bg); line-height:1.6; }
+    .wrap { max-width:680px; margin:0 auto; padding:24px 18px 60px; }
+    header.site { display:flex; align-items:baseline; gap:10px; border-bottom:2px solid var(--brand); padding-bottom:10px; }
+    header.site .logo { font-weight:700; color:var(--brand); font-size:18px; letter-spacing:.02em; }
+    header.site nav { margin-left:auto; font-size:13px; font-family:Arial,sans-serif; }
+    header.site nav a { color:var(--muted); text-decoration:none; margin-left:14px; }
+    h1 { font-size:26px; line-height:1.2; margin:22px 0 4px; }
+    .byline { color:var(--muted); font-size:13px; font-family:Arial,sans-serif; margin:0 0 18px; }
+    article p { margin:0 0 14px; }
+    /* This is the renderer's stock prose/code styling. It is what every Markdown-to-HTML
+       converter ships: code blocks do not wrap, they scroll. Perfectly fine for code; a
+       barrier for prose that got mis-detected as code. */
+    pre {
+      background:#2b2f33; color:#e7ebee; border-radius:6px;
+      padding:14px 16px; margin:0 0 14px;
+      font-family:"SF Mono",Menlo,Consolas,monospace; font-size:14px; line-height:1.55;
+      white-space: pre;          /* <-- refuses to wrap */
+      overflow-x: auto;          /* <-- so it scrolls sideways instead */
+      -webkit-overflow-scrolling: touch;
+    }
+    pre code { font:inherit; color:inherit; }
+    footer { margin-top:30px; border-top:1px solid var(--line); padding-top:14px; color:var(--muted); font-size:12px; font-family:Arial,sans-serif; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="site">
+      <span class="logo">Maple Ridge Public Library</span>
+      <nav aria-label="Primary">
+        <a href="#events">Events</a>
+        <a href="#catalog">Catalog</a>
+        <a href="#hours">Hours</a>
+      </nav>
+    </header>
+
+    <main>
+      <article>
+        <h1>Summer Reading Program 2026 is now open for registration</h1>
+        <p class="byline">Posted by the Youth Services team &middot; June 18, 2026 &middot; 4 min read</p>
+
+        <p>We are thrilled to kick off another season of stories, prizes, and discovery. Here is everything families need to know before the program begins on July 1st.</p>
+
+        <!-- These three paragraphs were authored as ordinary text but indented in the source,
+             so the Markdown renderer wrapped each one in a non-wrapping <pre><code>. They are
+             prose. Their layout means nothing. They MUST reflow at 320px. -->
+        <pre><code>Registration is free and open to every child and teen who lives in, attends school in, or holds a library card from the Maple Ridge district. Sign-ups can be completed at the Youth Services desk on the second floor, or online through the library account portal at any time before the closing date in August.</code></pre>
+
+        <pre><code>Readers in the Early Reader track (ages four through seven) earn a sticker for every two books a caregiver reads aloud with them, while readers in the Independent track log their own minutes and collect a small prize at each milestone of one hundred, three hundred, and six hundred minutes of reading.</code></pre>
+
+        <pre><code>Teens aged thirteen and older may instead choose the Review Challenge, in which they write a short recommendation of any title they finish; selected reviews will be printed on shelf cards in the teen collection throughout the autumn, giving fellow readers a peer-recommended place to start.</code></pre>
+
+        <p>Questions? Stop by the desk any afternoon, or reply to our newsletter and a librarian will get back to you within one business day.</p>
+      </article>
+    </main>
+
+    <footer>
+      Maple Ridge Public Library &middot; 14 Birch Street &middot; Open Mon&ndash;Sat
+    </footer>
+  </div>
+</body>
+</html>

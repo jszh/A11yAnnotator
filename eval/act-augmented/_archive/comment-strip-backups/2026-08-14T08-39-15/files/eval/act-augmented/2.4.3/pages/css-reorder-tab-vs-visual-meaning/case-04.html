@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>City of Aldergrove — Apply for a Residential Parking Permit</title>
+<!--
+  WHY THIS PASSES (SC 2.4.3 Focus Order) — the Understanding's own passing example:
+  No positive tabindex; no focus-managing JavaScript. The page has a left-hand
+  navigation sidebar and a main content area. The left nav is authored in the HTML
+  AFTER the main content, and CSS absolute/grid positioning places it visually on the
+  LEFT. This is done deliberately so that, with no tabindex and no JS, the FIRST thing a
+  keyboard user reaches is the MAIN CONTENT (the parking-permit form), and only after the
+  main content do they tab into the section navigation links. The visual hierarchy implied
+  by the layout — "this page is about applying; the side links are secondary navigation" —
+  is preserved by the focus order, even though source order != visual left-to-right order.
+  The Understanding lists this exact technique as PASSING. A naive visual-vs-DOM diff tool
+  would wrongly flag it, which is why it requires human judgment.
+-->
+<style>
+  :root { --ink:#1f2429; --brand:#0f5132; --line:#dbe2dd; --bg:#f3f6f4; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.6 system-ui,"Segoe UI",sans-serif; color:var(--ink); background:var(--bg); }
+  header { background:var(--brand); color:#fff; padding:18px 28px; }
+  header h1 { margin:0; font-size:1.35rem; }
+  header p { margin:.3rem 0 0; opacity:.9; font-size:.88rem; }
+
+  /* Grid with a left nav column and a right content column.
+     The DOM order is: <main> first, <nav> second.
+     grid-template-areas paints nav into the LEFT column and main into the RIGHT.
+     No tabindex, no JS => Tab reaches MAIN content first, then the side nav links. */
+  .page { max-width:980px; margin:0 auto; padding:26px 24px 80px;
+          display:grid; grid-template-columns:230px 1fr; gap:28px;
+          grid-template-areas:"nav main"; align-items:start; }
+  main.content { grid-area:main; background:#fff; border:1px solid var(--line);
+                 border-radius:12px; padding:24px 28px; }
+  nav.sidenav  { grid-area:nav; background:#e8f1ec; border:1px solid #cfe2d7;
+                 border-radius:12px; padding:14px 12px; position:sticky; top:18px; }
+
+  h2 { color:var(--brand); font-size:1.2rem; margin-top:0; }
+  nav.sidenav h2 { font-size:.95rem; text-transform:uppercase; letter-spacing:.5px; }
+  nav.sidenav ul { list-style:none; padding:0; margin:8px 0 0; }
+  nav.sidenav a { display:block; padding:9px 10px; border-radius:7px; color:var(--brand);
+                  text-decoration:none; font-size:.92rem; }
+  nav.sidenav a:hover, nav.sidenav a:focus { background:#d3e8dd; text-decoration:underline; }
+
+  label { display:block; font-size:.88rem; margin:14px 0 4px; }
+  input, select { width:100%; padding:10px 12px; font:inherit; font-size:.95rem;
+                  border:1px solid #b8c9bf; border-radius:7px; }
+  .submit { margin-top:18px; padding:12px 22px; font:inherit; font-weight:600;
+            color:#fff; background:var(--brand); border:0; border-radius:8px; cursor:pointer; }
+</style>
+</head>
+<body>
+<header>
+  <h1>City of Aldergrove</h1>
+  <p>Residential parking permit · Online application</p>
+</header>
+
+<!-- VISUAL: left-hand "On this page" nav, wide application form on the right.
+     DOM ORDER (no tabindex/JS): <main> form FIRST, <nav> links SECOND.
+     => Tab reaches the form (vehicle plate, zone, contact) before the secondary nav.
+     The main task receives focus first; the side links are secondary. PASS. -->
+<div class="page">
+
+  <!-- DOM-FIRST: the actual task -->
+  <main class="content" id="apply">
+    <h2>Apply for a residential parking permit</h2>
+    <p>Residents of permit zones A–F may register one vehicle per household online.
+       Complete the fields below; you will receive a confirmation number on submission.</p>
+    <form action="#" method="post" novalidate>
+      <label for="plate">License plate</label>
+      <input id="plate" name="plate" autocomplete="off">
+
+      <label for="zone">Permit zone</label>
+      <select id="zone" name="zone">
+        <option value="">Select your zone…</option>
+        <option>Zone A — Old Town</option>
+        <option>Zone B — Riverside</option>
+        <option>Zone C — University</option>
+      </select>
+
+      <label for="email">Email for confirmation</label>
+      <input id="email" name="email" type="email" autocomplete="email">
+
+      <button class="submit" type="submit">Submit application</button>
+    </form>
+  </main>
+
+  <!-- DOM-SECOND: secondary navigation, painted on the LEFT -->
+  <nav class="sidenav" aria-label="Parking services">
+    <h2>Parking services</h2>
+    <ul>
+      <li><a href="#apply">Apply for a permit</a></li>
+      <li><a href="#renew">Renew a permit</a></li>
+      <li><a href="#visitor">Visitor passes</a></li>
+      <li><a href="#zones">Permit zone map</a></li>
+      <li><a href="#appeal">Appeal a citation</a></li>
+    </ul>
+  </nav>
+
+</div>
+</body>
+</html>

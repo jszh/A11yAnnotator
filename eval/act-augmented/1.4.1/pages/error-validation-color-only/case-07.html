@@ -4,23 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>تحويل أموال — مصرف الواحة الرقمي</title>
-<!--
-  WHY THIS IS A TRUE-NEGATIVE (PASSES 1.4.1 via the LIGHTNESS escape hatch):
-  An Arabic (RTL) mobile-banking transfer form in its post-submit error state. The
-  invalid "amount" field is given a DARK-RED border (#7c0c12) while the valid fields
-  keep a LIGHT-GRAY border (#c1c7cd). There is still no inline error text and no icon —
-  so on its face it looks like the same color-only pattern as case-01. The crucial
-  difference is LIGHTNESS: #7c0c12 vs #c1c7cd differ in relative luminance by ~6.4:1,
-  far above the 3:1 the Understanding note allows. In grayscale the invalid border reads
-  as a conspicuously DARKER, heavier line than the pale valid borders — a non-color
-  visual distinction (lightness) survives when hue is removed. Per the WCAG note, this
-  counts as an additional visual distinction and PASSES 1.4.1. Included to test the
-  evaluator's grasp of the 3:1-lightness escape hatch: this is NOT failed even though
-  no text/icon is present. (It may still have OTHER issues under 3.3.1/4.1.2 — those are
-  out of 1.4.1's scope.) Note also: this is a lightness difference, NOT a reliance on
-  "red vs green" hue identification, so the "perceive a particular color" caveat does
-  not bite. Pre-rendered in the error state on load.
--->
 <style>
   :root { --ink:#1c2530; --muted:#5a6573; --bg:#eef2f6; --bank:#0a5c54; }
   * { box-sizing:border-box; }
@@ -41,12 +24,8 @@
                   background:#fff; color:var(--ink); }
   input:focus, select:focus { outline:2px solid var(--bank); outline-offset:1px; }
 
-  /* === the (passing) cue ===
-     valid = LIGHT-GRAY border; invalid = DARK-RED border.
-     Luminance contrast between them ~6.4:1 (>3:1) → distinguishable in grayscale by
-     LIGHTNESS alone, so the distinction is not color (hue) only. */
-  .ok  { border:2px solid #c1c7cd; }   /* light gray  — L* high */
-  .bad { border:2px solid #7c0c12; }   /* dark red    — L* very low; reads as a dark, heavy line */
+  .ok  { border:2px solid #c1c7cd; }   
+  .bad { border:2px solid #7c0c12; }   
 
   .hint { font-size:.8rem; color:var(--muted); margin:6px 0 0; }
   button { width:100%; padding:12px; font-size:1rem; font-weight:700; color:#fff; background:var(--bank);
@@ -67,21 +46,17 @@
     <div class="banner" role="alert">تعذّر إتمام التحويل. يرجى مراجعة البيانات والمحاولة مرة أخرى.</div>
 
     <form action="#" method="post" novalidate>
-      <!-- valid: light-gray border -->
       <div class="field">
         <label for="to">حساب المستفيد</label>
         <input class="ok" id="to" name="to" inputmode="numeric" value="SA44 2000 0001 6010 0531 9000">
       </div>
 
-      <!-- INVALID: dark-red border. No text/icon — but lightness vs the gray borders is >3:1,
-           so a grayscale viewer still sees a distinctly DARKER, heavier line here. -->
       <div class="field">
         <label for="amount">المبلغ (ريال)</label>
         <input class="bad" id="amount" name="amount" inputmode="decimal" value="">
         <p class="hint">الحد الأقصى للتحويل اليومي 20,000 ريال.</p>
       </div>
 
-      <!-- valid -->
       <div class="field">
         <label for="memo">ملاحظة (اختياري)</label>
         <input class="ok" id="memo" name="memo" value="إيجار الشهر">

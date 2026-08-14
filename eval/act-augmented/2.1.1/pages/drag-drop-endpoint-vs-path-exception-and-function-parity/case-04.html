@@ -44,7 +44,6 @@
     <a href="#">Endpoints</a>
   </nav>
 
-  <!-- Looks ARIA-complete: separator role, orientation, value + range. But arrow keys do nothing. -->
   <div class="splitter"
        id="splitter"
        role="separator"
@@ -74,26 +73,11 @@
   </main>
 </div>
 
-<!--
-  WHY AUTOMATED TOOLS MISS THIS:
-  The splitter is, on paper, a textbook ARIA window-splitter: role="separator",
-  aria-orientation, aria-valuemin / aria-valuemax / aria-valuenow, an aria-label, and tabindex="0"
-  so it is focusable. axe's "separator" / ARIA-attribute checks all pass — every required value is
-  present and in range. The defect is purely BEHAVIORAL: there is NO keydown handler, so when a
-  keyboard user focuses the splitter and presses ArrowLeft/ArrowRight, NOTHING happens and
-  aria-valuenow never changes. Resizing a panel is endpoint-dependent (the final width is what
-  matters, not the path the pointer dragged), so the 2.1.1 path-of-movement exception does not
-  apply; the resize function must be keyboard-operable. It is operable by pointer (mousedown drag)
-  only. A static scanner cannot press ArrowLeft and observe that the value does not move, and the
-  ARIA presence actively MASKS the failure (it looks complete). Determining that the documented
-  keyboard contract for a separator is unimplemented requires operating it with the keyboard.
--->
 <script>
   const panes = document.getElementById('panes');
   const nav = document.getElementById('nav');
   const splitter = document.getElementById('splitter');
 
-  // POINTER resize only. No keydown handler -> arrow keys are dead despite the separator role.
   let dragging = false;
   splitter.addEventListener('mousedown', e => { dragging = true; e.preventDefault(); });
   window.addEventListener('mouseup', () => { dragging = false; });

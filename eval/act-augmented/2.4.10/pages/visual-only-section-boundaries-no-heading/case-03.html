@@ -4,37 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Preferences — Meridian Mail</title>
-<!--
-  WCAG 2.4.10 Section Headings (AAA) — EXPECTED: FAILED
-  Pattern: visual-only section boundaries (tab panels) with no programmatic
-  heading per section.
-
-  This is the Understanding's OTHER named example, built WRONG: "A web
-  application contains a settings page that is divided into groups of related
-  settings. Each section contains a heading describing the class of settings."
-  Here the settings page is a proper APG tablist with three panels (General,
-  Signatures, Filters & Rules). Each panel is unmistakably a distinct section of
-  related settings. Inside each panel the visual section title ("General
-  preferences", "Signature settings", "Filters & rules") is a styled <div>, and
-  the panel-content GROUP titles are styled <div>s too — none is a heading
-  element or role="heading". The only heading is the page <h1>.
-
-  ESCALATION (Evol-Instruct): I did NOT just omit headings — I shipped a fully
-  correct, keyboard-operable ARIA tabs widget (roles, aria-selected,
-  aria-controls, roving tabindex, arrow keys). So the page is rich and passes
-  every structural lint. The tab BUTTONS are not headings (tabs never are), and
-  the active panel still contains zero heading markup. A screen-reader user who
-  navigates by heading inside the active "Signatures" panel finds nothing
-  describing the section; only sighted users see the big "Signature settings"
-  title and the visually grouped sub-sections.
-
-  WHY AUTOMATED TOOLS MISS IT: the tabs widget is ARIA-valid (axe reports no
-  violations), the page has an <h1>, all inputs are labelled. No tool can decide
-  that each tab PANEL is a settings SECTION that the Understanding says must
-  carry a heading — tabs are deliberately not headings, so there is nothing
-  "missing" to a checker. Recognising the panel as a headed-looking section and
-  that its title is a non-heading <div> is human judgment.
--->
 <style>
   :root{--ink:#1c2733;--muted:#5d6b7a;--line:#dde3ea;--bg:#f3f5f8;--brand:#1f6feb}
   *{box-sizing:border-box}
@@ -52,10 +21,8 @@
   .panel{background:#fff;border:1px solid var(--line);border-top:0;
     border-radius:0 0 10px 10px;padding:22px 24px 26px}
   .panel[hidden]{display:none}
-  /* THE DEFECT: the panel's section title is a styled div, not a heading. */
   .panel-title{font-size:20px;font-weight:700;margin:0 0 4px}
   .panel-sub{color:var(--muted);margin:0 0 18px;font-size:14px}
-  /* grouped sub-sections within a panel — also titled by styled divs. */
   .group{padding:14px 0;border-top:1px solid #eef1f5}
   .group:first-of-type{border-top:0;padding-top:0}
   .group-title{font-size:15px;font-weight:700;margin:0 0 10px;
@@ -79,7 +46,6 @@
       <button role="tab" id="tab-flt" aria-selected="false" aria-controls="p-flt" tabindex="-1">Filters &amp; Rules</button>
     </div>
 
-    <!-- PANEL/SECTION 1 -->
     <section class="panel" id="p-gen" role="tabpanel" aria-labelledby="tab-gen" tabindex="0">
       <div class="panel-title">General preferences</div>
       <p class="panel-sub">Defaults that apply to your whole mailbox.</p>
@@ -100,7 +66,6 @@
       </div>
     </section>
 
-    <!-- PANEL/SECTION 2 -->
     <section class="panel" id="p-sig" role="tabpanel" aria-labelledby="tab-sig" tabindex="0" hidden>
       <div class="panel-title">Signature settings</div>
       <p class="panel-sub">Appended to outgoing mail per identity.</p>
@@ -119,7 +84,6 @@ Customer Success</textarea>
       </div>
     </section>
 
-    <!-- PANEL/SECTION 3 -->
     <section class="panel" id="p-flt" role="tabpanel" aria-labelledby="tab-flt" tabindex="0" hidden>
       <div class="panel-title">Filters &amp; rules</div>
       <p class="panel-sub">Automatically sort and act on incoming mail.</p>
@@ -134,8 +98,6 @@ Customer Success</textarea>
   </main>
 
 <script>
-  // APG-style tabs: roving tabindex + arrow-key navigation. Fully keyboard
-  // operable — but tabs are NOT headings, and the panels carry no headings.
   (function(){
     var tabs = Array.prototype.slice.call(document.querySelectorAll('[role=tab]'));
     function select(tab){

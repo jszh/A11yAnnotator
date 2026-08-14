@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Meridian — Independent Journalism</title>
+<style>
+  :root { --ink:#171717; --muted:#6b6b6b; --line:#e3e3e0; --accent:#9a2a2a; --bg:#fbfaf7; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.6 Georgia,"Times New Roman",serif; color:var(--ink); background:var(--bg); }
+  .masthead { border-bottom:2px solid var(--ink); }
+  .masthead .bar { max-width:1000px; margin:0 auto; padding:10px 20px; display:flex; align-items:center; gap:16px; }
+  .masthead .name { font-size:30px; font-weight:700; letter-spacing:1px; font-variant:small-caps; }
+  .masthead .tools { margin-left:auto; display:flex; gap:12px; align-items:center; }
+  .iconbtn { font:inherit; border:1px solid var(--line); background:#fff; border-radius:6px; padding:6px 12px; cursor:pointer; font-family:-apple-system,Segoe UI,Roboto,sans-serif; font-size:14px; }
+  .iconbtn:focus-visible { outline:3px solid #d9a; outline-offset:2px; }
+  nav.sections { border-bottom:1px solid var(--line); }
+  nav.sections ul { max-width:1000px; margin:0 auto; padding:8px 20px; display:flex; gap:18px; list-style:none; font-family:-apple-system,Segoe UI,Roboto,sans-serif; font-size:14px; }
+  nav.sections a { color:var(--muted); text-decoration:none; }
+  nav.sections a:hover { color:var(--ink); }
+  main { max-width:720px; margin:0 auto; padding:30px 20px 130px; }
+  article h1 { font-size:34px; line-height:1.2; margin:0 0 8px; }
+  .byline { font-family:-apple-system,Segoe UI,Roboto,sans-serif; font-size:13px; color:var(--muted); margin-bottom:22px; }
+  article p { margin:0 0 18px; }
+  .pull { border-left:3px solid var(--accent); padding-left:16px; font-style:italic; color:#333; margin:22px 0; }
+  a.inline { color:var(--accent); }
+
+  /* Search overlay */
+  .search-overlay { position:fixed; inset:0; background:rgba(251,250,247,.98); display:none; z-index:80; padding-top:14vh; }
+  .search-overlay.open { display:block; }
+  .search-inner { max-width:680px; margin:0 auto; padding:0 20px; }
+  .search-inner label { display:block; font-family:-apple-system,Segoe UI,Roboto,sans-serif; font-size:13px; color:var(--muted); margin-bottom:8px; }
+  .search-field { display:flex; gap:10px; }
+  .search-field input { flex:1; font-size:24px; padding:12px 14px; border:none; border-bottom:2px solid var(--ink); background:transparent; font-family:Georgia,serif; }
+  .search-field input:focus { outline:none; border-bottom-color:var(--accent); }
+  .search-close { font-family:-apple-system,Segoe UI,Roboto,sans-serif; font-size:14px; border:1px solid var(--line); background:#fff; border-radius:6px; padding:0 16px; cursor:pointer; }
+  .search-hint { font-family:-apple-system,Segoe UI,Roboto,sans-serif; font-size:13px; color:var(--muted); margin-top:14px; }
+</style>
+</head>
+<body>
+<header class="masthead">
+  <div class="bar">
+    <span class="name">The Meridian</span>
+    <div class="tools">
+      <button class="iconbtn" id="open-search" aria-label="Open search">Search</button>
+      <button class="iconbtn">Subscribe</button>
+    </div>
+  </div>
+</header>
+<nav class="sections" aria-label="Sections">
+  <ul>
+    <li><a href="#">Politics</a></li>
+    <li><a href="#">World</a></li>
+    <li><a href="#">Climate</a></li>
+    <li><a href="#">Culture</a></li>
+    <li><a href="#">Opinion</a></li>
+  </ul>
+</nav>
+
+<main>
+  <article>
+    <h1>The quiet grid: how a county utility learned to share its sunlight</h1>
+    <p class="byline">By Naomi Treadwell · Climate · 9 min read</p>
+    <p>For three decades the substation on Quarry Road did one thing: it took power from the regional
+    line and pushed it out to the eleven thousand homes of Harlan County. This spring, for the first
+    time, it began to run in reverse.</p>
+    <p>The change is the result of a community-solar program that lets residents who cannot install their
+    own panels — renters, apartment dwellers, anyone shaded by a north-facing roof — buy a share of a
+    field of panels two miles away. The credits show up on their bill.</p>
+    <p class="pull">"We stopped thinking of the wire as a one-way street," the utility's engineer said.
+    "Once you accept that power can flow both directions, a lot of old assumptions fall away."</p>
+    <p>The technical work was less about new hardware than about new permission. Reverse power flow had
+    always been physically possible; what changed was the metering and the <a class="inline" href="#">interconnection
+    agreement</a> that made it legal and legible to the billing system.</p>
+    <p>Other counties are watching. The state's rural cooperative association has scheduled four site
+    visits this summer, and a neighboring district has already filed paperwork to copy the model.</p>
+  </article>
+</main>
+
+<!-- Search overlay; opened from the masthead Search button -->
+<div class="search-overlay" id="search-overlay" role="dialog" aria-modal="true" aria-label="Site search" aria-hidden="true">
+  <div class="search-inner">
+    <label for="q">Search The Meridian</label>
+    <div class="search-field">
+      <input type="search" id="q" placeholder="Articles, authors, topics…">
+      <button class="search-close" id="search-close">Close</button>
+    </div>
+    <p class="search-hint">Press <kbd>Esc</kbd> to close.</p>
+  </div>
+</div>
+
+<script>
+  var overlay = document.getElementById('search-overlay');
+  var openBtn = document.getElementById('open-search');
+  var input = document.getElementById('q');
+
+  function openSearch() {
+    overlay.classList.add('open');
+    overlay.setAttribute('aria-hidden', 'false');
+    input.focus();                       // on-open focus is correct
+    document.addEventListener('keydown', onKey);
+  }
+
+  function onKey(e) { if (e.key === 'Escape') closeSearch(); }
+
+  // THE DEFECT: Escape (and the Close button) hide the overlay visually and re-set
+  // aria-hidden="true" on the container, but DO NOT move focus back to #open-search.
+  // The element that had focus (the search input) is now inside an aria-hidden,
+  // display:none subtree. Focus is not explicitly moved, so it lingers on the hidden
+  // container/body. The next Tab therefore restarts from the first focusable element
+  // in the document — the masthead — and a screen reader is parked on a hidden node.
+  function closeSearch() {
+    overlay.classList.remove('open');
+    overlay.setAttribute('aria-hidden', 'true');
+    document.removeEventListener('keydown', onKey);
+    // (no openBtn.focus())
+  }
+
+  openBtn.addEventListener('click', openSearch);
+  document.getElementById('search-close').addEventListener('click', closeSearch);
+</script>
+
+<!--
+  WHY AUTOMATED TOOLS MISS THIS
+  When the overlay is CLOSED (its resting state, and the state a page-load scan sees),
+  aria-hidden="true" sits on a display:none container — which is perfectly valid, so the
+  axe "aria-hidden must not contain focusable elements" rule does not fire (display:none
+  removes the descendants from the focus order). The defect is purely temporal: AFTER a
+  keyboard user opens search and presses Escape, focus is never restored to the Search
+  button, so it is stranded on the just-hidden overlay and the next Tab jumps to the top
+  of the page. No static snapshot captures this open-then-dismiss focus transition.
+-->
+</body>
+</html>

@@ -63,9 +63,6 @@
   .status.pending { background: #fff2d9; color: #9a6700; }
   td.actions { width: 120px; text-align: right; }
 
-  /* Row action buttons are HIDDEN until the row is hovered. They are real <button>
-     elements (in the DOM, focusable in principle), but visibility:hidden + the
-     hover reveal is the only way they ever surface to the user. */
   td.actions .row-actions {
     visibility: hidden;
     display: inline-flex;
@@ -175,28 +172,5 @@
     </main>
   </div>
 
-  <!--
-    WHY THIS FAILS SC 2.1.1 (keyboard) AND WHY AUTOMATED TOOLS MISS IT:
-
-    Each row's Edit and Delete are real, named <button> elements. The ONLY way to act on a
-    subscriber row — edit details or delete the contact — is through these per-row buttons.
-    They are wrapped in span.row-actions, which is visibility:hidden by default and becomes
-    visibility:visible ONLY under `tbody tr:hover`. There is no `tr:focus-within` rule and no
-    keyboard/focus path that reveals them.
-
-    The subtle trap: `visibility:hidden` elements are NOT focusable, so even though the
-    <button>s are in the DOM and have accessible names, Tab skips them entirely while the row
-    is not hovered — and a keyboard user can never hover. So a keyboard-only operator can
-    reach the search box and "Add subscriber" but can NEVER edit or delete any existing row.
-    The footer mentions a checkbox bulk-action column but it is "coming soon" and not present,
-    so the functionality is genuinely not available elsewhere on the page.
-
-    A static scanner sees four well-formed <button>Edit</button>/<button>Delete</button>
-    pairs with valid names inside a semantic <table> — axe/WAVE/Lighthouse report NO error,
-    because nothing is missing or malformed. Detecting the failure requires (1) operating the
-    table by keyboard and observing the actions never surface on focus, and (2) judging that
-    edit/delete are ESSENTIAL functions with no keyboard-reachable equivalent here. Both are
-    human judgments. Present-but-unreachable. Verdict: FAILED.
-  -->
 </body>
 </html>

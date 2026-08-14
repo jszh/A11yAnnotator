@@ -147,8 +147,6 @@
   Array.prototype.forEach.call(document.querySelectorAll('.qv-btn'), function (b) {
     b.addEventListener('click', function () { open(b.dataset.name, b.dataset.price); });
   });
-  // The visible close control works for MOUSE and for keyboard-on-the-button — but it is not
-  // an exit "method" in the SC sense; it requires first tabbing to it. The standard exit key is killed below.
   closeBtn.addEventListener('click', close);
   document.getElementById('qvAdd').addEventListener('click', close);
 
@@ -159,13 +157,10 @@
       if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
       else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
     } else if (e.key === 'Escape') {
-      // BUG/DEFECT: a stray analytics snippet swallowed Esc to "stop the modal from closing on
-      // accidental key taps during checkout funnels." Esc now does nothing.
       e.preventDefault();
       e.stopPropagation();
-      return; // intentionally NOT closing
+      return; 
     } else if (e.ctrlKey && (e.key === 'm' || e.key === 'M')) {
-      // The only keyboard release — undocumented, non-standard, no advice on screen.
       e.preventDefault();
       close();
     }

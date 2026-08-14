@@ -4,22 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Constellation map — Northern Sky learning module</title>
-<!--
-  ACCESSIBILITY DEFECT (SC 2.4.7, aspect: drawn-indicator-fails-forced-colors-or-at-tracking)
-  The interactive "star" links remove the native focus ring (outline:none) and instead,
-  on focus, JS moves a single shared marker square (#focus-marker) into a FIXED LEGEND BOX
-  in the page corner — i.e. it lights up a star's NAME in a side panel, far from the star
-  itself. The marker is positioned over the legend, not over the focused star.
-  In a default render a sighted mouse user glancing at the legend may infer which star is
-  active, so a naive screenshot-diff sees pixels change somewhere on the page and oj04fd
-  passes. But the indicator is ORPHANED from the real focus position: the focused star in
-  the map has NO visible change, and the cue is a detached painted square elsewhere — the
-  exact G165 failure ("AT will not usually be able to find your focus indicator"; drawn,
-  detached). For a screen-magnifier user (viewport zoomed to the map) and forced-colors
-  users the cue is off-screen / suppressed, and AT cannot associate it with focus.
-  A default-render pixel checker cannot judge that the cue is detached from focus; that is
-  a spatial/semantic judgment. The markup is well-formed; axe/WAVE/Lighthouse report nothing.
--->
 <style>
   * { box-sizing: border-box; }
   body {
@@ -35,7 +19,6 @@
 
   .stage { position: relative; height: 460px; margin: 10px 26px; }
 
-  /* Star links */
   .star {
     position: absolute;
     width: 18px; height: 18px;
@@ -46,10 +29,8 @@
     display: block;
     cursor: pointer;
   }
-  /* ---- The defect lives here: native ring removed, NO on-element focus style ---- */
-  .star:focus { outline: none; }      /* nothing replaces it on the star itself */
+  .star:focus { outline: none; }      
 
-  /* The legend / "detached" indicator panel, pinned to the corner */
   .legend {
     position: fixed;
     top: 80px; right: 26px;
@@ -61,7 +42,6 @@
   }
   .legend h2 { margin: 0 0 8px; font-size: .8rem; letter-spacing: .04em; text-transform: uppercase; color: #93a4dd; }
   .legend li { list-style: none; padding: 4px 6px; border-radius: 6px; position: relative; font-size: .9rem; }
-  /* The shared marker square that JS slides between legend rows */
   #focus-marker {
     position: absolute;
     left: 0; top: 0;
@@ -83,7 +63,6 @@
 </header>
 
 <div class="stage" id="stage">
-  <!-- Stars of the Big Dipper, scattered across the map -->
   <a class="star" href="#dubhe"   style="left:8%;  top:18%;" data-name="Dubhe">Dubhe</a>
   <a class="star" href="#merak"   style="left:16%; top:34%;" data-name="Merak">Merak</a>
   <a class="star" href="#phecda"  style="left:30%; top:52%;" data-name="Phecda">Phecda</a>
@@ -110,8 +89,6 @@
 <footer>Northern Sky learning module · for school astronomy clubs</footer>
 
 <script>
-  // On focus, instead of marking the focused STAR, we slide a marker square over the
-  // matching NAME in the corner legend — the indicator is detached from the focus position.
   var marker = document.getElementById('focus-marker');
   var rows = Array.prototype.slice.call(document.querySelectorAll('#legend li'));
   document.querySelectorAll('.star').forEach(function (star) {

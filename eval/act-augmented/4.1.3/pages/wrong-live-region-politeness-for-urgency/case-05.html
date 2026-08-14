@@ -15,7 +15,6 @@
   .field label { display:block; font-size:13px; font-weight:600; margin-bottom:5px; }
   .field input { width:100%; padding:10px 12px; border:1.5px solid #ddd3c4; border-radius:7px; font-size:15px; }
   .field input:focus { outline:3px solid #d9b98a; border-color:#a9772f; }
-  /* The big, red, action-blocking banner the SIGHTED user sees on decline. */
   .decline-banner { display:none; margin:4px 0 16px; padding:13px 15px; border:2px solid #9a1b1b;
                     background:#fdeceb; border-radius:8px; color:#7a1414; font-weight:600; font-size:14.5px; }
   .decline-banner.show { display:block; }
@@ -38,27 +37,6 @@
   <section class="panel" aria-label="Payment">
     <h2>Payment</h2>
 
-    <!--
-      THE DEFECT: the critical status message is SPLIT across two elements, and the live
-      region announces the WRONG one.
-
-      * #payStatus IS a present, valid, role="status" live region — so every "is there a
-        live region / is it non-empty" checker passes, and it genuinely announces on
-        decline.
-      * BUT on decline the script routes the URGENT, action-blocking instruction
-        ("Payment declined — do NOT refresh or you may be charged twice") into the
-        VISIBLE red banner #declineBanner, which is a PLAIN <p> (no role, no aria-live).
-        Into the live region #payStatus it writes only a bland, generic line:
-        "Payment update available." That generic line is what the screen reader announces.
-
-      Result: the sighted user sees the full blocking warning in red; the screen-reader
-      user is told only "Payment update available" and never hears "do not refresh / you
-      may be double-charged." The status message that conveys the critical change is NOT
-      programmatically surfaced to AT — a genuine 4.1.3 failure (a live region is present
-      and announces, but the actual status content is in the un-announced node). Only a
-      human comparing the VISIBLE text against what the live region actually announces can
-      see that the urgent content was routed to the silent element.
-    -->
     <p class="decline-banner" id="declineBanner"></p>
     <p class="sr-only" id="payStatus" role="status" aria-atomic="true"></p>
 
@@ -111,17 +89,12 @@
     payBtn.disabled = true;
     payBtn.textContent = 'Processing…';
 
-    // The gateway declines after ~1.2s. The CRITICAL, action-blocking instruction goes
-    // into the VISIBLE banner (a plain <p>, never announced). The actual live region gets
-    // only a generic placeholder — so the screen reader announces "Payment update
-    // available" and the user never hears the "do not refresh / double charge" warning.
     setTimeout(function () {
       declineBanner.textContent =
         'Payment declined by your bank. Do NOT refresh or press Pay again — ' +
         'a second attempt may place a duplicate charge. Use a different card below.';
       declineBanner.classList.add('show');
 
-      // Routed to the live region instead of the real warning:
       payStatus.textContent = 'Payment update available.';
 
       payBtn.disabled = false;

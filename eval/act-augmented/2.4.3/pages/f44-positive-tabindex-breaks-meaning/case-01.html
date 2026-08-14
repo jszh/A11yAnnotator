@@ -3,32 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!--
-    SC 2.4.3 (Focus Order), failure F44: positive tabindex creates a tab order
-    that does not follow the sequences and relationships in the content.
-
-    This is a course/textbook "Table of Contents" rendered as an ordered list.
-    Visually it reads Homepage, Module 1, Module 2, Module 3, Module 4 (top to
-    bottom, the meaningful study sequence). But the links carry explicit positive
-    tabindex values 1, 5, 4, 3, 2 — so pressing Tab visits Homepage, then Module 4,
-    Module 3, Module 2, Module 1. The numeric order REVERSES the modules against
-    the visible, content-meaningful order. A keyboard-only or screen-reader-plus-
-    keyboard learner tabbing through "what's next" is steered through the course
-    backwards.
-
-    WHY THIS IS NOT FAKED: the tabindex attributes are real and live; a browser
-    really moves focus 1 -> 5 -> 4 -> 3 -> 2. The list is otherwise valid: real
-    href targets, semantic <ol>, accessible link text.
-
-    WHY AUTOMATED TOOLS MISS IT: axe-core has only a best-practice flag for the
-    PRESENCE of positive tabindex ("tabindex" rule, needs-review / best-practice),
-    not a 2.4.3 failure. It cannot decide whether 1,5,4,3,2 happens to MATCH the
-    content order or CONTRADICTS it — that requires reading the visible labels
-    (Module 1..4), inferring the intended study sequence, and comparing it to the
-    actual focus traversal. If a tool flagged every positive tabindex it would also
-    falsely flag case-03 (legitimate reflow repair) and case-06 (order-irrelevant
-    icons). The meaning-preservation judgment is human.
-  -->
   <title>Course Outline · Foundations of Data Structures | OpenLearn</title>
   <style>
     :root { --ink:#1c2530; --muted:#5d6b7a; --rule:#d9e0e8; --brand:#10518a; --tint:#eef4fb; }
@@ -69,10 +43,6 @@
     <nav class="toc" aria-label="Course outline">
       <h2>Course outline</h2>
       <ol class="modules">
-        <!--
-          Visible/content order is top-to-bottom: Start here, then Module 1, 2, 3, 4.
-          The tabindex values impose 1, 5, 4, 3, 2 -> Tab goes Start, M4, M3, M2, M1.
-        -->
         <li class="home">
           <a href="start.html" tabindex="1">
             <span class="n" aria-hidden="true">↳</span>

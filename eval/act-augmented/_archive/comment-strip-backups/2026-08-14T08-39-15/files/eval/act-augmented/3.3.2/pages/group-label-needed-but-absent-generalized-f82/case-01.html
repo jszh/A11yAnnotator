@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Checkout — Addresses — Maple &amp; Birch Home Goods</title>
+<style>
+  :root { --ink:#23282d; --muted:#6b7177; --line:#d7dbe0; --brand:#0a6e57; --bg:#f3f5f4; }
+  * { box-sizing: border-box; }
+  body { font-family: "Inter", -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+         color: var(--ink); background: var(--bg); margin:0; padding:34px 16px; }
+  .wrap { max-width: 860px; margin:0 auto; }
+  header.shop { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+  header.shop .logo { width:30px; height:30px; border-radius:7px; background:var(--brand); }
+  header.shop .name { font-weight:700; font-size:1.05rem; letter-spacing:.2px; }
+  h1 { font-size:1.3rem; margin:18px 0 2px; }
+  .crumbs { color:var(--muted); font-size:.82rem; margin:0 0 26px; }
+  form { background:#fff; border:1px solid var(--line); border-radius:12px;
+         padding:26px 26px 30px; box-shadow:0 1px 2px rgba(20,30,40,.05); }
+  /* The two address sets sit side by side, separated only by a gutter. */
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:34px; }
+  .addr { }
+  .row { margin-bottom:14px; }
+  .row.split { display:flex; gap:12px; }
+  .row.split > div { flex:1 1 0; min-width:0; }
+  label { display:block; font-weight:600; font-size:.8rem; margin:0 0 6px; }
+  input, select { width:100%; padding:10px 11px; font-size:.93rem; color:var(--ink);
+          border:1px solid var(--line); border-radius:7px; background:#fff; }
+  input:focus, select:focus { outline:2px solid var(--brand); outline-offset:1px; }
+  .actions { margin-top:24px; display:flex; justify-content:flex-end; }
+  button { background:var(--brand); color:#fff; border:0; border-radius:8px;
+           padding:12px 26px; font-size:.95rem; font-weight:600; cursor:pointer; }
+  @media (max-width:640px){ .grid{ grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="shop">
+      <span class="logo" aria-hidden="true"></span>
+      <span class="name">Maple &amp; Birch Home Goods</span>
+    </header>
+
+    <h1>Where should we send this?</h1>
+    <p class="crumbs">Cart &rsaquo; <strong>Addresses</strong> &rsaquo; Shipping method &rsaquo; Payment</p>
+
+    <form action="#" novalidate aria-label="Addresses">
+      <div class="grid">
+        <!-- LEFT block: this is the billing address (per the business logic) -->
+        <section class="addr">
+          <div class="row">
+            <label for="a1-name">Full name</label>
+            <input id="a1-name" name="b_name" type="text" autocomplete="name" value="Dana Okonkwo">
+          </div>
+          <div class="row">
+            <label for="a1-street">Street address</label>
+            <input id="a1-street" name="b_street" type="text" autocomplete="street-address" value="48 Larkspur Lane">
+          </div>
+          <div class="row split">
+            <div>
+              <label for="a1-city">City</label>
+              <input id="a1-city" name="b_city" type="text" autocomplete="address-level2" value="Asheville">
+            </div>
+            <div>
+              <label for="a1-state">State</label>
+              <input id="a1-state" name="b_state" type="text" autocomplete="address-level1" value="NC">
+            </div>
+            <div>
+              <label for="a1-zip">ZIP</label>
+              <input id="a1-zip" name="b_zip" type="text" inputmode="numeric" autocomplete="postal-code" value="28801">
+            </div>
+          </div>
+        </section>
+
+        <!-- RIGHT block: this is the shipping address (per the business logic) -->
+        <section class="addr">
+          <div class="row">
+            <label for="a2-name">Full name</label>
+            <input id="a2-name" name="s_name" type="text" autocomplete="name" value="Dana Okonkwo">
+          </div>
+          <div class="row">
+            <label for="a2-street">Street address</label>
+            <input id="a2-street" name="s_street" type="text" autocomplete="street-address" value="">
+          </div>
+          <div class="row split">
+            <div>
+              <label for="a2-city">City</label>
+              <input id="a2-city" name="s_city" type="text" autocomplete="address-level2" value="">
+            </div>
+            <div>
+              <label for="a2-state">State</label>
+              <input id="a2-state" name="s_state" type="text" autocomplete="address-level1" value="">
+            </div>
+            <div>
+              <label for="a2-zip">ZIP</label>
+              <input id="a2-zip" name="s_zip" type="text" inputmode="numeric" autocomplete="postal-code" value="">
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="actions">
+        <button type="submit">Continue to shipping method</button>
+      </div>
+    </form>
+  </div>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS IT
+    Every input is a native control with a correctly associated <label> (for/id). axe,
+    WAVE and Lighthouse all see "all form fields have labels" and pass the page — the
+    missing-label rule has nothing to flag.
+
+    The real defect is that this page collects TWO addresses (billing on the left via the
+    b_* names, shipping on the right via the s_* names) but provides NO group-level label
+    for either set. The only thing distinguishing "the billing block" from "the shipping
+    block" is horizontal POSITION (left vs right column) — a purely visual cue, and even
+    that conveys nothing on its own because there is no visible "Billing" / "Shipping"
+    heading anywhere. A sighted user faced with two identical "Full name / Street address /
+    City / State / ZIP" blocks side by side cannot tell which is which; a screen-reader or
+    Braille user, reading linearly, hears "Full name, Street address, City, State, ZIP,
+    Full name, Street address, City, State, ZIP" with no group description at all. The
+    per-field labels (Street, City, ZIP) are each insufficient standalone because they do
+    not say WHICH address they belong to — exactly H71's "additional heading to provide a
+    description specific to that particular group" being required but absent. Recognizing
+    that a group label is NEEDED here, and that visual proximity is doing labeling work the
+    text never does, is a contextual semantic judgment no static scanner performs.
+  -->
+</body>
+</html>

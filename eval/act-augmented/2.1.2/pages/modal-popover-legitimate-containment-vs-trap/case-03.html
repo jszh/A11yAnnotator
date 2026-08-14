@@ -4,19 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Trail Runner GTX — Quick view — Summit & Pine Outfitters</title>
-<!--
-  SC 2.1.2 — modal-popover-legitimate-containment-vs-trap — case-03 (FAIL)
-  An e-commerce "Quick view" modal (role="dialog" aria-modal="true") traps Tab among its
-  form controls. Its ONLY dismiss is an "×" close glyph that is a <span> with an onclick
-  handler — it is NOT focusable (no tabindex, not a button) and has NO keydown handler.
-  So the dialog is dismissable by MOUSE (click the ×) but TRAPPED by keyboard: the × can
-  never be tabbed to and never be activated by keyboard, and there is no Esc handler.
-  WHY AUTOMATED TOOLS MISS IT: the × span carries aria-label="Close quick view" and
-  role="button", so a name/role linter is satisfied; the dialog has a proper accessible
-  name; every form field is labelled. Nothing is missing or empty. Only by Tab-driving the
-  open modal (the × is skipped) and pressing Esc (nothing happens) does the trap surface —
-  and a tool cannot judge that the visible Close is keyboard-unreachable.
--->
 <style>
   :root { font-family: "Inter", system-ui, sans-serif; color: #1f2430; }
   body { margin: 0; background: #fbfaf7; }
@@ -33,7 +20,6 @@
   .scrim { position: fixed; inset: 0; background: rgba(20,30,24,.55); display: none; align-items: center; justify-content: center; }
   .scrim.show { display: flex; }
   .qv { background: #fff; border-radius: 12px; width: min(520px, 92vw); box-shadow: 0 18px 50px rgba(0,0,0,.32); overflow: hidden; position: relative; }
-  /* The close glyph LOOKS like a tidy round button — purely visual. */
   .qv .close {
     position: absolute; top: 12px; right: 12px; width: 30px; height: 30px;
     border-radius: 50%; background: #eef2ef; color: #2f4a3c; font-size: 1.1rem;
@@ -80,14 +66,8 @@
   </article>
 </section>
 
-<!-- Quick-view modal: trapped by keyboard, closable only by mouse-clicking the × span. -->
 <div class="scrim" id="scrim">
   <div class="qv" role="dialog" aria-modal="true" aria-labelledby="qv-title" id="qv">
-    <!--
-      The close control: a <span> with role="button" + aria-label (so it READS like a
-      button to a name/role check) but it has NO tabindex (not focusable) and only an
-      onclick (mouse) handler — no keydown. Keyboard users can never reach or fire it.
-    -->
     <span class="close" id="qv-close" role="button" aria-label="Close quick view"
           onclick="closeQV()">✕</span>
     <div class="hero" role="img" aria-label="Trail Runner GTX in slate grey"></div>
@@ -111,15 +91,13 @@
 
   function openQV() {
     scrim.classList.add('show');
-    document.getElementById('size').focus();   // focus moves into the dialog
+    document.getElementById('size').focus();   
   }
   function closeQV() { scrim.classList.remove('show'); }
 
-  // Focus trap: cycles Tab among the FOCUSABLE controls only. The close × is a span with
-  // no tabindex, so it is NOT in this list — keyboard users cannot reach it.
   qv.addEventListener('keydown', function (e) {
-    if (e.key !== 'Tab') return;               // no Escape branch — Esc does nothing
-    const items = qv.querySelectorAll('select, input, button');  // excludes the span ×
+    if (e.key !== 'Tab') return;               
+    const items = qv.querySelectorAll('select, input, button');  
     const first = items[0];
     const last  = items[items.length - 1];
     if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }

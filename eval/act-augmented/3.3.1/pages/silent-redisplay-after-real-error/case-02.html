@@ -3,22 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<!--
-  PAGE STATE: This is the checkout page AFTER the customer pressed "Place order". The payment
-  gateway rejected the card (the entered number is 13 digits — a valid card is 15-16). The store
-  bounced the customer back to the checkout step, but the theme injected a GREEN success banner:
-  "Thank you - your order is being processed." The invalid card number is retained in the field.
-  So the page actively CONTRADICTS the failure: it tells the user the order succeeded while the
-  payment did not go through and the form is sitting there with bad data.
-
-  WHY AUTOMATED TOOLS MISS THIS: the banner is valid, high-contrast green text in a normal <div>;
-  the card field has a proper <label for>, valid markup, and an accessible name. There is no error
-  markup to be malformed and nothing structurally wrong. A scanner cannot tell that the green
-  "order is being processed" message is FALSE given the payment failed, nor that the 13-digit card
-  value is invalid. Distinguishing "legitimate success page" from "failure masquerading as
-  success" requires reading the content meaning + the retained invalid card length — human/visual
-  judgment.
--->
 <title>Checkout — Folio &amp; Thread</title>
 <style>
   :root { --ink:#23211e; --muted:#6b6760; --line:#e6e1d8; --accent:#8a5a2b; --ok:#1f7a43; }
@@ -28,7 +12,6 @@
   header .brand { font-size:1.2rem; letter-spacing:.04em; font-weight:700; }
   header .cart { font-size:.85rem; color:var(--muted); }
   main { max-width:720px; margin:24px auto 50px; padding:0 24px; }
-  /* Green success banner — injected on submit by the theme regardless of payment result */
   .banner-success {
     background:#e7f5ec; border:1px solid #bfe3cd; color:var(--ok);
     border-radius:8px; padding:14px 18px; font-family:system-ui,sans-serif; font-size:.95rem; margin-bottom:22px;
@@ -55,7 +38,6 @@
 </header>
 
 <main>
-  <!-- The mismatched success banner sits above a form that still holds an invalid card. -->
   <div class="banner-success" role="status">
     <span class="tick" aria-hidden="true">✓</span>
     <span>Thank you — your order is being processed. A confirmation email is on its way.</span>
@@ -72,8 +54,6 @@
       </div>
 
       <div class="field">
-        <!-- Retained card number is 13 digits ("4716 1234 5678 9") — too short to be a real
-             card. The gateway rejected it. No error mentions this. -->
         <label for="cardnum">Card number</label>
         <input type="text" id="cardnum" name="cardnum" value="4716 1234 5678 9"
                inputmode="numeric" autocomplete="cc-number">

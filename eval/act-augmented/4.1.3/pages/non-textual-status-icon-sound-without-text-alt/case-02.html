@@ -4,21 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Submit assignment — Cell Biology 210 | LearnHub</title>
-<!--
-  SC 4.1.3 aspect: non-textual status (icon) given a status role but no usable text alternative.
-  WHY AUTOMATED TOOLS MISS IT:
-  The upload widget reports progress through a role="status" region that exists at page
-  load (so live-region/F103 checks PASS). The status is carried ENTIRELY by an <img>
-  whose src swaps from a spinner GIF (busy) to a green check PNG (done). Both <img>
-  elements have alt="" — which is the *valid, recommended* markup for a decorative image,
-  so an "images must have alt" linter is satisfied (the attribute is present). Because
-  alt="" makes the image programmatically empty, the role="status" region's computed
-  text is "" the whole time: the spinner announces nothing while uploading, and at
-  completion the green check announces nothing — the blind student hears silence at the
-  exact moment the upload succeeds and cannot tell their assignment was submitted.
-  No tool can decide that this spinner->check image swap *is* the status (vs. a decorative
-  flourish) and that alt="" therefore omits the success state.
--->
 <style>
   :root { --ink:#23272e; --line:#d7dde6; --brand:#5a2d82; --ok:#1f8b4c; }
   * { box-sizing:border-box; }
@@ -33,7 +18,6 @@
   .file .meta { text-align:left; flex:1; }
   .file .meta b { display:block; }
   .file .meta span { color:#6b7280; font-size:13px; }
-  /* status region — the icon lives here and is the only thing that changes */
   .uploadStatus { width:28px; height:28px; flex:0 0 28px; display:flex; align-items:center; justify-content:center; }
   .uploadStatus img { width:24px; height:24px; }
   button { font:inherit; font-weight:600; padding:11px 20px; border-radius:8px; cursor:pointer; border:1px solid transparent; }
@@ -53,9 +37,7 @@
     <div class="dropzone">Drag a file here, or use the button below to choose your PDF.</div>
 
     <div class="file">
-      <!-- the only state indicator: an <img> that swaps spinner -> check, both alt="" -->
       <span class="uploadStatus" id="uStatus" role="status" aria-atomic="true">
-        <!-- idle: nothing -->
       </span>
       <span class="meta">
         <b>lab-report-4-mwong.pdf</b>
@@ -67,8 +49,6 @@
 </div>
 
 <script>
-  // Data-URI assets so the page is fully self-contained (no network).
-  // Spinner: a partial-arc SVG (rotated by CSS). Check: a green tick SVG. Both as <img> with alt="".
   var SPINNER = 'data:image/svg+xml;utf8,' + encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9" fill="none" stroke="#5a2d82" stroke-width="3" stroke-linecap="round"/></svg>');
   var CHECK = 'data:image/svg+xml;utf8,' + encodeURIComponent(
@@ -81,10 +61,8 @@
   btn.addEventListener('click', function () {
     btn.disabled = true;
     note.textContent = '1.4 MB';
-    // BUSY: inject spinner image into role=status. alt="" -> region text stays "".
     statusEl.innerHTML = '<img class="spin" src="' + SPINNER + '" alt="">';
     setTimeout(function () {
-      // DONE: swap to green check. alt="" again -> success announces nothing.
       statusEl.innerHTML = '<img src="' + CHECK + '" alt="">';
     }, 1800);
   });

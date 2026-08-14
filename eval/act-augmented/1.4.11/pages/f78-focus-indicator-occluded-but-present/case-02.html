@@ -4,43 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>City of Marrowfield — Pay a Parking Citation</title>
-<!--
-  SC 1.4.11 Non-text Contrast — F78 (focus indicator occluded by a same-color
-  thick border).
-
-  The action buttons on this civic-payment step use a heavy "brutalist gov"
-  look: a permanent 4px SOLID BLACK border on every button. The author did NOT
-  set outline:none — they supplied a focus indicator, but made it a thin BLACK
-  outline drawn just OUTSIDE the border (the F78 "both are black" case):
-
-      .btn        { border: 4px solid #000; }
-      .btn:focus  { outline: 2px solid #000; outline-offset: 1px; }
-
-  Because the resting border is 4px solid black and the focus outline is a
-  thinner black line immediately outside it, the focus ring is swallowed: when a
-  button gains focus the black ring sits flush against the 4px black border and
-  reads as one continuous black edge. Focus appears not to move.
-
-  (An author black focus outline is declared explicitly rather than relying on
-  the UA default, because modern browsers paint the default ring in the OS
-  accent color — which would NOT be occluded. F78's failure is specifically the
-  SAME-COLOR case, so the page makes the focus indicator black to match the
-  black border, exactly per the F78 example markup.)
-
-  The page is rendered with the "Continue to payment" button focused
-  (autofocus). Tab between the two buttons and the only thing that changes is a
-  hair of thickness on an already-thick black edge — not humanly discernible as
-  "this button is now focused."
-
-  WHY AUTOMATED TOOLS MISS IT: outline:none is NOT used and a real author focus
-  outline IS declared, so outline-removal and "focus-style-exists" linters pass.
-  The focus outline, measured in isolation against the white page, is high
-  contrast (black on white ~21:1), so a contrast check passes. axe/WAVE/
-  Lighthouse encode no rule for "focus ring occluded by a same-color border."
-  Deciding it requires rendering the focused state, seeing that the black focus
-  line abuts a 4px black border, and judging that a sighted keyboard user cannot
-  perceive that focus landed.
--->
 <style>
   :root{
     --ink:#161616; --gov-blue:#0b4a6f; --paper:#f4f3ef; --line:#c9c6bd;
@@ -69,20 +32,14 @@
 
   .actions{display:flex; gap:16px; flex-wrap:wrap;}
 
-  /* THE DEFECT: 4px solid black border on every button, and the author focus
-     indicator is a thin BLACK outline drawn just outside that border. Because
-     both are black and the border is thicker, the focus ring is occluded by the
-     same-color border, so focus is not perceivable. outline:none is NOT used —
-     a real author focus indicator genuinely renders, it is just swallowed. */
   .btn{
     font:700 1rem/1 inherit; cursor:pointer; padding:13px 22px;
-    border:4px solid #000;          /* heavy permanent black border */
+    border:4px solid #000;          
     background:#ffd23f; color:#161616; border-radius:0;
   }
   .btn.secondary{background:#fff;}
   .btn:focus{
-    outline:2px solid #000;         /* SAME color as the 4px border, drawn just
-                                       outside it -> swallowed (F78) */
+    outline:2px solid #000;         
     outline-offset:1px;
   }
 
@@ -119,8 +76,6 @@
 
   <div class="actions">
     <button type="button" class="btn secondary">Back to citation lookup</button>
-    <!-- Page loads with this button focused. The black author focus outline
-         renders but is occluded by the same-color 4px black border. -->
     <button type="button" class="btn" autofocus>Continue to payment</button>
   </div>
 </main>

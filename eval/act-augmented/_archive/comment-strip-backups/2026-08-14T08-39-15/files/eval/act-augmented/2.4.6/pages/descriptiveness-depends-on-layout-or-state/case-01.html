@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trailhead Outfitters — Merino Base Layer</title>
+<!--
+  SC 2.4.6 (Headings limb) — descriptiveness that holds in SOURCE ORDER but
+  BREAKS under VISUAL READING ORDER via CSS grid-template-areas.
+
+  In the DOM, the <h2> "Shipping &amp; returns" is immediately followed by the
+  shipping/returns text (it is descriptive of the content that follows it in the
+  flat tree — so ACT rule b49b2e PASSES, and any source-order checker passes).
+  But CSS grid-template-areas places that heading's GRID CELL visually directly
+  above the "Customer reviews" cell. A sighted user reads top-to-bottom, left-to
+  -right and sees the heading "Shipping &amp; returns" sitting over five-star
+  customer-review content — the visible heading-to-content relationship is wrong.
+
+  WHY AUTOMATED TOOLS MISS IT: axe-core / WAVE / Lighthouse read the DOM/flat
+  tree, where the heading IS adjacent to matching text; they do not compute the
+  rendered grid geometry and they cannot judge whether the heading "describes the
+  topic of its content" as PERCEIVED on screen. b49b2e's own Assumptions state it
+  only holds when flat-tree order is close to visual order — which CSS grid breaks
+  here. Trusted Tester 10.A judges the VISIBLE heading-to-content relationship,
+  which is exactly what diverges.
+-->
+<style>
+  :root { font-family: "Segoe UI", system-ui, sans-serif; color: #1f2430; }
+  body { margin: 0; background: #f5f6f8; }
+  header.site { background: #14532d; color: #fff; padding: 14px 28px; }
+  header.site .brand { font-weight: 700; letter-spacing: .03em; }
+  main { max-width: 980px; margin: 24px auto; padding: 0 20px; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  .price { color: #14532d; font-weight: 700; font-size: 1.25rem; margin: 0 0 18px; }
+
+  /* The product detail sits in a two-column grid. The author named the areas
+     and then, for visual balance, swapped which named area each panel renders
+     into — so the SHIPPING panel is laid out in the area visually above REVIEWS. */
+  .detail {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "specs   shipping"
+      "specs   reviews";
+    gap: 20px 28px;
+  }
+  .panel { background: #fff; border: 1px solid #e1e4ea; border-radius: 8px; padding: 16px 20px; }
+  /* DOM order is: specs, reviews, shipping. CSS assigns them to grid-areas so
+     the SHIPPING panel renders in the top-right cell, directly ABOVE reviews. */
+  #specs    { grid-area: specs; }
+  #reviews  { grid-area: reviews; }
+  #shipping { grid-area: shipping; }
+
+  .panel h2 { font-size: 1.05rem; margin: 0 0 10px; color: #14532d; border-bottom: 2px solid #d7dbe2; padding-bottom: 6px; }
+  .panel p, .panel li { line-height: 1.5; font-size: .94rem; }
+  ul { margin: 0; padding-left: 18px; }
+  .stars { color: #c2840a; letter-spacing: 2px; font-size: 1.1rem; }
+  .review { border-top: 1px solid #eef0f3; padding-top: 10px; margin-top: 10px; }
+  .review:first-of-type { border-top: 0; padding-top: 0; margin-top: 0; }
+  .reviewer { font-weight: 600; }
+  footer { text-align: center; color: #6b7280; font-size: .8rem; padding: 28px 0; }
+</style>
+</head>
+<body>
+<header class="site"><span class="brand">TRAILHEAD OUTFITTERS</span></header>
+
+<main>
+  <h1>Alpine Merino Base Layer — Men's Long Sleeve</h1>
+  <p class="price">$89.00</p>
+
+  <section class="detail">
+
+    <!-- DOM #1: specs (renders left, spanning both rows) -->
+    <article class="panel" id="specs">
+      <h2>Product specifications</h2>
+      <ul>
+        <li>87% merino wool, 13% nylon core-spun for durability</li>
+        <li>17.5 micron fibre — next-to-skin soft</li>
+        <li>Flatlock seams to prevent chafing under a pack</li>
+        <li>Machine washable cold; lay flat to dry</li>
+        <li>Weight: 195 g/m² midweight</li>
+      </ul>
+    </article>
+
+    <!-- DOM #2: reviews comes BEFORE shipping in source. The <h2> "Shipping &
+         returns" is NOT here; this panel has no heading visually near the top
+         right because the grid pulled shipping's heading up above it. -->
+    <article class="panel" id="reviews">
+      <div class="review">
+        <p class="stars" aria-label="5 out of 5 stars">★★★★★</p>
+        <p class="reviewer">Dana R. — verified buyer</p>
+        <p>Wore this for a four-day trek on the Long Trail and it never stank.
+           True to size, the sleeves are long enough for taller frames.</p>
+      </div>
+      <div class="review">
+        <p class="stars" aria-label="4 out of 5 stars">★★★★☆</p>
+        <p class="reviewer">Marcus T. — verified buyer</p>
+        <p>Great warmth-to-weight. Lost a star because the cuffs loosened after
+           about thirty washes, but the wool itself held up beautifully.</p>
+      </div>
+    </article>
+
+    <!-- DOM #3: shipping. Its <h2> IMMEDIATELY precedes the shipping text, so in
+         the flat tree the heading is perfectly descriptive of what follows. The
+         grid renders this whole panel in the TOP-RIGHT cell, so on screen the
+         "Shipping & returns" heading visually sits above the reviews panel. -->
+    <article class="panel" id="shipping">
+      <h2>Shipping &amp; returns</h2>
+      <p>Orders over $75 ship free via ground (3–5 business days). Expedited
+         2-day shipping is $12. We accept returns within 60 days of delivery for
+         a full refund, provided tags are attached.</p>
+    </article>
+
+  </section>
+</main>
+
+<footer>Trailhead Outfitters · Free returns within 60 days</footer>
+</body>
+</html>

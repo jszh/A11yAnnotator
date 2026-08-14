@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.4.3 FAILURE — aria-disabled="true" link that STILL fires (programmatic disabled lie).
+
+    An Arabic-language (RTL) e-government portal: renew a residency permit. The "تحميل الإيصال"
+    (Download receipt) control is an <a href> link styled dim grey (#9c9c9c on #f4f4f4 ≈ 2.5:1)
+    and carries aria-disabled="true" — but its href is live and a click handler navigates/opens
+    the receipt. aria-disabled is a CLAIM, not an enforcement: nothing actually blocks activation,
+    so the control IS operable. A control that fires is not genuinely inactive; the inactive-UI
+    exemption does NOT apply, and the dim Arabic label fails 4.5:1.
+
+    Contrast it with the truly-inert "طباعة" (Print) BUTTON below: native <button disabled>, same
+    grey — that one IS exempt. Same look, opposite verdict, decided by behavior.
+
+    WHY AUTOMATED TOOLS MISS IT: this is the trickiest direction — the markup explicitly SAYS
+    aria-disabled="true", so a scanner that trusts ARIA state will EXEMPT the link and never
+    measure its contrast. But aria-disabled does not make a link inert; only by activating it
+    (the receipt opens) does one learn the control is live and therefore in scope. No static
+    tool drives the link to discover the aria-disabled is a lie.
+  -->
+  <title>تجديد الإقامة — البوابة الحكومية</title>
+  <style>
+    :root { --ink:#1d1d1d; --line:#d9d9d9; --brand:#0b6b6b; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Segoe UI","Tahoma",Arial,sans-serif; color:var(--ink); background:#f7f8f8; }
+    .sheet { max-width:600px; margin:38px auto; background:#fff; border:1px solid var(--line); border-radius:8px; padding:26px 30px; }
+    h1 { font-size:21px; margin:0 0 6px; }
+    .ref { color:#555; font-size:14px; margin:0 0 18px; }
+    .field { display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid #eee; font-size:15px; }
+    .ok { color:#0b6b3a; font-weight:700; }
+    .actions { display:flex; gap:12px; margin-top:22px; flex-wrap:wrap; }
+    .act {
+      display:inline-flex; align-items:center; gap:7px;
+      padding:10px 18px; border-radius:6px; font-size:15px; font-weight:700;
+      text-decoration:none; border:1px solid transparent; cursor:pointer; font-family:inherit;
+    }
+    .act.primary { background:var(--brand); color:#fff; }              /* white on #0b6b6b ≈ 6.3:1 — passes */
+    /* dim style shared by the link and the button below */
+    .act.dim { background:#f4f4f4; color:#9c9c9c; border-color:#ececec; }  /* #9c9c9c on #f4f4f4 ≈ 2.5:1 */
+    .act:focus-visible { outline:2px solid var(--brand); outline-offset:2px; }
+    .act[aria-disabled="true"] { /* visually dimmed, but href is live — NOT really inert */ }
+    .hint { color:#666; font-size:13px; margin-top:14px; }
+    .opened { margin-top:14px; padding:10px 12px; background:#e7f5ec; border:1px solid #bfe3cd; border-radius:6px; color:#0b6b3a; font-weight:700; display:none; }
+  </style>
+</head>
+<body>
+  <main class="sheet">
+    <h1>تجديد الإقامة</h1>
+    <p class="ref">رقم الطلب: <bdi>RES-2026-48172</bdi></p>
+
+    <div class="field"><span>الحالة</span><span class="ok">تمت الموافقة</span></div>
+    <div class="field"><span>تاريخ الانتهاء الجديد</span><span><bdi>2028-06-19</bdi></span></div>
+    <div class="field"><span>الرسوم المدفوعة</span><span><bdi>320 درهم</bdi></span></div>
+
+    <div class="actions">
+      <a class="act primary" href="#renew">متابعة التجديد</a>
+
+      <!--
+        aria-disabled="true" but href is LIVE and a click handler runs — the receipt opens.
+        aria-disabled is only a claim; it does not block activation here. The control fires,
+        so it is NOT genuinely inactive => in scope for 1.4.3 => the ~2.5:1 Arabic label FAILS.
+      -->
+      <a class="act dim" id="receiptLink" href="#receipt" aria-disabled="true"
+         onclick="openReceipt(event)">تحميل الإيصال</a>
+
+      <!--
+        Genuinely inert twin: native <button disabled>, same dim palette => EXEMPT.
+        "Print" is unavailable until the receipt is generated server-side.
+      -->
+      <button type="button" class="act dim" id="printBtn" disabled>طباعة</button>
+    </div>
+
+    <p class="opened" id="opened" role="status">تم فتح الإيصال في نافذة جديدة.</p>
+    <p class="hint">يمكنك تحميل الإيصال الآن؛ تتوفر الطباعة بعد اكتمال الإصدار.</p>
+  </main>
+
+  <script>
+    function openReceipt(e) {
+      e.preventDefault();
+      // aria-disabled did NOT stop us — the link is operable and the receipt "opens" (local only)
+      document.getElementById('opened').style.display = 'block';
+      document.getElementById('receiptLink').textContent = 'تم تحميل الإيصال';
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patient intake — appointment request | Bridgewater Family Clinic</title>
+<style>
+  body { font:15px/1.5 "Helvetica Neue",Arial,sans-serif; color:#222; background:#eef2f5; margin:0; }
+  .shell { max-width:680px; margin:0 auto; background:#fff; min-height:100vh;
+           border-left:1px solid #d7dde2; border-right:1px solid #d7dde2; }
+  .topbar { background:#0a5c6b; color:#fff; padding:16px 28px; }
+  .topbar h1 { font-size:1.2rem; margin:0; font-weight:600; }
+  form { padding:26px 28px 56px; }
+  .step { font-size:.78rem; letter-spacing:.05em; text-transform:uppercase;
+          color:#6a767d; margin:0 0 18px; }
+  fieldset { border:0; margin:0 0 22px; padding:0; }
+  legend { font-weight:600; font-size:.95rem; margin:0 0 14px; padding:0; }
+  .row { display:flex; align-items:center; gap:10px; margin:0 0 14px; }
+  .row label { width:170px; font-weight:500; }
+  .row .control { flex:1; display:flex; align-items:center; gap:8px; }
+  input[type=text], input[type=tel], select {
+    flex:1; padding:9px 10px; font-size:.95rem; border:1px solid #b9c2c8;
+    border-radius:6px; background:#fff; }
+  /* decorative warning icon: empty alt, no accessible name, no tooltip */
+  .warn-ico { width:20px; height:20px; flex:0 0 20px; }
+  .actions { margin-top:8px; }
+  .next { background:#0a5c6b; color:#fff; border:0; border-radius:6px;
+          padding:11px 24px; font-size:.95rem; font-weight:600; cursor:pointer; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="topbar"><h1>Bridgewater Family Clinic — Appointment request</h1></div>
+
+  <form action="/intake/step2" method="post" novalidate>
+    <p class="step">Step 1 of 3 · Patient details</p>
+
+    <fieldset>
+      <legend>Who is this appointment for?</legend>
+
+      <div class="row">
+        <label for="pname">Full name</label>
+        <div class="control">
+          <input type="text" id="pname" name="pname" value="Priya Nadkarni">
+        </div>
+      </div>
+
+      <div class="row">
+        <label for="dob">Date of birth</label>
+        <div class="control">
+          <input type="text" id="dob" name="dob" value="31/02/1991" inputmode="numeric">
+          <!-- 31 February is not a valid date. The clinic's validator flagged it by placing
+               a red exclamation-triangle next to the field. The <img> is marked decorative
+               (alt=""), so AT skips it. No other text mentions the problem. -->
+          <img class="warn-ico" alt="" src="data:image/svg+xml;utf8,
+            <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'>
+              <path d='M12 2 L23 21 H1 Z' fill='%23d8232a'/>
+              <rect x='11' y='9' width='2' height='6' fill='%23fff'/>
+              <rect x='11' y='17' width='2' height='2' fill='%23fff'/>
+            </svg>">
+        </div>
+      </div>
+
+      <div class="row">
+        <label for="phone">Contact number</label>
+        <div class="control">
+          <input type="tel" id="phone" name="phone" value="0161 496 0102">
+        </div>
+      </div>
+
+      <div class="row">
+        <label for="gp">Registered GP surgery</label>
+        <div class="control">
+          <select id="gp" name="gp">
+            <option selected>Bridgewater Family Clinic</option>
+            <option>Alderley Health Centre</option>
+            <option>Other / not registered</option>
+          </select>
+        </div>
+      </div>
+    </fieldset>
+
+    <div class="actions">
+      <button type="submit" class="next">Continue to step 2</button>
+    </div>
+  </form>
+</div>
+
+<!--
+  WHY AUTOMATED TOOLS MISS THIS
+  The image is correct decorative markup: alt="" is exactly what a linter wants for a
+  non-informative image, so axe/WAVE/Lighthouse REWARD it and never flag it. The triangle
+  glyph is, to a sighted user, the universal "error / invalid" symbol sitting right beside
+  the impossible date 31/02/1991 — clearly an error indicator. But its meaning is conveyed
+  only by the picture; alt="" strips it from the accessibility tree, and no message text,
+  aria-label, aria-invalid or hidden text states that the date is in error. A non-visual
+  user hears only "Date of birth, 31/02/1991" with nothing wrong. Distinguishing an
+  error-bearing icon (which needs a text equivalent) from a truly decorative one, and
+  confirming the error meaning is nowhere in text, requires human visual + semantic judgment.
+-->
+</body>
+</html>

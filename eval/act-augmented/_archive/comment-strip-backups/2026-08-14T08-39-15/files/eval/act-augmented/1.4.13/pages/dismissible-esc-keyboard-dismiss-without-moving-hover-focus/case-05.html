@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Residents &amp; Services — City of Brookhaven</title>
+<style>
+  body { font-family: Georgia, "Times New Roman", serif; margin: 0; color: #1d1d1d;
+         background: #fcfbf8; }
+  .gov-bar { background: #14365a; color: #fff; font-size: 12px; padding: 5px 20px;
+             font-family: Arial, sans-serif; }
+  nav { background: #1f4e79; font-family: Arial, sans-serif; }
+  nav ul { list-style: none; margin: 0; padding: 0; display: flex; }
+  nav li { position: relative; }
+  nav > ul > li > a, nav > ul > li > button {
+        display: block; color: #fff; background: none; border: 0;
+        padding: 14px 18px; font-size: 15px; text-decoration: none; cursor: pointer;
+        font-family: Arial, sans-serif; }
+  nav > ul > li > button:focus { outline: 3px solid #ffd24d; outline-offset: -3px; }
+  nav a:hover, nav button:hover { background: #163d61; }
+  /* Submenu opens on hover OR when its toggle button is activated/focused.
+     It is absolutely positioned and overlaps the page banner + intro text. */
+  .submenu { position: absolute; top: 100%; inset-inline-start: 0; min-width: 260px;
+        background: #fff; border: 1px solid #c9d4e0; box-shadow: 0 10px 26px rgba(0,0,0,.22);
+        padding: 8px 0; z-index: 20; display: none; }
+  li:hover > .submenu, .submenu.open { display: block; }
+  .submenu a { display: block; color: #1f4e79; text-decoration: none; padding: 10px 18px;
+        font-size: 14px; }
+  .submenu a:hover, .submenu a:focus { background: #eef3f8; outline: 0; }
+  .banner { background: #e9eef4; padding: 26px 22px; }
+  .banner h1 { margin: 0 0 6px; font-size: 26px; color: #14365a; }
+  .banner p { margin: 0; max-width: 640px; }
+  main { max-width: 720px; margin: 24px auto; padding: 0 20px; }
+  .note { font-size: 12px; color: #6c6c6c; font-family: Arial, sans-serif;
+        border-top: 1px dashed #d6d6d6; margin-top: 24px; padding-top: 12px; }
+</style>
+</head>
+<body>
+<div class="gov-bar">An official website of the City of Brookhaven</div>
+<nav aria-label="Primary">
+  <ul>
+    <li>
+      <button type="button" id="svcToggle" aria-haspopup="true" aria-expanded="false"
+              aria-controls="svcMenu">Residents &amp; Services &#9662;</button>
+      <ul class="submenu" id="svcMenu">
+        <li><a href="/trash">Trash &amp; recycling schedule</a></li>
+        <li><a href="/permits">Building permits</a></li>
+        <li><a href="/water">Pay water bill</a></li>
+        <li><a href="/parks">Parks &amp; recreation</a></li>
+      </ul>
+    </li>
+    <li><a href="/government">Government</a></li>
+    <li><a href="/business">Business</a></li>
+  </ul>
+</nav>
+
+<div class="banner">
+  <h1>Residents &amp; Services</h1>
+  <p>Find everyday city services — pay bills, request pickups, and apply for permits.
+     Most online services are available 24/7.</p>
+</div>
+
+<main>
+  <p>Welcome to Brookhaven's resident services hub. Use the menu above to jump to
+     a service, or browse the featured links below.</p>
+
+  <p class="note">The "Residents &amp; Services" submenu opens on hover and on
+     activation/focus of its toggle. Once open it covers the page banner and intro
+     text. The only way it closes is a document <em>click</em> outside it (mouse) —
+     there is deliberately no Esc handler and no toggle-to-close on the trigger, so a
+     keyboard or magnifier user cannot dismiss the obscuring panel without moving
+     focus away.</p>
+</main>
+
+<script>
+  var toggle = document.getElementById('svcToggle');
+  var menu   = document.getElementById('svcMenu');
+
+  function openMenu()  { menu.classList.add('open');  toggle.setAttribute('aria-expanded', 'true'); }
+  function closeMenu() { menu.classList.remove('open'); toggle.setAttribute('aria-expanded', 'false'); }
+
+  // Open on focus and on click. (Hover handled by CSS.)
+  toggle.addEventListener('focus', openMenu);
+  // INTENTIONAL DEFECT: clicking the toggle only OPENS — it does not toggle
+  // closed, so "activating the trigger" never dismisses the panel.
+  toggle.addEventListener('click', function (e) { e.preventDefault(); openMenu(); });
+
+  // The ONLY dismissal: a document-level CLICK outside the menu (pointer only).
+  // This requires moving the pointer (and, for keyboard users, there is no
+  // equivalent at all). There is no keydown/Escape handler anywhere.
+  document.addEventListener('click', function (e) {
+    if (!menu.contains(e.target) && e.target !== toggle) closeMenu();
+  });
+
+  // (No 'keydown' listener exists — Esc is completely unhandled.)
+</script>
+</body>
+</html>

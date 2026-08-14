@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Release r-2026.06.18 — Aurelia Registry</title>
+<style>
+  :root { --ink:#101418; --muted:#5b6470; --line:#e3e7ec; --brand:#5b3df5; --paper:#f6f7f9; --ok:#1a8a4e; }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; color:var(--ink); background:var(--paper);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  header { background:#16121f; color:#fff; padding:12px 16px; }
+  header .row { width:100%; max-width:880px; margin:0 auto; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  header b { font-size:1rem; }
+  header .muted { color:#a99fd6; font-size:.85rem; }
+  main { width:100%; max-width:880px; margin:0 auto; padding:22px 16px 72px; }
+  h1 { font-size:1.4rem; margin:6px 0 4px; }
+  .sub { color:var(--muted); font-size:.92rem; margin-bottom:18px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px 18px; margin:0 0 16px; }
+  dl { margin:0; }
+  .line { display:flex; gap:16px; padding:11px 0; border-bottom:1px solid var(--line); align-items:flex-start; flex-wrap:wrap; }
+  .line:last-child { border-bottom:0; }
+  .line dt { color:var(--muted); font-size:.9rem; flex:0 0 130px; }
+  .line dd { margin:0; flex:1 1 240px; min-width:0; }
+  code.digest {
+    font:13px/1.5 "SF Mono",Menlo,Consolas,monospace;
+    background:#f2f1fb; color:#241a4d; padding:3px 8px; border-radius:6px;
+    overflow-wrap:anywhere;            /* the FULL value wraps cleanly — it never overflows 320px */
+  }
+  .copywrap { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:6px; }
+  button.copy {
+    font:inherit; font-size:.82rem; padding:5px 11px; border:1px solid var(--line);
+    background:#fff; border-radius:8px; cursor:pointer; color:var(--ink);
+  }
+  .copied { color:var(--ok); font-size:.8rem; }
+  /* The full SHA-256 release digest is the value an operator must verify byte-for-byte before
+     trusting an artifact. At the DEFAULT/desktop viewport the FULL 64-hex digest is rendered
+     (`.full`) and a working "Copy full digest" button is shown — the value is genuinely present
+     and reachable. The desktop digest already wraps (overflow-wrap:anywhere), so it never causes
+     any horizontal scroll; the page reflows perfectly at every width (zero overflow at 320px).
+
+     THE FAILURE (F102): a `@media (max-width:600px)` block — which is active in the 320px reflow
+     viewport — SWAPS the full digest out (`.full{display:none}`) for a short, hard-coded
+     middle-ellipsis abbreviation (`.short`), AND hides the Copy button (`.copywrap{display:none}`).
+     So content that WAS available at the wider (1280px) viewport — the complete digest, plus the
+     only mechanism to obtain it — DISAPPEARS after reflow to 320px, with no disclosure, dialog, or
+     link offering it in some other way. That is exactly F102's failure condition. Nothing overflows,
+     so a naive overflow check passes; only a 1280px-vs-320px comparison reveals the lost content. */
+  .short { display:none;
+    font:13px/1.5 "SF Mono",Menlo,Consolas,monospace;
+    background:#f2f1fb; color:#241a4d; padding:3px 8px; border-radius:6px;
+  }
+  @media (max-width: 600px) {
+    .full { display: none; }              /* full digest gone at the reflow viewport */
+    .copywrap { display: none; }          /* the only way to get it is gone too */
+    .short { display: inline; }           /* replaced by a lossy head…tail abbreviation */
+  }
+  .note { background:#fbfbff; border:1px solid #e6e3fb; border-radius:10px; padding:12px 14px; font-size:.88rem; color:var(--muted); margin-top:16px; }
+  footer { color:var(--muted); font-size:.8rem; border-top:1px solid var(--line); margin-top:24px; padding-top:14px; }
+</style>
+</head>
+<body>
+  <header>
+    <div class="row">
+      <b>Aurelia Registry</b>
+      <span class="muted">&middot; aurelia/payments-api</span>
+      <span class="muted" style="margin-left:auto">Releases</span>
+    </div>
+  </header>
+
+  <main>
+    <h1>Release r-2026.06.18</h1>
+    <p class="sub">Verify the release artifact against the published digest before deploying.</p>
+
+    <div class="card">
+      <dl>
+        <div class="line">
+          <dt>Artifact</dt>
+          <dd>payments-api-2026.06.18-linux-amd64.tar.gz</dd>
+        </div>
+        <div class="line">
+          <dt>SHA-256 digest</dt>
+          <dd>
+            <code class="digest full">9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08e3e9c2d4a7f6b1c8d0e2f4a6b8c0d2e4</code>
+            <span class="short">9f86d081&hellip;c0d2e4</span>
+            <div class="copywrap">
+              <button type="button" class="copy" id="copyBtn" onclick="copyDigest()">Copy full digest</button>
+              <span class="copied" id="copied" role="status"></span>
+            </div>
+          </dd>
+        </div>
+        <div class="line">
+          <dt>Signed by</dt>
+          <dd>release-bot@aurelia.example (key 0x7A4C)</dd>
+        </div>
+        <div class="line">
+          <dt>Published</dt>
+          <dd>18 Jun 2026, 09:42 UTC</dd>
+        </div>
+      </dl>
+
+      <div class="note">
+        Run <code class="digest">sha256sum</code> on the downloaded file and confirm it matches the
+        digest above before deploying to production.
+      </div>
+    </div>
+
+    <footer>
+      &copy; 2026 Aurelia Registry. The release page reflows to a single column and never scrolls
+      horizontally.
+    </footer>
+  </main>
+
+  <script>
+    function copyDigest() {
+      var full = document.querySelector('.digest.full').textContent;
+      var msg = document.getElementById('copied');
+      if (navigator.clipboard) { navigator.clipboard.writeText(full).catch(function(){}); }
+      msg.textContent = 'Digest copied.';
+    }
+  </script>
+</body>
+</html>

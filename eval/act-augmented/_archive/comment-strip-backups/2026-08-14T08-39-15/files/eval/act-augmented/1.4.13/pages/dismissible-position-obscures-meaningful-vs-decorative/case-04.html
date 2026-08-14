@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trail Conditions | Larkspur Ridge Open Space</title>
+<!--
+  SC 1.4.13 Dismissible — Method 1 (non-obscuring positioning) FAIL via the
+  meaningful-vs-decorative judgment.
+
+  This page has NO keyboard dismiss (no Esc handler, no close button). It IS, however, fully
+  hoverable and persistent: the tooltip overlaps its trigger row, the show/hide logic tracks
+  BOTH the trigger AND the tooltip with a small close delay, so the pointer can travel from
+  the trigger onto the tooltip without it disappearing, and it stays open until the pointer
+  leaves both. So Hoverable and Persistent are met; the ONLY unmet condition is Dismissible,
+  whose Method 2 (Esc) is absent and whose Method 1 (non-obscuring positioning) is the sole
+  remaining path.
+
+  Method 1 has an exception for "white space and purely decorative content, such as a
+  background graphic which provides no information." The tooltip opens DOWNWARD and lands on
+  the trail-difficulty SYMBOL KEY graphic — a row of green-circle / blue-square /
+  black-diamond markers. Those markers LOOK ornamental (small flat shapes, no surrounding
+  prose) but they are INFORMATIONAL: they are the only place on the page where the
+  green-circle = Easy, blue-square = Moderate, black-diamond = Difficult mapping is given,
+  and the trail list below refers to those same symbols by shape alone. Covering the key
+  hides information the page depends on, so the decorative exception does NOT apply and
+  Method 1 is violated. With no dismiss key, neither Method 1 nor Method 2 is satisfied and
+  the page FAILS.
+
+  THE HUMAN JUDGMENT (and the trap): a reviewer who glances at the covered region sees
+  "small colored shapes with no text" and is tempted to call them decoration and invoke the
+  carve-out (wrongly PASS). The correct call requires reading the page, noticing the trail
+  list keys off those shapes, and recognizing the markers carry meaning — therefore the
+  covered graphic is informational, the exception does not apply, and the page FAILS. This is
+  the meaningful-vs-decorative human determination, in its hardest "looks decorative but
+  isn't" direction.
+
+  WHY AUTOMATED TOOLS MISS IT: the markup is clean — the trigger is a real <button> with an
+  accessible name, the tooltip is role="tooltip" and aria-describedby-wired, and the key
+  exposes its meaning to AT via aria-labels on each marker (so an SR user is unaffected).
+  Tools do not enter the hover state, do not compute the overlap, and cannot decide that the
+  covered shapes "provide information" rather than being a "background graphic which provides
+  no information." That is the verbatim exception, and applying it is a visual + semantic
+  human call.
+-->
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; background:#f3f1ea; color:#23241c;
+    font:16px/1.6 "Source Sans 3","Segoe UI",Roboto,Arial,sans-serif; }
+  .page { max-width:660px; margin:0 auto; padding:36px 28px 90px; }
+  header h1 { font-size:28px; margin:0 0 2px; }
+  header .sub { color:#5d6149; margin:0 0 22px; font-size:15px; }
+
+  h2.section { font-size:13px; letter-spacing:.12em; text-transform:uppercase; color:#5d6149; margin:26px 0 10px; }
+
+  /* The trail-difficulty SYMBOL KEY. Looks like a decorative band of little shapes, but it
+     is the ONLY legend for the difficulty markers reused in the trail list below. */
+  .key { display:flex; gap:30px; align-items:center; padding:14px 16px;
+    background:#eceadf; border:1px solid #d8d6c6; border-radius:10px; }
+  .key .item { display:flex; align-items:center; gap:9px; font-size:14px; color:#3a3c30; }
+  .key svg { flex:none; }
+
+  /* difficulty marker as used inline in the trail list (shape only, no words) */
+  .mk { display:inline-block; vertical-align:-2px; margin-right:7px; }
+
+  ul.trails { list-style:none; margin:0; padding:0; }
+  ul.trails li { display:flex; justify-content:space-between; gap:14px;
+    padding:12px 0; border-bottom:1px solid #dddbcc; }
+  ul.trails .tname { font-weight:600; }
+  ul.trails .meta { color:#5d6149; font-size:14px; white-space:nowrap; }
+
+  /* status help trigger sitting on the "Current conditions" line */
+  .help {
+    border:0; background:#dfe6d3; color:#3c4a28; font:600 12px/1 inherit;
+    border-radius:999px; padding:5px 11px; margin-left:8px; cursor:help; letter-spacing:.02em;
+  }
+  .help:focus-visible { outline:2px solid #3c4a28; outline-offset:2px; }
+
+  /* Tooltip opens DOWNWARD from the conditions line and overlaps the symbol-key row below.
+     It is wired to be hoverable + persistent (see script): it overlaps its trigger row and
+     the pointer can travel onto it. */
+  .has-tip { position:relative; }
+  .has-tip .tip {
+    display:none;
+    position:absolute;
+    top:1.9em;            /* drops down so its box overlaps the symbol-key row below */
+    left:0;
+    width:300px;
+    background:#fffefb; color:#23241c;
+    border:1px solid #cdc9b3; border-radius:8px;
+    padding:11px 13px; font:14px/1.45 inherit;
+    box-shadow:0 10px 26px rgba(40,40,15,.26);
+    z-index:5;
+  }
+  .has-tip .tip.is-open { display:block; }
+</style>
+</head>
+<body>
+  <main class="page">
+    <header>
+      <h1>Larkspur Ridge Open Space</h1>
+      <p class="sub">Trail conditions &middot; updated this morning</p>
+    </header>
+
+    <p class="has-tip">
+      Current conditions:
+      <button type="button" class="help" aria-describedby="cond">What does "variable" mean?</button>
+      <span role="tooltip" id="cond" class="tip">
+        <strong>Variable</strong> means tread quality changes along the route &mdash; expect
+        dry, packed dirt on exposed sections and soft mud where the trail stays shaded after
+        rain. Footing can differ within a few hundred metres, so check the difficulty marker
+        for each trail before you start.
+      </span>
+    </p>
+
+    <h2 class="section">Difficulty key</h2>
+    <!-- Looks ornamental, but it is the ONLY place the symbol meanings are defined. The list
+         below reuses these exact shapes with no words. -->
+    <div class="key" aria-label="Trail difficulty key">
+      <span class="item">
+        <svg width="18" height="18" viewBox="0 0 18 18" role="img" aria-label="Easy"><circle cx="9" cy="9" r="8" fill="#2e9e4f"/></svg>
+        Easy
+      </span>
+      <span class="item">
+        <svg width="18" height="18" viewBox="0 0 18 18" role="img" aria-label="Moderate"><rect x="1" y="1" width="16" height="16" rx="2" fill="#2f6fd0"/></svg>
+        Moderate
+      </span>
+      <span class="item">
+        <svg width="18" height="18" viewBox="0 0 18 18" role="img" aria-label="Difficult"><polygon points="9,1 17,9 9,17 1,9" fill="#1b1b1b"/></svg>
+        Difficult
+      </span>
+    </div>
+
+    <h2 class="section">Trails</h2>
+    <ul class="trails">
+      <li>
+        <span class="tname">
+          <svg class="mk" width="16" height="16" viewBox="0 0 18 18" role="img" aria-label="Easy"><circle cx="9" cy="9" r="8" fill="#2e9e4f"/></svg>
+          Meadowloop
+        </span>
+        <span class="meta">2.1 km &middot; open</span>
+      </li>
+      <li>
+        <span class="tname">
+          <svg class="mk" width="16" height="16" viewBox="0 0 18 18" role="img" aria-label="Moderate"><rect x="1" y="1" width="16" height="16" rx="2" fill="#2f6fd0"/></svg>
+          Cedar Switchbacks
+        </span>
+        <span class="meta">4.8 km &middot; variable</span>
+      </li>
+      <li>
+        <span class="tname">
+          <svg class="mk" width="16" height="16" viewBox="0 0 18 18" role="img" aria-label="Difficult"><polygon points="9,1 17,9 9,17 1,9" fill="#1b1b1b"/></svg>
+          Ridgecrest Spur
+        </span>
+        <span class="meta">6.3 km &middot; variable</span>
+      </li>
+    </ul>
+  </main>
+
+  <script>
+    // SCR39-style show/hide on hover AND focus. NO Escape handler and no close button:
+    // Method 2 (dismiss) is unavailable on purpose. The tooltip IS hoverable + persistent:
+    // both the trigger and the tooltip keep it open, and a small close delay lets the
+    // pointer cross the (overlapping) gap from trigger onto the tooltip without it
+    // disappearing. So the only failing condition is Dismissible — and Method 1 is violated
+    // because the open tooltip obscures the informational difficulty key.
+    (function () {
+      var wrap = document.querySelector('.has-tip');
+      var trig = wrap.querySelector('.help');
+      var pop  = document.getElementById('cond');
+      var t = null;
+      var show = function () { if (t) { clearTimeout(t); t = null; } pop.classList.add('is-open'); };
+      var hide = function () { t = setTimeout(function () { pop.classList.remove('is-open'); }, 220); };
+      // open on trigger hover/focus
+      trig.addEventListener('mouseenter', show);
+      trig.addEventListener('focus', show);
+      trig.addEventListener('mouseleave', hide);
+      trig.addEventListener('blur', hide);
+      // hoverable + persistent: keep open while pointer is over the tooltip itself
+      pop.addEventListener('mouseenter', show);
+      pop.addEventListener('mouseleave', hide);
+      // NOTE: no keydown/Escape handler -> no dismiss path (intentional).
+    })();
+  </script>
+</body>
+</html>

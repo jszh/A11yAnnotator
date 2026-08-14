@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Helios Energy — Household Usage</title>
+<style>
+  :root { --solar:#13543b; --ink:#16241d; --line:#dbe6df; --bar:#3aa17e; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", system-ui, sans-serif;
+    margin: 0; color: var(--ink); background: #f1f6f3;
+  }
+  header { background: var(--solar); color: #fff; padding: 12px 24px;
+           display: flex; align-items: center; gap: 12px; }
+  header h1 { font-size: 16px; margin: 0; font-weight: 600; }
+  header .sun { font-size: 18px; }
+  main { max-width: 720px; margin: 26px auto; padding: 0 22px 90px; }
+  h2 { font-size: 18px; margin: 0 0 4px; }
+  .lede { color: #4c5d54; font-size: 13px; margin: 0 0 24px; }
+  .chart {
+    background: #fff; border: 1px solid var(--line); border-radius: 12px;
+    padding: 26px 24px 16px; position: relative;
+  }
+  .bars { display: flex; align-items: flex-end; gap: 18px; height: 200px; padding: 0 4px; }
+  .col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+  .col svg { width: 100%; display: block; cursor: pointer; }
+  .col .mon { margin-top: 8px; font-size: 12px; color: #4c5d54; }
+
+  /* AUTHOR overlay tooltip. Appears on hover of a bar, positioned floating near the
+     cursor anchor. It shows a RICHER, DIFFERENT string than the SVG <title>. It is
+     pointer-events:none and has no Esc handler. */
+  .vtip {
+    position: absolute; background: #1f2d27; color: #fff; font-size: 12px; line-height: 1.4;
+    padding: 7px 10px; border-radius: 6px; pointer-events: none; white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0,0,0,.3); opacity: 0; transition: opacity .1s; z-index: 6;
+  }
+  .note { margin-top: 24px; font-size: 12px; color: #61736a; line-height: 1.55; }
+  .note code { background: #e6efe9; padding: 1px 5px; border-radius: 4px; }
+</style>
+</head>
+<body>
+  <header>
+    <span class="sun" aria-hidden="true">&#9728;</span>
+    <h1>Helios Energy — Household Usage</h1>
+  </header>
+
+  <main>
+    <h2>Monthly electricity use (kWh)</h2>
+    <p class="lede">Hover a bar for details. Net of rooftop solar generation.</p>
+
+    <div class="chart" id="chart">
+      <div class="bars">
+        <!-- Each bar's <rect> has an SVG <title> child: the browser renders THAT as a
+             native tooltip (UA-controlled). The author ALSO shows .vtip on hover with
+             a DIFFERENT, richer string. Two bubbles, two owners, two contents. -->
+        <div class="col">
+          <svg viewBox="0 0 40 130" role="img" aria-label="February: 612 kilowatt hours">
+            <rect class="bar" x="6" y="40" width="28" height="90" rx="3" fill="#3aa17e"
+                  data-rich="Feb · 612 kWh · $84.10 · 18% below your 12-mo avg">
+              <title>February: 612 kWh</title>
+            </rect>
+          </svg>
+          <span class="mon">Feb</span>
+        </div>
+        <div class="col">
+          <svg viewBox="0 0 40 130" role="img" aria-label="March: 548 kilowatt hours">
+            <rect class="bar" x="6" y="50" width="28" height="80" rx="3" fill="#3aa17e"
+                  data-rich="Mar · 548 kWh · $75.40 · 27% below your 12-mo avg">
+              <title>March: 548 kWh</title>
+            </rect>
+          </svg>
+          <span class="mon">Mar</span>
+        </div>
+        <div class="col">
+          <svg viewBox="0 0 40 130" role="img" aria-label="April: 690 kilowatt hours">
+            <rect class="bar" x="6" y="28" width="28" height="102" rx="3" fill="#3aa17e"
+                  data-rich="Apr · 690 kWh · $94.90 · 8% below your 12-mo avg">
+              <title>April: 690 kWh</title>
+            </rect>
+          </svg>
+          <span class="mon">Apr</span>
+        </div>
+        <div class="col">
+          <svg viewBox="0 0 40 130" role="img" aria-label="May: 734 kilowatt hours">
+            <rect class="bar" x="6" y="20" width="28" height="110" rx="3" fill="#2f8a6a"
+                  data-rich="May · 734 kWh · $101.00 · 3% above your 12-mo avg">
+              <title>May: 734 kWh</title>
+            </rect>
+          </svg>
+          <span class="mon">May</span>
+        </div>
+      </div>
+    </div>
+
+    <p class="note">
+      Implementation note: each bar exposes a short summary via an SVG
+      <code>&lt;title&gt;</code> (rendered by the browser), and a richer breakdown via
+      our floating <code>.vtip</code> overlay on hover. The two strings differ on
+      purpose — the overlay adds cost and trend.
+    </p>
+  </main>
+
+  <script>
+    // Author overlay tooltip. The SVG <title> tooltip is left entirely to the UA.
+    // This overlay shows the data-rich string near the hovered bar; it never reacts
+    // to Escape and is pointer-events:none, so the AUTHOR content fails 1.4.13.
+    var chart = document.getElementById('chart');
+    var tip = document.createElement('div');
+    tip.className = 'vtip'; tip.setAttribute('role', 'tooltip');
+    chart.appendChild(tip);
+    chart.querySelectorAll('rect.bar').forEach(function (bar) {
+      bar.addEventListener('mousemove', function (e) {
+        var r = chart.getBoundingClientRect();
+        tip.textContent = bar.getAttribute('data-rich');
+        tip.style.left = (e.clientX - r.left + 12) + 'px';
+        tip.style.top  = (e.clientY - r.top - 8) + 'px';
+        tip.style.opacity = '1';
+      });
+      bar.addEventListener('mouseleave', function () { tip.style.opacity = '0'; });
+    });
+  </script>
+
+  <!-- WHY AUTOMATED TOOLS MISS IT:
+       On every bar there are TWO sources of on-hover content with two owners: the SVG
+       <title> (browser-rendered, UA-controlled, OUT of scope for 1.4.13) and the
+       author .vtip overlay (in scope). They even carry DIFFERENT text. A scanner sees
+       a valid <title> in the SVG and a JS-built div and cannot reason that only the
+       author overlay is governed by 1.4.13, nor that the overlay (pointer-events:none,
+       no Esc, repositions under the cursor) fails hoverable+dismissible. Separating
+       which content the SC governs, and judging the overlay's interaction behavior,
+       requires human visual + semantic reasoning. -->
+</body>
+</html>

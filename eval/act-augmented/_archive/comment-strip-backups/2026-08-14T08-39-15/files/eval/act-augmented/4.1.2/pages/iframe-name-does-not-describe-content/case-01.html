@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Checkout — Aurora Coffee Roasters</title>
+  <style>
+    :root { --ink:#1c1c22; --muted:#5b5f6b; --line:#d8dbe2; --brand:#7a4a23; }
+    * { box-sizing: border-box; }
+    body { font: 16px/1.55 -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; color: var(--ink); margin: 0; background: #f6f5f2; }
+    header { background: var(--brand); color: #fff; padding: 14px 22px; }
+    header .brand { font-weight: 700; letter-spacing: .3px; }
+    main { max-width: 880px; margin: 28px auto; padding: 0 18px; display: grid; grid-template-columns: 1fr 320px; gap: 28px; }
+    @media (max-width: 760px) { main { grid-template-columns: 1fr; } }
+    h1 { font-size: 1.5rem; margin: 0 0 6px; }
+    .step { color: var(--muted); margin: 0 0 20px; }
+    .panel { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
+    .panel h2 { font-size: 1.05rem; margin: 0 0 12px; }
+    iframe { width: 100%; height: 340px; border: 1px solid var(--line); border-radius: 10px; }
+    .summary li { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed var(--line); }
+    .summary li.total { font-weight: 700; border-bottom: 0; padding-top: 12px; }
+    .ship { font-size: .9rem; color: var(--muted); margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <header><span class="brand">Aurora Coffee Roasters</span> &nbsp;·&nbsp; Secure Checkout</header>
+  <main>
+    <section>
+      <h1>Payment</h1>
+      <p class="step">Step 3 of 3 — enter your card to complete the order.</p>
+      <div class="panel">
+        <h2>Card details</h2>
+        <!--
+          The payment widget is embedded via the processor's hosted-fields iframe.
+          The title attribute is the literal default emitted by the integration
+          snippet that was copied from the gateway's "quick start" docs.
+        -->
+        <iframe title="iframe" srcdoc='
+          <!DOCTYPE html><html lang=&quot;en&quot;><head><meta charset=&quot;utf-8&quot;>
+          <style>
+            body{font:15px/1.5 -apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#1c1c22;margin:0;padding:16px;background:#fff}
+            h2{font-size:1rem;margin:0 0 14px}
+            label{display:block;font-size:.85rem;color:#5b5f6b;margin:10px 0 4px}
+            input{width:100%;padding:9px 10px;border:1px solid #c9ccd6;border-radius:8px;font-size:15px}
+            .row{display:flex;gap:12px}.row>div{flex:1}
+            .pay{margin-top:16px;width:100%;padding:11px;border:0;border-radius:8px;background:#1f7a44;color:#fff;font-size:15px;font-weight:600;cursor:pointer}
+            .lock{font-size:.8rem;color:#5b5f6b;margin-top:8px}
+          </style></head>
+          <body>
+            <h2>Credit or debit card</h2>
+            <form onsubmit=&quot;return false&quot;>
+              <label for=&quot;cc&quot;>Card number</label>
+              <input id=&quot;cc&quot; inputmode=&quot;numeric&quot; autocomplete=&quot;cc-number&quot; placeholder=&quot;1234 5678 9012 3456&quot;>
+              <div class=&quot;row&quot;>
+                <div><label for=&quot;exp&quot;>Expiry</label><input id=&quot;exp&quot; autocomplete=&quot;cc-exp&quot; placeholder=&quot;MM / YY&quot;></div>
+                <div><label for=&quot;cvc&quot;>CVC</label><input id=&quot;cvc&quot; autocomplete=&quot;cc-csc&quot; placeholder=&quot;123&quot;></div>
+              </div>
+              <label for=&quot;zip&quot;>Billing ZIP</label>
+              <input id=&quot;zip&quot; autocomplete=&quot;postal-code&quot; placeholder=&quot;94110&quot;>
+              <button class=&quot;pay&quot; type=&quot;submit&quot;>Pay $42.00</button>
+              <p class=&quot;lock&quot;>&#128274; Your card is encrypted and processed by AuroraPay.</p>
+            </form>
+          </body></html>'></iframe>
+      </div>
+    </section>
+    <aside class="panel summary" aria-label="Order summary">
+      <h2>Order summary</h2>
+      <ul style="list-style:none;padding:0;margin:0">
+        <li><span>Ethiopia Yirgacheffe (340g)</span><span>$19.00</span></li>
+        <li><span>Colombia Decaf (340g)</span><span>$17.00</span></li>
+        <li><span>Shipping</span><span>$6.00</span></li>
+        <li class="total"><span>Total</span><span>$42.00</span></li>
+      </ul>
+      <p class="ship">Ships in 1–2 business days.</p>
+    </aside>
+  </main>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS
+    The iframe has a non-empty accessible name ("iframe" via the title attribute),
+    so ACT rule cae760 (Iframe element has non-empty accessible name) PASSES. There
+    is only one iframe, so 4b1c6c (identical-name iframes) is inapplicable. axe/WAVE/
+    Lighthouse confirm the frame is "named" and report no error. They cannot render
+    the frame's content (a credit-card payment form) and judge that the name "iframe"
+    fails to describe it. Recognising that an AT user landing on this frame hears only
+    "iframe" — with no clue it is the payment step — requires a human to look inside
+    the frame and compare its content to the name (Trusted Tester 12.D).
+  -->
+</body>
+</html>

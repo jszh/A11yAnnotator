@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bayside Pharmacy — Prescription details</title>
+<!--
+  SC 1.4.13 Content on Hover or Focus — HOVERABLE limb — F95 (the HARD one).
+
+  This is the trap variant where the GEOMETRY LOOKS CORRECT but the BEHAVIOR
+  still fails — exactly the human-judgment boundary.
+
+  THE SETUP that looks like a PASS: a glossary term <dfn> ("contraindication")
+  shows a definition pop-up DIRECTLY ADJACENT to and slightly OVERLAPPING the
+  term. The pop-up is a DOM child of the term, positioned to overlap (top:-2px so
+  it covers the term's bottom edge — no gap at all). On a screenshot it looks like
+  the passing arrangement the Understanding describes: "additional content overlaps
+  or is positioned adjacent to the target." A reviewer checking only geometry would
+  pass it.
+
+  THE DEFECT (behavioral, hidden): the pop-up carries  pointer-events:none . And
+  reveal is bound to the TERM's :hover only (CSS), which uses the term's box, NOT
+  including the pop-up. So:
+    - The pop-up renders over/adjacent to the term, satisfying the LOOK of adjacency.
+    - But because pointer-events:none, the pop-up is transparent to the pointer:
+      moving the cursor onto the pop-up means the cursor is no longer over the term
+      (the pop-up swallows the space but accepts no hover), :hover goes false, and
+      the pop-up vanishes. The user can never rest the pointer ON the content to
+      read it under magnification or with a large cursor.
+    - There is therefore NO continuous pointer path that keeps the content visible,
+      despite perfect visual adjacency. Adjacency is necessary but NOT sufficient —
+      the content must be genuinely HOVERABLE, which pointer-events:none forbids.
+
+  WHY AUTOMATED TOOLS MISS IT: no 1.4.13 automated rule. A geometry-only review (or
+  a tool checking popup-overlaps-trigger) PASSES it. A markup review passes it:
+  <dfn>, role="tooltip", aria-describedby, focus parity, great contrast. Catching it
+  requires noticing that pointer-events:none on a hover-revealed popup makes the
+  popup un-hoverable even though it sits right on the trigger — a CSS-behavior +
+  pointer-path inference, not a layout measurement and not an attribute check.
+-->
+<style>
+  :root{ --ink:#16212b; --muted:#5d6b76; --line:#dde5ec; --bg:#ffffff;
+         --rx:#0a6b8a; --panel:#eef5f8; --danger:#9a2b2b; }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink);
+       font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  header{display:flex; align-items:center; gap:12px; padding:14px 26px; border-bottom:1px solid var(--line);}
+  header .brand{font-weight:700; color:var(--rx);}
+  header .crumb{color:var(--muted); font-size:.9rem;}
+  main{max-width:680px; margin:0 auto; padding:28px 26px 60px;}
+  h1{font-size:1.45rem; margin:0 0 4px;}
+  .lede{color:var(--muted); margin:0 0 22px;}
+  .panel{border:1px solid var(--line); border-radius:12px; padding:18px 20px; margin-bottom:18px;}
+  .panel h2{font-size:1.05rem; margin:0 0 10px;}
+  dl.facts{margin:0; display:grid; grid-template-columns:140px 1fr; row-gap:8px;}
+  dl.facts dt{color:var(--muted);}
+  dl.facts dd{margin:0;}
+  .note{font-size:.95rem;}
+
+  /* The glossary term and its OVERLAPPING/ADJACENT definition pop-up. */
+  dfn.term{
+    position:relative; font-style:normal; color:var(--rx);
+    border-bottom:2px dotted var(--rx); cursor:help;
+  }
+  .def{
+    position:absolute; left:0; top:-2px;       /* OVERLAPS the term — no gap at all */
+    transform:translateY(-100%);
+    width:280px; background:#16212b; color:#fff;
+    font-size:.86rem; line-height:1.4; padding:10px 12px; border-radius:8px;
+    box-shadow:0 8px 24px rgba(0,0,0,.22);
+    opacity:0; visibility:hidden;
+    /* THE DEFECT: the pop-up accepts NO pointer input, so it can never be hovered;
+       moving onto it drops the term's :hover and the pop-up disappears. */
+    pointer-events:none;
+    z-index:6;
+  }
+  /* Reveal is keyed to the TERM's hover/focus only (its box excludes the popup region). */
+  dfn.term:hover .def,
+  dfn.term:focus-within .def,
+  dfn.term:focus .def{opacity:1; visibility:visible;}
+  dfn.term{ outline-offset:2px; }
+  dfn.term:focus-visible{ outline:2px solid var(--rx); }
+</style>
+</head>
+<body>
+<header>
+  <span class="brand">Bayside Pharmacy</span>
+  <span class="crumb">My medications › Prescription details</span>
+</header>
+
+<main>
+  <h1>Lisinopril 10 mg tablet</h1>
+  <p class="lede">Ready for pickup &middot; Rx #4471209 &middot; 30-day supply</p>
+
+  <section class="panel">
+    <h2>Prescription</h2>
+    <dl class="facts">
+      <dt>Quantity</dt><dd>30 tablets</dd>
+      <dt>Directions</dt><dd>Take one tablet by mouth once daily.</dd>
+      <dt>Refills</dt><dd>2 remaining</dd>
+      <dt>Prescriber</dt><dd>Dr. A. Okafor</dd>
+    </dl>
+  </section>
+
+  <section class="panel">
+    <h2>Important safety information</h2>
+    <p class="note">
+      Do not start a new medicine without checking for a
+      <dfn class="term" tabindex="0" aria-describedby="def-contra" id="t-contra">contraindication<span
+        class="def" id="def-contra" role="tooltip">A <strong>contraindication</strong> is a specific
+        situation — a condition, medication, or factor — in which a drug should <strong>not</strong> be
+        used because it may be harmful. Example: lisinopril is contraindicated in pregnancy.</span></dfn>.
+      Tell your pharmacist about all other medicines you take, including the potassium supplement noted on
+      your profile, before your first dose.
+    </p>
+    <p class="note" style="color:var(--danger);">
+      Seek care immediately if you develop swelling of the lips, tongue, or throat.
+    </p>
+  </section>
+
+  <p style="font-size:.9rem;color:var(--muted);">
+    Hover or focus the highlighted term to read its definition.
+  </p>
+</main>
+</body>
+</html>

@@ -23,9 +23,8 @@
   h1 { font-size: 22px; margin: 0 0 4px; }
   .intro { color: #565c66; margin: 0 0 24px; }
 
-  /* The lavender quote panel — both inputs sit ON this panel (#DDE3F0). */
   .quote-panel {
-    background: #DDE3F0;            /* lavender panel — the surround for both inputs */
+    background: #DDE3F0;            
     border-radius: 12px;
     padding: 24px 24px 28px;
   }
@@ -37,28 +36,12 @@
     width: 100%; padding: 11px 12px; font-size: 16px; border-radius: 7px; outline: none;
   }
 
-  /* INPUT A — "Estimated home value"
-     interior = white (#FFFFFF), border = steel-blue (#6E8FB5)
-       border vs interior : 3.36:1  (passes against the interior)
-       border vs panel    : 2.61:1  (fails against the lavender panel)
-       interior vs panel  : 1.29:1  <-- the MEANINGFUL adjacency: the white field on the
-                                        lavender panel is nearly invisible; the border is
-                                        the only real cue, and it is subsumed toward the
-                                        panel (below 3:1 against the panel). FAIL. */
   .field.input-a input {
     background: #FFFFFF;
     color: #21242b;
     border: 1px solid #6E8FB5;
   }
 
-  /* INPUT B — "Annual policy budget"
-     interior = muted violet (#6E5A86), border = grape (#7A4A8A)
-       border vs panel    : 5.14:1  (passes against the panel)
-       border vs interior : 1.09:1  (fails against the interior)
-       interior vs panel  : 4.70:1  <-- the MEANINGFUL adjacency: the violet field fill on
-                                        the lavender panel is 4.70:1, so the control is
-                                        clearly identifiable by its fill regardless of the
-                                        border. PASS. */
   .field.input-b input {
     background: #6E5A86;
     color: #ffffff;
@@ -102,25 +85,5 @@
     </form>
   </main>
 
-  <!--
-    WHY AUTOMATED TOOLS MISS IT (the verdict requires choosing the meaningful adjacency):
-    Both inputs live on the same lavender panel (#DDE3F0). A per-edge tool measures each
-    declared border against an adjacent color and can be fooled either way:
-
-    INPUT A (white interior, #6E8FB5 border): border-vs-INTERIOR is 3.36:1, so a tool that
-      picks the inner adjacency reports PASS. But the white interior on the lavender panel
-      is 1.29:1 — the field is nearly invisible against the panel, so the BORDER is the only
-      thing identifying the control, and the border-vs-PANEL is only 2.61:1. Correct
-      verdict: FAIL.
-
-    INPUT B (violet #6E5A86 interior, #7A4A8A border): border-vs-INTERIOR is just 1.09:1,
-      so a tool that picks the inner adjacency reports FAIL. But the violet fill on the
-      lavender panel is 4.70:1 — the control is clearly identifiable by its fill, and the
-      border is decorative/subsumed. Correct verdict: PASS.
-
-    No checker performs the interpretive step of deciding WHICH adjacency actually
-    identifies each control (interior-vs-panel here), so it over- or under-reports. Only a
-    human reasoning about which colored pair is the meaningful one gets both right.
-  -->
 </body>
 </html>

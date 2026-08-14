@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>مؤتمر الابتكار التقني — تسجيل الحضور</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (SC 2.4.3 Focus Order) — RTL Arabic edition:
+  An Arabic-language (dir="rtl") conference registration collects details for TWO attendees:
+  "الحاضر الأول" (Attendee 1) and "الحاضر الثاني" (Attendee 2). Each is a visually grouped,
+  headed card with four fields: full name, email, job title, dietary preference. Every field
+  has a real <label for>, correct programmatic name/role, and is keyboard-operable, and
+  there is NO tabindex. In RTL the *expected logical* order is right-to-left, and the two
+  cards sit right (Attendee 1) and left (Attendee 2). But the DOM interleaves the two
+  attendees field-by-field, so the tab order alternates: attendee1-name, attendee2-name,
+  attendee1-email, attendee2-email, ... Focus jumps between the two attendee cards on every
+  Tab, so a keyboard user fills one person's name, is thrown to the SECOND person's name,
+  back to the first person's email, etc. — the "I'm registering attendee 1" model is broken.
+  Automated tools verify lang/dir, labels, and contrast are all correct (they are) and find
+  nothing. They have no model that "email/job/diet belong with the SAME attendee's name,"
+  and the RTL direction adds a layer: a tool that naively assumed left-to-right tab order
+  would mis-judge which order even counts as logical here. Only a human who reads Arabic
+  RTL content and groups each attendee can see the interleave.
+-->
+<style>
+  :root { --ink:#1d2330; --brand:#7a2e8f; --line:#e2dbe6; --muted:#675c70; --bg:#faf6fc; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.7 "Segoe UI","Noto Naskh Arabic",Tahoma,sans-serif;
+         color:var(--ink); background:var(--bg); }
+  header { background:#4a1659; color:#fff; padding:24px 28px; }
+  header h1 { margin:0; font-size:1.5rem; }
+  header p { margin:.3rem 0 0; opacity:.9; font-size:.95rem; }
+  main { max-width:900px; margin:0 auto; padding:30px 24px 80px; }
+  .lede { color:var(--muted); margin:0 0 26px; }
+
+  /* One CSS grid for both attendee cards. In RTL the FIRST grid column is on the RIGHT, so
+     "att1" (right) before "att2" (left) matches the reading direction. Each field is
+     pinned by named area; DOM order is interleaved between the two attendees. */
+  form { display:grid;
+         grid-template-columns:1fr 1fr;
+         grid-template-areas:
+           "a1-head a2-head"
+           "a1-name a2-name"
+           "a1-mail a2-mail"
+           "a1-job  a2-job"
+           "a1-diet a2-diet"
+           "go      go";
+         gap:14px 30px; align-items:start; position:relative; }
+  /* card backgrounds */
+  form::before, form::after { content:""; position:absolute; top:0; bottom:60px;
+    width:calc(50% - 15px); border:1px solid var(--line); border-radius:12px;
+    background:#fff; z-index:0; }
+  form::before { right:0; }  /* attendee 1 card, on the right (first in RTL) */
+  form::after  { left:0; }   /* attendee 2 card, on the left */
+
+  .sec { z-index:1; padding:16px 20px 2px; }
+  .sec h2 { margin:0; font-size:1.05rem; color:#4a1659; }
+  .a1-head{grid-area:a1-head} .a2-head{grid-area:a2-head}
+  .field { z-index:1; padding:0 20px; }
+  label { display:block; font-weight:600; font-size:.9rem; margin-bottom:5px; }
+  input, select { width:100%; padding:9px 11px; border:1px solid #c6bccb; border-radius:8px;
+                  font-size:.95rem; font-family:inherit; background:#fff; }
+  :focus-visible { outline:3px solid var(--brand); outline-offset:2px; }
+
+  .a1-name{grid-area:a1-name} .a2-name{grid-area:a2-name}
+  .a1-mail{grid-area:a1-mail} .a2-mail{grid-area:a2-mail}
+  .a1-job{grid-area:a1-job}   .a2-job{grid-area:a2-job}
+  .a1-diet{grid-area:a1-diet} .a2-diet{grid-area:a2-diet}
+
+  .go { grid-area:go; z-index:1; margin-top:20px; }
+  button { background:var(--brand); color:#fff; border:0; border-radius:9px;
+           padding:12px 30px; font-size:1rem; font-weight:700; cursor:pointer; font-family:inherit; }
+</style>
+</head>
+<body>
+<header>
+  <h1>مؤتمر الابتكار التقني ٢٠٢٦</h1>
+  <p>تسجيل حضور شخصين — يرجى إدخال بيانات كل حاضر</p>
+</header>
+<main>
+  <p class="lede">سجّل حاضرَين في آنٍ واحد. أكمل بيانات الحاضر الأول، ثم بيانات الحاضر الثاني.</p>
+
+  <!--
+    DOM / TAB ORDER (no tabindex, pure source order) is INTERLEAVED between attendees:
+      attendee1-name -> attendee2-name -> attendee1-email -> attendee2-email ->
+      attendee1-job  -> attendee2-job  -> attendee1-diet  -> attendee2-diet -> submit
+    The grid-areas re-route each field into its correct attendee card (attendee 1 on the
+    right, attendee 2 on the left, matching RTL reading), so visually the two cards look
+    tidy and grouped — but keyboard focus alternates between the two attendees.
+  -->
+  <form action="#" method="post" novalidate aria-label="تسجيل حاضرين">
+
+    <div class="sec a1-head"><h2>الحاضر الأول</h2></div>
+    <div class="sec a2-head"><h2>الحاضر الثاني</h2></div>
+
+    <div class="field a1-name"><label for="a1-name">الاسم الكامل</label>
+      <input id="a1-name" name="a1_name" type="text" autocomplete="name"></div>
+    <div class="field a2-name"><label for="a2-name">الاسم الكامل</label>
+      <input id="a2-name" name="a2_name" type="text" autocomplete="name"></div>
+
+    <div class="field a1-mail"><label for="a1-mail">البريد الإلكتروني</label>
+      <input id="a1-mail" name="a1_email" type="email" autocomplete="email"></div>
+    <div class="field a2-mail"><label for="a2-mail">البريد الإلكتروني</label>
+      <input id="a2-mail" name="a2_email" type="email" autocomplete="email"></div>
+
+    <div class="field a1-job"><label for="a1-job">المسمى الوظيفي</label>
+      <input id="a1-job" name="a1_job" type="text" autocomplete="organization-title"></div>
+    <div class="field a2-job"><label for="a2-job">المسمى الوظيفي</label>
+      <input id="a2-job" name="a2_job" type="text" autocomplete="organization-title"></div>
+
+    <div class="field a1-diet"><label for="a1-diet">التفضيل الغذائي</label>
+      <select id="a1-diet" name="a1_diet">
+        <option>عادي</option><option>نباتي</option><option>حلال</option><option>خالٍ من الغلوتين</option>
+      </select></div>
+    <div class="field a2-diet"><label for="a2-diet">التفضيل الغذائي</label>
+      <select id="a2-diet" name="a2_diet">
+        <option>عادي</option><option>نباتي</option><option>حلال</option><option>خالٍ من الغلوتين</option>
+      </select></div>
+
+    <div class="go"><button type="submit">تأكيد التسجيل</button></div>
+  </form>
+</main>
+</body>
+</html>

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quillpad — Document Editor</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Segoe UI",system-ui,Arial,sans-serif; color:#23272e; background:#eceef1; }
+  header { background:#2f3a4a; color:#fff; padding:10px 18px; display:flex; align-items:center; gap:10px; }
+  header .app { font-weight:700; letter-spacing:.4px; }
+  header .doc { color:#c4ccd8; font-size:.85rem; }
+  .toolbar {
+    display:flex; align-items:center; gap:4px; background:#fff; border-bottom:1px solid #d7dbe2;
+    padding:6px 12px; position:sticky; top:0;
+  }
+  .toolbar button {
+    min-width:34px; height:34px; border:1px solid transparent; background:transparent; border-radius:6px;
+    font-size:1rem; cursor:pointer; color:#3a414c; display:inline-flex; align-items:center; justify-content:center; padding:0 8px;
+  }
+  .toolbar button:hover { background:#eef1f5; }
+  .toolbar button:focus-visible { outline:3px solid #2f80c8; outline-offset:1px; }
+  .toolbar button[aria-pressed="true"] { background:#dde7f5; border-color:#b9cef0; color:#1d4ea8; }
+  .toolbar .sep { width:1px; height:22px; background:#dfe3ea; margin:0 6px; }
+  .sheet { max-width:760px; margin:26px auto; background:#fff; border:1px solid #d7dbe2; border-radius:6px; box-shadow:0 1px 6px rgba(0,0,0,.06); padding:0; }
+  .editor {
+    min-height:360px; padding:34px 44px; font-family:Georgia,serif; font-size:1.05rem; line-height:1.7; color:#1f2530; outline:none;
+  }
+  .editor:focus-visible { box-shadow:inset 0 0 0 2px #2f80c8; border-radius:6px; }
+  .status { max-width:760px; margin:0 auto 50px; color:#7b828c; font-size:.78rem; padding:0 6px; }
+</style>
+</head>
+<body>
+<header>
+  <span class="app">Quillpad</span>
+  <span class="doc">Untitled document — saved</span>
+</header>
+
+<!--
+  BOUNDARY / PASSED CASE — looks like F55 in source, but is NOT a 2.1.1 failure.
+  This is the standard rich-text-editor toolbar pattern: each formatting button suppresses
+  focus ONLY for pointer interaction, via mousedown -> e.preventDefault(). That keeps the
+  text caret in the document when you CLICK Bold (so Bold applies to your selection instead
+  of yanking focus out of the editor). Crucially it does NOT touch keyboard focus:
+    - There is NO onfocus="this.blur()" and NO focusin re-grab.
+    - A keyboard user can Tab to every toolbar button; focus RESTS on it (the focus ring
+      stays), and Enter/Space toggles aria-pressed. The buttons are fully keyboard operable.
+  mousedown.preventDefault() fires only on a real pointer press; pressing Tab dispatches no
+  mousedown, so keyboard focus is never removed. A careless reviewer who greps for
+  "preventDefault" near focus might mistake this for F55, but F55 requires that focus be
+  removed WHEN RECEIVED for keyboard users — here focus is received and held. This sharpens
+  the aspect: suppressing the MOUSE's focus-on-click is a legitimate, accessibility-friendly
+  pattern, not a keyboard failure.
+-->
+<div class="toolbar" role="toolbar" aria-label="Text formatting" id="tb">
+  <button type="button" aria-pressed="false" data-cmd="bold"   aria-label="Bold"><b>B</b></button>
+  <button type="button" aria-pressed="false" data-cmd="italic" aria-label="Italic"><i>I</i></button>
+  <button type="button" aria-pressed="false" data-cmd="under"  aria-label="Underline"><u>U</u></button>
+  <span class="sep" aria-hidden="true"></span>
+  <button type="button" data-cmd="h2"  aria-label="Heading">H2</button>
+  <button type="button" data-cmd="list" aria-label="Bulleted list">•≡</button>
+  <span class="sep" aria-hidden="true"></span>
+  <button type="button" data-cmd="link" aria-label="Insert link">🔗</button>
+</div>
+
+<div class="sheet">
+  <div class="editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Document body">
+    <p><strong>Quarterly Field Notes</strong></p>
+    <p>Place the caret anywhere in this paragraph and click <em>Bold</em> in the toolbar — the
+       selection is styled and the caret stays put, because the toolbar buttons decline focus on
+       mouse press. Now press <kbd>Tab</kbd> from the editor to the toolbar instead: focus lands
+       on a button and stays there, and <kbd>Space</kbd> toggles it.</p>
+    <p>Both input methods work. Nothing here removes keyboard focus on receipt.</p>
+  </div>
+</div>
+
+<p class="status">Quillpad · autosave on · last edit just now</p>
+
+<script>
+  (function () {
+    var tb = document.getElementById('tb');
+    var buttons = Array.prototype.slice.call(tb.querySelectorAll('button'));
+
+    buttons.forEach(function (btn) {
+      // POINTER-ONLY focus suppression: keep the editor caret on click.
+      // Fires only on a physical mouse/touch press — never on keyboard Tab.
+      btn.addEventListener('mousedown', function (e) { e.preventDefault(); });
+
+      // Keyboard activation toggles a pressed state; focus is NEVER removed.
+      btn.addEventListener('click', function () {
+        if (btn.hasAttribute('aria-pressed')) {
+          var on = btn.getAttribute('aria-pressed') === 'true';
+          btn.setAttribute('aria-pressed', String(!on));
+        }
+      });
+    });
+    // No focus/focusin/blur handlers anywhere: keyboard focus rests normally.
+  })();
+</script>
+</body>
+</html>

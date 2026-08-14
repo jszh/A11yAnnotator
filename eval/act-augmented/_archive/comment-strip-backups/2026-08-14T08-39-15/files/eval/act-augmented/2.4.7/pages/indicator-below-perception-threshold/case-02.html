@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lumen &amp; Co. — Checkout</title>
+<!--
+  SC 2.4.7 Focus Visible (AA) — the MAGNITUDE / "is the indicator visible" limb,
+  contrast-of-the-indicator facet.
+
+  THE DEFECT (contrast magnitude, not absence):
+  The checkout primary actions get an author-supplied focus OUTLINE — so the
+  page does NOT trip "outline:none / no :focus rule". But the outline color is
+  a near-white design token:
+        .btn:focus-visible { outline: 1px solid #f4f4f4; outline-offset: 2px; }
+  drawn against the #ffffff page / #ffffff button surface. #f4f4f4 vs #ffffff is
+  a contrast ratio of ~1.08:1 — far below the 3:1 G195 asks for, and the outline
+  is only 1px (so the "<3:1 is OK if >=2px thick" escape hatch also fails). The
+  outline genuinely renders (a non-zero pixel diff in a 1px band), so oj04fd
+  PASSES, but a sighted keyboard user cannot see a near-white hairline on white.
+
+  HOW IT REALISTICALLY AROSE: the design system defines focus rings with the
+  token --color-border-subtle (#f4f4f4), the same token used for hairline card
+  dividers. A dev reused it for :focus-visible because "use the subtle border
+  token for focus". It looks fine on the gray dashboard chrome, but the checkout
+  buttons sit on a white card, where the ring vanishes.
+
+  WHY AUTOMATED TOOLS MISS IT: a :focus-visible rule EXISTS and sets a real
+  outline, so absence heuristics don't fire. axe/WAVE/Lighthouse do not compute
+  the contrast of a focus outline against the colors behind/around it, nor judge
+  it against G195's 3:1 / 2px thresholds. A pixel diff sees the 1px band change
+  and reports a change. Only a human looking at the rendered focus state can say
+  "that near-white hairline is not perceptible on this white button."
+-->
+<style>
+  :root{
+    --bg:#ffffff; --ink:#1c1c1c; --muted:#6a6a6a;
+    --card:#ffffff; --border-subtle:#f4f4f4;   /* hairline divider token */
+    --brand:#16624a; --brand-ink:#ffffff;
+    --sans:"Helvetica Neue",Arial,system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:#fbfbfb; color:var(--ink); font:15px/1.55 var(--sans);}
+  .wrap{max-width:520px; margin:0 auto; padding:30px 20px 60px;}
+  .brand{font-weight:800; letter-spacing:.02em; font-size:1.2rem; margin:0 0 22px;}
+  .card{background:var(--card); border:1px solid var(--border-subtle); border-radius:12px;
+        padding:22px; margin:0 0 18px; box-shadow:0 1px 2px rgba(0,0,0,.04);}
+  h1{font-size:1.15rem; margin:0 0 4px;}
+  .sub{color:var(--muted); font-size:.88rem; margin:0 0 18px;}
+  .line{display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--border-subtle);}
+  .line:last-of-type{border-bottom:0;}
+  .total{font-weight:700;}
+  fieldset{border:0; margin:0; padding:0;}
+  legend{font-weight:600; font-size:.95rem; margin:0 0 10px;}
+  label{display:block; font-size:.82rem; color:var(--muted); margin:14px 0 4px;}
+  input[type=text]{width:100%; padding:9px 10px; border:1px solid #d4d4d4; border-radius:8px; font:inherit;}
+  input[type=text]:focus-visible{outline:2px solid var(--brand); outline-offset:1px;}
+
+  .actions{display:flex; gap:10px; margin-top:22px;}
+  .btn{font:600 .95rem/1 var(--sans); padding:12px 18px; border-radius:9px; cursor:pointer;}
+  .btn-primary{background:var(--brand); color:var(--brand-ink); border:1px solid var(--brand); flex:1;}
+  .btn-secondary{background:#ffffff; color:var(--ink); border:1px solid #d4d4d4;}
+
+  /* The author-supplied focus indicator for the action buttons: a 1px outline
+     in the "subtle" near-white token, on white. Present, renders, sub-perceptual. */
+  .btn:focus-visible{ outline:1px solid var(--border-subtle); outline-offset:2px; }
+
+  .pay-note{color:var(--muted); font-size:.78rem; margin-top:14px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">Lumen &amp; Co.</div>
+
+  <div class="card">
+    <h1>Order summary</h1>
+    <p class="sub">2 items &middot; ships to 19147</p>
+    <div class="line"><span>Brass desk lamp, matte</span><span>$128.00</span></div>
+    <div class="line"><span>Replacement linen shade</span><span>$34.00</span></div>
+    <div class="line"><span>Shipping (2&ndash;4 days)</span><span>$0.00</span></div>
+    <div class="line total"><span>Total</span><span>$162.00</span></div>
+  </div>
+
+  <form class="card" action="#review" method="post" novalidate>
+    <fieldset>
+      <legend>Payment</legend>
+      <label for="cc">Card number</label>
+      <input type="text" id="cc" name="cc" inputmode="numeric" autocomplete="cc-number" placeholder="1234 5678 9012 3456">
+      <label for="name">Name on card</label>
+      <input type="text" id="name" name="name" autocomplete="cc-name">
+    </fieldset>
+
+    <div class="actions">
+      <button type="button" class="btn btn-secondary">Back to cart</button>
+      <button type="submit" class="btn btn-primary">Place order &middot; $162.00</button>
+    </div>
+    <p class="pay-note">Press Tab to move between the card fields and the two
+      buttons. Buttons receive a focus outline drawn in our subtle border color.</p>
+  </form>
+</div>
+</body>
+</html>

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Subscribers · Mailroom Admin</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Inter", system-ui, "Segoe UI", Arial, sans-serif;
+    background: #f6f7f9;
+    color: #1f2733;
+    font-size: 14px;
+  }
+  .app { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+  aside {
+    background: #1d2733;
+    color: #c5cfdb;
+    padding: 18px 0;
+  }
+  aside .logo { color: #fff; font-weight: 700; padding: 0 20px 16px; font-size: 16px; }
+  aside nav a {
+    display: block;
+    color: #c5cfdb;
+    text-decoration: none;
+    padding: 9px 20px;
+    font-size: 14px;
+  }
+  aside nav a.active { background: #2a3645; color: #fff; }
+  main { padding: 26px 30px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: #6b7686; margin: 0 0 20px; }
+  .toolbar { display: flex; gap: 10px; margin-bottom: 14px; }
+  .toolbar input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #cfd6df;
+    border-radius: 7px;
+    font-size: 14px;
+  }
+  .toolbar button {
+    background: #2563a8; color: #fff; border: 0;
+    padding: 8px 16px; border-radius: 7px; font-weight: 600; cursor: pointer;
+  }
+  table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+  thead th {
+    text-align: left;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: #6b7686;
+    padding: 11px 16px;
+    border-bottom: 1px solid #e6eaef;
+    background: #fafbfc;
+  }
+  tbody td { padding: 12px 16px; border-bottom: 1px solid #eef1f4; vertical-align: middle; }
+  tbody tr:last-child td { border-bottom: 0; }
+  .status { font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 20px; }
+  .status.active { background: #e3f4e8; color: #1e7a3d; }
+  .status.bounced { background: #fde8e6; color: #b3261e; }
+  .status.pending { background: #fff2d9; color: #9a6700; }
+  td.actions { width: 120px; text-align: right; }
+
+  /* Row action buttons are HIDDEN until the row is hovered. They are real <button>
+     elements (in the DOM, focusable in principle), but visibility:hidden + the
+     hover reveal is the only way they ever surface to the user. */
+  td.actions .row-actions {
+    visibility: hidden;
+    display: inline-flex;
+    gap: 6px;
+  }
+  tbody tr:hover td.actions .row-actions { visibility: visible; }
+  .icon-btn {
+    border: 1px solid #d3dae2;
+    background: #fff;
+    border-radius: 6px;
+    padding: 4px 9px;
+    font-size: 12px;
+    cursor: pointer;
+    color: #2f3b4a;
+  }
+  .icon-btn.danger { color: #b3261e; border-color: #f0c5c1; }
+  .icon-btn:hover { background: #f1f5f9; }
+  footer { color: #8a94a2; font-size: 12px; margin-top: 18px; }
+</style>
+</head>
+<body>
+  <div class="app">
+    <aside>
+      <div class="logo">Mailroom</div>
+      <nav aria-label="Sections">
+        <a href="#">Dashboard</a>
+        <a href="#" class="active">Subscribers</a>
+        <a href="#">Campaigns</a>
+        <a href="#">Templates</a>
+        <a href="#">Settings</a>
+      </nav>
+    </aside>
+
+    <main>
+      <h1>Subscribers</h1>
+      <p class="sub">3,184 contacts in this list</p>
+
+      <div class="toolbar">
+        <input type="search" aria-label="Search subscribers" placeholder="Search by name or email…">
+        <button type="button">Add subscriber</button>
+      </div>
+
+      <table>
+        <caption class="sr-only" style="position:absolute;left:-9999px;">Subscriber list with per-row actions</caption>
+        <thead>
+          <tr>
+            <th scope="col">Name</th>
+            <th scope="col">Email</th>
+            <th scope="col">Status</th>
+            <th scope="col">Joined</th>
+            <th scope="col"><span style="position:absolute;left:-9999px;">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Dolores Ainsworth</td>
+            <td>d.ainsworth@example.com</td>
+            <td><span class="status active">Active</span></td>
+            <td>2024-02-11</td>
+            <td class="actions">
+              <span class="row-actions">
+                <button type="button" class="icon-btn">Edit</button>
+                <button type="button" class="icon-btn danger">Delete</button>
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <td>Marcus Whitfield</td>
+            <td>m.whitfield@example.com</td>
+            <td><span class="status bounced">Bounced</span></td>
+            <td>2023-11-30</td>
+            <td class="actions">
+              <span class="row-actions">
+                <button type="button" class="icon-btn">Edit</button>
+                <button type="button" class="icon-btn danger">Delete</button>
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <td>Priya Raman</td>
+            <td>priya.raman@example.com</td>
+            <td><span class="status pending">Pending</span></td>
+            <td>2025-01-08</td>
+            <td class="actions">
+              <span class="row-actions">
+                <button type="button" class="icon-btn">Edit</button>
+                <button type="button" class="icon-btn danger">Delete</button>
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <td>Theo Nakamura</td>
+            <td>theo.n@example.com</td>
+            <td><span class="status active">Active</span></td>
+            <td>2024-07-22</td>
+            <td class="actions">
+              <span class="row-actions">
+                <button type="button" class="icon-btn">Edit</button>
+                <button type="button" class="icon-btn danger">Delete</button>
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <footer>Showing 4 of 3,184 · Bulk actions available from the checkbox column (coming soon)</footer>
+    </main>
+  </div>
+
+  <!--
+    WHY THIS FAILS SC 2.1.1 (keyboard) AND WHY AUTOMATED TOOLS MISS IT:
+
+    Each row's Edit and Delete are real, named <button> elements. The ONLY way to act on a
+    subscriber row — edit details or delete the contact — is through these per-row buttons.
+    They are wrapped in span.row-actions, which is visibility:hidden by default and becomes
+    visibility:visible ONLY under `tbody tr:hover`. There is no `tr:focus-within` rule and no
+    keyboard/focus path that reveals them.
+
+    The subtle trap: `visibility:hidden` elements are NOT focusable, so even though the
+    <button>s are in the DOM and have accessible names, Tab skips them entirely while the row
+    is not hovered — and a keyboard user can never hover. So a keyboard-only operator can
+    reach the search box and "Add subscriber" but can NEVER edit or delete any existing row.
+    The footer mentions a checkbox bulk-action column but it is "coming soon" and not present,
+    so the functionality is genuinely not available elsewhere on the page.
+
+    A static scanner sees four well-formed <button>Edit</button>/<button>Delete</button>
+    pairs with valid names inside a semantic <table> — axe/WAVE/Lighthouse report NO error,
+    because nothing is missing or malformed. Detecting the failure requires (1) operating the
+    table by keyboard and observing the actions never surface on focus, and (2) judging that
+    edit/delete are ESSENTIAL functions with no keyboard-reachable equivalent here. Both are
+    human judgments. Present-but-unreachable. Verdict: FAILED.
+  -->
+</body>
+</html>

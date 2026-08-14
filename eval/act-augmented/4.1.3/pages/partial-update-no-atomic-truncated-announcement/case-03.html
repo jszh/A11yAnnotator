@@ -36,13 +36,6 @@
 
   <div class="bar"><i id="fill"></i></div>
 
-  <!--
-    The author DID read part of ARIA22 ("add aria-atomic") but mis-applied it: they set
-    aria-atomic="FALSE" on the live region (perhaps copy-pasting a snippet, perhaps to "stop
-    it repeating the filename"). With aria-atomic=false, only the changed subtree is spoken.
-    JS rewrites ONLY the inner <span id="pct"> percentage node, so AT announces a bare "85"
-    on each tick — never "85 percent complete".
-  -->
   <p class="status-line" id="upload-status" role="status" aria-atomic="false">
     Uploading: <span id="pct">0</span>% complete
   </p>
@@ -60,7 +53,6 @@
 </footer>
 
 <script>
-  // Progressive upload simulation. Only the inner percentage node is rewritten each tick.
   var pctEl = document.getElementById('pct');
   var fill = document.getElementById('fill');
   var t = null;
@@ -71,7 +63,6 @@
       p += Math.floor(Math.random() * 9) + 4;
       if (p >= 100) { p = 100; clearInterval(t); t = null; }
       fill.style.width = p + '%';
-      // ONLY the percentage value node updates; aria-atomic="false" means AT speaks only "85".
       pctEl.textContent = String(p);
     }, 420);
   });

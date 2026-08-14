@@ -55,8 +55,6 @@
     <button class="renew" data-name="أتورفاستاتين ٢٠ ملغ">تجديد</button>
   </div>
 
-  <!-- The status confirmation will be cloned from the template below and appended here.
-       At page load this area is an empty PLAIN div — no role, no aria-live. -->
   <div id="status-area" class="status-area"></div>
 
   <div class="devnote">
@@ -70,8 +68,6 @@
   </div>
 </main>
 
-<!-- The fatal pattern: a <template> that bundles role="status" + the message text together.
-     Cloning and appending it inserts a born-with-content live region. -->
 <template id="renew-tpl">
   <div class="status-card" role="status" aria-live="polite" data-region-born-with-content="true">
     تم استلام طلب تجديد <span class="med-name"></span>. رقم الطلب ‎RX-2026-7731‎. ستكون جاهزة للاستلام خلال ٢٤ ساعة.
@@ -79,21 +75,13 @@
 </template>
 
 <script>
-  // Persona: a pharmacy-chain dev localized the patient portal to Arabic and, to keep the success markup and its
-  // translated copy in one editable place, authored the confirmation as a <template> that includes role="status".
-  // On renew they clone the template and append it. The template approach felt "clean and accessible" — the role
-  // is right there in the markup. They never realized that cloning a template node that ALREADY contains both the
-  // role and the text, then appending it, inserts a live region that is born with its content and never announces.
-  // Sighted bilingual QA saw the green confirmation appear, so it shipped.
   var tpl = document.getElementById('renew-tpl');
   document.querySelectorAll('.renew').forEach(function (btn) {
     btn.addEventListener('click', function () {
       var area = document.getElementById('status-area');
-      area.innerHTML = ''; // one confirmation at a time
-      // Clone the template fragment — it carries role="status" + aria-live + the full message text together.
+      area.innerHTML = ''; 
       var frag = tpl.content.cloneNode(true);
       frag.querySelector('.med-name').textContent = btn.getAttribute('data-name');
-      // The live region and its message enter the document in a single append: born with content.
       area.appendChild(frag);
     });
   });

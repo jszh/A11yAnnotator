@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Weekly Groceries — Fresh&amp;Co</title>
+<style>
+  :root { font-family: system-ui, "Segoe UI", Arial, sans-serif; }
+  body { margin: 0; background: #f6f7f4; color: #1c1f1a; }
+  header { background: #2f6b3a; color: #fff; padding: 18px 24px; }
+  header h1 { margin: 0; font-size: 1.3rem; }
+  .wrap { max-width: 640px; margin: 24px auto; padding: 0 16px; }
+  .hint { color: #45503f; font-size: .95rem; margin: 0 0 14px; }
+  ul.list { list-style: none; margin: 0; padding: 0; border: 1px solid #d4dacb; border-radius: 10px; overflow: hidden; background: #fff; }
+  li.item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 16px; border-bottom: 1px solid #e7ebe0;
+    cursor: grab; background: #fff;
+  }
+  li.item:last-child { border-bottom: 0; }
+  li.item:hover { background: #f1f5ec; }
+  li.item.dragging { opacity: .4; }
+  li.item.over { border-top: 2px solid #2f6b3a; }
+  .grip { color: #8a9580; font-size: 1.2rem; user-select: none; }
+  .qty { color: #5a6450; font-variant-numeric: tabular-nums; min-width: 56px; }
+  .name { flex: 1; }
+  .done { width: 18px; height: 18px; }
+  footer { text-align: center; color: #76806c; font-size: .85rem; margin: 30px 0; }
+  .addrow { display: flex; gap: 8px; margin-top: 16px; }
+  .addrow input { flex: 1; padding: 10px; border: 1px solid #cdd4c2; border-radius: 8px; font: inherit; }
+  .addrow button { padding: 10px 16px; border: 0; border-radius: 8px; background: #2f6b3a; color: #fff; font: inherit; cursor: pointer; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Fresh&amp;Co · My Weekly Groceries</h1>
+</header>
+
+<main class="wrap">
+  <p class="hint">Drag the items to put them in the order you want to shop the aisles. We pack your tote in this order.</p>
+
+  <ul class="list" id="grocery" aria-label="Grocery items in shopping order">
+    <li class="item" draggable="true"><span class="grip" aria-hidden="true">⠿</span><span class="qty">1 bunch</span><span class="name">Organic kale</span><input class="done" type="checkbox" aria-label="Mark Organic kale as picked"></li>
+    <li class="item" draggable="true"><span class="grip" aria-hidden="true">⠿</span><span class="qty">2 lb</span><span class="name">Honeycrisp apples</span><input class="done" type="checkbox" aria-label="Mark Honeycrisp apples as picked"></li>
+    <li class="item" draggable="true"><span class="grip" aria-hidden="true">⠿</span><span class="qty">1 dozen</span><span class="name">Free-range eggs</span><input class="done" type="checkbox" aria-label="Mark Free-range eggs as picked"></li>
+    <li class="item" draggable="true"><span class="grip" aria-hidden="true">⠿</span><span class="qty">500 g</span><span class="name">Whole-bean coffee</span><input class="done" type="checkbox" aria-label="Mark Whole-bean coffee as picked"></li>
+    <li class="item" draggable="true"><span class="grip" aria-hidden="true">⠿</span><span class="qty">1 loaf</span><span class="name">Sourdough bread</span><input class="done" type="checkbox" aria-label="Mark Sourdough bread as picked"></li>
+  </ul>
+
+  <form class="addrow" id="addform">
+    <label for="newitem" class="visually-hidden" style="position:absolute;left:-9999px">Add a grocery item</label>
+    <input id="newitem" type="text" placeholder="Add an item…">
+    <button type="submit">Add</button>
+  </form>
+</main>
+
+<footer>Fresh&amp;Co Market · Order saved to your account</footer>
+
+<!--
+  WHY AUTOMATED TOOLS MISS THIS:
+  Every individual control is keyboard-operable: the "Add" form submits with Enter,
+  each "picked" checkbox is a native focusable input with a label, and the list has an
+  accessible name. axe/WAVE/Lighthouse find no missing role, no missing name, no
+  empty alt. There is NO ARIA claim that is broken. The FUNCTION that is unreachable
+  by keyboard is REORDERING the list — and reordering is implemented ONLY through
+  native HTML5 drag-and-drop (draggable=true + dragstart/dragover/drop). Drop-target
+  reorder of a list is ENDPOINT-dependent (only the final position matters, not the
+  path the pointer travels), so it does NOT qualify for the 2.1.1 path-of-movement
+  exception and REQUIRES a keyboard equivalent (e.g. Move-up/Move-down buttons, or a
+  "go to position" field). None exists anywhere on the page. A scanner cannot reason
+  that a draggable list item represents a reorder *function* that needs a keyboard
+  route, nor that this particular drag is endpoint- (not path-) dependent. That is a
+  human semantic judgment about the underlying function.
+-->
+<script>
+  // Reorder is available ONLY via pointer drag. No keyboard path to this function.
+  const list = document.getElementById('grocery');
+  let dragging = null;
+  list.addEventListener('dragstart', e => {
+    dragging = e.target.closest('.item');
+    dragging.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+  });
+  list.addEventListener('dragend', () => {
+    if (dragging) dragging.classList.remove('dragging');
+    list.querySelectorAll('.over').forEach(n => n.classList.remove('over'));
+    dragging = null;
+  });
+  list.addEventListener('dragover', e => {
+    e.preventDefault();
+    const over = e.target.closest('.item');
+    list.querySelectorAll('.over').forEach(n => n.classList.remove('over'));
+    if (over && over !== dragging) over.classList.add('over');
+  });
+  list.addEventListener('drop', e => {
+    e.preventDefault();
+    const over = e.target.closest('.item');
+    if (over && dragging && over !== dragging) {
+      const rect = over.getBoundingClientRect();
+      const after = e.clientY > rect.top + rect.height / 2;
+      list.insertBefore(dragging, after ? over.nextSibling : over);
+    }
+    list.querySelectorAll('.over').forEach(n => n.classList.remove('over'));
+  });
+
+  document.getElementById('addform').addEventListener('submit', e => {
+    e.preventDefault();
+    const input = document.getElementById('newitem');
+    const v = input.value.trim();
+    if (!v) return;
+    const li = document.createElement('li');
+    li.className = 'item';
+    li.setAttribute('draggable', 'true');
+    li.innerHTML = '<span class="grip" aria-hidden="true">⠿</span><span class="qty">1</span><span class="name"></span>' +
+      '<input class="done" type="checkbox" aria-label="Mark item as picked">';
+    li.querySelector('.name').textContent = v;
+    list.appendChild(li);
+    input.value = '';
+  });
+</script>
+</body>
+</html>

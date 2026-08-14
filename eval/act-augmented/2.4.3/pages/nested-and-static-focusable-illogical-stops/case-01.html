@@ -24,8 +24,6 @@
     label { display:block; font-weight:600; margin: 18px 0 6px; }
     select { padding: 8px 10px; border:1px solid #b9b1a3; border-radius: 6px; min-width: 160px; font: inherit; }
 
-    /* The wrapper is styled to be the visible "button surface". The author put the
-       click + focus styling on the DIV, then dropped a real <button> inside it too. */
     .add-wrap { display:inline-block; margin-top: 24px; }
     .add-wrap:focus-visible { outline: 3px solid #2a6; outline-offset: 3px; }
     .add-btn { font: inherit; font-weight:700; color:#fff; background: var(--accent);
@@ -59,12 +57,6 @@
           <option>Forest green</option>
         </select>
 
-        <!--
-          THE DEFECT: a <div tabindex="0"> wraps a real <button>. Both are in the tab
-          order, so Tab stops on the wrapper, then again on the button — the SAME
-          control appears to receive focus twice. The wrapper's keydown re-dispatches
-          a click so it "works", which is why it survived testing.
-        -->
         <div class="add-wrap" tabindex="0" role="button"
              onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.querySelector('button').click();}">
           <button type="button" class="add-btn"
@@ -82,15 +74,5 @@
     <p>&copy; 2026 Ironbark Pottery Co-operative. Made on Gadigal land.</p>
   </footer>
 
-  <!--
-    WHY AUTOMATED TOOLS MISS IT:
-    Every attribute here is valid. tabindex="0" is legal on a div; role="button" on the
-    wrapper is technically a real role; the inner element is a genuine <button> with an
-    accessible name. axe-core / WAVE / Lighthouse have no rule that says "a focusable
-    wrapper around a single focusable control is a redundant focus stop" — that requires
-    a human to TAB through, notice the SAME control gets focus twice, and judge that the
-    duplicate stop is confusing rather than merely tedious. It is the exact pattern the
-    Understanding note calls out verbatim: <div tabindex="0"><button>...</button></div>.
-  -->
 </body>
 </html>

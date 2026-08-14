@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>都道府県別 出荷量一覧 ｜ 物流ダッシュボード</title>
+  <style>
+    body { font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
+           margin:0; background:#f4f6f8; color:#1a1a1a; }
+    .wrap { max-width:820px; margin:2rem auto; padding:0 1rem; }
+    h1 { font-size:1.4rem; }
+    table { border-collapse:collapse; width:100%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.12); }
+    caption { text-align:left; font-weight:bold; padding:.6rem 0; }
+    th, td { border:1px solid #d4d9de; padding:.55rem .8rem; text-align:center; }
+    thead th { background:#2f4858; color:#fff; }
+    /* Row-header cells are rendered as VERTICAL text. The author achieved this with <br>
+       between each kanji rather than CSS writing-mode. */
+    th[scope="row"] { background:#eef2f5; font-weight:bold; line-height:1.15; white-space:nowrap; }
+    .summary { background:#fff; margin-top:1.5rem; padding:1rem 1.25rem; border-left:4px solid #2f4858; }
+    code { background:#eef2f5; padding:.1em .3em; border-radius:3px; }
+    .en { font-family: Arial, sans-serif; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>都道府県別 出荷量一覧（第1四半期）</h1>
+    <table>
+      <caption>表1. 主要都府県の出荷量（単位：トン）</caption>
+      <thead>
+        <tr>
+          <td></td>
+          <th scope="col">1月</th>
+          <th scope="col">2月</th>
+          <th scope="col">3月</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <!-- F32 FAILURE: "東京都" (Tokyo-to) is one word. Line-break characters between each
+               kanji create vertical text, so AT reads it as three separate characters and gives
+               the WRONG on/kun reading "Higashi Kyo Miyako" instead of "Tokyo-to". -->
+          <th scope="row">東<br>京<br>都</th>
+          <td>1,240</td>
+          <td>1,310</td>
+          <td>1,402</td>
+        </tr>
+        <tr>
+          <th scope="row">大<br>阪<br>府</th>
+          <td>980</td>
+          <td>1,005</td>
+          <td>1,120</td>
+        </tr>
+        <tr>
+          <th scope="row">京<br>都<br>府</th>
+          <td>610</td>
+          <td>640</td>
+          <td>702</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <section class="summary" aria-label="このページについて">
+      <p>
+        本ダッシュボードでは <strong>東京都</strong>（正しく一語で記述）が第1四半期で最大の出荷量でした。
+      </p>
+      <p class="en">
+        <strong>Why automated checkers pass this page:</strong> the table is well-formed —
+        every data cell has a <code>scope</code>-correct header, the <code>&lt;caption&gt;</code>
+        is present, <code>lang="ja"</code> is set, and there are no empty headers. axe/WAVE/Lighthouse
+        see valid table semantics and no missing text. They cannot detect that a row header built as
+        <code>東&lt;br&gt;京&lt;br&gt;都</code> splits the single word 都道府県名 "東京都" (Tokyo-to)
+        into three characters, which a Japanese screen reader then reads with the wrong kanji
+        readings ("Higashi Kyo Miyako") — the same word written correctly as <strong>東京都</strong>
+        in the prose above reads "Tokyo-to". Catching this needs reading Japanese and knowing the
+        on'yomi/kun'yomi shift, not counting spaces.
+      </p>
+    </section>
+  </div>
+</body>
+</html>

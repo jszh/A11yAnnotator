@@ -19,7 +19,6 @@
   th, td { padding:10px 12px; text-align:right; border-bottom:1px solid #eef1f6; white-space:nowrap; }
   th:first-child, td:first-child { text-align:left; }
   thead th { position:sticky; top:0; background:#f6f8fc; z-index:2; }
-  /* the trigger: a dotted-underline metric name in the header */
   .term { border-bottom:1px dotted #6b7a99; cursor:help; position:relative; }
   .term:focus-visible { outline:2px solid #2563eb; outline-offset:2px; }
   .gloss {
@@ -59,7 +58,6 @@
 </div>
 
 <script>
-  // Populate a tall grid so the container genuinely scrolls.
   var tbody = document.querySelector('tbody');
   var weeks = ['Jan W1','Jan W2','Jan W3','Jan W4','Feb W1','Feb W2','Feb W3','Feb W4','Mar W1','Mar W2','Mar W3','Mar W4'];
   weeks.forEach(function (w, i) {
@@ -72,7 +70,6 @@
     tbody.appendChild(tr);
   });
 
-  // Glossary popups appear on hover + focus (good), are hoverable, Esc-dismissible.
   var terms = document.querySelectorAll('.term');
   function show(t) { t.querySelector('.gloss').classList.add('show'); }
   function hide(t) { t.querySelector('.gloss').classList.remove('show'); }
@@ -86,26 +83,10 @@
     if (e.key === 'Escape') terms.forEach(hide);
   });
 
-  // ---- the defect: a scroll listener closes the popup for a DISALLOWED reason ----
-  // A dev added this to "reposition tooltips on scroll" but shipped only the hide
-  // half. The sticky header keeps the term + pointer in view, so the user is STILL
-  // hovering the term — yet the moment they nudge the grid to read a lower row, the
-  // definition they were reading vanishes. Scroll is not one of the three allowed
-  // reasons (lost hover/focus, user-dismiss, info-invalid).
   document.getElementById('grid').addEventListener('scroll', function () {
     terms.forEach(hide);
   });
 </script>
 
-<!--
-  WHY AUTOMATED TOOLS MISS IT:
-  Markup is clean: role="button" triggers with role="tooltip" content, aria-describedby,
-  hover + focus + Esc handling, and the popup is hoverable. Every static rule passes.
-  The defect is a scroll event handler that hides the popup although hover/focus is
-  retained (the header is sticky, so the trigger stays under the pointer). Closing on
-  scroll is a disallowed persistence-end reason, but no scanner scrolls a sub-container
-  while holding a hover and re-checks tooltip visibility. A reviewer must reason that the
-  information is still valid and the user has not relinquished hover — so the close is wrong.
--->
 </body>
 </html>

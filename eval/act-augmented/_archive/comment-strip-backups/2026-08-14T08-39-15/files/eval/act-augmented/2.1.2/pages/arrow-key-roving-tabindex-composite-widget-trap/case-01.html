@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Order online — Saffron &amp; Sage Kitchen</title>
+<style>
+  :root { --ink:#23201c; --herb:#3a6b35; --herb-dk:#2c5128; --line:#ddd6c9; --cream:#fbf8f1; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif; color:var(--ink); background:var(--cream); }
+  .topbar { background:var(--herb); color:#fff; padding:12px 28px; display:flex; align-items:center; gap:16px; }
+  .topbar .logo { font-weight:800; font-size:1.15rem; letter-spacing:.3px; }
+  .topbar .spacer { flex:1; }
+  .topbar a.acct { color:#eaf4e8; text-decoration:none; font-size:.9rem; }
+  .topbar a.acct:focus { outline:3px solid #ffd24a; outline-offset:2px; }
+
+  nav.primary { background:#fff; border-bottom:1px solid var(--line); padding:0 28px; position:relative; }
+  .menubtn {
+    background:transparent; border:0; padding:16px 14px; font-size:1rem; font-weight:600;
+    color:var(--ink); cursor:pointer;
+  }
+  .menubtn:focus { outline:3px solid #2f80c8; outline-offset:-2px; }
+
+  /* roving-tabindex menu */
+  ul[role="menu"] {
+    list-style:none; margin:0; padding:8px; position:absolute; top:54px; left:28px;
+    width:280px; background:#fff; border:1px solid var(--line); border-radius:8px;
+    box-shadow:0 10px 28px rgba(35,32,28,.16); display:none; z-index:20;
+  }
+  ul[role="menu"].open { display:block; }
+  li[role="menuitem"] {
+    padding:10px 12px; border-radius:6px; font-size:.95rem; cursor:pointer; outline:none;
+  }
+  li[role="menuitem"]:focus { background:#eef6ec; box-shadow:inset 0 0 0 2px var(--herb); }
+  li[role="menuitem"] .price { float:right; color:#6a655c; font-variant-numeric:tabular-nums; }
+
+  main { max-width:760px; margin:30px auto; padding:0 24px; }
+  h1 { font-size:1.5rem; color:var(--herb-dk); margin:0 0 6px; }
+  p.lede { color:#5f5a51; margin:0 0 22px; }
+  .promo {
+    border:1px solid var(--line); background:#fff; border-radius:10px; padding:20px 22px; margin-bottom:22px;
+  }
+  .promo h2 { margin:0 0 8px; font-size:1.1rem; }
+  label { display:block; font-weight:600; font-size:.85rem; margin:14px 0 6px; }
+  input[type=text] { width:100%; padding:11px 12px; border:1px solid var(--line); border-radius:6px; font-size:1rem; }
+  input[type=text]:focus { outline:3px solid #2f80c8; outline-offset:1px; }
+  .cta { margin-top:18px; padding:12px 22px; border:0; border-radius:7px; background:var(--herb);
+         color:#fff; font-size:1rem; font-weight:700; cursor:pointer; }
+  .cta:focus { outline:3px solid #ffd24a; outline-offset:2px; }
+  footer { max-width:760px; margin:24px auto 60px; padding:0 24px; color:#6e6a61; font-size:.78rem; }
+  .note { background:#fffbe9; border:1px solid #f0e3a8; border-radius:8px; padding:12px 14px; font-size:.82rem; color:#6b5e23; margin-top:26px; }
+</style>
+</head>
+<body>
+<div class="topbar" role="banner">
+  <span class="logo">Saffron &amp; Sage Kitchen</span>
+  <span class="spacer"></span>
+  <a class="acct" href="#account">Hi, Mara — Account</a>
+</div>
+
+<nav class="primary" aria-label="Order menu">
+  <button class="menubtn" id="menuBtn" aria-haspopup="true" aria-expanded="false" aria-controls="orderMenu">
+    Browse menu ▾
+  </button>
+  <ul role="menu" id="orderMenu" aria-labelledby="menuBtn">
+    <li role="menuitem" tabindex="0">Wood-fired flatbreads <span class="price">$12</span></li>
+    <li role="menuitem" tabindex="-1">Harvest grain bowls <span class="price">$14</span></li>
+    <li role="menuitem" tabindex="-1">Slow-braised short rib <span class="price">$24</span></li>
+    <li role="menuitem" tabindex="-1">Garden salads &amp; sides <span class="price">$9</span></li>
+    <li role="menuitem" tabindex="-1">Seasonal desserts <span class="price">$8</span></li>
+  </ul>
+</nav>
+
+<main>
+  <h1>Online ordering</h1>
+  <p class="lede">Open the menu, choose a dish, then add a promo code and check out for pickup.</p>
+
+  <section class="promo">
+    <h2>Have a promo code?</h2>
+    <label for="promo">Promo code</label>
+    <input type="text" id="promo" name="promo" placeholder="e.g. AUTUMN10" autocomplete="off">
+    <button class="cta" id="applyBtn">Apply &amp; continue to checkout</button>
+  </section>
+
+  <p class="note">
+    <strong>Why automated checkers miss this:</strong> The markup is valid APG-shaped menu code —
+    <code>role="menu"</code>, <code>role="menuitem"</code>, a roving tabindex (one item
+    <code>tabindex="0"</code>, the rest <code>-1</code>), an accessible name, and a correct
+    <code>aria-expanded</code> toggle. axe/WAVE/Lighthouse see a structurally correct menu and a
+    valid focus order. The trap is purely behavioural: the keydown handler calls
+    <code>preventDefault()</code> on <kbd>Tab</kbd> and <kbd>Shift</kbd>+<kbd>Tab</kbd> while the
+    menu is open, so once focus is in the menu it can move <em>between</em> items with the arrow
+    keys but can never leave to the promo field or the checkout button. Detecting it requires
+    actually pressing Tab inside the open menu and observing that <code>document.activeElement</code>
+    never advances — static scanners never press keys.
+  </p>
+</main>
+
+<footer>Saffron &amp; Sage Kitchen · 411 Mill Race Rd · Pickup orders only after 4pm.</footer>
+
+<script>
+(function () {
+  var btn  = document.getElementById('menuBtn');
+  var menu = document.getElementById('orderMenu');
+  var items = Array.prototype.slice.call(menu.querySelectorAll('[role="menuitem"]'));
+  var idx = 0;
+
+  function openMenu() {
+    menu.classList.add('open');
+    btn.setAttribute('aria-expanded', 'true');
+    idx = 0;
+    roveTo(0);
+  }
+  function closeMenu() {
+    menu.classList.remove('open');
+    btn.setAttribute('aria-expanded', 'false');
+  }
+  function roveTo(n) {
+    items.forEach(function (el, i) { el.tabIndex = (i === n) ? 0 : -1; });
+    idx = n;
+    items[n].focus();
+  }
+
+  btn.addEventListener('click', function () {
+    if (menu.classList.contains('open')) { closeMenu(); } else { openMenu(); }
+  });
+
+  // Arrow keys move among items (standard composite-widget interaction).
+  // BUG: Tab / Shift+Tab are ALSO captured and preventDefault()'d, so focus can never
+  // leave the menu once it has entered. No documented escape (no Esc handling either).
+  menu.addEventListener('keydown', function (e) {
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        roveTo((idx + 1) % items.length);
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        roveTo((idx - 1 + items.length) % items.length);
+        break;
+      case 'Home':
+        e.preventDefault();
+        roveTo(0);
+        break;
+      case 'End':
+        e.preventDefault();
+        roveTo(items.length - 1);
+        break;
+      case 'Tab':
+        // The author wanted Tab to "cycle within the menu like the arrows do" and blocked
+        // the browser's default Tab so focus would not "fall out of the dropdown unexpectedly".
+        e.preventDefault();
+        if (e.shiftKey) {
+          roveTo((idx - 1 + items.length) % items.length);
+        } else {
+          roveTo((idx + 1) % items.length);
+        }
+        break;
+      // NOTE: deliberately no 'Escape' / 'Enter' close handling — there is no exit at all.
+    }
+  });
+})();
+</script>
+</body>
+</html>

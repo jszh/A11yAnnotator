@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 2.4.3 — FAIL (F44: tabindex order does not preserve meaning/operability).
+    This is the MEANING-DESTROYING near-twin of the valid column-major grids
+    (case-01/case-02). It is a departmental budget spreadsheet: ROWS are expense
+    categories (Salaries, Travel, Equipment, Software) and COLUMNS are the four
+    quarters (Q1-Q4). A FY-budget is entered either row-by-row (one category's
+    full year) or column-by-column (one quarter at a time) — BOTH would be valid.
+
+    But this page does NEITHER. The author applied tabindex that snakes
+    DIAGONALLY across the grid with no relationship to either rows or columns:
+    Salaries-Q1 -> Travel-Q2 -> Equipment-Q3 -> Software-Q4 -> Travel-Q1 ->
+    Equipment-Q2 -> ... The focus zig-zags between unrelated categories AND
+    unrelated quarters on every Tab, so neither the "per-category year" nor the
+    "per-quarter snapshot" relationship is preserved. A keyboard user cannot
+    enter Q1 for all categories, nor a full year for any category, without
+    hunting; the cells visited consecutively have nothing to do with each other.
+
+    This is NOT the protected "valid alternative order" — it is the failure the
+    valid cases are contrasted against. Correct verdict: FAIL (F44).
+
+    Why automated tools miss it: every cell has a real <label>, headers/scope are
+    correct, contrast is fine, and the tabindex values are syntactically valid
+    positive integers (1..16). axe/WAVE/Lighthouse do not model "does this order
+    follow a row/column relationship," so they pass it (or only whisper the generic
+    positive-tabindex advisory). Recognizing that the diagonal snake destroys BOTH
+    logical orders — versus a column-major order that would have preserved one —
+    requires a human reasoning about the content's two-dimensional meaning.
+  -->
+  <title>FY26 Budget Worksheet — Meridian Libraries</title>
+  <style>
+    :root { --ink:#1d1d23; --muted:#666; --line:#d3d3da; --brand:#3a3f7d; --grid:#eef0f7; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Helvetica Neue", Arial, sans-serif; color:var(--ink); background:#f6f6f9; line-height:1.5; }
+    header { background:var(--brand); color:#fff; padding:16px 28px; }
+    header h1 { margin:0; font-size:19px; }
+    header p { margin:3px 0 0; font-size:13px; opacity:.85; }
+    main { max-width:820px; margin:24px auto; padding:0 20px 48px; }
+    .lead { font-size:14px; color:var(--muted); margin:0 0 18px; }
+    form { background:#fff; border:1px solid var(--line); border-radius:8px; padding:20px; }
+    table { border-collapse:collapse; width:100%; }
+    caption { caption-side:top; text-align:left; font-weight:700; font-size:15px; padding-bottom:12px; }
+    th, td { border:1px solid var(--line); padding:8px; font-size:13px; }
+    thead th { background:var(--grid); text-align:center; }
+    tbody th { background:#fafafc; text-align:left; white-space:nowrap; }
+    td { text-align:center; }
+    .money { position:relative; }
+    .money span { color:var(--muted); margin-right:2px; }
+    td input {
+      width:88px; padding:7px; text-align:right; font-size:14px;
+      border:1px solid var(--line); border-radius:5px;
+    }
+    td input:focus { outline:3px solid #8186c9; outline-offset:1px; }
+    tfoot td { font-weight:700; background:#fafafc; }
+    .actions { margin-top:18px; }
+    button { background:var(--brand); color:#fff; border:0; padding:11px 20px; border-radius:6px; font-size:15px; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Meridian Public Libraries — FY26 Budget Worksheet</h1>
+    <p>Branch operations · Department 4400 · Draft for committee review</p>
+  </header>
+  <main>
+    <p class="lead">
+      Enter projected spend per category per quarter. Each row is an expense
+      category; each column is a fiscal quarter.
+    </p>
+    <form aria-labelledby="bud-h">
+      <table>
+        <caption id="bud-h">Projected expenditure, FY26 (USD, thousands)</caption>
+        <thead>
+          <tr>
+            <th scope="col">Category</th>
+            <th scope="col">Q1</th>
+            <th scope="col">Q2</th>
+            <th scope="col">Q3</th>
+            <th scope="col">Q4</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!--
+            tabindex SNAKES DIAGONALLY (no row or column relationship):
+            visiting order by tabindex 1..16 is:
+              1 Salaries-Q1, 2 Travel-Q2, 3 Equipment-Q3, 4 Software-Q4,
+              5 Travel-Q1, 6 Equipment-Q2, 7 Software-Q3, 8 Salaries-Q4,
+              9 Equipment-Q1, 10 Software-Q2, 11 Salaries-Q3, 12 Travel-Q4,
+              13 Software-Q1, 14 Salaries-Q2, 15 Travel-Q3, 16 Equipment-Q4
+            Consecutive stops share neither a category nor a quarter.
+          -->
+          <tr>
+            <th scope="row">Salaries &amp; wages</th>
+            <td class="money"><span>$</span><input aria-label="Salaries Q1" name="sal_q1" type="text" inputmode="numeric" tabindex="1"></td>
+            <td class="money"><span>$</span><input aria-label="Salaries Q2" name="sal_q2" type="text" inputmode="numeric" tabindex="14"></td>
+            <td class="money"><span>$</span><input aria-label="Salaries Q3" name="sal_q3" type="text" inputmode="numeric" tabindex="11"></td>
+            <td class="money"><span>$</span><input aria-label="Salaries Q4" name="sal_q4" type="text" inputmode="numeric" tabindex="8"></td>
+          </tr>
+          <tr>
+            <th scope="row">Travel &amp; conferences</th>
+            <td class="money"><span>$</span><input aria-label="Travel Q1" name="trv_q1" type="text" inputmode="numeric" tabindex="5"></td>
+            <td class="money"><span>$</span><input aria-label="Travel Q2" name="trv_q2" type="text" inputmode="numeric" tabindex="2"></td>
+            <td class="money"><span>$</span><input aria-label="Travel Q3" name="trv_q3" type="text" inputmode="numeric" tabindex="15"></td>
+            <td class="money"><span>$</span><input aria-label="Travel Q4" name="trv_q4" type="text" inputmode="numeric" tabindex="12"></td>
+          </tr>
+          <tr>
+            <th scope="row">Equipment &amp; furnishings</th>
+            <td class="money"><span>$</span><input aria-label="Equipment Q1" name="eqp_q1" type="text" inputmode="numeric" tabindex="9"></td>
+            <td class="money"><span>$</span><input aria-label="Equipment Q2" name="eqp_q2" type="text" inputmode="numeric" tabindex="6"></td>
+            <td class="money"><span>$</span><input aria-label="Equipment Q3" name="eqp_q3" type="text" inputmode="numeric" tabindex="3"></td>
+            <td class="money"><span>$</span><input aria-label="Equipment Q4" name="eqp_q4" type="text" inputmode="numeric" tabindex="16"></td>
+          </tr>
+          <tr>
+            <th scope="row">Software &amp; licenses</th>
+            <td class="money"><span>$</span><input aria-label="Software Q1" name="sft_q1" type="text" inputmode="numeric" tabindex="13"></td>
+            <td class="money"><span>$</span><input aria-label="Software Q2" name="sft_q2" type="text" inputmode="numeric" tabindex="10"></td>
+            <td class="money"><span>$</span><input aria-label="Software Q3" name="sft_q3" type="text" inputmode="numeric" tabindex="7"></td>
+            <td class="money"><span>$</span><input aria-label="Software Q4" name="sft_q4" type="text" inputmode="numeric" tabindex="4"></td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td>Quarter totals</td>
+            <td>—</td><td>—</td><td>—</td><td>—</td>
+          </tr>
+        </tfoot>
+      </table>
+      <div class="actions">
+        <button type="submit">Submit draft to committee</button>
+      </div>
+    </form>
+  </main>
+</body>
+</html>

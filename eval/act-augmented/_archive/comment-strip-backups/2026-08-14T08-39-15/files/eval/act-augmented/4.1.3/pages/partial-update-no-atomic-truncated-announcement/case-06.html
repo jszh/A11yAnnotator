@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Driftwave — Ambient Radio</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.5 system-ui,"Segoe UI",Roboto,sans-serif; color:#e8eaf0; background:#14161f; }
+  .player { max-width:460px; margin:48px auto; background:#1d2030; border:1px solid #2c3046; border-radius:16px; padding:24px; }
+  .art { height:150px; border-radius:12px; background:linear-gradient(135deg,#3a4ea8,#7b3fa0); display:flex; align-items:flex-end; padding:12px; }
+  .art .live { font-size:11px; letter-spacing:.12em; text-transform:uppercase; background:#0008; padding:3px 8px; border-radius:99px; }
+  .now { margin:16px 0 4px; font-size:13px; color:#9aa0b8; }
+  .now b { color:#fff; }
+  .ttl { font-size:19px; font-weight:700; color:#fff; }
+  .by { color:#9aa0b8; font-size:14px; }
+  .controls { display:flex; gap:10px; margin-top:18px; }
+  button { font:inherit; cursor:pointer; border:0; border-radius:10px; padding:11px 18px; background:#3a4ea8; color:#fff; font-weight:600; }
+  button:focus-visible { outline:3px solid #8ab4ff; outline-offset:2px; }
+  footer { max-width:460px; margin:18px auto; color:#9aa0b8; font-size:12.5px; line-height:1.6; }
+</style>
+</head>
+<body>
+<div class="player">
+  <div class="art"><span class="live">On air</span></div>
+
+  <!--
+    PASS CONTROL. Same partial-update mechanism as the failing cases: the "skip" button
+    rewrites ONLY the inner #track / #title / #artist nodes (the static "Now playing:" label
+    is never touched). What rescues this page is aria-atomic="true" on the role="status"
+    region: when ANY descendant mutates, AT re-announces the ENTIRE region, so the listener
+    hears the full "Now playing: Track 4, Tidal Glass by Marin Vale" — not a bare "Track 4".
+    The visible whole and the announced whole are equivalent.
+  -->
+  <p class="now" role="status" aria-atomic="true" id="now-playing">
+    Now playing: <b id="track">Track 1</b> —
+    <span class="ttl" id="title">Slow Harbor</span>
+    <span class="by">by <span id="artist">Elin Brook</span></span>
+  </p>
+
+  <div class="controls">
+    <button id="skip" type="button">Skip to next track</button>
+  </div>
+</div>
+
+<footer>
+  <strong>Why this PASSES (and why tools can't tell it from the failing cases):</strong>
+  the markup is byte-for-byte the same shape as the failing pages — a <code>role="status"</code>
+  region whose inner value nodes are mutated by JS. The ONLY difference is
+  <code>aria-atomic="true"</code>, which makes AT re-announce the whole region ("Now playing:
+  Track 4, Tidal Glass by Marin Vale") rather than the bare changed token. axe/WAVE/Lighthouse
+  treat all these pages identically (valid live region) and cannot evaluate that the announced
+  whole here IS equivalent to the visible whole — the very judgment that separates pass from fail.
+</footer>
+
+<script>
+  var tracks = [
+    { t:'Track 1', n:'Slow Harbor',  a:'Elin Brook' },
+    { t:'Track 2', n:'Pelagic',      a:'Koto Mira' },
+    { t:'Track 3', n:'Northern Drift', a:'Halden' },
+    { t:'Track 4', n:'Tidal Glass',  a:'Marin Vale' },
+    { t:'Track 5', n:'Lantern Bay',  a:'Sora Lin' }
+  ];
+  var i = 0;
+  document.getElementById('skip').addEventListener('click', function () {
+    i = (i + 1) % tracks.length;
+    var tr = tracks[i];
+    // Only the inner value nodes are rewritten — but aria-atomic="true" on the region means
+    // AT re-announces the ENTIRE "Now playing: …" sentence, so the framing is preserved.
+    document.getElementById('track').textContent = tr.t;
+    document.getElementById('title').textContent = tr.n;
+    document.getElementById('artist').textContent = tr.a;
+  });
+</script>
+</body>
+</html>

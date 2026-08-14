@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.1.1 FAILURE — meaningful image mis-marked as decorative (F38/F39 applied
+    contextually; the inverse of the corpus's "correctly decorative" case).
+
+    The green "Verified seller" check badge next to "Lumen & Loom Home Goods" is an
+    inline <svg role="img"> whose accessible name is forced empty via aria-hidden="true"
+    + alt="" semantics (role="presentation" on the wrapper). It is the ONLY signal that
+    this seller passed the marketplace's identity-verification programme — every other
+    seller card on this marketplace shows the SAME store name styling with NO badge, so
+    the badge is the sole differentiator. There is no "Verified" text, no tooltip text
+    node, nothing in the DOM that conveys the verification fact to AT.
+
+    WHY AUTOMATED TOOLS MISS IT: the markup is INTERNALLY CONSISTENT and valid — an
+    aria-hidden / role=presentation decorative graphic is exactly what ACT rules 46ca7f
+    ("Element marked as decorative is not exposed") and e88epe ("Image not in the
+    accessibility tree is decorative") are written to PASS, and 23a2a8 only fires on
+    images that DO have a name. axe/WAVE/Lighthouse never ask "is this badge actually
+    decorative?" — an empty name is syntactically correct. Only a human who SEES the green
+    checkmark, reads "Verified seller" implied by the visual, and realises it is the lone
+    carrier of a trust fact can judge the "decorative" declaration wrong.
+  -->
+  <title>Lumen &amp; Loom Home Goods — Handwoven Throw Blanket | MarketNest</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI", system-ui, sans-serif; color: #202124;
+           background: #f1f3f4; line-height: 1.55; }
+    header.site { background: #2d2a45; color: #fff; padding: .7rem 1.2rem;
+           font-weight: 700; letter-spacing: .02em; display:flex; align-items:center; gap:.5rem; }
+    header.site .logo { font-size: 1.15rem; }
+    header.site nav { margin-left:auto; font-size:.85rem; font-weight:500; opacity:.9; }
+    main { max-width: 60rem; margin: 1.5rem auto; padding: 0 1rem; }
+    .listing { display: grid; grid-template-columns: 280px 1fr; gap: 1.6rem;
+           background:#fff; border:1px solid #dadce0; border-radius:10px; padding:1.4rem; }
+    .product-photo { width:100%; height:230px; border-radius:8px;
+           background:linear-gradient(135deg,#d7c2a8,#b89b78 55%,#8d6e4c); position:relative; }
+    .product-photo::after { content:"Handwoven throw"; position:absolute; left:10px; bottom:8px;
+           color:#fff; font-size:.72rem; background:rgba(0,0,0,.32); padding:2px 7px; border-radius:4px; }
+    h1 { font-size:1.4rem; margin:.1rem 0 .3rem; }
+    .price { font-size:1.5rem; font-weight:700; color:#0b6e3e; margin:.4rem 0; }
+    .seller-row { display:flex; align-items:center; gap:.45rem; margin:.8rem 0 .2rem;
+           padding:.55rem .7rem; background:#f6faf7; border:1px solid #d6ebdd; border-radius:8px; }
+    .seller-name { font-weight:600; }
+    .seller-meta { color:#5f6368; font-size:.85rem; margin-left:.2rem; }
+    .badge { flex:0 0 auto; line-height:0; }
+    .buybtn { margin-top:1rem; background:#2d2a45; color:#fff; border:none;
+           padding:.7rem 1.4rem; border-radius:8px; font-size:1rem; cursor:pointer; }
+    .ship { font-size:.85rem; color:#5f6368; margin-top:.6rem; }
+    footer { max-width:60rem; margin:1rem auto 3rem; padding:0 1rem; font-size:.8rem; color:#80868b; }
+  </style>
+</head>
+<body>
+  <header class="site">
+    <span class="logo">MarketNest</span>
+    <nav>Home &nbsp;·&nbsp; Categories &nbsp;·&nbsp; Sell &nbsp;·&nbsp; Cart (0)</nav>
+  </header>
+
+  <main>
+    <article class="listing">
+      <div class="product-photo" role="img" aria-label="Cream and caramel handwoven wool throw blanket draped over a chair"></div>
+
+      <div class="info">
+        <h1>Handwoven Merino Throw Blanket — Oatmeal</h1>
+        <p class="price">$128.00</p>
+
+        <div class="seller-row">
+          <!--
+            The ONLY "verified" signal on the whole page is this green check.
+            It is suppressed from AT: the wrapper carries role="presentation" and the
+            SVG aria-hidden="true", so no accessible name reaches the tree. No text says
+            "Verified". Unverified sellers on MarketNest render this same row WITHOUT the
+            check, so its presence is load-bearing information.
+          -->
+          <span class="badge" role="presentation">
+            <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true" focusable="false">
+              <circle cx="11" cy="11" r="11" fill="#1a8f4c"></circle>
+              <path d="M6 11.4 L9.4 14.8 L16 7.6" fill="none" stroke="#fff"
+                    stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+          </span>
+          <span class="seller-name">Lumen &amp; Loom Home Goods</span>
+          <span class="seller-meta">· 4.9 ★ (2,317 sales)</span>
+        </div>
+
+        <button class="buybtn" type="button">Add to cart</button>
+        <p class="ship">Ships from Asheville, NC · Free returns within 30 days</p>
+      </div>
+    </article>
+  </main>
+
+  <footer>
+    On MarketNest, the green check badge means the seller completed government-ID and
+    business-registration verification. Sellers without the check have not been verified.
+  </footer>
+</body>
+</html>

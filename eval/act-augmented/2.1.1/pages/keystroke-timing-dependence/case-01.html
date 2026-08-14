@@ -126,19 +126,13 @@
     if (!btn.disabled) status.textContent = '';
   }
 
-  // Pointer path (mouse/touch) — held press works for pointer users.
   btn.addEventListener('mousedown', startHold);
   btn.addEventListener('mouseup', cancelHold);
   btn.addEventListener('mouseleave', cancelHold);
 
-  // Keyboard path — DELIBERATELY gated on key HOLD DURATION.
-  // A single tap of Enter/Space sends keydown then keyup almost immediately:
-  // the fill never reaches 100%, so nothing happens. The keystroke must be
-  // physically held ~2s. Switch / sip-and-puff / speech-input / on-screen-keyboard
-  // users cannot sustain a single keystroke; they have no untimed path here.
   btn.addEventListener('keydown', function (e) {
     if ((e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') && !e.repeat) {
-      e.preventDefault();   // suppress the browser's default click-on-Enter activation
+      e.preventDefault();   
       startHold();
     }
   });

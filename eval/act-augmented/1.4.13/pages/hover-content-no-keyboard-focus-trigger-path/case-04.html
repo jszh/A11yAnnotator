@@ -35,7 +35,6 @@
     background: #1d59d8; color: #fff; font-size: 14px; font-weight: 700;
   }
 
-  /* The info trigger next to each fare name. A real, focusable <button>. */
   .info {
     border: 1px solid #9fb2c6; background: #eef3fa; color: #1d59d8;
     width: 18px; height: 18px; border-radius: 50%; font-size: 12px; font-weight: 700;
@@ -64,7 +63,6 @@
 
     <div class="fares">
 
-      <!-- BASIC ECONOMY — the trap fare -->
       <section class="fare" aria-labelledby="f1">
         <div class="name-row">
           <h2 id="f1">Basic</h2>
@@ -81,7 +79,6 @@
         <div class="pop" id="pop-basic" role="tooltip"></div>
       </section>
 
-      <!-- MAIN -->
       <section class="fare" aria-labelledby="f2">
         <div class="name-row">
           <h2 id="f2">Main</h2>
@@ -98,7 +95,6 @@
         <div class="pop" id="pop-main" role="tooltip"></div>
       </section>
 
-      <!-- FLEX -->
       <section class="fare" aria-labelledby="f3">
         <div class="name-row">
           <h2 id="f3">Flex</h2>
@@ -122,20 +118,12 @@
   </main>
 
   <script>
-    // Each "i" button IS a real, focusable <button> AND has a focus handler — so a quick
-    // "does focus reveal something?" check passes. The catch: the focus handler renders a
-    // SHORT, reassuring blurb, while ONLY the mouse-hover handler renders the FULL rules
-    // including the load-bearing penalty (non-refundable, $99 change fee, no upgrades).
-    // For the Basic fare those penalties are the whole point of opening the popup, and a
-    // keyboard user never sees them.
     var FARES = {
       basic: {
-        // FULL text — pointer hover only:
         full: 'Basic (lowest price). <strong>Non-refundable and non-changeable.</strong> ' +
               'Changes/cancellation are not permitted; the ticket is forfeited if unused. ' +
               'No same-day standby. Not eligible for upgrades or seat changes after booking. ' +
               'Earns 0 miles.',
-        // SHORT text — keyboard focus only:
         brief: 'Basic — our lowest one-way price for this route.'
       },
       main: {
@@ -154,7 +142,6 @@
       var btn = document.getElementById('info-' + k);
       var pop = document.getElementById('pop-' + k);
 
-      // Pointer hover → FULL rules.
       btn.addEventListener('mouseenter', function () {
         pop.innerHTML = FARES[k].full;
         pop.setAttribute('data-open', '1');
@@ -163,7 +150,6 @@
         pop.removeAttribute('data-open');
       });
 
-      // Keyboard focus → only the SHORT blurb (penalties omitted).
       btn.addEventListener('focus', function () {
         pop.innerHTML = FARES[k].brief;
         pop.setAttribute('data-open', '1');
@@ -174,20 +160,5 @@
     });
   </script>
 
-  <!--
-    WHY AUTOMATED TOOLS MISS IT (and why this FAILS 1.4.13 on the focus limb):
-    The trigger is a real, focusable <button> WITH a focus handler, so the popup DOES open on
-    keyboard focus — every static scanner, and even a naive "focus reveals content?" heuristic,
-    passes the page (valid role="tooltip", aria-describedby resolving, accessible names,
-    contrast all fine). The defect is semantic: the focus path opens a DIFFERENT, abbreviated
-    payload than the hover path. The mouse-hover popup for the Basic fare discloses the only
-    place on the page that the ticket is NON-REFUNDABLE and NON-CHANGEABLE; the keyboard-focus
-    popup replaces that with a friendly one-liner ("our lowest one-way price") that omits the
-    penalty entirely. So content IS triggerable by hover that is NOT (fully) triggerable by
-    keyboard focus — the focus path withholds the material information. Catching this requires a
-    human to (1) hover the button and read the full rules, (2) Tab to the same button and read
-    the focus popup, and (3) JUDGE that the keyboard version drops the load-bearing penalty.
-    No tool compares two interaction-state payloads for meaning-equivalence. Verdict: FAILED.
-  -->
 </body>
 </html>

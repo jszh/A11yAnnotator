@@ -30,13 +30,6 @@
 <div class="bar">NORTHBANK</div>
 
 <div class="page">
-  <!--
-    CORRECT CASE A — time-critical security message wired ASSERTIVE (role=alert).
-    A one-time verification code expires in 60 seconds and the sign-in is BLOCKED until
-    it is entered. This is a genuinely urgent, action-blocking message, so role="alert"
-    (assertive) is the RIGHT politeness: it interrupts to ensure the user hears the
-    deadline in time to act. Matching meaning (urgent/blocking) to politeness (assertive).
-  -->
   <section class="card">
     <h1>Verify this sign-in</h1>
     <p class="sub">We sent a 6-digit code to your phone ending •• 41.</p>
@@ -54,14 +47,6 @@
     </div>
   </section>
 
-  <!--
-    CORRECT CASE B — low-value, high-frequency status wired POLITE, plus an SCR14 toggle.
-    A "recent account activity" badge updates every few seconds. It is non-urgent and
-    chatty by nature, so it is wired aria-live="polite" (queues behind ongoing speech,
-    never interrupts) AND given an on/off toggle exactly as SCR14 prescribes for
-    nonessential alerts. Matching meaning (trivial/frequent) to politeness (polite +
-    opt-out).
-  -->
   <section class="card">
     <div class="activity">
       <div>
@@ -87,20 +72,14 @@
 </div>
 
 <script>
-  // CASE A: a real 60-second countdown in the ASSERTIVE security region.
   var cd = document.getElementById('cd');
   var left = 60;
   var cdTimer = setInterval(function () {
     left -= 1;
     cd.textContent = left;
-    // Note: only the inner counter text changes; the region is aria-atomic so the AT
-    // re-announces the whole warning when the author chooses to update it. The page
-    // updates the visible number every second but the urgent wording is what matters.
     if (left <= 0) { clearInterval(cdTimer); }
   }, 1000);
 
-  // CASE B: a low-value device-count badge updated every few seconds in the POLITE
-  // region, with an SCR14-style toggle to turn announcements off entirely.
   var activity = document.getElementById('activityMsg');
   var toggle   = document.getElementById('liveToggle');
   var counts   = [2, 2, 3, 2, 3, 3, 2];
@@ -118,7 +97,6 @@
     live = !live;
     toggle.setAttribute('aria-pressed', String(live));
     toggle.textContent = 'Live updates: ' + (live ? 'On' : 'Off');
-    // SCR14: turning updates off sets the region inert so no further announcements fire.
     activity.setAttribute('aria-live', live ? 'polite' : 'off');
   });
 </script>

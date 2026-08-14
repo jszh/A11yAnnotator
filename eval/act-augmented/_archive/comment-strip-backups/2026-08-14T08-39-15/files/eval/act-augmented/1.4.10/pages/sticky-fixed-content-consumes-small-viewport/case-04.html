@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <!-- Zoom allowed; single-column reflow at 320px, no h-scroll. The defect: a position:fixed
+       support-chat bubble (a la Intercom/Zendesk) is expanded by default and, at the 320px
+       reflow viewport, lands directly over the primary "Give now" submit button — the page's
+       core FUNCTIONALITY — with NO control to collapse or move it. The loss is of
+       functionality, not just reading space. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Give Today — Riverside Children's Hospice</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body { font: 16px/1.55 "Segoe UI", Roboto, Arial, sans-serif; color: #1b2733; background: #eef4f7; }
+    header { background: #0d5b75; color: #fff; padding: 14px 16px; }
+    header .org { font-size: 19px; font-weight: 700; }
+    header .tag { font-size: 12px; opacity: .9; }
+    main { padding: 18px 16px 40px; max-width: 600px; margin: 0 auto; }
+    h1 { font-size: 24px; margin: 6px 0 8px; }
+    .lede { color: #3a4856; margin: 0 0 18px; }
+    form { background: #fff; border: 1px solid #d6e1e8; border-radius: 10px; padding: 18px; }
+    fieldset { border: 1px solid #d6e1e8; border-radius: 8px; margin: 0 0 16px; padding: 12px; }
+    legend { font-weight: 600; padding: 0 6px; }
+    .amounts { display: flex; flex-wrap: wrap; gap: 8px; }
+    .amounts label { flex: 1 1 70px; }
+    .amounts input { position: absolute; opacity: 0; }
+    .amounts span {
+      display: block; text-align: center; padding: 12px 0; border: 2px solid #b9cdd7;
+      border-radius: 8px; font-weight: 600; cursor: pointer; font-variant-numeric: tabular-nums;
+    }
+    .amounts input:checked + span { border-color: #0d5b75; background: #e3f1f6; }
+    .amounts input:focus + span { outline: 3px solid #f5a623; outline-offset: 2px; }
+    label.field { display: block; font-weight: 600; margin: 12px 0 4px; }
+    input[type=text], input[type=email] {
+      width: 100%; padding: 10px; border: 1px solid #b9cdd7; border-radius: 6px; font: inherit;
+    }
+    /* The primary call to action. It sits at the natural end of the form, in normal flow. */
+    .give {
+      display: block; width: 100%; margin-top: 18px;
+      background: #d6471f; color: #fff; border: 0; border-radius: 8px;
+      font: 700 18px/1 inherit; padding: 16px; cursor: pointer;
+    }
+    .give:focus { outline: 3px solid #f5a623; outline-offset: 3px; }
+    .secure { font-size: 12px; color: #5a6b78; margin-top: 10px; text-align: center; }
+
+    /* The chat widget is FIXED to the bottom-right and OPEN by default. It is ~280px tall
+       and 300px wide. At the 320px reflow viewport it parks itself squarely over the bottom
+       of the form — directly on top of the "Give now" button. There is a header bar but NO
+       minimise/collapse affordance: the only control is the message <input> and "Send".
+       Tabbing cannot move it; it cannot be dismissed; it permanently covers the CTA. */
+    .chat {
+      position: fixed; right: 10px; bottom: 10px;
+      width: min(300px, calc(100vw - 20px));
+      height: 280px;
+      z-index: 70;
+      background: #fff; border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.28);
+      display: flex; flex-direction: column; overflow: hidden;
+      border: 1px solid #cbd9e1;
+    }
+    .chat .bar { background: #0d5b75; color: #fff; padding: 10px 12px; font-weight: 600; font-size: 14px; }
+    .chat .log { flex: 1; padding: 12px; font-size: 13px; color: #2b3a47; overflow-y: auto; }
+    .chat .log .bot { background: #eef4f7; border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; }
+    .chat .compose { display: flex; gap: 6px; padding: 10px; border-top: 1px solid #e2eaef; }
+    .chat .compose input { flex: 1; padding: 8px; border: 1px solid #c2d3db; border-radius: 6px; font: inherit; }
+    .chat .compose button { background: #0d5b75; color: #fff; border: 0; border-radius: 6px; padding: 8px 12px; font: 600 13px inherit; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <!-- WHY AUTOMATED TOOLS MISS THIS:
+       The chat widget is impeccable to a linter: labelled region, real input with a label,
+       a named Send button, good contrast, zoom allowed. The donation form reflows to one
+       column with no horizontal scroll. Nothing static is wrong. Only by rendering at the
+       320px reflow viewport and observing that the fixed, non-collapsible chat panel sits
+       on the "Give now" button — so a user literally cannot reach the page's primary action
+       and there is no affordance to move or close the panel — can the failure be seen. That
+       is a functional-obstruction judgment a human must make at the narrow viewport. -->
+  <header>
+    <div class="org">Riverside Children's Hospice</div>
+    <div class="tag">Registered charity 1109834</div>
+  </header>
+
+  <main>
+    <h1>Give today, and a family is not alone tonight</h1>
+    <p class="lede">Your gift funds nurse-led overnight care so parents can rest, and siblings
+      can be children. A single shift costs £140. Anything you can give helps.</p>
+
+    <form action="#" method="post" novalidate>
+      <fieldset>
+        <legend>Choose an amount</legend>
+        <div class="amounts">
+          <label><input type="radio" name="amt" value="20"><span>£20</span></label>
+          <label><input type="radio" name="amt" value="50" checked><span>£50</span></label>
+          <label><input type="radio" name="amt" value="140"><span>£140</span></label>
+          <label><input type="radio" name="amt" value="other"><span>Other</span></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Your details</legend>
+        <label class="field" for="name">Full name</label>
+        <input id="name" name="name" type="text" autocomplete="name">
+        <label class="field" for="email">Email for your receipt</label>
+        <input id="email" name="email" type="email" autocomplete="email">
+      </fieldset>
+
+      <button class="give" type="submit">Give now</button>
+      <p class="secure">Secure payment. You can cancel a regular gift at any time.</p>
+    </form>
+  </main>
+
+  <section class="chat" aria-label="Support chat">
+    <div class="bar">Chat with our supporter care team</div>
+    <div class="log">
+      <p class="bot">Hi! I'm Sam from supporter care. Have a question about your donation or
+        Gift Aid? Type it below and I'll help.</p>
+    </div>
+    <div class="compose">
+      <label for="chatmsg" class="field" style="position:absolute;left:-9999px;">Your message</label>
+      <input id="chatmsg" type="text" placeholder="Type your message…">
+      <button type="button">Send</button>
+    </div>
+  </section>
+</body>
+</html>

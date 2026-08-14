@@ -4,36 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>r/woodworking — Resawing a slab without a bandsaw?</title>
-<!--
-  SC 1.4.13 Content on Hover or Focus — HOVERABLE limb — F95.
-
-  THE DEFECT: a social "hover card" (profile preview) like the ones GitHub/Twitter
-  show when you hover a username. Hovering the author link "@knotwood" opens a card
-  with avatar, bio, karma. The implementation has a TIMING ASYMMETRY plus a GAP:
-
-    - SHOW is delayed 180ms (on the username's mouseenter) — "hover intent".
-    - HIDE is IMMEDIATE (on the username's mouseleave) — clearTimeout + hide now.
-    - The card is rendered into a detached container (#hovercard-layer, a sibling
-      of <main>, the React-portal pattern) and positioned 12px BELOW the username.
-    - The card layer has pointer-events bound, BUT the hide handler is on the
-      USERNAME ONLY; the card has no mouseenter that cancels the hide. And there is
-      a 12px transparent gap between the username's bottom edge and the card's top.
-
-  So when the user moves the pointer down to the card to read it / click "Follow",
-  the pointer first crosses the 12px gap where it is over NEITHER the username NOR
-  the card. mouseleave fires on the username and the card is hidden instantly.
-  Because the card lives in a portal (not a DOM descendant of the username) and has
-  no mouseenter handler, hovering it cannot keep it open. The pointer path from
-  trigger to content destroys the content.
-
-  WHY AUTOMATED TOOLS MISS IT: there is no 1.4.13 automated rule. The card is fully
-  accessible by every static measure — role="dialog" with aria-label, real links,
-  good contrast, appears on focus too. Detecting the failure requires reasoning that
-  (a) the card is a portal sibling, not a descendant, so DOM proximity doesn't help;
-  (b) there is a 12px transparent gap on the travel path; and (c) hide is immediate
-  while the card has no mouseenter — so a continuous pointer path cannot keep it
-  open. That is a layout + event-timing simulation, not a markup check.
--->
 <style>
   :root{ --ink:#1a1a1b; --muted:#7c7e80; --line:#e3e5e8; --bg:#ffffff;
          --up:#ff4500; --link:#1c6cd6; --panel:#f6f7f8; }
@@ -54,7 +24,6 @@
   .cmt .byline{margin-bottom:4px;}
   .vote{color:var(--up); font-weight:700;}
 
-  /* The hover card layer is a DETACHED sibling of <main> (portal pattern). */
   #hovercard-layer{position:absolute; top:0; left:0; z-index:50; pointer-events:auto;}
   .hovercard{
     position:absolute; width:280px; background:var(--bg);
@@ -113,7 +82,6 @@
   </p>
 </div>
 
-<!-- The portal layer: a detached sibling of the content, NOT a descendant of any username. -->
 <div id="hovercard-layer" aria-live="off">
   <div class="hovercard" id="hovercard" role="dialog" aria-label="Profile preview" hidden>
     <div class="hc-top">
@@ -132,11 +100,6 @@
 </div>
 
 <script>
-  // Hover card: 180ms show delay (hover-intent), IMMEDIATE hide on mouseleave of
-  // the username. The card lives in a portal (no DOM relationship to the username)
-  // and has NO mouseenter handler to cancel the hide. Combined with the 12px gap
-  // below the username, the pointer cannot travel onto the card without first
-  // hitting the gap and firing mouseleave.
   (function () {
     var layer = document.getElementById('hovercard-layer');
     var card  = document.getElementById('hovercard');
@@ -155,7 +118,6 @@
       var p = profiles[key]; if (!p) return;
       nameEl.textContent = p.name; subEl.textContent = p.sub; bioEl.textContent = p.bio;
       var r = link.getBoundingClientRect();
-      // Position the card 12px BELOW the username (a transparent gap on the path).
       card.style.left = (window.scrollX + r.left) + 'px';
       card.style.top  = (window.scrollY + r.bottom + 12) + 'px';
       card.hidden = false;
@@ -165,18 +127,15 @@
     document.querySelectorAll('a.user').forEach(function (link) {
       link.addEventListener('mouseenter', function () {
         clearTimeout(showTimer);
-        showTimer = setTimeout(function () { showFor(link); }, 180); // delayed show
+        showTimer = setTimeout(function () { showFor(link); }, 180); 
       });
       link.addEventListener('mouseleave', function () {
         clearTimeout(showTimer);
-        hideNow(); // IMMEDIATE hide — no grace period, card has no mouseenter to cancel it
+        hideNow(); 
       });
-      // Keyboard parity (so this is not also a 2.1.1 failure):
       link.addEventListener('focus', function () { showFor(link); });
       link.addEventListener('blur',  function () { hideNow(); });
     });
-    // NOTE: deliberately NO card.addEventListener('mouseenter', ...) — the card
-    // cannot keep itself open, which is the F95 hoverable failure.
   })();
 </script>
 </body>

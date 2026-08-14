@@ -2,9 +2,6 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <!-- Zoom allowed; ACT b4f0c3 passes. Reflows fine at 320px WIDTH. The defect is the
-       two fixed bars (top nav + bottom cookie/consent bar) that SANDWICH the content into
-       a thin strip at the 256px reflow HEIGHT. -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Menu &amp; Allergens — The Copper Kettle, Ludlow</title>
   <style>
@@ -15,9 +12,6 @@
       color: #21201c;
       background: #fffdf8;
     }
-    /* FIXED top nav ~92px. FIXED bottom consent bar ~96px. Together ~188px of fixed
-       chrome. At a 256px-tall reflow viewport that leaves ~68px of scrollable content
-       window — a thin strip. At desktop height (900px) the same two bars are unremarkable. */
     .topbar {
       position: fixed; top: 0; left: 0; right: 0; z-index: 40;
       background: #6e2c14; color: #fff;
@@ -31,9 +25,6 @@
     .topbar nav a { color: #ffd9c2; text-decoration: none; }
     .topbar nav a:focus, .topbar nav a:hover { text-decoration: underline; }
 
-    /* The consent bar is fixed to the bottom and — critically — is NOT dismissible.
-       It has an "Accept" button that sets a flag, but the markup gives no "close"/"reject"
-       affordance that REMOVES the bar, so it permanently consumes the bottom of the viewport. */
     .consent {
       position: fixed; bottom: 0; left: 0; right: 0; z-index: 41;
       background: #1f2a24; color: #eef3ef;
@@ -51,8 +42,6 @@
     .consent .ok { background: #c8902f; color: #1d1402; }
     .consent .prefs { background: transparent; color: #cfe0d6; border: 1px solid #6b7d72; }
 
-    /* Content padded clear of both fixed bars so nothing overlaps — it just gets squeezed
-       into the narrow band between them when the viewport is short. */
     main { padding: 104px 16px 116px; max-width: 640px; margin: 0 auto; }
     h1 { font-size: 23px; margin: 6px 0 4px; }
     h2 { font-size: 18px; margin: 22px 0 6px; color: #6e2c14; }
@@ -65,14 +54,6 @@
   </style>
 </head>
 <body>
-  <!-- WHY AUTOMATED TOOLS MISS THIS:
-       Two position:fixed bars are completely standard. The cookie bar even has visible,
-       named, focusable buttons (passes axe button-name, color-contrast, etc.). No tool
-       computes the combined fixed-chrome height as a fraction of a 256px viewport, and no
-       tool reasons that "Accept" does not actually free the space because there is no
-       dismiss path that removes the bar. Recognising that the surviving content band is an
-       unreadable strip — and that the consent bar can never be dismissed to recover it — is
-       a visual-proportion + functional judgment for a human at the reflow viewport. -->
   <header class="topbar">
     <div class="brand">The Copper Kettle</div>
     <div class="sub">Modern British · Ludlow · est. 2009</div>

@@ -21,17 +21,12 @@
   .card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px 18px; margin:0 0 16px; }
   .keyrow { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
   .keyname { font-weight:600; }
-  /* The displayed key is deliberately TRUNCATED to a prefix + ellipsis so the card stays compact
-     and never overflows at any width. This alone could fail Reflow's truncation nuance (full
-     value not available) — EXCEPT a working reveal mechanism is provided. Clicking "Reveal"
-     swaps the same element to the full value (which itself wraps via overflow-wrap), and a
-     copy button copies the complete secret. So the full value IS available on the page. PASS. */
   code.keyval {
     font:13px/1.5 "SF Mono",Menlo,Consolas,monospace;
     background:#f1f5f9; color:#1e293b; padding:3px 8px; border-radius:6px;
     overflow-wrap:anywhere; min-width:0;
   }
-  code.keyval[data-state="masked"] { white-space:nowrap; }   /* masked form is short, fits easily */
+  code.keyval[data-state="masked"] { white-space:nowrap; }   
   .btns { display:flex; gap:8px; flex-wrap:wrap; }
   button {
     font:inherit; font-size:.88rem; padding:6px 12px; border:1px solid var(--line);
@@ -110,7 +105,6 @@
     function copyKey() {
       var full = document.getElementById('k1').getAttribute('data-full');
       var status = document.getElementById('status');
-      // Clipboard write is best-effort; the value is also available by revealing + selecting.
       if (navigator.clipboard) { navigator.clipboard.writeText(full).catch(function(){}); }
       status.textContent = 'Full key copied to clipboard.';
     }

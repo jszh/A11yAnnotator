@@ -3,42 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!--
-    SC 4.1.2 (Name, Role, Value) — the "Role" limb, valid-but-INAPPROPRIATE role.
-
-    Aspect: wrong-role-valid-but-inappropriate.
-
-    "Cirro" — a weather dashboard. The settings header has a SEGMENTED CONTROL for the
-    temperature unit: a single bordered pill split into two visually-joined segments,
-    "°C" and "°F". Exactly ONE is selected at a time (the selected segment is filled
-    blue, the other is plain). Clicking a segment selects it and deselects the other and
-    re-renders the forecast. Visually and behaviourally this is a SINGLE-SELECT group —
-    a radio group rendered as a segmented control.
-
-    THE DEFECT: each segment is coded
-        <div role="button" aria-pressed="true/false" tabindex="0" ...>°C</div>
-    inside a plain wrapper with no group role. role="button" is a valid token, so 674b10
-    PASSES; aria-pressed is a supported state for button, so 4e8ab6 has nothing to fail.
-    Each segment has a correct accessible name ("°C" / "°F"). But coding mutually-
-    exclusive options as independent toggle BUTTONS hides the single-select RADIOGROUP
-    semantics: AT never learns these are alternatives where choosing one cancels the
-    other, never announces "1 of 2 / 2 of 2", and arrow-key radio navigation is absent.
-    The correct semantics are role="radiogroup" containing role="radio" options with
-    aria-checked — so AT announces "Temperature unit, °C, selected, radio button, 1 of 2".
-
-    WHAT AT EXPERIENCES: a screen-reader user hears two independent "toggle button,
-    pressed/not pressed" controls. Nothing tells them the two are linked alternatives or
-    that exactly one is always chosen. They might believe both could be off, or that
-    pressing one does not affect the other — the mutual exclusivity, plainly visible in
-    the joined segmented pill, is invisible to AT.
-
-    WHY AUTOMATED TOOLS MISS IT: axe-core / WAVE / Lighthouse confirm role="button" is
-    valid, aria-pressed is an allowed state, and each segment has a name. A set of toggle
-    buttons is a legitimate pattern, so nothing fires. No tool can look at the joined
-    segmented pill with one-of-two always selected and decide these should be radios in a
-    radiogroup. Recognising "single-select rendered as a segmented control" is human
-    visual/behavioural judgment.
-  -->
   <title>Display settings — Cirro Weather</title>
   <style>
     :root { --ink:#0f172a; --muted:#64748b; --line:#e2e8f0; --brand:#0284c7; --bg:#f1f5f9; }
@@ -50,7 +14,6 @@
     .field { display:flex; align-items:center; justify-content:space-between; gap:1rem; }
     .field .lbl { font-weight:600; }
     .field .hint { color:var(--muted); font-size:.85rem; margin-top:.15rem; }
-    /* segmented control — one bordered pill split into joined segments */
     .seg { display:inline-flex; border:1px solid var(--brand); border-radius:9px; overflow:hidden; }
     .seg .opt { padding:.5rem 1.1rem; font-weight:600; cursor:pointer; user-select:none; color:var(--brand);
                 background:#fff; border-right:1px solid var(--brand); transition:background .12s, color .12s; }
@@ -72,9 +35,6 @@
           <div class="lbl" id="unit-lbl">Temperature unit</div>
           <div class="hint">Applies to all forecasts and alerts.</div>
         </div>
-        <!-- DEFECT: a single-select segmented control whose options are independent
-             role="button" toggles (valid token, aria-pressed allowed) — should be a
-             role="radiogroup" of role="radio" options. -->
         <div class="seg" aria-labelledby="unit-lbl">
           <div class="opt" role="button" tabindex="0" aria-pressed="true" data-unit="c">°C</div>
           <div class="opt" role="button" tabindex="0" aria-pressed="false" data-unit="f">°F</div>
@@ -98,7 +58,6 @@
       });
     }
     function select(chosen) {
-      // mutually exclusive: choosing one deselects the other (radio behaviour)
       opts.forEach(function (o) { o.setAttribute('aria-pressed', o === chosen ? 'true' : 'false'); });
       render(chosen.getAttribute('data-unit'));
     }

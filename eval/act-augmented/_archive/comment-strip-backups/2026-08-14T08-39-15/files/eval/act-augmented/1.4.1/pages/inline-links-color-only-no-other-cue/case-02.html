@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Glossary — Pulsar Payments API Reference v3</title>
+  <style>
+    /* Developer-docs theme. Body copy is mid-gray #6b6b6b on white (5.33:1, 1.4.3 OK).
+       Cross-reference links inside the definitions are a DARKER shade of the SAME gray
+       hue (#3d3d3d) with NO underline and NO weight/family difference.
+       link-vs-body lightness contrast is ~2.0:1 — under 3:1 and same hue, so the only
+       "difference" is darkness that does not reach the escape hatch. Even a color-perceiving
+       user struggles; a grayscale user has no chance. */
+    html { -webkit-text-size-adjust: 100%; }
+    body { margin: 0; background: #fff; color: #6b6b6b;
+           font: 16px/1.65 "Inter", -apple-system, system-ui, sans-serif; }
+    .doc { max-width: 48rem; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .breadcrumbs { font-size: .8rem; color: #9a9a9a; margin-bottom: 1.5rem; }
+    .breadcrumbs a { color: #2563eb; }            /* nav links ARE underlined-on-hover & blue — not the issue */
+    h1 { color: #111; font-size: 1.8rem; margin: 0 0 .25rem; }
+    .api-version { display: inline-block; font-size: .72rem; font-family: ui-monospace, monospace;
+                   color: #555; background: #f1f1f1; border-radius: 4px; padding: 1px 6px; }
+    dl { margin: 2rem 0 0; }
+    dt { color: #111; font-weight: 600; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+         font-size: .95rem; margin-top: 1.6rem; }
+    dd { margin: .35rem 0 0; }
+    /* THE FAILING RULE: in-definition cross-references, same-hue darker gray, no underline */
+    dd .xref { color: #3d3d3d; text-decoration: none; }
+    /* no :hover / :focus enhancement is defined for .xref at all */
+    code { font-family: ui-monospace, monospace; font-size: .9em; color: #b5237a; background: #faf2f7; padding: 0 3px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <div class="doc">
+    <nav class="breadcrumbs"><a href="/docs">Docs</a> / <a href="/docs/api/v3">API v3</a> / Glossary</nav>
+    <h1>Glossary <span class="api-version">v3.2</span></h1>
+    <p>Terms used throughout the Pulsar Payments REST reference. Cross-references point to the
+      canonical definition or the relevant endpoint guide.</p>
+
+    <dl>
+      <dt>Idempotency key</dt>
+      <dd>A client-generated <code>Idempotency-Key</code> header that lets you safely retry a
+        request without applying the operation twice. Keys are scoped to a single
+        <a class="xref" href="/docs/api/v3/glossary#merchant-account">merchant account</a>
+        and expire after 24 hours. See also the
+        <a class="xref" href="/docs/api/v3/guides/retries">retry behaviour guide</a>.</dd>
+
+      <dt>Settlement batch</dt>
+      <dd>The group of captured charges that are paid out together on a given banking day.
+        Each batch references one
+        <a class="xref" href="/docs/api/v3/glossary#payout-account">payout account</a>;
+        timing follows the schedule in the
+        <a class="xref" href="/docs/api/v3/guides/payouts">payouts guide</a>.</dd>
+
+      <dt>Webhook signature</dt>
+      <dd>An HMAC-SHA256 digest sent in the <code>Pulsar-Signature</code> header so you can
+        verify a callback originated from us. Rotate the secret from the
+        <a class="xref" href="/dashboard/webhooks">webhooks dashboard</a> and validate it as
+        described under
+        <a class="xref" href="/docs/api/v3/glossary#replay-window">replay window</a>.</dd>
+
+      <dt>Replay window</dt>
+      <dd>The five-minute tolerance during which a signed webhook is accepted, after which a
+        replayed request is rejected. Tune it alongside your
+        <a class="xref" href="/docs/api/v3/glossary#idempotency-key">idempotency key</a>
+        strategy.</dd>
+    </dl>
+  </div>
+</body>
+</html>

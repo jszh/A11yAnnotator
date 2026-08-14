@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lumen Yoga Studio — Welcome</title>
+  <style>
+    :root { --ink:#1d2b2b; --sage:#7c9885; --cream:#f5f3ec; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: "Georgia", serif; color:var(--ink); background:var(--cream); }
+    header.hero {
+      min-height: 52vh; display:flex; flex-direction:column; align-items:center;
+      justify-content:center; text-align:center;
+      background: linear-gradient(160deg,#e9efe7 0%, #d6e2d4 100%);
+      padding: 3rem 1rem;
+    }
+    /* The tracked-out look is achieved by &nbsp; in the source, NOT by letter-spacing.
+       (A real letter-spacing rule is shown on the FAQ link below for contrast.) */
+    .hero h1 {
+      font-size: clamp(2.4rem, 8vw, 5rem); font-weight: normal; margin:0;
+      color: var(--sage); text-transform: uppercase;
+    }
+    .hero p.kicker { letter-spacing:.35em; text-transform:uppercase; font-size:.8rem; color:#6b6b6b; margin:0 0 1rem; }
+    nav { background:var(--ink); }
+    nav ul { list-style:none; display:flex; gap:1.5rem; justify-content:center; margin:0; padding:.9rem; }
+    nav a { color:var(--cream); text-decoration:none; font-family: Arial, sans-serif; font-size:.95rem; }
+    /* Legitimate visual tracking of an INITIALISM done the CORRECT way: CSS letter-spacing,
+       the text node is the single token "FAQ". */
+    nav a.faq { letter-spacing:.45em; }
+    main { max-width:780px; margin:2.5rem auto; padding:0 1.25rem; font-family: Arial, sans-serif; line-height:1.6; }
+    .note { background:#fff; border-left:4px solid var(--sage); padding:1rem 1.25rem; font-size:.9rem; color:#444; }
+    footer { text-align:center; padding:2rem 1rem; color:#777; font-size:.85rem; }
+  </style>
+</head>
+<body>
+  <nav aria-label="Primary">
+    <ul>
+      <li><a href="#classes">Classes</a></li>
+      <li><a href="#teachers">Teachers</a></li>
+      <li><a href="#pricing">Pricing</a></li>
+      <!-- Initialism, spaced visually with CSS letter-spacing. Text node = "FAQ" (one token). PASS. -->
+      <li><a class="faq" href="#faq">FAQ</a></li>
+    </ul>
+  </nav>
+
+  <header class="hero">
+    <p class="kicker">Breathe in, breathe out</p>
+    <!-- F32 FAILURE: the single English word "Welcome" has &nbsp; inserted between every
+         letter to force the tracked-out hero look. The text node is "W␣E␣L␣C␣O␣M␣E"
+         (non-breaking spaces), so AT does not see the word "Welcome". -->
+    <h1>W&nbsp;E&nbsp;L&nbsp;C&nbsp;O&nbsp;M&nbsp;E</h1>
+  </header>
+
+  <main>
+    <h2 id="classes">Find your flow this season</h2>
+    <p>
+      Our sunrise and candlelight classes are open to every body and every level. Drop in for a
+      single session or join a six-week journey. New here? Read the
+      <a class="faq" href="#faq">FAQ</a> or send us a note.
+    </p>
+
+    <section class="note" aria-label="About this page">
+      <p>
+        <strong>Why automated checkers pass this page:</strong> the markup is valid HTML5 with a
+        non-empty <code>&lt;title&gt;</code>, a real <code>&lt;h1&gt;</code>, and a labelled nav.
+        axe-core, WAVE, and Lighthouse have no rule that inspects the characters inside text for
+        F32-style intra-word spacing. They cannot tell that <code>W&nbsp;E&nbsp;L&nbsp;C&nbsp;O&nbsp;M&nbsp;E</code>
+        is one English word being broken (a failure) while <code>FAQ</code> is an initialism that is
+        only visually tracked with CSS (not a failure). Distinguishing the two is a linguistic
+        judgement: is the spaced string a real word, or an acronym / inter-word spacing?
+      </p>
+    </section>
+  </main>
+
+  <footer>Lumen Yoga Studio · 14 Maple Court · open daily</footer>
+</body>
+</html>

@@ -4,18 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Wire Transfer — Confirm Recipient | Halcyon Credit Union</title>
-<!--
-  ASPECT: is-it-a-status-message-scope-boundary
-  INTENDED CLASSIFICATION: inapplicable (N/A)
-  This page surfaces a submit-time ERROR, but it does so inside a real modal
-  dialog (role="dialog", aria-modal="true") that TAKES FOCUS when it opens.
-  Per the WCAG 4.1.3 Understanding "Examples of changes that are not status
-  messages", an error shown in a dialog is a CHANGE OF CONTEXT and is therefore
-  excepted: it does not meet the definition of a status message. The dialog
-  needs NO role=status / aria-live, and the absence of one is NOT a 4.1.3
-  failure. The point of the page is the threshold judgment that PRECEDES every
-  4.1.3 check: does the change even meet the status-message definition?
--->
 <style>
   :root { --navy:#10243f; --teal:#0a7d72; --ink:#1b2430; --muted:#5c6675; --line:#e2e7ee; --danger:#b3261e; }
   * { box-sizing:border-box; }
@@ -34,7 +22,6 @@
   button { font:inherit; cursor:pointer; border-radius:8px; padding:12px 22px; border:1px solid transparent; }
   .primary { background:var(--teal); color:#fff; font-weight:600; }
   .ghost { background:#fff; border-color:#c2cad6; color:var(--ink); }
-  /* Modal */
   .scrim { position:fixed; inset:0; background:rgba(16,36,63,.55); display:none; align-items:center; justify-content:center; padding:20px; }
   .scrim.open { display:flex; }
   .dialog { background:#fff; max-width:440px; width:100%; border-radius:12px; padding:26px 28px; box-shadow:0 18px 50px rgba(0,0,0,.3); }
@@ -98,7 +85,6 @@
   Halcyon Credit Union · Federally insured by NCUA · Wire cut-off 3:00 PM ET.
 </footer>
 
-<!-- The error is delivered via a focus-taking modal: a CHANGE OF CONTEXT, excepted from 4.1.3. -->
 <div class="scrim" id="scrim">
   <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlgTitle" aria-describedby="dlgBody" id="dlg">
     <h2 id="dlgTitle"><span class="icon" aria-hidden="true">!</span> We couldn't send this wire</h2>
@@ -115,10 +101,6 @@
 </div>
 
 <script>
-  // On submit we open a MODAL dialog and MOVE FOCUS into it. Because the dialog takes focus,
-  // the error is a "change of context" (WCAG term) and is announced by the screen reader as a
-  // dialog. There is deliberately NO role=status / aria-live anywhere — and that is correct: the
-  // status-message definition is not met, so 4.1.3 does not apply (N/A).
   var scrim = document.getElementById('scrim');
   var dlg = document.getElementById('dlg');
   var sendBtn = document.getElementById('sendBtn');
@@ -128,7 +110,6 @@
     e.preventDefault();
     lastFocused = document.activeElement;
     scrim.classList.add('open');
-    // Move focus into the dialog -> this is what makes it a change of context.
     document.getElementById('dlgClose').focus();
   });
 
@@ -141,7 +122,6 @@
     closeDialog();
     document.getElementById('routing').focus();
   });
-  // Basic focus trap + Esc, so the dialog behaves like a real modal.
   document.addEventListener('keydown', function (e) {
     if (!scrim.classList.contains('open')) return;
     if (e.key === 'Escape') { closeDialog(); return; }

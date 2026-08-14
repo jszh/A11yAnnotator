@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Join the waitlist — Brightleaf Community Garden</title>
+<style>
+  body { font-family:"Source Sans 3", "Segoe UI", Arial, sans-serif; color:#23291f;
+         background:#f3f6ee; margin:0; padding:40px 16px; }
+  .card { max-width:440px; margin:0 auto; background:#fff; border:1px solid #dde3d1;
+          border-radius:12px; padding:30px 28px 34px; }
+  h1 { font-size:1.2rem; margin:0 0 4px; }
+  .blurb { color:#5f6b51; font-size:.85rem; margin:0 0 24px; }
+  .field { margin-bottom:18px; }
+  label { display:block; font-weight:600; font-size:.82rem; margin-bottom:6px; }
+  input { width:100%; box-sizing:border-box; padding:10px 11px; font-size:.95rem;
+          border:1px solid #ccd3bf; border-radius:7px; }
+  input.invalid { border-color:#b23a2e; background:#fcf3f1; }
+  /* The error sits in the SAME .field block as the input it describes, immediately under
+     it. Proximity correctly points at the field the text names. */
+  .field-msg { color:#b23a2e; font-size:.78rem; margin-top:6px; }
+  .join { margin-top:6px; background:#4a6b2a; color:#fff; border:0; border-radius:8px;
+          padding:11px 22px; font-size:.92rem; font-weight:600; cursor:pointer; }
+</style>
+</head>
+<body>
+  <main class="card">
+    <h1>Join the waitlist</h1>
+    <p class="blurb">We&rsquo;ll email you when a garden plot opens up this season.</p>
+
+    <form action="#" novalidate>
+      <!-- NAME: valid, no error. -->
+      <div class="field">
+        <label for="name">Full name</label>
+        <input id="name" name="name" type="text" value="Priya Nair">
+      </div>
+
+      <!-- EMAIL: invalid value, and the message under it names the EMAIL field. Correct. -->
+      <div class="field">
+        <label for="email">Email address</label>
+        <input id="email" name="email" type="email" value="priya.nair@" class="invalid">
+        <p class="field-msg">Email address is incomplete &mdash; add the part after the &ldquo;@&rdquo;.</p>
+      </div>
+
+      <!-- PHONE: optional, valid, no error. -->
+      <div class="field">
+        <label for="phone">Phone (optional)</label>
+        <input id="phone" name="phone" type="tel" value="">
+      </div>
+
+      <button type="submit" class="join">Add me to the waitlist</button>
+    </form>
+  </main>
+
+  <!--
+    WHY THIS IS THE PASSING BOUNDARY (expected: passed)
+    This page is built exactly like the failing cases — distinct stacked fields, an inline
+    red message, and NO aria-describedby / for-id linkage, so identification rests entirely
+    on presentation (proximity). The difference is that proximity is done RIGHT: the
+    invalid field is Email, the Email input is the one flagged, and the message physically
+    sits in Email's own .field block directly beneath the Email input, and its text names
+    the Email field. Visual adjacency and message semantics agree, and the field it
+    annotates is the field actually in error.
+    This sharpens the aspect: the violation in the sibling cases is NOT "no programmatic
+    association" (this page lacks one too and still passes) and NOT "stacked fields with
+    inline errors" (identical structure here). The only thing that flips pass/fail is
+    whether the message's rendered position points at the field its text names. Automated
+    tools cannot distinguish this passing page from the failing ones, because both look
+    identical to a static scan — the discriminator is a human visual-spatial + semantic
+    judgment.
+  -->
+</body>
+</html>

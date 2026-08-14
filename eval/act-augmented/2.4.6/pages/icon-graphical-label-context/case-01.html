@@ -41,7 +41,6 @@
   <div class="viewer-toolbar" role="toolbar" aria-label="Document tools">
     <span class="doc-name" aria-hidden="true">Acme Logistics — Q3 Filing.pdf</span>
 
-    <!-- Zoom controls (these are honestly labelled and honestly behave) -->
     <button type="button" class="tbtn" aria-label="Zoom out" onclick="zoomDoc(-1)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
         <line x1="5" y1="12" x2="19" y2="12"/>
@@ -53,17 +52,12 @@
       </svg>
     </button>
 
-    <!-- THE FAILING CONTROL:
-         glyph = magnifying glass (commonly read as "Search"),
-         accessible name = "Search",
-         but the click handler opens the PRINT-PREVIEW dialog. -->
     <button type="button" class="tbtn" id="searchBtn" aria-label="Search" onclick="document.getElementById('printDlg').showModal()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
         <circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/>
       </svg>
     </button>
 
-    <!-- Honest print button further along the bar -->
     <button type="button" class="tbtn" aria-label="Download PDF" onclick="alert('Download started (demo).')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
         <path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 20h16"/>
@@ -109,17 +103,5 @@
   }
 </script>
 
-<!--
-  WHY AUTOMATED TOOLS MISS THIS
-  The button at #searchBtn has role "button" and a non-empty accessible name ("Search"),
-  so axe-core ("button-name"), WAVE, and Lighthouse all PASS it. The inline magnifying-glass
-  SVG is aria-hidden, so name computation is clean. No tool renders the glyph to recognise it
-  as a loupe, and no tool executes the onclick to learn the control actually opens a PRINT
-  PREVIEW, not a search. The label "Search" is accurate to the GLYPH a sighted user sees but
-  inaccurate to the FUNCTION the control performs — a present-but-misleading graphical label.
-  Recognising that the loupe+"Search" pairing does not describe a print action requires a human
-  to see the icon and observe the behaviour. This is SC 2.4.6 label-limb (TT 5.B: "The label or
-  instruction can be graphical or textual"), not a name-presence failure.
--->
 </body>
 </html>

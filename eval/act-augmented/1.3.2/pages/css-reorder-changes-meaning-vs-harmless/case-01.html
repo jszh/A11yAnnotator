@@ -4,16 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Coastline CRM — Plans &amp; Pricing</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS:
-  Every element has a name; nothing is empty; no alt/label/contrast violation exists.
-  axe/WAVE/Lighthouse have no model of which price is "supposed" to sit under which
-  plan, so they cannot tell that the absolutely-positioned price column is emitted in
-  the DOM in the REVERSE order of the plan column. Reading the source linearly yields
-  "Starter ... Growth ... $79/mo ... $19/mo", silently binding the cheap price to the
-  expensive plan. Catching it requires reading the linearized text AS PROSE and knowing
-  the prices are swapped — a semantic judgment, not a markup check.
--->
 <style>
   :root { --ink:#1d2733; --brand:#0b6e6e; --line:#dce4e8; --paper:#fff; }
   * { box-sizing: border-box; }
@@ -24,10 +14,6 @@
   main { max-width:760px; margin:0 auto; padding:36px 24px 72px; }
   h2 { font-size:1.25rem; color:var(--brand); }
 
-  /* Designer built this in a free-canvas page builder. The two price chips were dragged
-     into place AFTER the plan cards, and the builder appended them to the DOM in the order
-     they were drawn — which happened to be high-to-low — while the plan cards are low-to-high.
-     Visually the chips land in the correct cells; in source order they are reversed. */
   .compare { position:relative; height:300px; border:1px solid var(--line);
              border-radius:12px; background:var(--paper); margin-top:20px; }
   .plan { position:absolute; top:28px; width:300px; padding:0 24px; }
@@ -39,7 +25,6 @@
   .price { position:absolute; top:150px; width:300px; padding:0 24px;
            font-size:2rem; font-weight:800; color:var(--brand); }
   .price small { display:block; font-size:.85rem; font-weight:500; color:#5a6b78; }
-  /* visual columns: left chip under Starter, right chip under Growth */
   .price-left  { left:0; }
   .price-right { left:380px; }
 
@@ -57,14 +42,6 @@
   <h2>Compare plans</h2>
   <p>Both plans include unlimited contacts and email support. Annual billing saves 20%.</p>
 
-  <!-- Visual layout (what a sighted user sees):
-         STARTER  ............  GROWTH
-         $19/mo   ............  $79/mo
-       Source/linearized order (what AT reads):
-         "Starter — for solo founders just getting started.
-          Growth — for scaling teams that need automation.
-          $79 /user / month   $19 /user / month"
-       => the FIRST price spoken ($79) lands on Starter; meaning is scrambled. -->
   <div class="compare">
     <div class="plan plan-starter">
       <h3>Starter</h3>
@@ -75,7 +52,6 @@
       <p>For scaling teams that need automation.</p>
     </div>
 
-    <!-- price-right ($79, Growth) appears FIRST in source; price-left ($19, Starter) second -->
     <div class="price price-right">$79<small>/user / month</small></div>
     <div class="price price-left">$19<small>/user / month</small></div>
   </div>

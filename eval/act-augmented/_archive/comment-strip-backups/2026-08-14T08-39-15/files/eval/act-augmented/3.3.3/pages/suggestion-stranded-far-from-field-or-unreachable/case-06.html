@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reserve a campsite — Granite Ridge State Park</title>
+<!--
+  ASPECT: Error Suggestion (3.3.3) — PASS TWIN proving PROXIMITY, not mere presence, is judged.
+  Same family as case-01 (a date field rejecting a wrong-format value, correct MM/DD/YYYY fix),
+  but here the suggestion is LOCATABLE two ways:
+   (1) The correct suggestion is repeated INLINE, immediately beside the date field, and is
+       programmatically associated via aria-describedby on the input.
+   (2) The top error summary item is a WORKING jump link (href="#arrival") that lands on the
+       real field id, with scroll-margin so the field is in view on arrival.
+  The suggestion text is identical in quality to the FAIL cases; the only difference is that it
+  is provided close to / reachable from the field. Expected outcome: passed.
+  WHY IT PASSES (and why this is the boundary): a scanner would see "a suggestion exists" in BOTH
+  this page and case-01 and treat them the same. A human judges that here the fix is next to the
+  field and reachable, so the locatability limb is satisfied — the exact distinction automated
+  tools cannot draw.
+-->
+<style>
+  :root { --ink:#21311f; --line:#cfdac7; --bad:#a5301f; --brand:#3a6b2c; }
+  * { box-sizing:border-box; }
+  body { font: 16px/1.55 "Segoe UI", system-ui, sans-serif; color:var(--ink); margin:0; background:#f3f7f0; }
+  .wrap { max-width: 700px; margin: 0 auto; background:#fff; }
+  header.masthead { background: var(--brand); color:#fff; padding: 22px 28px; }
+  header.masthead p { margin:4px 0 0; font-size:14px; opacity:.9; }
+  main { padding: 12px 28px 36px; }
+  h1 { margin:0; font-size:23px; }
+  h2 { font-size:18px; border-bottom:2px solid var(--line); padding-bottom:6px; margin-top:26px; }
+  fieldset { border:1px solid var(--line); border-radius:8px; margin:0 0 16px; padding:14px 16px; }
+  legend { font-weight:700; padding:0 6px; }
+  .field { margin:12px 0; }
+  label { display:block; font-weight:600; margin-bottom:4px; }
+  input[type=text], select { width:100%; padding:9px 10px; border:1px solid #94a58c; border-radius:6px; font:inherit; }
+  input[aria-invalid="true"] { border-color:var(--bad); border-width:2px; }
+  /* The inline suggestion sits right under the field it governs. */
+  .fix { color:var(--bad); font-size:14px; margin-top:5px; font-weight:600; }
+  .fix .eg { font-weight:400; color:#5a4a44; }
+  .errsummary { background:#fbe9e6; border:1px solid var(--bad); border-radius:8px; padding:12px 16px; margin:14px 0; }
+  .errsummary h2 { border:0; margin:0 0 6px; color:var(--bad); font-size:16px; }
+  .errsummary a { color:#7d2417; font-weight:700; }
+  #arrival { scroll-margin-top: 16px; }
+  .actions { margin:24px 0; }
+  button { background:var(--brand); color:#fff; border:0; border-radius:6px; padding:12px 22px; font:700 16px Arial; cursor:pointer; }
+  footer.sitefoot { background:#eef3ea; border-top:3px solid var(--brand); margin-top:28px; padding:18px 28px 26px; font-size:14px; color:#3a4a36; }
+  footer.sitefoot ul { margin:6px 0 0; padding-left:18px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="masthead">
+    <h1>Granite Ridge State Park &mdash; Campsite reservation</h1>
+    <p>Backcountry permits · Summer season</p>
+  </header>
+
+  <main>
+    <form action="#" novalidate>
+      <!-- Summary item is a WORKING link to the real field id #arrival -->
+      <div class="errsummary" role="alert">
+        <h2>We couldn&rsquo;t hold your site</h2>
+        <p>There is a problem with your <strong>Arrival date</strong>:
+          enter it as MM/DD/YYYY.
+          <a href="#arrival">Go to Arrival date</a>.</p>
+      </div>
+
+      <h2>Your stay</h2>
+      <fieldset>
+        <legend>Dates</legend>
+        <div class="field">
+          <label for="arrival">Arrival date</label>
+          <input type="text" id="arrival" name="arrival" value="7/4/26"
+                 aria-invalid="true" aria-describedby="arrival-fix" autocomplete="off">
+          <!-- The SAME correct suggestion, repeated immediately beside the field and
+               programmatically associated via aria-describedby. -->
+          <p class="fix" id="arrival-fix">That isn&rsquo;t a date we recognize. Use the format
+            MM/DD/YYYY <span class="eg">(for example, 07/04/2026)</span>.</p>
+        </div>
+        <div class="field">
+          <label for="nights">Number of nights</label>
+          <select id="nights" name="nights">
+            <option>1</option><option selected>2</option><option>3</option><option>4</option>
+          </select>
+        </div>
+      </fieldset>
+
+      <h2>Site</h2>
+      <fieldset>
+        <legend>Where you&rsquo;ll camp</legend>
+        <div class="field">
+          <label for="loop">Camping loop</label>
+          <input type="text" id="loop" name="loop" value="Cedar Hollow">
+        </div>
+        <div class="field">
+          <label for="party">Party size</label>
+          <input type="text" id="party" name="party" value="4">
+        </div>
+      </fieldset>
+
+      <h2>Permit holder</h2>
+      <fieldset>
+        <legend>Contact</legend>
+        <div class="field">
+          <label for="holder">Name on permit</label>
+          <input type="text" id="holder" name="holder" value="Devon Park">
+        </div>
+        <div class="field">
+          <label for="vehicle">Vehicle plate (optional)</label>
+          <input type="text" id="vehicle" name="vehicle" value="">
+        </div>
+      </fieldset>
+
+      <div class="actions">
+        <button type="submit">Reserve campsite</button>
+      </div>
+    </form>
+  </main>
+
+  <footer class="sitefoot">
+    <p>Granite Ridge State Park &middot; Permits office open 8am&ndash;4pm</p>
+    <ul>
+      <li>Times shown in Mountain Time (MT).</li>
+      <li>&copy; 2026 State Parks Department</li>
+    </ul>
+  </footer>
+</div>
+</body>
+</html>

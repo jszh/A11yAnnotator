@@ -43,13 +43,6 @@
   </aside>
 
   <section>
-    <!--
-      The result summary is wrapped in aria-live="polite" (so it IS a live region and DOES
-      announce). But aria-atomic is unset and ONLY the inner <b id="count"> number node is
-      rewritten when filters change. The static words "Showing" / "products" never re-render,
-      so the AT speaks just the changed numeral: "24". The listener has no idea 24 refers to
-      a product count, a filter, or anything at all.
-    -->
     <p class="summary" aria-live="polite" id="result-line">
       Showing <b id="count">38</b> products
     </p>
@@ -72,14 +65,10 @@
 </footer>
 
 <script>
-  // Pretend product DB; the visible grid is illustrative. The point is the count line.
   function recount() {
     var boxes = document.querySelectorAll('#facets input:checked');
-    // Simulated facet count: fewer filters -> more results.
     var n = 38 - boxes.length * 9;
     if (n < 2) n = 2;
-    // ONLY the inner number node is updated. "Showing" and "products" are untouched,
-    // and #result-line has no aria-atomic, so AT hears just "24".
     document.getElementById('count').textContent = String(n);
   }
   document.getElementById('facets').addEventListener('change', recount);

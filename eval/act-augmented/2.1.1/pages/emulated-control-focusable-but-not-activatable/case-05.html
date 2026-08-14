@@ -21,7 +21,6 @@
   .pill.live { background:rgba(52,211,153,.14); color:var(--ac-green); }
   .pill.build { background:rgba(79,140,255,.14); color:var(--ac-accent); }
   .rowactions { position:relative; text-align:right; }
-  /* The "more actions" kebab — a focusable div with role=button and onkeyup wired up */
   .kebab {
     display:inline-grid; place-items:center; width:30px; height:30px; border-radius:7px;
     color:var(--ac-mut); cursor:pointer; user-select:none; font-size:1.1rem; line-height:1;
@@ -61,10 +60,6 @@
         <td><span class="pill live">● Live</span></td>
         <td>4 min ago</td>
         <td class="rowactions">
-          <!-- Kebab #1. role=button + tabindex + onkeydown => looks fully keyboard-ready.
-               But the handler gates on event.charCode, which is ALWAYS 0 for the keydown
-               event (charCode is only meaningful for keypress), so the Enter/Space branch
-               never runs in any browser. The menu cannot be opened from the keyboard. -->
           <div class="kebab" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false"
                aria-label="More actions for commit a3f10c9"
                onclick="toggleMenu(this)" onkeydown="kebabKey(event, this)">⋮</div>
@@ -108,16 +103,9 @@
     t.textContent = msg; t.classList.add('show');
     setTimeout(function () { t.classList.remove('show'); }, 2000);
   }
-  // The kebab keyboard handler is bound to keydown but inspects event.charCode. For a
-  // keydown event charCode is ALWAYS 0 (charCode is only populated for the deprecated
-  // keypress event, and even then only for printing characters). So `c` is 0 for every
-  // key, the Enter (13) / Space (32) branch never matches, and toggleMenu() is never
-  // called from the keyboard — in EVERY browser. The handler is present (so the markup
-  // reads as keyboard-ready) but it can never activate. The developer should have read
-  // event.key === 'Enter' || event.key === ' '. There is no other keyboard path to the menu.
   function kebabKey(event, kebab) {
-    var c = event.charCode;            // BUG: always 0 on keydown
-    if (c === 13 || c === 32) {        // never true → activation silently dead
+    var c = event.charCode;            
+    if (c === 13 || c === 32) {        
       event.preventDefault();
       toggleMenu(kebab);
     }

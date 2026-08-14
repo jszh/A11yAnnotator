@@ -4,35 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Northvale Health — Schedule an Appointment</title>
-<!--
-  SC 1.4.11 Non-text Contrast — F78 (focus indicator present but
-  indistinguishable, here CONFUSED WITH a selection indicator that uses the
-  identical treatment).
-
-  This patient-portal "appointment type" picker is a segmented control (radio
-  group) of three options. The SELECTED segment is marked with a 3px solid teal
-  border. The author re-used that exact same 3px solid teal border as the :focus
-  indicator for the segments:
-
-      .seg[aria-checked="true"] { border: 3px solid #0f8a8a; }   /* selected   */
-      .seg:focus                { border: 3px solid #0f8a8a; }   /* focus ring */
-
-  The page is rendered with the SECOND option ("Video visit") selected, and
-  keyboard focus on the FIRST option ("In-person visit"), which is NOT selected.
-  Both now show the identical 3px teal border. A sighted keyboard user therefore
-  sees two teal-bordered segments and cannot tell which is the chosen value and
-  which merely has focus — and as they arrow across, the focused segment is
-  indistinguishable from the persistently-selected one, so focus movement is not
-  perceivable as distinct from selection.
-
-  WHY AUTOMATED TOOLS MISS IT: the markup is correct (role=radiogroup,
-  aria-checked exposed, real focus styles present). A focus style exists and has
-  fine contrast (teal #0f8a8a on white ~3.3:1). axe/WAVE/Lighthouse cannot judge
-  that the focus treatment is identical to the selection treatment and therefore
-  fails to distinguish "focused" from "selected." Only a human comparing the
-  selected segment, the focused segment, and the resting segments can see the
-  collision.
--->
 <style>
   :root{
     --ink:#16202b; --muted:#5d6b78; --teal:#0f8a8a; --bg:#eef4f4; --card:#fff; --line:#d3dde0;
@@ -51,9 +22,6 @@
 
   .segmented{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:6px;}
 
-  /* The segmented radio "buttons". The selected state and the focus state both
-     use a 3px solid teal border — so a focused-but-unselected segment looks the
-     same as the selected one, and focus is not distinguishable from selection. */
   .seg{
     appearance:none; background:var(--card); cursor:pointer; text-align:left;
     border:1px solid var(--line); border-radius:9px; padding:14px 14px;
@@ -62,8 +30,8 @@
   .seg .t{font-weight:700; display:block;}
   .seg .d{font-size:.85rem; color:var(--muted); margin-top:3px;}
 
-  .seg[aria-checked="true"]{ border:3px solid #0f8a8a; }   /* SELECTED indicator */
-  .seg:focus{ border:3px solid #0f8a8a; outline:none; }    /* FOCUS == SELECTED  */
+  .seg[aria-checked="true"]{ border:3px solid #0f8a8a; }   
+  .seg:focus{ border:3px solid #0f8a8a; outline:none; }    
 
   .seg[aria-checked="true"] .check{color:var(--teal); font-weight:800;}
 
@@ -88,12 +56,10 @@
   <fieldset>
     <legend>Appointment type</legend>
     <div class="segmented" role="radiogroup" aria-label="Appointment type">
-      <!-- Focused (autofocus) but NOT selected -->
       <button type="button" class="seg" role="radio" aria-checked="false" autofocus>
         <span class="t">In-person visit</span>
         <span class="d">Northvale Clinic, 4th floor</span>
       </button>
-      <!-- Selected, not focused -->
       <button type="button" class="seg" role="radio" aria-checked="true">
         <span class="t">Video visit <span class="check">&#10003;</span></span>
         <span class="d">Secure video from home</span>

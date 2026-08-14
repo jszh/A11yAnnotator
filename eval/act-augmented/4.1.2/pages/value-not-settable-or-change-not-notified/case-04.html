@@ -44,27 +44,11 @@
       </tr>
     </thead>
     <tbody id="rows">
-      <!-- rows injected by JS so initial sort = descending by Spend (matches aria-sort) -->
     </tbody>
   </table>
 </div>
 
 <script>
-/*
-  Persona: a frontend dev on a data-viz team built this sortable grid. They were careful:
-  the INITIAL aria-sort values are correct (Spend is descending and marked
-  aria-sort="descending"; the others are "none"). That snapshot passes every static ARIA
-  check. But the sort() click handler only (a) re-orders the <tr> nodes and (b) moves the
-  data-active flag that drives the visible ▲/▼ arrow via CSS. It NEVER rewrites the
-  aria-sort attribute on any header.
-
-  For an AT user: the table announces "Spend, sorted descending" permanently. After they
-  activate "Conversions", the rows really do re-sort and a sighted user sees the arrow jump
-  to Conversions — but the screen reader still says the active sort column is Spend
-  descending. The user-settable sort STATE cannot be read back via AT and its change is
-  never notified. This is the F15 "do so incompletely" case: role/name/initial value valid,
-  the set+notify limb broken — and only observable by operating the control.
-*/
 var data = [
   { name:'Spring Sale Blast',     spend:4820, ctr:3.9, conv:212 },
   { name:'Cart Recovery Drip',    spend:1290, ctr:6.2, conv:341 },
@@ -95,11 +79,9 @@ document.querySelectorAll('#grid thead th').forEach(function (th) {
   th.querySelector('button').addEventListener('click', function () {
     if (state.key === key) { state.dir = state.dir === 'asc' ? 'desc' : 'asc'; }
     else { state.key = key; state.dir = 'asc'; }
-    // Move the VISIBLE active marker + arrow direction class only.
     document.querySelectorAll('#grid thead th').forEach(function (h) { h.removeAttribute('data-active'); });
     th.setAttribute('data-active', 'true');
     th.querySelector('.arrow').textContent = state.dir === 'asc' ? '▲' : '▼';
-    // aria-sort is intentionally NEVER updated on any header.
     render();
   });
 });

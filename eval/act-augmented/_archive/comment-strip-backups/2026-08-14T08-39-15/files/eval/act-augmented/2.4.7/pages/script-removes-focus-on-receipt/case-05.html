@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MetroGov 311 — Report a problem</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS:
+  The search field is a real <input type="search"> with a programmatic <label>, a
+  placeholder, and a valid :focus style. Label/name and form scanners pass it, and
+  there is no automated 2.4.7 rule. The defect is an onfocus handler that, the moment
+  the field receives keyboard focus, calls focus() on a visually-hidden live-region
+  span (the "results status") to "announce results early." That hidden span is
+  focusable (tabindex=-1) and off-screen, so focus leaves the visible search box
+  instantly: the search field's :focus ring never paints, and the keyboard user's
+  focus vanishes to an invisible element. A single snapshot shows the search box
+  unfocused; only tabbing through over time reveals the silent focus theft.
+-->
+<style>
+  :root { --gov-blue: #1b4079; --gov-green: #2e6e4e; --bg: #f6f8fa; --line: #ccd6e0; }
+  * { box-sizing: border-box; }
+  body { font-family: "Public Sans", "Segoe UI", Arial, sans-serif; margin: 0; background: var(--bg);
+    color: #1c2530; line-height: 1.55; }
+  .banner { background: #112e51; color: #fff; font-size: .75rem; padding: 5px 20px; }
+  header.gov { background: var(--gov-blue); color: #fff; padding: 16px 22px; }
+  header.gov h1 { margin: 0; font-size: 1.2rem; font-weight: 700; }
+  header.gov p { margin: 2px 0 0; font-size: .85rem; color: #cfe0f5; }
+  main { max-width: 720px; margin: 26px auto; padding: 0 20px; }
+  .search-card { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 24px 26px; }
+  .search-card h2 { margin: 0 0 4px; font-size: 1.15rem; color: var(--gov-blue); }
+  .search-card p.hint { margin: 0 0 16px; color: #54606c; font-size: .9rem; }
+  .search-row { display: flex; gap: 10px; }
+  label.field-label { display: block; font-weight: 600; font-size: .85rem; margin: 0 0 6px; }
+  input[type=search] {
+    flex: 1; padding: 11px 13px; border: 1px solid #9fb0c0; border-radius: 7px; font-size: 1rem;
+  }
+  /* Valid keyboard focus indicator on the search box — never paints due to focus theft. */
+  input[type=search]:focus { outline: 3px solid #ffbe2e; outline-offset: 1px; border-color: var(--gov-blue); }
+  button.search-go {
+    background: var(--gov-green); color: #fff; border: 0; border-radius: 7px;
+    padding: 0 22px; font-size: 1rem; font-weight: 600; cursor: pointer;
+  }
+  button.search-go:focus { outline: 3px solid #ffbe2e; outline-offset: 2px; }
+  .results { margin-top: 20px; }
+  .results h3 { font-size: .95rem; color: #54606c; margin: 0 0 8px; }
+  .results ul { list-style: none; margin: 0; padding: 0; }
+  .results li { border-bottom: 1px solid var(--line); padding: 10px 2px; }
+  .results li a { color: var(--gov-blue); text-decoration: none; }
+  .results li a:focus { outline: 3px solid #ffbe2e; outline-offset: 2px; }
+  /* Visually-hidden, but FOCUSABLE, status region — the focus thief's destination. */
+  .visually-hidden {
+    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+</style>
+</head>
+<body>
+<p class="banner">An official website of the City of Metro · Español</p>
+<header class="gov">
+  <h1>MetroGov 311 — Report a problem or find a service</h1>
+  <p>Potholes, missed collection, streetlights, permits and more</p>
+</header>
+
+<main>
+  <section class="search-card" aria-labelledby="srch-h">
+    <h2 id="srch-h">Search city services</h2>
+    <p class="hint">Try “pothole”, “bulk pickup”, or “noise complaint”.</p>
+
+    <form action="/311/search" method="get" role="search">
+      <label class="field-label" for="q">What do you need help with?</label>
+      <div class="search-row">
+        <!--
+          The defect: onfocus moves focus to the hidden status span the instant the
+          search box gains focus. The search box's :focus ring never paints, and the
+          keyboard user's focus disappears to an off-screen element. F55 "moves focus
+          elsewhere when focus is received" — the field is effectively pointer-only.
+        -->
+        <input type="search" id="q" name="q" placeholder="Search services…"
+               autocomplete="off"
+               onfocus="document.getElementById('srch-status').focus();">
+        <button type="submit" class="search-go">Search</button>
+      </div>
+    </form>
+
+    <!-- Focusable, visually-hidden live region used as the focus-theft target. -->
+    <span id="srch-status" class="visually-hidden" tabindex="-1" role="status" aria-live="polite">
+      Ready to search. 312 services available.
+    </span>
+
+    <div class="results" aria-label="Popular services">
+      <h3>Popular right now</h3>
+      <ul>
+        <li><a href="/311/pothole">Report a pothole</a></li>
+        <li><a href="/311/bulk-pickup">Schedule a bulk-item pickup</a></li>
+        <li><a href="/311/streetlight">Report a broken streetlight</a></li>
+      </ul>
+    </div>
+  </section>
+</main>
+</body>
+</html>

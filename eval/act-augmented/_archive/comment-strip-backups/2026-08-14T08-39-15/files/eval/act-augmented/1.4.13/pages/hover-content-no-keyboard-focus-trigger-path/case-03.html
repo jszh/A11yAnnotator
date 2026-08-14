@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Campaign performance — Loom Analytics</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+    background: #f6f7fb;
+    color: #1b1f2a;
+  }
+  .shell { display: grid; grid-template-columns: 64px 1fr; min-height: 100vh; }
+  .rail { background: #1b1f3b; display: flex; flex-direction: column; align-items: center; padding-top: 16px; gap: 18px; }
+  .rail .glyph { width: 30px; height: 30px; border-radius: 8px; background: #34407a; }
+  .rail .glyph.active { background: #6c7bd1; }
+  main { padding: 28px 36px; }
+  h1 { font-size: 22px; margin: 0 0 2px; }
+  .sub { color: #5b6472; margin: 0 0 24px; font-size: 14px; }
+  .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; max-width: 860px; }
+  .kpi {
+    background: #fff; border: 1px solid #e4e7ee; border-radius: 12px;
+    padding: 18px 20px;
+  }
+  .kpi .head { display: flex; align-items: center; gap: 6px; color: #5b6472; font-size: 13px; font-weight: 600; }
+  .kpi .val { font-size: 30px; font-weight: 800; margin: 8px 0 2px; }
+  .kpi .delta { font-size: 13px; }
+  .kpi .delta.up { color: #137a4b; }
+  .kpi .delta.down { color: #b23a2e; }
+
+  /* The metric-help button. It is a real <button>, so it IS focusable and IS a
+     tab stop — but its tooltip is wired only to mouseover/mouseout in JS. */
+  .help-btn {
+    appearance: none;
+    border: 0;
+    background: #eef0f6;
+    color: #44506b;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    font-size: 11px; font-weight: 700; line-height: 1;
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .help-btn:focus-visible { outline: 2px solid #6c7bd1; outline-offset: 2px; }
+
+  #metric-tip {
+    position: fixed;
+    z-index: 50;
+    max-width: 320px;
+    background: #11142a;
+    color: #eef0ff;
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 12px 14px;
+    border-radius: 9px;
+    box-shadow: 0 12px 30px rgba(0,0,0,.28);
+    display: none;
+  }
+</style>
+</head>
+<body>
+  <div class="shell">
+    <div class="rail" aria-hidden="true">
+      <div class="glyph"></div>
+      <div class="glyph active"></div>
+      <div class="glyph"></div>
+    </div>
+    <main>
+      <h1>Campaign performance</h1>
+      <p class="sub">Spring acquisition · last 30 days</p>
+
+      <div class="kpis">
+        <div class="kpi">
+          <div class="head">
+            Conversions
+            <button type="button" class="help-btn" id="conv-help"
+                    aria-label="What counts as a conversion?"
+                    aria-describedby="metric-tip">?</button>
+          </div>
+          <div class="val">1,284</div>
+          <div class="delta up">▲ 12.4% vs prior period</div>
+        </div>
+
+        <div class="kpi">
+          <div class="head">Cost / conversion</div>
+          <div class="val">$18.40</div>
+          <div class="delta down">▼ 3.1% vs prior period</div>
+        </div>
+
+        <div class="kpi">
+          <div class="head">ROAS</div>
+          <div class="val">4.6×</div>
+          <div class="delta up">▲ 0.4× vs prior period</div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div id="metric-tip" role="tooltip">
+    A <strong>conversion</strong> here counts a unique user who completed checkout
+    <em>within 7 days</em> of the ad click (post-click attribution). It excludes
+    view-through conversions and repeat purchases by the same user in the window — so this
+    number is lower than the figure shown in your ad platform, which uses a 28-day click +
+    1-day view model.
+  </div>
+
+  <script>
+    // The "?" tooltip explains a non-obvious attribution definition that differs from the
+    // ad platform's own counting — material context for interpreting the KPI.
+    //
+    // The button is a real, focusable <button> and IS a tab stop. But the tooltip is wired
+    // ONLY to mouseover/mouseout. focus/focusin is never bound. So a keyboard user can Tab
+    // TO the button (and even see a focus ring) yet the tooltip never appears — the
+    // attribution caveat is silently withheld from keyboard and AT users.
+    (function () {
+      var btn = document.getElementById('conv-help');
+      var tip = document.getElementById('metric-tip');
+      function show() {
+        var r = btn.getBoundingClientRect();
+        tip.style.left = (r.left - 8) + 'px';
+        tip.style.top = (r.bottom + 10) + 'px';
+        tip.style.display = 'block';
+      }
+      function hide() { tip.style.display = 'none'; }
+      btn.addEventListener('mouseover', show);
+      btn.addEventListener('mouseout', hide);
+      // NOTE: no btn.addEventListener('focus', ...) / 'focusin' — the keyboard path is missing.
+    })();
+  </script>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS IT (and why this FAILS 1.4.13 on the focus limb):
+    This is the subtle, common version of the failure. The trigger is a genuine, focusable
+    <button> WITH an accessible name (aria-label) AND aria-describedby pointing at the
+    tooltip — so it is a tab stop and even has a visible focus ring. An automated checker
+    sees a fully "correct" button: name present, role correct, describedby resolves, contrast
+    fine, title descriptive => no error from axe/WAVE/Lighthouse. The defect is in the
+    EVENT WIRING, which static analysis does not execute: the JS binds show() to 'mouseover'
+    but never to 'focus'/'focusin'. A keyboard user Tabs to the button, sees focus, and the
+    tooltip still does not appear. The withheld text is material (the 7-day post-click
+    attribution model that explains why this number differs from the ad platform). Catching
+    this requires Tab-testing the button and reading the tooltip for meaning — present-but-
+    unreachable-on-focus. Note also that aria-describedby may let some screen readers announce
+    the text, but the visible tooltip never renders, so sighted keyboard and magnifier users
+    are excluded and the perceive-on-focus intent is unmet. Verdict: FAILED.
+  -->
+</body>
+</html>

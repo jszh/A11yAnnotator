@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verify your identity — Cascade Health patient portal</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (expected: PASS):
+  An account-recovery identity-verification step asks for two knowledge-based factors:
+  date of birth and the last four digits of the SSN on file. The user got one wrong.
+  The error reads: "We couldn't verify your identity with the details provided.
+  Check the information and try again, or call Member Services to recover your
+  account." It deliberately does NOT say WHICH factor failed, does NOT say "your DOB
+  is correct but your SSN digits are wrong", and does NOT echo any expected value.
+  Telling the user which of the two knowledge factors matched would let an attacker
+  who guessed one factor brute-force the other, and would confirm that a given
+  SSN-fragment / DOB belongs to a real member — both jeopardize the security and the
+  whole PURPOSE of identity proofing. So the page gives only a generic, non-revealing
+  outcome plus an out-of-band recovery path (phone). That withholding is the CORRECT
+  outcome => PASS.
+  A naive "error detected, no specific suggestion which field => 3.3.3 fail" rule would
+  flag this. It is wrong. No automated tool can classify DOB + SSN-last-4 as identity-
+  proofing knowledge factors, cannot know per-field disclosure is forbidden, and cannot
+  judge that the generic message is the conformant outcome. Structurally the error is a
+  clean associated role=alert; axe/WAVE/Lighthouse see nothing wrong.
+-->
+<style>
+  :root{ --ink:#102027; --muted:#52646e; --line:#cdd8de; --brand:#0b7285; --accent:#15aabf;
+         --danger:#b02a37; --paper:#fff; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font:16px/1.55 "Inter","Segoe UI",system-ui,sans-serif; color:var(--ink);
+        background:#e9f1f3; }
+  .wrap{ max-width:480px; margin:48px auto; padding:0 18px; }
+  .brand{ display:flex; align-items:center; gap:10px; margin-bottom:20px; }
+  .brand .cross{ width:30px; height:30px; border-radius:8px; position:relative;
+                 background:linear-gradient(135deg,var(--brand),var(--accent)); }
+  .brand .cross::before,.brand .cross::after{ content:""; position:absolute; background:#fff;
+                 left:50%; top:50%; transform:translate(-50%,-50%); border-radius:1px; }
+  .brand .cross::before{ width:14px; height:4px; }
+  .brand .cross::after{ width:4px; height:14px; }
+  .brand strong{ font-size:1.1rem; }
+  .card{ background:var(--paper); border:1px solid var(--line); border-radius:13px;
+         padding:30px 28px; box-shadow:0 5px 20px rgba(16,32,40,.07); }
+  h1{ font-size:1.28rem; margin:0 0 4px; }
+  .sub{ color:var(--muted); font-size:.88rem; margin:0 0 22px; }
+  .alert{ display:flex; gap:9px; align-items:flex-start; margin:0 0 20px;
+          padding:12px 14px; border:1px solid #f0c4c8; background:#fcf0f1;
+          border-radius:10px; color:var(--danger); font-size:.88rem; }
+  .alert svg{ flex:0 0 auto; margin-top:1px; }
+  .field{ margin-bottom:18px; }
+  label{ display:block; font-weight:600; font-size:.88rem; margin-bottom:6px; }
+  .hint{ color:var(--muted); font-size:.81rem; margin:0 0 8px; }
+  input{ width:100%; padding:11px 12px; font-size:1rem; border:2px solid var(--line);
+         border-radius:8px; background:#fff; color:var(--ink); }
+  input[aria-invalid="true"]{ border-color:var(--danger); }
+  input:focus{ outline:2px solid var(--brand); outline-offset:1px; }
+  button{ margin-top:8px; width:100%; padding:12px; font-size:1rem; font-weight:700;
+          color:#fff; background:var(--brand); border:0; border-radius:9px; cursor:pointer; }
+  .foot{ margin-top:18px; color:var(--muted); font-size:.78rem; text-align:center; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand"><span class="cross" aria-hidden="true"></span><strong>Cascade Health</strong></div>
+    <main class="card">
+      <h1>Verify your identity</h1>
+      <p class="sub">To recover access to your patient portal, confirm the details we have on file.</p>
+
+      <!-- Post-submit identity-check failure. Generic, non-field-specific outcome. -->
+      <div class="alert" role="alert" id="verify-error">
+        <svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+          <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M8 4.2v4.6M8 11.2h.01" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+        </svg>
+        <span>We couldn't verify your identity with the details provided. Check the information and try again, or call Member Services at 1-800-555-0137 to recover your account.</span>
+      </div>
+
+      <form action="#" method="post" novalidate>
+        <div class="field">
+          <label for="dob">Date of birth</label>
+          <p class="hint" id="dob-hint">MM / DD / YYYY</p>
+          <input id="dob" name="dob" value="03/14/1986"
+                 aria-invalid="true" aria-describedby="dob-hint verify-error"
+                 autocomplete="bday">
+        </div>
+        <div class="field">
+          <label for="ssn4">Last 4 digits of SSN</label>
+          <p class="hint" id="ssn4-hint">The Social Security number on file with us.</p>
+          <input id="ssn4" name="ssn4" inputmode="numeric" maxlength="4" value="••••"
+                 aria-invalid="true" aria-describedby="ssn4-hint verify-error"
+                 autocomplete="off">
+        </div>
+        <button type="submit">Verify identity</button>
+      </form>
+    </main>
+    <p class="foot">Cascade Health · We never disclose which detail did not match · Renders from file://</p>
+  </div>
+</body>
+</html>

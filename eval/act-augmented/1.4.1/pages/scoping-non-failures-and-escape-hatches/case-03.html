@@ -15,14 +15,6 @@
   .field input, .field select, .field textarea {
     width:100%; padding:10px 12px; font:inherit; color:#1d2330; background:#fff;
     border-radius:8px; border:2px solid #b9c0cc; outline:none; }
-  /* After client-side validation, each field's status is shown ONLY by border colour.
-     valid   = light green border  #86d98f
-     invalid = dark   red   border #7a1414
-     These two outline colours have ~6.4:1 contrast WITH EACH OTHER, so a naive evaluator
-     might think the "lightness escape hatch" saves it. It does NOT: the meaning depends on
-     the user perceiving WHICH hue (green = ok vs red = problem). Per the Understanding note,
-     an additional visual indicator is required REGARDLESS of the contrast between the colours.
-     No icon, no "Looks good"/"Required" text, no aria-invalid — colour is the sole carrier. */
   .field.valid   input, .field.valid   select { border-color:#86d98f; }
   .field.invalid input, .field.invalid select, .field.invalid textarea { border-color:#7a1414; }
   .row { display:flex; gap:16px; }
@@ -80,25 +72,5 @@
      fields needing changes.</p>
 </form>
 
-<!--
-  WHY THIS FAILS (1.4.1, pure-colour reliance — note (b)):
-  Field validity (accepted vs needs-attention) is communicated ONLY by border colour:
-  light green = valid, dark red = invalid. The two border colours have ~6.4:1 contrast with
-  each other, which is well above 3:1 — so this is the TRAP case: the lightness gap is large,
-  yet the criterion still FAILS. The meaning depends on the user accurately perceiving WHICH
-  hue is on each field (green meaning ok, red meaning problem). The Understanding note states
-  that when content relies on differentiating a particular colour, an additional visual
-  indicator is required REGARDLESS of the contrast ratio between those colours. Here there is
-  no second indicator: no check/alert icon, no "Looks good" / "Required" text, no aria-invalid,
-  no message text. A user with red-green colour deficiency sees six outlined boxes and cannot
-  tell which two still need fixing.
-
-  WHY AUTOMATED TOOLS MISS IT: the inputs are all properly labelled (<label for>), the borders
-  pass SC 1.4.11 non-text contrast, and the form is valid HTML, so axe/WAVE/Lighthouse report
-  no errors. No automated rule models "the outline hue is the only thing telling valid from
-  invalid," and the >=3:1 inter-element contrast would even mislead a tool (or a hasty human)
-  into thinking the lightness escape hatch applies. Catching this requires applying the specific
-  pure-colour-reliance rule — that hue-dependent meaning fails irrespective of contrast.
--->
 </body>
 </html>

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Riverside County Benefits — Apply for energy assistance</title>
+<style>
+  body { margin: 0; font-family: "Public Sans", "Segoe UI", system-ui, sans-serif;
+    background: #eef1f4; color: #1b1f23; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 30px 22px 90px; }
+  header.gov { display: flex; align-items: center; gap: 11px; margin-bottom: 22px; }
+  header.gov .seal { width: 34px; height: 34px; border-radius: 50%; background: #14477d;
+    display: grid; place-items: center; color: #fff; font-size: 11px; font-weight: 700; }
+  header.gov .who { line-height: 1.2; }
+  header.gov .who b { font-size: 15px; }
+  header.gov .who span { font-size: 11.5px; color: #5a646e; }
+
+  .card { background: #fff; border: 1px solid #d4dbe2; border-radius: 10px; padding: 26px 26px 30px; }
+  .card h1 { font-size: 19px; margin: 0 0 4px; }
+  .card .lead { margin: 0 0 6px; color: #515b65; font-size: 13.5px; }
+  .card .aud { margin: 0 0 24px; color: #515b65; font-size: 12.5px; font-style: italic; }
+  .step { font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: #14477d;
+    font-weight: 700; margin: 0 0 16px; }
+
+  /* Each row: a square pictogram tile to the LEFT, then the input. No text words. */
+  .row { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+  .pic { flex: 0 0 auto; width: 44px; height: 44px; border-radius: 9px; background: #eef3f8;
+    border: 1px solid #d4dbe2; display: grid; place-items: center; color: #14477d; }
+  .pic svg { width: 26px; height: 26px; }
+  .row input, .row select { flex: 1 1 auto; box-sizing: border-box; border: 1px solid #c3ccd5;
+    border-radius: 8px; padding: 11px 12px; font-size: 14px; background: #fff; }
+  .row input:focus, .row select:focus { outline: 0; border-color: #14477d;
+    box-shadow: 0 0 0 3px rgba(20,71,125,.16); }
+
+  /* First two rows ARE properly text-labeled (passing) to set an expectation. */
+  .field { margin-bottom: 18px; }
+  .field label { display: block; font-size: 13px; font-weight: 600; color: #2b3640; margin-bottom: 6px; }
+  .field input { width: 100%; box-sizing: border-box; border: 1px solid #c3ccd5; border-radius: 8px;
+    padding: 11px 12px; font-size: 14px; }
+  .field .help { font-size: 12px; color: #6b7682; margin: 5px 0 0; }
+
+  .submit { margin-top: 24px; background: #14477d; color: #fff; border: 0; border-radius: 8px;
+    padding: 12px 24px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .devnote { max-width: 640px; margin: 22px auto 0; font-size: 12px; color: #6b7682;
+    line-height: 1.55; padding: 0 2px; }
+  code { background: #e9eef3; padding: 1px 4px; border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="gov">
+    <span class="seal" aria-hidden="true">RC</span>
+    <span class="who">
+      <b>Riverside County</b><br>
+      <span>Department of Community Services</span>
+    </span>
+  </header>
+
+  <main class="card">
+    <h1>Apply for winter energy assistance</h1>
+    <p class="lead">Low-Income Home Energy Assistance Program (LIHEAP) — Step 3 of 5.</p>
+    <p class="aud">Open to all county residents. Most applicants are seniors on fixed incomes and
+      recently-arrived immigrant families; the form is the public's primary way to apply.</p>
+    <p class="step">Household details</p>
+
+    <form onsubmit="return false" novalidate>
+      <!-- PASSING rows: real visible text labels set the expectation that fields are labeled. -->
+      <div class="field">
+        <label for="lname">Applicant last name</label>
+        <input id="lname" type="text" autocomplete="family-name">
+      </div>
+      <div class="field">
+        <label for="zip">Home ZIP code</label>
+        <input id="zip" type="text" inputmode="numeric" maxlength="5" autocomplete="postal-code">
+        <p class="help">5 digits, e.g. 92501.</p>
+      </div>
+
+      <!-- FAILING row: the ONLY visible cue is a "pilcrow / paragraph-end" glyph (¶), an
+           editor's/typesetter's mark for end-of-paragraph. The form's real internal meaning is
+           "number of people in your household" (a count). A pilcrow is genuinely widely understood
+           by editors and typographers, but it is opaque to this page's stated audience — seniors
+           and recently-arrived families applying for energy help. No text label, no placeholder,
+           no help text. aria-label makes a screen reader say the right thing; the SCREEN says
+           nothing a sighted public applicant can decode. -->
+      <div class="row">
+        <span class="pic" aria-hidden="true">
+          <!-- pilcrow ¶ drawn as a path: reversed-P with a doubled stem -->
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M14 3h5a1 1 0 0 1 0 2h-1v15a1 1 0 0 1-2 0V5h-2v15a1 1 0 0 1-2 0v-7h-1
+                     a5 5 0 0 1 0-10h6z"></path>
+          </svg>
+        </span>
+        <input id="hh" type="text" inputmode="numeric" maxlength="2"
+               aria-label="Number of people in your household">
+      </div>
+
+      <!-- FAILING row 2: only visible cue is a "lambda" (λ) — picked from a generic glyph set
+           because it "looks official". Means nothing to anyone about the field, which expects the
+           applicant's monthly gross income bracket code (A–F). aria-label is correct. -->
+      <div class="row">
+        <span class="pic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M7 21l6.5-15M20 21L11 4"></path>
+          </svg>
+        </span>
+        <select id="bracket" aria-label="Monthly gross household income bracket, codes A through F">
+          <option value="">Select…</option>
+          <option>A</option><option>B</option><option>C</option>
+          <option>D</option><option>E</option><option>F</option>
+        </select>
+      </div>
+
+      <button type="submit" class="submit">Continue to Step 4</button>
+    </form>
+  </main>
+
+  <p class="devnote">
+    Built by a contractor who themed the form so "every field gets a tidy pictogram tile". The first
+    two fields kept real text labels; for the last two the contractor grabbed glyphs from a generic
+    symbol set (a paragraph/pilcrow mark for the count field, a Greek <code>&lambda;</code> for the
+    income-bracket field) because they "looked clean and official", and added an <code>aria-label</code>
+    to each so the accessibility scanner stayed green. A sighted senior or a recently-arrived
+    applicant sees only a ¶ and a λ — neither is widely understood by THIS audience as "household
+    size" or "income bracket", and the two correctly-labeled fields above make the omission worse by
+    setting the expectation that fields carry words.
+  </p>
+</div>
+</body>
+</html>

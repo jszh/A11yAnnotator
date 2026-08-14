@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.4.5 FAILURE — pricing comparison as one image: a grid with check/cross icons but the
+    cells are all words and numbers. Borderline "diagram with significant visual content".
+
+    An insurance broker's landing page presents three plan tiers (Essential / Plus / Premier)
+    as a single comparison image (inline-SVG `data:` URI). It LOOKS table-ish AND has graphic
+    elements: a "Most popular" ribbon, green check (✓) and grey cross (✗) glyphs in the
+    coverage rows, and column dividers. A tester might argue the checkmarks/ribbon are
+    "significant other visual content" and grant the exclusion.
+
+    The deciding question: do those graphics convey information that the text does NOT? They do
+    NOT. The ✓/✗ are pure redundancy — every cell that has a check or cross is a row whose
+    meaning ("Roadside assistance: yes / no") is already fully expressed by the row labels and
+    the words; the ribbon just repeats "Most popular," also printed as text. ALL the actual
+    information — plan names, monthly prices, deductibles, coverage limits, the yes/no facts — is
+    TEXT laid out in a grid. The icons decorate it; they don't carry it. Strip the icons and the
+    ribbon and no information is lost. So this is an image of text (a comparison TABLE rendered
+    as a picture) that should be a live HTML <table> -> 1.4.5 FAIL.
+
+    This is the tightest borderline in the set: a true data visualization (e.g. a coverage
+    heatmap where colour intensity encoded a value) WOULD be excluded. Here the geometry/icons
+    encode nothing beyond the words, so the exclusion fails and 1.4.5 applies.
+
+    Consequences: prices/deductibles can't be enlarged without pixelation, can't be recoloured,
+    can't reflow on mobile (a wide grid image overflows), can't be read cell-by-cell by a screen
+    reader as a table, can't be selected/copied. The alt is a complete transcript so image-alt
+    passes.
+
+    WHY AUTOMATED TOOLS MISS IT: image-alt passes (full transcript). No scanner can judge that
+    the ✓/✗ icons and "Most popular" ribbon are redundant decoration rather than informational
+    graphics, and therefore that the picture is a table-as-text in scope of 1.4.5. Deciding
+    whether the non-text visual content is "significant" (carrying unique meaning) is exactly the
+    human judgment the SC requires.
+  -->
+  <title>Compare home insurance plans — Harbor &amp; Vale Insurance</title>
+  <style>
+    :root { --ink:#1a2230; --muted:#5b6779; --line:#e2e7ee; --bg:#f1f5f9; --brand:#0f5e8c; --accent:#1e9e5a; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Inter","Segoe UI",Roboto,Arial,sans-serif; color:var(--ink); background:var(--bg); line-height:1.6; }
+    .wrap { max-width:880px; margin:0 auto; padding:30px 20px 60px; }
+    header.site { display:flex; align-items:center; gap:12px; border-bottom:1px solid var(--line); padding-bottom:14px; }
+    header.site .logo { width:30px; height:30px; border-radius:7px; background:var(--brand); }
+    header.site h1 { font-size:17px; margin:0; }
+    header.site nav { margin-left:auto; font-size:14px; }
+    header.site nav a { color:var(--brand); text-decoration:none; margin-left:16px; }
+    .hero { text-align:center; margin:26px 0 6px; }
+    .hero h2 { font-size:26px; margin:0 0 6px; }
+    .hero p { color:var(--muted); font-size:15px; max-width:560px; margin:0 auto; }
+    figure { margin:24px 0 0; text-align:center; }
+    figure img { display:inline-block; width:100%; max-width:760px; height:auto; border:1px solid var(--line); border-radius:12px; background:#fff; box-shadow:0 2px 12px rgba(20,40,70,.06); }
+    figcaption { color:var(--muted); font-size:13px; margin-top:12px; }
+    .cta { text-align:center; margin-top:26px; }
+    .cta a { display:inline-block; background:var(--brand); color:#fff; text-decoration:none; padding:12px 26px; border-radius:9px; font-weight:600; font-size:15px; }
+    .fine { color:var(--muted); font-size:12px; text-align:center; margin-top:20px; line-height:1.6; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="site">
+      <div class="logo" aria-hidden="true"></div>
+      <h1>Harbor &amp; Vale Insurance</h1>
+      <nav aria-label="Primary">
+        <a href="#">Home</a>
+        <a href="#">Auto</a>
+        <a href="#">Claims</a>
+        <a href="#">Contact</a>
+      </nav>
+    </header>
+
+    <div class="hero">
+      <h2>Compare home insurance plans</h2>
+      <p>Three tiers, one quick decision. Pick the cover that fits your home and budget.</p>
+    </div>
+
+    <figure>
+      <!-- Comparison grid as ONE image: ✓/✗ icons + "Most popular" ribbon + dividers are
+           decoration that merely repeats the text; all real data (names, prices, deductibles,
+           yes/no facts) is text in a grid -> image of a TABLE -> 1.4.5 FAIL. -->
+      <img alt="Home insurance plan comparison. Essential: $28 per month, deductible $1,000, dwelling cover up to $250,000; personal liability included; water backup not included; roadside assistance not included. Plus (Most popular): $44 per month, deductible $750, dwelling cover up to $500,000; personal liability included; water backup included; roadside assistance not included. Premier: $69 per month, deductible $500, dwelling cover up to $1,000,000; personal liability included; water backup included; roadside assistance included."
+           src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 760 360'><rect width='760' height='360' fill='%23ffffff'/><line x1='280' y1='20' x2='280' y2='340' stroke='%23eef2f6'/><line x1='440' y1='20' x2='440' y2='340' stroke='%23eef2f6'/><line x1='600' y1='20' x2='600' y2='340' stroke='%23eef2f6'/><rect x='440' y='8' width='160' height='22' fill='%231e9e5a'/><text x='520' y='24' font-family='Arial' font-size='12' fill='%23ffffff' text-anchor='middle' font-weight='bold'>MOST POPULAR</text><g font-family='Arial' text-anchor='middle'><text x='360' y='56' font-size='17' fill='%231a2230' font-weight='bold'>Essential</text><text x='520' y='56' font-size='17' fill='%230f5e8c' font-weight='bold'>Plus</text><text x='680' y='56' font-size='17' fill='%231a2230' font-weight='bold'>Premier</text><text x='360' y='86' font-size='22' fill='%231a2230' font-weight='bold'>$28<tspan font-size='12' fill='%235b6779'>/mo</tspan></text><text x='520' y='86' font-size='22' fill='%231a2230' font-weight='bold'>$44<tspan font-size='12' fill='%235b6779'>/mo</tspan></text><text x='680' y='86' font-size='22' fill='%231a2230' font-weight='bold'>$69<tspan font-size='12' fill='%235b6779'>/mo</tspan></text></g><g font-family='Arial' font-size='13' fill='%231a2230'><text x='24' y='130'>Deductible</text><text x='360' y='130' text-anchor='middle'>$1,000</text><text x='520' y='130' text-anchor='middle'>$750</text><text x='680' y='130' text-anchor='middle'>$500</text><text x='24' y='170'>Dwelling cover up to</text><text x='360' y='170' text-anchor='middle'>$250,000</text><text x='520' y='170' text-anchor='middle'>$500,000</text><text x='680' y='170' text-anchor='middle'>$1,000,000</text><text x='24' y='210'>Personal liability</text><text x='24' y='250'>Water backup</text><text x='24' y='290'>Roadside assistance</text></g><g font-family='Arial' font-size='17' text-anchor='middle'><text x='360' y='214' fill='%231e9e5a'>&#10003;</text><text x='520' y='214' fill='%231e9e5a'>&#10003;</text><text x='680' y='214' fill='%231e9e5a'>&#10003;</text><text x='360' y='254' fill='%23b9c2cd'>&#10007;</text><text x='520' y='254' fill='%231e9e5a'>&#10003;</text><text x='680' y='254' fill='%231e9e5a'>&#10003;</text><text x='360' y='294' fill='%23b9c2cd'>&#10007;</text><text x='520' y='294' fill='%23b9c2cd'>&#10007;</text><text x='680' y='294' fill='%231e9e5a'>&#10003;</text></g><line x1='16' y1='148' x2='744' y2='148' stroke='%23eef2f6'/><line x1='16' y1='188' x2='744' y2='188' stroke='%23eef2f6'/><line x1='16' y1='228' x2='744' y2='228' stroke='%23eef2f6'/><line x1='16' y1='268' x2='744' y2='268' stroke='%23eef2f6'/></svg>">
+      <figcaption>Plan comparison. Prices shown are sample monthly premiums for illustration.</figcaption>
+    </figure>
+
+    <div class="cta">
+      <a href="#quote">Get my quote</a>
+    </div>
+
+    <p class="fine">
+      Premiums vary by location, property age and claims history. This comparison is a summary;
+      full terms are in each plan's policy document.
+    </p>
+  </div>
+</body>
+</html>

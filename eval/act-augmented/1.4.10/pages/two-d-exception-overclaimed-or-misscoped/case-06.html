@@ -5,17 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Find a Charging Station — VoltRoute</title>
 <style>
-  /*
-    THE DEFECT (human-judgment only):
-    A genuine interactive map (a real <svg> map with plotted stations) legitimately
-    requires two-dimensional layout — it is excepted from Reflow. But the developer placed
-    the map and its control sidebar (filters, legend, results list) in ONE non-wrapping
-    flex row whose total width is fixed. The map keeps its size (fine), but the sidebar's
-    filters, the legend, and the "results" list are pushed off the right edge and clipped
-    at 320px. Those controls are NOT excepted: a filter form, a legend, and a results list
-    must reflow. The author scoped the exception to the whole map+controls module instead
-    of the map alone.
-  */
   :root { font-family: "Inter", system-ui, sans-serif; color: #1b2330; }
   body { margin: 0; background: #f4f6fa; }
   header.top { background: #0a2540; color: #fff; padding: 14px 20px; }
@@ -23,19 +12,13 @@
   header.top p { margin: 4px 0 0; color: #b9c6dc; font-size: 0.85rem; }
   .finder-intro { padding: 16px 20px 0; max-width: 60ch; line-height: 1.5; }
 
-  /*
-    Non-wrapping flex row containing the excepted map AND non-excepted controls.
-    nowrap + a fixed gap means the sidebar is pushed off-canvas at 320px.
-  */
   .finder {
     display: flex; flex-wrap: nowrap; gap: 20px; align-items: flex-start;
-    padding: 16px 20px 40px; min-width: 1080px;   /* whole module won't reflow */
+    padding: 16px 20px 40px; min-width: 1080px;   
   }
-  /* The excepted map (genuinely 2D). */
   .map { flex: 0 0 680px; background: #dfe7f0; border: 1px solid #c2cede; border-radius: 10px; }
   .map svg { display: block; width: 680px; height: 420px; }
 
-  /* The NON-excepted control sidebar — should reflow, but is pinned beside the map. */
   .controls { flex: 0 0 360px; }
   .controls .panel {
     background: #fff; border: 1px solid #d6deea; border-radius: 10px; padding: 14px; margin-bottom: 14px;
@@ -62,7 +45,6 @@
   </p>
 
   <div class="finder">
-    <!-- EXCEPTED: a genuine interactive map (2D layout required). -->
     <div class="map" role="application" aria-label="Charging station map">
       <svg viewBox="0 0 680 420" role="img" aria-label="Map of charging stations across the city">
         <rect width="680" height="420" fill="#e7eef6"/>
@@ -77,7 +59,6 @@
       </svg>
     </div>
 
-    <!-- NOT EXCEPTED: filters, legend, results — these must reflow but are pinned right. -->
     <div class="controls">
       <div class="panel">
         <h2>Filter stations</h2>
@@ -110,15 +91,5 @@
     </div>
   </div>
 
-  <!--
-    WHY AUTOMATED TOOLS MISS IT:
-    The map legitimately requires 2D layout (valid 1.4.10 exception), so a tool noticing the
-    map's size must NOT flag it. The failure is that the filter form, legend, and results list
-    — none of which need 2D layout — share a nowrap flex row with `min-width:1080px`, so they
-    are clipped off the right edge at 320px and never reflow below the map. No attribute is
-    missing (filters have <label>, the map has an accessible name). A checker cannot decide
-    "the map may stay 2D, but the adjacent controls must drop below it and reflow." That
-    scoping — map exempt, surrounding controls not — is a human contextual judgment.
-  -->
 </body>
 </html>

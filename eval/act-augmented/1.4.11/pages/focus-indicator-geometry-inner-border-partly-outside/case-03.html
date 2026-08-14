@@ -4,35 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Confirm appointment — Cedar Park Health Portal</title>
-<!--
-  ACCESSIBILITY DEFECT (SC 1.4.11 Non-text Contrast, Level AA) — present-but-wrong.
-  GEOMETRY ASPECT: when focus changes the component's OWN border WITHIN the visible
-  boundary (rather than adding an outline AROUND it), that recoloured border must contrast
-  with the COMPONENT it borders (the interior fill), not merely look "different from before."
-
-  The "Confirm appointment" button is a SOLID brand-blue primary button: its interior fill
-  is blue #4189B9 and it carries a 2px blue (#4189B9) border that traces the visible edge.
-  On focus the button does NOT add an outer outline — it RECOLOURS its own existing border
-  in place, from blue #4189B9 to green #4B933A. The border does not move; it stays at the
-  visible edge of the component, so this is a change to the border WITHIN the visible
-  boundary. The adjacency that matters is therefore the component interior (the blue fill):
-    green #4B933A  vs  blue interior #4189B9  =  1.005:1.
-  The focused border does not contrast with the inside of the component -> SC 1.4.11 FAIL.
-
-  This is NOT the out-of-scope "change of background colour between states" case — the SC
-  does not compare focused vs unfocused. (For reference, the blue->green state delta also
-  happens to be 1.005:1, but that comparison is irrelevant.) The real failure is the
-  IN-SCOPE adjacency one: the recoloured border, sitting just inside the visible edge, must
-  contrast with the component it borders, and green-on-blue does not.
-
-  WHY AUTOMATED TOOLS MISS IT: a clear visual change happens on focus (the border colour
-  changes), so focus-visible heuristics pass. axe/WAVE/Lighthouse have no rule that (a)
-  recognises the recoloured border AS the focus indicator, (b) locates it just inside the
-  visible boundary, and (c) requires it to contrast with the component interior. A blunt
-  "did anything change on :focus?" check is satisfied; a blunt border-vs-page check would
-  even read the green border against the white card (3.79:1) and call it fine — exactly the
-  wrong adjacency.
--->
 <style>
   :root { --ink:#1d2330; --blue:#4189B9; }
   body { font:16px/1.55 "Inter",system-ui,sans-serif; color:var(--ink);
@@ -49,19 +20,13 @@
   dd { margin:0; font-weight:600; }
   .actions { display:flex; gap:12px; }
 
-  /* The "Confirm" button is a SOLID blue primary button. Its interior fill IS blue
-     #4189B9, and the 2px blue border traces its visible edge (border same hue as fill,
-     so the resting boundary reads as one solid blue shape on the white card). */
   .btn-primary {
     appearance:none; cursor:pointer;
     font:600 1rem/1 inherit; color:#fff;
-    background:var(--blue);            /* solid blue interior fill */
-    border:2px solid var(--blue);      /* blue boundary, same hue as the fill */
+    background:var(--blue);            
+    border:2px solid var(--blue);      
     border-radius:8px; padding:12px 22px;
   }
-  /* THE DEFECT: focus recolours the SAME border in place (within the visible boundary)
-     from blue to green. Green #4B933A vs the blue interior #4189B9 = 1.005:1 -> fails.
-     No outer outline is added. */
   #confirm:focus { outline:none; border-color:#4B933A; }
 
   .btn-ghost {

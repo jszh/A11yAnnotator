@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.3.1 FAILURE (F34: white-space characters used to format a table in plain-text content).
+    This is the "This Week in the Cafeteria" page from a K-12 school site. The weekly menu is a
+    real table in the author's mind: ROWS are the weekdays (Mon-Fri) and COLUMNS are the meal
+    periods (Breakfast / Lunch / Snack). But the author built it ENTIRELY out of space characters
+    inside a single <p style="white-space:pre"> — there is NO <table>, NO <th>, NO role, no
+    <ul>. Sighted users read a clean 4-column grid; a screen-reader user gets ONE text node read
+    in source order: "Breakfast Lunch Snack Monday Cinnamon oatmeal Turkey & cheese wrap Apple
+    slices ..." — the weekday/meal headers never attach to the foods, and the grid linearizes
+    into a meaningless run-on. If the user enlarges text or the monospace font is unavailable,
+    even the VISUAL grid collapses.
+    WHY AUTOMATED TOOLS MISS IT: there is no table element, attribute, or role anywhere for any
+    ACT rule to attach to — axe/WAVE/Lighthouse see a single, syntactically valid paragraph of
+    text and nothing to flag. Recognizing that the aligned characters ENCODE a day x meal table
+    (with implied row/column headers) is pure human visual-semantic reasoning.
+  -->
+  <title>This Week in the Cafeteria — Pinecrest Elementary</title>
+  <style>
+    :root { --green:#2e6f40; --bg:#f7faf5; --ink:#1f2a24; --line:#cfe0d2; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: "Helvetica Neue", Arial, sans-serif; color:var(--ink); background:var(--bg); }
+    .banner { background:var(--green); color:#fff; padding:16px 24px; }
+    .banner .crumb { font-size:12px; opacity:.85; }
+    .banner h1 { margin:4px 0 0; font-size:22px; }
+    .wrap { max-width:880px; margin:24px auto; padding:0 24px; }
+    .card { background:#fff; border:1px solid var(--line); border-radius:10px; padding:20px 24px; box-shadow:0 1px 2px rgba(0,0,0,.04); }
+    .card h2 { margin:0 0 4px; font-size:18px; color:var(--green); }
+    .card .sub { margin:0 0 16px; color:#54655a; font-size:14px; }
+    /* The menu "table" — note this is a PARAGRAPH, not a table. The grid is whitespace only. */
+    .menu {
+      white-space: pre;
+      font-family: "SF Mono", "Consolas", "Liberation Mono", monospace;
+      font-size: 14px;
+      line-height: 1.7;
+      margin: 0;
+      overflow-x: auto;
+      color:#243029;
+    }
+    .note { margin-top:18px; font-size:13px; color:#54655a; }
+    footer { max-width:880px; margin:24px auto 48px; padding:0 24px; font-size:12px; color:#7a8a80; }
+  </style>
+</head>
+<body>
+  <header class="banner">
+    <div class="crumb">Home › Families › Nutrition Services</div>
+    <h1>This Week in the Cafeteria</h1>
+  </header>
+
+  <main class="wrap">
+    <section class="card" aria-labelledby="wk">
+      <h2 id="wk">Menu — Week of June 16</h2>
+      <p class="sub">All meals meet the USDA National School Lunch Program guidelines. Milk is served with every meal.</p>
+
+<p class="menu">              Breakfast              Lunch                       Snack
+Monday        Cinnamon oatmeal       Turkey &amp; cheese wrap        Apple slices
+Tuesday       Yogurt parfait         Cheese pizza, side salad    Pretzels &amp; hummus
+Wednesday     Scrambled eggs         Chicken noodle soup         Banana
+Thursday      Banana pancakes        Bean &amp; rice burrito          Cheese stick
+Friday        Whole-grain bagel      Baked fish, green beans     Orange wedges</p>
+
+      <p class="note">Questions about allergens? Email the Nutrition Services office and we will send the full ingredient and allergen sheet for any item above.</p>
+    </section>
+  </main>
+
+  <footer>
+    Pinecrest Elementary School District · Nutrition Services · Menus subject to change based on product availability.
+  </footer>
+</body>
+</html>

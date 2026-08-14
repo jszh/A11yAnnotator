@@ -11,7 +11,6 @@
   .topbar { background:#fff; border-bottom:1px solid var(--line); padding:12px 28px; display:flex; align-items:center; justify-content:space-between; font-family:"Segoe UI",Arial,sans-serif; }
   .topbar .course { font-weight:700; color:var(--accent-dk); }
   .topbar .crumbs { color:var(--muted); font-size:.85rem; }
-  /* autosave indicator lives top-right, the way most editors place it */
   .savearea { font-family:"Segoe UI",Arial,sans-serif; font-size:.85rem; min-width:160px; text-align:right; }
   .saving { color:#8a6d00; display:inline-flex; align-items:center; gap:7px; }
   .saving .dot { width:9px; height:9px; border-radius:50%; background:#d8a200; animation:pulse 1s ease-in-out infinite; }
@@ -35,7 +34,6 @@
     <div class="course">BIOL 204 — Cell &amp; Molecular Biology</div>
     <div class="crumbs">Assignments › Unit 3 › Reflective essay</div>
   </div>
-  <!-- Autosave status. The region IS a polite live region (correct additive direction). -->
   <div class="savearea" id="saveStatus" role="status" aria-live="polite" aria-atomic="true"></div>
 </div>
 
@@ -55,20 +53,6 @@
 <footer>Cedar Valley Community College — Learning Management System v9.2</footer>
 
 <script>
-/*
-  Autosave with a TWO-PHASE indicator, debounced on typing in the contenteditable:
-  Phase 1 (entry): inject "Saving your changes…" + a pulsing dot into the polite live
-  region. This IS announced — the appearance test passes.
-  Phase 2 (completion): on the fake-save success, the banner is simply REMOVED
-  (saveStatus.textContent = ''). The savearea goes blank. No "All changes saved",
-  no "Saved at 2:14 PM" — nothing replaces it.
-
-  Sighted users learn the save succeeded because the "Saving…" pill VANISHES (and they
-  may have glimpsed a checkmark on prior products). For an AT user: they hear "Saving
-  your changes…" and then silence forever. They cannot tell whether the save completed
-  or failed — they may navigate away believing work was lost, or stay anxiously waiting.
-  The disappearance of the busy text is the only "done" signal, and it is silent.
-*/
 (function () {
   var essay = document.getElementById('essay');
   var saveStatus = document.getElementById('saveStatus');
@@ -80,7 +64,6 @@
   }
 
   function finishSave() {
-    // The busy banner is removed. Nothing announces that the save is complete.
     saveStatus.textContent = '';
     saving = false;
   }
@@ -91,7 +74,6 @@
     debounce = window.setTimeout(finishSave, 1500);
   });
 
-  // Kick an initial save shortly after load so the two-phase cycle is observable.
   window.setTimeout(function () { showSaving(); window.setTimeout(finishSave, 1500); }, 600);
 })();
 </script>

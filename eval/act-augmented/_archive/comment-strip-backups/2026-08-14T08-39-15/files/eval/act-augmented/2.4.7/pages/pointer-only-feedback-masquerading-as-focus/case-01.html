@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Trellis &amp; Vine — Farm-to-Table Bistro</title>
+  <style>
+    :root { --herb: #2f5d3a; --cream: #fbf8f1; --ink: #1d231e; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      color: var(--ink);
+      background: var(--cream);
+    }
+    header.site {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.1rem 2rem;
+      background: var(--herb);
+      color: var(--cream);
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .brand { font-size: 1.45rem; letter-spacing: .04em; }
+    .brand span { font-style: italic; opacity: .85; }
+
+    nav.primary ul {
+      list-style: none;
+      display: flex;
+      gap: .35rem;
+      margin: 0;
+      padding: 0;
+    }
+    nav.primary a {
+      display: inline-block;
+      padding: .55rem .9rem;
+      color: var(--cream);
+      text-decoration: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      transition: background-color .15s ease, color .15s ease;
+    }
+
+    /* --- The styling block the designer copied from the old marketing site --- */
+    /* Mouse users get a clear pale-mint pill the instant they hover or press. */
+    nav.primary a:hover,
+    nav.primary a:active {
+      background-color: #dcffff;
+      color: #04323a;
+    }
+    /* "Tidy up those ugly browser outlines" — but no replacement was added. */
+    nav.primary a:focus {
+      outline: none;
+    }
+
+    main { max-width: 860px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
+    h1 { font-size: 2.1rem; margin: 0 0 .25rem; }
+    .tagline { color: var(--herb); font-style: italic; margin-top: 0; }
+    .dish {
+      border-bottom: 1px solid #e4ddcb;
+      padding: 1rem 0;
+    }
+    .dish h3 { margin: 0 0 .25rem; }
+    .dish .price { float: right; color: var(--herb); font-weight: bold; }
+    .dish p { margin: .25rem 0 0; color: #4a4f47; }
+    footer { padding: 2rem; text-align: center; color: #6c7268; font-size: .9rem; }
+    .reserve {
+      display: inline-block; margin-top: 1.5rem; padding: .7rem 1.4rem;
+      background: var(--herb); color: var(--cream); text-decoration: none; border-radius: 6px;
+    }
+    .reserve:hover { background: #24472d; }
+    .reserve:focus { outline: none; } /* same pattern carried to the CTA */
+  </style>
+</head>
+<body>
+  <header class="site">
+    <div class="brand">Trellis <span>&amp;</span> Vine</div>
+    <nav class="primary" aria-label="Primary">
+      <ul>
+        <li><a href="#menu">Menu</a></li>
+        <li><a href="#story">Our Story</a></li>
+        <li><a href="#farms">Partner Farms</a></li>
+        <li><a href="#events">Private Events</a></li>
+        <li><a href="#visit">Visit</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    <h1 id="menu">Autumn Tasting Menu</h1>
+    <p class="tagline">Harvested within forty miles of the dining room.</p>
+
+    <section class="dish">
+      <span class="price">$18</span>
+      <h3>Roasted Delicata Squash</h3>
+      <p>Brown-butter sage, toasted pepitas, aged sheep's-milk cheese.</p>
+    </section>
+    <section class="dish">
+      <span class="price">$26</span>
+      <h3>Cider-Braised Pork Shoulder</h3>
+      <p>Heirloom apples, mustard greens, stone-ground grits.</p>
+    </section>
+    <section class="dish">
+      <span class="price">$22</span>
+      <h3>Wild Mushroom Tart</h3>
+      <p>Chanterelles, leek confit, thyme custard in a buckwheat shell.</p>
+    </section>
+
+    <a class="reserve" href="#visit">Reserve a Table</a>
+  </main>
+
+  <footer id="visit">
+    <p>114 Orchard Lane · Open Wed–Sun · reservations@trellisandvine.example</p>
+  </footer>
+
+  <!--
+    WHY THIS FAILS SC 2.4.7 (Focus Visible) AND WHY AUTOMATED TOOLS MISS IT
+    ----------------------------------------------------------------------
+    The primary-nav links carry rich visual feedback — a pale-mint #dcffff pill —
+    but it is bound ONLY to :hover and :active, i.e. pointer interaction. The
+    author also wrote `nav.primary a:focus { outline: none }`, removing the UA
+    focus ring without supplying any keyboard-reachable replacement. A mouse user
+    sees the pill light up; a keyboard user pressing Tab through the menu sees
+    absolutely nothing change on the focused link.
+
+    axe / WAVE / Lighthouse cannot flag this: `outline: none` is legal CSS and a
+    valid replacement indicator could plausibly live on :hover/:active/:focus/etc.
+    There is no automated check for SC 2.4.7 — a scanner cannot reason that the
+    ONLY styled state (:hover) responds to the pointer modality and never to the
+    keyboard focus a Tab press produces. Confirming the failure requires a human
+    to tab through and observe that the focused link is visually indistinguishable
+    from its neighbours.
+  -->
+</body>
+</html>

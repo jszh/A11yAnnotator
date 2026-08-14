@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Confirm transfer — Açorano Bank</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (expected: PASS):
+  A bank wire-confirmation step asks the user to re-key the LAST FOUR DIGITS of the
+  recipient's account number as a confirmation challenge. The user typed the wrong
+  four digits. The error reads: "Those digits don't match the account on file.
+  Re-enter the last four digits exactly as shown on the recipient's statement."
+  Crucially the page does NOT echo the correct four digits, does NOT show the full
+  recipient account number, and does NOT say "you typed X, we expected Y".
+  A G177/G85-style "provide the suggested correct text" rule would WANT the page to
+  show the expected value next to the field. Doing so here would print part of the
+  recipient's account number on screen / into the accessibility tree — exactly the
+  disclosure that "would jeopardize the security or purpose of the content." So the
+  page deliberately gives a NON-revealing fix ("re-enter exactly as shown on the
+  statement" — a source only the legitimate party can see) instead of the literal
+  correct value. That withholding is the CORRECT outcome => PASS.
+  Automated tools cannot tell that the expected value is a secret, cannot know the
+  exception applies, and (worse) a literal "show the suggested correction" rule would
+  push the author toward a SECURITY LEAK. Only a human can judge that NOT echoing the
+  expected digits is conformant here.
+-->
+<style>
+  :root{ --ink:#10141a; --muted:#586271; --line:#cfd6df; --brand:#0a4d8c; --gold:#b8860b;
+         --danger:#a91b29; --paper:#fff; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font:16px/1.55 "Source Sans 3","Segoe UI",system-ui,sans-serif;
+        color:var(--ink); background:#eef1f5; }
+  .top{ background:var(--brand); color:#fff; padding:14px 20px; display:flex;
+        align-items:center; gap:10px; }
+  .top .mark{ width:26px; height:26px; border-radius:6px;
+              background:linear-gradient(135deg,var(--gold),#e6c35c); }
+  .top strong{ font-size:1.05rem; letter-spacing:.3px; }
+  .wrap{ max-width:600px; margin:34px auto; padding:0 18px; }
+  .card{ background:var(--paper); border:1px solid var(--line); border-radius:12px;
+         padding:28px 26px; box-shadow:0 4px 18px rgba(16,24,40,.06); }
+  h1{ font-size:1.3rem; margin:0 0 4px; }
+  .step{ color:var(--muted); font-size:.86rem; margin:0 0 20px; }
+  .summary{ background:#f5f8fb; border:1px solid #dde7f0; border-radius:10px;
+            padding:14px 16px; margin-bottom:22px; font-size:.92rem; }
+  .summary dl{ margin:0; display:grid; grid-template-columns:auto 1fr; gap:6px 16px; }
+  .summary dt{ color:var(--muted); }
+  .summary dd{ margin:0; font-weight:600; }
+  .field label{ display:block; font-weight:600; font-size:.9rem; margin-bottom:6px; }
+  .field .hint{ color:var(--muted); font-size:.82rem; margin:0 0 8px; }
+  .codebox{ display:flex; gap:8px; }
+  .codebox input{ width:56px; text-align:center; padding:11px 0; font-size:1.25rem;
+                  letter-spacing:2px; border:2px solid var(--line); border-radius:9px; }
+  .codebox input[aria-invalid="true"]{ border-color:var(--danger); }
+  .codebox input:focus{ outline:2px solid var(--brand); outline-offset:1px; }
+  .err{ display:flex; gap:8px; align-items:flex-start; margin-top:12px;
+        color:var(--danger); font-size:.88rem; }
+  .err svg{ flex:0 0 auto; margin-top:2px; }
+  button{ margin-top:22px; width:100%; padding:13px; font-size:1rem; font-weight:700;
+          color:#fff; background:var(--brand); border:0; border-radius:9px; cursor:pointer; }
+  .foot{ margin-top:18px; color:var(--muted); font-size:.78rem; text-align:center; }
+</style>
+</head>
+<body>
+  <header class="top"><span class="mark" aria-hidden="true"></span><strong>Açorano Bank</strong></header>
+  <div class="wrap">
+    <main class="card">
+      <h1>Confirm your transfer</h1>
+      <p class="step">Step 3 of 3 — security verification</p>
+
+      <section class="summary" aria-label="Transfer summary">
+        <dl>
+          <dt>Amount</dt><dd>€4,200.00</dd>
+          <dt>To</dt><dd>R. Marchetti — account ••••&nbsp;••••&nbsp;••••&nbsp;<span aria-hidden="true">????</span><span class="sr-only" style="position:absolute;left:-9999px">hidden</span></dd>
+          <dt>Reference</dt><dd>Invoice 2024-118</dd>
+        </dl>
+      </section>
+
+      <form action="#" method="post" novalidate>
+        <div class="field">
+          <label id="confirm-label" for="d1">Confirm recipient: last four digits of the account number</label>
+          <p class="hint" id="confirm-hint">Find these on the recipient's bank statement or remittance slip.</p>
+          <!-- Post-submit error state: user keyed the wrong four digits. -->
+          <div class="codebox" role="group" aria-labelledby="confirm-label"
+               aria-describedby="confirm-hint confirm-error">
+            <input id="d1" name="d1" inputmode="numeric" maxlength="1" value="8"
+                   aria-invalid="true" autocomplete="off">
+            <input id="d2" name="d2" inputmode="numeric" maxlength="1" value="1"
+                   aria-invalid="true" autocomplete="off">
+            <input id="d3" name="d3" inputmode="numeric" maxlength="1" value="0"
+                   aria-invalid="true" autocomplete="off">
+            <input id="d4" name="d4" inputmode="numeric" maxlength="1" value="3"
+                   aria-invalid="true" autocomplete="off">
+          </div>
+          <p class="err" id="confirm-error" role="alert">
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+              <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M8 4.2v4.4M8 11.0h.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+            <span>Those digits don't match the account on file. Re-enter the last four digits exactly as printed on the recipient's statement. For your protection we don't display the recipient's account number here.</span>
+          </p>
+        </div>
+        <button type="submit">Confirm and send €4,200.00</button>
+      </form>
+    </main>
+    <p class="foot">Açorano Bank · Verification protects against misdirected payments · Renders from file://</p>
+  </div>
+</body>
+</html>

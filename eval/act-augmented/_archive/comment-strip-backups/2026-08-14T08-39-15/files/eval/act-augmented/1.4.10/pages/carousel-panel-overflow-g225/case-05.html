@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Riverside Civic News — Top Stories</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (SC 1.4.10 Reflow, G225) — PASS CONTROL
+  This is the boundary control: a CORRECTLY built horizontally-scrolling "Top Stories"
+  carousel. The STRIP scrolls horizontally to move between story panels — which WCAG
+  EXPLICITLY ALLOWS. Each panel is clamped to width:min(90vw,300px), all text uses
+  overflow-wrap:anywhere so even long words break, and the only image per panel is
+  width:100%. At a 320px viewport EVERY panel fits and reads top-to-bottom; the user
+  scrolls horizontally ONLY to change stories (the carousel working), never to read
+  within a panel.
+
+  This page exists to test that an evaluator does NOT wrongly FAIL the page just because
+  it shows a horizontal scrollbar. The horizontal scroll here IS the intended carousel
+  navigation, not a Reflow violation. Expected outcome: PASSED.
+
+  axe-core / WAVE / Lighthouse cannot meaningfully reason about this either way:
+   - A naive "horizontal scroll present" heuristic would FALSE-POSITIVE here.
+   - Confirming each panel fits 320px (the thing that makes this a PASS) is a rendered
+     measurement at 320px plus the judgment that strip-scroll is allowed navigation —
+     human reasoning about the widget's purpose, not static markup.
+  To reproduce: render at width:320px; each story panel fits; only the strip scrolls.
+-->
+<style>
+  :root { --brand:#10324f; --accent:#1f7a8c; --paper:#f5f7f9; --ink:#1b2430; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Source Sans Pro",Arial,sans-serif; color:var(--ink);
+         background:#fff; line-height:1.55; }
+  header.masthead { background:var(--brand); color:#fff; padding:14px 20px; }
+  header.masthead .title { font-weight:800; font-size:20px; letter-spacing:.3px; }
+  header.masthead .place { font-size:13px; color:#bcd0df; }
+  main { padding:18px 16px 60px; }
+  h1 { font-size:22px; margin:6px 0 4px; }
+  .kicker { color:#5a6573; margin:0 0 18px; }
+  h2 { font-size:18px; margin:24px 0 8px; color:var(--brand); }
+
+  .stories {
+    display:flex;
+    gap:16px;
+    overflow-x:auto;            /* ALLOWED carousel strip navigation */
+    padding:6px 2px 20px;
+    scroll-snap-type:x mandatory;
+  }
+  .story {
+    flex:0 0 auto;
+    width:min(90vw,300px);      /* every panel fits 320px */
+    scroll-snap-align:start;
+    background:var(--paper);
+    border:1px solid #dde3e9;
+    border-radius:10px;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;      /* reads top-to-bottom inside the panel */
+  }
+  .story img { width:100%; height:160px; object-fit:cover; display:block; }
+  .story .body { padding:12px 14px 16px; }
+  .story .tag { font-size:12px; font-weight:700; text-transform:uppercase;
+                color:var(--accent); letter-spacing:.5px; }
+  .story h3 { font-size:16px; margin:4px 0 6px; overflow-wrap:anywhere; }
+  .story p { font-size:14px; color:#3c4654; margin:0 0 8px; overflow-wrap:anywhere; }
+  .story .byline { font-size:12.5px; color:#5a6573; }
+  .story a.more { display:inline-block; margin-top:8px; color:var(--accent);
+                  font-weight:700; font-size:14px; text-decoration:none; }
+  footer.masthead { background:#0c283f; color:#bcd0df; font-size:12.5px; padding:16px 20px; }
+</style>
+</head>
+<body>
+<header class="masthead">
+  <div class="title">Riverside Civic News</div>
+  <div class="place">Serving Riverside County since 1994</div>
+</header>
+
+<main>
+  <h1>Top Stories</h1>
+  <p class="kicker">The headlines our newsroom is following today. Swipe the row for more.</p>
+
+  <h2>This morning</h2>
+  <div class="stories" role="list" aria-label="Top stories">
+
+    <article class="story" role="listitem">
+      <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='160'><rect width='300' height='160' fill='%231f7a8c'/><text x='150' y='86' font-size='16' fill='%23eef6f8' text-anchor='middle'>Council Meeting</text></svg>" alt="City council chamber with members seated at a curved dais">
+      <div class="body">
+        <span class="tag">Local Government</span>
+        <h3>Council approves new bike-lane network for downtown corridor</h3>
+        <p>The 8-2 vote funds protected lanes along Main and 3rd, with construction starting in
+        the fall.</p>
+        <span class="byline">By A. Mendez · 6 min read</span>
+        <a class="more" href="#">Read story</a>
+      </div>
+    </article>
+
+    <article class="story" role="listitem">
+      <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='160'><rect width='300' height='160' fill='%232f6f54'/><text x='150' y='86' font-size='16' fill='%23eaf3ee' text-anchor='middle'>River Cleanup</text></svg>" alt="Volunteers in waders collecting debris along a riverbank">
+      <div class="body">
+        <span class="tag">Environment</span>
+        <h3>Volunteers pull two tons of debris from the Riverside in annual cleanup</h3>
+        <p>Organizers say turnout doubled this year, with more than 400 residents joining the
+        effort.</p>
+        <span class="byline">By T. Okonkwo · 4 min read</span>
+        <a class="more" href="#">Read story</a>
+      </div>
+    </article>
+
+    <article class="story" role="listitem">
+      <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='160'><rect width='300' height='160' fill='%23725a3a'/><text x='150' y='86' font-size='16' fill='%23f2e9da' text-anchor='middle'>Schools Budget</text></svg>" alt="Empty classroom with rows of desks and a chalkboard">
+      <div class="body">
+        <span class="tag">Education</span>
+        <h3>District unveils budget that restores arts funding at five schools</h3>
+        <p>The plan adds music and visual-arts teachers cut during the pandemic, pending board
+        approval.</p>
+        <span class="byline">By R. Halvorsen · 5 min read</span>
+        <a class="more" href="#">Read story</a>
+      </div>
+    </article>
+
+    <article class="story" role="listitem">
+      <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='160'><rect width='300' height='160' fill='%23574a8c'/><text x='150' y='86' font-size='16' fill='%23ece8f6' text-anchor='middle'>Transit Update</text></svg>" alt="City bus pulling up to a covered transit stop">
+      <div class="body">
+        <span class="tag">Transit</span>
+        <h3>Weekend bus service expands to the east-side neighborhoods</h3>
+        <p>Route 14 will run on Saturdays for the first time, connecting the market to the
+        hospital.</p>
+        <span class="byline">By J. Park · 3 min read</span>
+        <a class="more" href="#">Read story</a>
+      </div>
+    </article>
+
+    <article class="story" role="listitem">
+      <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='160'><rect width='300' height='160' fill='%238c3a3a'/><text x='150' y='86' font-size='16' fill='%23f6e4e4' text-anchor='middle'>Heat Advisory</text></svg>" alt="Bright sun over a city skyline on a hazy afternoon">
+      <div class="body">
+        <span class="tag">Weather</span>
+        <h3>County opens cooling centers ahead of weekend heat advisory</h3>
+        <p>Libraries and rec centers will extend hours; officials urge checking on neighbors.</p>
+        <span class="byline">By S. Adeyemi · 2 min read</span>
+        <a class="more" href="#">Read story</a>
+      </div>
+    </article>
+
+  </div>
+</main>
+
+<footer class="masthead">© 2026 Riverside Civic News · A nonprofit newsroom</footer>
+</body>
+</html>

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Compose — Parcel Mail</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Segoe UI", system-ui, sans-serif; background:#f0f2f5; color:#202327; }
+  .compose {
+    max-width:640px; margin:34px auto; background:#fff; border:1px solid #d9dde2;
+    border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,.07); overflow:hidden;
+  }
+  .compose-head { background:#26303b; color:#fff; padding:11px 18px; font-size:14px; font-weight:600; }
+  .field { display:flex; align-items:center; border-bottom:1px solid #eceef1; padding:0 16px; }
+  .field label { width:64px; color:#5a636d; font-size:13px; }
+  .field input { flex:1; border:0; padding:13px 6px; font-size:14px; outline:none; }
+  .field input:focus { background:#f7fafe; }
+  textarea#body {
+    width:100%; border:0; padding:16px; min-height:210px; font-size:14px; resize:vertical;
+    outline:none; font-family:inherit; line-height:1.55;
+  }
+  .compose-foot {
+    display:flex; align-items:center; gap:10px; padding:12px 16px; border-top:1px solid #eceef1; background:#fafbfc;
+  }
+  .send {
+    display:inline-flex; align-items:center; justify-content:center;
+    width:44px; height:40px; border:0; border-radius:8px; background:#1a73e8; color:#fff;
+    cursor:pointer;
+  }
+  .send:hover { background:#1664ce; }
+  .send:focus-visible { outline:3px solid #9cc2ff; outline-offset:1px; }
+  .send svg { width:22px; height:22px; }
+  .ghost {
+    width:38px; height:38px; border:1px solid #d9dde2; background:#fff; border-radius:8px; color:#5a636d;
+    display:inline-flex; align-items:center; justify-content:center; cursor:pointer;
+  }
+  .ghost:hover { background:#f0f2f5; }
+  .ghost svg { width:18px; height:18px; }
+  .spacer { margin-left:auto; }
+  .toast { max-width:640px; margin:0 auto; font-size:12px; color:#6a727c; padding:8px 4px; }
+</style>
+</head>
+<body>
+<form class="compose" onsubmit="return doSend(event)">
+  <div class="compose-head">New message</div>
+
+  <div class="field">
+    <label for="to">To</label>
+    <input id="to" name="to" type="email" value="dispatch@harborfreight.example" autocomplete="off">
+  </div>
+  <div class="field">
+    <label for="subj">Subject</label>
+    <input id="subj" name="subj" type="text" value="Pickup window confirmation — order 88142">
+  </div>
+
+  <textarea id="body" name="body">Hi team,
+
+Please confirm the 8–10am pickup window for order 88142 at the Pier 19 dock. The driver will ask for gate code 4471.
+
+Thanks,
+Renata</textarea>
+
+  <div class="compose-foot">
+    <!-- THE FAILING CONTROL:
+         glyph = floppy disk (universally read as "Save"),
+         accessible name = "Send message",
+         action = submits/sends the email.
+         The graphical label (floppy) contradicts the function (send). -->
+    <button type="submit" class="send" aria-label="Send message">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+        <!-- floppy-disk glyph -->
+        <path d="M5 3h11l3 3v15H5z"/>
+        <path d="M8 3v6h7V3"/>
+        <rect x="8" y="13" width="8" height="5"/>
+      </svg>
+    </button>
+
+    <!-- An honestly-labelled attach control, for contrast -->
+    <button type="button" class="ghost" aria-label="Attach file" onclick="alert('File picker (demo).')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+        <path d="M21 12.5l-8.5 8.5a5 5 0 0 1-7-7l8.5-8.5a3 3 0 0 1 4.5 4.5l-8.6 8.5a1.5 1.5 0 0 1-2-2l7.8-7.8"/>
+      </svg>
+    </button>
+
+    <span class="spacer"></span>
+
+    <!-- An honestly-labelled discard control -->
+    <button type="button" class="ghost" aria-label="Discard draft" onclick="if(confirm('Discard this draft?')) location.reload();">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+        <path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/>
+      </svg>
+    </button>
+  </div>
+</form>
+<p class="toast" id="toast"></p>
+
+<script>
+  function doSend(e){
+    e.preventDefault();
+    document.getElementById('toast').textContent =
+      'Message sent to ' + document.getElementById('to').value + ' (demo — nothing was saved as a draft).';
+    return false;
+  }
+</script>
+
+<!--
+  WHY AUTOMATED TOOLS MISS THIS
+  The primary action button has role "button", type "submit", and a non-empty accessible name
+  ("Send message"), so axe-core button-name, WAVE, and Lighthouse all pass it. Its visible label is
+  an inline floppy-disk SVG (aria-hidden), which is the near-universal icon for "Save" / "Save
+  draft" — NOT for sending mail (the conventional send glyph is a paper plane or arrow). No
+  automated tool renders the SVG to recognise it as a floppy disk, and none reasons that a save
+  glyph misrepresents a send action. A sighted screen-reader-free mouse user, scanning the compose
+  bar by icon, would reasonably believe the floppy disk saves a draft and could click it expecting
+  to save — then unintentionally SEND the email. That mismatch between the commonly-understood
+  meaning of the glyph and the control's true function is exactly the SC 2.4.6 graphical-label
+  judgment that requires a human, per TT 5.B ("The label or instruction can be graphical or
+  textual").
+-->
+</body>
+</html>

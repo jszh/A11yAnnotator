@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your bag — Loomwell Home checkout</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS:
+  Apply an unrecognised promo code and the cart shows a confident "did you mean…"
+  suggestion: "We couldn't find 'SAVE20'. Did you mean SPRING20? Apply it." with an
+  Apply button that fills the field with SPRING20. This is textbook G177 / G84:
+  an error is detected AND a corrected-input suggestion (a 'did you mean' from a
+  known pool) is provided, associated via aria-describedby and announced in
+  role=status. axe/WAVE/Lighthouse see a present, associated, announced suggestion
+  with a working control.
+  THE DEFECT IS SEMANTIC: the suggested code SPRING20 is ITSELF invalid for this cart —
+  the page's own visible promo list (and the validator) shows SPRING20 EXPIRED on
+  30 Apr, while today is shown as 14 June. Clicking "Apply it" inserts SPRING20 and
+  the validator rejects it with "This code has expired". The suggestion confidently
+  offers a value that the field will still reject. The user is sent in a circle. No
+  scanner cross-checks the suggested code against the list of valid codes / expiry
+  dates to discover the recommended value is dead. Catching it needs a human to read
+  the offered code, look it up against the rules, and notice it is not actually valid.
+-->
+<style>
+  :root{
+    --ink:#23211c; --muted:#6b665c; --line:#e3ded3; --brand:#7a5c3e; --brand-d:#5e4631;
+    --ok:#2f7d4f; --danger:#b23b2e; --paper:#fff; --bg:#f7f4ee;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font:16px/1.55 "Georgia",Cambria,serif; color:var(--ink); background:var(--bg); }
+  .head{ background:var(--paper); border-bottom:1px solid var(--line); padding:16px 0; }
+  .wrap{ max-width:680px; margin:0 auto; padding:0 22px; }
+  .brand{ font-size:1.3rem; font-weight:700; letter-spacing:1px; }
+  .brand small{ display:block; font-size:.62rem; letter-spacing:3px; text-transform:uppercase;
+        color:var(--muted); font-weight:400; }
+  main{ padding:32px 0 70px; }
+  h1{ font-size:1.5rem; margin:0 0 4px; }
+  .today{ color:var(--muted); font-size:.85rem; margin:0 0 24px; font-family:Arial,sans-serif; }
+  .lineitem{ display:flex; justify-content:space-between; padding:12px 0; border-bottom:1px solid var(--line);
+        font-family:Arial,sans-serif; }
+  .lineitem .name{ font-weight:600; }
+  .promos{ background:#fbf8f2; border:1px solid var(--line); border-radius:8px; padding:14px 16px;
+        margin:22px 0; font-family:Arial,sans-serif; }
+  .promos h2{ font-size:.9rem; margin:0 0 8px; }
+  .promos table{ width:100%; border-collapse:collapse; font-size:.84rem; }
+  .promos th,.promos td{ text-align:left; padding:4px 6px; border-bottom:1px solid var(--line); }
+  .promos th{ color:var(--muted); font-weight:600; }
+  .promos .exp{ color:var(--danger); }
+  .promos .live{ color:var(--ok); }
+  .coupon{ font-family:Arial,sans-serif; margin:18px 0 0; }
+  label{ display:block; font-weight:700; margin:0 0 6px; }
+  .row{ display:flex; gap:8px; }
+  input[type=text]{ flex:1; padding:10px 12px; font-size:1rem; font-family:Arial,sans-serif;
+        border:2px solid var(--line); border-radius:6px; text-transform:uppercase; }
+  input:focus{ outline:3px solid var(--brand); outline-offset:1px; }
+  input[aria-invalid="true"]{ border-color:var(--danger); }
+  .apply{ background:var(--brand); color:#fff; border:0; border-radius:6px; font-weight:700;
+        padding:0 18px; cursor:pointer; font-family:Arial,sans-serif; }
+  .apply:hover{ background:var(--brand-d); }
+  .apply:focus{ outline:3px solid var(--brand-d); outline-offset:2px; }
+  .feedback{ margin:12px 0 0; font-family:Arial,sans-serif; font-size:.9rem; min-height:1.2em; }
+  .feedback.err{ color:var(--danger); font-weight:600; }
+  .feedback.ok{ color:var(--ok); font-weight:600; }
+  .didyou{ margin-top:6px; }
+  .didyou button{ background:none; border:0; color:var(--brand); font-weight:700; text-decoration:underline;
+        cursor:pointer; padding:0; font-size:.9rem; font-family:Arial,sans-serif; }
+  .didyou button:focus{ outline:2px solid var(--brand); }
+  .foot{ color:var(--muted); font-size:.74rem; margin-top:30px; font-family:Arial,sans-serif; }
+</style>
+</head>
+<body>
+  <div class="head"><div class="wrap"><div class="brand">LOOMWELL<small>Home &amp; Living</small></div></div></div>
+  <main>
+    <div class="wrap">
+      <h1>Your bag</h1>
+      <p class="today">Today is Saturday 14 June 2026.</p>
+
+      <div class="lineitem"><span class="name">Stonewashed linen duvet set — King</span><span>£129.00</span></div>
+      <div class="lineitem"><span class="name">Ceramic table lamp, sand</span><span>£48.00</span></div>
+      <div class="lineitem"><span class="name"><strong>Subtotal</strong></span><span><strong>£177.00</strong></span></div>
+
+      <section class="promos" aria-labelledby="promos-h">
+        <h2 id="promos-h">Current promotions</h2>
+        <table>
+          <thead><tr><th scope="col">Code</th><th scope="col">Offer</th><th scope="col">Status</th></tr></thead>
+          <tbody>
+            <tr><td>SPRING20</td><td>20% off</td><td class="exp">Expired 30 Apr 2026</td></tr>
+            <tr><td>JUNE10</td><td>£10 off orders over £150</td><td class="live">Valid until 30 Jun 2026</td></tr>
+            <tr><td>FREESHIP</td><td>Free delivery</td><td class="live">Valid until 31 Dec 2026</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <form id="couponform" class="coupon" action="#" method="post" novalidate>
+        <label for="code">Promo code</label>
+        <div class="row">
+          <input type="text" id="code" name="code"
+                 aria-describedby="cp-feedback" autocomplete="off" spellcheck="false">
+          <button type="submit" class="apply">Apply</button>
+        </div>
+        <div class="feedback" id="cp-feedback" role="status" aria-live="polite"></div>
+      </form>
+
+      <p class="foot">Loomwell Home demo &middot; renders from file:// &middot; no payment is taken.</p>
+    </div>
+  </main>
+
+<script>
+(function(){
+  var form  = document.getElementById('couponform');
+  var input = document.getElementById('code');
+  var fb    = document.getElementById('cp-feedback');
+
+  // REAL ENFORCED RULES: only currently-valid codes are accepted.
+  // SPRING20 is EXPIRED (matches the visible table) and is NOT in this set.
+  var VALID = { 'JUNE10':'£10 off applied.', 'FREESHIP':'Free delivery applied.' };
+  var EXPIRED = { 'SPRING20': '30 Apr 2026' };
+
+  function apply(code){
+    input.value = code;
+    handle(code);
+  }
+
+  function handle(raw){
+    var code = raw.trim().toUpperCase();
+    fb.innerHTML = '';
+    if (VALID[code]){
+      input.setAttribute('aria-invalid','false');
+      fb.className = 'feedback ok';
+      fb.textContent = code + ': ' + VALID[code];
+      return;
+    }
+    input.setAttribute('aria-invalid','true');
+    fb.className = 'feedback err';
+    if (EXPIRED[code]){
+      // The suggested code, when actually applied, lands here: still rejected.
+      fb.textContent = 'This code has expired (' + EXPIRED[code] + ') and can no longer be used.';
+      return;
+    }
+    // Unknown code: offer a confident "did you mean" — BUT the suggested code is the EXPIRED one.
+    var msg = document.createElement('span');
+    msg.textContent = 'We couldn’t find “' + code + '”. Did you mean SPRING20? ';
+    var dy = document.createElement('span');
+    dy.className = 'didyou';
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = 'Apply SPRING20';
+    btn.addEventListener('click', function(){ apply('SPRING20'); });
+    dy.appendChild(btn);
+    fb.appendChild(msg);
+    fb.appendChild(dy);
+  }
+
+  form.addEventListener('submit', function(e){ e.preventDefault(); handle(input.value); });
+})();
+</script>
+</body>
+</html>

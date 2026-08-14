@@ -16,8 +16,6 @@
   p { font-size: 17px; }
 
   .glossary { position: relative; display: inline; }
-  /* The trigger is a real button so it is reachable by keyboard (2.1.1) and
-     gets focus styling. */
   .term {
     color: var(--accent); font-weight: 600; cursor: help; background: none;
     border: 0; padding: 0; font: inherit;
@@ -25,12 +23,6 @@
   }
   .term:focus-visible { outline: 3px solid #1466d6; outline-offset: 2px; border-radius: 2px; }
 
-  /* HOVERABLE by construction: the popup is positioned so its top edge OVERLAPS
-     the trigger's own line (negative top), leaving NO dead gap between trigger
-     and popup. A transparent ::before "bridge" extends the popup's hit area up
-     over the trigger so the pointer never crosses unlistened pixels on its way
-     in. The popup deliberately covers the paragraph BELOW it, so Method 1
-     (don't obscure) is NOT relied on and the Esc dismiss is load-bearing. */
   .defn {
     position: absolute; inset-inline-start: -6px; top: -0.35em; transform: translateY(0);
     width: 320px; z-index: 8;
@@ -40,8 +32,6 @@
     display: none;
   }
   .defn::before {
-    /* invisible bridge spanning the small region above the popup back over the
-       trigger, so mouseenter on .glossary stays true the whole way across. */
     content: ""; position: absolute; left: 0; right: 0; top: -1.4em; height: 1.4em;
     background: transparent;
   }
@@ -88,53 +78,33 @@
   var term = document.getElementById('term');
   var defn = document.getElementById('defn');
 
-  // A single shared timer governs close, so moving the pointer from the trigger
-  // ONTO the popup (both inside .glossary) never closes it: the leave from the
-  // trigger and the enter onto the popup are coalesced. An explicit `dismissed`
-  // flag lets the activate-to-toggle path win deterministically over the
-  // hover/focus open handlers (which never force-open a user-dismissed popup).
   var closeTimer = null;
-  var dismissed = false;          // set true only by an explicit dismissal
+  var dismissed = false;          
   function open()  { clearTimeout(closeTimer); wrap.classList.add('open'); }
   function close() { clearTimeout(closeTimer); wrap.classList.remove('open'); }
   function openUnlessDismissed() { if (!dismissed) open(); }
   function scheduleClose() {
     clearTimeout(closeTimer);
     closeTimer = setTimeout(function () {
-      // only close if neither the trigger nor the popup is hovered/focused
       if (!wrap.matches(':hover') && document.activeElement !== term) close();
     }, 120);
   }
 
-  // Appears on hover and on keyboard focus (2.1.1 + 1.4.13 trigger parity).
-  // Re-entering the trigger/popup clears the dismissed flag so it can re-open.
   wrap.addEventListener('mouseenter', function () { dismissed = false; open(); });
   wrap.addEventListener('mouseleave', scheduleClose);
   term.addEventListener('focus', openUnlessDismissed);
-  // Tab away (blur) closes it — a normal, allowed close (user moved focus off).
-  // It also clears `dismissed`, so the NEXT fresh focus/hover re-opens normally;
-  // only an in-place dismissal (Esc / activate-to-close, which keep focus and
-  // fire no blur) keeps it suppressed.
   term.addEventListener('blur', function () { dismissed = false; scheduleClose(); });
 
-  // Activate-to-toggle: a second SCR39-allowed dismissal that KEEPS focus on the
-  // trigger. When it closes, it sets `dismissed` so the trailing focus/hover
-  // events on the very same activation cannot immediately re-open it.
   term.addEventListener('click', function () {
     if (wrap.classList.contains('open')) { dismissed = true; close(); }
     else { dismissed = false; open(); }
-    term.focus();   // keep focus on the trigger — never moved
+    term.focus();   
   });
 
-  // DISMISSIBLE (Method 2): a DOCUMENT-level Escape handler hides the popup. It is
-  // bound to document, so it fires no matter where focus sits, and it does NOT move
-  // focus — the "maki-e" button keeps focus and the obscuring definition clears.
-  // This mirrors SCR39 example 1 ("hide when ESC is pressed").
   document.addEventListener('keydown', function (e) {
-    if ((e.keyCode || e.which) === 27) {  // 27 = Escape
-      dismissed = true;   // stay closed even though the trigger keeps focus/hover
+    if ((e.keyCode || e.which) === 27) {  
+      dismissed = true;   
       close();
-      // focus intentionally left where it is (on the trigger) — never moved.
     }
   });
 </script>

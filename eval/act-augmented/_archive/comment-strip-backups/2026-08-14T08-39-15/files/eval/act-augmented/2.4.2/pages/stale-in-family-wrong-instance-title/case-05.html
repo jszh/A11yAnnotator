@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 2.4.2 FAILURE (Limb b, descriptiveness — F25 / Trusted Tester 12.B).
+    A pharmacy patient-portal "refill ready" confirmation. The patient has TWO active
+    Lisinopril prescriptions at different strengths (10 mg and 20 mg) — a common real
+    situation after a dose change. The portal builds the <title> from a cached
+    prescription summary that is STALE: it names the 10 mg Rx. The body (H1, the
+    dispensed-label panel including a bilingual EN/中文 image-of-text label, the Rx
+    number, the strength field, the directions, and the pickup line) is unambiguously
+    the 20 mg refill. Right patient, right drug, right pharmacy, plausible strength —
+    only the strength (and its paired Rx number) is the wrong instance. 10 mg is a REAL
+    sibling Rx, so the title is legitimate-looking. Present, non-empty, unique, on-topic
+    title passes axe/WAVE/Lighthouse; the strength mismatch needs human cross-checking,
+    and here it is safety-critical (dosage).
+  -->
+  <title>Refill ready: Lisinopril 10 mg — Rx 4471829 | BayCare Pharmacy</title>
+  <style>
+    :root { --ink:#172029; --muted:#5d6b78; --line:#dde4ea; --accent:#0a6e7a; --bg:#f3f7f8; --warn:#8a4b00; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Segoe UI", Roboto, Arial, sans-serif; color:var(--ink); background:var(--bg); }
+    .shell { max-width:760px; margin:0 auto; background:#fff; min-height:100vh; box-shadow:0 0 0 1px var(--line); }
+    header { background:var(--accent); color:#fff; padding:14px 24px; display:flex; justify-content:space-between; align-items:center; }
+    header .brand { font-weight:700; }
+    header nav a { color:#cdeef1; text-decoration:none; margin-left:16px; font-size:14px; }
+    main { padding:24px; }
+    .ready { background:#e7f6f0; border:1px solid #b9e3d3; color:#0c5a3f; border-radius:8px; padding:12px 16px; font-weight:600; }
+    h1 { font-size:23px; margin:16px 0 4px; }
+    .who { color:var(--muted); margin:0 0 20px; }
+    .label { border:2px solid var(--accent); border-radius:10px; padding:0; overflow:hidden; margin:0 0 22px; }
+    .label .barhead { background:var(--accent); color:#fff; padding:8px 14px; font-weight:700; font-size:14px; }
+    .label .body { padding:14px 16px; }
+    .label svg { width:100%; height:auto; max-width:520px; display:block; margin:0 auto 8px; border:1px solid var(--line); border-radius:6px; }
+    dl.rx { display:grid; grid-template-columns:max-content 1fr; gap:7px 18px; font-size:15px; margin:0; }
+    dl.rx dt { color:var(--muted); }
+    dl.rx dd { margin:0; font-weight:600; }
+    .directions { font-size:15px; background:var(--bg); border-left:4px solid var(--accent); padding:10px 14px; margin:16px 0; }
+    .pickup { font-size:15px; }
+    .note { color:var(--muted); font-size:13px; }
+    footer { color:var(--muted); font-size:12px; padding:16px 24px 36px; border-top:1px solid var(--line); }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <span class="brand">BayCare Pharmacy</span>
+      <nav aria-label="Account">
+        <a href="#">Prescriptions</a>
+        <a href="#">Refills</a>
+        <a href="#">Messages</a>
+        <a href="#">Sign out</a>
+      </nav>
+    </header>
+
+    <main>
+      <p class="ready">Your refill is ready for pickup.</p>
+      <h1 id="rx-h1">Lisinopril 20 mg tablet — refill ready</h1>
+      <p class="who">For Mei-Ling Chow &middot; Rx 4471830 &middot; BayCare Pharmacy #218, Oakdale</p>
+
+      <div class="label" aria-labelledby="lbl-cap">
+        <div class="barhead" id="lbl-cap">Dispensed label (as printed on the bottle)</div>
+        <div class="body">
+          <!-- The printed pharmacy label is an image-of-text, bilingual EN / Simplified Chinese,
+               with a faithful aria-label so the TRUE strength (20 mg) reaches AT. -->
+          <svg viewBox="0 0 520 150" role="img"
+               aria-label="Pharmacy label: Lisinopril 20 mg tablet. Take one tablet by mouth once daily. 赖诺普利 20 毫克 片剂，每日一次，每次一片。Rx 4471830."
+               xmlns="http://www.w3.org/2000/svg" lang="en">
+            <rect width="520" height="150" fill="#ffffff"/>
+            <text x="14" y="28" font-family="Consolas, monospace" font-size="17" font-weight="700" fill="#11212b">LISINOPRIL 20 mg TAB</text>
+            <text x="14" y="52" font-family="Consolas, monospace" font-size="13" fill="#2a3a44">Take 1 tablet by mouth once daily</text>
+            <text x="14" y="80" font-family="sans-serif" font-size="15" fill="#11212b" lang="zh-Hans">赖诺普利 20 毫克 片剂</text>
+            <text x="14" y="102" font-family="sans-serif" font-size="13" fill="#2a3a44" lang="zh-Hans">每日一次，每次一片，口服</text>
+            <text x="14" y="132" font-family="Consolas, monospace" font-size="13" fill="#2a3a44">Rx 4471830  ·  Qty 30  ·  Fill 06/2026</text>
+          </svg>
+        </div>
+      </div>
+
+      <dl class="rx">
+        <dt>Medication</dt><dd>Lisinopril 20 mg tablet</dd>
+        <dt>Prescription number</dt><dd>Rx 4471830</dd>
+        <dt>Strength</dt><dd>20 mg</dd>
+        <dt>Quantity</dt><dd>30 tablets (30-day supply)</dd>
+        <dt>Prescriber</dt><dd>Dr. A. Okafor</dd>
+        <dt>Fill date</dt><dd>18 June 2026</dd>
+      </dl>
+
+      <p class="directions"><strong>Directions:</strong> Take one 20 mg tablet by mouth once daily for blood pressure.</p>
+
+      <p class="pickup">Ready at the Oakdale pharmacy counter. Please bring photo ID to collect your <strong>20 mg</strong> refill.</p>
+      <p class="note">
+        Note: your 10 mg Lisinopril prescription (Rx 4471829) was discontinued by your
+        prescriber on 02 June 2026 when your dose was increased to 20 mg. This refill is the
+        new 20 mg strength.
+      </p>
+    </main>
+
+    <footer>
+      BayCare Pharmacy &middot; Refill confirmation for Lisinopril 20 mg (Rx 4471830) &middot; Questions? Call your Oakdale pharmacist.
+    </footer>
+  </div>
+</body>
+</html>

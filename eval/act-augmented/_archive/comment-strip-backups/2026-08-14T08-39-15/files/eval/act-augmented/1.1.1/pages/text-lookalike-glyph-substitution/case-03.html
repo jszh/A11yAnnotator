@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.1.1 (Non-text Content), Failure Technique F71: look-alike glyphs in the
+    one control that matters most on a product page — the primary "Buy Now" CTA,
+    which here is an <a> styled as a button. Its visible text reads "Buy Now" but
+    the characters are:
+        B  U+0042  Latin 'B'
+        u  U+0075  Latin 'u'
+        у  U+0443  Cyrillic small 'u'  (looks like Latin 'y')
+        (space)
+        N  U+004E  Latin 'N'
+        о  U+043E  Cyrillic small 'o'  (looks like Latin 'o')
+        w  U+0077  Latin 'w'
+    Because the link's accessible name is computed from this text content (there is
+    no aria-label), a screen reader announces the link as a mixed-script jumble —
+    e.g. "Buoo, link" / "B u <cyrillic-u> N <cyrillic-o> w, link" — instead of
+    "Buy Now". The single most important action is unreadable to AT, and no text
+    alternative is provided.
+
+    WHY AUTOMATED TOOLS MISS IT: the link HAS a non-empty accessible name, so
+    axe-core's link-name and empty-control rules PASS. There is no img/svg/role=img,
+    so all ACT 1.1.1 rules are Inapplicable. Scanners cannot tell that the
+    accessible name is a confusable spelling of "Buy Now" rather than a legitimate
+    (if odd) string; that requires reading the glyphs against lang="en".
+  -->
+  <title>Aurora Pro 14 Noise-Cancelling Headphones</title>
+  <style>
+    :root { --ink:#15181d; --muted:#5b6470; --accent:#0a7d52; --rule:#e6e9ed; --bg:#ffffff; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Inter", "Segoe UI", Arial, sans-serif; color:var(--ink); background:var(--bg); line-height:1.6; }
+    header { display:flex; justify-content:space-between; align-items:center; padding:1rem 1.6rem; border-bottom:1px solid var(--rule); }
+    header .brand { font-weight:800; }
+    header nav a { margin-left:1.2rem; text-decoration:none; color:var(--muted); font-size:.9rem; }
+    .product { max-width:980px; margin:2rem auto; display:grid; grid-template-columns:1fr 1fr; gap:2.4rem; padding:0 1.6rem; }
+    @media (max-width:760px){ .product{ grid-template-columns:1fr; } }
+    .gallery { background:linear-gradient(160deg,#dfe7ee,#c3ccd6); border-radius:16px; min-height:340px; display:flex; align-items:center; justify-content:center; color:#7b8794; font-size:.85rem; }
+    .info h1 { font-size:1.8rem; margin:.2rem 0 .4rem; }
+    .info .price { font-size:1.6rem; font-weight:800; margin:.4rem 0; }
+    .info .price s { color:var(--muted); font-weight:400; font-size:1rem; margin-left:.4rem; }
+    .info .stars { color:#e0a800; letter-spacing:.1em; }
+    .info ul { padding-left:1.1rem; color:var(--muted); }
+    .info li { margin:.3rem 0; }
+    .buybar { display:flex; gap:.8rem; margin-top:1.4rem; }
+    a.buy { flex:1; text-align:center; background:var(--accent); color:#fff; text-decoration:none; font-weight:800; padding:.95rem 1.2rem; border-radius:10px; font-size:1.05rem; }
+    a.cart { text-align:center; border:2px solid var(--ink); color:var(--ink); text-decoration:none; font-weight:700; padding:.85rem 1.2rem; border-radius:10px; }
+    .reassure { font-size:.82rem; color:var(--muted); margin-top:.9rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="brand">SoundHaus</span>
+    <nav aria-label="Primary"><a href="#">Audio</a><a href="#">Deals</a><a href="#">Support</a></nav>
+  </header>
+
+  <div class="product">
+    <div class="gallery" role="img" aria-label="Aurora Pro 14 over-ear headphones in graphite">Product photo</div>
+    <div class="info">
+      <h1>Aurora Pro 14 Noise-Cancelling Headphones</h1>
+      <p class="stars" aria-label="Rated 4.6 out of 5">★★★★★ <span style="color:#5b6470;font-size:.85rem;">4.6 (2,318 reviews)</span></p>
+      <p class="price">$279.00 <s>$329.00</s></p>
+      <ul>
+        <li>Adaptive ANC with 38-hour battery</li>
+        <li>Multipoint Bluetooth 5.4, USB-C fast charge</li>
+        <li>Memory-foam earcups, 248&nbsp;g</li>
+      </ul>
+      <div class="buybar">
+        <!--
+          PRIMARY CTA. Visible text "Buy Now"; characters are
+          B u U+0443 (space) N U+043E w. No aria-label -> accessible name is the
+          confusable string itself, announced as mixed-script garbage by AT.
+        -->
+        <a class="buy" href="/checkout?sku=AUR-PRO-14">Bu&#x0443; N&#x043E;w</a>
+        <a class="cart" href="/cart/add?sku=AUR-PRO-14">Add to cart</a>
+      </div>
+      <p class="reassure">Free 2-day shipping · 30-day returns · 2-year warranty</p>
+    </div>
+  </div>
+</body>
+</html>

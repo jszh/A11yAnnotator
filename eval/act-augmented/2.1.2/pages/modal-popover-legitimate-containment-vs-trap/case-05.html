@@ -4,22 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The Ardent Review — Subscribe</title>
-<!--
-  SC 2.1.2 — modal-popover-legitimate-containment-vs-trap — case-05 (FAIL)
-  A newsletter capture uses the HTML popover attribute, BUT the author has overridden the
-  popover's native dismissal: they call manual popover state and re-focus the first field
-  on blur (a focusin guard that yanks focus back into the popover whenever it tries to
-  leave), creating a hand-built trap on top of a popover. The popover prints "Press Esc to
-  dismiss" but NO Esc listener is wired — and because it was switched to popover="manual"
-  (light-dismiss disabled) the browser's own Esc-to-close is also off. So the documented
-  exit is FALSE: Esc does nothing, and the focusin guard re-traps any Tab/Shift+Tab attempt
-  to leave.
-  WHY AUTOMATED TOOLS MISS IT: a real popover with a labelled email field and a visible,
-  human-readable "Press Esc to dismiss" instruction looks fully conformant — the advice
-  even satisfies the "user is advised of the method" clause on its face. Only by pressing
-  Esc (nothing) and Tabbing (focus snaps back) does the lie surface. No attribute is empty
-  or missing; the instruction text is PRESENT but WRONG.
--->
 <style>
   :root { font-family: Georgia, "Times New Roman", serif; color: #20242b; }
   body { margin: 0; background: #f7f4ee; }
@@ -61,11 +45,6 @@
      <a class="read-more" href="#full">continue reading</a>.</p>
 </main>
 
-<!--
-  popover="manual" disables the browser's light-dismiss AND its native Esc-to-close. The
-  page shows "Press Esc to dismiss" but never wires an Esc listener, and a focusin guard
-  re-traps focus. So the documented standard exit is false.
--->
 <div id="subpop" popover="manual" role="dialog" aria-labelledby="sub-title">
   <div class="pop-head">
     <h2 id="sub-title">Read without limits</h2>
@@ -81,7 +60,6 @@
 <script>
   const pop = document.getElementById('subpop');
 
-  // Show the popover shortly after load (typical engagement-gate behaviour).
   window.addEventListener('load', () => {
     setTimeout(() => {
       pop.showPopover();
@@ -89,9 +67,6 @@
     }, 400);
   });
 
-  // Focusin guard: whenever focus tries to leave the popover (Tab/Shift+Tab past the
-  // edges), snap it back to the first field. This is the hand-built trap layered on top of
-  // the popover.
   document.addEventListener('focusin', function (e) {
     if (pop.matches(':popover-open') && !pop.contains(e.target)) {
       e.stopPropagation();
@@ -99,9 +74,6 @@
     }
   });
 
-  // The "Subscribe" button is the only thing wired. There is NO keydown/Escape listener
-  // anywhere — the on-screen "Press Esc to dismiss" instruction is therefore false, and
-  // because popover="manual" the browser's own Esc-close is disabled too.
   document.getElementById('subgo').addEventListener('click', function () {
     this.textContent = 'Check your inbox ✓';
   });

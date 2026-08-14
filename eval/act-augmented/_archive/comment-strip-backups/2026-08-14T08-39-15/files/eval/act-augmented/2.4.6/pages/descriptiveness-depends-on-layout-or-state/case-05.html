@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cohere CRM — Lead Detail</title>
+<!--
+  SC 2.4.6 (Labels limb) — interaction-driven label change. A single button
+  toggles a details panel. Its INITIAL label, "Show details", describes its
+  function (reveal more). After the user clicks it, the script RELABELS it to
+  "Submit" — but the button still only expands/collapses the panel; it does not
+  submit anything. So in the post-interaction state the visible label ("Submit")
+  no longer describes the control's function, and a user is told they can submit
+  when no submission occurs. TT 5.B explicitly says label changes that happen "as
+  a result of interaction" must be included in the judgment.
+
+  The PASS counterpart on the same page (the "Show notes / Hide notes" button)
+  relabels on interaction TOO, but to a label that still correctly describes the
+  function in each state — demonstrating that interaction-driven relabeling is
+  fine when the new label stays descriptive.
+
+  WHY AUTOMATED TOOLS MISS IT: at any single moment the button HAS a non-empty,
+  visible, matching accessible name (label-in-name is satisfied — visible text ==
+  accessible name in both states). A static scan of the initial DOM sees "Show
+  details", which is descriptive, and passes. No automated tool clicks the button,
+  observes the relabel, then reasons that "Submit" misdescribes a control that only
+  toggles a panel. That requires interaction + understanding of what the control
+  actually does.
+-->
+<style>
+  body { margin: 0; font-family: "Segoe UI", system-ui, sans-serif; background: #f4f6fa; color: #1c2430; }
+  header { background: #122a4a; color: #fff; padding: 14px 26px; }
+  header h1 { margin: 0; font-size: 1.2rem; }
+  main { max-width: 680px; margin: 26px auto; padding: 0 18px; }
+  .lead-card { background: #fff; border: 1px solid #dde3ec; border-radius: 10px; padding: 18px 22px; }
+  .lead-card h2 { margin: 0 0 2px; font-size: 1.15rem; }
+  .lead-card .org { color: #5a6675; margin: 0 0 14px; }
+  dl { display: grid; grid-template-columns: 130px 1fr; gap: 6px 14px; margin: 0 0 16px; font-size: .95rem; }
+  dt { color: #5a6675; }
+  dd { margin: 0; }
+  .panel { border-top: 1px solid #eef1f6; margin-top: 8px; padding-top: 14px; font-size: .95rem; line-height: 1.55; }
+  .panel[hidden] { display: none; }
+  .btnrow { display: flex; gap: 10px; margin-top: 4px; }
+  button.action {
+    background: #1f5fbf; color: #fff; border: 0; border-radius: 6px;
+    padding: 9px 16px; font: inherit; font-weight: 600; cursor: pointer;
+  }
+  button.action.secondary { background: #e8edf5; color: #1f5fbf; }
+  button.action:focus-visible { outline: 3px solid #9bc0ee; outline-offset: 2px; }
+  footer { text-align: center; color: #6b7280; font-size: .8rem; padding: 26px 0; }
+</style>
+</head>
+<body>
+<header><h1>Cohere CRM</h1></header>
+
+<main>
+  <article class="lead-card">
+    <h2>Priya Raman</h2>
+    <p class="org">VP Operations · Northwind Logistics</p>
+
+    <dl>
+      <dt>Stage</dt><dd>Qualified</dd>
+      <dt>Owner</dt><dd>You</dd>
+      <dt>Last touch</dt><dd>3 days ago — call</dd>
+    </dl>
+
+    <div class="btnrow">
+      <!-- FAILING control: starts as "Show details" (descriptive of its toggle
+           function); on click it RELABELS to "Submit" while still only toggling
+           the panel. Post-interaction the label misdescribes the function. -->
+      <button class="action" type="button" id="detailsBtn"
+              aria-expanded="false" aria-controls="detailsPanel">Show details</button>
+
+      <!-- PASS control: relabels on interaction too, but stays descriptive in
+           both states ("Show notes" ⇄ "Hide notes"). -->
+      <button class="action secondary" type="button" id="notesBtn"
+              aria-expanded="false" aria-controls="notesPanel">Show notes</button>
+    </div>
+
+    <div class="panel" id="detailsPanel" hidden>
+      <p><strong>Account details.</strong> Northwind runs 14 regional depots and is
+         evaluating a route-optimization add-on. Budget cycle closes end of Q3.
+         Decision committee: Priya (ops), plus the CFO for sign-off.</p>
+    </div>
+
+    <div class="panel" id="notesPanel" hidden>
+      <p><strong>Call notes.</strong> Priya wants a pilot at two depots before a
+         full rollout. Follow up after the depot managers' meeting next Tuesday.</p>
+    </div>
+  </article>
+</main>
+
+<footer>Cohere CRM · Demo workspace</footer>
+
+<script>
+  // FAILING: relabels the toggle to "Submit" — a label that no longer describes
+  // the control's actual (toggle) function.
+  var dBtn = document.getElementById('detailsBtn');
+  var dPanel = document.getElementById('detailsPanel');
+  dBtn.addEventListener('click', function () {
+    var open = dBtn.getAttribute('aria-expanded') === 'true';
+    dBtn.setAttribute('aria-expanded', String(!open));
+    dPanel.hidden = open;
+    dBtn.textContent = open ? 'Show details' : 'Submit';
+  });
+
+  // PASS: relabels but stays descriptive in each state.
+  var nBtn = document.getElementById('notesBtn');
+  var nPanel = document.getElementById('notesPanel');
+  nBtn.addEventListener('click', function () {
+    var open = nBtn.getAttribute('aria-expanded') === 'true';
+    nBtn.setAttribute('aria-expanded', String(!open));
+    nPanel.hidden = open;
+    nBtn.textContent = open ? 'Show notes' : 'Hide notes';
+  });
+</script>
+</body>
+</html>

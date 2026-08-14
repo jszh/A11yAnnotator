@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Tidal Marsh Is Coming Back — Coastwatch Dispatch</title>
+<!--
+  WHY THIS IS A PASS (and why a naive "visual != DOM = fail" tool would FALSELY flag it):
+  This page deliberately reorders content with CSS in TWO places:
+    (1) a <nav> that renders fixed at the top but is the LAST element in source order, and
+    (2) a decorative <blockquote> pull-quote that renders BESIDE/ABOVE the article body but
+        sits BEFORE the <article> in the DOM.
+  A DOM-vs-visual diff tool fires on BOTH. But neither reorder changes meaning:
+    - The nav, the article, and the pull-quote are mutually INDEPENDENT blocks; per the SC's
+      own Example 2, repositioning a navigation bar relative to the main story does not affect
+      meaning, and a callout/sidebar's order relative to the article does not affect meaning
+      (Understanding: "a magazine article contains several callout sidebars ... the order of
+      the article and the sidebars does not affect their meaning").
+    - The pull-quote is a verbatim excerpt OF the article; read before or after the body, the
+      article still parses correctly. Nothing in either block depends on the other's position.
+  Catching that this is NOT a failure requires reading the linearized prose and judging that
+  meaning survives — exactly the discrimination an "any reorder = fail" tool gets wrong.
+-->
+<style>
+  :root { --ink:#1a2229; --sea:#16557a; --paper:#fbfdfe; --line:#dde6ec; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:17px/1.7 "Iowan Old Style",Georgia,serif; color:var(--ink);
+         background:var(--paper); padding-top:60px; }
+
+  /* Nav is LAST in the DOM but pinned to the top visually (Example-2 style reorder). */
+  nav.site {
+    position:fixed; top:0; left:0; right:0; height:60px;
+    background:var(--sea); color:#fff; display:flex; align-items:center;
+    gap:22px; padding:0 24px; font-family:system-ui; font-size:.95rem;
+  }
+  nav.site a { color:#fff; text-decoration:none; opacity:.92; }
+  nav.site a:hover { opacity:1; text-decoration:underline; }
+  nav.site .brand { font-weight:700; margin-right:auto; }
+
+  .wrap { max-width:860px; margin:0 auto; padding:30px 24px 72px;
+          display:grid; grid-template-columns:1fr 280px; gap:34px; align-items:start; }
+  article h1 { font-size:1.9rem; margin:0 0 6px; color:var(--sea); }
+  article .byline { font-family:system-ui; font-size:.9rem; color:#6a7884; margin:0 0 18px; }
+  article p { margin:0 0 16px; }
+
+  /* The pull-quote is placed FIRST in source but rendered in the right rail (grid col 2),
+     vertically aligned with the body — an independent decorative callout. */
+  blockquote.pull {
+    grid-column:2; grid-row:1;
+    margin:6px 0 0; padding:18px 20px; border-left:4px solid var(--sea);
+    background:#eef6fb; font-size:1.15rem; line-height:1.45; color:#234;
+    font-style:italic;
+  }
+  article { grid-column:1; grid-row:1; }
+  footer { max-width:860px; margin:0 auto; border-top:1px solid var(--line);
+           padding:18px 24px; font-size:.85rem; color:#6a7884; font-family:system-ui; }
+  @media (max-width:680px){ .wrap{ grid-template-columns:1fr; } blockquote.pull{ grid-column:1; } article{ grid-column:1; } }
+</style>
+</head>
+<body>
+
+  <!-- (1) pull-quote: FIRST in DOM, rendered in the side rail -->
+  <div class="wrap">
+    <blockquote class="pull">
+      &ldquo;Five winters ago this channel was a parking lot of dead reeds. Now the
+      ribbed mud breathes again.&rdquo;
+    </blockquote>
+
+    <!-- article body: SECOND in DOM, the main column. Self-contained and complete. -->
+    <article>
+      <h1>The tidal marsh is coming back</h1>
+      <p class="byline">By R. Okafor · Coastwatch Dispatch · Field notes, October</p>
+      <p>For thirty years the Halden estuary was diked off for grazing land, and the salt
+        marsh behind it slowly suffocated. In 2019 the county breached the old dike in three
+        places and let the tide return on its own schedule.</p>
+      <p>The recovery has outpaced every projection. Ribbed mussels recolonized within a
+        season; cordgrass followed; this autumn the first juvenile flounder were netted in
+        the restored channels. &ldquo;Five winters ago this channel was a parking lot of dead
+        reeds,&rdquo; said the lead ecologist. &ldquo;Now the ribbed mud breathes again.&rdquo;</p>
+      <p>What surprised the team most was the speed of the sediment rebound. The marsh is
+        accreting nearly a centimetre of new mud a year — fast enough, the models suggest,
+        to keep pace with the projected rise in sea level through mid-century.</p>
+    </article>
+  </div>
+
+  <!-- (2) site nav: LAST in DOM, rendered pinned to the top -->
+  <nav class="site" aria-label="Primary">
+    <span class="brand">Coastwatch</span>
+    <a href="#dispatches">Dispatches</a>
+    <a href="#science">Science</a>
+    <a href="#about">About</a>
+    <a href="#subscribe">Subscribe</a>
+  </nav>
+
+  <footer>
+    Coastwatch Dispatch · Independent estuary reporting · Renders from file:// with no assets.
+  </footer>
+</body>
+</html>

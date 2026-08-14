@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Saturday Kitchen — Issue 142</title>
+<style>
+  body { margin: 0; background: #e8e4dd; font-family: Arial, Helvetica, sans-serif; color: #2c2c2c; }
+  table { border-collapse: collapse; }
+  .email { width: 600px; margin: 0 auto; background: #ffffff; }
+  .masthead { background: #6d3b2e; color: #fff; padding: 18px 24px; }
+  .masthead .ttl { font-size: 22px; font-weight: 800; letter-spacing: .5px; }
+  .masthead .iss { font-size: 12px; color: #f0d9c9; }
+  .photo { width: 280px; height: 200px; display: block;
+           background: linear-gradient(135deg,#c9772f,#e7b96b 60%,#7a3b22); }
+  .cap { font-size: 12px; color: #6b6b6b; font-style: italic; padding: 8px 10px 0; }
+  .body-cell { padding: 18px 22px; font-size: 15px; line-height: 1.6; vertical-align: top; }
+  h2 { font-size: 18px; color: #6d3b2e; margin: 0 0 8px; }
+  .cta { display: inline-block; background: #6d3b2e; color: #fff; padding: 10px 22px;
+         text-decoration: none; border-radius: 3px; font-weight: 700; margin-top: 10px; }
+  .foot { background: #f1ece4; font-size: 11px; color: #777; padding: 16px 24px; text-align: center; }
+</style>
+</head>
+<body>
+<!-- HTML EMAIL newsletter: bulletproof nested-table layout (Outlook/Mailchimp style). -->
+<table class="email" role="presentation" align="center">
+  <tr>
+    <td class="masthead">
+      <div class="ttl">The Saturday Kitchen</div>
+      <div class="iss">Issue 142 &middot; Braising season</div>
+    </td>
+  </tr>
+
+  <tr>
+    <td style="padding:0">
+      <!--
+        OUTER LAYOUT TABLE row: a 2-column "image left / text right" feature block.
+        VISUAL INTENT:
+            [ photo of the dish ]   |   H2 "Red-wine short ribs"
+            [ caption under photo ]  |   intro paragraph + CTA
+        The caption "Pictured: short ribs after three hours, glaze reduced by half"
+        belongs directly under its photo (left column).
+
+        F49 NESTED-TABLE TRAP: per F49, a screen reader reads the ENTIRE nested table
+        inside a cell before moving on. Here the LEFT cell contains a nested table whose
+        FIRST row is the photo and whose SECOND row is the caption — fine on its own.
+        BUT the author put the caption in a SEPARATE outer-table cell two rows down
+        (to make the caption baseline align with the body text), so the caption is NOT
+        under the photo in the source. Linearized, the outer table reads:
+            (1) photo
+            (2) "Red-wine short ribs" + intro + CTA   <- entire right text block
+            (3) "Pictured: short ribs after three hours, glaze reduced by half"  <- the caption
+        The caption is separated from the photo it describes by the whole recipe blurb,
+        so a screen-reader user hears the caption with no idea which image it captions.
+      -->
+      <table role="presentation" width="600">
+        <tr>
+          <!-- LEFT: the photo (nested single-cell table — bulletproof Outlook wrapper) -->
+          <td width="290" valign="top" style="padding:18px 0 18px 22px">
+            <table role="presentation"><tr><td>
+              <span class="photo" role="img"
+                aria-label="A cast-iron pot of dark, glossy red-wine braised short ribs with carrots"></span>
+            </td></tr></table>
+          </td>
+          <!-- RIGHT: the heading, intro, and CTA — the whole text block in one cell -->
+          <td class="body-cell" width="288">
+            <h2>Red-wine short ribs</h2>
+            <p>Low and slow is the whole trick this month. We sear the ribs hard, then
+               let them braise for three hours until the wine reduces to a glaze you can
+               paint on with the back of a spoon.</p>
+            <a class="cta" href="#recipe">Get the full recipe</a>
+          </td>
+        </tr>
+        <tr>
+          <!-- The caption sits HERE, a row below, in the left column, to baseline-align
+               with the body text — but in linear order it now trails the entire blurb. -->
+          <td valign="top" style="padding:0 0 18px 22px">
+            <p class="cap">Pictured: short ribs after three hours, glaze reduced by half.</p>
+          </td>
+          <td></td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+
+  <tr>
+    <td class="foot">
+      You are receiving this because you subscribed to The Saturday Kitchen.
+      123 Larder Lane, Portland OR &middot; Unsubscribe
+    </td>
+  </tr>
+</table>
+
+<!--
+  WHY AUTOMATED TOOLS MISS THIS:
+  The image has aria-label text, every cell has content, the tables are
+  role="presentation", and the nesting is the standard "bulletproof" email pattern
+  that no linter flags. axe/WAVE/Lighthouse do not reconstruct that the caption in a
+  later cell describes the image two cells earlier, nor that the linearized order puts
+  the entire recipe blurb between the photo and its caption. Associating a caption
+  with the right image across linearized cells is a human reading judgment.
+-->
+</body>
+</html>

@@ -4,42 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tideline — Ambient Mixes</title>
-<!--
-  SC 4.1.2 — stale text alternative on a dynamic NAMED control (icon-only,
-  three-state mode cycle). This is the LONG-TAIL "SVG <title> is the SOLE name"
-  variant, built so the title is genuinely the whole accessible name:
-
-  - The repeat-mode button is ICON-ONLY: the <button> contains nothing but an
-    inline <svg role="img">, and that <svg> has exactly one accessible-name
-    source, its <title>. There is NO visible text node, NO aria-label, NO badge
-    inside the button, so the AccName computation has nothing else to fall back
-    to. The button's accessible name IS the <title> text, verbatim.
-  - The control is a CYCLE, not a binary toggle: each click advances
-    OFF -> ALL -> ONE -> OFF. On every click the glyph genuinely morphs (the
-    "1" overlay appears for ONE; the loop strokes recolor for ALL) and the
-    visible caption under the player updates. But the <svg><title> is rewritten
-    only on the FIRST transition and then the author forgot the rest, so from
-    the second click onward the title is frozen one state behind reality.
-    Concretely: after the SECOND click the glyph + caption say "Repeat one
-    track", yet the <title> (the entire accessible name) still says
-    "Repeat all tracks".
-
-  WHY THIS IS A REAL F20 / 4.1.2-OVER-TIME FAILURE (and not the rejected v1):
-  - Because the button is icon-only, blanking the <title> drops the accessible
-    name to empty — proving the <title> is the SOLE contributor, so a stale
-    <title> = a fully stale name (no live visible text dilutes it).
-  - aria-pressed is deliberately NOT used (a 3-state cycle is not a binary
-    toggle), so there is no programmatic state channel compensating for the
-    stale name; the name string is the only thing announced, and it is wrong.
-
-  WHY AUTOMATED TOOLS MISS IT:
-  - The <button> always has a non-empty accessible name (the <title> is never
-    empty), so axe "button-name" / Lighthouse pass on every state.
-  - No tool diffs the rendered glyph geometry (a script-drawn "1" overlay) or
-    the separate visible caption against the buried <svg><title> string;
-    deciding the title is now semantically wrong is a cross-modal, multi-click,
-    post-interaction human judgment.
--->
 <style>
   :root { color-scheme: light; }
   body { margin:0; font-family:"Segoe UI",system-ui,sans-serif;
@@ -68,7 +32,6 @@
   .ctl:focus-visible { outline:3px solid #5fd0c5; outline-offset:2px; }
   .ctl svg { width:26px; height:26px; display:block; }
   .ctl.play svg { width:34px; height:34px; }
-  /* the mode button colors its glyph by state, purely visually */
   #repeatBtn[data-mode="off"] svg .loop { stroke:#6b7c92; }
   #repeatBtn[data-mode="all"] svg .loop,
   #repeatBtn[data-mode="one"] svg .loop { stroke:#5fd0c5; }
@@ -114,12 +77,6 @@
         </svg>
       </button>
 
-      <!-- THE DEFECTIVE NAMED COMPONENT — icon-only repeat-MODE cycle button.
-           Its accessible name is the inline <svg><title> and nothing else.
-           Each click morphs the glyph (loop color, and a "1" overlay for ONE)
-           and updates the visible caption, but the <title> is rewritten only on
-           the first click, so from the second click on the name is one state
-           behind. -->
       <button id="repeatBtn" class="ctl" type="button" data-mode="off"
               onclick="cycleRepeat()">
         <svg role="img" viewBox="0 0 24 24" aria-hidden="false">
@@ -142,14 +99,6 @@
 </div>
 
 <script>
-  // Persona: a player widget refactor. The original author wired the repeat
-  // button as a binary on/off and DID keep its <svg><title> in sync. A later
-  // ticket expanded it to a 3-state cycle (off -> all -> one) — the dev added
-  // the new glyph art and the new caption strings, and remembered to relabel
-  // the title on the FIRST step (off -> all), but pasted the remaining steps
-  // from the visual code path and never carried the title rewrite through. The
-  // result: the <svg><title>, which is the button's ENTIRE accessible name,
-  // lags one state behind from the second click onward.
   var MODES = ['off', 'all', 'one'];
   var CAPTIONS = {
     off: 'Repeat is <b>off</b>.',
@@ -165,22 +114,12 @@
     var title = document.getElementById('repeatTitle');
     var cap   = document.getElementById('repeatCaption');
 
-    // Visual content mutates every click: glyph state + visible caption.
-    btn.setAttribute('data-mode', mode);   // recolors loop, toggles the "1"
+    btn.setAttribute('data-mode', mode);   
     cap.innerHTML = CAPTIONS[mode];
 
-    // BUG (F20 / 4.1.2 over time): the <svg><title> — the button's ENTIRE
-    // accessible name — is only refreshed for the first transition. After that
-    // it is frozen, so a screen-reader announces the PREVIOUS mode's name.
-    // e.g. on the 2nd click the glyph + caption read "Repeat one track" while
-    // the announced name is still "Repeat all tracks".
     if (idx === 1) {
-      title.textContent = 'Repeat all tracks';   // off -> all: name updated (correct)
+      title.textContent = 'Repeat all tracks';   
     }
-    // off->all is the only branch that touches the title. all->one and one->off
-    // never update it. Correct code would set the title for EVERY mode, e.g.:
-    //   title.textContent = {off:'Repeat off', all:'Repeat all tracks',
-    //                        one:'Repeat one track'}[mode];
   }
 </script>
 </body>

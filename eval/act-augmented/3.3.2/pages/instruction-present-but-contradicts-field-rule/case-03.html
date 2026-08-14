@@ -4,20 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Create your workspace — Cadence project tracker</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS:
-  The password field has a correctly associated, VISIBLE requirements list via
-  aria-describedby ("password-rules"). The list is non-empty, names concrete rules, and
-  is in the accessibility tree. axe / WAVE / Lighthouse confirm: <label for> resolves,
-  aria-describedby resolves, contrast fine, role textbox, type=password. The "instruction
-  is present" facet of 3.3.2 (TT 5.A) passes.
-  THE DEFECT IS SEMANTIC + NUMERIC: the visible rule says "At least 8 characters" but the
-  field's ENFORCED rule is TWELVE — minlength="12", the pattern requires 12+, and the
-  live strength meter / submit validator reject anything under 12. A user who creates a
-  perfectly instruction-compliant 8-character password (e.g. "Passw0rd!") is rejected,
-  and the printed minimum is simply lower than the real one. No checker reads "at least 8"
-  from the prose, reads minlength="12"/the pattern, and judges that 8 < 12 contradicts.
--->
 <style>
   :root{ --ink:#10151f; --muted:#646e7e; --line:#d3d9e0; --brand:#2b59ff; --ok:#138a4f;
          --warn:#b8860b; --danger:#cf2440; --paper:#fff; }
@@ -59,7 +45,6 @@
 
       <form action="#" method="post" novalidate id="form" autocomplete="off">
 
-        <!-- ALWAYS-CORRECT CONTROL (contrast): work-email hint matches its enforced rule. -->
         <div class="group">
           <label for="email">Work email</label>
           <p class="req" style="list-style:none;padding-left:0" id="email-hint">Use your company email address.</p>
@@ -67,7 +52,6 @@
                  autocomplete="email" required>
         </div>
 
-        <!-- DEFECTIVE CONTROL: visible rule "At least 8 characters" but the field enforces 12. -->
         <div class="group">
           <label for="password">Choose a password</label>
           <ul class="req" id="password-rules">
@@ -100,7 +84,7 @@
   var bar  = document.getElementById('bar');
   var str  = document.getElementById('strength');
   var err  = document.getElementById('pw-err');
-  var MIN  = 12; // ENFORCED minimum — contradicts the printed "At least 8 characters".
+  var MIN  = 12; 
 
   pw.addEventListener('input', function(){
     var v = pw.value, n = v.length;
@@ -121,7 +105,6 @@
       err.style.color = '#138a4f';
     } else {
       pw.setAttribute('aria-invalid','true');
-      // Real rule revealed only on failure; the listed "8" is simply false.
       err.textContent = 'Your password must be at least 12 characters and include a number and an uppercase letter.';
       err.style.color = '';
       pw.focus();

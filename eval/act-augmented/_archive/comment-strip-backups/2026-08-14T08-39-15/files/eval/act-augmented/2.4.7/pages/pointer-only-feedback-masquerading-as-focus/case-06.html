@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pricing — Cadence Time Tracking</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: #0f1117; color: #e7e9ee;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    .nav { padding: 1.1rem 2rem; display: flex; align-items: center; gap: 1rem; }
+    .nav .logo { font-weight: 700; letter-spacing: .02em; }
+    main { max-width: 980px; margin: 0 auto; padding: 1rem 1.4rem 4rem; text-align: center; }
+    h1 { font-size: 2rem; margin: 1rem 0 .3rem; }
+    .lede { color: #9aa1ad; margin: 0 auto 2.2rem; max-width: 540px; }
+
+    .tiers { display: grid; gap: 1.2rem; grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); text-align: left; }
+    .tier {
+      background: #171a23; border: 1px solid #242936; border-radius: 14px; padding: 1.5rem;
+      display: flex; flex-direction: column;
+    }
+    .tier h2 { margin: 0 0 .2rem; font-size: 1.15rem; }
+    .tier .price { font-size: 2rem; font-weight: 700; margin: .4rem 0; }
+    .tier .price small { font-size: .9rem; font-weight: 400; color: #9aa1ad; }
+    .tier ul { list-style: none; padding: 0; margin: .8rem 0 1.4rem; color: #c3c8d2; flex: 1; }
+    .tier li { padding: .28rem 0; padding-left: 1.3rem; position: relative; font-size: .92rem; }
+    .tier li::before { content: "✓"; position: absolute; left: 0; color: #5b8cff; }
+
+    /* The CTA buttons. Utility-class mindset: kill the default ring
+       (`focus:outline-none`) and add only a press-feedback transform
+       (`active:scale-95`). No focus/focus-visible utility was ever added. */
+    .cta {
+      display: inline-block; width: 100%; text-align: center;
+      padding: .7rem 1rem; border: none; border-radius: 9px;
+      font-size: 1rem; font-weight: 600; cursor: pointer;
+      color: #fff; background: #3b5bdb;
+      transition: transform .08s ease, background-color .12s ease;
+    }
+    .cta.alt { background: #242936; color: #e7e9ee; }
+
+    /* Pointer-press + keyboard-activate feedback, but only WHILE the button is
+       being pressed — it springs back the instant the key/mouse is released. */
+    .cta:active { transform: scale(.97); }
+
+    /* "Get rid of the ugly blue ring." No replacement supplied. */
+    .cta:focus { outline: none; }
+  </style>
+</head>
+<body>
+  <nav class="nav"><span class="logo">Cadence</span></nav>
+  <main>
+    <h1>Simple, honest pricing</h1>
+    <p class="lede">Track time, bill clients, and run payroll from one place. Switch plans any time.</p>
+
+    <div class="tiers">
+      <section class="tier">
+        <h2>Solo</h2>
+        <div class="price">$0 <small>/ forever</small></div>
+        <ul>
+          <li>1 user</li>
+          <li>Unlimited time entries</li>
+          <li>Weekly summary email</li>
+        </ul>
+        <button type="button" class="cta alt">Start free</button>
+      </section>
+
+      <section class="tier">
+        <h2>Team</h2>
+        <div class="price">$9 <small>/ user / mo</small></div>
+        <ul>
+          <li>Up to 25 users</li>
+          <li>Client billing &amp; invoices</li>
+          <li>Approval workflows</li>
+          <li>Slack &amp; calendar sync</li>
+        </ul>
+        <button type="button" class="cta">Choose Team</button>
+      </section>
+
+      <section class="tier">
+        <h2>Business</h2>
+        <div class="price">$19 <small>/ user / mo</small></div>
+        <ul>
+          <li>Unlimited users</li>
+          <li>Payroll &amp; tax filing</li>
+          <li>SSO &amp; audit log</li>
+          <li>Priority support</li>
+        </ul>
+        <button type="button" class="cta">Choose Business</button>
+      </section>
+    </div>
+  </main>
+
+  <!--
+    WHY THIS FAILS SC 2.4.7 (Focus Visible) AND WHY AUTOMATED TOOLS MISS IT
+    ----------------------------------------------------------------------
+    The CTA buttons define exactly one styled interactive state: `:active`, a
+    97%-scale press animation. `:active` is NOT a focus state — it is the
+    "currently being pressed/activated" state. It fires for a mouse press and for
+    a keyboard Space/Enter activation, but it lasts ONLY while the key/button is
+    held; it springs back immediately on release. A keyboard user who Tabs onto a
+    button and pauses (the entire point of a focus indicator — to know where you
+    are *before* you activate) sees no change whatsoever, because `:focus` was
+    reset to `outline: none` with no replacement. There is no persistent
+    indication of which CTA currently holds focus.
+
+    Automated tools miss it because there IS interactive-state styling present
+    (`:active`), `outline:none` is legal, and a programmatic-focus pixel diff
+    captures the resting focused state — which is unchanged, but tools have no SC
+    2.4.7 oracle to call that a failure versus a design choice. Distinguishing
+    "press feedback" (`:active`, transient, modality-agnostic) from "focus
+    feedback" (`:focus`/`:focus-visible`, persistent, what a keyboard user needs)
+    is a semantic judgment about which state a Tab-and-stop actually produces.
+  -->
+</body>
+</html>

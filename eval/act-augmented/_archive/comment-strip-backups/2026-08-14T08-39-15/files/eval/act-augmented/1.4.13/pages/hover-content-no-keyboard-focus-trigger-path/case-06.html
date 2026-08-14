@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy policy — data retention — Northwind Mutual</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Georgia", "Times New Roman", serif;
+    background: #fcfcfa;
+    color: #23262b;
+    line-height: 1.7;
+  }
+  header {
+    font-family: "Inter", system-ui, sans-serif;
+    background: #2b2f6b; color: #fff; padding: 14px 32px; display:flex; align-items:center; gap:12px;
+  }
+  header .badge { width: 26px; height: 26px; border-radius: 6px; background: #c8b06a; }
+  main { max-width: 680px; margin: 32px auto; padding: 0 24px; }
+  h1 { font-size: 26px; margin: 0 0 4px; }
+  .meta { font-family:"Inter",system-ui,sans-serif; color: #6a7079; font-size: 13px; margin: 0 0 26px; }
+  h2 { font-size: 19px; margin: 30px 0 8px; }
+  p { margin: 0 0 14px; }
+
+  /* Glossary term: a focusable <button> styled inline, with a tooltip bound to BOTH
+     hover AND focus, dismissible via Esc, and hoverable (the popup itself can be
+     entered without it closing). This is a complete, conforming implementation. */
+  .term {
+    font: inherit;
+    color: #2b2f6b;
+    background: none;
+    border: 0;
+    border-bottom: 1px dotted #2b2f6b;
+    padding: 0;
+    cursor: help;
+    position: relative;
+  }
+  .term:focus-visible { outline: 2px solid #2b2f6b; outline-offset: 2px; border-radius: 2px; }
+
+  .def {
+    position: absolute;
+    left: 0; top: 1.7em;
+    z-index: 30;
+    width: 320px;
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 13.5px; line-height: 1.5;
+    background: #fff;
+    color: #23262b;
+    border: 1px solid #2b2f6b;
+    border-radius: 8px;
+    padding: 12px 14px;
+    box-shadow: 0 10px 26px rgba(0,0,0,.16);
+    display: none;
+  }
+  .def[data-open="true"] { display: block; }
+  .def strong { color: #2b2f6b; }
+  footer { font-family:"Inter",system-ui,sans-serif; max-width:680px; margin: 24px auto 60px; padding: 0 24px; color:#6a7079; font-size:12px; }
+</style>
+</head>
+<body>
+  <header><span class="badge" aria-hidden="true"></span><strong>Northwind Mutual</strong></header>
+
+  <main>
+    <h1>Privacy policy</h1>
+    <p class="meta">Section 7 of 12 · Last updated June 2026</p>
+
+    <h2>7. Data retention</h2>
+    <p>We keep your personal information only as long as necessary for the purposes described
+    in this policy. Records tied to an active policy are retained for the life of the policy.
+    After your relationship with us ends, most records are deleted, but certain categories are
+    held under a
+    <span style="position:relative; display:inline-block;">
+      <button type="button" class="term" id="lh-term"
+              aria-expanded="false" aria-describedby="lh-def">legal hold</button>
+      <span class="def" id="lh-def" role="tooltip">
+        <strong>Legal hold.</strong> A suspension of routine deletion required when records may
+        be relevant to litigation, an audit, or a regulator's request. Held records are
+        preserved unchanged — and beyond our normal retention windows — until the matter
+        formally closes, even if you have asked us to delete your data.
+      </span>
+    </span>
+    for as long as the law requires.</p>
+
+    <p>Where retention is governed by statute, the applicable period takes precedence over the
+    defaults above. You may request a copy of the categories we retain at any time.</p>
+  </main>
+
+  <footer>Northwind Mutual Insurance Company. This summary does not replace the full policy text.</footer>
+
+  <script>
+    // Complete, conforming hover/focus tooltip:
+    //  - revealed on BOTH mouseenter AND focusin (keyboard + pointer parity)
+    //  - the trigger is a real, focusable <button> (a natural tab stop)
+    //  - dismissible via Esc without moving focus/pointer
+    //  - hoverable + persistent: moving the pointer from the trigger onto the popup
+    //    keeps it open (group-level mouseleave with a check), so magnifier users can read it
+    (function () {
+      var term = document.getElementById('lh-term');
+      var def = document.getElementById('lh-def');
+      var group = term.parentNode;
+      function open() { def.setAttribute('data-open', 'true'); term.setAttribute('aria-expanded', 'true'); }
+      function close() { def.setAttribute('data-open', 'false'); term.setAttribute('aria-expanded', 'false'); }
+
+      // Keyboard focus parity:
+      term.addEventListener('focus', open);
+      term.addEventListener('blur', function (e) {
+        // keep open if focus moved into the popup (it has no focusables here, but guard anyway)
+        if (!group.contains(e.relatedTarget)) close();
+      });
+      // Pointer parity (group-level so the popup itself is hoverable/persistent):
+      group.addEventListener('mouseenter', open);
+      group.addEventListener('mouseleave', close);
+
+      // Dismissible without moving focus or pointer:
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && def.getAttribute('data-open') === 'true') {
+          close();
+          term.focus();
+        }
+      });
+    })();
+  </script>
+
+  <!--
+    WHY THIS PASSES 1.4.13 (the conforming counter-fixture):
+    This is the same glossary-tooltip pattern as the failing pages, built correctly. The
+    "legal hold" definition carries unique, material information (it explains that your data
+    can be retained beyond normal windows and despite a deletion request) — exactly the kind
+    of content the FAIL pages hide from keyboard users. Here it is reachable by BOTH modalities:
+      - the trigger is a real, focusable <button> (a natural tab stop with a visible focus ring);
+      - the popup is revealed on focusin AND on mouseenter (keyboard/pointer parity), satisfying
+        the Additional Note that hover-triggerable content also be focus-triggerable (2.1.1);
+      - it is dismissible with Esc without moving focus, and hoverable/persistent (group-level
+        hover keeps it open so a magnifier user can move onto it).
+    A keyboard user Tabs to "legal hold", the definition appears, and Esc dismisses it. Nothing
+    is lost. Correct verdict: PASS. This sharpens the aspect: it is NOT the mere presence of a
+    hover tooltip that fails 1.4.13 — it is the ABSENCE of a focus path to meaningful content.
+    Automated tools would pass this too, but for the wrong reason (they never test focus); the
+    human reviewer passes it for the right reason (keyboard parity is genuinely implemented).
+  -->
+</body>
+</html>

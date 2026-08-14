@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hearthline — Homes for sale in Cedar Hollow</title>
+<!--
+  SC 1.4.11 Non-text Contrast — F78 BOUNDARY (PASS).
+
+  This is the discriminating contrast case for the F78 "box-shadow ring identical
+  to focus ring" failure mode. Every listing card permanently carries a SUBTLE
+  resting drop shadow (a soft, low-contrast ambient shadow used for depth):
+
+      .card        { box-shadow: 0 1px 3px rgba(16,24,40,.12); }
+
+  When a card receives keyboard focus, the focus indicator is DELIBERATELY made
+  distinct from that resting shadow — it is a thick, high-contrast, OFFSET ring
+  of a different visual character (a solid 3px dark outline plus a 5px white gap),
+  not a slightly-darker version of the same soft shadow:
+
+      .card:focus-visible {
+        outline: 3px solid #1b3a2b;     /* high-contrast solid ring  ~9:1 */
+        outline-offset: 4px;            /* clearly offset from the card */
+        box-shadow: 0 0 0 6px rgba(27,58,43,.18), 0 1px 3px rgba(16,24,40,.12);
+      }
+
+  The page renders with the SECOND card focused. The focused card is unmistakably
+  different from its neighbours: a sighted keyboard user can immediately tell
+  which listing has focus, and that focus moved. The resting decoration (soft
+  ambient shadow) and the focus indicator (thick offset solid ring) are NOT
+  confusable. This is the correct way to avoid F78, included so the judge must
+  reason about DISCERNIBILITY rather than mere presence of a focus style.
+
+  WHY AUTOMATED TOOLS MISS IT (the pass is also unprovable automatically): just
+  as a tool cannot prove the FAIL cases fail, it cannot prove this case PASSES —
+  axe/WAVE/Lighthouse have no rule that confirms the focus ring is perceptibly
+  distinct from a resting box-shadow. A human comparing the resting card and the
+  focused card must judge that the difference is clearly perceivable. Here it is.
+-->
+<style>
+  :root{
+    --ink:#16201a; --muted:#5d6b62; --green:#1b3a2b; --bg:#f4f6f3; --card:#fff; --line:#dfe5df;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink); font:16px/1.5 "Inter","Segoe UI",system-ui,sans-serif;}
+  header{background:var(--card); border-bottom:1px solid var(--line); padding:14px 24px; display:flex; align-items:center; gap:14px;}
+  header .brand{font-weight:800; letter-spacing:-.02em; font-size:1.1rem; color:var(--green);}
+  header .crumbs{color:var(--muted); font-size:.85rem; margin-left:6px;}
+  main{max-width:980px; margin:0 auto; padding:24px;}
+  h1{font-size:1.45rem; margin:0 0 2px;}
+  .count{color:var(--muted); margin:0 0 20px; font-size:.9rem;}
+  .grid{display:grid; grid-template-columns:repeat(3,1fr); gap:20px;}
+
+  /* Resting decoration: a SOFT ambient shadow for depth — low contrast, subtle. */
+  .card{
+    display:block; text-decoration:none; color:inherit; background:var(--card);
+    border:1px solid var(--line); border-radius:12px; overflow:hidden;
+    box-shadow:0 1px 3px rgba(16,24,40,.12);
+  }
+  /* Focus: DELIBERATELY distinct — thick, high-contrast, offset solid ring plus
+     a wider colored halo. Not confusable with the soft resting shadow. */
+  .card:focus-visible{
+    outline:3px solid #1b3a2b;       /* dark green ~9:1 on the light bg */
+    outline-offset:4px;
+    box-shadow:0 0 0 6px rgba(27,58,43,.18), 0 1px 3px rgba(16,24,40,.12);
+  }
+  .card:focus{ /* keep a strong ring for non-:focus-visible UAs too */
+    outline:3px solid #1b3a2b; outline-offset:4px;
+  }
+  .thumb{height:120px; background:linear-gradient(135deg,#cfe0d2,#aac4b0); position:relative;}
+  .thumb .tag{position:absolute; top:10px; left:10px; background:var(--green); color:#fff; font-size:.7rem; font-weight:700; padding:3px 8px; border-radius:20px;}
+  .body{padding:14px 16px 16px;}
+  .price{font-size:1.2rem; font-weight:800;}
+  .addr{color:var(--muted); font-size:.9rem; margin:3px 0 8px;}
+  .meta{display:flex; gap:14px; font-size:.82rem; color:var(--ink);}
+  .meta b{font-weight:700;}
+  footer{max-width:980px; margin:0 auto; padding:18px 24px; color:var(--muted); font-size:.8rem;}
+</style>
+</head>
+<body>
+<header>
+  <span class="brand">Hearthline</span>
+  <span class="crumbs">Homes &rsaquo; Cedar Hollow &rsaquo; For sale</span>
+</header>
+
+<main>
+  <h1>Homes for sale in Cedar Hollow</h1>
+  <p class="count">42 results &middot; sorted by newest</p>
+
+  <div class="grid">
+    <a class="card" href="#l1">
+      <div class="thumb"><span class="tag">New</span></div>
+      <div class="body">
+        <div class="price">$418,000</div>
+        <div class="addr">112 Larkspur Ln</div>
+        <div class="meta"><span><b>3</b> bd</span><span><b>2</b> ba</span><span><b>1,640</b> sqft</span></div>
+      </div>
+    </a>
+
+    <!-- Page loads with this card focused. Its focus ring is unmistakably
+         distinct from the resting soft shadow on the other cards. -->
+    <a class="card" href="#l2" autofocus>
+      <div class="thumb"><span class="tag">Open Sun</span></div>
+      <div class="body">
+        <div class="price">$535,500</div>
+        <div class="addr">8 Meadowgate Ct</div>
+        <div class="meta"><span><b>4</b> bd</span><span><b>3</b> ba</span><span><b>2,210</b> sqft</span></div>
+      </div>
+    </a>
+
+    <a class="card" href="#l3">
+      <div class="thumb"></div>
+      <div class="body">
+        <div class="price">$372,900</div>
+        <div class="addr">47 Birchwood Dr</div>
+        <div class="meta"><span><b>2</b> bd</span><span><b>2</b> ba</span><span><b>1,180</b> sqft</span></div>
+      </div>
+    </a>
+
+    <a class="card" href="#l4">
+      <div class="thumb"><span class="tag">Price cut</span></div>
+      <div class="body">
+        <div class="price">$489,000</div>
+        <div class="addr">221 Cedar Hollow Rd</div>
+        <div class="meta"><span><b>3</b> bd</span><span><b>2</b> ba</span><span><b>1,905</b> sqft</span></div>
+      </div>
+    </a>
+
+    <a class="card" href="#l5">
+      <div class="thumb"></div>
+      <div class="body">
+        <div class="price">$610,000</div>
+        <div class="addr">15 Highfield Pl</div>
+        <div class="meta"><span><b>4</b> bd</span><span><b>3</b> ba</span><span><b>2,560</b> sqft</span></div>
+      </div>
+    </a>
+
+    <a class="card" href="#l6">
+      <div class="thumb"><span class="tag">New</span></div>
+      <div class="body">
+        <div class="price">$344,000</div>
+        <div class="addr">90 Sycamore St</div>
+        <div class="meta"><span><b>2</b> bd</span><span><b>1</b> ba</span><span><b>980</b> sqft</span></div>
+      </div>
+    </a>
+  </div>
+</main>
+
+<footer>
+  Hearthline Realty &middot; This grid loads with the <em>8 Meadowgate Ct</em> card focused — its focus ring is intentionally distinct from the resting card shadow.
+</footer>
+</body>
+</html>

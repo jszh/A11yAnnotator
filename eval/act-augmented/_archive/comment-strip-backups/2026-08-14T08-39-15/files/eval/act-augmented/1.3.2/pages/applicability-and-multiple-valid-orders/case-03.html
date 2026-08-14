@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Morning Dashboard — Greenfield Co-working</title>
+<!--
+  SC 1.3.2 APPLICABILITY GATE — EXPECTED: PASS (multiple valid orders; container not meaningful)
+
+  A personal "start page" / dashboard of independent widgets: weather, a stock ticker, today's
+  room bookings, and a transit-departures board. CSS grid uses `grid-template-areas` and explicit
+  `grid-area` / `order` so the VISUAL placement is: weather top-left, transit top-right, bookings
+  bottom-left, stocks bottom-right. The DOM order is different again (bookings, stocks, weather,
+  transit). None of that matters: each widget is self-contained, and ANY permutation reads
+  sensibly because the widgets are mutually independent.
+
+  The point: an evaluator might be tempted to flag the DOM-vs-visual mismatch, but there is no
+  single "correct" sequence to violate — every reading order is correct. Each widget is internally
+  ordered (e.g. the transit board lists soonest-first), and no widget is interleaved with another.
+
+  Contrast with the FAIL cases (04/05/06) where reordering DOES break meaning. Here it cannot.
+
+  WHY AUTOMATED TOOLS MISS IT: no 1.3.2 rule; a DOM-vs-visual heuristic would mis-fire. Knowing the
+  four widgets are independent — so any order is valid — is a semantic judgement.
+-->
+<style>
+  :root { --bg:#0f1b2d; --card:#17263d; --line:#2a3b56; --ink:#e8eef7; --dim:#9fb1cc;
+          --good:#4ade80; --bad:#f87171; --accent:#60a5fa; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.55 "Segoe UI", system-ui, sans-serif;
+         background:var(--bg); color:var(--ink); }
+  header { padding:18px 24px; border-bottom:1px solid var(--line); }
+  header h1 { margin:0; font-size:1.25rem; font-weight:600; }
+  header p { margin:.2rem 0 0; color:var(--dim); font-size:.85rem; }
+
+  /* Grid: VISUAL placement differs from DOM order. Widgets are independent. */
+  .grid {
+    display:grid; gap:18px; padding:22px 24px;
+    grid-template-columns:1fr 1fr;
+    grid-template-areas:
+      "weather  transit"
+      "bookings stocks";
+  }
+  #w-weather  { grid-area:weather; }
+  #w-transit  { grid-area:transit; }
+  #w-bookings { grid-area:bookings; }
+  #w-stocks   { grid-area:stocks; }
+
+  section.widget { background:var(--card); border:1px solid var(--line);
+                   border-radius:12px; padding:16px 18px; }
+  section.widget h2 { margin:0 0 .7rem; font-size:1rem; color:var(--accent);
+                      display:flex; align-items:center; gap:8px; }
+  .big { font-size:2rem; font-weight:700; }
+  ul.clean { list-style:none; margin:0; padding:0; }
+  ul.clean li { display:flex; justify-content:space-between; padding:5px 0;
+                border-bottom:1px solid var(--line); }
+  ul.clean li:last-child { border-bottom:0; }
+  .up { color:var(--good); } .down { color:var(--bad); }
+  .muted { color:var(--dim); }
+  @media (max-width:640px){
+    .grid{ grid-template-columns:1fr;
+           grid-template-areas:"weather" "transit" "bookings" "stocks"; }
+  }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Morning Dashboard</h1>
+    <p>Greenfield Co-working &mdash; widgets can be rearranged; each stands alone.</p>
+  </header>
+
+  <div class="grid">
+
+    <!-- DOM #1: Room bookings (visually bottom-left). Self-contained, chronological. -->
+    <section class="widget" id="w-bookings" aria-labelledby="b-bookings">
+      <h2 id="b-bookings">Today&rsquo;s room bookings</h2>
+      <ul class="clean">
+        <li><span>09:00 &ndash; 10:30 &middot; Oak Room</span><span class="muted">Design crit</span></li>
+        <li><span>11:00 &ndash; 12:00 &middot; Birch Pod</span><span class="muted">1:1 mentoring</span></li>
+        <li><span>14:00 &ndash; 16:00 &middot; Oak Room</span><span class="muted">Client workshop</span></li>
+        <li><span>16:30 &ndash; 17:00 &middot; Phone Box</span><span class="muted">Investor call</span></li>
+      </ul>
+    </section>
+
+    <!-- DOM #2: Stock ticker (visually bottom-right). Self-contained watchlist. -->
+    <section class="widget" id="w-stocks" aria-labelledby="b-stocks">
+      <h2 id="b-stocks">Watchlist</h2>
+      <ul class="clean">
+        <li><span>RNEW</span><span class="up">+2.4%&nbsp;&uarr;</span></li>
+        <li><span>SOLR</span><span class="up">+1.1%&nbsp;&uarr;</span></li>
+        <li><span>OILX</span><span class="down">&minus;0.8%&nbsp;&darr;</span></li>
+        <li><span>GRID</span><span class="up">+0.3%&nbsp;&uarr;</span></li>
+      </ul>
+    </section>
+
+    <!-- DOM #3: Weather (visually top-left). Self-contained. -->
+    <section class="widget" id="w-weather" aria-labelledby="b-weather">
+      <h2 id="b-weather">Weather &mdash; Greenfield</h2>
+      <p class="big">14&deg;C</p>
+      <p class="muted">Overcast, light breeze. High 17&deg;, low 9&deg;. Rain after 18:00.</p>
+    </section>
+
+    <!-- DOM #4: Transit departures (visually top-right). Self-contained, soonest-first. -->
+    <section class="widget" id="w-transit" aria-labelledby="b-transit">
+      <h2 id="b-transit">Next departures &mdash; Greenfield Cross</h2>
+      <ul class="clean">
+        <li><span>Bus 12 &rarr; Centre</span><span>3 min</span></li>
+        <li><span>Tram B &rarr; Quay</span><span>6 min</span></li>
+        <li><span>Bus 40 &rarr; Hospital</span><span>11 min</span></li>
+        <li><span>Rail &rarr; Northgate</span><span>18 min</span></li>
+      </ul>
+    </section>
+
+  </div>
+</body>
+</html>

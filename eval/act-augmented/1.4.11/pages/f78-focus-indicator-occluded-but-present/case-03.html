@@ -4,34 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Cohortly — Retention Analytics</title>
-<!--
-  SC 1.4.11 Non-text Contrast — F78 (focus indicator indistinguishable from a
-  persistent decorative outline on ALL siblings).
-
-  The top nav of this analytics app gives every nav item a permanent 2px solid
-  blue outline (a design token "chip" look). The author also set the keyboard
-  focus indicator to the IDENTICAL 2px solid blue outline:
-
-      .nav-item        { outline: 2px solid #2f6df6; outline-offset: 2px; }
-      .nav-item:focus  { outline: 2px solid #2f6df6; outline-offset: 2px; }
-
-  Result: all five nav items wear the same blue box at rest, and the focused item
-  wears the same blue box. There is no perceptible difference between the focused
-  nav item and its four siblings. The page is rendered with the "Funnels" nav
-  item focused (autofocus). A keyboard user cannot tell which tab they are on.
-
-  Note this is NOT the same as case-01 (dotted TOC link rail in docs): here the
-  decoration is a solid blue full-box outline on horizontal nav buttons, the
-  resting contrast is fine (blue on white ~4:1), and the trap is that the
-  uniform decorative chip outline equals the focus outline.
-
-  WHY AUTOMATED TOOLS MISS IT: a:focus / button:focus is declared with a real
-  2px solid blue outline of good contrast, so any "does a focus style exist and
-  contrast?" check passes. axe/WAVE/Lighthouse have no rule comparing the
-  focused element's appearance to its unfocused siblings. Only a human rendering
-  the focused state and scanning the row can see that the focused item looks
-  exactly like the others.
--->
 <style>
   :root{
     --ink:#10131a; --muted:#5b6470; --blue:#2f6df6; --bg:#f7f8fb; --card:#fff; --line:#e6e9ef;
@@ -43,15 +15,14 @@
   .logo span{color:var(--blue);}
   nav.primary{display:flex; gap:18px; margin-left:8px;}
 
-  /* THE DEFECT: permanent blue outline on every nav item == the focus outline. */
   .nav-item{
     appearance:none; background:none; border:none; cursor:pointer;
     font:600 .92rem/1 inherit; color:var(--ink); padding:7px 12px; border-radius:6px;
-    outline:2px solid #2f6df6;        /* always-on decorative "chip" outline */
+    outline:2px solid #2f6df6;        
     outline-offset:2px;
   }
   .nav-item:focus{
-    outline:2px solid #2f6df6;        /* focus ring == resting outline */
+    outline:2px solid #2f6df6;        
     outline-offset:2px;
   }
   .nav-item:hover{background:#eef3ff;}
@@ -81,7 +52,6 @@
   <nav class="primary" aria-label="Primary">
     <button type="button" class="nav-item">Overview</button>
     <button type="button" class="nav-item">Cohorts</button>
-    <!-- Page loads with this nav item focused. It looks identical to its siblings. -->
     <button type="button" class="nav-item" autofocus>Funnels</button>
     <button type="button" class="nav-item">Segments</button>
     <button type="button" class="nav-item">Reports</button>

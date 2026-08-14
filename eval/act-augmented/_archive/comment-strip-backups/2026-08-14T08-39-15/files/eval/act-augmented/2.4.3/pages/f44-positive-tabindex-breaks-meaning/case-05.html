@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 2.4.3 (Focus Order), failure F44 — i18n / RTL variant.
+
+    This is an Arabic-language (dir="rtl") clinic appointment form. In an RTL layout
+    a horizontal row of three name fields reads RIGHT-TO-LEFT: the visually FIRST
+    (rightmost) box is the given name (الاسم الأول), then the father's name
+    (اسم الأب), then the family name (اسم العائلة) on the left. That right-to-left
+    visual order IS the meaningful order an Arabic reader follows.
+
+    The original form was localized from an English template. The English dev had
+    added positive tabindex 1,2,3 reading LEFT-TO-RIGHT. When the layout was flipped
+    to RTL for Arabic, the *visual* order of the boxes flipped (given name moved to
+    the right) but the tabindex numbers were NOT re-thought. The result: tabindex
+    still goes to the LEFTMOST box first. So Tab visits family name -> father's name
+    -> given name, i.e. the REVERSE of the right-to-left reading order an Arabic
+    keyboard user expects. Same story for the date row (day/month/year).
+
+    The page renders perfectly for a sighted mouse user reading RTL. The break is
+    only in the keyboard traversal, and it is INVISIBLE unless you (a) read Arabic
+    well enough to know the rightmost box is the given name, (b) know RTL reading
+    order, and (c) tab through and notice focus runs left-to-right against it.
+
+    WHY AUTOMATED TOOLS MISS IT: dir/lang are correct, labels are present and in
+    Arabic, contrast is fine. axe notes positive tabindex as best-practice only and
+    has NO model of RTL reading order vs. numeric tab order. Deciding the order is
+    reversed requires understanding that in RTL the rightmost field is first and
+    comparing that to the 1->2->3 traversal. That is human bilingual + directional
+    judgment.
+  -->
+  <title>حجز موعد — عيادة النور الطبية</title>
+  <style>
+    :root { --ink:#1d2630; --muted:#5f6b76; --rule:#d3dae1; --brand:#0a6e6e; --bg:#f1f6f6; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Segoe UI","Noto Sans Arabic",Tahoma,Arial,sans-serif; color:var(--ink); background:var(--bg); line-height:1.6; }
+    header { background:var(--brand); color:#fff; padding:1rem 1.4rem; }
+    header h1 { margin:0; font-size:1.25rem; }
+    header p { margin:.2rem 0 0; font-size:.85rem; opacity:.92; }
+    .card { max-width:620px; margin:1.5rem auto; background:#fff; border:1px solid var(--rule); border-radius:12px; padding:1.5rem 1.6rem 2rem; }
+    h2 { font-size:1rem; margin:0 0 1rem; }
+    .row { display:flex; gap:.8rem; margin-bottom:1.1rem; }
+    .row .field { flex:1; }
+    label { display:block; font-weight:600; font-size:.88rem; margin-bottom:.3rem; }
+    input, select { width:100%; padding:.55rem .65rem; font-size:1rem; border:1px solid var(--rule); border-radius:6px; background:#fff; font-family:inherit; }
+    input:focus, select:focus { outline:3px solid #ffbf47; outline-offset:1px; border-color:var(--brand); }
+    .hint { font-size:.78rem; color:var(--muted); margin-top:-.6rem; margin-bottom:1rem; }
+    .actions { margin-top:1.2rem; }
+    button { font-size:1rem; font-weight:800; padding:.7rem 1.8rem; border:0; border-radius:8px; background:var(--brand); color:#fff; cursor:pointer; }
+    button:focus { outline:3px solid #ffbf47; outline-offset:2px; }
+    footer { color:var(--muted); font-size:.78rem; text-align:center; padding:1.4rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>حجز موعد</h1>
+    <p>عيادة النور الطبية — يرجى إدخال بيانات المريض</p>
+  </header>
+
+  <main>
+    <form class="card" action="/booking" method="post" novalidate>
+      <h2>بيانات المريض</h2>
+
+      <!--
+        NAME ROW. In RTL the RIGHTMOST box is visually first and is the GIVEN name
+        (الاسم الأول). Reading order right->left: given name, father's name, family
+        name. But tabindex 1,2,3 follow LEFT->RIGHT, so Tab visits family name (1)
+        first, then father's (2), then given name (3) — reverse of the RTL reading.
+      -->
+      <div class="row">
+        <!-- DOM order left-to-right; in RTL the FIRST flex item renders on the RIGHT -->
+        <div class="field">
+          <label for="given">الاسم الأول</label>
+          <input id="given" name="given_name" autocomplete="given-name" tabindex="3">
+        </div>
+        <div class="field">
+          <label for="father">اسم الأب</label>
+          <input id="father" name="father_name" tabindex="2">
+        </div>
+        <div class="field">
+          <label for="family">اسم العائلة</label>
+          <input id="family" name="family_name" autocomplete="family-name" tabindex="1">
+        </div>
+      </div>
+
+      <!--
+        DATE OF BIRTH ROW. Visually right->left: Day (يوم), Month (شهر), Year (سنة).
+        tabindex 4,5,6 go left->right, so Tab visits Year(4) -> Month(5) -> Day(6),
+        the reverse of the RTL day/month/year reading order.
+      -->
+      <label id="dob-label" style="margin-bottom:.5rem">تاريخ الميلاد</label>
+      <div class="row" role="group" aria-labelledby="dob-label">
+        <div class="field">
+          <label for="dob-d">يوم</label>
+          <input id="dob-d" name="dob_day" inputmode="numeric" placeholder="٠١" tabindex="6">
+        </div>
+        <div class="field">
+          <label for="dob-m">شهر</label>
+          <input id="dob-m" name="dob_month" inputmode="numeric" placeholder="٠١" tabindex="5">
+        </div>
+        <div class="field">
+          <label for="dob-y">سنة</label>
+          <input id="dob-y" name="dob_year" inputmode="numeric" placeholder="١٤٤٥" tabindex="4">
+        </div>
+      </div>
+      <p class="hint">التقويم الهجري</p>
+
+      <div class="field" style="margin-bottom:1.1rem">
+        <label for="phone">رقم الجوال</label>
+        <input id="phone" name="phone" type="tel" inputmode="numeric" tabindex="7">
+      </div>
+
+      <div class="actions">
+        <button type="submit" tabindex="8">تأكيد الحجز</button>
+      </div>
+    </form>
+  </main>
+
+  <footer>عيادة النور الطبية © ٢٠٢٥ — جميع الحقوق محفوظة</footer>
+</body>
+</html>

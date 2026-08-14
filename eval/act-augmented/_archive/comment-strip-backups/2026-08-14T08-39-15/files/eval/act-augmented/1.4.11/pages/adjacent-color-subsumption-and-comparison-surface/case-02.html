@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SNAP renewal — Step 2 of 5 — State Benefits Portal</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Public Sans", "Helvetica Neue", Arial, sans-serif;
+    background: #ffffff;            /* white page is the comparison surface */
+    color: #1b1b1b;
+    line-height: 1.5;
+  }
+  .banner {
+    background: #112e51; color: #fff; font-size: 12px; padding: 6px 24px;
+  }
+  header.site {
+    border-bottom: 4px solid #112e51; padding: 16px 24px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  header.site .seal { width: 30px; height: 30px; border-radius: 50%; background: #112e51; }
+  header.site h1 { font-size: 18px; margin: 0; }
+  .progress { color: #5b616b; font-size: 13px; padding: 10px 24px; background: #f0f0f0; }
+  main { max-width: 680px; margin: 26px auto; padding: 0 24px; }
+  h2 { font-size: 22px; margin: 0 0 4px; }
+  .step-note { color: #5b616b; margin: 0 0 26px; }
+  fieldset { border: 0; margin: 0 0 26px; padding: 0; }
+  legend { font-size: 15px; font-weight: 700; margin-bottom: 10px; padding: 0; }
+  .field { margin-bottom: 18px; }
+  .field label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+  .field .help { font-size: 12px; color: #5b616b; margin: 0 0 6px; }
+
+  /* SHARED control sizing */
+  .field input[type="text"],
+  .field input[type="date"] {
+    width: 100%;
+    padding: 11px 12px;
+    font-size: 16px;
+    border-radius: 4px;
+    outline: none;
+  }
+
+  /* PASS control: borderless, distinguished ONLY by a dark navy background-color
+     (#043464) against the white page = 12.5:1. This is the canonical
+     "Text inputs that have no border and are differentiated only by a background
+     color must have a 3:1 contrast ratio to the adjacent background (#043464)" case. */
+  .field.bg-navy input {
+    border: none;
+    background: #043464;
+    color: #ffffff;
+  }
+  .field.bg-navy input::placeholder { color: #c7d3e6; }
+
+  /* FAIL control: borderless, distinguished ONLY by a very pale blue fill (#EAF2FB)
+     against the white page = 1.13:1. The fill is the only cue that an input exists,
+     and it is far below 3:1. */
+  .field.bg-pale input {
+    border: none;
+    background: #EAF2FB;
+    color: #1b1b1b;
+  }
+  .field.bg-pale input::placeholder { color: #8a96a6; }
+
+  .btn-row { margin-top: 30px; display: flex; gap: 12px; }
+  .btn {
+    font-size: 16px; font-weight: 700; border-radius: 4px; padding: 12px 22px;
+    cursor: pointer; border: 0;
+  }
+  .btn.primary { background: #112e51; color: #fff; }
+  .btn.back { background: #fff; color: #112e51; border: 2px solid #112e51; }
+  footer { border-top: 1px solid #dcdee0; margin-top: 40px; padding: 18px 24px; color: #5b616b; font-size: 12px; }
+</style>
+</head>
+<body>
+  <div class="banner">An official application of the State Department of Human Services</div>
+  <header class="site">
+    <span class="seal" aria-hidden="true"></span>
+    <h1>State Benefits Portal</h1>
+  </header>
+  <div class="progress">Step 2 of 5 — Household &amp; contact information</div>
+
+  <main>
+    <h2>Tell us about your household</h2>
+    <p class="step-note">All fields are required unless marked optional. Your answers are kept confidential.</p>
+
+    <form action="#" method="post" novalidate>
+      <fieldset>
+        <legend>Mailing address</legend>
+
+        <!-- PASS: navy background-color-only input, 12.5:1 against the white page -->
+        <div class="field bg-navy">
+          <label for="street">Street address</label>
+          <p class="help">Include apartment or unit number if applicable.</p>
+          <input type="text" id="street" name="street" autocomplete="street-address" placeholder="123 Main St, Apt 4">
+        </div>
+
+        <!-- FAIL: pale-blue background-color-only input, 1.13:1 against the white page -->
+        <div class="field bg-pale">
+          <label for="city">City or town</label>
+          <p class="help">As shown on your most recent utility bill.</p>
+          <input type="text" id="city" name="city" autocomplete="address-level2" placeholder="City or town">
+        </div>
+
+        <!-- FAIL: pale-blue background-color-only input, 1.13:1 against the white page -->
+        <div class="field bg-pale">
+          <label for="dob">Head of household date of birth</label>
+          <input type="date" id="dob" name="dob" autocomplete="bday">
+        </div>
+      </fieldset>
+
+      <div class="btn-row">
+        <button type="button" class="btn back">Back</button>
+        <button type="submit" class="btn primary">Continue to Step 3</button>
+      </div>
+    </form>
+  </main>
+
+  <footer>
+    Need help? Call 1-800-555-0142 (TTY: 711), Mon–Fri 8am–6pm. Esta solicitud también está disponible en español.
+  </footer>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS IT (and why the pale-blue inputs FAIL):
+    All four inputs are borderless and rely SOLELY on a background-color difference to
+    signal that a control is present. Per the Understanding figure, a no-border input
+    "differentiated only by a background color must have a 3:1 contrast ratio to the
+    adjacent background." The navy input (#043464 vs white page) is 12.5:1 = PASS. The two
+    pale-blue inputs (#EAF2FB vs white page) are 1.13:1 = FAIL: a low-vision user cannot
+    perceive where the input field begins or ends. Automated checkers do not evaluate the
+    fill-vs-page non-text contrast of a borderless input as the control-identification cue
+    — they look at text/foreground contrast (the label and entered text are dark on pale
+    blue and pass 1.4.3), and they have no rule that "this borderless field's only
+    visual boundary is its fill, which must reach 3:1." Deciding that the fill IS the
+    identifying cue (vs. a decorative tint) is a human interpretive judgment.
+  -->
+</body>
+</html>

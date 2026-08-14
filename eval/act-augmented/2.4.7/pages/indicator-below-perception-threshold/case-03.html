@@ -4,39 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Harbor Federal Credit Union — Sign in</title>
-<!--
-  SC 2.4.7 Focus Visible (AA) — MAGNITUDE limb, blur/spread + low-contrast facet.
-
-  THE DEFECT (a real focus indicator that is too faint AND too thin to perceive):
-  The login inputs DO change on focus — the author added a box-shadow "ring":
-        input:focus { box-shadow: 0 0 0 1px rgba(0,0,0,0.06); }
-  Notes on why this is sub-perceptual:
-    * spread = 1px  -> the visible band is ~1 CSS px (well under G195's "if not a
-      1px border, at least 4 CSS px on the shortest side" — there is no offset
-      border, just a 1px halo).
-    * color = rgba(0,0,0,0.06) over a #ffffff field -> composited ~#f0f0f0, a
-      contrast change of roughly 1.1:1 against the white field and the white
-      page (far below 3:1, and < 2px thick, so both G195 escape routes fail).
-    * a blur was originally requested; the dev set blur 0 but the alpha is so
-      low the 1px band reads as a barely-there grey edge.
-  The box-shadow genuinely paints pixels, so oj04fd ("any pixel change") PASSES.
-  A human tabbing the form cannot reliably tell the focused field from the rest.
-
-  HOW IT AROSE: ported a Tailwind-ish focus ring (focus:ring-1
-  focus:ring-black/5) verbatim from a marketing-site snippet, where 5% black on
-  a colored hero looked fine; on the white banking form it disappears. The dev
-  also set `outline: none` and relied solely on the ring — a legal substitution.
-  A global `caret-color: transparent` was added earlier (a designer disliked the
-  blinking I-beam), which removes the one native cue a text field would otherwise
-  have given keyboard users — so the faint ring really is the only focus change.
-
-  WHY AUTOMATED TOOLS MISS IT: a :focus rule EXISTS and applies a box-shadow, so
-  no "missing focus style" flag fires; outline:none has a documented author
-  replacement. axe/WAVE/Lighthouse do not composite the rgba ring against the
-  field, measure the resulting contrast delta, or compare the band width to
-  G195's 4px / 2px thresholds. A pixel-diff sees the faint band and reports
-  change=true. Judging the ring imperceptible is a human visual call.
--->
 <style>
   :root{
     --bg:#f4f6f8; --card:#ffffff; --ink:#15232e; --muted:#5d6b76;
@@ -55,11 +22,9 @@
   label{display:block; font-size:.82rem; font-weight:600; margin:14px 0 5px;}
   input{width:100%; padding:11px 12px; font:inherit; color:var(--ink);
         border:1px solid var(--line); border-radius:9px; background:#fff; outline:none;
-        caret-color:transparent;}   /* I-beam suppressed: ring is the only focus cue */
+        caret-color:transparent;}   
   ::placeholder{color:#a7b0b8;}
 
-  /* The ONLY focus indicator on the credentials fields: a faint 1px ring.
-     Present, renders, but ~1.1:1 and ~1px -> sub-perceptual. */
   input:focus{ box-shadow:0 0 0 1px rgba(0,0,0,0.06); }
 
   .row{display:flex; justify-content:space-between; align-items:center; margin-top:6px;}

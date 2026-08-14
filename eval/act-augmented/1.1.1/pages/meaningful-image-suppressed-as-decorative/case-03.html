@@ -3,25 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!--
-    SC 1.1.1 FAILURE — information conveyed exclusively by a CSS background image (F3),
-    the decorative-by-construction limb: a CSS background image CANNOT carry a text
-    alternative, so it is treated as decorative by every tool — yet here it carries the
-    load-bearing fact "SOLD OUT".
-
-    The second product card ("Cedar & Sage Candle") has a diagonal red "SOLD OUT" banner
-    composited over its photo as a CSS background-image (inline SVG data URI). Nothing else
-    on that card says sold out: the price shows, the "Add to cart" button is fully enabled
-    and not marked disabled/aria-disabled, and there is no "sold out" text node. A sighted
-    user sees the stamp and knows not to bother; an AT user perceives an in-stock product
-    and a working buy button.
-
-    WHY AUTOMATED TOOLS MISS IT: CSS background images are invisible to axe/WAVE/Lighthouse
-    (no <img>, no alt to check) — they cannot be flagged for a missing text alternative at
-    all, and the rule set has no way to know the background encodes availability. Only a
-    human who sees the "SOLD OUT" stamp and notices the button is still active can detect
-    that essential state lives solely in an un-alt-able decorative layer.
-  -->
   <title>Hand-poured Soy Candles | Ember Goods</title>
   <style>
     * { box-sizing:border-box; }
@@ -34,13 +15,7 @@
     .card { background:#fff; border:1px solid #ece4d8; border-radius:10px; overflow:hidden;
             display:flex; flex-direction:column; }
     .thumb { height:200px; background-size:cover; background-position:center; }
-    /* available product: plain photo */
     .thumb.candle1 { background-image:linear-gradient(135deg,#e9d8b8,#caa46e); }
-    /*
-      SOLD-OUT product: the SAME photo PLUS a diagonal "SOLD OUT" stamp baked in as a
-      CSS background image. The stamp is an inline SVG data URI. There is NO text, NO
-      aria, NO disabled attribute conveying the sold-out state anywhere else.
-    */
     .thumb.candle2 {
       background-image:
         url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='200'%3E%3Cg transform='rotate(-22 110 100)'%3E%3Crect x='-20' y='82' width='260' height='40' fill='%23c0392b'/%3E%3Ctext x='110' y='110' font-family='Arial,sans-serif' font-size='26' font-weight='bold' fill='white' text-anchor='middle' letter-spacing='3'%3ESOLD OUT%3C/text%3E%3C/g%3E%3C/svg%3E"),
@@ -72,11 +47,6 @@
       </article>
 
       <article class="card">
-        <!--
-          The diagonal "SOLD OUT" stamp lives ONLY in this div's CSS background-image.
-          role/aria-label below describes the candle, NOT the availability — there is no
-          programmatic sold-out signal anywhere, and the button stays enabled.
-        -->
         <div class="thumb candle2" role="img" aria-label="Grey jar candle, Cedar & Sage scent"></div>
         <div class="body">
           <span class="name">Cedar &amp; Sage</span>

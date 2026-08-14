@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.3.1 FAILURE (F2 / G117 not applied) — "on sale" status conveyed ONLY by a
+    non-color text variation (bold + larger font-size), with no markup and no text
+    equivalent.
+
+    This is a yarn-shop storefront (Shopify "Dawn"-style theme). Three of the five
+    products are on sale. The ONLY thing that tells a sighted shopper which ones are
+    on sale is that the on-sale product NAMES render in bold and one size larger than
+    the others (class="promo"). There is:
+       - NO "(Sale)" / "On sale" / "Reduced" word anywhere,
+       - NO struck-through original price (the price text is identical in form),
+       - NO <strong>/<em> or any semantic markup,
+       - NO color difference (deliberately — colour would be 1.4.1, not 1.3.1).
+    So the relationship "this product has special status: it is on sale" exists only
+    in the font weight/size. A screen-reader user, a braille user, or anyone using a
+    user stylesheet that normalises font weight gets a flat, indistinguishable list of
+    five products and cannot tell which three are on sale.
+
+    WHY AUTOMATED TOOLS MISS IT: the markup is flawless. Every product is a real list
+    item with real text, valid headings, a valid price. font-weight:700 and a larger
+    font-size are not flagged by axe/WAVE/Lighthouse — they are legitimate styling on
+    millions of pages. No tool can know that the bold weight here CARRIES the meaning
+    "on sale" rather than being decorative typography. Deciding that the weight encodes
+    status, and that the status is stated nowhere in text, requires reading the page
+    copy and the visual emphasis together — a human judgment.
+  -->
+  <title>Worsted &amp; Co. — Hand-Dyed Yarns</title>
+  <style>
+    :root { --ink:#2b2b2b; --line:#e7e2da; --bg:#fbf9f5; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Helvetica Neue", Arial, sans-serif; color:var(--ink);
+           background:var(--bg); line-height:1.5; }
+    header { padding:1.2rem 1.5rem; border-bottom:1px solid var(--line); }
+    .brand { font-size:1.4rem; letter-spacing:.06em; font-weight:600; }
+    .tag { color:#6b6b6b; font-size:.85rem; }
+    main { max-width:60rem; margin:1.5rem auto; padding:0 1.5rem; }
+    h1 { font-size:1.25rem; font-weight:600; margin:0 0 .2rem; }
+    .lede { color:#6b6b6b; margin:0 0 1.4rem; }
+    ul.grid { list-style:none; margin:0; padding:0; display:grid;
+              grid-template-columns:repeat(auto-fill,minmax(15rem,1fr)); gap:1.1rem; }
+    .card { border:1px solid var(--line); border-radius:8px; background:#fff; overflow:hidden; }
+    .swatch { height:120px; background:linear-gradient(135deg,#d8cbb8,#b8a98f); }
+    .body { padding:.9rem 1rem 1.1rem; }
+    .name { margin:0 0 .35rem; font-size:1rem; font-weight:400; }   /* normal weight */
+    /* On-sale products get the "promo" class: bold + larger. THIS is the only sale cue. */
+    .name.promo { font-weight:700; font-size:1.18rem; }
+    .price { margin:0; font-size:.95rem; }
+    .meta { color:#8a8a8a; font-size:.82rem; margin:.25rem 0 0; }
+    .add { margin-top:.8rem; border:1px solid var(--ink); background:#fff; color:var(--ink);
+           padding:.45rem .9rem; border-radius:6px; font-size:.85rem; cursor:pointer; }
+    footer { max-width:60rem; margin:2.5rem auto 3rem; padding:0 1.5rem; color:#8a8a8a; font-size:.8rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">Worsted &amp; Co.</div>
+    <div class="tag">Small-batch, hand-dyed yarn from the Pennines</div>
+  </header>
+
+  <main>
+    <h1>Sock &amp; Fingering Weight</h1>
+    <p class="lede">Superwash merino, 100&nbsp;g / 425&nbsp;m skeins. Free UK delivery over &pound;40.</p>
+
+    <ul class="grid">
+      <li class="card">
+        <div class="swatch" role="img" aria-label="Skein of heathered grey yarn"></div>
+        <div class="body">
+          <h2 class="name">Slate Heather</h2>
+          <p class="price">&pound;12.50</p>
+          <p class="meta">In stock &middot; 14 skeins</p>
+          <button class="add" type="button">Add to basket</button>
+        </div>
+      </li>
+
+      <!-- ON SALE — but the ONLY signal is the bold/larger product name. -->
+      <li class="card">
+        <div class="swatch" role="img" aria-label="Skein of deep teal yarn"></div>
+        <div class="body">
+          <h2 class="name promo">Harbour Teal</h2>
+          <p class="price">&pound;9.00</p>
+          <p class="meta">In stock &middot; 6 skeins</p>
+          <button class="add" type="button">Add to basket</button>
+        </div>
+      </li>
+
+      <li class="card">
+        <div class="swatch" role="img" aria-label="Skein of warm mustard yarn"></div>
+        <div class="body">
+          <h2 class="name">Field Mustard</h2>
+          <p class="price">&pound;12.50</p>
+          <p class="meta">In stock &middot; 22 skeins</p>
+          <button class="add" type="button">Add to basket</button>
+        </div>
+      </li>
+
+      <!-- ON SALE -->
+      <li class="card">
+        <div class="swatch" role="img" aria-label="Skein of soft rose yarn"></div>
+        <div class="body">
+          <h2 class="name promo">Quartz Rose</h2>
+          <p class="price">&pound;8.75</p>
+          <p class="meta">In stock &middot; 3 skeins</p>
+          <button class="add" type="button">Add to basket</button>
+        </div>
+      </li>
+
+      <!-- ON SALE -->
+      <li class="card">
+        <div class="swatch" role="img" aria-label="Skein of forest green yarn"></div>
+        <div class="body">
+          <h2 class="name promo">Bracken Green</h2>
+          <p class="price">&pound;9.50</p>
+          <p class="meta">In stock &middot; 9 skeins</p>
+          <button class="add" type="button">Add to basket</button>
+        </div>
+      </li>
+    </ul>
+  </main>
+
+  <footer>
+    Worsted &amp; Co. Ltd &middot; Returns within 30 days &middot; Prices include VAT.
+  </footer>
+</body>
+</html>

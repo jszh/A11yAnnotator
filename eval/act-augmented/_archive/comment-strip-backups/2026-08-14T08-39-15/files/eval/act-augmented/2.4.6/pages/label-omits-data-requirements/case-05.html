@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Erstattung beantragen — Mittelrhein Krankenkasse</title>
+  <style>
+    :root { --ink:#1b2733; --muted:#5d6b78; --line:#c9d3dc; --blue:#1d4e89; --red:#c0392b; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Frutiger", "Segoe UI", Arial, sans-serif; color:var(--ink);
+           background:#eef2f5; line-height:1.55; }
+    .bar { background:var(--blue); color:#fff; padding:14px 22px; }
+    .bar b { font-size:17px; letter-spacing:.2px; }
+    .bar span { display:block; font-size:12px; opacity:.85; }
+    .sheet { max-width:600px; margin:26px auto; background:#fff; border:1px solid var(--line);
+             border-radius:6px; padding:26px 30px 32px; }
+    h1 { font-size:23px; margin:0 0 6px; }
+    .sub { color:var(--muted); margin:0 0 26px; font-size:14.5px; }
+    .field { margin:0 0 22px; }
+    label { display:block; font-weight:700; font-size:15px; margin:0 0 6px; }
+    .hint { color:var(--muted); font-size:13px; margin:0 0 7px; }
+    input { width:100%; max-width:260px; font-size:16px; padding:10px 12px;
+            border:1px solid var(--line); border-radius:4px; }
+    input.err { border-color:var(--red); }
+    .err-msg { color:var(--red); font-size:13.5px; margin:6px 0 0; display:none; }
+    button { background:var(--blue); color:#fff; border:0; border-radius:4px; font-size:15.5px;
+             font-weight:700; padding:12px 20px; cursor:pointer; }
+    .note { max-width:600px; margin:0 auto 40px; font-size:12.5px; color:var(--muted); padding:0 30px; }
+    code { background:#f1f4f6; padding:0 3px; }
+  </style>
+</head>
+<body>
+  <div class="bar">
+    <b>Mittelrhein Krankenkasse</b>
+    <span>Online-Geschäftsstelle</span>
+  </div>
+
+  <main>
+    <form class="sheet" id="claim" novalidate>
+      <h1>Erstattung beantragen</h1>
+      <p class="sub">Reichen Sie den Rechnungsbetrag Ihrer Behandlung zur Erstattung ein.</p>
+
+      <div class="field">
+        <label for="treatment">Behandlung</label>
+        <p class="hint">Zum Beispiel: Physiotherapie, Zahnreinigung</p>
+        <input type="text" id="treatment" name="treatment">
+      </div>
+
+      <!-- ISSUE: the label is the correct topic noun "Betrag" (Amount) with no statement of the
+           accepted format. The handler requires a plain German-formatted decimal with a COMMA and
+           NO currency symbol and NO thousands separator: /^\d+,\d{2}$/  (e.g. "85,00").
+           It rejects the most natural German entry "85,00 €" (the € symbol is rejected), "85.00"
+           (English decimal point), and "1.250,00" (German thousands dot). The required shape is
+           disclosed only in the after-submit error. The page itself is in German (lang="de") but
+           one of its own hints elsewhere mixes English habits — the locale-specific decimal/symbol
+           rule is exactly the kind TT 5.B says must be in the label. -->
+      <div class="field">
+        <label for="betrag">Betrag</label>
+        <input type="text" id="betrag" name="betrag" inputmode="decimal">
+        <p class="err-msg" id="betrag-err">Bitte den Betrag ohne Währungszeichen und mit Komma eingeben, z. B. 85,00</p>
+      </div>
+
+      <div class="field">
+        <label for="iban">IBAN (DE, 22 Stellen)</label>
+        <input type="text" id="iban" name="iban" autocomplete="off">
+      </div>
+
+      <button type="submit">Antrag absenden</button>
+    </form>
+
+    <p class="note">Demo note (not shown to users): This page fails WCAG 2.4.6 Test 5.B. The "Betrag"
+      (Amount) label names the topic but states none of its data requirements: the field accepts only
+      <code>NN,NN</code> — a comma decimal, exactly two fraction digits, no <code>€</code> symbol, no
+      thousands dot. The most natural German entry "85,00 €" is rejected because of the symbol, and the
+      required shape is revealed only in the post-submit error. Contrast the sibling "IBAN (DE, 22
+      Stellen)" label, which DOES carry its format. Automated tools pass it: the German label is
+      associated and non-empty, so axe-core/WAVE/Lighthouse see a properly labelled field. No tool reads
+      the <code>/^\d+,\d{2}$/</code> validator to learn the € symbol is rejected, and none can judge a
+      locale-specific currency-format omission.</p>
+  </main>
+
+  <script>
+    var f = document.getElementById('claim');
+    var betrag = document.getElementById('betrag');
+    var err = document.getElementById('betrag-err');
+    f.addEventListener('submit', function (e) {
+      e.preventDefault();
+      // Accept ONLY "NN,NN": comma decimal, two fraction digits, no symbol, no thousands separator.
+      var ok = /^\d+,\d{2}$/.test(betrag.value.trim());
+      if (!ok) {
+        betrag.classList.add('err');
+        err.style.display = 'block';   // format disclosed for the first time, on error
+      } else {
+        betrag.classList.remove('err');
+        err.style.display = 'none';
+        alert('Ihr Erstattungsantrag wurde übermittelt.');
+      }
+    });
+  </script>
+</body>
+</html>

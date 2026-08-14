@@ -4,27 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Find your nearest recycling centre — Council services</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS:
-  The form's locale is unambiguously British: lang="en-GB", the heading "Find your
-  nearest recycling centre", the field labelled "UK postcode", and a worked example
-  "for example SW1A 1AA". When a user enters a real UK postcode and it is rejected
-  (the validator is over-strict on spacing), an error fires — correctly associated,
-  announced in role=alert — with a confident, specific suggestion:
-  "Postcodes must be 5 digits. Please enter your 5-digit postcode."
-  SC 3.3.3 structural facets all pass: an error is detected AND a correction
-  suggestion is provided. axe/WAVE/Lighthouse see associated, announced, contrasty
-  error text.
-  THE DEFECT IS SEMANTIC + GEOGRAPHIC: UK postcodes are ALPHANUMERIC (e.g. SW1A 1AA,
-  M1 1AE, EC1A 1BB) — never "5 digits". The page even shows the correct alphanumeric
-  example in its own label hint, and the field's pattern accepts letters. The
-  suggestion describes a US-style 5-digit ZIP and is impossible to satisfy for this
-  field: there is no 5-digit value that is a valid UK postcode. Following the
-  suggestion guarantees re-failure. No scanner knows what a UK postcode looks like,
-  so none can tell that "5 digits" is the wrong format for a field that, by its own
-  label and pattern, wants alphanumeric. Catching it needs human world-knowledge of
-  the locale's true format.
--->
 <style>
   :root{
     --ink:#0b0c0c; --muted:#505a5f; --line:#b1b4b6; --brand:#1d70b8; --green:#00703c;
@@ -91,9 +70,6 @@
   var err   = document.getElementById('pc-err');
   var res   = document.getElementById('result');
 
-  // REAL ENFORCED RULE: a (deliberately strict) UK-postcode shape — ALPHANUMERIC,
-  // requiring a single space between the outward and inward codes (e.g. "SW1A 1AA").
-  // It is impossible for any all-digit value to match this.
   var UK = /^[A-Za-z]{1,2}\d[A-Za-z\d]?\s\d[A-Za-z]{2}$/;
 
   form.addEventListener('submit', function(e){
@@ -108,8 +84,6 @@
     }
     res.hidden = true;
     input.setAttribute('aria-invalid','true');
-    // CONFIDENT, SPECIFIC — AND WRONG FOR THE UK: postcodes are alphanumeric, not 5 digits.
-    // No 5-digit value can ever satisfy the UK pattern, so following this fails forever.
     err.textContent = 'Postcodes must be 5 digits. Please enter your 5-digit postcode (for example, 90210).';
     block.hidden = false;
     input.focus();

@@ -3,23 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!--
-    SC 4.1.2 FAILURE (ARIA14 name-quality — UNTRANSLATED i18n KEY leaked into the name)
-    WITH a boundary PASS control to sharpen the aspect.
-    This is the live map of a municipal transit app. Floating over the map are three icon-only
-    map controls: zoom-in (+), zoom-out (−), and "locate me" (crosshair). The zoom buttons'
-    accessible names are raw i18n message KEYS that were never resolved by the translation
-    layer: aria-label="map.ctrl.zoomIn" and aria-label="map.ctrl.zoomOut". Those strings are
-    non-empty and machine-valid, so the ACT "Button has non-empty accessible name" rule PASSES,
-    but a screen reader announces "map.ctrl.zoomIn, button" — a dotted developer key, not a
-    purpose. The THIRD control (locate me) was wired correctly and announces aria-label="Center
-    map on my location" — included as a within-page PASS boundary so the contrast is sharp:
-    same widget, same toolbar, one descriptive name and two meaningless keys.
-    WHY AUTOMATED TOOLS MISS IT: all three names are non-empty, so every name rule passes on
-    all three. Recognizing that "map.ctrl.zoomIn" is an un-interpolated i18n key (a developer
-    string) while "Center map on my location" is a real purpose requires a human to read the
-    strings and the + / − / crosshair glyphs — automation treats all three as equally valid.
-  -->
   <title>Trip planner — MetroLink Transit</title>
   <style>
     :root { --ink:#1b2733; --muted:#5a6b7b; --line:#cdd7e0; --brand:#1457b8; --bg:#eaeef2; }
@@ -80,16 +63,13 @@
 
       <div class="controls">
         <div class="zoomgroup">
-          <!-- Zoom IN: name is an un-resolved i18n key -->
           <button type="button" class="mbtn" aria-label="map.ctrl.zoomIn">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg>
           </button>
-          <!-- Zoom OUT: name is an un-resolved i18n key -->
           <button type="button" class="mbtn" aria-label="map.ctrl.zoomOut">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 11h14v2H5z"/></svg>
           </button>
         </div>
-        <!-- Locate me: BOUNDARY PASS — a correct, descriptive name on the same kind of control -->
         <button type="button" class="mbtn" aria-label="Center map on my location">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm9 3h-2.07A7.01 7.01 0 0 0 13 5.07V3h-2v2.07A7.01 7.01 0 0 0 5.07 11H3v2h2.07A7.01 7.01 0 0 0 11 18.93V21h2v-2.07A7.01 7.01 0 0 0 18.93 13H21z"/></svg>
         </button>

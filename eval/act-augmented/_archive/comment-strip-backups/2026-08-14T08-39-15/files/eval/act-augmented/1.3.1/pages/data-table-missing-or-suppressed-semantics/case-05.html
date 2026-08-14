@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EpiPen administration — step-by-step | FirstAidNow</title>
+<style>
+  body { font-family: Georgia, "Times New Roman", serif; color:#241f1c;
+         background:#fffdf8; margin:0; line-height:1.6; }
+  .reader { max-width: 680px; margin:0 auto; padding: 30px 22px 70px; }
+  .kicker { font-family: Arial, sans-serif; text-transform:uppercase; letter-spacing:2px;
+            font-size:.72rem; color:#a23; font-weight:700; }
+  h1 { font-size:1.9rem; margin:6px 0 4px; line-height:1.2; }
+  .standfirst { font-size:1.05rem; color:#5a514b; margin:0 0 26px; }
+  .warn { background:#fcecec; border-left:5px solid #c0392b; padding:12px 16px;
+          font-family:Arial, sans-serif; font-size:.9rem; color:#6a1f17; margin-bottom:26px; }
+  h2 { font-family:Arial, sans-serif; font-size:1.15rem; margin:30px 0 8px; }
+
+  /* The author wanted custom step "chips" instead of browser numbers, so they reset
+     the list with a CSS reset AND added role="presentation". The reset removes the
+     native markers; role="presentation" removes the list semantics from the a11y
+     tree. The author re-creates the look of numbers purely with a ::before counter —
+     a CSS-generated decoration that AT does not announce as list position. */
+  ol.steps { list-style:none; margin:0; padding:0; counter-reset: step; }
+  ol.steps > li { position:relative; padding:14px 16px 14px 64px; margin:0 0 14px;
+                  background:#fff; border:1px solid #ece5da; border-radius:10px;
+                  font-family:Arial, sans-serif; font-size:.98rem; }
+  ol.steps > li::before {
+    counter-increment: step;
+    content: counter(step);
+    position:absolute; left:14px; top:14px;
+    width:34px; height:34px; line-height:34px; text-align:center;
+    background:#c0392b; color:#fff; border-radius:50%; font-weight:700;
+  }
+  ol.steps > li strong { display:block; margin-bottom:2px; }
+  .src { margin-top:28px; font-size:.82rem; color:#8a817a; font-family:Arial,sans-serif; }
+</style>
+</head>
+<body>
+<div class="reader">
+  <div class="kicker">Emergency first aid</div>
+  <h1>How to use an adrenaline auto-injector (EpiPen)</h1>
+  <p class="standfirst">For someone having a severe allergic reaction (anaphylaxis). Follow these steps in order.</p>
+
+  <div class="warn"><strong>Call emergency services first.</strong> An auto-injector buys time; it is not a substitute for emergency medical care.</div>
+
+  <h2>Steps</h2>
+  <ol class="steps" role="presentation">
+    <li><strong>Remove the auto-injector</strong> from its tube and hold it in your dominant hand with your thumb closest to the coloured safety cap.</li>
+    <li><strong>Pull off the blue safety cap.</strong> Do not put your thumb, fingers, or hand over the orange tip at any point.</li>
+    <li><strong>Place the orange tip against the outer mid-thigh,</strong> at a right angle to the leg. It can be given through clothing if needed.</li>
+    <li><strong>Push down hard until you hear a click,</strong> then hold firmly in place for 3 seconds (count slowly: one&hellip;two&hellip;three).</li>
+    <li><strong>Remove the injector and massage the area</strong> for 10 seconds. Note the time the dose was given.</li>
+    <li><strong>If symptoms do not improve in 5 minutes,</strong> give a second auto-injector into the other thigh.</li>
+  </ol>
+
+  <p class="src">Adapted from national resuscitation council guidance. Last reviewed January.</p>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS (F92, list variant):
+    The content is a genuine ordered procedure: the steps are safety-critical and only
+    make sense in sequence ("give a SECOND injector" only after step 5; "remove the
+    safety cap" before injecting). It is correctly authored as an <ol>, which would
+    expose to a screen reader as "list, 6 items" with each item announced "1 of 6",
+    "2 of 6", and so on — communicating position and total. The author then put
+    role="presentation" on the <ol>. That strips the list role AND the required-owned
+    <li> semantics from the accessibility tree: a screen-reader user no longer hears
+    "list, 6 items" or any item position. The visible numbers are a CSS ::before
+    counter (generated content), which assistive technology does NOT announce as list
+    position — so the ordinal information is now visual-only. ACT treats
+    role=presentation purely as an inapplicability trigger (the list leaves the tree,
+    so list-structure rules don't apply) and never flags a real ordered list that has
+    been suppressed; axe/WAVE/Lighthouse see valid markup (role=presentation on a list
+    is legitimate for purely decorative lists). Judging that THIS list conveys
+    essential sequence/count and must keep its semantics is the omitted human judgment.
+  -->
+</div>
+</body>
+</html>

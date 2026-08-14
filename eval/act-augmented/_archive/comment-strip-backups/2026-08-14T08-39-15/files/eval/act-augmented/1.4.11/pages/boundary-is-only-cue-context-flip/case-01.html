@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>City of Marlowe — Permit & Records Search</title>
+<style>
+  :root { --civic-navy: #0b2545; --civic-link: #1b4f8a; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", Tahoma, sans-serif;
+    margin: 0; color: #1a1a1a; background: #ffffff;
+  }
+  .masthead {
+    background: var(--civic-navy); color: #fff;
+    padding: 14px 28px; display: flex; align-items: center; gap: 12px;
+  }
+  .masthead .seal {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: #c9a227; color: var(--civic-navy);
+    display: grid; place-items: center; font-weight: 700; font-size: 13px;
+  }
+  .masthead h1 { font-size: 17px; margin: 0; font-weight: 600; letter-spacing: .2px; }
+  main { max-width: 880px; margin: 0 auto; padding: 30px 28px 60px; }
+  h2 { font-size: 22px; color: var(--civic-navy); margin: 8px 0 4px; }
+  .lede { color: #444; margin: 0 0 28px; max-width: 60ch; }
+  .search-row { display: flex; gap: 40px; flex-wrap: wrap; }
+  .search-col { flex: 1 1 340px; }
+  .search-col h3 { font-size: 15px; color: var(--civic-navy); margin: 0 0 10px; }
+
+  /* The two search controls share the SAME low-contrast border:
+     #AAAAAA on #FFFFFF == 2.32:1 (below the 3:1 threshold). */
+  .faint-search {
+    width: 100%; height: 44px; padding: 0 14px;
+    font-size: 15px; color: #1a1a1a;
+    background: #ffffff;
+    border: 2px solid #AAAAAA;   /* 2.32:1 — identical on both controls */
+    border-radius: 3px;
+  }
+  .faint-search::placeholder { color: #5c5c5c; }
+  .field-label {
+    display: block; font-size: 14px; font-weight: 600;
+    color: var(--civic-navy); margin: 0 0 6px;
+  }
+  .go {
+    margin-top: 12px; height: 42px; padding: 0 22px;
+    background: var(--civic-navy); color: #fff; border: 0;
+    border-radius: 3px; font-size: 15px; cursor: pointer;
+  }
+  .note { margin-top: 40px; padding: 16px 18px; background: #f3f6fb;
+          border-left: 4px solid var(--civic-link); font-size: 13px; color: #333; }
+  .note code { background: #e7edf6; padding: 1px 4px; border-radius: 3px; }
+</style>
+</head>
+<body>
+  <header class="masthead">
+    <span class="seal" aria-hidden="true">CM</span>
+    <h1>City of Marlowe — Public Records</h1>
+  </header>
+
+  <main>
+    <h2>Search permits &amp; property records</h2>
+    <p class="lede">Look up building permits by address, or jump straight to a record
+       using its case number if you already have it.</p>
+
+    <div class="search-row">
+      <!-- PASS column: the visible <label> "Search by address" identifies the
+           control, so the low-contrast border is NOT required and is not subject
+           to non-text contrast. -->
+      <section class="search-col">
+        <h3>Find by address</h3>
+        <label class="field-label" for="addr">Search by address</label>
+        <input class="faint-search" id="addr" name="addr" type="search"
+               placeholder="e.g. 220 Cedar St" autocomplete="off">
+        <button class="go" type="button">Search</button>
+      </section>
+
+      <!-- FAIL column: no <label>, no placeholder, no icon, no adjacent text.
+           The 2.32:1 grey border is the ONLY visual cue that an input exists. -->
+      <section class="search-col">
+        <h3>Have a case number?</h3>
+        <input class="faint-search" id="case" name="case" type="search"
+               aria-label="Case number" autocomplete="off">
+        <button class="go" type="button">Go</button>
+      </section>
+    </div>
+
+    <p class="note">
+      Both fields use the identical border <code>2px solid #AAAAAA</code>
+      (2.32:1 against white). The first is identified by its visible label, so its
+      border is exempt; the second has no other visual cue, so its border must
+      reach 3:1 — and does not.
+    </p>
+  </main>
+</body>
+</html>

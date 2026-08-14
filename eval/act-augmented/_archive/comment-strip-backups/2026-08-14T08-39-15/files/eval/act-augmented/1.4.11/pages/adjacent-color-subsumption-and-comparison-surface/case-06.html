@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>API keys — Ledgerwise (dark)</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "JetBrains Sans", "Inter", "Segoe UI", Arial, sans-serif;
+    background: #0b0e13;
+    color: #e6e9ef;
+  }
+  .shell { display: flex; min-height: 100vh; }
+  .side {
+    width: 210px; background: #0e1219; border-right: 1px solid #1b212c;
+    padding: 18px 16px; font-size: 13px;
+  }
+  .side .brand { font-weight: 800; letter-spacing: .3px; margin-bottom: 18px; color: #cfd5df; }
+  .side a { display: block; color: #8b93a1; text-decoration: none; padding: 7px 8px; border-radius: 6px; }
+  .side a.active { background: #161b24; color: #e6e9ef; }
+  .content { flex: 1; padding: 30px 36px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: #8b93a1; margin: 0 0 26px; font-size: 14px; }
+
+  /* The settings panel — a near-black card (#11151C) that surrounds the inputs. */
+  .panel {
+    background: #11151C;            /* near-black panel — the surround / comparison surface */
+    border: 1px solid #1f2632;
+    border-radius: 12px;
+    padding: 24px 24px 28px;
+    max-width: 620px;
+  }
+  .panel h2 { margin: 0 0 16px; font-size: 15px; color: #cfd5df; }
+  .field { margin-bottom: 20px; }
+  .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #aab2c0; }
+  .field .hint { font-size: 12px; color: #6f7787; margin: 0 0 6px; }
+
+  /* The text inputs (dark mode).
+       interior fill   : #1B2230 (near-black, barely above the panel)
+       decorative border: #3A4658
+     Per-edge measurements a literal tool would take:
+       border vs panel    : 1.91:1
+       border vs interior : 1.67:1
+     The MEANINGFUL adjacency (once the faint border is subsumed toward the dark panel):
+       interior fill vs panel : 1.15:1  <-- the input fill is the only real identifying cue
+                                            and it is invisible against the panel. FAIL. */
+  .field input {
+    width: 100%;
+    padding: 11px 13px;
+    font-size: 15px;
+    color: #e6e9ef;
+    background: #1B2230;           /* near-black interior fill */
+    border: 1px solid #3A4658;     /* faint decorative border */
+    border-radius: 8px;
+    outline: none;
+  }
+  .field input::placeholder { color: #6f7787; }
+
+  .row { display: flex; gap: 16px; }
+  .row .field { flex: 1; }
+
+  .actions { margin-top: 8px; display: flex; gap: 12px; }
+  .btn { font-size: 14px; font-weight: 700; border-radius: 8px; padding: 11px 20px; cursor: pointer; border: 0; }
+  .btn.primary { background: #3b82f6; color: #0b0e13; }
+  .btn.ghost { background: transparent; color: #aab2c0; border: 1px solid #2a3340; }
+</style>
+</head>
+<body>
+  <div class="shell">
+    <nav class="side">
+      <div class="brand">Ledgerwise</div>
+      <a href="#">Overview</a>
+      <a href="#">Transactions</a>
+      <a href="#">Webhooks</a>
+      <a href="#" class="active">API keys</a>
+      <a href="#">Team</a>
+    </nav>
+
+    <main class="content">
+      <h1>API keys</h1>
+      <p class="sub">Manage the credentials your integrations use to call the Ledgerwise API.</p>
+
+      <form class="panel" action="#" method="post" novalidate aria-labelledby="ph">
+        <h2 id="ph">Create a restricted key</h2>
+
+        <div class="field">
+          <label for="kn">Key name</label>
+          <p class="hint">A label to help you recognize this key later.</p>
+          <input type="text" id="kn" name="kn" placeholder="e.g. production-reporting">
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label for="ip">Allowed IP range</label>
+            <input type="text" id="ip" name="ip" placeholder="0.0.0.0/0">
+          </div>
+          <div class="field">
+            <label for="exp">Expires</label>
+            <input type="text" id="exp" name="exp" placeholder="YYYY-MM-DD">
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="submit" class="btn primary">Generate key</button>
+          <button type="button" class="btn ghost">Cancel</button>
+        </div>
+      </form>
+    </main>
+  </div>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS IT (and why this FAILS):
+    This is the dark-mode inverse of the canonical "subsumed border" pass. A literal
+    per-edge tool measures the declared border (#3A4658) against the panel (1.91:1) and/or
+    against the interior (1.67:1) and reports a border failure — flagging the wrong thing.
+    Apply the subsumption rule correctly: the faint border is closest in brightness to the
+    near-black surroundings, so it is "subsumed into the color closest in brightness" and
+    is NOT the cue that identifies the control. The meaningful adjacency is then the input's
+    interior fill (#1B2230) against the panel (#11151C) = 1.15:1. With the border subsumed,
+    nothing visually distinguishes the field from the panel, so a low-vision user cannot
+    perceive where the inputs are. Correct verdict: FAIL — but for the RIGHT reason
+    (interior-vs-panel), which a tool cannot reach. It cannot decide which border is
+    decorative, nor that the remaining interior-vs-panel adjacency is the one that governs.
+  -->
+</body>
+</html>

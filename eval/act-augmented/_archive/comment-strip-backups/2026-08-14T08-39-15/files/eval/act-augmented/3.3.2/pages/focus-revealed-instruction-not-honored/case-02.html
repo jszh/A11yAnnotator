@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--
+  ASPECT: focus-revealed-instruction-not-honored (SC 3.3.2 Labels or Instructions, Level A)
+  PAGE STATE TO JUDGE: tab (keyboard) into the "Promo code" field, then separately mouse-hover it,
+  and compare. The format hint appears on HOVER but not on keyboard FOCUS.
+
+  WHAT THIS PAGE IS: the payment step of an e-commerce checkout (Brightleaf Coffee Co.). The promo
+  code field accepts only a specific format, "ABC-1234" (three letters, a dash, four digits). That
+  format hint is the field's only instruction — the visible <label> is just "Promo code", which does
+  NOT state the format. Following the long/verbose-instruction-on-focus pattern, the hint is gated to
+  appear when the user interacts with the field.
+
+  THE DEFECT (present, not absent): the reveal is wired to ":hover" only, NOT ":focus". A mouse user
+  who hovers the field sees the format hint; a keyboard user who TABS to the field (never hovering)
+  gets nothing. The hint node is real and populated; it is simply triggered by the wrong interaction.
+  Keyboard and screen-reader users — who reach the field by focus, not hover — never receive the only
+  instruction telling them the required format.
+
+  WHY AUTOMATED TOOLS MISS IT: the input has a correct <label> ("Promo code"), so axe/WAVE/Lighthouse
+  pass it on the label check. The hint text exists in the DOM and a ":hover" rule that reveals it is
+  present in the stylesheet, so a static scan sees an instruction node and a reveal rule. No linter
+  distinguishes a ":hover" trigger from a ":focus" trigger, drives keyboard focus, or judges that a
+  keyboard user never receives the instruction. Telling :hover apart from :focus and confirming the
+  instruction is missing for keyboard users requires interacting with the page and human judgment.
+-->
+<title>Checkout — Brightleaf Coffee Co.</title>
+<style>
+  :root { --ink:#2a2118; --muted:#7a6e5f; --line:#e7e0d4; --brand:#7a4b1e; --bg:#faf6ef; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Georgia",serif; color:var(--ink); background:var(--bg); }
+  header { background:#fff; border-bottom:1px solid var(--line); padding:14px 24px; display:flex; align-items:center; gap:10px; font-family:system-ui,sans-serif; }
+  header .mark { width:28px; height:28px; border-radius:50%; background:var(--brand); color:#fff; display:grid; place-items:center; font-weight:800; }
+  main { max-width:520px; margin:30px auto 60px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:28px 32px; }
+  h1 { font-size:1.4rem; margin:0 0 4px; }
+  .lead { color:var(--muted); margin:0 0 24px; font-size:.92rem; font-family:system-ui,sans-serif; }
+  h2 { font-size:1.05rem; margin:24px 0 12px; border-top:1px solid var(--line); padding-top:18px; }
+  .field { margin:0 0 18px; font-family:system-ui,sans-serif; }
+  label { display:block; font-weight:600; margin-bottom:6px; font-size:.9rem; }
+  input { width:100%; padding:10px 12px; border:1px solid #c9bda9; border-radius:8px; font-size:1rem; font-family:system-ui,sans-serif; }
+  input:focus { outline:2px solid var(--brand); outline-offset:1px; }
+  .promo-wrap { position:relative; }
+  /* The format hint. Hidden by default; revealed when the field is HOVERED. There is NO :focus
+     rule, so a keyboard user who tabs to the field never sees it. */
+  .promo-hint {
+    margin-top:7px; padding:8px 11px; background:#fbf3e8; border:1px solid #e7d3b6;
+    border-radius:8px; font-size:.82rem; color:#6b4a22; opacity:0; max-height:0; overflow:hidden;
+    transition:opacity .15s ease, max-height .15s ease;
+  }
+  /* HOVER-ONLY reveal — mouse users get the instruction, keyboard users do not. */
+  .promo-wrap:hover .promo-hint { opacity:1; max-height:80px; }
+  .row { display:flex; gap:14px; }
+  .row .field { flex:1; }
+  .actions { margin-top:8px; }
+  button.primary { background:var(--brand); color:#fff; border:0; border-radius:8px; padding:12px 18px; font-size:1rem; cursor:pointer; width:100%; font-family:system-ui,sans-serif; }
+  footer { max-width:520px; margin:0 auto 50px; color:var(--muted); font-size:.76rem; text-align:center; font-family:system-ui,sans-serif; }
+</style>
+</head>
+<body>
+<header>
+  <span class="mark">B</span>
+  <strong>Brightleaf Coffee Co.</strong>
+</header>
+
+<main>
+  <h1>Checkout</h1>
+  <p class="lead">Step 3 of 3 — Payment</p>
+
+  <form action="/checkout/pay" method="post" novalidate>
+    <div class="field">
+      <label for="card">Card number</label>
+      <input type="text" id="card" name="card" inputmode="numeric" autocomplete="cc-number" placeholder="">
+    </div>
+    <div class="row">
+      <div class="field">
+        <label for="exp">Expiry</label>
+        <input type="text" id="exp" name="exp" autocomplete="cc-exp" placeholder="MM/YY">
+      </div>
+      <div class="field">
+        <label for="cvc">CVC</label>
+        <input type="text" id="cvc" name="cvc" autocomplete="cc-csc" inputmode="numeric">
+      </div>
+    </div>
+
+    <h2>Have a promo code?</h2>
+    <div class="field">
+      <!-- Visible label is just "Promo code". It does NOT state the required format, so the hint
+           below is this field's only instruction. -->
+      <label for="promo">Promo code</label>
+      <div class="promo-wrap">
+        <input type="text" id="promo" name="promo" autocomplete="off"
+               aria-describedby="promo-hint" autocapitalize="characters">
+        <!-- Real, populated format hint. Revealed ONLY by the .promo-wrap:hover rule above. There is
+             no :focus / :focus-within rule, so tabbing to the input never reveals it. -->
+        <div class="promo-hint" id="promo-hint">
+          Format: three letters, a dash, then four digits — for example <strong>ABC-1234</strong>.
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button type="submit" class="primary">Pay $24.80</button>
+    </div>
+  </form>
+</main>
+
+<footer>
+  Brightleaf Coffee Co. · Roasted in small batches · Secure checkout
+</footer>
+</body>
+</html>

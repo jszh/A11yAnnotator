@@ -4,27 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The 2024 Carbon-Border Levy, Explained | The Meridian Review</title>
-<!--
-  SC 1.4.13 Dismissible — Method 1 (non-obscuring positioning) FAILURE.
-
-  This page has NO keyboard dismiss (no Esc handler, the trigger is not activatable
-  to close, the tooltip cannot be hovered to close it either). So Method 1 — "position
-  the content so it does not obscure any other content ... with the exception of white
-  space and purely decorative content" — is the ONLY remaining path to compliance.
-
-  The defect: the glossary tooltip is absolutely positioned DOWNWARD and lands squarely
-  on top of the first three lines of the very next paragraph (information-bearing body
-  text; measured overlap ~3.2 line-heights). Geometric overlap covers meaningful prose,
-  not white space. So Method 1 fails
-  too -> the SC is failed.
-
-  WHY AUTOMATED TOOLS MISS IT: the markup is impeccable — the tooltip uses
-  role="tooltip", aria-describedby wires it to the trigger, the trigger is a real
-  <button> with a name, focus styles exist, colours pass 1.4.3 contrast. axe/WAVE/
-  Lighthouse never enter the hover/focus state, never compute the overlap rectangle,
-  and even if they did they cannot judge that the covered region is meaningful body
-  text rather than an empty margin. That meaningful-vs-decorative call is human + visual.
--->
 <style>
   :root { --ink:#1d1d28; --muted:#5a5a6e; --rule:#d8d8e0; --accent:#7a1f2b; }
   * { box-sizing: border-box; }
@@ -44,7 +23,6 @@
   article p { margin:0 0 20px; }
   .dropcap::first-letter { font-size:3.1em; line-height:.8; float:left; padding:6px 8px 0 0; font-weight:700; color:var(--accent); }
 
-  /* ---- glossary term trigger ---- */
   .glossary {
     position: relative;
     display: inline;
@@ -60,11 +38,10 @@
   }
   .glossary > button.term:focus-visible { outline: 3px solid #2659c5; outline-offset: 2px; }
 
-  /* The tooltip drops DOWN over the following paragraph. */
   .glossary .tip {
     display: none;
     position: absolute;
-    top: 1.7em;            /* below the term -> lands on the next paragraph */
+    top: 1.7em;            
     left: 0;
     width: 360px;
     max-width: 88vw;
@@ -130,14 +107,7 @@
   </footer>
 
   <script>
-    // NOTE: deliberately NO Escape handler and NO close affordance.
-    // Hover/focus reveals the tooltip; blur/mouseout hides it. There is no way to
-    // dismiss the popup while keeping focus on the trigger, so Method 2 is unavailable.
-    // (No JS is even needed to show it — CSS :hover/:focus does that. This empty handler
-    //  documents the absence of an Esc path for any human or AT reviewing the source.)
     document.addEventListener('keydown', function (e) {
-      // Intentionally does nothing for Escape. Method 1 is the only compliance path,
-      // and it is violated because the tooltip covers the next paragraph of body text.
     });
   </script>
 </body>

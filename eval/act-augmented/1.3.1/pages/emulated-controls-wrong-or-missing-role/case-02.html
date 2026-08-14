@@ -3,34 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!--
-    SC 1.3.1 (Info and Relationships) — F42 emulated-control failure path (button variant).
-    Aspect: emulated-controls-wrong-or-missing-role.
-
-    "Fernweh Roastery" product detail page. The primary call to action is a green,
-    rounded, button-shaped box reading "Add to cart". It has a pressed/darken hover
-    state, a pointer cursor, and clicking it increments the cart badge and shows a
-    confirmation — it behaves in every way like the page's main BUTTON.
-
-    THE DEFECT: it is a <div class="addcart" onclick="addToCart()">. No <button>, no
-    <input type="submit">, no role="button", no tabindex. Sighted users read it
-    unmistakably as a button (rounded filled box, label, hover/active, it performs an
-    action). AT exposes the GENERIC role: it is not announced as a button, it does not
-    appear among the page's buttons/controls, and a keyboard user cannot Tab to or
-    activate it. The control relationship conveyed purely by styling/behaviour is not
-    programmatically determinable.
-
-    Note the *foil*: the secondary "Add to wishlist" action IS a real <button> styled
-    to look like a plain link. So the page contains a correct control and an emulated
-    one — the failure is specifically the primary <div> "button", not a blanket
-    "no buttons on the page".
-
-    WHY AUTOMATED TOOLS MISS IT: the <div> has no role attribute, so role-validity /
-    required-property rules never apply. axe/WAVE/Lighthouse see a <div> with text and a
-    click handler — no static rule says "this div is a button with the wrong/missing
-    role". Recognising the rounded filled box + label + action AS a button, and that its
-    exposed generic role contradicts that, is human visual/behavioural judgment.
-  -->
   <title>Ethiopia Guji — Whole Bean | Fernweh Roastery</title>
   <style>
     :root { --ink:#23201c; --muted:#6d655c; --line:#e8e2d8; --accent:#2f7d4f; --accent-hi:#256340; --bg:#fbf8f3; --card:#fff; }
@@ -46,7 +18,6 @@
     .opt label { display:block; font-size:.82rem; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); margin-bottom:.3rem; }
     .opt select { width:100%; padding:.55rem .6rem; border:1px solid var(--line); border-radius:8px; font:inherit; background:var(--card); }
 
-    /* Primary CTA — a DIV styled unmistakably as a filled button */
     .addcart {
       display:block; width:100%; text-align:center;
       background:var(--accent); color:#fff; font-weight:700; font-size:1.02rem;
@@ -56,7 +27,6 @@
     .addcart:hover { background:var(--accent-hi); }
     .addcart:active { transform:translateY(1px); }
 
-    /* Secondary action — a REAL <button> styled to look like a quiet link (the foil) */
     .wishlist { display:inline-block; margin-top:.8rem; background:none; border:0; padding:0;
       color:var(--accent); font:inherit; text-decoration:underline; cursor:pointer; }
 
@@ -86,10 +56,8 @@
         </select>
       </div>
 
-      <!-- DEFECT: the primary CTA is a <div>, not a <button>/role=button. -->
       <div class="addcart" onclick="addToCart()">Add to cart</div>
 
-      <!-- Foil: a genuine <button> styled as a quiet link -->
       <button type="button" class="wishlist" onclick="alert('Saved to wishlist')">Save to wishlist</button>
     </div>
   </main>

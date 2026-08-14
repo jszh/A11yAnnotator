@@ -4,29 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>File your homestead exemption — Travis County Tax Office</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS (SC 3.3.3 Error Suggestion, Level AA):
-  This page renders the POST-SUBMIT error state on load. The "Date of birth"
-  <input> has a correctly associated, visible error message via aria-describedby
-  ("dob-error"), aria-invalid="true", a label, and good contrast. The error string
-  is non-empty and IDENTIFIES the error in text — "Invalid date." — so SC 3.3.1
-  (Error Identification) is fully satisfied and any "is there an error message"
-  heuristic passes. axe / WAVE / Lighthouse all go green: label resolves,
-  aria-describedby resolves, role textbox, contrast ~7:1, nothing hidden.
-
-  THE DEFECT IS SC 3.3.3: a correction is PLAINLY KNOWABLE here. The server accepts
-  exactly one format, MM/DD/YYYY (the validator's regex, left visible in this page's
-  inline comment, is ^\d{2}/\d{2}/\d{4}$). The user typed "3-7-1965" — a real date,
-  just dashed and unpadded. The fix is trivially statable ("Use MM/DD/YYYY, e.g.
-  03/07/1965") yet the message only RESTATES that something is wrong. No format, no
-  example, no allowed-values hint is provided anywhere on the page.
-
-  An automated checker cannot tell "Invalid date." (a bare restatement) apart from
-  "Invalid date — use MM/DD/YYYY" (an actual suggestion): both are valid non-empty
-  strings correctly wired to the field. Judging that a correction is KNOWABLE and that
-  the present text does NOT convey it requires semantic reading of the field's
-  constraint against the message — human judgment, not a linter rule.
--->
 <style>
   :root{ --ink:#1b1b1b; --muted:#54595f; --line:#b1b1b1; --gov:#0b4778; --danger:#9c1f1f; }
   *{ box-sizing:border-box; }
@@ -78,12 +55,6 @@
 
         <div class="row">
           <label for="dob">Date of birth</label>
-          <!--
-            Server validator (authoritative): const OK = /^\d{2}\/\d{2}\/\d{4}$/;
-            i.e. strictly MM/DD/YYYY with zero-padding and slashes.
-            Retained value "3-7-1965" is a valid calendar date in the wrong shape.
-            The accepted format is fixed and trivially statable, but never shown.
-          -->
           <input type="text" id="dob" name="dob"
                  aria-describedby="dob-error"
                  aria-invalid="true"

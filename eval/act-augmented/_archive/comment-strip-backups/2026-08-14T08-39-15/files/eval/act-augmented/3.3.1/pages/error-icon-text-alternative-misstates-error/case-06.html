@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Add a payee — Nordbank Online</title>
+<style>
+  :root { --ink:#1b232c; --line:#ccd4dd; --brand:#0a3d62; --ok:#2e8b57; --err:#c43b3b; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Verdana",Geneva,sans-serif; color:var(--ink); background:#eef2f6; }
+  header { background:var(--brand); color:#fff; padding:14px 30px; display:flex; align-items:center; gap:10px; }
+  header .b { width:24px; height:24px; background:#3aa7d6; border-radius:5px; }
+  header .t { font-weight:700; letter-spacing:.4px; }
+  main { max-width:520px; margin:36px auto; background:#fff; border:1px solid var(--line);
+         border-radius:11px; padding:30px 34px; }
+  h1 { font-size:1.3rem; margin:0 0 4px; }
+  p.sub { margin:0 0 22px; color:#5b6b78; font-size:.9rem; }
+  label { display:block; font-weight:700; font-size:.83rem; margin:16px 0 6px; }
+  .field { display:flex; align-items:center; gap:8px; }
+  .field input { flex:1; padding:11px 12px; border:1px solid var(--line); border-radius:7px;
+                 font-size:1rem; font-family:"Courier New",monospace; letter-spacing:.5px; }
+  .field input.bad { border-color:var(--err); background:#fff8f8; }
+  .field input:focus { outline:3px solid #2f80c8; outline-offset:1px; }
+  .statico { width:22px; height:22px; flex:0 0 auto; }
+  .help { font-size:.78rem; color:#6a7884; margin:6px 2px 0; }
+  .save { margin-top:24px; width:100%; padding:13px; border:0; border-radius:7px;
+          background:var(--brand); color:#fff; font-size:1.02rem; font-weight:700; cursor:pointer; }
+  footer { max-width:520px; margin:14px auto 50px; color:#8593a0; font-size:.74rem; text-align:center; }
+</style>
+</head>
+<body>
+<header><span class="b"></span><span class="t">Nordbank Online</span></header>
+
+<main>
+  <h1>Add a payee</h1>
+  <p class="sub">Verify the IBAN carefully. Transfers to a wrong account cannot be reversed.</p>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS
+    The entered German IBAN "DE89 3704 0044 0532 0130 0X" ends in an "X" — it fails the IBAN
+    checksum / contains a non-alphanumeric position, so it is genuinely INVALID. In this Vue app,
+    each field renders one status SVG whose <title> is bound to a validation state. A merge bug
+    left the IBAN field bound to the field's INITIAL "valid" state, so the SVG still carries the
+    stale success title <title>Looks good!</title> AND a green check glyph — even though the value
+    is invalid (red border shown by a separate rule). axe/WAVE/Lighthouse see an SVG role=img WITH
+    a non-empty accessible name "Looks good!": all structural rules pass (name present, role
+    correct, contrast fine, no empty title). The defect is SEMANTIC and INVERTED: the text
+    alternative asserts the OPPOSITE of the field's real state. A screen-reader user on an invalid
+    IBAN hears "Looks good!" and submits a broken transfer, never told an error exists. Only a
+    human comparing the alternative's MEANING ("valid") against the field's actual error state
+    (invalid IBAN) can detect that the text alternative not only fails to identify the error but
+    affirmatively denies it.
+  -->
+
+  <form action="#" method="post" novalidate>
+    <label for="payee">Payee name</label>
+    <div class="field">
+      <input type="text" id="payee" value="Müller Handwerk GmbH"
+             style="font-family:inherit;letter-spacing:normal;">
+    </div>
+
+    <label for="iban">IBAN</label>
+    <div class="field">
+      <input type="text" id="iban" class="bad" aria-invalid="true" aria-describedby="iban-ico"
+             value="DE89 3704 0044 0532 0130 0X">
+      <!-- Stale success status left from the field's initial state by a Vue merge bug. -->
+      <svg class="statico" role="img" id="iban-ico" viewBox="0 0 22 22">
+        <title>Looks good!</title>
+        <circle cx="11" cy="11" r="10" fill="#2e8b57"/>
+        <path d="M6 11.5 L9.5 15 L16 7.5" fill="none" stroke="#fff" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <p class="help">Example: DE00 0000 0000 0000 0000 00 (22 characters for German accounts).</p>
+
+    <label for="ref">Reference (optional)</label>
+    <div class="field">
+      <input type="text" id="ref" value="Invoice 2026-114" style="font-family:inherit;letter-spacing:normal;">
+    </div>
+
+    <button type="submit" class="save">Save payee</button>
+  </form>
+</main>
+
+<footer>Nordbank AG &middot; Member of the Deposit Protection Fund.</footer>
+</body>
+</html>

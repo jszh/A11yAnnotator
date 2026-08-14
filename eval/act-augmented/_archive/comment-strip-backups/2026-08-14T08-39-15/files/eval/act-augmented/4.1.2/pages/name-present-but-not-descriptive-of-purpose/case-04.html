@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 4.1.2 FAILURE (ARIA14 name-quality — non-empty DEVELOPER PLACEHOLDER as the name).
+    This is a patient-portal dashboard with an open modal dialog reminding the patient to
+    confirm an upcoming appointment. The dialog's overlay "close" control is the conventional
+    "×" button in the top-right corner. Its accessible name was shipped as a leftover
+    developer placeholder: aria-label="TODO label". That is non-empty and machine-valid, so
+    the ACT "Button has non-empty accessible name" rule PASSES. But a screen-reader user hears
+    "TODO label, button" — a string that tells them nothing, least of all that this dismisses
+    the dialog. Sighted users read the "×" by convention; AT users get a developer to-do note.
+    WHY AUTOMATED TOOLS MISS IT: aria-label is present and non-empty, so every name rule
+    passes. "TODO label" is a perfectly valid string to a parser; only a human recognizes it
+    as an un-replaced placeholder that fails to identify the close control. The dialog's other
+    accessibility wiring (role=dialog, aria-modal, aria-labelledby for the title) is correct,
+    so the close button's name is the SOLE defect — present but meaningless.
+  -->
+  <title>Appointments — Cedar Vale Patient Portal</title>
+  <style>
+    :root { --ink:#142a30; --muted:#5d7177; --line:#d4e0e2; --brand:#0e6e7a; --bg:#eef4f5; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Source Sans Pro", "Segoe UI", Arial, sans-serif; color:var(--ink); background:var(--bg); }
+    header { background:#0b4651; color:#fff; padding:14px 26px; display:flex; align-items:center; gap:16px; }
+    header .brand { font-weight:800; }
+    header nav { margin-left:auto; font-size:14px; }
+    header nav a { color:#cfe6ea; text-decoration:none; margin-left:18px; }
+    header nav a[aria-current="page"] { color:#fff; font-weight:700; border-bottom:2px solid #fff; padding-bottom:3px; }
+    main { max-width:880px; margin:26px auto; padding:0 20px; }
+    h1 { font-size:22px; }
+    .cards { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; }
+    .card { background:#fff; border:1px solid var(--line); border-radius:10px; padding:18px 20px; }
+    .card h2 { font-size:15px; margin:0 0 8px; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; }
+    .card .big { font-size:20px; font-weight:700; }
+    /* dialog */
+    .scrim { position:fixed; inset:0; background:rgba(7,28,33,.45); display:flex; align-items:center; justify-content:center; padding:20px; }
+    .dialog { background:#fff; border-radius:14px; width:440px; max-width:100%; padding:24px 26px 26px; position:relative; box-shadow:0 18px 50px rgba(0,0,0,.3); }
+    .dialog h2 { margin:0 28px 6px 0; font-size:19px; }
+    .dialog p { color:#33474c; line-height:1.5; font-size:15px; }
+    .dialog .appt { background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:12px 14px; font-size:14px; margin:14px 0 18px; }
+    .dialog .appt strong { display:block; font-size:16px; }
+    .row { display:flex; gap:10px; justify-content:flex-end; }
+    .btn { border:0; border-radius:8px; padding:11px 18px; font-size:15px; cursor:pointer; }
+    .btn.primary { background:var(--brand); color:#fff; }
+    .btn.ghost { background:#fff; color:var(--ink); border:1px solid var(--line); }
+    .close { position:absolute; top:12px; right:12px; width:34px; height:34px; border:0; background:transparent; border-radius:8px; cursor:pointer; font-size:22px; line-height:1; color:var(--muted); }
+    .close:hover { background:var(--bg); }
+    .close:focus-visible { outline:2px solid var(--brand); outline-offset:1px; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="brand">Cedar Vale Health</span>
+    <nav aria-label="Primary">
+      <a href="/dashboard">Dashboard</a>
+      <a href="/appointments" aria-current="page">Appointments</a>
+      <a href="/messages">Messages</a>
+      <a href="/records">Records</a>
+    </nav>
+  </header>
+
+  <main aria-hidden="true">
+    <h1>Your appointments</h1>
+    <div class="cards">
+      <div class="card"><h2>Next visit</h2><div class="big">Tue, Jun 23 · 9:15 AM</div><p>Dr. Patel — Cardiology follow-up</p></div>
+      <div class="card"><h2>Primary care</h2><div class="big">Cedar Vale — Building B</div><p>Dr. Lindgren, Internal Medicine</p></div>
+      <div class="card"><h2>Refills due</h2><div class="big">2 medications</div><p>Atorvastatin, Lisinopril</p></div>
+      <div class="card"><h2>Balance</h2><div class="big">$0.00</div><p>No outstanding balance</p></div>
+    </div>
+  </main>
+
+  <div class="scrim">
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+      <!-- Close control: visually the conventional "×", but its accessible name is a leftover placeholder. -->
+      <button type="button" class="close" aria-label="TODO label">&times;</button>
+      <h2 id="dlgTitle">Confirm your upcoming appointment</h2>
+      <p>We have you scheduled with Dr. Patel. Please confirm so we can hold your slot.</p>
+      <div class="appt">
+        <strong>Cardiology follow-up</strong>
+        Tuesday, June 23, 2026 · 9:15 AM · Building A, Suite 410
+      </div>
+      <div class="row">
+        <button type="button" class="btn ghost">Reschedule</button>
+        <button type="button" class="btn primary">Confirm appointment</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

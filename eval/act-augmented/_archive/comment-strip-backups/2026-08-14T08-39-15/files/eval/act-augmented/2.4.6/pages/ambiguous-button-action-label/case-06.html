@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Saved recipes — Thyme &amp; Again meal planner</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font: 15px/1.55 "Avenir Next", "Segoe UI", system-ui, sans-serif;
+      margin: 0; color: #2a2620; background: #fcf9f3;
+    }
+    .bar { background: #6b4f2a; color: #fff; padding: .8rem 1.3rem; font-weight: 700; }
+    main { max-width: 760px; margin: 0 auto; padding: 1.6rem 1.3rem 4rem; }
+    h1 { font-size: 1.45rem; margin: 0 0 .2rem; }
+    .lead { color: #6f6452; margin: 0 0 1.4rem; }
+    section.box {
+      background: #fff; border: 1px solid #ece2cf; border-radius: 10px;
+      padding: 1.2rem 1.3rem; margin: 0 0 1.6rem;
+    }
+    section.box h2 { margin: 0 0 .8rem; font-size: 1.1rem; color: #6b4f2a; }
+    ul.recipes { list-style: none; padding: 0; margin: 0; }
+    ul.recipes li {
+      display: flex; align-items: center; gap: 1rem;
+      padding: .8rem 0; border-bottom: 1px solid #f0e9da;
+    }
+    ul.recipes li:last-child { border-bottom: 0; }
+    .recipes .name { flex: 1; font-weight: 600; }
+    .recipes .name small { display: block; font-weight: 400; color: #8a7d68; }
+    .btn {
+      font: inherit; font-weight: 600; cursor: pointer; border-radius: 6px;
+      padding: .5rem 1rem; border: 1px solid #d8b88a; background: #fff; color: #6b4f2a; white-space: nowrap;
+    }
+    .actions { display: flex; gap: .6rem; flex-wrap: wrap; }
+    .btn-primary { background: #2f7d4f; color: #fff; border-color: #2f7d4f; }
+    .btn-ghost { background: #fff; color: #2f7d4f; border-color: #a9d3ba; }
+    .btn-neutral { background: #f3efe6; color: #5a503f; border-color: #d8cdb6; }
+    .btn:focus-visible { outline: 3px solid #c79100; outline-offset: 2px; }
+    .panel-note { color: #6f6452; font-size: .9rem; margin: 0 0 1rem; }
+  </style>
+</head>
+<body>
+  <div class="bar">Thyme &amp; Again</div>
+  <main>
+    <h1>Your saved recipes</h1>
+    <p class="lead">Three recipes are saved to this week's plan. Each can be removed by name.</p>
+
+    <!--
+      PASS CONTROL — repeated-list buttons whose labels name BOTH the action AND the
+      specific object, so each control's function is clear out of context.
+    -->
+    <section class="box" aria-labelledby="saved-h">
+      <h2 id="saved-h">This week's plan</h2>
+      <ul class="recipes">
+        <li>
+          <span class="name">Smoked paprika chickpea stew
+            <small>40 min · serves 4</small></span>
+          <button type="button" class="btn" onclick="return false">Remove “Smoked paprika chickpea stew” from this week</button>
+        </li>
+        <li>
+          <span class="name">Lemon &amp; thyme roast chicken
+            <small>1 hr 10 min · serves 5</small></span>
+          <button type="button" class="btn" onclick="return false">Remove “Lemon &amp; thyme roast chicken” from this week</button>
+        </li>
+        <li>
+          <span class="name">Five-minute herb flatbreads
+            <small>15 min · makes 6</small></span>
+          <button type="button" class="btn" onclick="return false">Remove “Five-minute herb flatbreads” from this week</button>
+        </li>
+      </ul>
+    </section>
+
+    <!--
+      PASS CONTROL — the three-choice confirmation, re-labeled so each button names
+      its specific function (vs. case-01's three "OK"s).
+    -->
+    <section class="box" aria-labelledby="conf-h">
+      <h2 id="conf-h">You edited “Lemon &amp; thyme roast chicken”</h2>
+      <p class="panel-note">You changed the servings and added two ingredients.
+         What would you like to do with your edits?</p>
+      <div class="actions">
+        <button type="button" class="btn btn-primary" onclick="return false">Save changes to recipe</button>
+        <button type="button" class="btn btn-ghost"   onclick="return false">Discard changes</button>
+        <button type="button" class="btn btn-neutral" onclick="return false">Export recipe as PDF</button>
+      </div>
+    </section>
+  </main>
+
+  <!--
+    WHY THIS PASSES (boundary / contrast case):
+    This page is the deliberate PASS control for the aspect. Same component families
+    as the failing cases — a repeated list of row-action buttons and a three-choice
+    confirmation — but every button label now names BOTH its action verb AND the
+    specific object it acts on: "Remove “Lemon & thyme roast chicken” from this week",
+    "Save changes to recipe", "Discard changes", "Export recipe as PDF". A
+    screen-reader user navigating by button hears a distinct, function-clear name for
+    each control and never confronts an ambiguous "OK", "Remove", "Go", "Continue", or
+    "Click here". There is no generic-verb, no missing-object, and no mismatched-verb
+    defect, so the page satisfies SC 2.4.6's button-function prong. (Automated tools
+    would also pass it — but for the trivial reason that all names are non-empty; the
+    point of this control is that a HUMAN judging function-descriptiveness ALSO passes
+    it, isolating the aspect from confounds.)
+  -->
+</body>
+</html>

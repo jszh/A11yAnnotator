@@ -12,12 +12,6 @@
     nav.side { background:#0a1018; border-right:1px solid #1c2836; padding:18px 0; overflow:auto; }
     nav.side .group { padding:6px 18px; }
 
-    /* The category labels are focusable section headers. The dev made them tabindex="0"
-       so a keyboard "expand this section" hint shows on focus — but each group here is
-       already fully expanded, so the label does nothing on focus except show a hint.
-       It adds an extra Tab stop per category (tedium) but never duplicates a control and
-       never lands BETWEEN two coupled controls — the links within a group are still
-       reached in order, and the label clearly precedes its own group. */
     .cat { display:block; font:600 .72rem/1.4 system-ui, sans-serif; letter-spacing:.08em;
            text-transform:uppercase; color:#5e7187; padding:10px 18px 4px; }
     .cat:focus-visible { outline:2px solid #2f81f7; outline-offset:-2px; border-radius:4px; }
@@ -42,18 +36,6 @@
 <body>
   <div class="layout">
     <nav class="side" aria-label="API reference">
-      <!--
-        Each .cat is a focusable static section header (tabindex="0"). They add a Tab stop
-        per category, but:
-          - they never duplicate a link (each label is distinct text, not a control to the
-            same place as the links beneath it),
-          - they always precede their OWN group of links (logical grouping, not a stop wedged
-            between two related controls),
-          - the links within each group are reached in document/visual order.
-        The result is more tab stops than strictly necessary — TEDIOUS — but the order still
-        preserves meaning and operability. Per the note, that is best-practice territory, not
-        a failure.
-      -->
       <span class="cat" tabindex="0">Getting started</span>
       <a href="#install">Install the SDK</a>
       <a href="#auth">Authentication</a>
@@ -88,15 +70,5 @@
     </main>
   </div>
 
-  <!--
-    WHY THIS PASSES (the hard "tedious vs impedes" boundary):
-    Each category label in the sidebar is a focusable non-interactive element (tabindex="0"),
-    which a naive checker might flag as "extra focus stops." But these stops do NOT impede
-    meaning or operation: every label sits at the head of its OWN group, no link is reached
-    twice, and no dead stop is wedged between two coupled controls. The order — label, its
-    links, next label, its links — still preserves the meaning and operability of the nav.
-    Extra-but-orderly stops are exactly what the note calls best-practice/tedium, NOT a
-    failure. This is the human line: tedious (allowed) vs meaning-impeding (a failure).
-  -->
 </body>
 </html>

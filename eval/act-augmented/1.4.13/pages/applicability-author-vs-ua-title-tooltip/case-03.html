@@ -34,9 +34,6 @@
   .leg-time { font-weight: 600; }
   .leg-stop { color: #54607a; font-size: 13px; margin-top: 2px; }
 
-  /* Accessibility/feature icon. The author explicitly sets title="" to KILL the
-     browser's native tooltip, then paints an identical-looking gray bubble using a
-     CSS ::after that pulls its text from a data-* attribute via attr(). No JS. */
   .feat {
     position: relative; width: 22px; height: 22px; border-radius: 50%;
     background: #eef0f8; color: var(--transit); border: 1px solid #c7ccec;
@@ -50,9 +47,6 @@
     box-shadow: 0 1px 4px rgba(0,0,0,.3);
     opacity: 0; pointer-events: none; transition: opacity .1s ease;
   }
-  /* The bubble appears ONLY while the 22px icon itself is hovered. A ::after pseudo-
-     element is not in the accessibility tree, cannot receive the pointer, and there
-     is no Esc affordance — so it is neither hoverable nor dismissible. */
   .feat:hover::after { opacity: 1; }
   .note { margin-top: 24px; font-size: 12px; color: #6a7287; line-height: 1.55; }
   .note code { background: #e3e6f4; padding: 1px 5px; border-radius: 4px; }
@@ -74,7 +68,6 @@
         <div class="leg-time">9:14 AM — board Route 12 (Blue) at 4th &amp; Main</div>
         <div class="leg-stop">Ride 6 stops to Union Station</div>
       </div>
-      <!-- title="" suppresses native; CSS ::after reimplements the bubble. -->
       <span class="feat" title="" data-hint="Low-floor bus · wheelchair accessible"
             tabindex="0" role="img" aria-label="Service note: low-floor bus, wheelchair accessible">&#9855;</span>
     </div>
@@ -107,15 +100,5 @@
     </p>
   </main>
 
-  <!-- WHY AUTOMATED TOOLS MISS IT:
-       The element carries a title attribute (title=""), which a scanner reads as
-       "has a native tooltip" — and an empty title produces no UA tooltip at all, so a
-       tool may conclude there is simply nothing on hover. Neither view captures the
-       reality: the visible gray bubble is an author CSS ::after, so 1.4.13 APPLIES.
-       And because a ::after pseudo-element cannot be hovered into and has no Esc/
-       dismiss path, it FAILS the hoverable + dismissible conditions. Recognizing that
-       the visible bubble is author-painted (not the suppressed UA tooltip) and that a
-       pseudo-element can't be hovered are both semantic/visual judgments outside any
-       static checker's reach. -->
 </body>
 </html>

@@ -4,24 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Steuererklärung online — Finanzportal des Landes</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS (de):
-  Ein deutsches Steuerportal. Das Feld "Steuer-Identifikationsnummer" wird nach dem
-  Absenden korrekt als fehlerhaft markiert: aria-invalid="true", Fehlertext per
-  aria-describedby verknuepft, role="alert"-Zusammenfassung, Fokus gesetzt, Kontrast ok.
-  axe / WAVE / Lighthouse bestaetigen: Fehler ist identifiziert und programmatisch
-  zugeordnet -> 3.3.1 erfuellt; eine "nennt es eine Korrektur?"-Heuristik greift ebenfalls
-  ("Bitte ueberpruefen Sie Ihre Eingabe und versuchen Sie es erneut" ist
-  korrekturorientierte Sprache).
-  THE DEFECT IS SEMANTIC ADEQUACY (3.3.3), IN GERMAN: the Steuer-ID has a fixed, publicly
-  documented format — exactly 11 digits — which the validator enforces. The message says
-  only "please check your entry and try again", never stating the 11-digit rule. The
-  adequacy judgment must be made ON GERMAN PROSE: a tool would have to understand that the
-  German sentence is fix-oriented filler, that the field's format (11 Ziffern) is knowable,
-  and that the message withholds it. The PASS-equivalent guidance the field should have
-  carried is "Genau 11 Ziffern, z. B. 12 345 678 901." No scanner makes that cross-lingual
-  semantic-adequacy call.
--->
 <style>
   :root{ --ink:#1a1a1a; --muted:#5a5a5a; --line:#bcbcbc; --gov:#004b76; --gov-d:#003553;
          --danger:#9b0000; --bg:#f0f0f0; --paper:#fff; --focus:#ffb300; }
@@ -74,7 +56,6 @@
         <fieldset>
           <legend>Identifikation</legend>
 
-          <!-- IMMER KORREKT (Kontrast): Hinweis nennt das Format konkret. -->
           <div class="feld">
             <label for="plz">Postleitzahl</label>
             <input type="text" id="plz" name="plz" inputmode="numeric"
@@ -82,7 +63,6 @@
             <p class="hinweis" id="plz-hinweis">Fünf Ziffern, z. B. 10115.</p>
           </div>
 
-          <!-- DEFEKT: Fehlertext ist korrekturorientierte Floskel ohne das bekannte 11-Ziffern-Format. -->
           <div class="feld">
             <label for="stid" class="pflicht">Steuer-Identifikationsnummer</label>
             <input type="text" id="stid" name="stid" value="DE 4711 X"
@@ -104,7 +84,6 @@
   var err  = document.getElementById('stid-fehler');
   if (stid) { stid.focus(); }
 
-  // BEKANNTES FORMAT: die deutsche Steuer-ID besteht aus genau 11 Ziffern.
   function gueltig(v){ return /^\d{11}$/.test(v.replace(/\s/g,'')); }
 
   document.querySelector('form').addEventListener('submit', function(e){
@@ -115,7 +94,6 @@
       err.style.color = '#1a7a2e';
     } else {
       stid.setAttribute('aria-invalid','true');
-      // bleibt vage — nennt das 11-Ziffern-Format nicht
       err.textContent = 'Bitte überprüfen Sie Ihre Eingabe und versuchen Sie es erneut.';
       stid.focus();
     }

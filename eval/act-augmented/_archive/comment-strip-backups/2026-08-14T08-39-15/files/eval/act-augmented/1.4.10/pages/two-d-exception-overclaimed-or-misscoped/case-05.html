@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Summer Reading Challenge — Aldergrove Public Library</title>
+<style>
+  /*
+    THE DEFECT (human-judgment only):
+    The page's promotional banner is NOT an image. It is live, styled HTML text — a giant
+    headline and tagline — set on a single non-wrapping line at a fixed 1100px width. The
+    author claimed it is exempt from Reflow as "graphics/media", but it is just CSS-styled
+    TEXT that should wrap. Because it is nowrap at 1100px, it forces a page-level horizontal
+    scrollbar, and the (correctly reflowing) article prose below inherits no overflow — yet
+    the page still 2D-scrolls solely because of mis-claimed "exempt" styled text. Compare:
+    a genuine fixed-size graphic (case-07's video) would be a valid exception; styled text
+    that merely LOOKS like a banner graphic is not.
+  */
+  :root { font-family: Verdana, Geneva, sans-serif; color: #2b2b2b; }
+  body { margin: 0; background: #fff8ec; }
+  /*
+    The "banner". It is text, not an image — but it is forced onto one line at 1100px,
+    so it cannot reflow. The author thought "it's a banner graphic, so it's exempt."
+  */
+  .promo {
+    background: linear-gradient(90deg,#ff7b00,#ffb703);
+    color: #1a1a1a; padding: 30px 26px; width: 1100px;
+    white-space: nowrap;            /* the text refuses to wrap */
+    overflow: visible;
+  }
+  .promo .big { font-size: 2.4rem; font-weight: 900; letter-spacing: -0.5px; display: block; }
+  .promo .sub { font-size: 1.15rem; font-weight: 600; display: block; margin-top: 6px; }
+  main { padding: 22px; }
+  article { max-width: 65ch; line-height: 1.6; }
+  article h2 { color: #b45309; }
+  article p { font-size: 1.02rem; }
+  .signup { margin-top: 20px; }
+  .signup a {
+    display: inline-block; background: #b45309; color: #fff; padding: 11px 20px;
+    border-radius: 6px; text-decoration: none; font-weight: 700;
+  }
+  footer { padding: 16px 22px; font-size: 0.82rem; color: #6b5b3e; }
+</style>
+</head>
+<body>
+  <!--
+    This is the over-claimed "exempt graphic" — but it is just styled TEXT.
+    role="img" was NOT used (it really is readable text); it is presented as a banner.
+  -->
+  <div class="promo" aria-label="Summer Reading Challenge banner">
+    <span class="big">★ Summer Reading Challenge 2026 — Read 6 Books, Win Prizes! ★</span>
+    <span class="sub">Free for ages 4–14 · Sign up at any Aldergrove branch from 1 July</span>
+  </div>
+
+  <main>
+    <article>
+      <h2>How the challenge works</h2>
+      <p>
+        Every summer, children across the borough take part in our reading challenge. The
+        idea is simple: borrow and read six library books between July and September, collect
+        a sticker for each one, and earn a certificate and a small prize at the finish line.
+      </p>
+      <p>
+        Reading over the holidays helps children keep up the progress they made during the
+        school year. Our librarians are on hand to recommend books for every reader, from
+        first picture books to chapter-book adventures, and there are themed events most
+        Saturdays throughout the summer.
+      </p>
+      <p>
+        Joining is free and open to all children aged four to fourteen. Parents and carers
+        can sign up their child at the desk of any branch, or online using the link below.
+      </p>
+      <div class="signup">
+        <a href="#join">Sign up for the challenge</a>
+      </div>
+    </article>
+  </main>
+
+  <footer>
+    Aldergrove Public Library Service · Registered charity 1023998 · Open seven days a week.
+  </footer>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS IT:
+    The article prose reflows perfectly into 320px (max-width:65ch). The ONLY thing forcing
+    a page-level horizontal scrollbar is the ".promo" banner — which the author defends as an
+    exempt "graphic/media". But it is NOT a graphic: it is live, selectable, CSS-styled TEXT
+    that should wrap. There is no <img>, no role="img", nothing for a checker to OCR or
+    measure. A scanner cannot tell that this overflowing region is text-that-must-wrap rather
+    than a legitimately fixed-size graphic. Recognizing "this 'banner' is really a headline
+    that should reflow, so the exemption claim is wrong" is a human visual/semantic judgment.
+    (Contrast: case-07's video player is a genuine fixed-dimension medium, and there it passes.)
+  -->
+</body>
+</html>

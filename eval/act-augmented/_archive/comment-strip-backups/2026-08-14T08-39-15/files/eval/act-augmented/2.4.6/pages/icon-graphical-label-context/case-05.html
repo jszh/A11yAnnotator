@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smoky Charred Corn Ribs — Hearthside</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Georgia", "Times New Roman", serif; color:#2a2724; background:#fdfcf9; }
+  header.site { background:#7a2e2e; color:#fff; padding:12px 22px; font-family:system-ui,sans-serif; }
+  header.site .logo { font-weight:700; letter-spacing:.4px; }
+  .wrap { max-width:760px; margin:26px auto; padding:0 20px; }
+  .recipe-hero { display:flex; gap:18px; align-items:flex-start; }
+  .recipe-hero .photo { width:200px; height:150px; border-radius:10px; flex:none;
+    background:linear-gradient(135deg,#e8b95f,#b5651d); }
+  h1 { font-size:27px; margin:0 0 6px; }
+  .meta { color:#6c655c; font-size:14px; font-family:system-ui,sans-serif; }
+  .actionbar {
+    display:flex; align-items:center; gap:14px; margin:18px 0 6px;
+    font-family:system-ui,sans-serif; border-top:1px solid #eee5d8; border-bottom:1px solid #eee5d8; padding:12px 0;
+  }
+  .heartbtn {
+    display:inline-flex; align-items:center; gap:7px; border:1px solid #e0d6c6; background:#fff;
+    border-radius:22px; padding:8px 16px; cursor:pointer; font-size:14px; color:#7a2e2e; font-family:inherit;
+  }
+  .heartbtn:hover { background:#fbeeee; }
+  .heartbtn:focus-visible { outline:2px solid #b5651d; outline-offset:2px; }
+  .heartbtn svg { width:19px; height:19px; }
+  .heartbtn .count { color:#9a9186; font-size:13px; }
+  .heartbtn[aria-pressed="true"] svg { fill:#d12b2b; stroke:#d12b2b; }
+  .spacer { margin-left:auto; }
+  .print { border:1px solid #e0d6c6; background:#fff; border-radius:22px; padding:8px 16px; cursor:pointer;
+    font-size:14px; font-family:inherit; color:#5c5650; }
+  h2 { font-size:19px; margin-top:30px; font-family:system-ui,sans-serif; }
+  ol, ul { line-height:1.7; font-size:15px; }
+  .ingredients li { margin-bottom:4px; }
+</style>
+</head>
+<body>
+<header class="site"><span class="logo">Hearthside</span></header>
+
+<div class="wrap">
+  <div class="recipe-hero">
+    <div class="photo" role="img" aria-label="A platter of charred corn ribs glazed with chili butter"></div>
+    <div>
+      <h1>Smoky Charred Corn Ribs</h1>
+      <p class="meta">By Dele Adeyemi · 35 min · Serves 4 · Vegetarian</p>
+    </div>
+  </div>
+
+  <!-- TWO IDENTICAL HEART BUTTONS, DIFFERENT FUNCTIONS:
+       Button A saves the recipe PRIVATELY to the user's own cookbook (no one else sees it).
+       Button B posts a PUBLIC like that is attributed to the user and shown to others.
+       Both render the identical heart glyph and both are accessibly named just "heart",
+       so neither the icon nor the name distinguishes a private bookmark from a public like. -->
+  <div class="actionbar">
+    <button type="button" class="heartbtn" id="saveBtn" aria-label="heart" aria-pressed="false"
+            onclick="toggleA(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+        <path d="M12 20s-7-4.6-9.2-9C1.3 8 2.6 5 5.6 5c1.9 0 3.1 1.2 3.9 2.3l.4.6.4-.6C11.1 6.2 12.3 5 14.2 5c3 0 4.3 3 2.8 6-2.2 4.4-9 9-9 9z" stroke-linejoin="round"/>
+      </svg>
+      <span class="count">Saved to my cookbook</span>
+    </button>
+
+    <button type="button" class="heartbtn" id="likeBtn" aria-label="heart" aria-pressed="false"
+            onclick="toggleB(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+        <path d="M12 20s-7-4.6-9.2-9C1.3 8 2.6 5 5.6 5c1.9 0 3.1 1.2 3.9 2.3l.4.6.4-.6C11.1 6.2 12.3 5 14.2 5c3 0 4.3 3 2.8 6-2.2 4.4-9 9-9 9z" stroke-linejoin="round"/>
+      </svg>
+      <span class="count">312 public likes</span>
+    </button>
+
+    <span class="spacer"></span>
+    <button type="button" class="print" onclick="window.print()">Print recipe</button>
+  </div>
+
+  <h2>Ingredients</h2>
+  <ul class="ingredients">
+    <li>4 ears fresh corn, husked</li>
+    <li>3 tbsp unsalted butter, melted</li>
+    <li>1 tsp smoked paprika</li>
+    <li>½ tsp chipotle powder</li>
+    <li>Flaky salt and lime, to finish</li>
+  </ul>
+
+  <h2>Method</h2>
+  <ol>
+    <li>Quarter each ear lengthwise through the cob to make four "ribs."</li>
+    <li>Whisk butter with paprika and chipotle; brush over the corn.</li>
+    <li>Char on a hot grill 8–10 minutes, turning, until edges curl and blacken.</li>
+    <li>Finish with flaky salt and a squeeze of lime. Serve hot.</li>
+  </ol>
+</div>
+
+<script>
+  function toggleA(b){
+    const on = b.getAttribute('aria-pressed') === 'true';
+    b.setAttribute('aria-pressed', String(!on));
+    b.querySelector('.count').textContent = on ? 'Saved to my cookbook' : 'In my cookbook (private)';
+  }
+  function toggleB(b){
+    const on = b.getAttribute('aria-pressed') === 'true';
+    b.setAttribute('aria-pressed', String(!on));
+    b.querySelector('.count').textContent = on ? '312 public likes' : '313 public likes — you liked this publicly';
+  }
+</script>
+
+<!--
+  WHY AUTOMATED TOOLS MISS THIS
+  Both buttons have role "button", a non-empty accessible name ("heart"), and a valid aria-pressed
+  state — axe-core button-name, WAVE, and Lighthouse all pass them. axe will NOT flag two buttons
+  that share the same accessible name (duplicate names are legal), and there is no label-in-name
+  conflict to detect. The defect is that the SAME heart glyph and the SAME name "heart" are reused
+  for two genuinely different, consequential actions — a PRIVATE bookmark to one's own cookbook vs.
+  a PUBLIC like attributed to the user. Per the Understanding doc, the same image used in different
+  contexts is only acceptable "if its use is commonly understood in each context"; here a bare heart
+  does NOT disambiguate private-save from public-like, and the identical name "heart" describes the
+  glyph rather than either function. Recognising the ambiguity (and that one of these has a privacy
+  consequence) requires a human to compare the two controls' real behaviours — not something a tool
+  that only checks name presence can do.
+-->
+</body>
+</html>

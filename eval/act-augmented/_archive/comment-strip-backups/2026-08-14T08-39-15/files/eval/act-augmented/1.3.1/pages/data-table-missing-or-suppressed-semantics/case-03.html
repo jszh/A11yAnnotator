@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab Results — Patient Portal</title>
+<style>
+  body { font-family: system-ui, "Segoe UI", Arial, sans-serif; color:#202733;
+         background:#eef1f5; margin:0; }
+  .app { max-width: 860px; margin:0 auto; padding: 26px 18px 60px; }
+  .topbar { display:flex; justify-content:space-between; align-items:center;
+            background:#0e7c66; color:#fff; padding:12px 18px; border-radius:10px; }
+  .topbar .who { font-weight:600; }
+  h1 { font-size:1.4rem; margin: 22px 0 2px; }
+  .meta { color:#5a6577; font-size:.86rem; margin:0 0 20px; }
+
+  /* A React-style data grid built from divs with explicit ARIA table roles.
+     role=table / role=row / role=cell are all present and valid — BUT the first
+     row and first column are role="cell", never role="columnheader"/"rowheader". */
+  .grid { display:grid; grid-template-columns: 1.6fr 1fr 1.3fr 1fr;
+          border:1px solid #cfd6e0; border-radius:10px; overflow:hidden; background:#fff;
+          font-size:.92rem; }
+  .grid [role="cell"] { padding:11px 14px; border-bottom:1px solid #e6eaf0;
+                        border-right:1px solid #e6eaf0; }
+  .grid [role="row"] { display:contents; }
+  /* visual column-header band */
+  .grid [role="row"]:first-child [role="cell"] {
+    background:#e7f4f0; font-weight:700; color:#0e5a4a; border-bottom:2px solid #0e7c66;
+  }
+  /* visual row-header (first column) */
+  .grid [role="row"] [role="cell"]:first-child { font-weight:600; color:#202733; background:#fafcfd; }
+  .grid [role="row"]:first-child [role="cell"]:first-child { background:#e7f4f0; }
+  .flag-high { color:#b3261e; font-weight:700; }
+  .flag-ok { color:#1a7d3c; }
+  .legend { margin-top:16px; font-size:.8rem; color:#5a6577; }
+  .legend strong { color:#b3261e; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar"><span>NorthCare Patient Portal</span><span class="who">A. Demir</span></div>
+
+  <h1>Complete blood count (CBC)</h1>
+  <p class="meta">Collected 2 June, 09:14 &middot; Reported 2 June, 15:40 &middot; Order #LAB-77213</p>
+
+  <div class="grid" role="table" aria-label="Complete blood count results">
+    <div role="row">
+      <div role="cell">Analyte</div>
+      <div role="cell">Result</div>
+      <div role="cell">Reference range</div>
+      <div role="cell">Flag</div>
+    </div>
+    <div role="row">
+      <div role="cell">Haemoglobin (g/dL)</div>
+      <div role="cell">17.9</div>
+      <div role="cell">13.0&ndash;17.0</div>
+      <div role="cell"><span class="flag-high">High</span></div>
+    </div>
+    <div role="row">
+      <div role="cell">White cell count (10&sup3;/&micro;L)</div>
+      <div role="cell">6.2</div>
+      <div role="cell">4.0&ndash;11.0</div>
+      <div role="cell"><span class="flag-ok">Normal</span></div>
+    </div>
+    <div role="row">
+      <div role="cell">Platelets (10&sup3;/&micro;L)</div>
+      <div role="cell">118</div>
+      <div role="cell">150&ndash;400</div>
+      <div role="cell"><span class="flag-high">Low</span></div>
+    </div>
+    <div role="row">
+      <div role="cell">Haematocrit (%)</div>
+      <div role="cell">52.4</div>
+      <div role="cell">38.0&ndash;50.0</div>
+      <div role="cell"><span class="flag-high">High</span></div>
+    </div>
+    <div role="row">
+      <div role="cell">Mean cell volume (fL)</div>
+      <div role="cell">88</div>
+      <div role="cell">80&ndash;100</div>
+      <div role="cell"><span class="flag-ok">Normal</span></div>
+    </div>
+  </div>
+
+  <p class="legend">Results outside the reference range are shown in <strong>red</strong>. Discuss any flagged values with your clinician.</p>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS (F91, ARIA-grid variant):
+    This grid declares role="table" with role="row" and role="cell" throughout, so it
+    IS exposed to the accessibility tree as a table — but it contains NO header cells:
+    not a single role="columnheader" or role="rowheader" (nor any <th>). The visual
+    first row ("Analyte / Result / Reference range / Flag") and the visual first
+    column (the analyte names) function as headers but are marked role="cell".
+    ACT rules a25f45 and d0f69e require a header cell (<th> or columnheader/rowheader)
+    to be applicable, so they return inapplicable. axe will not error: role="cell"
+    inside role="row" inside role="table" is a structurally VALID ARIA table, and axe
+    does not require a columnheader. A screen reader navigating this grid by cell
+    announces "118" with no analyte and no "Result" header — the patient cannot tell
+    that the LOW platelet value belongs to platelets. Recognising that this is genuine
+    clinical data whose cells are meaningless without headers, and that the dev built a
+    headerless ARIA grid, is the human judgment automated tools omit.
+  -->
+</div>
+</body>
+</html>

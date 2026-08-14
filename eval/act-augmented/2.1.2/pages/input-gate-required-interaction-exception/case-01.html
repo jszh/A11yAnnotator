@@ -4,23 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Create your account — Meridian Library</title>
-  <!--
-    WHY AUTOMATED TOOLS MISS THIS (SC 2.1.2 — TT Test 2.b Note, INPUT-GATE EXCEPTION):
-    This page LOOKS like a keyboard trap. The required "email" field installs a keydown
-    handler that swallows the forward-Tab key (preventDefault) while the field does not yet
-    hold a syntactically valid e-mail address, so a keyboard user who tabs while the field
-    is empty/invalid does NOT advance — Tab appears dead. axe-core / WAVE / Lighthouse
-    cannot see this at all: there is no missing attribute, the <input> has a real <label>,
-    a real type, and the markup is well-formed; static scanners never press Tab so they
-    never observe that focus does not move. A naive HUMAN keyboard tester who taps Tab once
-    on the empty field might ALSO wrongly call it a trap.
-    It is NOT a trap and NOT a failure: the moment the user types a valid address by
-    keyboard, the gate releases and forward Tab advances to the password field, the submit
-    button, and the rest of the page. Per the Trusted Tester Note, "If a section of a page
-    requires input or interaction before allowing focus to progress to the rest of the
-    page, this is not a failure." Deciding PASS requires understanding the gate's INTENT and
-    verifying it is keyboard-SATISFIABLE — judgment a tool cannot make.
-  -->
   <style>
     :root { --ink:#1f2530; --muted:#5d6470; --line:#d6dbe2; --brand:#1d6f5c; --bg:#f3f5f7; }
     * { box-sizing: border-box; }
@@ -67,12 +50,6 @@
 
       <div class="row">
         <label for="email">Email address (required)</label>
-        <!--
-          GATE: forward Tab is suppressed ONLY while the value is not a valid e-mail.
-          As soon as a valid address is typed by keyboard, Tab advances normally.
-          The handler does NOT block Shift+Tab (you can always go back), so the user
-          is never stuck — focus is releasable. This is the conformant input-gate.
-        -->
         <input type="email" id="email" name="email" autocomplete="email"
                aria-describedby="email-gate" required>
         <p class="hint">Used as your sign-in name.</p>
@@ -95,15 +72,9 @@
   <footer>Meridian Public Library · 88 Carrow Road · Accessibility statement available on request.</footer>
 
   <script>
-    // ---- Conformant input-gate (TT Test 2.b Note) ----
-    // While the email is not yet valid, forward Tab from the email field is suppressed so
-    // focus is held on the required field. The instant a valid address exists, the gate
-    // releases and Tab moves on. The gate is fully keyboard-satisfiable: the user types a
-    // value with the keyboard and is then free to advance. Shift+Tab is never blocked.
     var email = document.getElementById('email');
     var gate  = document.getElementById('email-gate');
     function valid() {
-      // Native constraint validation = the same rule a browser would apply.
       return email.value.length > 0 && email.checkValidity();
     }
     function refresh() {
@@ -117,8 +88,6 @@
     }
     email.addEventListener('input', refresh);
     email.addEventListener('keydown', function (e) {
-      // Only intercept a PLAIN forward Tab, and only while invalid. Once valid, do nothing
-      // (the browser performs the normal Tab). Shift+Tab is always allowed through.
       if (e.key === 'Tab' && !e.shiftKey && !valid()) {
         e.preventDefault();
         gate.textContent = 'Please enter a valid email address before moving on.';

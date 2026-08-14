@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meridian Analytics — Plan &amp; Billing</title>
+<!--
+  SC 1.4.13 Content on Hover or Focus — HOVERABLE limb — F95 (content shown on
+  hover is not itself hoverable; the pop-up vanishes on the cursor path from the
+  trigger to the content).
+
+  THE DEFECT (geometric + behavioral, not a missing attribute):
+  The "?" help trigger next to "Seat overage" shows a custom tooltip. The tooltip
+  is positioned 30px BELOW the trigger, separated by a fully transparent dead-zone
+  (a 30px tall, empty .gap spacer with no event handlers and pointer-events:none).
+  Show/hide is bound ONLY to the trigger button:
+        trigger.onmouseover -> tip.hidden = false
+        trigger.onmouseout  -> tip.hidden = true
+  The tooltip element itself has NO mouseenter/mouseover handler and is NOT a
+  descendant of the trigger. So the instant the user moves the pointer DOWNWARD to
+  read the tooltip, the pointer leaves the trigger's box, fires mouseout, and the
+  tooltip is hidden before the pointer can ever reach it. There is no continuous
+  pointer path from trigger to content that keeps the content visible.
+
+  This matters for low-vision users under magnification: the tip text ("Seats used
+  beyond your plan are billed at $14/seat/mo, prorated daily") may sit outside the
+  magnified viewport and the user must move the pointer onto it to read it — which
+  is exactly what destroys it here. The Understanding note: the passing arrangement
+  "generally implies that the additional content overlaps or is positioned adjacent
+  to the target." Here it is neither — there is a deliberate transparent gap.
+
+  WHY AUTOMATED TOOLS MISS IT: axe / WAVE / Lighthouse have NO 1.4.13 hoverable
+  check. The markup is impeccable: a real <button> trigger, a span[role=tooltip]
+  with aria-describedby wiring, the tip appears on focus too, visible text has
+  ~16:1 contrast, nothing is hidden from AT. A static scanner sees "tooltip present,
+  toggles hidden on mouseover/mouseout" and reports PASS. Deciding it FAILS requires
+  a human to mentally trace the cursor path from the trigger DOWN across the 30px
+  transparent gap and reason that mouseout fires before the pointer reaches the tip —
+  a spatial + event-handler simulation no static checker performs.
+-->
+<style>
+  :root{ --ink:#13202b; --muted:#5b6b78; --line:#dce3ea; --brand:#0b62d6;
+         --panel:#f6f8fb; --bg:#ffffff; --warn:#8a5a00; }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink);
+       font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  header.top{display:flex; align-items:center; gap:12px; padding:14px 28px; border-bottom:1px solid var(--line);}
+  header.top .brand{font-weight:700;}
+  header.top nav{margin-left:auto; display:flex; gap:18px; font-size:.92rem; color:var(--muted);}
+  main{max-width:760px; margin:0 auto; padding:30px 28px 60px;}
+  h1{font-size:1.55rem; margin:0 0 4px;}
+  .lede{color:var(--muted); margin:0 0 26px;}
+  .card{border:1px solid var(--line); border-radius:12px; padding:20px 22px; margin:0 0 20px;}
+  .card h2{font-size:1.05rem; margin:0 0 14px;}
+  .row{display:flex; justify-content:space-between; align-items:center; padding:9px 0; border-bottom:1px solid var(--line);}
+  .row:last-child{border-bottom:none;}
+  .row .label{display:flex; align-items:center; gap:8px;}
+  .row .amt{font-variant-numeric:tabular-nums; font-weight:600;}
+  .muted{color:var(--muted);}
+
+  /* The help trigger and its tooltip --------------------------------------- */
+  .help-anchor{position:relative; display:inline-flex; align-items:center;}
+  button.help{
+    appearance:none; border:1px solid var(--line); background:var(--panel);
+    color:var(--brand); width:20px; height:20px; border-radius:50%;
+    font:700 12px/1 ui-monospace,monospace; cursor:help; padding:0;
+  }
+  button.help:focus-visible{outline:2px solid var(--brand); outline-offset:2px;}
+
+  /* THE TRANSPARENT DEAD-ZONE: a 30px tall empty spacer between trigger and tip.
+     pointer-events:none so it carries no hover; it just creates physical distance. */
+  .gap{position:absolute; left:0; top:20px; width:1px; height:30px; pointer-events:none;}
+
+  /* The tooltip sits 30px BELOW the trigger (top:50px), NOT adjacent to it. */
+  [role="tooltip"]{
+    position:absolute; left:-10px; top:50px; width:250px;
+    background:#13202b; color:#fff; font-size:.85rem; line-height:1.4;
+    padding:10px 12px; border-radius:8px; box-shadow:0 6px 22px rgba(0,0,0,.22);
+    z-index:5;
+  }
+  [role="tooltip"]::before{ /* little arrow, purely decorative */
+    content:""; position:absolute; left:14px; top:-6px; width:12px; height:12px;
+    background:#13202b; transform:rotate(45deg);
+  }
+  [hidden]{display:none !important;}
+  footer{max-width:760px; margin:0 auto; padding:18px 28px; color:var(--muted); font-size:.82rem; border-top:1px solid var(--line);}
+</style>
+</head>
+<body>
+<header class="top">
+  <span class="brand">Meridian Analytics</span>
+  <nav><span>Dashboard</span><span>Reports</span><span style="color:var(--ink);font-weight:600;">Billing</span></nav>
+</header>
+
+<main>
+  <h1>Plan &amp; Billing</h1>
+  <p class="lede">Team plan, renews 14 Jul 2026. Charges shown are for the current cycle.</p>
+
+  <div class="card">
+    <h2>Current cycle</h2>
+
+    <div class="row">
+      <span class="label">Team plan (25 seats)</span>
+      <span class="amt">$300.00</span>
+    </div>
+
+    <div class="row">
+      <span class="label">
+        Seat overage (3)
+        <span class="help-anchor">
+          <button type="button" class="help" id="ov-trigger"
+                  aria-describedby="ov-tip" aria-label="What is seat overage?">?</button>
+          <span class="gap" aria-hidden="true"></span>
+          <span class="tip" id="ov-tip" role="tooltip" hidden>
+            Seats used beyond your plan are billed at $14/seat/mo, prorated daily.
+            This cycle has 3 overage seats active since 02 Jul.
+          </span>
+        </span>
+      </span>
+      <span class="amt warn" style="color:var(--warn);">$42.00</span>
+    </div>
+
+    <div class="row">
+      <span class="label">Annual discount</span>
+      <span class="amt">&minus;$34.20</span>
+    </div>
+
+    <div class="row">
+      <span class="label" style="font-weight:600;">Total due</span>
+      <span class="amt" style="font-size:1.05rem;">$307.80</span>
+    </div>
+  </div>
+
+  <p class="muted" style="font-size:.9rem;">
+    Hover the <strong>?</strong> beside “Seat overage” to see how overage is calculated.
+  </p>
+</main>
+
+<footer>
+  Meridian Analytics, Inc. &middot; The overage tooltip is shown below the trigger; moving the
+  pointer down to read it crosses an empty gap and the tooltip closes.
+</footer>
+
+<script>
+  // Visibility is bound ONLY to the trigger. The tooltip has no hover handler of
+  // its own and is not a child of the trigger, so the pointer can never travel
+  // onto it: leaving the trigger (downward, toward the tip) fires mouseout first.
+  (function () {
+    var trigger = document.getElementById('ov-trigger');
+    var tip = document.getElementById('ov-tip');
+    trigger.addEventListener('mouseover', function () { tip.hidden = false; });
+    trigger.addEventListener('mouseout',  function () { tip.hidden = true;  });
+    // Appears on focus too (so it is not also a keyboard/2.1.1 failure) — but the
+    // focus path has the same problem: there is no way to hover the content.
+    trigger.addEventListener('focus', function () { tip.hidden = false; });
+    trigger.addEventListener('blur',  function () { tip.hidden = true;  });
+  })();
+</script>
+</body>
+</html>

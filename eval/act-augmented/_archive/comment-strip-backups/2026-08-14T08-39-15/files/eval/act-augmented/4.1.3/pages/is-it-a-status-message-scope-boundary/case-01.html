@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wire Transfer — Confirm Recipient | Halcyon Credit Union</title>
+<!--
+  ASPECT: is-it-a-status-message-scope-boundary
+  INTENDED CLASSIFICATION: inapplicable (N/A)
+  This page surfaces a submit-time ERROR, but it does so inside a real modal
+  dialog (role="dialog", aria-modal="true") that TAKES FOCUS when it opens.
+  Per the WCAG 4.1.3 Understanding "Examples of changes that are not status
+  messages", an error shown in a dialog is a CHANGE OF CONTEXT and is therefore
+  excepted: it does not meet the definition of a status message. The dialog
+  needs NO role=status / aria-live, and the absence of one is NOT a 4.1.3
+  failure. The point of the page is the threshold judgment that PRECEDES every
+  4.1.3 check: does the change even meet the status-message definition?
+-->
+<style>
+  :root { --navy:#10243f; --teal:#0a7d72; --ink:#1b2430; --muted:#5c6675; --line:#e2e7ee; --danger:#b3261e; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Inter","Segoe UI",system-ui,sans-serif; color:var(--ink); background:#eef2f7; }
+  header { background:var(--navy); color:#fff; padding:14px 26px; display:flex; align-items:center; gap:12px; }
+  header .mark { width:30px; height:30px; border-radius:7px; background:var(--teal); display:grid; place-items:center; font-weight:800; }
+  header .acct { margin-left:auto; opacity:.8; font-size:.85rem; }
+  main { max-width:620px; margin:30px auto; background:#fff; border:1px solid var(--line); border-radius:12px; padding:30px 34px; }
+  h1 { font-size:1.35rem; margin:0 0 6px; }
+  .lead { color:var(--muted); margin:0 0 24px; }
+  label { display:block; font-weight:600; font-size:.9rem; margin:18px 0 6px; }
+  input { width:100%; padding:11px 13px; border:1px solid #c2cad6; border-radius:8px; font-size:1rem; }
+  .row { display:flex; gap:16px; }
+  .row > div { flex:1; }
+  .actions { margin-top:28px; display:flex; gap:12px; }
+  button { font:inherit; cursor:pointer; border-radius:8px; padding:12px 22px; border:1px solid transparent; }
+  .primary { background:var(--teal); color:#fff; font-weight:600; }
+  .ghost { background:#fff; border-color:#c2cad6; color:var(--ink); }
+  /* Modal */
+  .scrim { position:fixed; inset:0; background:rgba(16,36,63,.55); display:none; align-items:center; justify-content:center; padding:20px; }
+  .scrim.open { display:flex; }
+  .dialog { background:#fff; max-width:440px; width:100%; border-radius:12px; padding:26px 28px; box-shadow:0 18px 50px rgba(0,0,0,.3); }
+  .dialog h2 { margin:0 0 6px; font-size:1.15rem; display:flex; align-items:center; gap:9px; }
+  .dialog .icon { width:26px; height:26px; flex:0 0 auto; border-radius:50%; background:#fdecea; color:var(--danger); display:grid; place-items:center; font-weight:800; }
+  .dialog p { margin:8px 0 0; color:var(--muted); }
+  .dialog .detail { margin-top:14px; padding:12px 14px; background:#fdecea; border:1px solid #f4c7c3; border-radius:8px; color:#7d1610; font-size:.92rem; }
+  .dialog .dlg-actions { margin-top:22px; display:flex; justify-content:flex-end; gap:10px; }
+  .dialog button:focus-visible, main button:focus-visible, input:focus-visible { outline:3px solid #3a86ff; outline-offset:2px; }
+  footer { max-width:620px; margin:0 auto 50px; color:var(--muted); font-size:.78rem; padding:0 34px; }
+  .why { background:#f4f7fb; border:1px solid var(--line); border-radius:8px; padding:14px 16px; margin-top:22px; font-size:.8rem; color:#41506a; }
+</style>
+</head>
+<body data-intended-classification="inapplicable" data-sc="4.1.3">
+<header>
+  <span class="mark">H</span>
+  <strong>Halcyon Credit Union</strong>
+  <span class="acct">Checking ••6018 · Priya Raghunathan</span>
+</header>
+
+<main>
+  <h1>Send a wire transfer</h1>
+  <p class="lead">Confirm the recipient details before we move your funds. Wires cannot be reversed once sent.</p>
+
+  <form id="wire" novalidate>
+    <label for="payee">Recipient name</label>
+    <input id="payee" name="payee" autocomplete="off" value="Northbridge Roofing LLC">
+
+    <div class="row">
+      <div>
+        <label for="routing">Routing number</label>
+        <input id="routing" name="routing" inputmode="numeric" value="021000021">
+      </div>
+      <div>
+        <label for="account">Account number</label>
+        <input id="account" name="account" inputmode="numeric" value="4471920">
+      </div>
+    </div>
+
+    <label for="amount">Amount (USD)</label>
+    <input id="amount" name="amount" inputmode="decimal" value="8,400.00">
+
+    <div class="actions">
+      <button type="submit" class="primary" id="sendBtn">Review &amp; send</button>
+      <button type="button" class="ghost">Cancel</button>
+    </div>
+  </form>
+
+  <div class="why">
+    Why automated tools cannot judge this page: every checker sees a valid form and a valid
+    <code>role="dialog"</code> with <code>aria-modal="true"</code>. There is no missing attribute, no
+    empty name, no contrast defect. A naive 4.1.3 heuristic ("a message appeared after submit but no
+    <code>role=status</code> / <code>aria-live</code> exists") would FALSELY flag this dialog. Deciding
+    that the error here is exempt requires a human to recognize that the dialog <em>took focus</em> — a
+    change of context that is already announced — so the status-message definition is not met and the SC
+    does not apply. That is a semantic + behavioral call, not a DOM pattern.
+  </div>
+</main>
+
+<footer>
+  Halcyon Credit Union · Federally insured by NCUA · Wire cut-off 3:00 PM ET.
+</footer>
+
+<!-- The error is delivered via a focus-taking modal: a CHANGE OF CONTEXT, excepted from 4.1.3. -->
+<div class="scrim" id="scrim">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlgTitle" aria-describedby="dlgBody" id="dlg">
+    <h2 id="dlgTitle"><span class="icon" aria-hidden="true">!</span> We couldn't send this wire</h2>
+    <p id="dlgBody">Your transfer was not submitted. Please review the details and try again.</p>
+    <div class="detail" id="dlgDetail">
+      The routing number 021000021 belongs to a closed institution. Confirm the recipient's current
+      routing number with them before retrying.
+    </div>
+    <div class="dlg-actions">
+      <button type="button" class="ghost" id="dlgEdit">Edit details</button>
+      <button type="button" class="primary" id="dlgClose">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // On submit we open a MODAL dialog and MOVE FOCUS into it. Because the dialog takes focus,
+  // the error is a "change of context" (WCAG term) and is announced by the screen reader as a
+  // dialog. There is deliberately NO role=status / aria-live anywhere — and that is correct: the
+  // status-message definition is not met, so 4.1.3 does not apply (N/A).
+  var scrim = document.getElementById('scrim');
+  var dlg = document.getElementById('dlg');
+  var sendBtn = document.getElementById('sendBtn');
+  var lastFocused = null;
+
+  document.getElementById('wire').addEventListener('submit', function (e) {
+    e.preventDefault();
+    lastFocused = document.activeElement;
+    scrim.classList.add('open');
+    // Move focus into the dialog -> this is what makes it a change of context.
+    document.getElementById('dlgClose').focus();
+  });
+
+  function closeDialog() {
+    scrim.classList.remove('open');
+    if (lastFocused) lastFocused.focus(); else sendBtn.focus();
+  }
+  document.getElementById('dlgClose').addEventListener('click', closeDialog);
+  document.getElementById('dlgEdit').addEventListener('click', function () {
+    closeDialog();
+    document.getElementById('routing').focus();
+  });
+  // Basic focus trap + Esc, so the dialog behaves like a real modal.
+  document.addEventListener('keydown', function (e) {
+    if (!scrim.classList.contains('open')) return;
+    if (e.key === 'Escape') { closeDialog(); return; }
+    if (e.key === 'Tab') {
+      var f = dlg.querySelectorAll('button');
+      var first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  });
+</script>
+</body>
+</html>

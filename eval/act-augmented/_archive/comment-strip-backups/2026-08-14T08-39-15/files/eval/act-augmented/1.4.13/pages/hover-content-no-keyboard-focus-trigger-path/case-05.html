@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trail Runner GTX — Summit &amp; Pine outdoor gear</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+    background: #fafaf7;
+    color: #20241f;
+  }
+  header { background: #2d3a2e; color: #f1f3ee; padding: 14px 30px; display:flex; align-items:center; gap:10px; }
+  header .leaf { width: 22px; height: 22px; background: #8bbf6a; border-radius: 0 12px 0 12px; }
+  main { max-width: 880px; margin: 30px auto; padding: 0 22px; display: grid; grid-template-columns: 1fr 1fr; gap: 36px; }
+  .gallery {
+    background: #eef1ea; border-radius: 14px; min-height: 320px;
+    display:flex; align-items:center; justify-content:center; color:#9aa794; font-size:14px;
+  }
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  .price { font-size: 22px; font-weight: 800; margin: 4px 0 14px; color:#2d3a2e; }
+  .desc { color: #4d564a; margin: 0 0 20px; font-size: 14.5px; }
+
+  fieldset { border: 0; margin: 0 0 18px; padding: 0; }
+  legend { font-size: 13px; font-weight: 700; color:#3a463b; margin-bottom: 8px; }
+
+  /* Color swatches. Each swatch shows the color name on hover. The name is ALSO
+     printed as a visible <span> right next to the swatch and announced via the
+     radio's <label>, so the hover bubble is purely redundant. */
+  .swatches { display: flex; gap: 14px; flex-wrap: wrap; }
+  .swatch-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .swatch {
+    position: relative;
+    width: 46px; height: 46px; border-radius: 50%;
+    border: 2px solid #cdd3c6; cursor: pointer;
+  }
+  input.swatch-radio { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+  input.swatch-radio:focus-visible + .ring { outline: 3px solid #2d3a2e; outline-offset: 3px; }
+  .ring { position:absolute; inset:0; border-radius:50%; }
+  .swatch-name { font-size: 12.5px; color: #3a463b; }
+
+  .hover-name {
+    position: absolute;
+    bottom: 120%; left: 50%; transform: translateX(-50%);
+    background: #2d3a2e; color: #fff; font-size: 12px;
+    padding: 4px 8px; border-radius: 6px; white-space: nowrap;
+    opacity: 0; visibility: hidden; transition: opacity .1s;
+    pointer-events: none;
+  }
+  .swatch:hover .hover-name { opacity: 1; visibility: visible; }
+
+  .btn { background:#2d3a2e; color:#fff; border:0; border-radius:8px; padding:13px 26px; font-size:15px; font-weight:600; cursor:pointer; }
+</style>
+</head>
+<body>
+  <header><span class="leaf" aria-hidden="true"></span><strong>Summit &amp; Pine</strong></header>
+
+  <main>
+    <div class="gallery" aria-hidden="true">Product photo</div>
+
+    <div>
+      <h1>Trail Runner GTX</h1>
+      <p class="price">$149.00</p>
+      <p class="desc">Waterproof trail shoe with a grippy lug outsole and a breathable
+      GORE-TEX membrane. True to size.</p>
+
+      <form>
+        <fieldset>
+          <legend>Color</legend>
+          <div class="swatches" role="radiogroup" aria-label="Color">
+
+            <span class="swatch-wrap">
+              <span class="swatch" style="background:#3a5f3a;">
+                <input class="swatch-radio" type="radio" name="color" id="c-pine" value="Pine" aria-label="Pine" checked>
+                <span class="ring" aria-hidden="true"></span>
+                <span class="hover-name" aria-hidden="true">Pine</span>
+              </span>
+              <span class="swatch-name" aria-hidden="true">Pine</span>
+            </span>
+
+            <span class="swatch-wrap">
+              <span class="swatch" style="background:#6b4f3a;">
+                <input class="swatch-radio" type="radio" name="color" id="c-bark" value="Bark" aria-label="Bark">
+                <span class="ring" aria-hidden="true"></span>
+                <span class="hover-name" aria-hidden="true">Bark</span>
+              </span>
+              <span class="swatch-name" aria-hidden="true">Bark</span>
+            </span>
+
+            <span class="swatch-wrap">
+              <span class="swatch" style="background:#48566a;">
+                <input class="swatch-radio" type="radio" name="color" id="c-slate" value="Slate" aria-label="Slate">
+                <span class="ring" aria-hidden="true"></span>
+                <span class="hover-name" aria-hidden="true">Slate</span>
+              </span>
+              <span class="swatch-name" aria-hidden="true">Slate</span>
+            </span>
+
+          </div>
+        </fieldset>
+
+        <button type="submit" class="btn">Add to cart</button>
+      </form>
+    </div>
+  </main>
+
+  <!--
+    WHY THIS PASSES 1.4.13 (the redundancy DECOY):
+    Superficially this looks like the same failure as the other pages: a hover-only bubble
+    (.hover-name) appears via "swatch:hover .hover-name" with no focus equivalent, and a tool
+    that merely detected ":hover with no :focus" would flag it. But 1.4.13 is about being able
+    to PERCEIVE the *additional* content. Here the bubble carries NO additional information:
+    the color name is ALREADY (a) printed as a persistent visible <span class="swatch-name">
+    directly under each swatch, and (b) exposed programmatically as the radio's accessible name
+    (aria-label="Pine" etc.). The hover bubble (aria-hidden) merely repeats the visible label.
+    A keyboard user Tabs to a real, focusable radio (with a visible focus ring) and the name is
+    already on screen and in the accessibility tree — nothing is lost when the redundant bubble
+    does not appear. The two-part judgment is: (a) is the hover content meaningful/unique? NO,
+    it is redundant decoration; therefore (b) the missing focus path does not deprive anyone of
+    perceivable content. Correct verdict: PASS — this is NOT a 1.4.13 perceive failure.
+    An automated tool cannot make judgment (a); it would over-report based on the bare
+    ":hover-without-:focus" pattern. Human meaning-assessment is exactly what distinguishes
+    this PASS from the FAIL pages.
+  -->
+</body>
+</html>

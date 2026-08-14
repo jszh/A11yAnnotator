@@ -3,30 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!--
-    SC 2.4.3 — PASS (multiple-valid-orders limb).
-    A campus class-availability picker. The visual grid is a weekly timetable:
-    ROWS are time slots (08:00, 10:00, 13:00, 15:00) and COLUMNS are the five
-    weekdays (Mon-Fri). Each cell is a checkbox "I can attend this section."
-    The student's real task is: "pick my schedule one DAY at a time" — decide
-    everything for Monday, then everything for Tuesday, etc. So tab moves DOWN
-    each day column (all four Monday slots, then all four Tuesday slots, ...).
-
-    Here the column-major order is created with sequential, contiguous tabindex
-    values (10..29) assigned column-first. Unlike F44 (where tabindex scrambles
-    the order so it no longer follows ANY relationship), these tabindex values
-    DO follow a relationship — the by-day grouping — so this is NOT an F44 failure.
-    The Understanding text says either row-at-a-time or column-at-a-time satisfies
-    the SC, and only one valid order need be provided. Verdict: PASS.
-
-    Why automated tools miss it: axe/WAVE/Lighthouse will see positive tabindex
-    and (at most) emit a generic "avoid positive tabindex" best-practice notice —
-    NOT a 2.4.3 failure, and many configs stay silent. They cannot evaluate
-    whether the resulting order "reflects a logical relationship." Telling a valid
-    by-day column order from a meaning-destroying scramble is a human judgment;
-    an over-eager checker that flagged all positive tabindex would mislabel this
-    legitimate pass.
-  -->
   <title>Pick your seminar times — Lakemere University</title>
   <style>
     :root { --ink:#16202b; --muted:#5d6b78; --line:#cfd8e0; --brand:#1f4e79; --accent:#e8f0f8; }
@@ -76,12 +52,6 @@
           </tr>
         </thead>
         <tbody>
-          <!--
-            DOM/visual layout is row-major (each <tr> is a time row).
-            tabindex makes the FOCUS order column-major (by day):
-            Mon column = 10,11,12,13 ; Tue = 14..17 ; Wed = 18..21 ;
-            Thu = 22..25 ; Fri = 26..29. Contiguous + grouped by day = logical.
-          -->
           <tr>
             <th scope="row">08:00</th>
             <td><label>Mon 08:00 <input type="checkbox" name="mon_0800" tabindex="10"><span class="secid">§A1</span></label></td>

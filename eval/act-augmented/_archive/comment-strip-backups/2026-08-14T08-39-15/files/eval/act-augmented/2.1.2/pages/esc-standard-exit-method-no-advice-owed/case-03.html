@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab results entry · Helix Clinical Informatics</title>
+<style>
+  :root { --ink:#16242e; --muted:#5b6b78; --line:#d6dee6; --teal:#0e6e63; --teal-d:#0a5249; --bg:#eef3f4; --grid:#c7d2da; }
+  * { box-sizing: border-box; }
+  body { font: 15px/1.55 "Segoe UI",Roboto,Arial,sans-serif; color: var(--ink); margin: 0; background: var(--bg); }
+  .app { max-width: 880px; margin: 0 auto; padding: 24px 20px 90px; }
+  header.app-bar { display:flex; align-items:center; justify-content:space-between; border-bottom: 2px solid var(--teal); padding-bottom: 12px; }
+  header.app-bar .b { font-weight: 800; color: var(--teal); font-size: 17px; }
+  header.app-bar .who { color: var(--muted); font-size: 13px; }
+  h1 { font-size: 21px; margin: 24px 0 4px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; max-width: 64ch; }
+  a.skip, a.after { color: var(--teal-d); font-weight: 600; }
+
+  .toolbar { display:flex; gap: 10px; margin: 16px 0; }
+  button { font: inherit; cursor: pointer; border-radius: 7px; }
+  .btn { background:#fff; color: var(--teal-d); border: 1px solid var(--line); padding: 9px 14px; font-weight: 600; }
+  .btn:focus-visible { outline: 3px solid #6fb7ad; outline-offset: 2px; }
+
+  .gridwrap { background:#fff; border: 1px solid var(--line); border-radius: 10px; overflow:hidden; }
+  .gridhint { background:#e7f1ef; border-bottom: 1px solid #c8ddd8; padding: 9px 14px; font-size: 13px; color: var(--teal-d); }
+  .gridhint kbd { background:#fff; border: 1px solid #aacfc8; border-bottom-width: 2px; border-radius: 5px; padding: 1px 7px; font-family: inherit; font-weight: 700; }
+  table { border-collapse: collapse; width: 100%; }
+  caption { text-align:left; padding: 10px 14px 4px; font-weight: 700; }
+  th, td { border: 1px solid var(--grid); padding: 0; text-align:left; }
+  th { background:#f1f5f6; padding: 8px 12px; font-size: 13px; color: var(--muted); }
+  td .cell {
+    width: 100%; min-height: 40px; padding: 9px 12px; border: 0; background: transparent;
+    font: inherit; color: var(--ink); display:block;
+  }
+  td .cell:focus { outline: 3px solid var(--teal); outline-offset: -3px; background:#eef6f4; }
+  .after-wrap { margin-top: 22px; display:flex; gap: 12px; align-items:center; }
+
+  .note { margin-top: 46px; padding: 16px 18px; background:#e3edec; border-left: 4px solid var(--teal); border-radius: 8px; font-size: 12.5px; color:#2f4640; }
+  .note code { background:#cfe2de; padding: 1px 5px; border-radius: 4px; }
+  .note kbd { background:#fff; border:1px solid #aacfc8; border-radius: 4px; padding: 0 5px; font-family:inherit; font-weight:700; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="app-bar">
+    <span class="b">Helix Clinical Informatics</span>
+    <span class="who">Order #LR-90233 · Reviewing: Dr. A. Faramawy</span>
+  </header>
+
+  <h1>Lab results entry — Complete Blood Count</h1>
+  <p class="lead">
+    Enter the analyzer values into the result grid below. The grid behaves like a spreadsheet:
+    <strong>Tab and the arrow keys move between cells inside the grid</strong> rather than leaving it,
+    so you can key down a column quickly without your hands leaving the home row.
+  </p>
+
+  <div class="toolbar">
+    <button class="btn" id="loadBtn" type="button">Load analyzer feed</button>
+    <button class="btn" type="button">Flag for re-run</button>
+  </div>
+
+  <div class="gridwrap">
+    <div class="gridhint" id="gridHelp" role="note">
+      You are in the result grid. <kbd>Tab</kbd> and arrow keys move between cells.
+      To leave the grid and return to the page, press <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>G</kbd>.
+    </div>
+    <table id="grid" aria-describedby="gridHelp">
+      <caption>CBC panel — editable result grid</caption>
+      <thead>
+        <tr><th scope="col">Analyte</th><th scope="col">Result</th><th scope="col">Units</th><th scope="col">Reference</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row">WBC</th>
+          <td><span class="cell" role="textbox" contenteditable="true" tabindex="0" aria-label="WBC result"></span></td>
+          <td><span class="cell" role="textbox" contenteditable="true" tabindex="0" aria-label="WBC units">10^3/µL</span></td>
+          <td>4.5–11.0</td>
+        </tr>
+        <tr>
+          <th scope="row">RBC</th>
+          <td><span class="cell" role="textbox" contenteditable="true" tabindex="0" aria-label="RBC result"></span></td>
+          <td><span class="cell" role="textbox" contenteditable="true" tabindex="0" aria-label="RBC units">10^6/µL</span></td>
+          <td>4.2–5.9</td>
+        </tr>
+        <tr>
+          <th scope="row">Hemoglobin</th>
+          <td><span class="cell" role="textbox" contenteditable="true" tabindex="0" aria-label="Hemoglobin result"></span></td>
+          <td><span class="cell" role="textbox" contenteditable="true" tabindex="0" aria-label="Hemoglobin units">g/dL</span></td>
+          <td>13.5–17.5</td>
+        </tr>
+        <tr>
+          <th scope="row">Platelets</th>
+          <td><span class="cell" role="textbox" contenteditable="true" tabindex="0" aria-label="Platelets result"></span></td>
+          <td><span class="cell" role="textbox" contenteditable="true" tabindex="0" aria-label="Platelets units">10^3/µL</span></td>
+          <td>150–400</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="after-wrap">
+    <a class="after" id="signLink" href="#sign">Review &amp; sign off &raquo;</a>
+  </div>
+
+  <aside class="note">
+    <p><strong>Why automated checkers miss this FAIL:</strong> The grid <em>does</em> publish the
+    advice the conditional-pass clause asks for — a visible note (and <code>aria-describedby</code>)
+    says "press <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>G</kbd> to leave the grid." A checker (or a
+    reviewer skimming the DOM) sees a documented non-standard exit and treats the criterion as met.
+    But Tab and the arrows are intercepted to stay inside the grid, Esc does nothing, and the
+    handler that is supposed to honour the advised combo tests
+    <code>e.ctrlKey &amp;&amp; e.altKey &amp;&amp; e.code === 'KeyB'</code> — it matches
+    <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>B</kbd>, not the advertised <kbd>G</kbd>. So the only
+    documented escape never fires, no standard key releases focus, and a keyboard user is genuinely
+    trapped in the cells. Only pressing the named combo and watching focus stay put reveals it; the
+    advice text reads correct and the markup is valid, so tools pass.</p>
+  </aside>
+</div>
+
+<script>
+(function () {
+  var grid = document.getElementById('grid');
+  var cells = Array.prototype.slice.call(grid.querySelectorAll('.cell'));
+  var loadBtn = document.getElementById('loadBtn');
+  var signLink = document.getElementById('signLink');
+
+  // Spreadsheet-style: Tab and arrows move BETWEEN cells and never leave the grid.
+  function indexOfCell(el){ return cells.indexOf(el); }
+  function focusCell(i){ if (i < 0) i = cells.length - 1; if (i >= cells.length) i = 0; cells[i].focus(); }
+
+  grid.addEventListener('keydown', function (e) {
+    var i = indexOfCell(document.activeElement);
+    if (i === -1) return;
+
+    if (e.key === 'Tab') {
+      // Captured: Tab is repurposed to walk cells, so it never moves focus OUT of the grid.
+      e.preventDefault();
+      focusCell(e.shiftKey ? i - 1 : i + 1);
+      return;
+    }
+    if (e.key === 'ArrowDown' || e.key === 'ArrowRight') { e.preventDefault(); focusCell(i + 1); return; }
+    if (e.key === 'ArrowUp'   || e.key === 'ArrowLeft')  { e.preventDefault(); focusCell(i - 1); return; }
+
+    // Esc is also swallowed so it cannot be a fallback standard exit.
+    if (e.key === 'Escape') { e.preventDefault(); return; }
+
+    // DEFECT: the advice tells users to press Ctrl+Alt+G to leave the grid, but the dev wired the
+    // handler to Ctrl+Alt+B (e.code === 'KeyB'). The advertised non-standard exit therefore never
+    // fires. Because Tab/arrows/Esc are all captured, NO keyboard method moves focus away — a trap.
+    if (e.ctrlKey && e.altKey && e.code === 'KeyB') {
+      e.preventDefault();
+      signLink.focus();
+    }
+  });
+
+  // The mouse path works fine (so the bug ships unnoticed): clicking the link leaves the grid.
+  loadBtn.addEventListener('click', function () {
+    cells[0].textContent = '7.8';
+    cells[2].textContent = '4.9';
+    cells[4].textContent = '15.1';
+    cells[6].textContent = '263';
+    cells[0].focus();
+  });
+})();
+</script>
+</body>
+</html>

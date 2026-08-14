@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Birchwood Bakehouse — Follow Us</title>
+<!--
+  WHY THIS DOES NOT APPLY / PASSES (SC 2.4.3 Focus Order):
+  No positive tabindex; no focus-managing JavaScript. The footer holds a row of social
+  media links (Instagram, Facebook, TikTok, Pinterest, YouTube). CSS flexbox `order`
+  rearranges them visually (the DOM order is Facebook, Instagram, TikTok, Pinterest,
+  YouTube; the visual order after `order` is Instagram, Facebook, YouTube, TikTok,
+  Pinterest). So the keyboard Tab order does NOT match the left-to-right visual order.
+  BUT these links are an UNORDERED set: there is no sequence or relationship among
+  "follow us on X" links, so the order in which they receive focus does not affect the
+  meaning or operability of the page. Per the Trusted Tester note, "a row of icons
+  linking to social media may not need to be navigated in a particular order," and the
+  test Does Not Apply / passes. A naive visual-vs-DOM diff would over-flag this; the
+  correct verdict requires recognizing the links are an independent, orderless set.
+-->
+<style>
+  :root { --ink:#2a211b; --brand:#8a5a2b; --line:#ead9c6; --bg:#fbf6ef; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.6 "Helvetica Neue",system-ui,sans-serif; color:var(--ink); background:var(--bg); }
+  header { background:var(--brand); color:#fff; padding:22px 28px; }
+  header h1 { margin:0; font-size:1.5rem; }
+  header p { margin:.3rem 0 0; opacity:.92; font-size:.95rem; }
+  main { max-width:720px; margin:0 auto; padding:34px 28px; }
+  h2 { color:var(--brand); }
+  .hours { background:#fff; border:1px solid var(--line); border-radius:12px;
+           padding:16px 20px; }
+  .hours dt { font-weight:700; } .hours dd { margin:0 0 8px; }
+
+  footer { background:#3a2c20; color:#f3e7d8; margin-top:36px; padding:26px 28px 34px; }
+  footer h2 { color:#f3e7d8; font-size:1.05rem; margin:0 0 4px; }
+  footer p.sub { margin:0 0 14px; font-size:.88rem; opacity:.85; }
+
+  /* Social links: a flex row whose children are reordered visually with `order`.
+     DOM order:    Facebook, Instagram, TikTok, Pinterest, YouTube
+     Visual order: Instagram(1), Facebook(2), YouTube(3), TikTok(4), Pinterest(5)
+     No tabindex/JS => Tab order = DOM order != visual order. But these are an unordered
+     set of "follow us" links, so the order doesn't affect meaning/operation. */
+  .social { display:flex; gap:14px; list-style:none; padding:0; margin:0; }
+  .social li { display:flex; }
+  .social a { display:inline-flex; align-items:center; gap:8px; padding:9px 14px;
+    background:#54402f; color:#f7eede; border-radius:999px; text-decoration:none; font-size:.92rem; }
+  .social a:hover, .social a:focus { background:#6b5139; outline:2px solid #f3e7d8; outline-offset:2px; }
+  .social .ico { font-size:1.1rem; }
+  .s-fb { order:2; } .s-ig { order:1; } .s-tt { order:4; } .s-pin { order:5; } .s-yt { order:3; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Birchwood Bakehouse</h1>
+  <p>Fresh sourdough &amp; pastries · Open Tue–Sun</p>
+</header>
+<main>
+  <h2>Visit us</h2>
+  <dl class="hours">
+    <dt>Tuesday – Friday</dt><dd>7:00 am – 4:00 pm</dd>
+    <dt>Saturday – Sunday</dt><dd>8:00 am – 2:00 pm</dd>
+    <dt>Monday</dt><dd>Closed (baking day)</dd>
+  </dl>
+  <p>Find us at 14 Birch Lane. Pre-orders for whole loaves and celebration cakes are
+     welcome by phone.</p>
+</main>
+
+<!-- VISUAL row (left to right): Instagram, Facebook, YouTube, TikTok, Pinterest.
+     DOM/TAB order: Facebook, Instagram, TikTok, Pinterest, YouTube.
+     These are an unordered set of social links; no sequence or relationship binds them,
+     so the focus-order mismatch does not affect meaning or operation. PASS / DNA. -->
+<footer>
+  <h2>Follow us</h2>
+  <p class="sub">We post the day's bakes each morning. Any order works — pick your favourite.</p>
+  <ul class="social">
+    <li class="s-fb"><a href="https://example.com/birchwood-fb"><span class="ico" aria-hidden="true">▢</span>Facebook</a></li>
+    <li class="s-ig"><a href="https://example.com/birchwood-ig"><span class="ico" aria-hidden="true">◎</span>Instagram</a></li>
+    <li class="s-tt"><a href="https://example.com/birchwood-tt"><span class="ico" aria-hidden="true">♪</span>TikTok</a></li>
+    <li class="s-pin"><a href="https://example.com/birchwood-pin"><span class="ico" aria-hidden="true">⌖</span>Pinterest</a></li>
+    <li class="s-yt"><a href="https://example.com/birchwood-yt"><span class="ico" aria-hidden="true">▷</span>YouTube</a></li>
+  </ul>
+</footer>
+</body>
+</html>

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Draft: "Onboarding checklist" | Quillpad docs</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.6 "SF Pro Text", system-ui, sans-serif; color:#222; background:#fbfbfd; }
+  .bar { display:flex; align-items:center; gap:14px; padding:10px 18px; border-bottom:1px solid #e7e7ee; background:#fff; }
+  .bar .logo { font-weight:800; color:#5b4bd6; }
+  .bar .title { font-weight:600; }
+  .bar .right { margin-left:auto; display:flex; align-items:center; gap:14px; }
+  /* the sync status trigger */
+  .sync {
+    position:relative; display:inline-flex; align-items:center; gap:7px;
+    font-size:14px; color:#5b6675; border:1px solid #e1e4eb; border-radius:8px;
+    padding:6px 11px; background:#fff; cursor:default;
+  }
+  .sync:focus-visible { outline:3px solid #1a73e8; outline-offset:2px; }
+  .sync .ico { width:10px; height:10px; border-radius:50%; background:#9aa3b2; }
+  .sync.busy .ico { background:#f0a500; animation:pulse 1s infinite; }
+  .sync.done .ico { background:#1f9d55; }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.35;} }
+  .detail {
+    position:absolute; right:0; top:135%; width:280px; text-align:left;
+    background:#1f2630; color:#eef1f5; padding:12px 14px; border-radius:9px;
+    font-size:13px; line-height:1.5; box-shadow:0 10px 26px rgba(0,0,0,.3);
+    z-index:20; opacity:0; visibility:hidden; transition:opacity .12s;
+  }
+  .detail.show { opacity:1; visibility:visible; }
+  main { max-width:740px; margin:24px auto; }
+  .doc { background:#fff; border:1px solid #e7e7ee; border-radius:12px; padding:36px 44px; min-height:420px; }
+  .doc h1 { font-size:26px; margin:0 0 14px; }
+  .doc [contenteditable] { outline:none; }
+  .doc li { margin:6px 0; }
+  footer { max-width:740px; margin:14px auto 60px; color:#9aa3b2; font-size:12px; }
+</style>
+</head>
+<body>
+<div class="bar">
+  <span class="logo">Quillpad</span>
+  <span class="title">Onboarding checklist</span>
+  <div class="right">
+    <span class="sync" id="sync" tabindex="0" role="button" aria-describedby="syncDetail" aria-label="Sync status">
+      <span class="ico" aria-hidden="true"></span>
+      <span id="syncLabel">All changes saved</span>
+      <span id="syncDetail" role="tooltip" class="detail">
+        Last synced just now to <strong>Quillpad Cloud</strong>. Your document is encrypted in
+        transit. Offline edits queue automatically and sync when you reconnect.
+      </span>
+    </span>
+  </div>
+</div>
+
+<main>
+  <div class="doc">
+    <h1>New-hire onboarding checklist</h1>
+    <div contenteditable="true" id="editor" aria-label="Document body">
+      <ul>
+        <li>Sign employment paperwork &amp; submit ID for I-9</li>
+        <li>Set up laptop, SSO, and password manager</li>
+        <li>Add yourself to the #team-welcome channel</li>
+        <li>Book a 1:1 with your onboarding buddy this week</li>
+        <li>Complete security &amp; data-handling training (due day 5)</li>
+      </ul>
+      <p>Type here to edit. Watch the sync chip top-right.</p>
+    </div>
+  </div>
+</main>
+
+<footer>Quillpad is a fictional demo editor. Nothing is sent to a server.</footer>
+
+<script>
+  // The sync chip shows a detail popup on hover/focus (hoverable, Esc-dismissible).
+  var chip   = document.getElementById('sync');
+  var label  = document.getElementById('syncLabel');
+  var detail = document.getElementById('syncDetail');
+  var editor = document.getElementById('editor');
+
+  // hover/focus reveal of the detail popup
+  function show(){ detail.classList.add('show'); }
+  function hide(){ detail.classList.remove('show'); }
+  chip.addEventListener('mouseenter', show);
+  chip.addEventListener('mouseleave', hide);
+  chip.addEventListener('focus', show);
+  chip.addEventListener('blur', hide);
+  detail.addEventListener('mouseenter', show);
+  detail.addEventListener('mouseleave', hide);
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape') hide(); });
+
+  // ---- the LEGITIMATE exception: a transient "Saving…" popup whose disappearance
+  //      is the information BECOMING INVALID, not a disallowed timer. ----
+  // While the user is editing, a separate "Saving…" busy popup appears on the chip.
+  // Once the save completes its TEXT changes to "Saved." and THEN it goes away — the
+  // popup disappears precisely because the busy/saving information is no longer true.
+  // This is the 'busy message that is no longer valid' case the Persistent condition
+  // explicitly permits. (The persistent detail tooltip above is unaffected.)
+  var saveTimer = null, doneTimer = null;
+  function markSaving(){
+    chip.classList.add('busy'); chip.classList.remove('done');
+    label.textContent = 'Saving…';
+    clearTimeout(saveTimer); clearTimeout(doneTimer);
+    saveTimer = setTimeout(function(){
+      // the busy information becomes invalid: the save finished
+      chip.classList.remove('busy'); chip.classList.add('done');
+      label.textContent = 'Saved.';                 // semantic change: busy -> done
+      doneTimer = setTimeout(function(){
+        chip.classList.remove('done');
+        label.textContent = 'All changes saved';    // settle back to steady state
+      }, 1500);
+    }, 1200);
+  }
+  editor.addEventListener('input', markSaving);
+</script>
+
+<!--
+  WHY THIS IS A PASS (and why automated tools can't decide it):
+  The chip's detail popup meets all three conditions (hoverable, Esc-dismissible,
+  persistent). The interesting part is the "Saving…" -> "Saved." behavior. A naive
+  reviewer (or a heuristic that flags any timer that hides content) would see a
+  setTimeout that removes text after a delay and call it an auto-dismiss FAIL — the
+  SAME setTimeout-hides-content shape as case-01. But here the disappearance reflects
+  the BUSY information becoming invalid: the save genuinely completed, so "Saving…" is
+  no longer true. The Persistent condition explicitly allows content to end when "the
+  information conveyed by the additional content becomes invalid, such as a 'busy'
+  message that is no longer valid." Telling this PASS apart from case-01's FAIL requires
+  reading the MEANING of the content over time — exactly what axe/WAVE/Lighthouse cannot
+  do, and exactly what a timer-presence check gets wrong.
+-->
+</body>
+</html>

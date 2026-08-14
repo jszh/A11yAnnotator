@@ -4,32 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Reorder — Ferndale Roastery Wholesale Portal</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS (SC 3.3.3 Error Suggestion, Level AA):
-  Post-submit error state on a B2B wholesale reorder line. The "Cases per order"
-  control is a custom spinbutton (role="spinbutton") whose accepted range is fixed at
-  1 to 10 (the min/max live in the aria-valuemin/aria-valuemax AND in the validator
-  comment). The buyer entered 24. The error is identified in text — "Value not
-  allowed." — exposed via aria-describedby and aria-invalid="true", high contrast.
-  SC 3.3.1 passes. axe / WAVE / Lighthouse go green (valid spinbutton role, name,
-  min/max present, message associated).
-
-  THE DEFECT IS SC 3.3.3: the permitted range is plainly knowable — it is literally
-  declared on the very element (aria-valuemin="1" aria-valuemax="10") — yet the human-
-  readable error never mentions it. "Value not allowed." restates that the entry is
-  wrong without telling the user the entry must be between 1 and 10. The correction
-  ("enter a quantity from 1 to 10") is one short clause away and is omitted.
-
-  Subtlety / why this is at the human-judgment boundary: aria-valuemin/valuemax are
-  PROGRAMMATIC range bounds for AT, NOT an error suggestion. A naive reviewer (or an
-  over-eager rule) might assume "the range is exposed, so the user is covered." But the
-  spinbutton bounds describe the control's range in the abstract; after a rejected
-  submit, a screen reader announces the ERROR MESSAGE, which says only "Value not
-  allowed." The user is not re-read the min/max in that moment, and many AT/announcement
-  flows surface the describedby error text, not the valuemin/valuemax. The SC 3.3.3
-  obligation is that the SUGGESTION be provided in the error text; bounds on the widget
-  do not discharge it. A checker cannot make that judgment.
--->
 <style>
   :root{ --ink:#2a211b; --muted:#6f6259; --line:#d9cfc4; --bean:#5a3a22; --crema:#c89b6a; --danger:#a8321f; }
   *{ box-sizing:border-box; }
@@ -81,12 +55,6 @@
           </div>
           <div class="qty">
             <span class="lbl" id="qty-lbl">Cases per order</span>
-            <!--
-              Accepted range is fixed 1..10 (per-line case cap for standing accounts).
-              Validator: const ok = n >= 1 && n <= 10;  Entered value: 24.
-              The bounds are declared on the widget (aria-valuemin/max) but the human-
-              readable error never states the 1..10 range.
-            -->
             <div class="spin" data-invalid="true">
               <button type="button" aria-hidden="true" tabindex="-1">−</button>
               <div class="val" role="spinbutton"

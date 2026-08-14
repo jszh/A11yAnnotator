@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Refill — Cedar Pharmacy / Farmacia Cedar</title>
+<style>
+  :root { --ink:#1c2a25; --muted:#5d6f67; --line:#dde7e1; --rx:#0f7a5a; --rx-dk:#0b5c44; }
+  * { box-sizing:border-box; }
+  body { font-family:"Inter","Segoe UI",Arial,sans-serif; color:var(--ink); margin:0; background:#eef4f1; }
+  header { background:var(--rx-dk); color:#fff; padding:16px 24px; display:flex; align-items:baseline; gap:12px; }
+  header .logo { font-weight:800; letter-spacing:.4px; }
+  header .sub { color:#a9d6c6; font-size:.82rem; }
+  main { max-width:600px; margin:30px auto; background:#fff; border:1px solid var(--line); border-radius:10px; padding:26px 30px; }
+  h1 { font-size:1.35rem; margin:0 0 4px; color:var(--rx-dk); }
+  p.lead { margin:0 0 20px; color:var(--muted); }
+  .rx { border:1px solid var(--line); border-radius:9px; padding:16px 18px; margin-bottom:18px; }
+  .rx .med { font-weight:700; font-size:1.05rem; }
+  .rx .meta { color:var(--muted); font-size:.85rem; margin-top:2px; }
+  .check-btn { background:var(--rx); color:#fff; border:0; padding:12px 20px; border-radius:7px; font-size:1rem; font-weight:600; cursor:pointer; }
+  .check-btn:hover { background:var(--rx-dk); }
+  .check-btn:disabled { background:#a7ccbf; cursor:default; }
+  /* coverage status region */
+  .cov { margin-top:16px; min-height:22px; font-size:.96rem; }
+  .cov .checking { color:#7a5b00; display:inline-flex; align-items:center; gap:9px; }
+  .cov .checking .sp { width:18px; height:18px; border:3px solid #e6dcc4; border-top-color:#d8a200; border-radius:50%; animation:spin .8s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  /* price result — plain element, NOT a status region */
+  .price-out { margin-top:14px; display:none; }
+  .price-out.show { display:block; }
+  .price-out .copay { font-size:1.6rem; font-weight:800; color:var(--rx-dk); }
+  .price-out .note { color:var(--muted); font-size:.85rem; margin-top:2px; }
+  footer { max-width:600px; margin:14px auto 60px; color:#92a39a; font-size:.78rem; }
+  [lang="es"] { font-style:normal; }
+</style>
+</head>
+<body>
+<header>
+  <span class="logo">CEDAR PHARMACY</span>
+  <span class="sub" lang="es">Farmacia Cedar</span>
+</header>
+
+<main>
+  <h1>Refill request</h1>
+  <p class="lead">Confirm your prescription, then check what your plan will cover before you submit.</p>
+
+  <div class="rx">
+    <div class="med">Atorvastatin 20 mg — 90 tablets</div>
+    <div class="meta">Dr. R. Okafor · Last filled Mar 4 · Plan: BlueShield Select PPO</div>
+  </div>
+
+  <button id="check" class="check-btn" type="button">Check my coverage</button>
+
+  <!-- BUSY status lives in a polite live region (correct on entry). -->
+  <div id="cov" class="cov" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- The COVERAGE RESULT (copay + coverage outcome) is plain content, NOT a live region. -->
+  <div id="priceOut" class="price-out">
+    <div class="copay">Your copay: $12.00</div>
+    <div class="note">Covered by BlueShield Select PPO · 88% paid by your plan</div>
+  </div>
+</main>
+
+<footer>Cedar Pharmacy · <span lang="es">Servicio en español disponible</span> · Prices are estimates pending final adjudication.</footer>
+
+<script>
+/*
+  Two-phase coverage lookup:
+  Phase 1 (entry): "Checking insurance coverage…" + spinner injected into #cov, which
+  is role=status / aria-live=polite → announced. Good.
+  Phase 2 (completion): on success we EMPTY #cov (cov.textContent = '') and REVEAL the
+  #priceOut block, which is an ordinary div (no role=status / aria-live). The copay and
+  coverage outcome — clearly a "result of an action" status — are never announced.
+
+  The subtlety vs. a search page: the RESULT here is genuinely a status message in its
+  own right (it reports the success/outcome of the coverage check, exactly like
+  "5 results returned" or "Your form was successfully submitted"), yet it is rendered
+  as plain copy. AND the busy text is removed rather than reused, so the end of the
+  waiting state is also silent.
+
+  For a sighted user, the spinner disappearing + the dollar figure appearing reads as
+  "coverage checked, here's your cost." A screen-reader user hears "Checking insurance
+  coverage…" then nothing — they don't know the check finished, whether the drug is
+  covered, or what they'll pay: a decision-blocking gap on a health/cost page.
+*/
+(function () {
+  var check = document.getElementById('check');
+  var cov = document.getElementById('cov');
+  var priceOut = document.getElementById('priceOut');
+
+  check.addEventListener('click', function () {
+    check.disabled = true;
+    cov.innerHTML = '<span class="checking"><span class="sp" aria-hidden="true"></span>Checking insurance coverage…</span>';
+
+    window.setTimeout(function () {
+      cov.textContent = '';            // busy text removed — silent end-of-wait
+      priceOut.classList.add('show');  // result revealed outside any live region
+      check.disabled = false;
+      check.textContent = 'Re-check coverage';
+    }, 1700);
+  });
+})();
+</script>
+</body>
+</html>

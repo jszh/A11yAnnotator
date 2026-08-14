@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Regional response times — Trailhead Health on-call dashboard</title>
+<style>
+  body { font-family: "Inter", "Helvetica Neue", Arial, sans-serif; margin: 0; background: #f4f6f8; color: #14202b; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 30px 22px 70px; }
+  .top { display: flex; align-items: baseline; gap: 12px; }
+  .top h1 { font-size: 1.4rem; margin: 0; }
+  .top .pill { font-size: .72rem; background: #103a5c; color: #fff; padding: 3px 9px; border-radius: 999px; }
+  p.intro { color: #4c5965; margin: 8px 0 24px; }
+  .card { background: #fff; border-radius: 14px; padding: 24px; box-shadow: 0 2px 8px rgba(20,32,43,.06); }
+  figcaption { font-weight: 700; margin-bottom: 2px; }
+  .sub { color: #4c5965; font-size: .85rem; margin: 0 0 18px; }
+  svg.line { width: 100%; height: 320px; display: block; }
+  .grid { stroke: #e7ebef; stroke-width: 1; }
+  .axt { font-size: 11px; fill: #5a6772; font-family: inherit; }
+  .legend { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 18px; font-size: .85rem; }
+  .legend .key { display: inline-flex; align-items: center; gap: 7px; }
+  .legend .sw { width: 26px; height: 4px; border-radius: 2px; display: inline-block; }
+  .foot { font-size: .78rem; color: #7c8893; margin-top: 20px; border-top: 1px solid #eef1f4; padding-top: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>Mean ambulance response time by region</h1>
+    <span class="pill">Live · on-call</span>
+  </div>
+  <p class="intro">Rolling 12-month mean, Category-2 calls, four regions. Minutes from
+     dispatch to on-scene.</p>
+
+  <section class="card" aria-labelledby="lc-title">
+    <figure>
+      <figcaption id="lc-title">Response time trend, Jul 2025 – Jun 2026</figcaption>
+      <p class="sub">Lower is better. Hover a point on desktop for the exact minute value.</p>
+
+      <!--
+        Four series lines on a WHITE plot area. The line colours are pale tints:
+        #9FC5E8 ~1.8:1, #B6D7A8 ~1.6:1, #F9CB9C ~1.5:1, #D5A6BD ~2.1:1 against
+        white -- ALL below 3:1. The lines are required for understanding (you must
+        trace each line to read its region's trend). A colour-swatch LEGEND is
+        provided, but the legend only maps colour->region NAME; it gives no values
+        and you STILL have to discern the (low-contrast) lines to use it. There is
+        no data table and no per-point values. So the lines remain required for
+        understanding and the chart FAILS 1.4.11. (Contrast a legend that names
+        colours with case-02/05 where the actual VALUES are given as text.)
+      -->
+      <svg class="line" viewBox="0 0 640 320" role="img"
+           aria-label="Line chart of mean ambulance response time across four regions over twelve months.">
+        <rect x="46" y="8" width="586" height="262" fill="#ffffff"/>
+        <!-- horizontal gridlines -->
+        <line class="grid" x1="46" y1="60"  x2="632" y2="60"/>
+        <line class="grid" x1="46" y1="112" x2="632" y2="112"/>
+        <line class="grid" x1="46" y1="164" x2="632" y2="164"/>
+        <line class="grid" x1="46" y1="216" x2="632" y2="216"/>
+        <line class="grid" x1="46" y1="270" x2="632" y2="270"/>
+        <text class="axt" x="40" y="64"  text-anchor="end">25</text>
+        <text class="axt" x="40" y="168" text-anchor="end">15</text>
+        <text class="axt" x="40" y="272" text-anchor="end">5</text>
+        <text class="axt" x="60"  y="288">Jul</text>
+        <text class="axt" x="300" y="288">Dec</text>
+        <text class="axt" x="590" y="288">Jun</text>
+
+        <!-- North (pale blue ~1.8:1) -->
+        <polyline fill="none" stroke="#9FC5E8" stroke-width="3"
+          points="60,150 110,142 160,138 210,148 260,160 310,155 360,150 410,158 460,165 510,170 560,168 600,160"/>
+        <!-- South (pale green ~1.6:1) -->
+        <polyline fill="none" stroke="#B6D7A8" stroke-width="3"
+          points="60,118 110,124 160,130 210,128 260,122 310,118 360,124 410,120 460,116 510,122 560,128 600,124"/>
+        <!-- East (pale orange ~1.5:1) -->
+        <polyline fill="none" stroke="#F9CB9C" stroke-width="3"
+          points="60,196 110,190 160,184 210,178 260,182 310,188 360,182 410,176 460,170 510,166 560,172 600,178"/>
+        <!-- West (pale mauve ~2.1:1) -->
+        <polyline fill="none" stroke="#D5A6BD" stroke-width="3"
+          points="60,90 110,96 160,102 210,98 260,104 310,110 360,106 410,112 460,118 510,114 560,108 600,102"/>
+      </svg>
+
+      <div class="legend" aria-hidden="false">
+        <span class="key"><span class="sw" style="background:#9FC5E8"></span>North</span>
+        <span class="key"><span class="sw" style="background:#B6D7A8"></span>South</span>
+        <span class="key"><span class="sw" style="background:#F9CB9C"></span>East</span>
+        <span class="key"><span class="sw" style="background:#D5A6BD"></span>West</span>
+      </div>
+
+      <p class="foot">
+        Figures are operational estimates pending validation by the regional trust.
+        Category-2 national standard is an 18-minute mean.
+      </p>
+    </figure>
+  </section>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS
+    The SVG is labelled (role=img + aria-label) and the legend is real text, so
+    axe/WAVE/Lighthouse see a labelled chart with a text legend and report nothing.
+    None of them: (a) compute each <polyline> stroke colour against the white plot,
+    (b) decide the lines are "required for understanding" because no per-point values
+    or data table exist, or (c) reason that a legend which only NAMES the colours is
+    NOT equivalent text -- you must still trace the low-contrast lines to use it, and
+    no values are given. Telling "a legend that exempts the graphic (labels + values)"
+    apart from "a legend that merely names the colours" is a meaning-level judgment.
+  -->
+</div>
+</body>
+</html>

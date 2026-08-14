@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cart — Maple &amp; Oak Roastery</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS:
+  This is an APG spinbutton (role="spinbutton", aria-valuemin/valuemax/valuenow,
+  aria-label) wired into a live error region. On an invalid quantity the error is
+  announced via aria-describedby + an aria-live="assertive" status, aria-invalid is set,
+  and contrast/roles are clean. axe / WAVE / Lighthouse confirm: spinbutton role +
+  bounded values present, error programmatically associated, status live. 3.3.1 passes
+  and a "mentions a problem / fix?" heuristic passes ("Enter a valid value" is the
+  default library validity string and reads as instructional).
+  THE DEFECT IS SEMANTIC ADEQUACY (3.3.3): the bounds the field enforces — 1 to 10 — are
+  literally encoded in aria-valuemin="1" and aria-valuemax="10", i.e. the correct range
+  is not just knowable, it is already in the DOM. Yet the error says only "Enter a valid
+  value." — it never states the 1-10 range it is rejecting against. The SECOND product
+  row (the PASS twin) uses the same spinbutton and emits an ADEQUATE message ("Enter a
+  quantity between 1 and 6 — only 6 left in stock."). No checker can judge that one
+  message is content-free filler while the other tells the user exactly what to change;
+  comparing "valid value" against the known 1-10 bound to decide adequacy is a human call.
+-->
+<style>
+  :root{ --ink:#2b211a; --muted:#7a6b5d; --line:#e4d8cb; --bean:#6b3e23; --bean-d:#512d18;
+         --danger:#a5301e; --bg:#faf6f0; --paper:#fff; --focus:#1a5fb4; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font:16px/1.5 Georgia,"Times New Roman",serif; color:var(--ink); background:var(--bg); }
+  header{ background:var(--bean); color:#fff8f0; padding:16px 0; }
+  .wrap{ max-width:720px; margin:0 auto; padding:0 22px; }
+  header .logo{ font-size:1.3rem; font-weight:700; letter-spacing:.5px; }
+  header .logo small{ display:block; font-size:.7rem; font-weight:400; opacity:.85; letter-spacing:2px; }
+  main{ padding:30px 0 60px; }
+  h1{ font-size:1.5rem; margin:0 0 18px; }
+  .row{ display:flex; gap:16px; align-items:flex-start; border:1px solid var(--line);
+        background:var(--paper); border-radius:10px; padding:16px; margin:0 0 18px; }
+  .thumb{ width:64px; height:64px; border-radius:8px; flex:0 0 auto;
+          background:linear-gradient(135deg,#8a5a36,#5a3318); }
+  .meta{ flex:1; }
+  .meta h2{ font-size:1.08rem; margin:0 0 2px; }
+  .meta .price{ color:var(--muted); margin:0 0 10px; font-family:"Segoe UI",Arial,sans-serif; font-size:.92rem; }
+  .qty{ display:flex; align-items:center; gap:8px; font-family:"Segoe UI",Arial,sans-serif; }
+  .qty .step{ width:38px; height:38px; border:1px solid var(--line); background:#fff; border-radius:7px;
+        font-size:1.2rem; line-height:1; cursor:pointer; color:var(--bean); }
+  .qty .step:focus{ outline:3px solid var(--focus); outline-offset:1px; }
+  .spin{ width:64px; height:38px; border:1px solid var(--line); border-radius:7px; text-align:center;
+        font-size:1.05rem; background:#fff; }
+  .spin:focus{ outline:3px solid var(--focus); outline-offset:1px; }
+  .spin[aria-invalid="true"]{ border:2px solid var(--danger); background:#fdf1ef; }
+  .err{ color:var(--danger); font-family:"Segoe UI",Arial,sans-serif; font-size:.86rem;
+        font-weight:600; margin:8px 0 0; }
+  .sub{ background:var(--bean); color:#fff8f0; border:0; border-radius:8px; font-size:1rem;
+        font-weight:700; padding:13px 30px; cursor:pointer; font-family:"Segoe UI",Arial,sans-serif; }
+  .sub:hover{ background:var(--bean-d); }
+  .sub:focus{ outline:3px solid var(--focus); outline-offset:2px; }
+  .sr-only{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+  .foot{ color:var(--muted); font-size:.78rem; margin-top:26px; font-family:"Segoe UI",Arial,sans-serif; }
+</style>
+</head>
+<body>
+  <header><div class="wrap"><div class="logo">Maple &amp; Oak Roastery<small>SMALL-BATCH COFFEE</small></div></div></header>
+  <main>
+    <div class="wrap">
+      <h1>Your cart</h1>
+
+      <!-- DEFECTIVE ROW: spinbutton enforces 1-10; error says only "Enter a valid value." -->
+      <div class="row">
+        <div class="thumb" aria-hidden="true"></div>
+        <div class="meta">
+          <h2>Ethiopia Yirgacheffe — 12 oz</h2>
+          <p class="price">$21.00 each · max 10 per order</p>
+          <div class="qty">
+            <button type="button" class="step" data-for="q1" data-dir="-1" aria-label="Decrease quantity">&minus;</button>
+            <div id="q1" class="spin" role="spinbutton" tabindex="0"
+                 aria-label="Quantity, Ethiopia Yirgacheffe"
+                 aria-valuemin="1" aria-valuemax="10" aria-valuenow="14"
+                 aria-invalid="true" aria-describedby="q1-err">14</div>
+            <button type="button" class="step" data-for="q1" data-dir="1" aria-label="Increase quantity">+</button>
+          </div>
+          <p class="err" id="q1-err">Enter a valid value.</p>
+        </div>
+      </div>
+
+      <!-- PASS-TWIN ROW: same spinbutton component, ADEQUATE message naming the range. -->
+      <div class="row">
+        <div class="thumb" aria-hidden="true"></div>
+        <div class="meta">
+          <h2>Limited: Geisha Reserve — 8 oz</h2>
+          <p class="price">$48.00 each · low stock</p>
+          <div class="qty">
+            <button type="button" class="step" data-for="q2" data-dir="-1" aria-label="Decrease quantity">&minus;</button>
+            <div id="q2" class="spin" role="spinbutton" tabindex="0"
+                 aria-label="Quantity, Geisha Reserve"
+                 aria-valuemin="1" aria-valuemax="6" aria-valuenow="9"
+                 aria-invalid="true" aria-describedby="q2-err">9</div>
+            <button type="button" class="step" data-for="q2" data-dir="1" aria-label="Increase quantity">+</button>
+          </div>
+          <p class="err" id="q2-err">Enter a quantity between 1 and 6 — only 6 left in stock.</p>
+        </div>
+      </div>
+
+      <p class="sr-only" role="status" aria-live="assertive" id="live"></p>
+      <button type="button" class="sub" id="checkout">Proceed to checkout</button>
+      <p class="foot">Demo cart · renders from file:// · no data leaves this page.</p>
+    </div>
+  </main>
+
+<script>
+(function(){
+  function clampMsg(el, errEl, value){
+    var min = +el.getAttribute('aria-valuemin'), max = +el.getAttribute('aria-valuemax');
+    var ok = Number.isInteger(value) && value >= min && value <= max;
+    el.setAttribute('aria-valuenow', value);
+    el.textContent = value;
+    el.setAttribute('aria-invalid', ok ? 'false' : 'true');
+    return ok;
+  }
+  // Stepper buttons mutate the value; the DEFECTIVE row keeps its vague message,
+  // the PASS row keeps its adequate one — wording is the only difference.
+  document.querySelectorAll('.step').forEach(function(b){
+    b.addEventListener('click', function(){
+      var el = document.getElementById(b.dataset.for);
+      var v = (parseInt(el.textContent,10) || 0) + (+b.dataset.dir);
+      var errEl = document.getElementById(el.id + '-err');
+      var ok = clampMsg(el, errEl, v);
+      var live = document.getElementById('live');
+      if (ok) { live.textContent = el.getAttribute('aria-label') + ' set to ' + v + '.'; }
+      else { live.textContent = errEl.textContent; }
+    });
+  });
+  document.getElementById('checkout').addEventListener('click', function(){
+    var q1 = document.getElementById('q1');
+    document.getElementById('live').textContent = q1.getAttribute('aria-invalid') === 'true'
+      ? document.getElementById('q1-err').textContent   // re-announces "Enter a valid value."
+      : 'Order ready.';
+    if (q1.getAttribute('aria-invalid') === 'true') q1.focus();
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Renew Vehicle Registration — State of Ardennes DMV</title>
+<!--
+  SC 2.1.2 — modal-popover-legitimate-containment-vs-trap — case-02 (PASS)
+  This is the conformant modal the ACT corpus never models. A role="dialog"
+  aria-modal="true" overlay cycles Tab among its controls (focus IS restricted to the
+  dialog), BUT the wrap cycle explicitly includes a focusable "Close" button as the
+  final tab stop, AND a working Esc handler closes the dialog and restores focus to the
+  triggering button. The focus restriction is therefore the *legitimate* carve-out: the
+  user always knows how to untrap and leave (Esc, or Tab to Close and activate it).
+  WHY THIS IS THE INSTRUCTIVE PASS: structurally it looks identical to a trap (same
+  role=dialog, same focus cycle). Only by driving the keyboard — confirming Esc works and
+  Close is reachable AND in the cycle AND actually closes — can a human certify it passes.
+  An automated tool can neither confirm the dismiss works nor distinguish it from case-01.
+-->
+<style>
+  :root { font-family: "Public Sans", system-ui, sans-serif; color: #15202b; }
+  body { margin: 0; background: #f4f6f9; }
+  header.gov { background: #1a4480; color: #fff; padding: 10px 26px; }
+  header.gov .agency { font-weight: 700; }
+  header.gov .tag { font-size: .78rem; color: #c4d3e8; display: block; }
+  main { max-width: 780px; margin: 0 auto; padding: 26px; }
+  .trigger {
+    background: #1a4480; color: #fff; border: none; border-radius: 6px;
+    padding: 11px 18px; font-size: .95rem; font-weight: 600; cursor: pointer;
+  }
+  .other-link { color: #1a4480; }
+  .scrim {
+    position: fixed; inset: 0; background: rgba(13,26,42,.5);
+    display: none; align-items: center; justify-content: center;
+  }
+  .scrim.show { display: flex; }
+  .dialog {
+    background: #fff; border-radius: 10px; width: min(460px, 92vw);
+    box-shadow: 0 16px 44px rgba(0,0,0,.3); overflow: hidden;
+  }
+  .dialog header { background: #1a4480; color: #fff; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; }
+  .dialog header h2 { margin: 0; font-size: 1.1rem; }
+  .dialog .x {
+    background: transparent; border: 1px solid rgba(255,255,255,.5); color: #fff;
+    border-radius: 6px; padding: 4px 10px; font-size: 1rem; line-height: 1; cursor: pointer;
+  }
+  .dialog .x:focus-visible { outline: 3px solid #ffd54f; outline-offset: 1px; }
+  .dialog .body { padding: 20px; }
+  .dialog label { display: block; font-weight: 600; margin: 12px 0 5px; font-size: .9rem; }
+  .dialog input {
+    width: 100%; box-sizing: border-box; padding: 9px 11px; border: 1px solid #8a9bb0;
+    border-radius: 6px; font-size: .95rem;
+  }
+  .dialog .foot { padding: 16px 20px; display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid #e2e8f0; }
+  .dialog .foot button { border-radius: 6px; padding: 10px 18px; font-size: .92rem; font-weight: 600; cursor: pointer; }
+  .btn-primary { background: #1a4480; color: #fff; border: none; }
+  .btn-cancel { background: #fff; color: #1a4480; border: 1px solid #1a4480; }
+  .dialog .foot button:focus-visible, .trigger:focus-visible { outline: 3px solid #ffbe2e; outline-offset: 2px; }
+  .hint { font-size: .82rem; color: #4a5b6e; margin-top: 14px; }
+</style>
+</head>
+<body>
+<header class="gov">
+  <span class="agency">State of Ardennes — Department of Motor Vehicles</span>
+  <span class="tag">An official state government service</span>
+</header>
+
+<main>
+  <h1>Renew your vehicle registration</h1>
+  <p>Registration for plate <strong>ARD-4471</strong> expires on 31 August. Renew online in
+     a few minutes.</p>
+  <button class="trigger" id="open-renew">Start renewal</button>
+  <p style="margin-top:22px;">
+    Prefer to renew by mail? <a class="other-link" href="#mail">Download the paper form (PDF)</a>.
+  </p>
+</main>
+
+<!-- Conformant modal: focus IS trapped, but Close is in the cycle and Esc works. -->
+<div class="scrim" id="scrim">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="renew-title" id="dialog">
+    <header>
+      <h2 id="renew-title">Confirm vehicle details</h2>
+      <button class="x" id="close-x" type="button" aria-label="Close dialog">✕</button>
+    </header>
+    <div class="body">
+      <label for="odo">Current odometer reading (miles)</label>
+      <input id="odo" type="text" inputmode="numeric" value="84,210">
+      <label for="email">Email for your renewal confirmation</label>
+      <input id="email" type="email" value="r.okafor@example.com">
+      <p class="hint">Press <kbd>Esc</kbd> to cancel, or use the Cancel button below.</p>
+    </div>
+    <div class="foot">
+      <button class="btn-cancel" id="cancel" type="button">Cancel</button>
+      <button class="btn-primary" id="pay" type="button">Continue to payment</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const scrim   = document.getElementById('scrim');
+  const dialog  = document.getElementById('dialog');
+  const opener  = document.getElementById('open-renew');
+  let lastFocused = null;
+
+  function focusables() {
+    return Array.from(dialog.querySelectorAll(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    )).filter(el => !el.disabled && el.offsetParent !== null);
+  }
+
+  function openDialog() {
+    lastFocused = document.activeElement;
+    scrim.classList.add('show');
+    // Initial focus into the dialog.
+    document.getElementById('odo').focus();
+  }
+
+  function closeDialog() {
+    scrim.classList.remove('show');
+    // Restore focus to the control that opened the dialog.
+    if (lastFocused) lastFocused.focus();
+  }
+
+  opener.addEventListener('click', openDialog);
+  document.getElementById('close-x').addEventListener('click', closeDialog);
+  document.getElementById('cancel').addEventListener('click', closeDialog);
+  document.getElementById('pay').addEventListener('click', closeDialog);
+
+  // Working keyboard exit + a focus cycle that INCLUDES the Close button.
+  dialog.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {             // standard exit method — wired and functional
+      e.preventDefault();
+      closeDialog();
+      return;
+    }
+    if (e.key !== 'Tab') return;
+    const items = focusables();           // includes #close-x, #cancel, #pay (all focusable)
+    const first = items[0];
+    const last  = items[items.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault(); last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault(); first.focus();
+    }
+  });
+</script>
+</body>
+</html>

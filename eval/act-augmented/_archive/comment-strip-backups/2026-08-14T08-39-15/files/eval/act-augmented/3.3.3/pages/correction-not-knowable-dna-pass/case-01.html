@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Start a return — Loomwell Home</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (and why this page PASSES 3.3.3):
+  This page is rendered in its POST-SUBMIT error state. The "Reason for return"
+  textarea is required and was left empty, so the system shows a visible, correctly
+  associated error: "Please tell us your reason for return — this field is required."
+  There is NO specific suggestion for corrected input (no list of allowed values,
+  no "did you mean", no example value). To a naive checker — or to a 3.3.3 rubric
+  that only knows "errors must carry a suggestion" — this looks like a FAIL: an error
+  is detected, but no suggestion is offered.
+
+  IT IS A PASS. 3.3.3 only obliges a suggestion "if suggestions for correction are
+  known." A free-text reason-for-return is genuinely open-ended: the correct value is
+  whatever the customer actually thinks, which the system cannot know or enumerate.
+  The only knowable rule is "must not be empty," and the message states exactly that.
+  No specific suggestion is possible, so the generic message is conformant.
+
+  The judgment an automated tool cannot make: deciding whether a correction is
+  *knowable at all* for this field. axe/WAVE/Lighthouse have no concept of field
+  semantics; they cannot tell this open prose field (suggestion not knowable -> absence
+  is fine) from an enumerable "Month" field (suggestion knowable -> absence is a fail).
+  The gate is a meaning judgment about the nature of the field, not its markup.
+-->
+<style>
+  :root{ --ink:#1d2125; --muted:#5b6670; --line:#d4d9de; --brand:#7a3e1d; --danger:#b42318; --paper:#fff; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font:16px/1.55 "Georgia","Times New Roman",serif; color:var(--ink); background:#f6f1ea; }
+  .wrap{ max-width:620px; margin:36px auto; padding:0 18px; }
+  header.brand{ display:flex; align-items:baseline; gap:10px; margin-bottom:18px; }
+  header.brand strong{ font-family:"Helvetica Neue",Arial,sans-serif; font-size:1.15rem; letter-spacing:.4px; color:var(--brand); }
+  header.brand span{ font-family:"Helvetica Neue",Arial,sans-serif; font-size:.78rem; color:var(--muted); }
+  .card{ background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:28px 28px; }
+  h1{ font-size:1.5rem; margin:0 0 6px; }
+  .lede{ color:var(--muted); margin:0 0 24px; font-size:.96rem; }
+  .order{ font-family:"Helvetica Neue",Arial,sans-serif; font-size:.82rem; color:var(--muted);
+          background:#faf6f0; border:1px solid var(--line); border-radius:8px; padding:10px 12px; margin-bottom:22px; }
+  fieldset{ border:0; margin:0 0 18px; padding:0; }
+  legend{ font-weight:bold; font-size:1rem; margin-bottom:4px; }
+  .field{ margin-bottom:20px; }
+  label{ display:block; font-weight:bold; font-size:.95rem; margin-bottom:6px; font-family:"Helvetica Neue",Arial,sans-serif; }
+  .hint{ color:var(--muted); font-size:.85rem; margin:0 0 8px; font-family:"Helvetica Neue",Arial,sans-serif; }
+  textarea{ width:100%; min-height:120px; padding:11px 12px; font:1rem/1.5 "Helvetica Neue",Arial,sans-serif;
+            border:2px solid var(--line); border-radius:8px; background:#fff; color:var(--ink); resize:vertical; }
+  textarea[aria-invalid="true"]{ border-color:var(--danger); background:#fffafa; }
+  textarea:focus{ outline:2px solid var(--brand); outline-offset:1px; }
+  .err{ display:flex; gap:7px; align-items:flex-start; margin-top:8px; color:var(--danger);
+        font-size:.88rem; font-family:"Helvetica Neue",Arial,sans-serif; }
+  .err svg{ flex:0 0 auto; margin-top:2px; }
+  .pick{ font-family:"Helvetica Neue",Arial,sans-serif; }
+  select{ width:100%; padding:10px 12px; font-size:1rem; border:2px solid var(--line); border-radius:8px; background:#fff; }
+  button{ margin-top:6px; padding:12px 22px; font-size:1rem; font-weight:bold; font-family:"Helvetica Neue",Arial,sans-serif;
+          color:#fff; background:var(--brand); border:0; border-radius:8px; cursor:pointer; }
+  .foot{ margin-top:18px; color:var(--muted); font-size:.8rem; font-family:"Helvetica Neue",Arial,sans-serif; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="brand"><strong>LOOMWELL HOME</strong><span>Returns &amp; exchanges</span></header>
+    <main class="card">
+      <h1>Start a return</h1>
+      <p class="lede">Order #LW-40921 · Linen duvet cover, Sage, King</p>
+
+      <p class="order">We'll email a prepaid label once your request is submitted. Returns accepted within 30 days of delivery.</p>
+
+      <form action="#" method="post" novalidate>
+        <div class="field pick">
+          <label for="cond">Item condition</label>
+          <p class="hint" id="cond-hint">Choose the option that best describes the item.</p>
+          <select id="cond" name="cond" aria-describedby="cond-hint">
+            <option value="unopened" selected>Unopened — packaging intact</option>
+            <option value="opened">Opened — but unused</option>
+            <option value="used">Used / washed</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="reason">Reason for return</label>
+          <p class="hint" id="reason-hint">In your own words, tell us why you're returning this item. This helps us improve our products.</p>
+          <!--
+            REQUIRED FREE-TEXT FIELD, left empty, now in error.
+            The only knowable rule is non-empty. There is no list of valid reasons,
+            no canonical correct sentence, nothing the system could suggest. The
+            generic "this field is required" is the most specific message possible.
+          -->
+          <textarea id="reason" name="reason"
+                    aria-describedby="reason-hint error-reason"
+                    aria-invalid="true"
+                    required
+                    placeholder=""></textarea>
+          <p class="err" id="error-reason">
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+              <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M8 4.2v4.4M8 11.0h.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+            <span>Please tell us your reason for return — this field is required.</span>
+          </p>
+        </div>
+
+        <button type="submit">Submit return request</button>
+        <p class="foot">Need help? Call 1-800-LOOMWELL, Mon–Fri 9–5 ET.</p>
+      </form>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lumen Photos — Albums</title>
+<style>
+  :root { --ink:#1d1d22; --muted:#6b6b76; --accent:#7b4dff; --panel:#ffffff; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"SF Pro Text", system-ui, sans-serif; color:var(--ink); background:#101014; }
+  .app { max-width:1000px; margin:0 auto; min-height:100vh; background:#16161c; color:#e8e8ee; }
+  .topbar { display:flex; align-items:center; gap:14px; padding:14px 22px; border-bottom:1px solid #26262f; }
+  .topbar .brand { font-weight:700; letter-spacing:.3px; }
+  .topbar .album-title { margin-left:6px; color:#b9b9c6; font-weight:600; }
+  .layout { display:grid; grid-template-columns:200px 1fr; }
+  aside { border-right:1px solid #26262f; padding:16px 0; }
+  aside h2 { font-size:.72rem; text-transform:uppercase; letter-spacing:.06em; color:#7c7c8a; padding:0 22px; margin:0 0 8px; }
+  aside ul { list-style:none; margin:0; padding:0; }
+  aside li a { display:block; padding:9px 22px; color:#cdcdd8; text-decoration:none; font-size:.92rem; }
+  aside li.active a { background:#23232d; color:#fff; border-left:3px solid var(--accent); }
+  .gallery { padding:22px; }
+  .gallery h1 { font-size:1.3rem; margin:0 0 16px; }
+  .thumbs { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+  .thumb { aspect-ratio:1/1; border-radius:10px; background:linear-gradient(135deg,#3a3550,#5b4a8c); display:grid; place-items:center; font-size:1.8rem; position:relative; cursor:pointer; }
+  .thumb button.save { position:absolute; bottom:8px; right:8px; border:0; border-radius:6px; padding:6px 10px; background:rgba(255,255,255,.92); color:#1d1d22; font-size:.78rem; font-weight:600; cursor:pointer; }
+  .thumb button.save:focus-visible { outline:3px solid var(--accent); outline-offset:2px; }
+  /* The toast: fixed bottom-center, visually overlapping the album title context */
+  #toast { position:fixed; left:50%; bottom:34px; transform:translateX(-50%); min-width:220px;
+           background:#2b2b36; color:#fff; border:1px solid #3a3a48; border-radius:10px;
+           padding:14px 18px; box-shadow:0 8px 30px rgba(0,0,0,.5); display:flex; align-items:center; gap:10px;
+           opacity:0; pointer-events:none; transition:opacity .2s; font-size:.95rem; }
+  #toast.show { opacity:1; }
+  #toast .ico { color:#5be08a; font-size:1.2rem; }
+  #toast .album { color:#c9b8ff; font-weight:600; }
+  .note { margin:22px; background:#1c1c24; border:1px solid #2c2c38; border-left:4px solid var(--accent); border-radius:8px; padding:16px 18px; font-size:.85rem; color:#c2c2cf; }
+  .note code { background:#26262f; padding:1px 4px; border-radius:4px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <span class="brand">Lumen Photos</span>
+    <span aria-hidden="true" style="color:#4a4a58">/</span>
+    <span class="album-title" id="albumTitle">Wedding</span>
+  </div>
+
+  <div class="layout">
+    <aside aria-label="Albums">
+      <h2>Your albums</h2>
+      <ul>
+        <li><a href="#">Recents</a></li>
+        <li class="active"><a href="#" aria-current="page">Wedding</a></li>
+        <li><a href="#">Iceland 2025</a></li>
+        <li><a href="#">Family</a></li>
+        <li><a href="#">Screenshots</a></li>
+      </ul>
+    </aside>
+
+    <section class="gallery">
+      <h1>Wedding &middot; 38 photos</h1>
+      <div class="thumbs">
+        <div class="thumb">&#128247;<button class="save" onclick="savePhoto()">Save here</button></div>
+        <div class="thumb">&#127881;<button class="save" onclick="savePhoto()">Save here</button></div>
+        <div class="thumb">&#128141;<button class="save" onclick="savePhoto()">Save here</button></div>
+        <div class="thumb">&#127870;<button class="save" onclick="savePhoto()">Save here</button></div>
+        <div class="thumb">&#128144;<button class="save" onclick="savePhoto()">Save here</button></div>
+        <div class="thumb">&#127867;<button class="save" onclick="savePhoto()">Save here</button></div>
+        <div class="thumb">&#128248;<button class="save" onclick="savePhoto()">Save here</button></div>
+        <div class="thumb">&#127746;<button class="save" onclick="savePhoto()">Save here</button></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="note">
+    <strong>Why automated tools pass this page.</strong>
+    The toast is a valid live region — <code>role="status"</code>, <code>aria-live="polite"</code>,
+    <code>aria-atomic="true"</code> — present in the DOM before the action and announced in full on
+    save. The whole string "Saved" is read; nothing is clipped. The defect is that the toast visually
+    shows (and a sighted user reads from the surrounding chrome) that the photo went into the
+    <strong>Wedding</strong> album — the album name is in the top bar and sidebar the toast floats over.
+    The announced status omits the album entirely. axe/WAVE/Lighthouse see a present, correctly-roled,
+    non-empty live region and report nothing, because they cannot judge that "Saved" needs "in 'Wedding'
+    album" to match the visual experience.
+  </div>
+</div>
+
+<!-- Live region present BEFORE the action (so it is not an F103 missing-role case). -->
+<div id="toast" role="status" aria-live="polite" aria-atomic="true">
+  <span class="ico" aria-hidden="true">&#10003;</span>
+  <span id="toastText"></span>
+</div>
+
+<script>
+  var toast = document.getElementById('toast');
+  var toastText = document.getElementById('toastText');
+  function savePhoto() {
+    // The album name ("Wedding") is visible in the top bar + active sidebar item,
+    // and the toast floats over that chrome. But only the bare verb goes to AT.
+    toastText.textContent = 'Saved';
+    toast.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function(){ toast.classList.remove('show'); toastText.textContent=''; }, 3500);
+  }
+</script>
+</body>
+</html>

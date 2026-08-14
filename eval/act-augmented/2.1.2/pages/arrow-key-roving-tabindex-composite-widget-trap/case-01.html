@@ -21,7 +21,6 @@
   }
   .menubtn:focus { outline:3px solid #2f80c8; outline-offset:-2px; }
 
-  /* roving-tabindex menu */
   ul[role="menu"] {
     list-style:none; margin:0; padding:8px; position:absolute; top:54px; left:28px;
     width:280px; background:#fff; border:1px solid var(--line); border-radius:8px;
@@ -125,9 +124,6 @@
     if (menu.classList.contains('open')) { closeMenu(); } else { openMenu(); }
   });
 
-  // Arrow keys move among items (standard composite-widget interaction).
-  // BUG: Tab / Shift+Tab are ALSO captured and preventDefault()'d, so focus can never
-  // leave the menu once it has entered. No documented escape (no Esc handling either).
   menu.addEventListener('keydown', function (e) {
     switch (e.key) {
       case 'ArrowDown':
@@ -147,8 +143,6 @@
         roveTo(items.length - 1);
         break;
       case 'Tab':
-        // The author wanted Tab to "cycle within the menu like the arrows do" and blocked
-        // the browser's default Tab so focus would not "fall out of the dropdown unexpectedly".
         e.preventDefault();
         if (e.shiftKey) {
           roveTo((idx - 1 + items.length) % items.length);
@@ -156,7 +150,6 @@
           roveTo((idx + 1) % items.length);
         }
         break;
-      // NOTE: deliberately no 'Escape' / 'Enter' close handling — there is no exit at all.
     }
   });
 })();

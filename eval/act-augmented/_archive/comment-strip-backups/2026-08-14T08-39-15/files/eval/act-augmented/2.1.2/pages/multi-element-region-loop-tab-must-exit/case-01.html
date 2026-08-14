@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>New This Season — Meadowlark Garden Centre</title>
+<style>
+  :root { --ink:#1d2b1f; --leaf:#2f6b3a; --sand:#f4f1e8; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: "Segoe UI", Tahoma, sans-serif; color:var(--ink); background:var(--sand); }
+  a { color:var(--leaf); }
+  header.site { background:#234b29; color:#fff; padding:14px 24px; display:flex; align-items:center; gap:28px; }
+  header.site .brand { font-weight:700; font-size:1.2rem; letter-spacing:.4px; }
+  header.site nav a { color:#dce8d6; text-decoration:none; font-size:.95rem; }
+  header.site nav a:focus { outline:3px solid #ffd34e; outline-offset:3px; }
+  main { max-width:980px; margin:0 auto; padding:28px 24px 60px; }
+  h1 { font-size:1.6rem; margin:.2em 0 .1em; }
+  .lede { color:#4a5a4c; margin:0 0 24px; max-width:62ch; }
+  .carousel { background:#fff; border:1px solid #d9e0d3; border-radius:12px; padding:18px; }
+  .carousel h2 { margin:.1em 0 .8em; font-size:1.15rem; }
+  .track { display:flex; gap:16px; overflow:hidden; }
+  .card { flex:0 0 178px; border:1px solid #e2e7da; border-radius:10px; padding:12px; background:#fbfdf8; }
+  .card img-ph { display:block; height:96px; border-radius:6px; background:linear-gradient(135deg,#cfe3c4,#aacb96); margin-bottom:10px; }
+  .card .name { font-weight:600; font-size:.98rem; margin:0 0 2px; }
+  .card .price { color:#6b7a6c; font-size:.9rem; margin:0 0 10px; }
+  .card button.add { width:100%; border:0; background:var(--leaf); color:#fff; padding:8px 0; border-radius:6px; cursor:pointer; font-size:.92rem; }
+  .card button.add:focus { outline:3px solid #ffd34e; outline-offset:2px; }
+  footer.site { border-top:1px solid #d9e0d3; margin-top:48px; padding:22px 24px; background:#eef1e7; }
+  footer.site nav { display:flex; gap:22px; flex-wrap:wrap; }
+  footer.site a { color:var(--leaf); text-decoration:none; font-size:.92rem; }
+  footer.site a:focus { outline:3px solid #ffd34e; outline-offset:3px; }
+  .docnote { max-width:980px; margin:24px auto 0; padding:14px 18px; background:#fff8e1; border:1px dashed #d9c98e; border-radius:8px; font-size:.82rem; color:#5a4f2a; }
+</style>
+</head>
+<body>
+<header class="site">
+  <span class="brand">Meadowlark Garden Centre</span>
+  <nav aria-label="Primary">
+    <a href="#plants">Plants</a>
+    <a href="#tools">Tools &amp; Soil</a>
+    <a href="#advice">Growing Advice</a>
+    <a href="#account">My Account</a>
+  </nav>
+</header>
+
+<main>
+  <h1>New This Season</h1>
+  <p class="lede">Hand-picked perennials and patio shrubs that thrive in cooler springs. Browse the
+  featured row, then scroll down for delivery options and our planting guarantee.</p>
+
+  <section class="carousel" aria-roledescription="carousel" aria-label="New this season featured plants">
+    <h2 id="carh">Featured row</h2>
+    <div class="track" role="group" aria-labelledby="carh">
+      <article class="card">
+        <img-ph aria-hidden="true"></img-ph>
+        <p class="name">Coral Bells 'Plum'</p>
+        <p class="price">£8.50</p>
+        <button class="add" data-c="1">Add to basket</button>
+      </article>
+      <article class="card">
+        <img-ph aria-hidden="true"></img-ph>
+        <p class="name">Lavender 'Hidcote'</p>
+        <p class="price">£6.00</p>
+        <button class="add" data-c="2">Add to basket</button>
+      </article>
+      <article class="card">
+        <img-ph aria-hidden="true"></img-ph>
+        <p class="name">Japanese Maple (1L)</p>
+        <p class="price">£18.00</p>
+        <button class="add" data-c="3">Add to basket</button>
+      </article>
+      <article class="card">
+        <img-ph aria-hidden="true"></img-ph>
+        <p class="name">Hellebore 'Snow'</p>
+        <p class="price">£9.25</p>
+        <button class="add" data-c="4">Add to basket</button>
+      </article>
+      <article class="card">
+        <img-ph aria-hidden="true"></img-ph>
+        <p class="name">Hardy Geranium</p>
+        <p class="price">£5.75</p>
+        <button class="add" id="lastCard" data-c="5">Add to basket</button>
+      </article>
+    </div>
+  </section>
+</main>
+
+<footer class="site">
+  <nav aria-label="Footer">
+    <a href="#delivery" id="footerFirst">Delivery &amp; collection</a>
+    <a href="#guarantee">Planting guarantee</a>
+    <a href="#contact">Contact the nursery</a>
+    <a href="#returns">Returns policy</a>
+  </nav>
+</footer>
+
+<p class="docnote"><strong>Why automated tools miss this:</strong> Every control has a name and role,
+the carousel markup is valid, and there is no missing-label/empty-attribute defect. The trap is a
+runtime <code>keydown</code> behaviour on the last card's button that only manifests when a keyboard
+user actually presses Tab on that element — axe/WAVE/Lighthouse never drive the keyboard, so the loop
+back to the first card (and the unreachable footer beyond it) is invisible to them.</p>
+
+<script>
+  // "Keep the user shopping" interaction copied from a carousel plugin demo:
+  // when the last card is focused, Tab is intercepted and focus is sent back to the
+  // first add-to-basket button so the featured row "stays in view". This walls off
+  // everything after the carousel (the footer nav) for keyboard users. NO advice is given.
+  (function () {
+    var addButtons = Array.prototype.slice.call(document.querySelectorAll('.card button.add'));
+    var first = addButtons[0];
+    var last = document.getElementById('lastCard');
+    last.addEventListener('keydown', function (e) {
+      if (e.key === 'Tab' && !e.shiftKey) {
+        e.preventDefault();      // cancel the natural Tab that would reach the footer
+        first.focus();           // wrap back to the first card — internal loop
+      }
+    });
+  })();
+</script>
+</body>
+</html>

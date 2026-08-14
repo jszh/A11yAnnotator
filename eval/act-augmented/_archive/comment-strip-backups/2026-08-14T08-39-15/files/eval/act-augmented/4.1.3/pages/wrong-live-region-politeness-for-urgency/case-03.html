@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StateBenefits Portal — Review your unemployment claim</title>
+<style>
+  body { font:16px/1.6 Verdana,Geneva,sans-serif; color:#16202b; margin:0; background:#eef2f6; }
+  .gov-banner { background:#1b3a5b; color:#fff; font-size:13px; padding:7px 18px; }
+  .shell { max-width:760px; margin:22px auto; background:#fff; border:1px solid #ccd6e0; border-radius:8px; overflow:hidden; }
+  .shell header { padding:18px 26px; border-bottom:4px solid #1b3a5b; }
+  .shell header h1 { margin:0; font-size:21px; color:#1b3a5b; }
+  .progress { font-size:13px; color:#5a6b7b; margin-top:4px; }
+  .body { padding:24px 26px 30px; }
+  .session { background:#f0f4f8; border:1px solid #d4dee8; border-radius:6px; padding:10px 14px; font-size:13.5px; color:#3a4a5a; margin-bottom:22px; }
+  .session strong { color:#1b3a5b; }
+  fieldset { border:1px solid #d4dee8; border-radius:6px; margin:0 0 20px; padding:16px 18px; }
+  legend { font-weight:700; padding:0 6px; color:#1b3a5b; }
+  .terms { max-height:none; font-size:14px; color:#3c4a58; }
+  .terms p { margin:0 0 .9em; }
+  label.ck { display:flex; gap:10px; align-items:flex-start; font-size:15px; margin-top:14px; }
+  .actions { display:flex; gap:12px; margin-top:6px; }
+  button { font:600 15px Verdana,sans-serif; padding:11px 22px; border-radius:6px; border:0; cursor:pointer; }
+  .primary { background:#1b3a5b; color:#fff; }
+  .secondary { background:#fff; color:#1b3a5b; border:1.5px solid #1b3a5b; }
+  .note { background:#fff7e6; border:1px solid #ffe2a8; border-radius:7px; padding:13px 16px; font-size:13px; color:#5b4a16; margin-top:26px; }
+  code { background:#eef1f5; padding:1px 5px; border-radius:4px; font-size:12.5px; }
+</style>
+</head>
+<body>
+<div class="gov-banner">An official State of Maritana government service</div>
+
+<div class="shell">
+  <header>
+    <h1>Review and certify your weekly claim</h1>
+    <p class="progress">Step 4 of 5 · Unemployment Insurance</p>
+  </header>
+
+  <div class="body">
+    <!--
+      THE DEFECT is on #sessionMsg below.
+      A valid live region IS present at load (so "no live region" checkers pass), and a
+      genuinely TIME-CRITICAL message is injected into it: a 30-second session-expiry
+      warning, after which the half-completed certification is discarded. But the region
+      is aria-live="POLITE". Polite queues the warning BEHIND whatever the screen reader
+      is currently reading — and on this page that is a long, verbose certification
+      statement the user must read before checking the box. By the time the polite
+      queue reaches "your session expires in 30 seconds", the session has already
+      expired. A blocking, time-critical countdown must be assertive (or role=alert).
+    -->
+    <div class="session" id="sessionMsg" aria-live="polite" aria-atomic="true">
+      <strong>Secure session active.</strong> For your protection you will be signed out after a period of inactivity.
+    </div>
+
+    <fieldset>
+      <legend>Certification statement</legend>
+      <div class="terms" id="terms">
+        <p>I certify, under penalty of perjury under the laws of the State of Maritana,
+        that all statements I have made on this weekly claim are true and complete to the
+        best of my knowledge. I understand that the law provides penalties, including
+        fines and imprisonment, for knowingly making a false statement or withholding a
+        material fact in order to obtain or increase benefits.</p>
+        <p>I certify that during the week being claimed I was able to work, available for
+        work, and actively seeking work, and that I have reported all earnings from any
+        employment, self-employment, odd jobs, commissions, tips, bonuses, vacation pay,
+        holiday pay, and severance pay received or earned during that week, whether or not
+        payment has yet been made to me.</p>
+        <p>I understand that any benefits paid to me as a result of a false statement,
+        misrepresentation, or concealment of a material fact are subject to recovery, that
+        an administrative penalty of up to thirty percent may be assessed, and that I may
+        be disqualified from receiving future benefits for a period determined by the
+        Department.</p>
+        <p>I acknowledge that I have read, understood, and agree to each of the statements
+        above, and that submitting this certification has the same legal effect as a
+        handwritten signature.</p>
+      </div>
+      <label class="ck">
+        <input type="checkbox" id="agree">
+        <span>I have read and agree to the certification statement above.</span>
+      </label>
+    </fieldset>
+
+    <div class="actions">
+      <button class="primary" type="button">Submit certification</button>
+      <button class="secondary" type="button">Save and finish later</button>
+    </div>
+
+    <div class="note">
+      <strong>Why automated checkers pass this page:</strong> <code>#sessionMsg</code> is
+      a real, non-empty live region present at load with valid
+      <code>aria-live="polite"</code> and <code>aria-atomic="true"</code>. axe / WAVE /
+      Lighthouse confirm the status message can be announced — and <code>polite</code> is
+      a legal value, so nothing fails. Only a human reasoning that a 30-second expiry
+      countdown is <em>time-critical and blocking</em>, and therefore must interrupt
+      (assertive), can catch that it is queued behind a long statement and arrives too
+      late to act on.
+    </div>
+  </div>
+</div>
+
+<script>
+  // The screen reader, on entering this step, begins reading the long #terms
+  // certification statement aloud (the user must read it to check the box). While
+  // that long passage is still being narrated, a time-critical countdown is injected
+  // into the POLITE region — so it is QUEUED behind the statement, not spoken now.
+  var msg = document.getElementById('sessionMsg');
+  var secondsLeft = 30;
+
+  // Simulate the inactivity countdown beginning after the user lands on the step.
+  setTimeout(function tick() {
+    msg.innerHTML = '<strong>Your session expires in ' + secondsLeft +
+      ' seconds.</strong> Choose "Submit certification" or "Save and finish later" now, ' +
+      'or your answers on this page will be discarded and you will be signed out.';
+    secondsLeft -= 10;
+    if (secondsLeft >= 0) {
+      setTimeout(tick, 10000);
+    } else {
+      // Session lost — the polite announcement may not even have reached the user yet.
+      msg.innerHTML = '<strong>Your session has ended.</strong> Your answers on this ' +
+        'page were not saved. Please sign in again.';
+    }
+  }, 1500);
+</script>
+</body>
+</html>

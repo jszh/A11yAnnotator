@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Workspace settings — Lumen Analytics</title>
+<!--
+  WCAG 2.4.10 Section Headings (AAA) — EXPECTED: FAILED
+  Pattern: visual-only section boundaries with no programmatic heading per section.
+
+  The settings page is laid out as FOUR clearly distinct bordered cards
+  (Account, Billing, Notifications, Security). Each card is plainly a separate
+  section to a sighted user — it has a box border, a tinted header strip, and a
+  big bold title. But every card title is a <div class="card-title">, NOT a
+  heading element and NOT role="heading". The only programmatic heading on the
+  page is the single page-level <h1>, which makes axe rule 047fe0
+  (document-has-heading-for-non-repeated-content) PASS.
+
+  WHY AUTOMATED TOOLS MISS IT: nothing here is missing or empty. There is a
+  valid <h1>, every control has a label, contrast is fine. axe/WAVE/Lighthouse
+  cannot infer from a CSS border + tinted strip + 19px/700 type that the four
+  cards are SECTIONS that each need a heading. Perceiving "this is laid out as
+  four headed-looking sections" and then "none of those titles is a heading"
+  is a visual + semantic human judgment. A screen-reader user navigating by
+  heading (H key) jumps straight from the page <h1> to nothing — the four
+  settings groups are invisible to heading navigation.
+-->
+<style>
+  :root{
+    --ink:#1d2230; --muted:#5b6678; --line:#dfe4ec; --bg:#eef1f6;
+    --brand:#3a4ed6; --acct:#3a4ed6; --bill:#0b8a6a; --notif:#b7791f; --sec:#b3261e;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.5 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+  .shell{max-width:960px;margin:0 auto;padding:28px 24px 60px}
+  .topbar{display:flex;align-items:baseline;justify-content:space-between;
+    margin:0 0 6px}
+  h1{font-size:24px;margin:0}
+  .crumbs{color:var(--muted);font-size:13px}
+  .lede{color:var(--muted);margin:0 0 26px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+  /* Each card is unmistakably a distinct section box. */
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;
+    box-shadow:0 1px 2px rgba(20,30,60,.05);overflow:hidden}
+  .card-head{display:flex;align-items:center;gap:10px;
+    padding:14px 18px;border-bottom:1px solid var(--line);background:#f6f8fc}
+  .dot{width:10px;height:10px;border-radius:50%}
+  /* THE DEFECT: the section title is a styled <div>, not a heading. */
+  .card-title{font-size:19px;font-weight:700;letter-spacing:.1px}
+  .card-body{padding:18px}
+  .row{display:flex;justify-content:space-between;align-items:center;
+    padding:10px 0;border-bottom:1px dashed #eceff5}
+  .row:last-child{border-bottom:0}
+  .row .k{color:var(--muted)}
+  .row .v{font-weight:600}
+  label.toggle{display:flex;align-items:center;gap:10px;
+    padding:10px 0;border-bottom:1px dashed #eceff5;cursor:pointer}
+  label.toggle:last-child{border-bottom:0}
+  input[type=checkbox]{width:18px;height:18px}
+  .pill{font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px}
+  .pill.ok{background:#e7f6ef;color:#0b6a51}
+  .pill.warn{background:#fdf2e0;color:#8a5a08}
+  .btn{margin-top:6px;background:var(--brand);color:#fff;border:0;
+    border-radius:8px;padding:9px 16px;font-size:14px;font-weight:600;cursor:pointer}
+  .btn.ghost{background:#fff;color:var(--brand);border:1px solid var(--brand)}
+  a{color:var(--brand)}
+</style>
+</head>
+<body>
+  <main class="shell">
+    <div class="topbar">
+      <h1>Workspace settings</h1>
+      <nav class="crumbs" aria-label="Breadcrumb">Lumen Analytics / Admin / Settings</nav>
+    </div>
+    <p class="lede">Manage your workspace configuration. Changes apply to all members of <strong>Lumen Analytics</strong>.</p>
+
+    <div class="grid">
+
+      <!-- SECTION 1 (visual only) -->
+      <section class="card" aria-label="Account">
+        <div class="card-head">
+          <span class="dot" style="background:var(--acct)"></span>
+          <div class="card-title">Account</div>
+        </div>
+        <div class="card-body">
+          <div class="row"><span class="k">Workspace name</span><span class="v">Lumen Analytics</span></div>
+          <div class="row"><span class="k">Primary owner</span><span class="v">dana@lumen.io</span></div>
+          <div class="row"><span class="k">Plan region</span><span class="v">EU (Frankfurt)</span></div>
+          <div class="row"><span class="k">Members</span><span class="v">38 of 50 seats</span></div>
+          <button class="btn ghost">Edit account details</button>
+        </div>
+      </section>
+
+      <!-- SECTION 2 (visual only) -->
+      <section class="card" aria-label="Billing">
+        <div class="card-head">
+          <span class="dot" style="background:var(--bill)"></span>
+          <div class="card-title">Billing</div>
+        </div>
+        <div class="card-body">
+          <div class="row"><span class="k">Current plan</span><span class="v">Team — $290 / mo</span></div>
+          <div class="row"><span class="k">Next invoice</span><span class="v">Jul 1, 2026</span></div>
+          <div class="row"><span class="k">Payment method</span><span class="v">Visa •••• 4417</span></div>
+          <div class="row"><span class="k">Status</span><span class="pill ok">Paid</span></div>
+          <button class="btn ghost">Manage subscription</button>
+        </div>
+      </section>
+
+      <!-- SECTION 3 (visual only) -->
+      <section class="card" aria-label="Notifications">
+        <div class="card-head">
+          <span class="dot" style="background:var(--notif)"></span>
+          <div class="card-title">Notifications</div>
+        </div>
+        <div class="card-body">
+          <label class="toggle"><input type="checkbox" checked> Weekly usage digest</label>
+          <label class="toggle"><input type="checkbox" checked> Billing receipts</label>
+          <label class="toggle"><input type="checkbox"> Product announcements</label>
+          <label class="toggle"><input type="checkbox" checked> Security alerts</label>
+        </div>
+      </section>
+
+      <!-- SECTION 4 (visual only) -->
+      <section class="card" aria-label="Security">
+        <div class="card-head">
+          <span class="dot" style="background:var(--sec)"></span>
+          <div class="card-title">Security</div>
+        </div>
+        <div class="card-body">
+          <div class="row"><span class="k">Two-factor auth</span><span class="pill ok">Enforced</span></div>
+          <div class="row"><span class="k">SSO (SAML)</span><span class="pill warn">Not configured</span></div>
+          <div class="row"><span class="k">Session timeout</span><span class="v">30 minutes</span></div>
+          <div class="row"><span class="k">Active sessions</span><span class="v">12 devices</span></div>
+          <button class="btn">Review security</button>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</body>
+</html>

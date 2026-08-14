@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 4.1.2 FAILURE (ARIA14 name-quality — accessible name is an asset FILENAME, not a purpose).
+    This is a money-transfer review screen in an online-banking dashboard. The form is
+    submitted by an <input type="image"> styled as a primary "Confirm transfer" button: it
+    renders a forward-arrow glyph on a green pill. The image button's accessible name comes
+    from its alt attribute, which the build pipeline set to the SVG asset's FILENAME —
+    alt="icon_arrow_forward_24dp.svg". That is non-empty and machine-valid, so the ACT rule
+    "Image button has non-empty accessible name" PASSES. But the name a screen reader
+    announces is "icon_arrow_forward_24dp.svg, button" — a path, not the action. For a
+    high-stakes "submit a $1,450 transfer" control, the name fails to identify what
+    activating it DOES.
+    WHY AUTOMATED TOOLS MISS IT: alt is present and non-empty, satisfying every name rule.
+    No rule judges that a filename string is a meaningless name. The control's true purpose
+    is readable only from the visible button text/context ("Confirm transfer of $1,450")
+    and the arrow icon — semantic/visual judgment a scanner cannot perform. Note the visible
+    button caption is rendered with CSS, not in the accessible name, so this is NOT an
+    empty-name lint failure and NOT an F111 visible-label mismatch in the simple sense — the
+    name is simply a non-descriptive filename.
+  -->
+  <title>Review transfer — Northgate Online Banking</title>
+  <style>
+    :root { --ink:#10243e; --muted:#5b6b80; --line:#d7dee8; --brand:#0a7d52; --bg:#f3f6fa; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Inter", "Helvetica Neue", Arial, sans-serif; color:var(--ink); background:var(--bg); }
+    header { background:#0d1f38; color:#fff; padding:14px 28px; display:flex; align-items:center; gap:14px; }
+    header .brand { font-weight:800; letter-spacing:.3px; }
+    header nav { margin-left:auto; font-size:14px; }
+    header nav a { color:#cdd8e6; text-decoration:none; margin-left:20px; }
+    main { max-width:560px; margin:32px auto; background:#fff; border:1px solid var(--line); border-radius:12px; padding:28px 32px 32px; }
+    h1 { font-size:21px; margin:0 0 4px; }
+    .sub { color:var(--muted); margin:0 0 22px; font-size:14px; }
+    dl.review { margin:0 0 26px; }
+    dl.review div { display:flex; justify-content:space-between; padding:11px 0; border-bottom:1px solid var(--line); }
+    dl.review dt { color:var(--muted); font-size:14px; }
+    dl.review dd { margin:0; font-weight:600; font-size:15px; }
+    .amount dd { font-size:20px; color:var(--brand); }
+    form.actions { display:flex; gap:12px; align-items:center; justify-content:flex-end; }
+    a.cancel { color:var(--muted); text-decoration:none; font-size:15px; padding:12px 16px; }
+    /* The image-submit button: a green pill with an arrow glyph + CSS-rendered caption */
+    .confirm-wrap { position:relative; display:inline-flex; align-items:center; }
+    input.confirm {
+      appearance:none; border:0; cursor:pointer;
+      background:var(--brand) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='white'><path d='M12 4l-1.4 1.4L16.2 11H4v2h12.2l-5.6 5.6L12 20l8-8z'/></svg>") no-repeat 142px center / 22px 22px;
+      width:188px; height:48px; border-radius:24px;
+    }
+    input.confirm:focus-visible { outline:3px solid #14b377; outline-offset:2px; }
+    .confirm-caption { position:absolute; left:0; right:34px; text-align:center; color:#fff; font-weight:700; font-size:15px; pointer-events:none; }
+    .note { margin:22px 0 0; font-size:12px; color:var(--muted); }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="brand">Northgate</span>
+    <nav aria-label="Primary">
+      <a href="/accounts">Accounts</a>
+      <a href="/transfers" aria-current="page">Transfers</a>
+      <a href="/payments">Payments</a>
+    </nav>
+  </header>
+
+  <main>
+    <h1>Review your transfer</h1>
+    <p class="sub">Please confirm the details below. This action moves money immediately.</p>
+
+    <dl class="review">
+      <div><dt>From</dt><dd>Everyday Checking ••4821</dd></div>
+      <div><dt>To</dt><dd>M. Okafor — Savings ••0307</dd></div>
+      <div><dt>Date</dt><dd>20 Jun 2026 (today)</dd></div>
+      <div><dt>Memo</dt><dd>June rent split</dd></div>
+      <div class="amount"><dt>Amount</dt><dd>$1,450.00</dd></div>
+    </dl>
+
+    <form class="actions" action="/transfers/execute" method="post">
+      <input type="hidden" name="transfer_id" value="TR-9F3A21">
+      <a class="cancel" href="/transfers">Cancel</a>
+      <span class="confirm-wrap">
+        <!-- Image submit button. Its accessible name = alt = the asset filename. -->
+        <input class="confirm" type="image"
+               alt="icon_arrow_forward_24dp.svg"
+               src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
+               name="confirm">
+        <span class="confirm-caption" aria-hidden="true">Confirm transfer</span>
+      </span>
+    </form>
+
+    <p class="note">Transfers between your linked accounts post instantly and cannot be reversed online.</p>
+  </main>
+</body>
+</html>

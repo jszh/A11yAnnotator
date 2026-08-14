@@ -5,19 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Quarterly Levy Register — Borough of Westmere Treasury</title>
 <style>
-  /*
-    THE DEFECT (human-judgment only):
-    A genuine data table (council levy register, 9 columns) legitimately needs
-    two-dimensional layout — it qualifies for the 1.4.10 exception. BUT the author
-    pinned the WHOLE page body to a fixed minimum width to "make room for the table",
-    so the page heading, the introductory paragraph, the search field, and the
-    pagination — none of which need 2D layout — ALSO overflow a 320px viewport.
-    The exception was over-scoped to the entire document instead of the one table.
-  */
   :root { font-family: Georgia, "Times New Roman", serif; color: #1d1d1f; }
   body {
     margin: 0;
-    /* Over-scoped 2D layout: the body itself cannot reflow below 980px. */
     min-width: 980px;
     background: #f6f4ee;
   }
@@ -26,7 +16,6 @@
   main { padding: 24px 28px 60px; }
   h1 { font-size: 1.6rem; margin: 0 0 8px; }
   .intro { max-width: 70ch; line-height: 1.5; }
-  /* Search row laid out horizontally; it inherits the body's 980px floor. */
   .toolbar {
     display: flex; gap: 12px; align-items: end; margin: 22px 0 14px;
     flex-wrap: nowrap;
@@ -39,7 +28,6 @@
   th, td { border: 1px solid #c8c2b4; padding: 7px 11px; white-space: nowrap; text-align: left; }
   thead th { background: #e7ecf3; position: sticky; top: 0; }
   tbody tr:nth-child(even) { background: #faf8f2; }
-  /* Pagination is a flex row that, with the body floor, also runs off-canvas. */
   nav.pager { display: flex; gap: 6px; margin-top: 18px; align-items: center; }
   nav.pager a, nav.pager span {
     padding: 7px 12px; border: 1px solid #b9b3a4; background: #fff;
@@ -122,15 +110,5 @@
     reported to the Assessor’s Office within 30 days.
   </footer>
 
-  <!--
-    WHY AUTOMATED TOOLS MISS IT:
-    axe-core / WAVE / Lighthouse do not render at 320 CSS px and cannot compute that
-    a non-excepted region overflows. There is no missing/empty attribute here — the
-    table has a caption, scoped headers; the search has a real <label for>; pagination
-    has aria-current and an accessible nav name. The ONLY defect is that `body{min-width:980px}`
-    drags the heading, intro, search and pager off-screen alongside a table that DID
-    qualify for the exception. Distinguishing "the table may 2D-scroll, but the
-    surroundings must reflow" is the irreducible human scoping judgment of 1.4.10.
-  -->
 </body>
 </html>

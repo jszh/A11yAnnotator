@@ -3,34 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!--
-    SC 1.4.5 FAILURE — the "Symbolic text characters" exception applied to text that IS human
-    language.
-
-    The Understanding doc's PASS: a toolbar may use images whose glyphs "do not form a
-    sequence that expresses something in human language" — e.g. "B" for bold, "I" for italic,
-    "ABC" for spell-check. The exception turns on the glyphs being SYMBOLIC, not on the
-    control being a toolbar button.
-
-    Here a developer themed a rich-text editor and decided single letters were "too cryptic
-    for our users," so they replaced the symbolic glyphs with the FULL WORD LABELS — the
-    button faces are images reading "Bold", "Italic", "Underline", "Spell check". Those are
-    English words: a sequence that DOES express something in human language. So the symbolic-
-    character exception does NOT apply; this is ordinary label text rendered as images and it
-    should be live text. The visible words pixelate on zoom and cannot be resized/restyled by
-    users who need a larger or higher-contrast UI font.
-
-    EXTRA HARDNESS: each button has an aria-label equal to the same word, so a screen reader
-    announces "Bold, button" correctly — 1.1.1 / 4.1.2 are MET, which is exactly why an
-    automated tool stays green. The defect is purely 1.4.5: the human-language label is
-    pixels, not adjustable text. A sighted low-vision user who relies on OS font scaling /
-    high-contrast mode loses the labels' legibility; the toolbar text won't reflow or recolour.
-
-    WHY AUTOMATED TOOLS MISS IT: buttons have correct accessible names; there are no
-    contrast/alt/role violations. No tool OCRs the button faces to discover the labels are
-    full words (not symbols), and none can judge that "Bold" expresses human language while a
-    bare "B" glyph is symbolic. That symbolic-vs-language call is the human judgment.
-  -->
   <title>Compose message — Helio Mail</title>
   <style>
     :root { --ink:#1d2330; --muted:#5c6577; --line:#dfe4ee; --bg:#f3f5fa; --accent:#2557d6; --btn:#ffffff; }
@@ -58,13 +30,6 @@
     <div class="field"><label for="to">To</label><input id="to" type="email" value="team@example.com"></div>
     <div class="field"><label for="subj">Subject</label><input id="subj" type="text" value="Q3 planning notes"></div>
 
-    <!--
-      THE VIOLATION: the toolbar button faces are IMAGES of the FULL WORD LABELS
-      "Bold", "Italic", "Underline", "Spell check" — human-language text rendered as pixels.
-      This is NOT a symbolic-character case. Each button's aria-label matches the word, so AT
-      announces it correctly and 1.1.1/4.1.2 pass — but the visible label is an un-adjustable
-      raster, failing 1.4.5.
-    -->
     <div class="toolbar" role="toolbar" aria-label="Text formatting">
       <button type="button" aria-label="Bold">
         <img alt="" width="48" height="18"

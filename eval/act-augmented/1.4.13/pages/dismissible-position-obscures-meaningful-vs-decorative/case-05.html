@@ -4,33 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>14 Marsh Wren Lane — For Sale | Tidewater Homes</title>
-<!--
-  SC 1.4.13 Dismissible — the LARGE-TRIGGER nuance (FAIL, but Method 1 is NOT the cure).
-
-  The trigger here is a LARGE hero card (the whole "Walk Score / Commute" hero tile is the
-  hover/focus trigger). On hover/focus it reveals an explainer popover.
-
-  The author tried to satisfy Method 1 by positioning the popover FAR BELOW the giant
-  trigger so it "doesn't overlap the trigger." But because the trigger is large, the
-  popover now appears well away from where the user is looking/pointing, AND it lands on
-  top of the listing's information-bearing "Monthly cost estimate" breakdown (principal,
-  interest, taxes, HOA). Two problems compound:
-
-    1. Discoverability: the Understanding says that for a LARGE trigger, content appearing
-       AWAY from the trigger may not be noticed — "only the second method may be
-       appropriate." So moving content away to avoid overlap is itself the wrong fix here.
-    2. The relocated popover still obscures meaningful content (the cost breakdown), so the
-       "non-obscuring" Method 1 isn't even achieved.
-
-  And there is NO Esc / dismiss mechanism (Method 2), which is precisely the method the
-  Understanding says SHOULD be used for a large trigger. So the page FAILS Dismissible.
-
-  WHY AUTOMATED TOOLS MISS IT: the markup is valid (real <button> wrapping the hero,
-  role="tooltip", aria-describedby, focus styles, passing contrast). No tool can reason
-  that "trigger is large -> away-positioning harms discoverability -> Method 2 was
-  required -> and Method 2 is absent." That trigger-size-vs-method reasoning, plus seeing
-  that the relocated popover lands on the cost table, is human visual + semantic judgment.
--->
 <style>
   * { box-sizing:border-box; }
   body { margin:0; background:#f4f6f8; color:#1b2733;
@@ -45,12 +18,11 @@
   .grid { display:grid; grid-template-columns:1fr 320px; gap:26px; align-items:start; }
   @media (max-width:760px){ .grid{ grid-template-columns:1fr; } }
 
-  /* ---- LARGE hero trigger ---- */
   .hero-trigger {
     display:block; width:100%; text-align:left;
     border:1px solid #cdd8e1; border-radius:14px; background:#fff;
     padding:22px 24px; cursor:pointer; font:inherit; color:inherit;
-    position:relative;            /* anchors the popover */
+    position:relative;            
   }
   .hero-trigger:focus-visible { outline:3px solid #1f6fd6; outline-offset:3px; }
   .hero-trigger .big { font-size:46px; font-weight:800; color:#13344f; line-height:1; }
@@ -59,14 +31,11 @@
   .hero-trigger .scores div span { display:block; font-size:22px; font-weight:700; color:#13344f; }
   .hint { font-size:12px; color:#8295a4; margin-top:14px; }
 
-  /* The popover is pushed AWAY from the large trigger (to its right, into the next column),
-     so it does not overlap the trigger — but it now lands squarely on the "Monthly cost
-     estimate" breakdown and appears far from where the user is looking/pointing. */
   .hero-trigger .pop {
     display:none;
     position:absolute;
-    top:54px;                          /* aligns with the cost-table rows */
-    left:calc(100% + 26px);            /* jumps the 26px grid gap into the cost column */
+    top:54px;                          
+    left:calc(100% + 26px);            
     width:316px; max-width:90vw;
     background:#0c2a40; color:#eaf2f8;
     border-radius:12px; padding:14px 16px;
@@ -95,7 +64,6 @@
     <p class="price">$465,000</p>
 
     <div class="grid">
-      <!-- LARGE trigger: the entire Walk Score hero is the hover/focus trigger -->
       <button type="button" class="hero-trigger" aria-describedby="ws-pop">
         <div class="big">88</div>
         <div class="lab">Walk Score</div>
@@ -130,11 +98,7 @@
   </main>
 
   <script>
-    // No Escape handler and no close button anywhere. For a LARGE trigger the Understanding
-    // says Method 2 (dismiss, e.g. Esc) is the appropriate method — and it is absent. The
-    // author's attempt at Method 1 (push the popover far away) both harms discoverability
-    // and still overlaps the cost table, so Method 1 is not achieved either.
-    document.addEventListener('keydown', function () { /* intentionally no dismiss path */ });
+    document.addEventListener('keydown', function () {   });
   </script>
 </body>
 </html>

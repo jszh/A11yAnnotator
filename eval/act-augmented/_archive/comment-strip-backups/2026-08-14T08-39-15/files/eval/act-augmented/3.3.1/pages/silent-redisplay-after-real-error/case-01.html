@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--
+  PAGE STATE: This is the POST-SUBMIT result page for a city facility-booking request. The
+  applicant filled in the "Reserve a community-hall slot" form and pressed "Submit request".
+  The SERVER ran its booking rules, found that the requested Event date (2019-03-02) is in the
+  PAST — the printed rule on the form is "Bookings must be made at least 14 days in advance" —
+  and BOUNCED the request back. The typed values are retained (the server re-populated the
+  fields). There is NO error text anywhere. The form simply re-appeared under a heading that
+  reads like a result ("Request logged"). That is the F-pattern the Understanding warns about:
+  "re-display the form without providing any hint that the submission failed."
+
+  DELIBERATE: there is NO programmatic signal of the error, for AT or for a checker.
+  - The date is a plain <input type="text"> holding the string "2019-03-02". It has NO min/max,
+    NO required, NO pattern. "2019-03-02" is a structurally legal value, so the browser computes
+    element.validity.valid === true and does NOT apply :invalid. The AX tree carries invalid="false".
+  - NO field on this form has a required / min / max / type=email / pattern constraint, so the
+    browser's constraint-validation never fires and NO field is computed :invalid. A screen reader
+    announces every field as a normal, valid text box. There is genuinely no signal — not "weak"
+    signal, none — that a real error occurred.
+  The only evidence the request failed is SEMANTIC: a human must read "Event date 2019-03-02"
+  against the printed "at least 14 days in advance" rule (and know today's date) to realise the
+  date is years in the past and the booking cannot have succeeded. That is the birth-date-in-the-
+  future class of input error the Understanding lists by example.
+
+  WHY AUTOMATED TOOLS MISS THIS: axe / WAVE / Lighthouse see a perfectly well-formed form — every
+  input has a real <label for>, the markup is valid, nothing is empty or missing an accessible
+  name, contrast is fine, and there is no error markup to be malformed. A static scanner has no
+  concept of "this page is the AFTERMATH of a failed submission", cannot read today's date, and
+  cannot judge that a past date violates a 14-day-lead rule stated in prose. With no error element
+  on the page, the 3.3.1 branch is a vacuous pass (ACT Passed Example 3 shape). Only a human who
+  reads the page-state cues — the "Request logged" heading vs. the retained out-of-range past date
+  — can infer a real error occurred and is being suppressed.
+-->
+<title>Request logged — Glenmore City facility booking</title>
+<style>
+  :root { --ink:#1d2330; --muted:#5b6472; --line:#dde1e7; --brand:#2a4d8f; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Segoe UI",system-ui,sans-serif; color:var(--ink); background:#eef1f4; }
+  header { background:var(--brand); color:#fff; padding:14px 22px; display:flex; align-items:center; gap:10px; }
+  header .mark { width:26px; height:26px; border-radius:6px; background:#fff; color:var(--brand); display:grid; place-items:center; font-weight:800; }
+  nav.crumbs { max-width:680px; margin:18px auto 0; padding:0 22px; font-size:.82rem; color:var(--muted); }
+  nav.crumbs a { color:var(--muted); }
+  main { max-width:680px; margin:10px auto 40px; background:#fff; border:1px solid var(--line); border-radius:10px; padding:26px 30px; }
+  h1 { font-size:1.45rem; margin:0 0 6px; }
+  .lead { color:var(--muted); margin:0 0 22px; }
+  .rule { background:#f4f6f9; border:1px solid var(--line); border-radius:8px; padding:11px 14px; font-size:.86rem; color:var(--muted); margin:0 0 22px; }
+  .field { margin:0 0 18px; }
+  label { display:block; font-weight:600; margin-bottom:5px; }
+  input[type=text] { width:100%; padding:9px 11px; border:1px solid #b9c0c8; border-radius:6px; font-size:1rem; }
+  .hint { color:var(--muted); font-size:.82rem; margin-top:4px; }
+  .actions { margin-top:8px; }
+  button.primary { background:var(--brand); color:#fff; border:0; border-radius:6px; padding:10px 18px; font-size:1rem; cursor:pointer; }
+  footer { max-width:680px; margin:0 auto 40px; color:var(--muted); font-size:.78rem; padding:0 30px; }
+</style>
+</head>
+<body>
+<header>
+  <span class="mark">G</span>
+  <strong>City of Glenmore — Parks &amp; Facilities</strong>
+</header>
+
+<nav class="crumbs" aria-label="Breadcrumb">
+  <a href="#">Home</a> &rsaquo; <a href="#">Book a facility</a> &rsaquo; <span aria-current="page">Confirmation</span>
+</nav>
+
+<main>
+  <!-- The heading and lead read like a RESULT page. They imply the request went through.
+       In reality the server rejected it (date in the past) and sent the form back unchanged. -->
+  <h1>Request logged</h1>
+  <p class="lead">Thanks &mdash; here are the details we have for your community-hall reservation.</p>
+
+  <!-- The rule the typed date violates is printed right here, in prose, as a plain instruction. -->
+  <p class="rule">Booking policy: requests must be made <strong>at least 14 days in advance</strong> of the event date.</p>
+
+  <!-- A plain text form. NOTHING here carries a browser constraint:
+       no required, no min/max, no type=email, no pattern. Every field is a legal text box. -->
+  <form action="/facilities/book" method="post" novalidate>
+    <div class="field">
+      <label for="applicant">Your name</label>
+      <input type="text" id="applicant" name="applicant" value="Marcus Adeyemi" autocomplete="name">
+    </div>
+
+    <div class="field">
+      <label for="facility">Facility</label>
+      <input type="text" id="facility" name="facility" value="Riverside Community Hall — Main Room">
+    </div>
+
+    <div class="field">
+      <!-- The error lives ENTIRELY in the meaning of this value. "2019-03-02" is a perfectly
+           legal string, the input has no min/max, so validity.valid is true and AT hears a
+           normal text box. Only a human who reads the date against the 14-day rule (and knows
+           today's date) can see the request is years in the past and cannot have been booked. -->
+      <label for="evdate">Event date (YYYY-MM-DD)</label>
+      <input type="text" id="evdate" name="evdate" value="2019-03-02" inputmode="numeric">
+      <p class="hint" id="evdate-hint">Enter the date of your event.</p>
+    </div>
+
+    <div class="field">
+      <label for="attendees">Estimated attendees</label>
+      <input type="text" id="attendees" name="attendees" value="60" inputmode="numeric">
+    </div>
+
+    <div class="actions">
+      <button type="submit" class="primary">Submit request</button>
+    </div>
+  </form>
+</main>
+
+<footer>
+  City of Glenmore · Parks &amp; Facilities · 22 Civic Plaza · (555) 0172
+</footer>
+</body>
+</html>

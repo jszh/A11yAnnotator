@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Checkout — payment details · Northwind Tickets</title>
+<style>
+  :root { --ink:#13202e; --muted:#5b6675; --line:#d4dae2; --brand:#0b5; --accent:#0a6cff; }
+  * { box-sizing:border-box; }
+  body { font-family:"Helvetica Neue",system-ui,-apple-system,sans-serif; color:var(--ink);
+         background:#eef1f5; margin:0; padding:36px 16px; }
+  .card { max-width:620px; margin:0 auto; background:#fff; border:1px solid var(--line);
+          border-radius:14px; padding:28px 32px 34px; box-shadow:0 2px 10px rgba(19,32,46,.08); }
+  .brandbar { display:flex; align-items:center; gap:9px; margin:0 0 4px; }
+  .brandbar .dot { width:22px; height:22px; border-radius:6px; background:var(--accent); }
+  .brandbar strong { font-size:.9rem; letter-spacing:.02em; color:var(--accent); }
+  h1 { font-size:1.28rem; margin:14px 0 4px; }
+  .lede { color:var(--muted); font-size:.86rem; margin:0 0 24px; }
+
+  label { display:block; font-weight:600; font-size:.83rem; margin:0 0 6px; }
+  input { width:100%; font-size:.95rem; padding:10px 12px; border:1px solid var(--line);
+          border-radius:8px; background:#fff; }
+  .field { margin:0 0 18px; }
+
+  /* The card number field spans full width; below it sits the expiry + security-code row.
+     A developer wanted the CVC format note ("3 digits on the back; 4 on the front for Amex")
+     to look like a tidy footnote, so they pulled it out of normal flow with position:absolute
+     and nudged it to the LEFT edge of the form. On screen that parks the note directly UNDER
+     the full-width Card number field — visually reading as the Card number's instruction —
+     while the Security code field it actually describes is up and to the right with nothing
+     beneath it. Source order and aria-describedby still tie the note to the CVC input. */
+  .pay-row { display:flex; gap:16px; margin:0 0 18px; position:relative; padding-bottom:72px; }
+  .pay-row .field { flex:1 1 0; margin:0; }
+
+  /* The note is pulled out of flow and pinned to the lower-LEFT of the row, so it paints in the
+     empty band beneath the inputs, left-aligned under the full-width Card number field above. */
+  .cvc-note { position:absolute; left:0; bottom:0; width:55%;
+              font-size:.8rem; color:var(--muted); line-height:1.4; margin:0; }
+
+  .actions { margin-top:8px; padding-top:20px; border-top:1px solid var(--line); }
+  .pay-btn { background:var(--brand); color:#fff; border:0; border-radius:9px; font-weight:700;
+             font-size:.96rem; padding:12px 28px; cursor:pointer; }
+  .micro { color:var(--muted); font-size:.75rem; margin-top:14px; }
+</style>
+</head>
+<body>
+  <main class="card">
+    <div class="brandbar"><span class="dot" aria-hidden="true"></span><strong>Northwind Tickets</strong></div>
+    <h1>Payment details</h1>
+    <p class="lede">Step 3 of 3 — enter the card you&rsquo;d like to charge. Your order total is $148.00.</p>
+
+    <form action="#" novalidate>
+      <div class="field">
+        <label for="card">Card number</label>
+        <input id="card" name="card" type="text" inputmode="numeric" autocomplete="cc-number">
+      </div>
+
+      <div class="pay-row">
+        <div class="field">
+          <label for="exp">Expiry (MM/YY)</label>
+          <input id="exp" name="exp" type="text" inputmode="numeric" autocomplete="cc-exp">
+        </div>
+        <div class="field">
+          <label for="cvc">Security code</label>
+          <input id="cvc" name="cvc" type="text" inputmode="numeric" autocomplete="cc-csc"
+                 aria-describedby="cvc-note">
+        </div>
+
+        <!-- The format instruction for the SECURITY CODE. It is the field's only cue about how
+             many digits to enter and where to find them, but it is absolutely positioned to the
+             lower-LEFT of the row, so it renders beneath the full-width Card number field above
+             (not beneath the Security code input it describes). -->
+        <p id="cvc-note" class="cvc-note">Enter 3 digits — the small number on the
+          <em>back</em> of your card, just past the signature strip. On American Express, enter
+          the 4 digits printed on the <em>front</em>, above the card number.</p>
+      </div>
+
+      <div class="actions">
+        <button type="submit" class="pay-btn">Pay $148.00</button>
+        <p class="micro">Charges are processed securely. By paying you agree to the ticket terms.</p>
+      </div>
+    </form>
+  </main>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS IT
+    Every field has a real visible <label>, the security-code format instruction is present,
+    readable, high-contrast, in source order right after the CVC input, AND programmatically
+    bound to it via aria-describedby="cvc-note" — so "field labelled?", "instruction exists?",
+    and "instruction associated?" all pass cleanly. The defect is purely the RENDERED position:
+    the note is position:absolute pinned to the lower-left of the payment row, so its painted
+    box lands under the full-width "Card number" field, not under the "Security code" field it
+    governs. A sighted user reads "Enter 3 digits — the small number on the back of your card"
+    as guidance for the prominent Card number field directly above it, and the Security code box
+    (up and to the right, with empty space beneath) appears to have no instruction. axe / WAVE /
+    Lighthouse evaluate DOM order and programmatic association — both of which here correctly
+    point the note at the CVC input — not the two-dimensional painted geometry of where the text
+    actually sits relative to competing fields. Deciding that absolute positioning has parked the
+    instruction beneath the wrong control requires seeing the laid-out page and judging visual
+    binding; it is not derivable from the accessibility tree.
+  -->
+</body>
+</html>

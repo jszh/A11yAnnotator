@@ -18,12 +18,10 @@
   select, input { width:100%; padding:10px 11px; border:1px solid #cdc1b2; border-radius:7px; font-size:.95rem; background:#fff; }
   .check-btn { margin-top:18px; width:100%; background:#3b352f; color:#fff; border:0; padding:12px; border-radius:8px; font-size:1rem; font-weight:600; cursor:pointer; }
   .check-btn:hover { background:#26221d; }
-  /* availability status region */
   .avail { margin-top:16px; min-height:22px; text-align:center; font-size:.95rem; }
   .avail .checking { color:#7a5b00; display:inline-flex; align-items:center; gap:9px; }
   .avail .checking .sp { width:18px; height:18px; border:3px solid #ece1c6; border-top-color:#d8a200; border-radius:50%; animation:spin .8s linear infinite; }
   @keyframes spin { to { transform:rotate(360deg); } }
-  /* the BOOK button: starts disabled, becomes enabled when a table is available */
   .book {
     margin-top:14px; width:100%; background:var(--wine); color:#fff; border:0; padding:14px;
     border-radius:8px; font-size:1.05rem; font-weight:700; cursor:pointer;
@@ -55,39 +53,14 @@
 
   <button id="check" class="check-btn" type="button">Check availability</button>
 
-  <!-- BUSY status in a polite live region (announced on entry). -->
   <div id="avail" class="avail" role="status" aria-live="polite" aria-atomic="true"></div>
 
-  <!-- Reserve button: disabled until a table is found, then enabled.
-       Its label never changes; only the disabled state flips. -->
   <button id="book" class="book" type="button" disabled>Reserve this table</button>
 </main>
 
 <footer>Osteria Fienile · Walk-ins welcome at the bar · Reservations held 15 minutes.</footer>
 
 <script>
-/*
-  Two-phase availability check:
-  Phase 1 (entry): "Checking availability…" + spinner injected into #avail
-  (role=status / aria-live=polite) → announced. Good.
-  Phase 2 (completion): on "table available" we EMPTY #avail (avail.textContent = '')
-  and ENABLE the #book button (remove the disabled attribute). No "Table available —
-  you can reserve" message is ever placed in the live region.
-
-  For a sighted user the meaning is obvious: the spinner disappears and the previously
-  greyed-out "Reserve this table" button lights up wine-red — clearly "a table is
-  available, go ahead." For an AT user:
-    - the busy text is silently removed (no announcement on removal of polite content);
-    - enabling a button does NOT auto-announce unless the user happens to be focused on
-      it (and the button's NAME never changes — it always reads "Reserve this table"),
-      so a screen-reader user reviewing the page hears no "available" status; and
-    - there is no "Available — you can book" status message at all.
-  The availability OUTCOME — a status message about the result of the check — is
-  conveyed purely by the disappearance of the busy text plus a visual color change on a
-  control. (Per the SC, a mere control state change is handled by 4.1.2 and is NOT a
-  substitute for announcing the availability status; the removed busy text still owed a
-  'now available' message.)
-*/
 (function () {
   var check = document.getElementById('check');
   var avail = document.getElementById('avail');
@@ -98,8 +71,8 @@
     book.disabled = true;
 
     window.setTimeout(function () {
-      avail.textContent = '';     // busy text removed — silent end-of-wait
-      book.disabled = false;      // book button enabled; label unchanged, no status announced
+      avail.textContent = '';     
+      book.disabled = false;      
     }, 1600);
   });
 })();

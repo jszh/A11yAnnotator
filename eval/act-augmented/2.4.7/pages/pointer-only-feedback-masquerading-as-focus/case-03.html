@@ -22,10 +22,6 @@
       margin-top: 1.6rem;
     }
 
-    /* Each listing is a card. The DESIGNER added a "lift + ring" interaction
-       in the page builder, bound to the card wrapper, to make the whole tile
-       feel responsive. Because :focus-within bubbles from any descendant that
-       gains focus, it appears to "cover" keyboard focus too. */
     .card {
       background: #fff; border-radius: 12px; overflow: hidden;
       border: 1px solid #e1e5df;
@@ -42,9 +38,6 @@
     .card .price { font-size: 1.25rem; font-weight: 700; color: #14361f; }
     .card .addr { margin: .15rem 0 .4rem; }
 
-    /* The real focusable element is THIS link. Its UA outline was stripped so the
-       "tile lift" reads as the only feedback. The lift renders on the WRAPPER,
-       far from where the focus actually is, and is visually identical to hover. */
     .card .addr a {
       color: #14361f; text-decoration: none; font-weight: 600;
     }
@@ -101,26 +94,5 @@
     </div>
   </main>
 
-  <!--
-    WHY THIS FAILS SC 2.4.7 (Focus Visible) AND WHY AUTOMATED TOOLS MISS IT
-    ----------------------------------------------------------------------
-    There IS a visual change on Tab: focusing the listing link triggers
-    `.card:focus-within`, lifting the card and drawing a shadow. But that
-    indicator sits on the WRAPPER <article>, not on the focused link, and it is
-    pixel-identical to the :hover state. Two problems make it fail for a keyboard
-    user: (1) the indicated region is the entire tile, so when several cards are
-    on screen the user cannot tell WHICH element inside the lifted card holds
-    focus — the actual target's own outline was removed (`a:focus{outline:none}`);
-    (2) the lift is ambiguous with hover and does not mark the focused control.
-    A naive pixel-diff under programmatic focus WOULD see a change (the lift), so
-    even a diff-based check like oj04fd can be fooled — the change is real but is
-    not a focus indicator ON the focused element.
-
-    Automated tools miss it because a perceptible change does occur on focus, so
-    any "did anything change?" heuristic passes. Judging that the change is on the
-    wrong node, is hover-ambiguous, and leaves the real target bare requires a
-    human to reason about WHICH element focus is on versus WHERE the feedback
-    appears.
-  -->
 </body>
 </html>

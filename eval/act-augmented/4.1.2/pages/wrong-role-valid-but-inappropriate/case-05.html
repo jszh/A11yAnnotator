@@ -3,41 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!--
-    SC 4.1.2 (Name, Role, Value) — the "Role" limb, valid-but-INAPPROPRIATE role.
-
-    Aspect: wrong-role-valid-but-inappropriate.
-
-    "Tavola" — a restaurant review form. The "Your rating" field is a row of FIVE STARS.
-    Hovering previews a rating, clicking a star SETS the rating (it and all stars to its
-    left fill gold), and the chosen value drives a hidden input the form submits. Visually
-    and behaviourally these are an INTERACTIVE star-rating control — a single-select set of
-    operable options (or a slider 1..5).
-
-    THE DEFECT: each star is coded
-        <span role="img" aria-label="N stars" tabindex="0" ...>★</span>
-    role="img" is a valid token, so 674b10 PASSES; img has no extra required state, so
-    4e8ab6 has nothing to fail. Each star has a correct accessible name ("3 stars"). But
-    role="img" declares a NON-INTERACTIVE graphic — AT presents an image, something to be
-    described, never operated. These stars respond to clicks and keys and set a form value.
-    The interactive rating behaviour directly contradicts the "img" role. Correct semantics
-    would be a radiogroup of radio options (or a slider) so AT announces an operable rating
-    ("Your rating, 3 stars, radio button, 3 of 5").
-
-    WHAT AT EXPERIENCES: a screen-reader user hears "3 stars, image" five times in a row —
-    a decorative-looking strip of graphics, with no hint that any of them can be activated
-    or that together they capture a rating the form will submit. Voice-control and
-    switch users get no operable control surfaced. The widget is fully interactive on
-    screen yet announced as static imagery.
-
-    WHY AUTOMATED TOOLS MISS IT: axe-core / WAVE / Lighthouse confirm role="img" is valid
-    and each star has an accessible name (img with a name is the CORRECT, lint-passing
-    pattern for an informative image). Putting tabindex on an img is unusual but not an
-    automatic violation. No tool observes that the "images" carry click/key handlers that
-    set a submitted value, and concludes the role should be radio/slider, not img.
-    Recognising "interactive rating mis-coded as images" requires seeing the behaviour —
-    human judgment.
-  -->
   <title>Leave a review — Tavola</title>
   <style>
     :root { --ink:#2b211a; --muted:#7a6c5d; --line:#e7ddd0; --gold:#e0a106; --bg:#faf6ef; }
@@ -66,9 +31,6 @@
     <form class="card" action="#" method="post" novalidate>
       <div class="field">
         <span class="flabel" id="rating-lbl">Your rating</span>
-        <!-- DEFECT: an interactive star-rating control whose stars are role="img"
-             (valid token, correct accessible name) but respond to clicks/keys and set a
-             submitted value — should be a radiogroup of role="radio" (or a slider). -->
         <div class="stars" aria-labelledby="rating-lbl">
           <span class="star" role="img" tabindex="0" aria-label="1 star"  data-v="1">★</span>
           <span class="star" role="img" tabindex="0" aria-label="2 stars" data-v="2">★</span>

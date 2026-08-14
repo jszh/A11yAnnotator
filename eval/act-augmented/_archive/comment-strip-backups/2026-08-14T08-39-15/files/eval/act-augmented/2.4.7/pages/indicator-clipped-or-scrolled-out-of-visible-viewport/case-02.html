@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>City of Brookhaven — Residential Building Permit Application</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: "Segoe UI", system-ui, sans-serif;
+    color: #1b2733; background: #eef1f4; line-height: 1.6;
+  }
+
+  /* Government services brand bar. NOT sticky — ordinary document flow. */
+  .gov-bar { background: #0b3d62; color: #fff; padding: 10px 0; }
+  .gov-bar .inner { max-width: 760px; margin: 0 auto; padding: 0 24px; display:flex; align-items:center; gap:12px; }
+  .gov-bar .seal { width: 26px; height: 26px; border-radius: 50%; background:#f0c419; flex:0 0 auto; }
+  .gov-bar b { font-size: 15px; letter-spacing:.3px; }
+  .gov-bar span { font-size: 12px; opacity:.85; }
+
+  .page { max-width: 760px; margin: 0 auto; padding: 28px 24px 120px; }
+  h1 { font-size: 26px; margin: 8px 0 4px; }
+  .lede { color:#52606d; margin: 0 0 18px; max-width: 60ch; }
+
+  /* A validation summary that the server renders at the top after a failed
+     submit. Its single button is a real keyboard control in the tab order. */
+  .errsum {
+    background:#fdecea; border:1px solid #e0b4ad; border-left:5px solid #c0392b;
+    border-radius:10px; padding:16px 18px; margin: 0 0 26px;
+  }
+  .errsum h2 { font-size:16px; margin:0 0 6px; color:#922; }
+  .errsum p { margin:0 0 12px; font-size:14px; color:#6b3b36; }
+  .errsum button {
+    appearance:none; font: inherit; font-weight:600; cursor:pointer;
+    background:#c0392b; color:#fff; border:1px solid #a5301f; border-radius:8px; padding:9px 16px;
+  }
+
+  .card {
+    background:#fff; border:1px solid #d7dee4; border-radius:12px;
+    padding: 22px 24px; box-shadow: 0 1px 2px rgba(16,42,67,.06); margin-bottom: 22px;
+  }
+  .card h2 { font-size:18px; margin:0 0 4px; }
+  .card .hint { color:#52606d; font-size:14px; margin:0 0 18px; }
+
+  fieldset { border:0; margin:0; padding:0; }
+  .field { margin: 0 0 18px; }
+  .field label { display:block; font-weight:600; font-size:14px; margin-bottom:6px; }
+  .field input, .field select, .field textarea {
+    width:100%; font: inherit; padding:11px 12px;
+    border:1px solid #9aa7b1; border-radius:8px; background:#fff; color:#1b2733;
+  }
+  .field textarea { min-height: 88px; resize: vertical; }
+  .field.invalid input, .field.invalid textarea { border-color:#c0392b; }
+  .field .err { color:#c0392b; font-size:13px; margin:6px 0 0; }
+
+  /* The author DID write a clear, high-contrast focus indicator — a 3px solid
+     ring with an offset. It is real and conformant; the bug is NOT here. */
+  .errsum button:focus-visible,
+  .field input:focus-visible,
+  .field select:focus-visible,
+  .field textarea:focus-visible,
+  .actions button:focus-visible {
+    outline: 3px solid #1573e6;
+    outline-offset: 2px;
+    border-color: #1573e6;
+  }
+
+  .actions { margin-top: 8px; }
+  .actions button {
+    appearance:none; font: inherit; font-weight:600; padding:12px 22px; border-radius:8px; cursor:pointer;
+    background:#0b6b2e; color:#fff; border:1px solid #0a5e28;
+  }
+  footer { color:#7b8794; font-size:12px; text-align:center; margin-top: 28px; }
+</style>
+</head>
+<body>
+  <div class="gov-bar">
+    <div class="inner">
+      <span class="seal" aria-hidden="true"></span>
+      <b>City of Brookhaven</b>
+      <span>Building &amp; Development Services</span>
+    </div>
+  </div>
+
+  <main class="page">
+    <h1>Residential Building Permit Application</h1>
+    <p class="lede">You submitted the form, but some required fields need attention. Use the button below to jump straight to the first field that needs fixing.</p>
+
+    <!-- Server re-rendered this summary after a failed submit. The "Go to first
+         error" button is a genuine control in the tab order. -->
+    <div class="errsum" role="alert">
+      <h2>We couldn't submit your application</h2>
+      <p>2 fields need to be corrected. The first one is near the bottom of the form.</p>
+      <button type="button" id="gotoError">Go to first error</button>
+    </div>
+
+    <form id="permitForm" novalidate>
+      <section class="card">
+        <h2>Property &amp; owner</h2>
+        <p class="hint">Match the county assessor's record exactly.</p>
+        <fieldset>
+          <div class="field">
+            <label for="parcel">Parcel / APN number</label>
+            <input id="parcel" name="parcel" type="text" value="081-204-117">
+          </div>
+          <div class="field">
+            <label for="addr">Property street address</label>
+            <input id="addr" name="addr" type="text" value="14 Linden Court">
+          </div>
+          <div class="field">
+            <label for="owner">Owner of record (full legal name)</label>
+            <input id="owner" name="owner" type="text" value="Dana R. Okonkwo">
+          </div>
+        </fieldset>
+      </section>
+
+      <section class="card">
+        <h2>Project</h2>
+        <p class="hint">Describe the work and its valuation.</p>
+        <fieldset>
+          <div class="field">
+            <label for="scope">Scope of work</label>
+            <textarea id="scope" name="scope">Convert detached garage to a 480 sq ft accessory dwelling unit.</textarea>
+          </div>
+          <div class="field">
+            <label for="valuation">Estimated valuation (USD)</label>
+            <input id="valuation" name="valuation" type="text" value="35,000">
+          </div>
+          <div class="field">
+            <label for="contractor">General contractor license #</label>
+            <input id="contractor" name="contractor" type="text" value="GC-2291884">
+          </div>
+        </fieldset>
+      </section>
+
+      <section class="card">
+        <h2>Site &amp; setbacks</h2>
+        <p class="hint">Required for any structure within five feet of a property line.</p>
+        <fieldset>
+          <div class="field">
+            <label for="lotsize">Lot size (sq ft)</label>
+            <input id="lotsize" name="lotsize" type="text" value="6,500">
+          </div>
+          <div class="field">
+            <label for="setbackside">Side-yard setback (ft)</label>
+            <input id="setbackside" name="setbackside" type="text" value="4">
+          </div>
+          <div class="field">
+            <label for="setbackrear">Rear-yard setback (ft)</label>
+            <input id="setbackrear" name="setbackrear" type="text" value="6">
+          </div>
+        </fieldset>
+      </section>
+
+      <section class="card">
+        <h2>Contacts &amp; certification</h2>
+        <p class="hint">The applicant of record certifies the information is true.</p>
+        <fieldset>
+          <!-- FIRST ERROR: empty required email, far down the page. -->
+          <div class="field invalid" id="field-email">
+            <label for="email">Applicant email <span aria-hidden="true">*</span></label>
+            <input id="email" name="email" type="email" value="" aria-invalid="true" aria-describedby="email-err">
+            <p class="err" id="email-err">Enter an email address so we can send your confirmation number.</p>
+          </div>
+          <div class="field invalid" id="field-phone">
+            <label for="phone">Daytime phone <span aria-hidden="true">*</span></label>
+            <input id="phone" name="phone" type="tel" value="" aria-invalid="true" aria-describedby="phone-err">
+            <p class="err" id="phone-err">Enter a daytime phone number.</p>
+          </div>
+        </fieldset>
+        <div class="actions">
+          <button type="submit">Submit application</button>
+        </div>
+      </section>
+    </form>
+
+    <footer>City of Brookhaven · Permit Center · Mon–Fri 8a–4p</footer>
+  </main>
+
+  <script>
+    // "Go to first error" sends keyboard focus to the first invalid field so a
+    // keyboard user lands right where they must type.
+    //
+    // BUG: an earlier build scrolled the page when focusing the field, and an
+    // accessibility reviewer (mis)reported the scroll jump as "disorienting", so
+    // the dev added { preventScroll: true }. Now activating the button moves
+    // focus to #email — a genuine sequential-focus-order control with a real,
+    // high-contrast focus ring — but the browser keeps the current scroll
+    // position (the top of the form) instead of scrolling #email into view.
+    // #email sits near the bottom of a long form, well below the fold, so its
+    // focus ring is painted entirely outside the visible viewport. The user
+    // pressed the button, focus moved, yet no focus indicator is visible
+    // anywhere on screen, and the page did not move.
+    document.getElementById('gotoError').addEventListener('click', function () {
+      var firstInvalid = document.querySelector('[aria-invalid="true"]');
+      if (firstInvalid) {
+        firstInvalid.focus({ preventScroll: true });
+      }
+    });
+  </script>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS IT
+    Every control has a real, high-contrast 3px :focus-visible ring, so a
+    CSS/DOM scanner (axe, WAVE, Lighthouse) sees a conformant focus style and
+    flags nothing. ACT rule oj04fd is satisfied too: when #email is focused,
+    pixels DO change (the ring is painted) within the document's scrolling area.
+    The failure is runtime + positional: "Go to first error" moves focus with
+    focus({ preventScroll: true }), so the browser does NOT scroll the focused
+    field into the VISIBLE viewport — and #email is far below the fold. The
+    focused element is a genuine sequential-focus-order control (a native
+    <input type=email>), the ring is drawn, yet it is rendered entirely outside
+    what the user can see, and the page does not move to reveal it. Detecting
+    this needs running the keyboard journey and comparing the focused element's
+    rectangle to the visual viewport — a viewport-aware human (or visual) check,
+    not a static markup scan.
+  -->
+</body>
+</html>

@@ -4,22 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Aria armchair — Hearthwood Furniture</title>
-  <!--
-    WHY THIS IS A BOUNDARY *PASS* (SC 2.1.1) DESPITE A POINTER-ONLY CONTROL:
-    The colour swatches are <li onclick="pickColour(...)"> with no tabindex/role/keydown —
-    in isolation that is exactly the F54 shape and looks like a failure. The discriminating
-    fact is that the SAME function (choosing the armchair colour) is ALSO provided by a
-    fully keyboard-operable native control: the labelled <select id="colour"> directly above
-    the swatches, bound to the identical pickColour() routine. Per WCAG 2.2 Understanding
-    (Example 7 / the dual-method Note), 2.1.1 does not require every mouse-activatable
-    control to be focusable — it requires that keyboard users have a way to perform the same
-    action. They do, via the <select>. So this page PASSES 2.1.1. It is included to sharpen
-    the aspect: the presence of a pointer-only handler is NOT automatically a failure; the
-    verdict turns on whether an equivalent keyboard path exists. An automated tool can't make
-    THIS judgment either — it can neither confirm the swatch is the failing F54 pattern nor
-    recognise that the <select> is the equivalent keyboard route for the same function.
-    (Contrast with case-04, where the slider's value had no keyboard alternative anywhere.)
-  -->
   <style>
     :root { --ink:#241f1a; --muted:#6b6258; --line:#e4ddd2; --brand:#4a3b2a; --accent:#9a5b2e; }
     * { box-sizing: border-box; }
@@ -39,10 +23,9 @@
     select { width: 100%; font: inherit; padding: 10px 12px; border: 1px solid #b9ad99; border-radius: 8px; background: #fff; }
     select:focus-visible, button:focus-visible, a:focus-visible { outline: 3px solid #1652a8; outline-offset: 2px; }
     .swatch-help { color: var(--muted); font-size: .82rem; margin: 8px 0 0; }
-    /* Pointer-only swatches — a convenience shortcut, NOT the only path */
     .swatches { list-style: none; display: flex; gap: 12px; padding: 10px 0 0; margin: 0; }
     .swatches li { width: 38px; height: 38px; border-radius: 50%; cursor: pointer; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--line); }
-    .swatches li[aria-hidden] { } /* decorative duplicates of the select options */
+    .swatches li[aria-hidden] { } 
     .c-moss { background: #6b8f71; } .c-clay { background: #b5764e; } .c-slate { background: #5d6b78; } .c-ink { background: #2c2f36; }
     .addcart { font: inherit; font-weight: 800; color: #fff; background: var(--accent); border: 0; border-radius: 9px; padding: 13px 22px; cursor: pointer; width: 100%; margin-top: 6px; }
     .specs { margin-top: 20px; } .specs h2 { font-size: 1rem; } .specs li { color: var(--muted); }
@@ -76,10 +59,6 @@
       <form action="#" method="post">
         <div class="field">
           <label for="colour">Colour</label>
-          <!--
-            PRIMARY, fully keyboard-operable control for choosing colour. Bound to the
-            SAME pickColour() routine the swatches use. This is the keyboard path.
-          -->
           <select id="colour" name="colour" onchange="pickColour(this.value)">
             <option value="moss" selected>Moss green</option>
             <option value="clay">Clay brown</option>
@@ -87,12 +66,6 @@
             <option value="ink">Ink black</option>
           </select>
 
-          <!--
-            CONVENIENCE swatches: pointer-only (onclick, no tabindex/role/keydown). On
-            their own this is the F54 shape, but they only duplicate the <select> above, so
-            keyboard users still have a full path to the same function. Marked aria-hidden
-            so AT users are routed to the real <select> rather than to dead duplicates.
-          -->
           <ul class="swatches" aria-hidden="true">
             <li class="c-moss" onclick="pickColour('moss')" title="Moss green"></li>
             <li class="c-clay" onclick="pickColour('clay')" title="Clay brown"></li>
@@ -120,7 +93,6 @@
     function pickColour(key) {
       var c = COLOURS[key]; if (!c) return;
       document.getElementById('preview').style.background = c.hex;
-      // keep the keyboard control in sync when a swatch is clicked
       document.getElementById('colour').value = key;
       document.getElementById('result').textContent = 'Colour: ' + c.label;
     }

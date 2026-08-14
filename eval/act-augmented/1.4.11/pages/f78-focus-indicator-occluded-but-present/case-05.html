@@ -4,34 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Meridian Bank — Transfer Money</title>
-<!--
-  SC 1.4.11 Non-text Contrast — F78 (focus indicator swallowed by a heavy
-  same-color border on a text input).
-
-  Meridian Bank's brand mandates a heavy 3px solid navy (#10243f) border on
-  every form field. The developer added a focus indicator that is only a 1px
-  solid navy (#10243f) outline drawn immediately OUTSIDE the field, at offset 0:
-
-      input        { border: 3px solid #10243f; }
-      input:focus  { outline: 1px solid #10243f; outline-offset: 0; }
-
-  Because the focus outline is a thin navy line flush against a 3px navy border
-  of the SAME color, it is swallowed — the edge just looks like a 4px navy edge
-  instead of a 3px one, which is not a perceivable "this field is now focused"
-  change. The page renders with the "Amount" input focused. Tabbing between
-  fields produces no discernible focus change.
-
-  This differs from case-02 (gov BUTTONS, default UA outline, 4px black border):
-  here it is a TEXT INPUT, an AUTHOR-supplied 1px outline (not the UA default),
-  navy-on-navy, and the caret is suppressed too (caret-color matches), so even
-  the caret does not rescue it.
-
-  WHY AUTOMATED TOOLS MISS IT: an author :focus style is present (outline:none
-  is not used) and each color is individually high-contrast (navy on white
-  ~13:1), so contrast and focus-exists checks pass. axe/WAVE/Lighthouse cannot
-  judge that a 1px navy outline is occluded by an adjacent 3px navy border. Only
-  a human rendering the focused field can see that focus is not perceivable.
--->
 <style>
   :root{
     --navy:#10243f; --muted:#5a6573; --bg:#f3f5f8; --card:#fff; --line:#cfd6df; --gold:#b08400;
@@ -49,17 +21,13 @@
   .field{margin:0 0 18px;}
   label{display:block; font-weight:600; font-size:.9rem; margin:0 0 6px;}
 
-  /* THE DEFECT: heavy 3px navy border on every input; focus adds only a 1px navy
-     outline flush against it, swallowed by the same-color border. caret-color is
-     also navy so the caret does not provide a rescuing indication on its own
-     against the navy edge dominating the field. */
   input[type=text], input[type=number], select{
     width:100%; font:1rem inherit; color:var(--navy);
     padding:11px 12px; border:3px solid #10243f; border-radius:6px; background:#fff;
     caret-color:#10243f;
   }
   input:focus, select:focus{
-    outline:1px solid #10243f;   /* same color as the 3px border, flush */
+    outline:1px solid #10243f;   
     outline-offset:0;
   }
   .help{font-size:.82rem; color:var(--muted); margin-top:6px;}
@@ -102,8 +70,6 @@
       <div class="field">
         <label for="amount">Amount</label>
         <div class="inline">
-          <!-- Page loads with this field focused; the 1px navy focus outline is
-               swallowed by the 3px navy border. -->
           <input type="text" id="amount" name="amount" inputmode="decimal" placeholder="0.00" autofocus>
           <input type="text" id="cur" name="cur" value="USD" aria-label="Currency" readonly>
         </div>

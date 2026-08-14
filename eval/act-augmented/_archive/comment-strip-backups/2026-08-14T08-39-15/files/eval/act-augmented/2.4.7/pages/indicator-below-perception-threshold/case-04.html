@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cadence — Notification preferences</title>
+<!--
+  SC 2.4.7 Focus Visible (AA) — MAGNITUDE limb, the AREA / shortest-side facet of
+  G195 (size below the 4 CSS px guidance).
+
+  THE WIDGET: an APG-style custom checkbox built as a focusable
+  <span role="checkbox" tabindex="0">, rendered as an 8px x 8px square (a
+  deliberately tiny "compact" control). It is fully wired: aria-checked toggles
+  on Space/Enter/click, the role and name are correct, so 4.1.2 is satisfied.
+
+  THE DEFECT (size + contrast magnitude, not absence):
+  On focus the author DOES change the control:
+        .tick:focus { outline: 1px solid #f7f7f7; outline-offset: 1px; }
+  i.e. a 1 CSS px ring drawn 1px OUTSIDE the 8px box, on the #ffffff page.
+  Drawing it offset (on the page, not over the fill) was deliberate so the ring
+  looks the same whether the box is checked (purple) or not. Two ways it falls
+  below G195:
+    * AREA: the ring is only 1 CSS px on each side of an 8px control. G195 wants
+      a 1px border around the component *that is perceptible*; failing 3:1 it
+      must be >= 4 CSS px on the SHORTEST side or >= 2px thick. A 1px ring at
+      ~1.07:1 is neither thick enough nor contrasty enough at this size.
+    * CONTRAST: #f7f7f7 against the #ffffff page is ~1.07:1 — nowhere near 3:1,
+      and only 1px thick, so the "<3:1 OK if >=2px" route also fails.
+  The outline paints real pixels, so oj04fd PASSES. A human tabbing the list of
+  these 8px squares cannot tell which one is focused.
+
+  HOW IT AROSE: a designer specced "tiny inline checkboxes" for a dense settings
+  table and added a "1px inner highlight on focus" in Figma; translated literally
+  to CSS it is far below any perceptible focus indicator at this size.
+
+  WHY AUTOMATED TOOLS MISS IT: the widget has role/name/state and a :focus rule
+  that changes a property, so neither "no focus style" nor a name/role linter
+  fires. axe/WAVE/Lighthouse do not measure the rendered indicator's area against
+  the 4 CSS px shortest-side rule, nor its contrast delta. A pixel diff sees the
+  1px inset band change. Judging an 8px control's 1px off-white edge highlight
+  imperceptible is a human size+contrast visual judgment.
+-->
+<style>
+  :root{
+    --bg:#ffffff; --ink:#202531; --muted:#697086; --line:#e8e8e8;
+    --brand:#5b3fd6; --sans:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink); font:15px/1.55 var(--sans);}
+  .app{max-width:640px; margin:0 auto; padding:32px 22px 64px;}
+  .brand{font-weight:800; letter-spacing:.02em; margin:0 0 26px;}
+  h1{font-size:1.3rem; margin:0 0 2px;}
+  .lede{color:var(--muted); margin:0 0 24px; font-size:.92rem;}
+  .group{border:1px solid var(--line); border-radius:12px; overflow:hidden;}
+  .pref{display:flex; align-items:center; gap:12px; padding:13px 16px; border-bottom:1px solid var(--line);}
+  .pref:last-child{border-bottom:0;}
+  .pref .txt{flex:1;}
+  .pref .txt .t{font-weight:600; font-size:.95rem;}
+  .pref .txt .d{color:var(--muted); font-size:.82rem;}
+
+  /* The 8px custom checkbox */
+  .tick{
+    width:8px; height:8px; flex:0 0 8px; display:inline-block;
+    background:var(--line); border-radius:2px; cursor:pointer;
+  }
+  .tick[aria-checked="true"]{ background:var(--brand); }
+  /* the ENTIRE focus change: a 1px near-white ring drawn 1px OUTSIDE the 8px
+     box, on the white page -> ~1.07:1, below the 4px shortest-side guidance. */
+  .tick:focus{ outline:1px solid #f7f7f7; outline-offset:1px; }
+
+  .save{margin-top:22px; padding:11px 18px; font:600 .92rem/1 var(--sans);
+        color:#fff; background:var(--brand); border:0; border-radius:9px; cursor:pointer;}
+  .save:focus-visible{outline:3px solid #c7b8ff; outline-offset:2px;}
+  .hint{color:var(--muted); font-size:.78rem; margin-top:18px;}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="brand">Cadence</div>
+  <h1>Notification preferences</h1>
+  <p class="lede">Choose what we email you. Toggle a box with Space or Enter once it has focus.</p>
+
+  <div class="group" role="group" aria-label="Email notifications">
+    <div class="pref">
+      <span class="tick" role="checkbox" tabindex="0" aria-checked="true" aria-labelledby="l1"></span>
+      <span class="txt"><span class="t" id="l1">Weekly digest</span>
+        <span class="d">A Monday summary of your team&rsquo;s activity.</span></span>
+    </div>
+    <div class="pref">
+      <span class="tick" role="checkbox" tabindex="0" aria-checked="false" aria-labelledby="l2"></span>
+      <span class="txt"><span class="t" id="l2">Mentions</span>
+        <span class="d">When someone @-mentions you in a comment.</span></span>
+    </div>
+    <div class="pref">
+      <span class="tick" role="checkbox" tabindex="0" aria-checked="true" aria-labelledby="l3"></span>
+      <span class="txt"><span class="t" id="l3">Billing &amp; invoices</span>
+        <span class="d">Receipts and upcoming-charge reminders.</span></span>
+    </div>
+    <div class="pref">
+      <span class="tick" role="checkbox" tabindex="0" aria-checked="false" aria-labelledby="l4"></span>
+      <span class="txt"><span class="t" id="l4">Product news</span>
+        <span class="d">Occasional updates about new features.</span></span>
+    </div>
+  </div>
+
+  <button type="button" class="save">Save preferences</button>
+  <p class="hint">Tab moves focus across the four checkboxes; the focused box
+    shows a thin inner highlight.</p>
+</div>
+
+<script>
+  document.querySelectorAll('.tick').forEach(function(cb){
+    function toggle(){ cb.setAttribute('aria-checked', cb.getAttribute('aria-checked')==='true' ? 'false':'true'); }
+    cb.addEventListener('click', toggle);
+    cb.addEventListener('keydown', function(e){
+      if(e.key===' '||e.key==='Enter'){ e.preventDefault(); toggle(); }
+    });
+  });
+</script>
+</body>
+</html>

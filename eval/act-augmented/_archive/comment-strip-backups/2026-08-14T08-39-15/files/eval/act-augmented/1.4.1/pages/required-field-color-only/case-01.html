@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Volunteer Sign-Up — Riverside Food Bank</title>
+<!--
+  ACCESSIBILITY DEFECT (SC 1.4.1, Use of Color, Level A) — present-but-wrong.
+  Required field labels are coloured red (#c62828); optional field labels are black.
+  That hue difference is the ONLY visual distinction between required and optional.
+  There is a general instruction, but it is itself colour-keyed: "Required fields
+  appear in red." For someone who cannot perceive red, that sentence is circular —
+  it states the rule but never lets them identify WHICH fields are required.
+  No asterisk, no "(required)", no icon, no aria-required, no per-field text cue.
+
+  WHY AUTOMATED TOOLS MISS IT: every <label for> is correctly associated, every
+  <input> has an accessible name, the page passes contrast (red on white = 5.9:1).
+  axe/WAVE/Lighthouse have no rule that (a) compares label colours to infer that hue
+  is the sole required/optional differentiator, nor (b) reads the instruction prose
+  and judges that "Required fields appear in red" fails to RESOLVE which fields are
+  required for a colour-blind user. The instruction even passes a naive "is there a
+  text instruction about required fields?" check while still failing the SC.
+-->
+<style>
+  :root { --ink:#1a1a1a; --line:#d4d4d4; }
+  body { font:16px/1.5 "Segoe UI",system-ui,sans-serif; color:var(--ink);
+         background:#f6f7f5; margin:0; }
+  .wrap { max-width:620px; margin:0 auto; background:#fff; padding:32px 40px 40px;
+          margin-top:28px; border:1px solid var(--line); border-radius:10px; }
+  h1 { font-size:1.55rem; margin:0 0 4px; }
+  .org { color:#4a7a3a; font-weight:600; letter-spacing:.02em; margin:0 0 18px; }
+  /* The self-referential, colour-keyed instruction. */
+  .legend-note { background:#fbf4f4; border:1px solid #f0dede; border-radius:6px;
+                 padding:10px 14px; margin:0 0 24px; font-size:.95rem; }
+  form > div { margin-bottom:18px; }
+  label { display:block; font-weight:600; margin-bottom:5px; }
+  /* THE DEFECT: required labels differ from optional labels by colour (hue) only. */
+  label.req { color:#c62828; }          /* required → red */
+  /* optional labels inherit black --ink; identical in every other respect */
+  input, select, textarea {
+    width:100%; box-sizing:border-box; padding:9px 11px; font:inherit;
+    border:1px solid #b9b9b9; border-radius:5px; background:#fff;
+  }
+  textarea { min-height:74px; resize:vertical; }
+  .row2 { display:flex; gap:16px; }
+  .row2 > div { flex:1; margin-bottom:0; }
+  button { margin-top:8px; background:#2e6f3e; color:#fff; border:0;
+           padding:11px 26px; font:inherit; font-weight:600; border-radius:6px;
+           cursor:pointer; }
+  .hint { color:#5a5a5a; font-size:.85rem; margin-top:14px; }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <h1>Volunteer Sign-Up</h1>
+  <p class="org">Riverside Food Bank · Spring Distribution Drive</p>
+
+  <p class="legend-note">Please complete the form below. <strong>Required fields
+  appear in red.</strong> We will only contact you about the shifts you select.</p>
+
+  <form action="#" novalidate>
+    <div class="row2">
+      <div>
+        <label class="req" for="first">First name</label>
+        <input id="first" name="first" type="text" autocomplete="given-name">
+      </div>
+      <div>
+        <label for="middle">Middle name</label>
+        <input id="middle" name="middle" type="text" autocomplete="additional-name">
+      </div>
+    </div>
+
+    <div>
+      <label class="req" for="last">Last name</label>
+      <input id="last" name="last" type="text" autocomplete="family-name">
+    </div>
+
+    <div>
+      <label class="req" for="email">Email address</label>
+      <input id="email" name="email" type="email" autocomplete="email">
+    </div>
+
+    <div>
+      <label for="phone">Phone number</label>
+      <input id="phone" name="phone" type="tel" autocomplete="tel">
+    </div>
+
+    <div>
+      <label class="req" for="shift">Preferred shift</label>
+      <select id="shift" name="shift">
+        <option value="">Choose a shift…</option>
+        <option>Saturday morning (8–11am)</option>
+        <option>Saturday afternoon (12–3pm)</option>
+        <option>Sunday morning (8–11am)</option>
+      </select>
+    </div>
+
+    <div>
+      <label for="dietary">Dietary or accessibility needs we should know about</label>
+      <textarea id="dietary" name="dietary"></textarea>
+    </div>
+
+    <div>
+      <label for="notes">Anything else?</label>
+      <textarea id="notes" name="notes"></textarea>
+    </div>
+
+    <button type="submit">Sign me up</button>
+    <p class="hint">We run distribution every weekend from April through June.</p>
+  </form>
+</main>
+</body>
+</html>

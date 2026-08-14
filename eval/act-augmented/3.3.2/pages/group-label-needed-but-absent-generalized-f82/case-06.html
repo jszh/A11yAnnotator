@@ -17,7 +17,6 @@
          padding:26px 26px 30px; box-shadow:0 1px 2px rgba(40,30,20,.05);
          font-family:"Inter", -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
   .addr-group { margin:0 0 26px; }
-  /* A real, visible <h3> heading names each group (NO fieldset, by design). */
   .addr-group > h3 { font-size:1rem; margin:0 0 4px; color:var(--maroon); }
   .addr-group > p.note { color:var(--muted); font-size:.8rem; margin:0 0 14px; }
   .row { margin-bottom:14px; }
@@ -40,7 +39,6 @@
     <p class="lede">Section 4 — Addresses. We need both where you live now and a permanent address for end-of-lease correspondence.</p>
 
     <form action="#" novalidate aria-label="Addresses">
-      <!-- GROUP 1: visible <h3> heading; section programmatically named via aria-labelledby. -->
       <section class="addr-group" aria-labelledby="cur-h">
         <h3 id="cur-h">Current address</h3>
         <p class="note">Where you are living this term.</p>
@@ -66,7 +64,6 @@
 
       <hr class="sep">
 
-      <!-- GROUP 2: identical inner labels, but a distinct visible <h3> resolves the ambiguity. -->
       <section class="addr-group" aria-labelledby="perm-h">
         <h3 id="perm-h">Permanent address</h3>
         <p class="note">Your home / family address for after the lease ends.</p>
@@ -96,23 +93,5 @@
     </form>
   </div>
 
-  <!--
-    WHY THIS PAGE PASSES (boundary / contrast case)
-    Same shape as the failing address-blocks case: two structurally identical groups whose
-    inner labels ("Street address / City / State / ZIP") are byte-for-byte the same. The
-    difference is that here the required group description IS provided as real text presented
-    to ALL users: a visible <h3> "Current address" / "Permanent address" precedes each group,
-    AND each <section> is programmatically associated with its heading via
-    aria-labelledby="cur-h" / "perm-h".
-
-    This is deliberately NOT a <fieldset>/<legend> — per H71, a visible heading specific to
-    the group is exactly what is required, and a fieldset is one way to provide it, not the
-    only way. A sighted user reads "Current address" vs "Permanent address" and knows which
-    block is which; a screen-reader user, on entering a field, hears the group name announced
-    via the aria-labelledby association (e.g. "Current address, Street address, edit"). The
-    per-field labels that were insufficient standalone are now disambiguated by a real,
-    text-based, all-users group label. SC 3.3.2 is satisfied — included here as the passing
-    contrast that sharpens what the failing cases lack.
-  -->
 </body>
 </html>

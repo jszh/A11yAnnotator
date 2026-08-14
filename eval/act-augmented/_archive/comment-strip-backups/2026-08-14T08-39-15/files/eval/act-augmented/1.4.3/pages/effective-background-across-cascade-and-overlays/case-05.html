@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HealthBridge Patient Portal — Consent</title>
+<style>
+  :root { font-family: "Inter", system-ui, sans-serif; }
+  body { margin: 0; color: #1b2a3a; background: #ffffff; }
+  .app { padding: 22px 28px; }
+  .app h1 { font-size: 1.4rem; margin: 0 0 4px; }
+  .app .muted { color:#5a6b7b; }
+  /* The page behind the modal is BRIGHT: white app + a light banner. */
+  .banner { margin-top:16px; background:#eaf3ff; border:1px solid #cfe2ff; border-radius:10px;
+            padding:16px; }
+  .banner h2 { margin:0 0 6px; font-size:1.05rem; color:#10488f; }
+
+  /* Custom modal (not <dialog>) so the dev hand-rolled the scrim + panel. */
+  .overlay {
+    position: fixed; inset: 0;
+    background: rgba(20, 30, 45, 0.35);     /* a LIGHT dim -- only 35% -> page shows through */
+    display: flex; align-items: center; justify-content: center;
+  }
+  /* The dialog panel itself is translucent "glass": the dev set a semi-transparent white
+     and a backdrop blur. Composited over a 35% dim over a WHITE page, the panel is LIGHT. */
+  .modal {
+    width: min(520px, 92vw);
+    background: rgba(255, 255, 255, 0.55);   /* translucent panel -> page bleeds through */
+    backdrop-filter: blur(2px);
+    border-radius: 16px;
+    padding: 26px 28px;
+    box-shadow: 0 24px 60px rgba(0,0,0,.25);
+  }
+  .modal h2 { margin: 0 0 10px; color:#0f2c4d; font-size:1.25rem; }
+  /* Body copy uses a "soft slate" the design system calls --text-muted. Over the LIGHT
+     composited glass panel it falls below 4.5:1. */
+  .modal p { color:#8a93a0; font-size:1rem; line-height:1.5; margin:0 0 14px; }
+  .modal .actions { display:flex; gap:10px; justify-content:flex-end; }
+  .btn { padding:10px 18px; border-radius:8px; border:0; font-size:.95rem; cursor:pointer; }
+  .btn.primary { background:#0f6abf; color:#fff; }
+  .btn.ghost { background:transparent; color:#0f6abf; border:1px solid #0f6abf; }
+</style>
+</head>
+<body>
+  <main class="app" aria-hidden="true">
+    <h1>Welcome back, Mara</h1>
+    <p class="muted">Last sign-in: June 17, 8:42 AM</p>
+    <section class="banner">
+      <h2>Your lab results are ready</h2>
+      <p class="muted">Comprehensive metabolic panel from June 12 is available to view.</p>
+    </section>
+  </main>
+
+  <div class="overlay">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="cTitle" aria-describedby="cBody">
+      <h2 id="cTitle">Share data with your care team?</h2>
+      <p id="cBody">To coordinate your care, HealthBridge can share your visit summaries and
+         medication list with providers you have seen in the last 12 months. You can change
+         this in Privacy settings at any time.</p>
+      <p id="cFine">This consent does not cover marketing and is separate from research
+         participation.</p>
+      <div class="actions">
+        <button class="btn ghost" type="button">Not now</button>
+        <button class="btn primary" type="button">Allow sharing</button>
+      </div>
+    </div>
+  </div>
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS:
+    The dialog has correct ARIA and a non-empty title; the consent copy color (#8a93a0) and a
+    background ARE declared, so no linter complains. But the .modal panel background is
+    rgba(255,255,255,0.55) -- translucent. Its EFFECTIVE backdrop is a composite stack:
+    the 55% white panel over a 35% navy dim (.overlay) over the BRIGHT white app + light-blue
+    banner behind it. That composite resolves to a light panel, on which #8a93a0 muted text is
+    ~2.6:1 -- a fail. A CSSOM contrast tool reads .modal's background as a single rgba color and
+    EITHER ignores the alpha (treating it as solid near-white, which still might pass the muted
+    gray) OR cannot flatten the multi-layer translucent stack at all. It never composites
+    panel-over-dim-over-page to find the true backdrop. Reasoning through the z-stacked
+    translucent layers to the real rendered backdrop is the human judgment this aspect targets.
+  -->
+</body>
+</html>

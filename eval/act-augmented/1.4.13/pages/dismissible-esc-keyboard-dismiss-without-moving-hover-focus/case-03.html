@@ -20,7 +20,6 @@
            width: 18px; height: 18px; border-radius: 50%; font-size: 11px; font-weight: 700;
            background: #2b3350; color: #c7d2e8; cursor: pointer; border: 1px solid #3a4570; }
   .badge:focus { outline: 3px solid #7aa2ff; outline-offset: 2px; }
-  /* The definition popover overlaps the breakdown list below it. */
   .popover { position: absolute; top: 30px; left: 0; width: 340px; z-index: 8;
         background: #1d2438; border: 1px solid #39456b; border-radius: 10px;
         padding: 14px 16px 16px; box-shadow: 0 12px 30px rgba(0,0,0,.5); display: none; }
@@ -73,24 +72,14 @@
   var pop   = document.getElementById('defPop');
   var x     = document.getElementById('defClose');
 
-  // Open on hover and on keyboard focus of the badge.
   badge.addEventListener('mouseenter', function () { pop.classList.add('open'); });
   badge.addEventListener('focus',      function () { pop.classList.add('open'); });
 
-  // INTENTIONAL DEFECT: the ONLY dismissal path is the X button INSIDE the
-  // popover. To press it, a keyboard user must Tab forward, moving focus OFF
-  // the trigger and INTO the additional content. SCR39 requires the content be
-  // closable WITHOUT moving focus away from the trigger; here dismissal is
-  // impossible unless focus enters the pop-up. There is deliberately no
-  // document-level Esc handler and no toggle-on-trigger.
   x.addEventListener('click', function () {
     pop.classList.remove('open');
-    badge.focus();   // returns focus, but only AFTER focus had to leave the trigger
+    badge.focus();   
   });
 
-  // Note: the popover stays open when the pointer leaves the badge (it is
-  // hoverable/persistent) — the sole defect is the missing keyboard dismiss
-  // that does not require moving focus into the content.
 </script>
 </body>
 </html>

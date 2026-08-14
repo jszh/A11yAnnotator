@@ -3,30 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<!--
-  ASPECT: focus-revealed-instruction-not-honored (SC 3.3.2 Labels or Instructions, Level A)
-  PAGE STATE TO JUDGE: tab (keyboard) into the "Promo code" field, then separately mouse-hover it,
-  and compare. The format hint appears on HOVER but not on keyboard FOCUS.
-
-  WHAT THIS PAGE IS: the payment step of an e-commerce checkout (Brightleaf Coffee Co.). The promo
-  code field accepts only a specific format, "ABC-1234" (three letters, a dash, four digits). That
-  format hint is the field's only instruction — the visible <label> is just "Promo code", which does
-  NOT state the format. Following the long/verbose-instruction-on-focus pattern, the hint is gated to
-  appear when the user interacts with the field.
-
-  THE DEFECT (present, not absent): the reveal is wired to ":hover" only, NOT ":focus". A mouse user
-  who hovers the field sees the format hint; a keyboard user who TABS to the field (never hovering)
-  gets nothing. The hint node is real and populated; it is simply triggered by the wrong interaction.
-  Keyboard and screen-reader users — who reach the field by focus, not hover — never receive the only
-  instruction telling them the required format.
-
-  WHY AUTOMATED TOOLS MISS IT: the input has a correct <label> ("Promo code"), so axe/WAVE/Lighthouse
-  pass it on the label check. The hint text exists in the DOM and a ":hover" rule that reveals it is
-  present in the stylesheet, so a static scan sees an instruction node and a reveal rule. No linter
-  distinguishes a ":hover" trigger from a ":focus" trigger, drives keyboard focus, or judges that a
-  keyboard user never receives the instruction. Telling :hover apart from :focus and confirming the
-  instruction is missing for keyboard users requires interacting with the page and human judgment.
--->
 <title>Checkout — Brightleaf Coffee Co.</title>
 <style>
   :root { --ink:#2a2118; --muted:#7a6e5f; --line:#e7e0d4; --brand:#7a4b1e; --bg:#faf6ef; }
@@ -43,14 +19,11 @@
   input { width:100%; padding:10px 12px; border:1px solid #c9bda9; border-radius:8px; font-size:1rem; font-family:system-ui,sans-serif; }
   input:focus { outline:2px solid var(--brand); outline-offset:1px; }
   .promo-wrap { position:relative; }
-  /* The format hint. Hidden by default; revealed when the field is HOVERED. There is NO :focus
-     rule, so a keyboard user who tabs to the field never sees it. */
   .promo-hint {
     margin-top:7px; padding:8px 11px; background:#fbf3e8; border:1px solid #e7d3b6;
     border-radius:8px; font-size:.82rem; color:#6b4a22; opacity:0; max-height:0; overflow:hidden;
     transition:opacity .15s ease, max-height .15s ease;
   }
-  /* HOVER-ONLY reveal — mouse users get the instruction, keyboard users do not. */
   .promo-wrap:hover .promo-hint { opacity:1; max-height:80px; }
   .row { display:flex; gap:14px; }
   .row .field { flex:1; }
@@ -87,14 +60,10 @@
 
     <h2>Have a promo code?</h2>
     <div class="field">
-      <!-- Visible label is just "Promo code". It does NOT state the required format, so the hint
-           below is this field's only instruction. -->
       <label for="promo">Promo code</label>
       <div class="promo-wrap">
         <input type="text" id="promo" name="promo" autocomplete="off"
                aria-describedby="promo-hint" autocapitalize="characters">
-        <!-- Real, populated format hint. Revealed ONLY by the .promo-wrap:hover rule above. There is
-             no :focus / :focus-within rule, so tabbing to the input never reveals it. -->
         <div class="promo-hint" id="promo-hint">
           Format: three letters, a dash, then four digits — for example <strong>ABC-1234</strong>.
         </div>

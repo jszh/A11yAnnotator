@@ -36,13 +36,6 @@
     <section class="comments">
       <h2>Reader comments</h2>
       <p class="count" id="cmt-count">128 comments</p>
-      <!--
-        The comments thread is a lazy-loaded third-party widget. On insertion the
-        script gives the iframe aria-label="Loading…" as a placeholder name while the
-        thread fetches. When the load handler fires it injects the comments markup but
-        FORGETS to replace the placeholder name, so the stale transient string remains
-        as the frame's permanent accessible name.
-      -->
       <iframe id="discuss" title="" aria-label="Loading…"></iframe>
     </section>
   </main>
@@ -50,7 +43,6 @@
   <script>
     (function () {
       var frame = document.getElementById('discuss');
-      // Placeholder name set while the thread is fetched.
       frame.setAttribute('aria-label', 'Loading…');
       var thread =
         '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">' +
@@ -76,23 +68,11 @@
         '<form onsubmit="return false"><textarea placeholder="Add a comment…" aria-label="Add a comment"></textarea>' +
         '<button class="post" type="submit">Post</button></form>' +
         '</body></html>';
-      // Simulate the async load completing and injecting the real thread.
       setTimeout(function () {
         frame.setAttribute('srcdoc', thread);
-        // BUG: the placeholder aria-label is never cleared after load.
       }, 250);
     })();
   </script>
 
-  <!--
-    WHY AUTOMATED TOOLS MISS THIS
-    After load the iframe has a non-empty accessible name ("Loading…" from aria-label),
-    so cae760 PASSES; a single iframe means 4b1c6c is inapplicable. A scanner run after
-    the page settles sees a named frame and reports no error. It cannot judge that
-    "Loading…" is a transient status string that no longer matches the frame's content
-    (a populated comments thread with replies and a comment box). Catching the stale
-    name requires a human to read it against the loaded content and recognise the
-    mismatch — the content comparison Trusted Tester 12.D demands.
-  -->
 </body>
 </html>

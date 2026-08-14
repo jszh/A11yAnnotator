@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 4.1.2 (Name, Role, Value) — the "Role" limb, BOUNDARY / PASSED variant.
+
+    Aspect: wrong-role-valid-but-inappropriate (the PASSING counterexample that sharpens
+    the deciding line: "does the role match the rendered/behavioural identity?").
+
+    "Bibliothek" — a German-locale reading app. A toast notification slides in with a
+    small "✕" glyph in the corner that dismisses the toast. The glyph LOOKS like a tiny
+    graphic — a sighted person could plausibly mistake it for a decorative icon — which is
+    exactly the kind of appearance that, on the failing pages, tempts authors into
+    role="img". HERE the author got it right:
+
+        <button type="button" class="close" aria-label="Benachrichtigung schließen">✕</button>
+
+    The control's behaviour (dismiss the toast — an in-place action) MATCHES the chosen
+    role (native <button>, role "button"). The accessible name is correct and localized
+    ("Benachrichtigung schließen" = "Close notification"). The "✕" is exposed as button
+    text but the aria-label provides the real name, so AT announces "Benachrichtigung
+    schließen, Schaltfläche/button" — the affordance the user sees and operates.
+
+    Two more controls on the page also have roles that match their behaviour:
+      • a real on/off SWITCH for "Nachtmodus" (night mode) coded role="switch" with
+        aria-checked — a sliding pill whose role correctly matches its switch appearance
+        (the CORRECT version of case-01's mistake);
+      • a real disclosure BUTTON for "Mehr Optionen" coded role="button" with
+        aria-expanded — operable, and announced as a button (the CORRECT version of
+        case-04's mistake).
+
+    WHY THIS PASSES: on every control the programmatically-determined role is a valid
+    token AND it matches the component's actual rendered/behavioural identity. There is no
+    valid-but-inappropriate role here. A human comparing each rendered affordance to its
+    announced role finds agreement on all three — so SC 4.1.2's Role limb is satisfied.
+
+    WHY AUTOMATED TOOLS ALSO "PASS" IT (but for the shallow reason): checkers see valid
+    roles, present required states (aria-checked, aria-expanded), and accessible names —
+    the same shallow facts that are ALSO true on the failing pages. The reason this page
+    genuinely passes is the deeper role-matches-behaviour judgment that tools cannot make;
+    they happen to agree here only because the human-correct answer coincides with "valid
+    token + required state present."
+  -->
+  <title>Einstellungen — Bibliothek</title>
+  <style>
+    :root { --ink:#1c2333; --muted:#5a6377; --line:#e2e6ee; --brand:#4338ca; --on:#16a34a; --off:#c3c9d6; --bg:#f5f6fa; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Inter",system-ui,Segoe UI,Arial,sans-serif; color:var(--ink); background:var(--bg); line-height:1.55; }
+    .wrap { max-width:600px; margin:2.4rem auto; padding:0 1.2rem; }
+    h1 { font-size:1.5rem; margin:0 0 1.2rem; }
+    .toast { display:flex; align-items:center; gap:.8rem; background:#eef2ff; border:1px solid #c7d2fe;
+             color:#312e81; border-radius:10px; padding:.8rem 1rem; margin-bottom:1.4rem; }
+    .toast .msg { flex:1; font-size:.92rem; }
+    .toast .close { border:0; background:transparent; color:#4338ca; font-size:1.1rem; line-height:1;
+                    cursor:pointer; padding:.25rem .4rem; border-radius:6px; }
+    .toast .close:hover { background:#e0e7ff; }
+    .toast .close:focus-visible { outline:2px solid var(--brand); outline-offset:1px; }
+    .card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:.4rem 1.5rem; }
+    .row { display:flex; align-items:center; gap:1rem; padding:1.1rem 0; border-bottom:1px solid var(--line); }
+    .row:last-child { border-bottom:0; }
+    .row .text { flex:1; }
+    .row .text .name { font-weight:600; }
+    .row .text .desc { color:var(--muted); font-size:.87rem; margin-top:.15rem; }
+    /* real switch — role matches the sliding-pill appearance */
+    .switch { position:relative; width:46px; height:26px; border-radius:13px; background:var(--off);
+              border:0; cursor:pointer; flex:0 0 auto; transition:background .18s ease; padding:0; }
+    .switch[aria-checked="true"] { background:var(--on); }
+    .switch .thumb { position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%;
+                     background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.35); transition:left .18s ease; }
+    .switch[aria-checked="true"] .thumb { left:23px; }
+    .switch:focus-visible { outline:2px solid var(--brand); outline-offset:3px; }
+    .disclosure { display:inline-flex; align-items:center; gap:.5rem; border:1px solid var(--line);
+                  background:#fff; border-radius:8px; padding:.5rem .9rem; font:inherit; font-weight:600; cursor:pointer; }
+    .disclosure:focus-visible { outline:2px solid var(--brand); outline-offset:2px; }
+    .disclosure .chev { transition:transform .18s ease; }
+    .disclosure[aria-expanded="true"] .chev { transform:rotate(180deg); }
+    .more { margin-top:.7rem; color:var(--muted); font-size:.9rem; display:none; }
+    .more.open { display:block; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Einstellungen</h1>
+
+    <!-- icon-only close that LOOKS like a graphic, but role=button matches its dismiss
+         behaviour (the correct counterpart to case-05's role="img" mistake). -->
+    <div class="toast" id="toast" role="status">
+      <span class="msg">Deine Lesezeichen wurden synchronisiert.</span>
+      <button type="button" class="close" aria-label="Benachrichtigung schließen">✕</button>
+    </div>
+
+    <div class="card">
+      <!-- real switch — role matches the sliding-pill appearance (correct case-01). -->
+      <div class="row">
+        <div class="text">
+          <div class="name" id="lbl-night">Nachtmodus</div>
+          <div class="desc">Dunkles Farbschema beim Lesen verwenden.</div>
+        </div>
+        <button type="button" class="switch" role="switch" aria-checked="false" aria-labelledby="lbl-night">
+          <span class="thumb"></span>
+        </button>
+      </div>
+
+      <!-- real disclosure button — role matches the operable expand behaviour (correct case-04). -->
+      <div class="row">
+        <div class="text">
+          <div class="name">Erweiterte Optionen</div>
+          <div class="desc">Schrift, Zeilenabstand und Ränder anpassen.</div>
+          <div class="more" id="more">Schriftgröße, Schriftart, Zeilenabstand und Seitenränder werden hier angezeigt.</div>
+        </div>
+        <button type="button" class="disclosure" aria-expanded="false" aria-controls="more">
+          Mehr Optionen <span class="chev">▾</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.querySelector('.toast .close').addEventListener('click', function () {
+      document.getElementById('toast').style.display = 'none';
+    });
+    var sw = document.querySelector('.switch');
+    sw.addEventListener('click', function () {
+      sw.setAttribute('aria-checked', sw.getAttribute('aria-checked') === 'true' ? 'false' : 'true');
+    });
+    var dis = document.querySelector('.disclosure');
+    dis.addEventListener('click', function () {
+      var open = dis.getAttribute('aria-expanded') === 'true';
+      dis.setAttribute('aria-expanded', open ? 'false' : 'true');
+      document.getElementById('more').classList.toggle('open', !open);
+    });
+  </script>
+</body>
+</html>

@@ -4,33 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Tessera Capital — Portfolio NAV (90 days)</title>
-<!--
-  SC 1.4.13 Content on Hover or Focus — HOVERABLE limb — F95, THE CHART EXAMPLE.
-
-  This is the second canonical F95 example, verbatim from the technique:
-  "Hovering over a chart with data points, pop-ups open to show details of the
-   respective data point, somewhat offset from the data point itself. When moving
-   the pointer towards the pop-up so it can be fully read with magnification, the
-   pointer travels over other data points that cause the appearance of other
-   pop-ups that replace the particular pop-up the user wanted to see."
-
-  THE DEFECT: an SVG line chart of daily NAV. Each <circle> data point shows a
-  detail pop-up on mouseenter, positioned ABOVE-RIGHT of the point (offset). The
-  points are closely spaced (~26px apart). Each point's pop-up replaces any other
-  (only one pop-up div, repositioned). To read the offset pop-up for point A, the
-  pointer must travel up-and-right toward it — but that path crosses the next data
-  point B, whose mouseenter fires and REPLACES point A's pop-up with point B's.
-  The pop-up the user wanted is destroyed by the act of moving toward it. There is
-  no shared hover region between a point and its own offset pop-up.
-
-  WHY AUTOMATED TOOLS MISS IT: no 1.4.13 automated rule exists. The SVG is well
-  formed; the chart even has a real <table> fallback (so 1.1.1 passes) and the
-  points are focusable with keyboard handlers (so 2.1.1 passes). A static tool sees
-  "tooltips on data points" and reports nothing. The failure depends entirely on the
-  SPATIAL relationship between point spacing, the pop-up's offset, and which point
-  the travel path crosses — a geometric simulation requiring the reviewer to trace
-  the cursor between adjacent points. No checker computes this.
--->
 <style>
   :root{ --ink:#111418; --muted:#6a727c; --line:#e4e7ec; --bg:#ffffff;
          --line2:#0e7c66; --grid:#eef1f4; --accent:#0e7c66; }
@@ -51,7 +24,6 @@
   .dot:focus{outline:none; fill:var(--accent);}
   .dot:focus-visible{stroke:#063b30; stroke-width:3;}
 
-  /* Single reusable detail pop-up, repositioned per point, OFFSET above-right. */
   #pt-pop{
     position:absolute; min-width:150px; background:#111418; color:#fff;
     font-size:.8rem; line-height:1.35; padding:8px 10px; border-radius:8px;
@@ -80,7 +52,6 @@
 
   <div class="chartwrap">
     <svg viewBox="0 0 520 220" role="img" aria-label="Line chart of daily net asset value over twelve trading days">
-      <!-- gridlines -->
       <g stroke="#eef1f4" stroke-width="1">
         <line x1="40" y1="30"  x2="500" y2="30"/>
         <line x1="40" y1="80"  x2="500" y2="80"/>
@@ -91,11 +62,9 @@
       <text class="axis" x="6" y="134">$1.00</text>
       <text class="axis" x="6" y="184">$0.95</text>
 
-      <!-- the NAV line -->
       <polyline fill="none" stroke="#0e7c66" stroke-width="2"
         points="56,150 82,138 108,142 134,120 160,128 186,104 212,112 238,92 264,100 290,78 316,88 342,66"/>
 
-      <!-- closely-spaced data points (~26px apart). Each shows the SAME offset pop-up. -->
       <g id="pts">
         <circle class="dot" cx="56"  cy="150" r="5" tabindex="0" role="button" data-d="Jun 02" data-v="$1.012" data-c="—"></circle>
         <circle class="dot" cx="82"  cy="138" r="5" tabindex="0" role="button" data-d="Jun 03" data-v="$1.018" data-c="+0.6%"></circle>
@@ -125,10 +94,6 @@
 </main>
 
 <script>
-  // Each data point shows ONE shared detail pop-up, OFFSET above-right of the point.
-  // The pop-up has pointer-events:none and there is no shared hover region. Moving
-  // the pointer from a point toward its own offset pop-up crosses the next, closely
-  // spaced data point, whose mouseenter REPLACES the pop-up with the neighbour's.
   (function () {
     var pop = document.getElementById('pt-pop');
     var dots = Array.prototype.slice.call(document.querySelectorAll('.dot'));
@@ -136,7 +101,6 @@
     var wrap = document.querySelector('.chartwrap');
 
     function place(dot) {
-      // map SVG user units to the rendered pixel box
       var box = svg.getBoundingClientRect();
       var wbox = wrap.getBoundingClientRect();
       var sx = box.width / 520, sy = box.height / 220;
@@ -145,7 +109,6 @@
       pop.innerHTML = '<span class="d">' + dot.getAttribute('data-d') + '</span><br>' +
                       '<span class="v">' + dot.getAttribute('data-v') + '</span> ' +
                       '<span class="d">' + dot.getAttribute('data-c') + '</span>';
-      // OFFSET up-and-right (toward the next point) — the F95 geometry.
       pop.style.left = (cx + 14) + 'px';
       pop.style.top  = (cy - 46) + 'px';
       pop.hidden = false;
@@ -157,7 +120,6 @@
       dot.addEventListener('blur',  function () { pop.hidden = true; });
     });
 
-    // Build the data-table fallback so 1.1.1 is satisfied (not the failure here).
     var tb = document.getElementById('tbody');
     dots.forEach(function (dot) {
       var tr = document.createElement('tr');

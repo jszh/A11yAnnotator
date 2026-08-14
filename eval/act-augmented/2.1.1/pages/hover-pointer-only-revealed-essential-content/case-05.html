@@ -24,9 +24,6 @@
   ul.ingredients { list-style: none; padding: 0; margin: 0; }
   ul.ingredients li { padding: 7px 0; border-bottom: 1px dotted #e6dcc8; }
 
-  /* Ingredient amounts carry a JS mouseover tooltip showing the METRIC conversion.
-     This is a convenience reveal; the same conversions are ALSO printed, as visible
-     text, in the "Metric conversions" table further down the page. */
   .amt {
     border-bottom: 1px dashed #c9a86a;
     cursor: help;
@@ -105,10 +102,6 @@
   <footer>© Folded &amp; Floured · Home baking, tested twice.</footer>
 
   <script>
-    // Hovering an ingredient amount shows its metric conversion as a convenience tooltip.
-    // This is pointer-only (mouseover/mouseout, no focus handler) — BUT the exact same
-    // conversions are printed as visible text in the "Metric conversions" table below, so
-    // keyboard users are not denied any information.
     (function () {
       var tip = document.createElement('div');
       tip.className = 'conv-tip';
@@ -126,27 +119,5 @@
     })();
   </script>
 
-  <!--
-    WHY THIS PASSES SC 2.1.1 (keyboard) — THE "AVAILABLE ELSEWHERE" BOUNDARY:
-
-    The dashed-underlined ingredient amounts reveal a metric conversion ONLY on mouseover —
-    pointer-only, no focus handler, the trigger spans are not focusable. Taken alone that looks
-    like the same failure as case-03. The decisive difference is the human judgment the SC
-    requires: is the information available ELSEWHERE on the page?
-
-    Here it is. Every conversion shown on hover (226 g butter, 240 g flour, 5 ml vanilla, …) is
-    ALSO printed, verbatim and as plain visible text, in the "Metric conversions" <table> lower
-    on the page — which is fully reachable and readable by keyboard and screen-reader users.
-    The hover tooltip is a pure convenience duplicate, not the sole source of essential info.
-
-    Per Trusted Tester Test 4.A, an element that does not provide essential information via
-    keyboard still PASSES if that information is available elsewhere on the page (as text). It
-    is. So despite the pointer-only reveal, SC 2.1.1 is met.
-
-    This is the case that an automated tool would also (correctly, here) not flag — but for the
-    WRONG reason: it cannot read the tooltips, cannot read the table, and cannot reason that one
-    duplicates the other. A human must (1) recognize the hover content as merely redundant and
-    (2) confirm the equivalent text exists elsewhere. Verdict: PASSED.
-  -->
 </body>
 </html>

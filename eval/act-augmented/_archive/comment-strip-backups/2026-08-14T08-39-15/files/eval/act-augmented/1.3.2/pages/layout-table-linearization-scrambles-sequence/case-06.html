@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SwiftShip — How returns work</title>
+<style>
+  body { font-family: "Segoe UI", system-ui, Arial, sans-serif; background: #f5f7fa; color: #1c2530;
+         margin: 0; }
+  .wrap { max-width: 720px; margin: 40px auto; background: #fff; border-radius: 10px;
+          box-shadow: 0 6px 22px rgba(20,40,70,.08); padding: 30px 36px; }
+  h1 { font-size: 24px; margin: 0 0 6px; }
+  .lede { color: #5a6675; margin: 0 0 22px; }
+  table.steps { border-collapse: collapse; width: 100%; }
+  table.steps td { vertical-align: top; padding: 16px 12px; border-top: 1px solid #eef1f5; }
+  td.num { width: 56px; }
+  .badge { width: 40px; height: 40px; border-radius: 50%; background: #1a73e8; color: #fff;
+           font-weight: 800; font-size: 18px; display: flex; align-items: center;
+           justify-content: center; }
+  td.copy h2 { font-size: 17px; margin: 0 0 4px; }
+  td.copy p { margin: 0; color: #43505f; line-height: 1.55; font-size: 15px; }
+  .footer { font-size: 13px; color: #7a8696; margin-top: 24px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>How returns work</h1>
+  <p class="lede">Three steps, ten minutes, free return shipping on every order.</p>
+
+  <!--
+    LAYOUT TABLE — the CONTROL / PASS case (a trap for over-flagging).
+    Visual intent: a vertical list of numbered steps. Each row is [number badge | step
+    text], and the rows stack top to bottom in the order 1, 2, 3. This is a genuine 2-D
+    layout (two columns: badges on the left, copy on the right), so an evaluator must
+    NOT reflex-flag it just for being a layout table.
+
+    Linearize it row-by-row, cell-by-cell:
+        "1" -> "Start your return ... within 30 days." ->
+        "2" -> "Print the label ... attach it to the box." ->
+        "3" -> "Drop it off ... refund in 3-5 business days."
+    The linear reading order is EXACTLY the intended meaningful sequence: each number
+    is immediately followed by its own step, and the steps run 1, 2, 3 in order. The
+    meaning is fully preserved when linearized -> this layout table PASSES 1.3.2.
+  -->
+  <table class="steps" role="presentation">
+    <tr>
+      <td class="num"><div class="badge">1</div></td>
+      <td class="copy">
+        <h2>Start your return</h2>
+        <p>Open <strong>My Orders</strong>, pick the item, and choose a reason. You have
+           30 days from delivery.</p>
+      </td>
+    </tr>
+    <tr>
+      <td class="num"><div class="badge">2</div></td>
+      <td class="copy">
+        <h2>Print the label</h2>
+        <p>We email a prepaid label instantly. Print it and tape it to the original box
+           (or any box you have).</p>
+      </td>
+    </tr>
+    <tr>
+      <td class="num"><div class="badge">3</div></td>
+      <td class="copy">
+        <h2>Drop it off</h2>
+        <p>Leave it at any SwiftShip locker or partner store. Your refund posts 3&ndash;5
+           business days after we scan it.</p>
+      </td>
+    </tr>
+  </table>
+
+  <p class="footer">Questions? Chat with us 7&nbsp;days a week, 8am&ndash;8pm.</p>
+</div>
+
+<!--
+  WHY THIS PASSES (and why it is a deliberate trap):
+  This IS a layout table (two columns, role="presentation", no <th>). A reviewer who
+  flags every layout table on sight would wrongly mark this a failure. But linearizing
+  the cells in source order yields "1, Start your return..., 2, Print the label...,
+  3, Drop it off..." — each number sits immediately before its own step and the steps
+  run in order. The meaningful sequence is preserved, so per F49's test (#2: the linear
+  reading order matches the meaningful sequence) and the EN/TT pass condition, this
+  layout table does NOT fail 1.3.2. The annotator must actually linearize to see that.
+-->
+</body>
+</html>

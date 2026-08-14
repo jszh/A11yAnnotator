@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.1.1 FAILURE — context/function-dependent equivalence (IMAGE-MAP area limb, H24).
+    An interactive wayfinding map for a hospital's outpatient wing. The floor-plan <img>
+    has a <map> with one clickable <area> per room; clicking an area navigates to that
+    room's information/directions page. The DEFECT: each <area>'s alt DESCRIBES THE
+    APPEARANCE of the region on the plan — "Large blue rectangle, top left", "Small green
+    square next to the corridor", "L-shaped grey room" — instead of naming the destination
+    ("Radiology, Room 101"). Each area's alt is non-empty and the parent <img> has alt too,
+    so axe/WAVE pass. But an <area>'s alt must serve the same purpose as that selectable
+    region — i.e. where it goes — and "large blue rectangle" tells a screen-reader user
+    nothing about which room they'll open. One area (the lab) is correctly labelled for
+    contrast.
+    WHY AUTOMATED TOOLS MISS IT: every <area> has a non-empty alt, satisfying the only thing
+    a linter checks ("area has alt"). No tool resolves each area's href to a room page or
+    judges that a shape/colour description is the wrong alternative for a navigation target.
+  -->
+  <title>Outpatient Wing Map — St. Aldwyn's Hospital</title>
+  <style>
+    :root { --ink:#1d2733; --muted:#5a6675; --line:#d6dde5; --bg:#eef2f6; --brand:#9c2a3d; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Segoe UI",Roboto,Arial,sans-serif; color:var(--ink); background:var(--bg); }
+    header.h { background:#fff; border-bottom:3px solid var(--brand); padding:14px 24px; }
+    header.h .name { font-size:19px; font-weight:700; color:var(--brand); }
+    header.h .sub { font-size:13px; color:var(--muted); }
+    main { max-width:760px; margin:24px auto; padding:0 24px; }
+    h1 { font-size:22px; margin:0 0 6px; }
+    p.note { color:var(--muted); font-size:14px; margin:0 0 16px; }
+    .mapwrap { background:#fff; border:1px solid var(--line); border-radius:8px; padding:16px; display:inline-block; }
+    .legend { margin-top:14px; font-size:13px; color:var(--muted); }
+    .legend b { color:var(--ink); }
+  </style>
+</head>
+<body>
+  <header class="h">
+    <div class="name">St. Aldwyn's Hospital</div>
+    <div class="sub">Outpatient Wing — Level 1 wayfinding</div>
+  </header>
+
+  <main>
+    <h1>Find your appointment room</h1>
+    <p class="note">Select a room on the floor plan to open its directions, opening hours, and check-in desk.</p>
+
+    <div class="mapwrap">
+      <img usemap="#wingmap" width="600" height="360"
+           alt="Floor plan of the outpatient wing. Select a room for directions and check-in information."
+           src="data:image/svg+xml;utf8,&lt;svg xmlns='http://www.w3.org/2000/svg' width='600' height='360' viewBox='0 0 600 360'&gt;&lt;rect width='600' height='360' fill='%23f6f8fa'/&gt;&lt;rect x='8' y='8' width='584' height='344' fill='none' stroke='%23334' stroke-width='3'/&gt;&lt;rect x='20' y='20' width='200' height='150' fill='%235b8fd6'/&gt;&lt;rect x='240' y='20' width='120' height='100' fill='%234fae6a'/&gt;&lt;rect x='430' y='30' width='150' height='90' fill='%239aa3ad'/&gt;&lt;rect x='430' y='130' width='150' height='90' fill='%23d6b85b'/&gt;&lt;rect x='20' y='200' width='560' height='40' fill='%23e6ebf0'/&gt;&lt;text x='300' y='226' font-family='Segoe UI' font-size='14' text-anchor='middle' fill='%23667'&gt;Main corridor&lt;/text&gt;&lt;rect x='20' y='260' width='160' height='80' fill='%23c98ad0'/&gt;&lt;text x='120' y='95' font-family='Segoe UI' font-size='15' text-anchor='middle' fill='%23fff'&gt;Radiology&lt;/text&gt;&lt;text x='300' y='74' font-family='Segoe UI' font-size='13' text-anchor='middle' fill='%23fff'&gt;Phlebotomy&lt;/text&gt;&lt;text x='505' y='80' font-family='Segoe UI' font-size='13' text-anchor='middle' fill='%23fff'&gt;Cardiology&lt;/text&gt;&lt;text x='505' y='180' font-family='Segoe UI' font-size='13' text-anchor='middle' fill='%23fff'&gt;Pharmacy&lt;/text&gt;&lt;text x='100' y='305' font-family='Segoe UI' font-size='13' text-anchor='middle' fill='%23fff'&gt;Lab&lt;/text&gt;&lt;/svg&gt;">
+      <map name="wingmap">
+        <!-- DEFECTIVE AREAS: alt describes the SHAPE/COLOUR of the region, not the destination. -->
+        <area shape="rect" coords="20,20,220,170"  href="/wing/room-101-radiology"
+              alt="Large blue rectangle in the top-left corner">
+        <area shape="rect" coords="240,20,360,120"  href="/wing/room-104-phlebotomy"
+              alt="Small green square beside the corridor">
+        <area shape="rect" coords="430,30,580,120"  href="/wing/room-108-cardiology"
+              alt="Grey block on the right">
+        <area shape="rect" coords="430,130,580,220" href="/wing/room-110-pharmacy"
+              alt="Yellow block, lower right">
+        <!-- CONTRAST AREA (correctly labelled): alt names the destination. -->
+        <area shape="rect" coords="20,260,180,340"  href="/wing/room-115-lab"
+              alt="Pathology Lab, Room 115 — directions and check-in">
+      </map>
+    </div>
+
+    <p class="legend"><b>Tip:</b> if you are using a keyboard or screen reader, each room on the plan
+       is selectable in order from the top-left.</p>
+  </main>
+</body>
+</html>

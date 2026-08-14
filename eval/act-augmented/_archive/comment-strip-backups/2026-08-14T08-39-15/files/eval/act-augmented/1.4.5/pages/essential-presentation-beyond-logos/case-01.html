@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.4.5 FAILURE — ABUSE of the "Representation of a font family" exception.
+
+    The Understanding doc lists a genuine PASS: "A web page contains information about a
+    particular font family. Substituting the font family with another font would defeat the
+    purpose of the representation." A junior writer over-generalised that line: because this
+    is an article ABOUT Garamond, they baked the article's OWN BODY PARAGRAPHS into a JPEG-
+    equivalent image "set in real Garamond so readers see the authentic typeface." But those
+    paragraphs are ordinary informational prose (the history of the typeface, opinions, a
+    recommendation). Re-typesetting them in the reader's own font would NOT defeat any
+    "representation" — the words are the content, not a specimen of letterforms. So this is
+    avoidable images-of-text: it cannot be resized/recoloured/reflowed by users who need a
+    larger or higher-contrast font, and it pixelates on zoom. The exception does NOT apply.
+
+    The one element that WOULD qualify for the exception — a true specimen showing the
+    letterforms "Hh Aa Gg" — is correctly live for comparison; only the body got abused.
+
+    WHY AUTOMATED TOOLS MISS IT: every <img> has a non-empty, accurate alt (axe/WAVE/
+    Lighthouse "image-alt" passes), the page has a title, headings, landmarks, and good
+    contrast. Nothing in the DOM declares "these pixels are avoidable prose." Deciding the
+    image's text is ordinary information (not an essential font representation) and therefore
+    must be live text is a human semantic judgment — recognising the article ABOUT a font is
+    not itself a font specimen.
+  -->
+  <title>Why Garamond still wins for long reads — The Serif Quarterly</title>
+  <style>
+    :root { --ink:#1f1a14; --muted:#5c5247; --line:#e4ddd2; --bg:#fbf8f3; --accent:#7a3b22; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Georgia,"Times New Roman",serif; color:var(--ink); background:var(--bg); line-height:1.6; }
+    .wrap { max-width:740px; margin:0 auto; padding:0 22px 60px; }
+    header.site { border-bottom:2px solid var(--accent); padding:20px 0 12px; margin-bottom:28px; display:flex; align-items:baseline; justify-content:space-between; }
+    header.site .brand { font-weight:700; letter-spacing:.06em; text-transform:uppercase; font-size:14px; color:var(--accent); }
+    header.site nav a { color:var(--muted); text-decoration:none; margin-left:16px; font-size:13px; }
+    article h1 { font-size:32px; line-height:1.2; margin:0 0 6px; }
+    .byline { color:var(--muted); font-size:14px; margin:0 0 28px; font-style:italic; }
+    figure { margin:26px 0; }
+    figure img { display:block; max-width:100%; height:auto; border:1px solid var(--line); border-radius:4px; }
+    figcaption { color:var(--muted); font-size:13px; margin-top:8px; }
+    .specimen-live { font-size:60px; letter-spacing:.04em; color:var(--ink); margin:8px 0 2px; }
+    p { margin:0 0 16px; }
+    footer { border-top:1px solid var(--line); margin-top:40px; padding-top:18px; color:var(--muted); font-size:13px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="site">
+      <span class="brand">The Serif Quarterly</span>
+      <nav aria-label="Sections">
+        <a href="https://example.com/type">Type</a>
+        <a href="https://example.com/print">Print</a>
+        <a href="https://example.com/reviews">Reviews</a>
+      </nav>
+    </header>
+
+    <article>
+      <h1>Why Garamond still wins for long reads</h1>
+      <p class="byline">By Mireille Aubert · 6 min read · Typography</p>
+
+      <!--
+        GENUINE exception, kept LIVE here only as a comparison anchor: a true letterform
+        specimen. (If THIS were the image it could qualify — but it is live text, which is fine.)
+      -->
+      <figure>
+        <p class="specimen-live" aria-hidden="true">Hh Aa Gg Qq</p>
+        <figcaption>The humanist axis and the long-tailed Q are Garamond's tells.</figcaption>
+      </figure>
+
+      <!--
+        THE VIOLATION: the article's own running prose is delivered as ONE image of text
+        ("typeset in genuine Garamond"). These are ordinary informational paragraphs, not a
+        font specimen. The alt accurately TRANSCRIBES them (so 1.1.1 is met) — which is
+        exactly why no 1.1.1 tool flags it — but the user can never resize, recolour, or
+        reflow this prose, and it blurs on zoom. That is the 1.4.5 failure.
+      -->
+      <figure>
+        <img width="700" height="430"
+             alt="Claude Garamont cut his romans in 1530s Paris, and almost five centuries later they are still doing the quiet work of holding a reader's eye across a full page. The secret is not nostalgia. Garamond's low x-height and generous ascenders give each line a clear silhouette, so the eye lands cleanly word after word. Its open counters survive small sizes and cheap paper, which is why it outlasted flashier faces. For a 4,000-word feature, that durability matters more than any single elegant glyph. If you are setting body copy that someone will actually read to the end, reach for a Garamond before you reach for anything trendier."
+             src="data:image/svg+xml;utf8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='700'%20height='430'%20viewBox='0%200%20700%20430'%3E%3Crect%20width='700'%20height='430'%20fill='%23fbf8f3'/%3E%3Cg%20fill='%231f1a14'%20font-family='Garamond,%22EB%20Garamond%22,%22Times%20New%20Roman%22,serif'%20font-size='19'%3E%3Ctext%20x='28'%20y='40'%3EClaude%20Garamont%20cut%20his%20romans%20in%201530s%20Paris,%20and%20almost%20five%3C/text%3E%3Ctext%20x='28'%20y='70'%3Ecenturies%20later%20they%20are%20still%20doing%20the%20quiet%20work%20of%20holding%20a%3C/text%3E%3Ctext%20x='28'%20y='100'%3Ereader%27s%20eye%20across%20a%20full%20page.%20The%20secret%20is%20not%20nostalgia.%3C/text%3E%3Ctext%20x='28'%20y='148'%3EGaramond%27s%20low%20x-height%20and%20generous%20ascenders%20give%20each%20line%20a%3C/text%3E%3Ctext%20x='28'%20y='178'%3Eclear%20silhouette,%20so%20the%20eye%20lands%20cleanly%20word%20after%20word.%20Its%3C/text%3E%3Ctext%20x='28'%20y='208'%3Eopen%20counters%20survive%20small%20sizes%20and%20cheap%20paper,%20which%20is%20why%3C/text%3E%3Ctext%20x='28'%20y='238'%3Eit%20outlasted%20flashier%20faces.%20For%20a%204,000-word%20feature,%20that%3C/text%3E%3Ctext%20x='28'%20y='268'%3Edurability%20matters%20more%20than%20any%20single%20elegant%20glyph.%3C/text%3E%3Ctext%20x='28'%20y='316'%3EIf%20you%20are%20setting%20body%20copy%20that%20someone%20will%20actually%20read%20to%3C/text%3E%3Ctext%20x='28'%20y='346'%3Ethe%20end,%20reach%20for%20a%20Garamond%20before%20you%20reach%20for%20anything%3C/text%3E%3Ctext%20x='28'%20y='376'%3Etrendier.%3C/text%3E%3C/g%3E%3C/svg%3E">
+        <figcaption>The opening of this piece, typeset in genuine Garamond so you can see the typeface in real use.</figcaption>
+      </figure>
+
+      <p>Below the fold we look at digital revivals, hinting, and which free clone gets
+         closest to the 1592 Egenolff–Berner specimen sheet.</p>
+    </article>
+
+    <footer>
+      The Serif Quarterly · A magazine about letters · Comments are open to subscribers.
+    </footer>
+  </div>
+</body>
+</html>

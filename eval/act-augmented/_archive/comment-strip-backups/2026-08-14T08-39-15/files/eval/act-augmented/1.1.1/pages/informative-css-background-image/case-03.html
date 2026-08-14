@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Volunteer Sign-up — Riverside Animal Shelter</title>
+<!--
+  SC 1.1.1 FAILURE (informative CSS background-image — required-field marker variant of F3,
+  declared via the HTML style= attribute, the F3 "style attribute" carrier).
+  Which fields are mandatory is shown ONLY by a small red-asterisk background image painted
+  on a <span class="mark"> inside each required field's <label>, via an inline style= URL.
+  There is no literal "*" character, no the word "required", and (deliberately) no
+  required / aria-required attribute on the inputs — the obligation is purely a picture.
+  Sighted users see red asterisks; AT users hear "First name, edit text" with no hint that
+  it is mandatory. Hide backgrounds / forced-colors -> the asterisks disappear entirely.
+  WHY AUTOMATED TOOLS MISS IT: the marker is a CSS background-image on a <span> — not a
+  nameable image element — so ACT 1.1.1 rules are Inapplicable. Because there is no
+  required/aria-required attribute, this is NOT the "field marked required" case a linter
+  understands; nothing is technically "missing". Only a human looking at the rendered red
+  asterisks can see that mandatory-ness is conveyed by image alone with no text equivalent.
+-->
+<style>
+  body { font-family: system-ui, "Segoe UI", Roboto, sans-serif; background:#eef3ee; margin:0; color:#23302a; }
+  .wrap { max-width: 520px; margin: 40px auto; background:#fff; border-radius:14px; padding:30px 34px 38px; box-shadow:0 4px 18px rgba(20,60,40,.1); }
+  h1 { margin:0 0 4px; font-size:1.5rem; color:#1f5e3a; }
+  .lede { margin:0 0 22px; color:#4a5a52; font-size:.95rem; }
+  form { display:grid; gap:18px; }
+  .field { display:grid; gap:6px; }
+  label { font-weight:600; font-size:.92rem; display:inline-flex; align-items:center; }
+
+  /* THE DEFECT carrier: each required label appends an empty <span class="mark"> whose ONLY
+     content is a background-image red asterisk, set in the inline style= attribute (see HTML). */
+  label .mark {
+    display:inline-block; width:12px; height:12px; margin-left:5px;
+    background-repeat:no-repeat; background-position:center; background-size:12px 12px;
+  }
+
+  input, select { font:inherit; padding:10px 12px; border:1px solid #b9c9bf; border-radius:8px; background:#fbfdfb; }
+  input:focus, select:focus { outline:2px solid #1f5e3a; outline-offset:1px; }
+  .hint { font-size:.8rem; color:#6b7a72; }
+  button { margin-top:8px; background:#1f5e3a; color:#fff; border:0; border-radius:9px; padding:12px; font-size:1rem; font-weight:600; cursor:pointer; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Become a volunteer</h1>
+    <p class="lede">Help us care for rescued animals. Complete the form below and our
+       coordinator will be in touch within two working days.</p>
+
+    <form action="#submitted" method="post" novalidate>
+      <div class="field">
+        <label for="fname">First name<span class="mark" aria-hidden="false"
+          style="background-image:url('data:image/svg+xml;utf8,<svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;12&quot; height=&quot;12&quot;><text x=&quot;6&quot; y=&quot;10&quot; font-family=&quot;Arial&quot; font-size=&quot;13&quot; fill=&quot;%23c0271a&quot; text-anchor=&quot;middle&quot;>*</text></svg>');"></span></label>
+        <input id="fname" name="fname" type="text" autocomplete="given-name">
+      </div>
+
+      <div class="field">
+        <label for="lname">Last name<span class="mark"
+          style="background-image:url('data:image/svg+xml;utf8,<svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;12&quot; height=&quot;12&quot;><text x=&quot;6&quot; y=&quot;10&quot; font-family=&quot;Arial&quot; font-size=&quot;13&quot; fill=&quot;%23c0271a&quot; text-anchor=&quot;middle&quot;>*</text></svg>');"></span></label>
+        <input id="lname" name="lname" type="text" autocomplete="family-name">
+      </div>
+
+      <div class="field">
+        <label for="email">Email address<span class="mark"
+          style="background-image:url('data:image/svg+xml;utf8,<svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;12&quot; height=&quot;12&quot;><text x=&quot;6&quot; y=&quot;10&quot; font-family=&quot;Arial&quot; font-size=&quot;13&quot; fill=&quot;%23c0271a&quot; text-anchor=&quot;middle&quot;>*</text></svg>');"></span></label>
+        <input id="email" name="email" type="email" autocomplete="email">
+      </div>
+
+      <!-- Phone is genuinely OPTIONAL: no marker. So the asterisk really does carry distinct info. -->
+      <div class="field">
+        <label for="phone">Phone number</label>
+        <input id="phone" name="phone" type="tel" autocomplete="tel">
+        <span class="hint">Optional &mdash; only if you&rsquo;d prefer a call.</span>
+      </div>
+
+      <div class="field">
+        <label for="role">Preferred role<span class="mark"
+          style="background-image:url('data:image/svg+xml;utf8,<svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;12&quot; height=&quot;12&quot;><text x=&quot;6&quot; y=&quot;10&quot; font-family=&quot;Arial&quot; font-size=&quot;13&quot; fill=&quot;%23c0271a&quot; text-anchor=&quot;middle&quot;>*</text></svg>');"></span></label>
+        <select id="role" name="role">
+          <option value="">Choose one</option>
+          <option>Dog walking</option>
+          <option>Cattery support</option>
+          <option>Front desk &amp; admin</option>
+          <option>Fundraising events</option>
+        </select>
+      </div>
+
+      <button type="submit">Submit application</button>
+    </form>
+  </div>
+</body>
+</html>

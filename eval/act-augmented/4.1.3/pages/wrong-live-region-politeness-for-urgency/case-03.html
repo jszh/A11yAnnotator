@@ -37,17 +37,6 @@
   </header>
 
   <div class="body">
-    <!--
-      THE DEFECT is on #sessionMsg below.
-      A valid live region IS present at load (so "no live region" checkers pass), and a
-      genuinely TIME-CRITICAL message is injected into it: a 30-second session-expiry
-      warning, after which the half-completed certification is discarded. But the region
-      is aria-live="POLITE". Polite queues the warning BEHIND whatever the screen reader
-      is currently reading — and on this page that is a long, verbose certification
-      statement the user must read before checking the box. By the time the polite
-      queue reaches "your session expires in 30 seconds", the session has already
-      expired. A blocking, time-critical countdown must be assertive (or role=alert).
-    -->
     <div class="session" id="sessionMsg" aria-live="polite" aria-atomic="true">
       <strong>Secure session active.</strong> For your protection you will be signed out after a period of inactivity.
     </div>
@@ -99,14 +88,9 @@
 </div>
 
 <script>
-  // The screen reader, on entering this step, begins reading the long #terms
-  // certification statement aloud (the user must read it to check the box). While
-  // that long passage is still being narrated, a time-critical countdown is injected
-  // into the POLITE region — so it is QUEUED behind the statement, not spoken now.
   var msg = document.getElementById('sessionMsg');
   var secondsLeft = 30;
 
-  // Simulate the inactivity countdown beginning after the user lands on the step.
   setTimeout(function tick() {
     msg.innerHTML = '<strong>Your session expires in ' + secondsLeft +
       ' seconds.</strong> Choose "Submit certification" or "Save and finish later" now, ' +
@@ -115,7 +99,6 @@
     if (secondsLeft >= 0) {
       setTimeout(tick, 10000);
     } else {
-      // Session lost — the polite announcement may not even have reached the user yet.
       msg.innerHTML = '<strong>Your session has ended.</strong> Your answers on this ' +
         'page were not saved. Please sign in again.';
     }

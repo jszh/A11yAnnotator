@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--
+  PAGE STATE (CONTROL — should PASS): This is the SAME Riverbend Library membership flow as
+  case-01, but this is the genuine SUCCESS result. The user submitted VALID data (Age 34, a real
+  email), the server accepted it, created the membership, and rendered a true confirmation: a
+  read-only summary of what was saved, a real membership/reference number, and next steps. There
+  is NO form to re-submit and NO retained-bad-value: the data shown is the accepted data. There is
+  legitimately no error message because there was no error.
+
+  WHY THIS PASSES (and why it is the right discrimination control): 3.3.1 only applies when an
+  input error is automatically detected. Here none was — the submission succeeded — so the "no
+  error indicator" state is correct, exactly like ACT Passed Example 3. The page-state cues all
+  point to success: no editable form re-displayed, no out-of-range or empty required values, a
+  confirmation number, and an honest "you're all set" message. A human reading the page state
+  concludes a real success, not a suppressed failure. This is the boundary that separates a benign
+  blank/clean result page from a post-failure page that hid the error — and a correct evaluator
+  must call THIS one passed while calling case-01..05 failed.
+-->
+<title>You're all set — Riverbend Library membership confirmed</title>
+<style>
+  :root { --ink:#1f2933; --muted:#5a6573; --line:#dfe3e8; --brand:#0b6b53; --ok:#157347; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Segoe UI",system-ui,sans-serif; color:var(--ink); background:#eef1f3; }
+  header { background:var(--brand); color:#fff; padding:14px 22px; display:flex; align-items:center; gap:10px; }
+  header .mark { width:26px; height:26px; border-radius:50%; background:#fff; color:var(--brand); display:grid; place-items:center; font-weight:800; }
+  nav.crumbs { max-width:680px; margin:18px auto 0; padding:0 22px; font-size:.82rem; color:var(--muted); }
+  nav.crumbs a { color:var(--muted); }
+  main { max-width:680px; margin:10px auto 40px; background:#fff; border:1px solid var(--line); border-radius:10px; padding:26px 30px; }
+  .ok-row { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+  .ok-row .badge { width:38px; height:38px; border-radius:50%; background:#e8f6ee; color:var(--ok); display:grid; place-items:center; font-size:1.2rem; border:1px solid #bfe6cd; flex:0 0 auto; }
+  h1 { font-size:1.45rem; margin:0; }
+  .lead { color:var(--muted); margin:4px 0 22px; }
+  dl.saved { display:grid; grid-template-columns:max-content 1fr; gap:10px 22px; margin:0 0 22px; background:#f7f9fa; border:1px solid var(--line); border-radius:8px; padding:18px 20px; }
+  dl.saved dt { color:var(--muted); }
+  dl.saved dd { margin:0; font-weight:600; }
+  .refbox { border:1px dashed #b7c2c1; border-radius:8px; padding:14px 16px; margin-bottom:22px; }
+  .refbox .num { font-size:1.4rem; font-weight:800; letter-spacing:.06em; color:var(--brand); }
+  h2 { font-size:1.05rem; margin:0 0 8px; }
+  ul.next { margin:0 0 6px; padding-left:20px; color:var(--ink); }
+  ul.next li { margin-bottom:6px; }
+  .actions { margin-top:18px; display:flex; gap:12px; }
+  a.btn { text-decoration:none; display:inline-block; background:var(--brand); color:#fff; border-radius:6px; padding:10px 18px; font-size:.95rem; }
+  a.btn.secondary { background:#fff; color:var(--brand); border:1px solid var(--brand); }
+  footer { max-width:680px; margin:0 auto 40px; color:var(--muted); font-size:.78rem; padding:0 30px; }
+</style>
+</head>
+<body>
+<header>
+  <span class="mark">R</span>
+  <strong>Riverbend Public Library</strong>
+</header>
+
+<nav class="crumbs" aria-label="Breadcrumb">
+  <a href="#">Home</a> › <a href="#">Join the library</a> › <span aria-current="page">Confirmation</span>
+</nav>
+
+<main>
+  <div class="ok-row">
+    <span class="badge" aria-hidden="true">✓</span>
+    <h1>You're all set, Dana</h1>
+  </div>
+  <p class="lead">Your Riverbend membership is active. We've emailed a copy of these details.</p>
+
+  <!-- Read-only summary of the ACCEPTED data — every value is valid (Age 34, a real email).
+       No editable form is re-displayed; there is nothing to re-submit. -->
+  <dl class="saved">
+    <dt>Full name</dt><dd>Dana Whitfield</dd>
+    <dt>Age</dt><dd>34</dd>
+    <dt>Email address</dt><dd>dana.whitfield@example.com</dd>
+  </dl>
+
+  <div class="refbox">
+    <div>Your membership number</div>
+    <div class="num">RVB-2026-08831</div>
+  </div>
+
+  <h2>What happens next</h2>
+  <ul class="next">
+    <li>Pick up your card at the Canal Street branch with photo ID.</li>
+    <li>Your card number was sent to dana.whitfield@example.com.</li>
+    <li>Borrowing limit: 12 items. Welcome aboard!</li>
+  </ul>
+
+  <div class="actions">
+    <a class="btn" href="/account">Go to my account</a>
+    <a class="btn secondary" href="/catalogue">Browse the catalogue</a>
+  </div>
+</main>
+
+<footer>
+  Riverbend Public Library · 410 Canal Street · Reference desk (555) 0148
+</footer>
+</body>
+</html>

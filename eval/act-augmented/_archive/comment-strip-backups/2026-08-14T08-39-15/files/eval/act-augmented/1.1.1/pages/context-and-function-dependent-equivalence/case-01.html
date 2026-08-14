@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.1.1 FAILURE — context/function-dependent equivalence (LINK-PURPOSE limb, G94).
+    A "Today's front pages" news-aggregator grid. Each card is a thumbnail of a
+    newspaper's front page wrapped in an <a> that links to that PUBLICATION'S HOMEPAGE.
+    The defect: the first card's alt LITERALLY and ACCURATELY describes the photograph
+    printed on that front page ("Front page photo of a flooded town square under grey
+    skies") — it is a true, descriptive caption of the masthead image in isolation, so it
+    PASSES qt1vmo and any "image has descriptive alt" heuristic. But the link's PURPOSE is
+    to take you to "The Riverside Courier" homepage; the alt drops the publication name
+    entirely. A screen-reader user navigating the links list hears a weather-photo
+    description, not which newspaper they're about to open — the SAME failure the WCAG
+    Understanding "linked thumbnail" example warns against (alt should be "Smallville Times").
+    A correctly-labelled control card is included below for contrast.
+    WHY AUTOMATED TOOLS MISS IT: every <img> has a non-empty, genuinely descriptive alt and
+    every <a> therefore has a non-empty accessible name, so axe/WAVE/Lighthouse pass
+    link-name and image-alt. No tool can know the link's destination is a publication
+    homepage and that the alt should name the publication, not describe the cover photo.
+  -->
+  <title>Today's Front Pages — NewsKiosk</title>
+  <style>
+    :root { --ink:#16202c; --muted:#5b6b7b; --line:#dde3ea; --bg:#f5f7fa; --brand:#0b5cab; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Georgia, "Times New Roman", serif; color:var(--ink); background:var(--bg); }
+    header.site { background:#fff; border-bottom:1px solid var(--line); padding:14px 24px; }
+    header.site .wm { font-family:"Segoe UI",Arial,sans-serif; font-weight:800; letter-spacing:.5px; color:var(--brand); font-size:20px; }
+    header.site .tag { font-family:"Segoe UI",Arial,sans-serif; color:var(--muted); font-size:12px; }
+    main { max-width:920px; margin:24px auto; padding:0 24px; }
+    h1 { font-size:26px; margin:0 0 4px; }
+    .lede { color:var(--muted); font-family:"Segoe UI",Arial,sans-serif; font-size:14px; margin:0 0 20px; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:18px; }
+    .card a { display:block; border:1px solid var(--line); border-radius:6px; overflow:hidden; background:#fff; text-decoration:none; color:inherit; }
+    .card a:focus-visible { outline:3px solid var(--brand); outline-offset:2px; }
+    .card a:hover { box-shadow:0 3px 10px rgba(11,92,171,.15); }
+    .card img { display:block; width:100%; height:230px; }
+    .card .meta { padding:8px 10px; font-family:"Segoe UI",Arial,sans-serif; font-size:12px; color:var(--muted); }
+    footer { max-width:920px; margin:24px auto 40px; padding:0 24px; font-family:"Segoe UI",Arial,sans-serif; color:var(--muted); font-size:12px; }
+  </style>
+</head>
+<body>
+  <header class="site">
+    <div class="wm">NewsKiosk</div>
+    <div class="tag">Browse today's printed front pages from local newsrooms</div>
+  </header>
+
+  <main>
+    <h1>Today's Front Pages</h1>
+    <p class="lede">Tap any front page to open that newspaper's homepage.</p>
+
+    <div class="grid">
+      <!-- DEFECTIVE CARD: alt accurately describes the masthead PHOTO, but the link goes to the
+           publication homepage and the alt never names the publication. -->
+      <div class="card">
+        <a href="https://www.riversidecourier.example/">
+          <img alt="Front page photo of a flooded town square under grey skies"
+               src="data:image/svg+xml;utf8,&lt;svg xmlns='http://www.w3.org/2000/svg' width='300' height='400' viewBox='0 0 300 400'&gt;&lt;rect width='300' height='400' fill='%23fbfbf7'/&gt;&lt;rect x='14' y='14' width='272' height='372' fill='none' stroke='%23cfcabf'/&gt;&lt;text x='150' y='52' font-family='Georgia' font-size='26' font-weight='bold' text-anchor='middle' fill='%23222'&gt;THE RIVERSIDE&lt;/text&gt;&lt;text x='150' y='80' font-family='Georgia' font-size='26' font-weight='bold' text-anchor='middle' fill='%23222'&gt;COURIER&lt;/text&gt;&lt;line x1='24' y1='96' x2='276' y2='96' stroke='%23222'/&gt;&lt;rect x='24' y='110' width='252' height='150' fill='%238a98a6'/&gt;&lt;rect x='24' y='200' width='252' height='60' fill='%236f7d8a'/&gt;&lt;circle cx='220' cy='140' r='20' fill='%23c9cfd6'/&gt;&lt;text x='150' y='292' font-family='Georgia' font-size='15' font-weight='bold' text-anchor='middle' fill='%23222'&gt;River crests overnight&lt;/text&gt;&lt;line x1='24' y1='312' x2='276' y2='312' stroke='%23bbb'/&gt;&lt;line x1='24' y1='330' x2='276' y2='330' stroke='%23ddd'/&gt;&lt;line x1='24' y1='346' x2='276' y2='346' stroke='%23ddd'/&gt;&lt;line x1='24' y1='362' x2='200' y2='362' stroke='%23ddd'/&gt;&lt;/svg&gt;">
+        </a>
+        <div class="meta">Local · Updated 06:10</div>
+      </div>
+
+      <!-- CONTRAST CARD (correctly labelled): alt names the publication = the link purpose. -->
+      <div class="card">
+        <a href="https://www.harborgazette.example/">
+          <img alt="The Harbor Gazette"
+               src="data:image/svg+xml;utf8,&lt;svg xmlns='http://www.w3.org/2000/svg' width='300' height='400' viewBox='0 0 300 400'&gt;&lt;rect width='300' height='400' fill='%23fbfbf7'/&gt;&lt;rect x='14' y='14' width='272' height='372' fill='none' stroke='%23cfcabf'/&gt;&lt;text x='150' y='58' font-family='Georgia' font-size='24' font-weight='bold' text-anchor='middle' fill='%23222'&gt;THE HARBOR&lt;/text&gt;&lt;text x='150' y='86' font-family='Georgia' font-size='24' font-weight='bold' text-anchor='middle' fill='%23222'&gt;GAZETTE&lt;/text&gt;&lt;line x1='24' y1='100' x2='276' y2='100' stroke='%23222'/&gt;&lt;rect x='24' y='114' width='252' height='150' fill='%23a6b3a0'/&gt;&lt;rect x='40' y='150' width='90' height='14' fill='%23fff'/&gt;&lt;text x='150' y='292' font-family='Georgia' font-size='15' font-weight='bold' text-anchor='middle' fill='%23222'&gt;Harbor festival opens&lt;/text&gt;&lt;line x1='24' y1='312' x2='276' y2='312' stroke='%23ddd'/&gt;&lt;line x1='24' y1='330' x2='276' y2='330' stroke='%23ddd'/&gt;&lt;line x1='24' y1='346' x2='220' y2='346' stroke='%23ddd'/&gt;&lt;/svg&gt;">
+        </a>
+        <div class="meta">Local · Updated 05:55</div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    NewsKiosk aggregates publicly posted front-page images from participating local newspapers.
+  </footer>
+</body>
+</html>

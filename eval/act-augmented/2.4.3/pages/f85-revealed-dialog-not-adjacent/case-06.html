@@ -25,9 +25,6 @@
   footer.site { border-top:1px solid #dbe2ea; padding:20px 24px; font-size:.9rem; color:#46545f; }
   footer.site a { margin-left:14px; }
 
-  /* The reply form is appended at the END of the whole thread, then floated visually
-     under the comment via absolute positioning is NOT used here — it simply renders at
-     the bottom but is shown inline-styled to look like it belongs to the first comment. */
   .reply-form {
     display:none; background:#f0f6ff; border:1px solid #cfe0f5; border-radius:10px;
     padding:14px 16px; margin-top:14px;
@@ -59,7 +56,6 @@
     <p>أبني حوارًا غير معياري يظهر عند الضغط على زر. لاحظت أن المستخدم بلوحة المفاتيح
        يضطر للتنقل عبر الصفحة كلها للوصول إليه. ما الحل الصحيح؟</p>
     <div class="actions">
-      <!-- Reply trigger for the first comment. The form it controls is at the very end. -->
       <button class="linklike" id="replyBtn1" aria-haspopup="true" aria-expanded="false"
               aria-controls="replyForm1">رد</button>
       <button class="linklike">إعجاب</button>
@@ -113,17 +109,6 @@
   <p>© 2026 منتدى المطوّرين.</p>
 </footer>
 
-<!--
-  THE BUG (F85, open branch): the reply form for the FIRST comment is appended at the very
-  END of the thread DOM (after every other post and the footer) by a forum framework that
-  renders one shared reply form per thread and toggles it. When the user activates "رد"
-  (Reply) on the first comment, JS only flips .open + aria-expanded; it never moves focus
-  into the textarea. So focus stays on the "رد" button, and the next Tab moves to the next
-  source-order control ("إعجاب"/Like on the same post, then the rest of the thread), NOT
-  into the just-opened reply textarea. The user must Tab through the whole remaining thread,
-  the footer, to reach the textarea — even though it appears right under the first comment.
-  (RTL does not change source/tab order: Tab still follows DOM order.)
--->
 <form class="reply-form" id="replyForm1" aria-label="الرد على تعليق ليلى ع.">
   <label for="replyText1" style="font-weight:600;display:block;margin-bottom:6px;">ردّك</label>
   <textarea id="replyText1" name="reply" placeholder="اكتب ردًا مفيدًا..."></textarea>
@@ -140,7 +125,6 @@
     btn.addEventListener('click', function () {
       var open = form.classList.toggle('open');
       btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-      // No form.querySelector('textarea').focus(); focus stays on the Reply button.
     });
     document.getElementById('cancelReply1').addEventListener('click', function () {
       form.classList.remove('open');

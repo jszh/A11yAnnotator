@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Post-Event Survey — Riverside Folk Festival 2026</title>
+<!--
+  ASPECT: is-it-a-status-message-scope-boundary
+  INTENDED CLASSIFICATION: inapplicable (N/A)
+  After the attendee picks a LOW satisfaction rating, the survey APPENDS a set
+  of new follow-up questions (branching/conditional logic). New content appears
+  without taking focus and without any role=status / aria-live. The naive 4.1.3
+  reflex is "content was injected without focus and was not announced -> fail."
+  But the Understanding's third excepted example is exactly this: new survey
+  questions added after an unhappy answer do NOT "provide information to the user
+  on the success or results of an action, on the waiting state of an application,
+  on the progress of a process, or on the existence of errors" — so they do not
+  meet the definition of a status message and 4.1.3 does not apply. Announcing
+  them, or telling the user in advance, is a best practice, NOT a requirement.
+  The added questions are normal form fields, reachable by the screen reader's
+  next-form-field navigation. This is the FALSE-POSITIVE-pressure boundary.
+-->
+<style>
+  :root { --rust:#a8442a; --gold:#d99a2b; --ink:#2a2521; --muted:#6b6258; --line:#e8e1d6; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Asap","Segoe UI",system-ui,sans-serif; color:var(--ink); background:#faf6ef; }
+  header { background:var(--rust); color:#fff; padding:16px 26px; }
+  header h1 { margin:0; font-size:1.2rem; }
+  header p { margin:4px 0 0; opacity:.9; font-size:.85rem; }
+  main { max-width:640px; margin:26px auto; background:#fff; border:1px solid var(--line); border-radius:12px; padding:26px 30px; }
+  .intro { color:var(--muted); margin:0 0 22px; line-height:1.5; }
+  fieldset { border:1px solid var(--line); border-radius:10px; padding:18px 20px; margin:0 0 20px; }
+  legend { font-weight:700; padding:0 6px; }
+  .rate { display:flex; gap:8px; flex-wrap:wrap; }
+  .rate label { flex:1; min-width:88px; text-align:center; border:1px solid #d6cdbf; border-radius:8px; padding:12px 6px; cursor:pointer; font-size:.9rem; }
+  .rate input { position:absolute; opacity:0; width:1px; height:1px; }
+  .rate input:checked + span { font-weight:700; }
+  .rate label:has(input:checked) { border-color:var(--rust); background:#fbeee9; }
+  .rate label:focus-within { outline:3px solid #3a86ff; outline-offset:2px; }
+  label.q { display:block; font-weight:600; margin:16px 0 6px; }
+  textarea, select, input[type="text"] { width:100%; padding:11px 13px; border:1px solid #d0c7b8; border-radius:8px; font:inherit; }
+  textarea { min-height:84px; resize:vertical; }
+  .followup { margin-top:6px; padding:16px 18px; border:1px dashed var(--gold); border-radius:10px; background:#fdf7e8; }
+  .followup[hidden] { display:none; }
+  .followup h2 { font-size:1rem; margin:0 0 4px; }
+  .followup p.note { margin:0 0 8px; color:var(--muted); font-size:.85rem; }
+  .actions { margin-top:6px; }
+  button { font:inherit; cursor:pointer; border-radius:8px; padding:12px 24px; border:0; background:var(--rust); color:#fff; font-weight:600; }
+  button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline:3px solid #3a86ff; outline-offset:2px; }
+  .why { background:#fdf7e8; border:1px solid #ecdcb4; border-radius:8px; padding:14px 16px; margin-top:18px; font-size:.8rem; color:#6a5a2e; }
+  footer { max-width:640px; margin:18px auto 50px; color:var(--muted); font-size:.78rem; }
+</style>
+</head>
+<body data-intended-classification="inapplicable" data-sc="4.1.3">
+<header>
+  <h1>Riverside Folk Festival 2026 — Tell us how it went</h1>
+  <p>Your feedback helps us plan next year. Takes about two minutes.</p>
+</header>
+
+<main>
+  <p class="intro">Thanks for joining us on the riverbank this summer. Please rate your overall
+     experience. Depending on your answer we may ask a couple of quick follow-up questions.</p>
+
+  <form id="survey">
+    <fieldset>
+      <legend>1. Overall, how was your festival experience?</legend>
+      <div class="rate" role="radiogroup" aria-label="Overall experience rating">
+        <label><input type="radio" name="overall" value="5"><span>Excellent</span></label>
+        <label><input type="radio" name="overall" value="4"><span>Good</span></label>
+        <label><input type="radio" name="overall" value="3"><span>Okay</span></label>
+        <label><input type="radio" name="overall" value="2"><span>Poor</span></label>
+        <label><input type="radio" name="overall" value="1"><span>Very poor</span></label>
+      </div>
+    </fieldset>
+
+    <!-- Conditional follow-up questions. Appended (un-hidden) when the rating is low.
+         These are NEW QUESTIONS, not a status message -> excepted from 4.1.3. -->
+    <div class="followup" id="followup" hidden>
+      <h2>2. We're sorry it fell short. A few more questions:</h2>
+      <p class="note">These optional questions appear because you rated your experience low.</p>
+
+      <label class="q" for="problem">What was the biggest problem?</label>
+      <select id="problem" name="problem">
+        <option value="">Choose one…</option>
+        <option>Entry / ticketing lines</option>
+        <option>Sound or stage issues</option>
+        <option>Food &amp; drink options</option>
+        <option>Restrooms / facilities</option>
+        <option>Accessibility / getting around</option>
+      </select>
+
+      <label class="q" for="detail">Anything you'd like us to fix for next year?</label>
+      <textarea id="detail" name="detail" placeholder="Optional"></textarea>
+    </div>
+
+    <div class="actions">
+      <button type="submit">Submit feedback</button>
+    </div>
+  </form>
+
+  <div class="why">
+    Why automated tools cannot judge this page: new form fields are injected (un-hidden) after a low
+    rating, with no <code>aria-live</code> — a pattern a naive 4.1.3 lane would flag as "content appeared
+    silently." But appended survey questions do not convey success, a waiting state, progress, or an
+    error, so by definition they are <em>not</em> a status message and the SC does not apply. The new
+    fields are ordinary, fully labeled controls a screen-reader user reaches with next-form-field
+    navigation. Recognizing that this content change falls outside the status-message definition (rather
+    than being a missing live region) is the exact human judgment that precedes every 4.1.3 evaluation.
+  </div>
+</main>
+
+<footer>
+  Riverside Folk Festival · A program of the Greenway Arts Alliance · Survey closes July 15, 2026.
+</footer>
+
+<script>
+  // Branching survey logic: a LOW rating un-hides follow-up questions. New content appears WITHOUT
+  // taking focus and WITHOUT any role=status / aria-live. This is intentional and correct: the added
+  // questions are not a status message (no success/waiting/progress/error), so 4.1.3 is N/A.
+  var followup = document.getElementById('followup');
+  document.querySelectorAll('input[name="overall"]').forEach(function (r) {
+    r.addEventListener('change', function () {
+      var low = parseInt(r.value, 10) <= 2;
+      followup.hidden = !low;
+      // Focus is intentionally NOT moved; no announcement is fired. Per the Understanding, doing so
+      // would be a best practice but is NOT a requirement for these (non-status) questions.
+    });
+  });
+</script>
+</body>
+</html>

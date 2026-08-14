@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Metra Transit — Your Connection</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+         background: #0c1f2b; color: #0c1f2b; }
+  .ticket { max-width: 380px; margin: 36px auto; background: #fff; border-radius: 18px;
+            overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,.35); }
+  .top { background: #154b66; color: #fff; padding: 18px 22px; }
+  .top .line { display: inline-block; background: #f2c200; color: #0c1f2b;
+               font-weight: 800; font-size: 12px; letter-spacing: .08em;
+               padding: 3px 9px; border-radius: 4px; }   /* yellow chip, passes */
+  .top h1 { margin: 10px 0 0; font-size: 19px; }
+  .top .when { margin: 2px 0 0; font-size: 13px; color: #cfe3ee; }  /* on dark, passes */
+
+  /* The platform tile. The big "B7" is the platform/track the rider must walk to.
+     It is overprinted on a faded station-floorplan image. The designer treated the
+     numeral as a decorative "map stamp" and faded it into the artwork — but it is the
+     ONLY thing on the whole ticket that names the platform. Because it sits on a
+     non-uniform background IMAGE (the floorplan), no contrast checker can compute its
+     ratio from CSS; eyedropped against the floorplan tones it ranges ~1.4:1 (over the
+     palest region) down to ~1.1:1 (over the darker tiles) — failing everywhere. */
+  .platform {
+    position: relative;
+    height: 190px;
+    /* Inline SVG station floorplan — no external resource. Pale, mottled mid/light tones. */
+    background:
+      url('data:image/svg+xml;utf8,\
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="380">\
+<rect width="760" height="380" fill="%23eef1f0"/>\
+<rect x="40" y="40" width="300" height="120" fill="%23dfe6e4"/>\
+<rect x="420" y="40" width="300" height="120" fill="%23d6dedb"/>\
+<rect x="40" y="220" width="680" height="44" fill="%23cdd6d3"/>\
+<rect x="40" y="300" width="680" height="44" fill="%23e3e8e6"/>\
+<circle cx="600" cy="300" r="70" fill="%23d2dbd8"/>\
+<polygon points="120,180 220,180 170,250" fill="%23e8edeb"/>\
+<rect x="500" y="170" width="160" height="36" fill="%23dde4e2"/></svg>');
+    background-size: cover; background-position: center;
+    display: flex; align-items: center; justify-content: center;
+  }
+  /* The platform code, faded into the floorplan as a "map stamp". #c8cdca ink rides
+     over varied floorplan tones: its BEST local ratio (over the palest %23eef1f0
+     region) is only ~1.4:1 and it drops to ~1.1:1 over the darker tiles. At 88px it is
+     large-scale text, so even the relaxed 3:1 bar applies — and it fails that too. */
+  .platform .code {
+    position: relative; z-index: 1;
+    font-size: 88px; font-weight: 800; line-height: 1;
+    color: #c8cdca;
+    letter-spacing: .02em;
+    /* deliberately NO text-shadow / stroke / panel behind it */
+  }
+  .platform .tag {
+    position: absolute; top: 12px; left: 16px; z-index: 1;
+    font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+    color: #154b66;            /* the LABEL "platform" is dark and passes */
+  }
+
+  .body { padding: 16px 22px 22px; }
+  .leg { display: flex; justify-content: space-between; align-items: baseline;
+         padding: 9px 0; border-bottom: 1px solid #e7ecef; }
+  .leg:last-child { border-bottom: 0; }
+  .leg .k { font-size: 13px; color: #3a4a54; }
+  .leg .v { font-size: 14px; font-weight: 700; color: #122530; }
+  .note { margin: 14px 0 0; font-size: 12px; color: #3a4a54; }
+</style>
+</head>
+<body>
+  <div class="ticket">
+    <div class="top">
+      <span class="line">YELLOW LINE</span>
+      <h1>Central Union → Harborview</h1>
+      <p class="when">Departs 6:42 PM · Today, Apr 9</p>
+    </div>
+
+    <!-- The big "B7" IS the platform the rider must walk to. There is no other
+         "Platform" value anywhere on the ticket — not in the leg list below, not in
+         the header. It is overprinted on the station-floorplan image and faded so it
+         "blends into the map art." That makes it (a) information the rider needs and
+         (b) impossible for a contrast checker to score, because it sits on an image. -->
+    <div class="platform" role="img" aria-label="Station floorplan with platform code">
+      <span class="tag">Platform</span>
+      <span class="code">B7</span>
+    </div>
+
+    <div class="body">
+      <div class="leg"><span class="k">Boarding group</span><span class="v">2</span></div>
+      <div class="leg"><span class="k">Car</span><span class="v">Quiet (rear)</span></div>
+      <div class="leg"><span class="k">Fare</span><span class="v">$3.25 · paid</span></div>
+      <p class="note">Trains may share a platform face. Confirm the platform code before boarding.</p>
+    </div>
+  </div>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS (escalated: not CSSOM-computable):
+    The failing text "B7" is the platform/track the rider must walk to — it is the ONLY
+    place the platform is named anywhere on the ticket (the leg list has boarding group,
+    car, and fare, but no platform). So it is meaningful, non-substitutable text in scope
+    for 1.4.3: you cannot swap "B7" for another code or remove it without changing where
+    the rider goes.
+
+    Crucially, "B7" is overprinted on a background IMAGE (the inline-SVG station
+    floorplan), NOT a solid CSS color. axe-core/WAVE/Lighthouse compute color-contrast
+    from CSSOM foreground vs. resolved background COLOR; when the background is an image
+    they cannot resolve a single background color, so the color-contrast rule returns
+    "incomplete / needs review" and emits NO violation. There is nothing here a static
+    rule can fail. (This mirrors Trusted Tester's second mechanism: text on a background
+    image must be eyedropper-measured with CCA at the LEAST-contrast pixels — here every
+    floorplan region under the glyph gives between ~1.4:1 and ~1.1:1.)
+
+    A human must do two things no tool can: (1) read "B7", note it is the sole platform
+    cue, and rule it meaningful (not a decorative "map stamp"); and (2) eyedropper the
+    pixels under the numeral to get the real ~1.4:1-or-worse ratio and fail it. Neither
+    the semantic call nor the over-image measurement is available to an automated checker.
+  -->
+</body>
+</html>

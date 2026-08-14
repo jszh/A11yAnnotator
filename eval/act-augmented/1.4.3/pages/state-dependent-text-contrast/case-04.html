@@ -4,23 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Transfer money — Rivergate Bank</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS:
-  There are TWO state-only contrast defects, both invisible to a static initial scan:
-    (1) The inline validation error is INJECTED BY JS only after a failed submit.
-        On load there is no error node in the DOM, so axe/WAVE/Lighthouse find nothing
-        to measure. After the user submits with an empty amount, JS inserts
-        <p class="err">Enter an amount to transfer.</p> styled #e98a8a on #fff => ~2.48:1.
-        The text is real, meaningful, and below threshold — but it exists only in the
-        post-submit error state, which a scanner never triggers.
-    (2) Long-tail twist: the submit button label is high-contrast at rest and on hover,
-        but the :active (pressed) rule sets color:#a9c2e8 on the #2f6fd6 button =>
-        ~2.65:1. While the button is held down its label is unreadable. Scanners never
-        synthesize :active, so the pressed-state label is never measured.
-  Both failures require DRIVING the page (submit to spawn the error; press-and-hold the
-  button to see the active label). The static markup is well-formed and all initially
-  present text passes, so naive automated checks are green.
--->
 <style>
   :root { --ink:#15202b; --line:#cfd8e3; --brand:#2f6fd6; --paper:#fff; }
   * { box-sizing:border-box; }
@@ -43,9 +26,8 @@
   .amount-row .cur { padding:10px 12px; border:1px solid var(--line); border-right:0; border-radius:8px 0 0 8px; background:#f4f7fb; color:#566273; }
   .amount-row input { border-radius:0 8px 8px 0; }
 
-  /* === Defect (1): JS-injected error text at ~2.48:1 === */
   .err {
-    color:#e98a8a;          /* #e98a8a on #fff ~ 2.48:1 — fails. Only present after a failed submit. */
+    color:#e98a8a;          
     font-size:.86rem; margin:6px 0 0; display:flex; align-items:center; gap:6px;
   }
   .err::before { content:"!"; display:inline-flex; align-items:center; justify-content:center;
@@ -55,9 +37,8 @@
     width:100%; padding:12px; font-size:1rem; font-weight:600; color:#fff;
     background:var(--brand); border:0; border-radius:8px; cursor:pointer;
   }
-  .submit:hover { background:#2a64c2; color:#fff; }                 /* hover label still fine */
-  /* === Defect (2) long-tail: pressed/active label at ~1.9:1 === */
-  .submit:active { color:#a9c2e8; }    /* #a9c2e8 on #2f6fd6 ~ 2.65:1 — label unreadable while pressed */
+  .submit:hover { background:#2a64c2; color:#fff; }                 
+  .submit:active { color:#a9c2e8; }    
 
   .note { color:#566273; font-size:.82rem; margin-top:18px; }
 </style>
@@ -94,7 +75,6 @@
             <input id="amount" name="amount" type="text" inputmode="decimal"
                    aria-describedby="amount-err" placeholder="0.00">
           </div>
-          <!-- error node intentionally absent on load; JS injects it into #amount-err -->
           <div id="amount-err" aria-live="polite"></div>
         </div>
 
@@ -114,7 +94,6 @@
       errSlot.innerHTML = '';
       const v = amount.value.trim();
       if (!v || isNaN(parseFloat(v)) || parseFloat(v) <= 0) {
-        // Inject the low-contrast error text only now, in the failed-submit state.
         const p = document.createElement('p');
         p.className = 'err';
         p.textContent = 'Enter an amount to transfer.';

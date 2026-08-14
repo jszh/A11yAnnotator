@@ -86,31 +86,24 @@
   var badge = document.getElementById('modeBadge');
   var pinB = map.querySelector('.pin.b');
 
-  var DOUBLE_MS = 250;       // the double-press must land within this window
+  var DOUBLE_MS = 250;       
   var lastG = 0;
 
   function centerOnLocation() {
     badge.textContent = 'Live tracking on';
     badge.classList.add('geo');
     toast.textContent = 'Centered on your live location. Tracking the 12B bus in real time.';
-    // visually nudge the map to show the geolocation engaged
     map.style.boxShadow = 'inset 0 0 0 3px #1f7a3d';
   }
 
-  // The ONLY way to trigger geolocation/live-tracking is a fast double-tap of G.
-  // A single G never fires (we wait to see if a second G arrives in time, but a
-  // lone press is simply discarded). Two presses >250ms apart are treated as two
-  // separate first-presses and never fire. There is no button, menu item, or other
-  // keyboard path to this function.
   map.addEventListener('keydown', function (e) {
     if (e.key === 'g' || e.key === 'G') {
       var now = Date.now();
       if (now - lastG <= DOUBLE_MS) {
         centerOnLocation();
-        lastG = 0;            // consume the pair
+        lastG = 0;            
       } else {
-        lastG = now;          // first press; arm for a fast second press
-        // intentionally NO single-press fallback action
+        lastG = now;          
       }
       e.preventDefault();
     }

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Step 3 of 5: Coverage level — Beacon Auto Insurance quote</title>
+<style>
+  body {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    margin: 0; background: #ffffff; color: #15202b; line-height: 1.5;
+  }
+  .wiz-top { background: #0a3d62; color: #eaf2f8; padding: 12px 22px; font-size: .85rem; }
+  .progress { max-width: 720px; margin: 16px auto 0; padding: 0 22px; color: #5b6671; font-size: .82rem; }
+  main { max-width: 720px; margin: 0 auto; padding: 8px 22px 80px; }
+  h1 { font-size: 1.45rem; margin: 12px 0 4px; }
+  .sub { color: #56616c; margin: 0 0 26px; }
+
+  fieldset { border: 0; padding: 0; margin: 0 0 30px; }
+  legend { font-weight: 700; font-size: 1.05rem; padding: 0; margin-bottom: 12px; }
+  .opt {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 16px; border: 1px solid #d9e0e6; border-radius: 8px; margin-bottom: 10px;
+    cursor: pointer;
+  }
+  .opt:has(input:checked) { border-color: #1565C0; background: #f3f8fe; }
+  .opt input { position: absolute; opacity: 0; width: 22px; height: 22px; margin: 0; }
+  .opt .txt { flex: 1; }
+  .opt .txt b { display: block; }
+  .opt .txt span { color: #5b6671; font-size: .88rem; }
+  .opt .price { font-weight: 700; }
+
+  /* ---- GROUP A (passes): FLAT-FILL selected state ----
+     Unselected = grey ring outline on white. Selected = the whole control fills
+     solid blue #1565C0, which contrasts 5.75:1 with the white page. The fill IS
+     the indicator; it does not need to contrast with anything inside it. PASS. */
+  .ringA {
+    flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%;
+    border: 2px solid #767676; background: #fff; position: relative;
+  }
+  .optA input:checked + .ringA { background: #1565C0; border-color: #1565C0; }
+  .optA input:focus-visible + .ringA { outline: 3px solid #0a3d62; outline-offset: 3px; }
+
+  /* ---- GROUP B (fails): MARK-ON-FILL selected state ----
+     Unselected = grey ring on white. Selected = the control fills a medium blue
+     #4A90D9 AND a faint inner dot #7BB0E6 appears. The inner dot is the cue that
+     differentiates "this option is the chosen one" from a merely styled control,
+     but #7BB0E6 on #4A90D9 = 1.46:1. The dot fails against its adjacent fill. */
+  .ringB {
+    flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%;
+    border: 2px solid #767676; background: #fff; position: relative;
+  }
+  .optB input:checked + .ringB { background: #4A90D9; border-color: #4A90D9; }
+  .optB input:focus-visible + .ringB { outline: 3px solid #0a3d62; outline-offset: 3px; }
+  .ringB::after {
+    content: ""; position: absolute; inset: 5px; border-radius: 50%;
+    background: transparent;
+  }
+  .optB input:checked + .ringB::after { background: #7BB0E6; }  /* faint inner dot */
+
+  .note {
+    margin-top: 16px; font-size: .82rem; color: #56616c;
+    background: #f6f8fa; border: 1px dashed #d9e0e6; border-radius: 8px; padding: 14px 16px;
+  }
+  .note code { background: #e8edf1; padding: 1px 4px; border-radius: 4px; }
+  .tag { font-size: .72rem; font-weight: 700; letter-spacing:.03em; padding: 2px 7px; border-radius: 99px; vertical-align: middle; }
+  .tag.pass { background: #e3f4e6; color: #1d6b2c; }
+  .tag.fail { background: #fdeaea; color: #a31515; }
+</style>
+</head>
+<body>
+<div class="wiz-top">Beacon Auto Insurance — Get a quote</div>
+<div class="progress">Step 3 of 5 — Coverage level</div>
+<main>
+  <h1>Choose your coverage level</h1>
+  <p class="sub">You can change this later before you buy. Prices are estimates per month.</p>
+
+  <fieldset class="groupA">
+    <legend>Liability coverage <span class="tag pass">flat-fill — passes</span></legend>
+
+    <label class="opt optA">
+      <input type="radio" name="liab" value="state-min">
+      <span class="ringA" aria-hidden="true"></span>
+      <span class="txt"><b>State minimum</b><span>Meets the legal minimum only.</span></span>
+      <span class="price">$58/mo</span>
+    </label>
+
+    <label class="opt optA">
+      <input type="radio" name="liab" value="standard" checked>
+      <span class="ringA" aria-hidden="true"></span>
+      <span class="txt"><b>Standard</b><span>100/300/100 limits. Recommended for most drivers.</span></span>
+      <span class="price">$84/mo</span>
+    </label>
+
+    <label class="opt optA">
+      <input type="radio" name="liab" value="premium">
+      <span class="ringA" aria-hidden="true"></span>
+      <span class="txt"><b>Premium</b><span>250/500/250 limits with higher protection.</span></span>
+      <span class="price">$119/mo</span>
+    </label>
+  </fieldset>
+
+  <fieldset class="groupB">
+    <legend>Collision deductible <span class="tag fail">inner-dot — fails</span></legend>
+
+    <label class="opt optB">
+      <input type="radio" name="ded" value="250">
+      <span class="ringB" aria-hidden="true"></span>
+      <span class="txt"><b>$250 deductible</b><span>Lower out-of-pocket if you file a claim.</span></span>
+      <span class="price">+$31/mo</span>
+    </label>
+
+    <label class="opt optB">
+      <input type="radio" name="ded" value="500" checked>
+      <span class="ringB" aria-hidden="true"></span>
+      <span class="txt"><b>$500 deductible</b><span>A balance of premium and out-of-pocket.</span></span>
+      <span class="price">+$18/mo</span>
+    </label>
+
+    <label class="opt optB">
+      <input type="radio" name="ded" value="1000">
+      <span class="ringB" aria-hidden="true"></span>
+      <span class="txt"><b>$1,000 deductible</b><span>Lowest premium, highest out-of-pocket.</span></span>
+      <span class="price">+$7/mo</span>
+    </label>
+  </fieldset>
+
+  <p class="note">
+    Same SC, opposite verdicts, depending on which surface is "adjacent." <strong>Group A</strong>
+    uses a flat fill: the selected control becomes solid <code>#1565C0</code>, which contrasts
+    5.75:1 with the white page — the fill itself is the indicator, so it does not need to contrast
+    with anything inside it (the explicitly allowed flat-design pattern). <strong>Group B</strong>
+    puts a faint inner dot <code>#7BB0E6</code> on a <code>#4A90D9</code> fill (1.46:1): here the
+    dot is the selection mark and its adjacent surface is the fill, so it fails. A naive checker
+    that measures "control vs page" passes both; choosing the correct adjacent surface flips B to a
+    fail.
+  </p>
+</main>
+</body>
+</html>

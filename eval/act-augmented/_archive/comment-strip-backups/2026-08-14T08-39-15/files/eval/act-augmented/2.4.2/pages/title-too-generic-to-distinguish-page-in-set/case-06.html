@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 2.4.2 PASS — boundary variant that SHARPENS the aspect.
+    Same structural family as the failing cases: an inner page of an obvious
+    multi-page set (a patient portal) with sibling nav (Dashboard, Appointments,
+    Lab Results, Messages, Billing), a footer, and a specific <h1>/body. The page
+    is specifically the "Lab Results" view showing a recent CBC panel.
+    The DIFFERENCE: the <title> is "Lab Results — MyHealth Patient Portal", which
+    carries PAGE-LEVEL information (the section "Lab Results") in front of the
+    site-level part ("MyHealth Patient Portal"). It therefore distinguishes THIS
+    page from its siblings (Appointments, Messages, Billing) — the very thing the
+    failing cases lack. The site-name-only failure mode is AVOIDED here precisely
+    because the title is not site-name-only.
+    Why included: a human deciding the failing cases must be able to say what a
+    PASS looks like; this is the contrast control. Note that even this PASS is a
+    human judgment — an automated tool cannot confirm the leading "Lab Results"
+    actually matches the page's role; it only sees a non-empty title (as it does
+    on every case here).
+  -->
+  <title>Lab Results — MyHealth Patient Portal</title>
+  <style>
+    * { box-sizing:border-box; }
+    body { margin:0; font-family: "Segoe UI", system-ui, Arial, sans-serif; color:#1f2a37; background:#f4f6f9; }
+    header { background:#fff; border-bottom:1px solid #e2e7ef; padding:12px 22px; display:flex; align-items:center; gap:18px; }
+    .brand { font-weight:800; color:#0b5fa5; }
+    .who { margin-left:auto; font-size:13px; color:#5c6776; }
+    .layout { display:grid; grid-template-columns:220px 1fr; gap:0; max-width:1040px; margin:0 auto; }
+    nav.side { padding:18px 12px; }
+    nav.side ul { list-style:none; margin:0; padding:0; }
+    nav.side a { display:flex; align-items:center; gap:8px; padding:9px 12px; border-radius:8px; text-decoration:none; color:#384351; font-size:14px; }
+    nav.side a[aria-current="page"] { background:#e6f0fa; color:#0b5fa5; font-weight:700; }
+    main { padding:22px 26px 50px; }
+    .crumb { font-size:13px; color:#5c6776; margin-bottom:8px; }
+    h1 { font-size:26px; margin:0 0 4px; }
+    .meta { color:#5c6776; font-size:14px; margin:0 0 20px; }
+    .card { background:#fff; border:1px solid #e2e7ef; border-radius:12px; padding:18px 20px; margin-bottom:16px; }
+    .card h2 { font-size:17px; margin:0 0 12px; }
+    table { border-collapse:collapse; width:100%; font-size:14px; }
+    th, td { text-align:left; border-bottom:1px solid #eef1f5; padding:9px 8px; }
+    th { color:#5c6776; }
+    .flag { font-weight:700; }
+    .flag.high { color:#b42318; }
+    .flag.ok { color:#067647; }
+    footer { border-top:1px solid #e2e7ef; padding:18px 22px; font-size:13px; color:#5c6776; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="brand">MyHealth Patient Portal</span>
+    <span class="who">Signed in as Dana R. · St. Cloud Clinic</span>
+  </header>
+
+  <div class="layout">
+    <nav class="side" aria-label="Patient portal sections">
+      <ul>
+        <li><a href="/portal/dashboard">Dashboard</a></li>
+        <li><a href="/portal/appointments">Appointments</a></li>
+        <li><a href="/portal/results" aria-current="page">Lab results</a></li>
+        <li><a href="/portal/messages">Messages</a></li>
+        <li><a href="/portal/medications">Medications</a></li>
+        <li><a href="/portal/billing">Billing</a></li>
+      </ul>
+    </nav>
+
+    <main>
+      <p class="crumb">Home / Lab results / June 14, 2026</p>
+      <h1>Lab Results</h1>
+      <p class="meta">Complete Blood Count (CBC) · Collected Jun 14, 2026 · Ordered by Dr. Patel</p>
+
+      <div class="card">
+        <h2>Complete Blood Count (CBC)</h2>
+        <table>
+          <thead>
+            <tr><th scope="col">Test</th><th scope="col">Result</th><th scope="col">Reference range</th><th scope="col">Flag</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>White blood cells</td><td>11.8 ×10⁹/L</td><td>4.0–11.0</td><td class="flag high">High</td></tr>
+            <tr><td>Hemoglobin</td><td>13.9 g/dL</td><td>12.0–15.5</td><td class="flag ok">Normal</td></tr>
+            <tr><td>Platelets</td><td>250 ×10⁹/L</td><td>150–400</td><td class="flag ok">Normal</td></tr>
+            <tr><td>Hematocrit</td><td>41 %</td><td>36–46</td><td class="flag ok">Normal</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h2>Provider note</h2>
+        <p>Your white blood cell count is mildly elevated, which can occur with a recent
+           infection. No action needed now; we'll recheck at your follow-up. Message us
+           through the portal if you have new symptoms.</p>
+      </div>
+    </main>
+  </div>
+
+  <footer>
+    <p>MyHealth Patient Portal · <a href="/help">Help</a> · <a href="/privacy">Privacy</a></p>
+    <p>Each portal section carries a page-specific title: this page is “Lab Results — MyHealth Patient Portal”; Appointments is “Appointments — MyHealth Patient Portal”; Billing is “Billing — MyHealth Patient Portal.”</p>
+  </footer>
+</body>
+</html>

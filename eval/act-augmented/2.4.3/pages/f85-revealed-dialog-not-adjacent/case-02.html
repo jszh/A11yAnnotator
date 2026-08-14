@@ -29,7 +29,6 @@
   footer { background:#efe6d6; padding:24px; font-size:.92rem; }
   footer a { margin-right:14px; }
 
-  /* The flyout menu is fixed under the top bar, visually attached to the Menu button */
   .flyout {
     display:none; position:fixed; top:58px; right:24px; width:240px; z-index:50;
     background:#fff; border:1px solid #e3d6c2; border-radius:8px;
@@ -45,7 +44,6 @@
 <body>
 <header class="topbar">
   <span class="logo">Saffron &amp; Smoke</span>
-  <!-- Trigger near the top-right. The flyout it controls is at the very end of the DOM. -->
   <button class="menu-btn" id="menuToggle" aria-haspopup="true" aria-expanded="false"
           aria-controls="navFlyout">Menu ▾</button>
 </header>
@@ -108,15 +106,6 @@
   <p>1180 Maple Ave · Open daily 11am–10pm · (555) 010-7788</p>
 </footer>
 
-<!--
-  THE BUG (F85, open branch): this navigation flyout is the LAST element in the DOM,
-  but its trigger (#menuToggle) is in the top bar. The toggle script only flips the
-  .open class and aria-expanded; it never moves focus into the flyout. So a keyboard
-  user who opens "Menu ▾" stays on the button, and the next Tab goes to the FIRST link
-  on the page in source order ("Start your order"), NOT to the menu items that just
-  appeared visually below the button. To reach "Reservations" they must Tab past the
-  hero, every dish "Add to order" link, and the whole footer.
--->
 <div class="flyout" id="navFlyout" role="menu" aria-label="Main menu">
   <a href="#full-menu" role="menuitem">Full Menu</a>
   <a href="#reservations" role="menuitem">Reservations</a>
@@ -127,17 +116,13 @@
 </div>
 
 <script>
-  // jQuery-flavored snippet rewritten in vanilla JS for a no-dependency page.
-  // Toggles visibility + aria-expanded only. NO focus move into the menu.
   (function () {
     var btn = document.getElementById('menuToggle');
     var menu = document.getElementById('navFlyout');
     btn.addEventListener('click', function () {
       var open = menu.classList.toggle('open');
       btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-      // Intentionally no menu.querySelector('a').focus() and no focus trap.
     });
-    // Click outside closes it.
     document.addEventListener('click', function (e) {
       if (!menu.contains(e.target) && e.target !== btn) {
         menu.classList.remove('open');

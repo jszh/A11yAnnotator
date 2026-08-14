@@ -15,15 +15,6 @@
   .grid th, .grid td { text-align:left; padding:10px 12px; border-bottom:1px solid #1d212b; }
   .grid thead th { color:#8a909c; font-weight:600; }
   .svc { font-family:-apple-system,Segoe UI,Roboto,sans-serif; }
-  /* THE FAILING WIDGET — "Region health" matrix.
-     Each region's health is conveyed ONLY by the colour of a status dot:
-        green #3fbf63  = operational
-        amber #e0a02e  = degraded
-        red   #e0503e  = major outage
-     Each dot has fine non-text contrast against the dark surface (4.8-8.3:1), and the dots are
-     the same SHAPE and SIZE. There is no text, no label, no shape/pattern difference — meaning
-     depends entirely on perceiving WHICH hue each dot is. The legend only restates the colour
-     code, which does not help someone who cannot distinguish the hues. */
   .dot { display:inline-block; width:13px; height:13px; border-radius:50%; vertical-align:middle; }
   .op   { background:#3fbf63; }
   .deg  { background:#e0a02e; }
@@ -31,8 +22,6 @@
   .legend { margin:10px 0 0; color:#8a909c; font-size:13px; }
   .legend .dot { margin:0 4px 0 12px; }
 
-  /* THE PASSING SIBLING — "Active incidents" list adds a TEXT status badge alongside the dot,
-     so meaning no longer depends on hue. */
   .inc { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid #1d212b; }
   .badge { font-family:-apple-system,Segoe UI,Roboto,sans-serif; font-size:12px; font-weight:700;
            padding:2px 8px; border-radius:5px; letter-spacing:.02em; }
@@ -71,28 +60,5 @@
     <span class="what">us-east-1 Network — packet loss in one AZ</span></div>
 </main>
 
-<!--
-  WHY THE REGION-HEALTH MATRIX FAILS (1.4.1 pure-hue reliance — note (b)):
-  Each region/service health value (operational / degraded / major outage) is conveyed ONLY by
-  the hue of an identically-shaped status dot: green, amber, or red. The meaning depends on the
-  user accurately perceiving WHICH colour each dot is. The Understanding note: "if content relies
-  on the user's ability to accurately perceive or differentiate a particular colour an additional
-  visual indicator will be required regardless of the contrast ratio between those colours." The
-  dots have perfectly adequate non-text contrast against the dark surface (4.8-8.3:1), so this is
-  NOT a 1.4.11 problem — and the hues are at similar lightness (green/amber ~1.04:1), so no
-  lightness escape hatch applies either. The legend only re-encodes the colours and is no help to
-  a user with deuteranopia/protanopia. There is no text, shape, or pattern differentiating the
-  states in the matrix.
-
-  THE "Active incidents" LIST IS THE PASSING SIBLING: it pairs each dot with a TEXT badge
-  ("MAJOR OUTAGE" / "DEGRADED"), so its meaning no longer depends on colour. Including both on one
-  page sharpens the discrimination: identical visual vocabulary, but only the matrix fails.
-
-  WHY AUTOMATED TOOLS MISS IT: the dots are well-formed elements with sufficient non-text
-  contrast, so axe/WAVE/Lighthouse find no contrast or markup error. No automated rule can tell
-  that a coloured dot ENCODES a status that is available through no other channel, nor that the
-  legend doesn't rescue it. Recognising that hue is the sole carrier of "operational vs degraded
-  vs down" — and that this fails regardless of the dots' contrast — is a semantic/visual judgement.
--->
 </body>
 </html>

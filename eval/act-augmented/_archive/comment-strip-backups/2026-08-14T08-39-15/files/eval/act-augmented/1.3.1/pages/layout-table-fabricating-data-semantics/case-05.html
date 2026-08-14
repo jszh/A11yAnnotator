@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Helmsman — Operations Dashboard</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (F46 / TT 14.C, ARIA variant):
+  This is F46 reincarnated in ARIA. No <table> element exists; instead a CSS-grid
+  container of independent dashboard widgets (each its own card with its own metric)
+  is given role="table", the top row of cards is given role="row" with role="columnheader"
+  on each, and the cards below are role="cell". The ARIA is SYNTACTICALLY VALID and the
+  required-owned-elements contract is satisfied (table > row > columnheader/cell), so
+  axe's "required ARIA children / parent" and "valid role" checks all PASS. But the
+  widgets are INDEPENDENT PANELS — "Active Incidents", "Deploy Frequency", "Error Rate"
+  are not columns of a shared dataset, and "System Health" is not the column header that
+  governs the "Latency p95" panel beneath it. The role=table asserts tabular structure
+  over content that has no row/column data relationship. TT 14.C explicitly covers
+  role="table" on layout. Deciding these panels are NOT a data grid is a human judgment.
+-->
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Inter", system-ui, sans-serif; background:#0f172a; color:#e2e8f0; }
+  .appbar { display:flex; align-items:center; justify-content:space-between;
+            padding:14px 26px; background:#111c33; border-bottom:1px solid #1e2b45; }
+  .appbar .logo { font-weight:700; color:#38bdf8; letter-spacing:.5px; }
+  .appbar .env { font-size:.78rem; color:#94a3b8; }
+  main { padding:26px; }
+  main > h1 { font-size:1.25rem; margin:0 0 4px; }
+  main > .since { color:#94a3b8; font-size:.82rem; margin:0 0 22px; }
+
+  /* The "table" is purely a positioning grid for independent widgets. */
+  .board { display:grid; grid-template-columns:repeat(3, 1fr); gap:18px; }
+  .widget { background:#152138; border:1px solid #1e2b45; border-radius:12px; padding:18px 20px; }
+  .widget .k { font-size:.78rem; color:#94a3b8; text-transform:uppercase; letter-spacing:.06em; }
+  .widget .v { font-size:2rem; font-weight:700; margin:6px 0 2px; }
+  .widget .d { font-size:.82rem; }
+  .up { color:#f87171; } .down { color:#34d399; } .flat { color:#94a3b8; }
+  .widget.head { background:#1b2c4a; }
+  .widget.head .k { color:#cbd5e1; }
+  .spark { height:34px; margin-top:10px; background:
+    repeating-linear-gradient(90deg,#1e3a5f 0 4px,transparent 4px 8px); border-radius:4px; }
+</style>
+</head>
+<body>
+  <header class="appbar">
+    <span class="logo">Helmsman</span>
+    <span class="env">prod · us-east-1</span>
+  </header>
+
+  <main>
+    <h1>Operations Dashboard</h1>
+    <p class="since">Live · refreshed 12 seconds ago</p>
+
+    <!--
+      LAYOUT GRID falsely declared a data table. role="table" wraps a set of
+      independent monitoring widgets; the top row is role="row" with three
+      role="columnheader" cards; the lower widgets are role="cell". No widget is
+      actually the column header that classifies the widget beneath it.
+    -->
+    <div class="board" role="table" aria-label="Operations metrics">
+      <div role="row">
+        <div class="widget head" role="columnheader">
+          <div class="k">System Health</div>
+          <div class="v down">Healthy</div>
+          <div class="d flat">all checks green</div>
+        </div>
+        <div class="widget head" role="columnheader">
+          <div class="k">Delivery</div>
+          <div class="v">4.2/day</div>
+          <div class="d down">deploys this week</div>
+        </div>
+        <div class="widget head" role="columnheader">
+          <div class="k">Reliability</div>
+          <div class="v">99.95%</div>
+          <div class="d flat">30-day uptime</div>
+        </div>
+      </div>
+      <div role="row">
+        <div class="widget" role="cell">
+          <div class="k">Latency p95</div>
+          <div class="v">218&nbsp;ms</div>
+          <div class="d up">▲ 9% vs. yesterday</div>
+          <div class="spark"></div>
+        </div>
+        <div class="widget" role="cell">
+          <div class="k">Active Incidents</div>
+          <div class="v">0</div>
+          <div class="d down">▼ none open</div>
+          <div class="spark"></div>
+        </div>
+        <div class="widget" role="cell">
+          <div class="k">Error Rate</div>
+          <div class="v">0.31%</div>
+          <div class="d down">▼ 0.04 pts</div>
+          <div class="spark"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

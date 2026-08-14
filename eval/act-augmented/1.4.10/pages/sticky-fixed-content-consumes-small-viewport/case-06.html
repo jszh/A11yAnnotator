@@ -2,11 +2,6 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <!-- Zoom allowed. The PROSE reflows fine. But a position:sticky editor toolbar fails on
-       BOTH reflow axes: (1) it is a single nowrap row wider than 320px, so its right-hand
-       buttons run off-canvas and the toolbar introduces a horizontal scrollbar at the 320px
-       WIDTH; (2) it is ~104px tall and sticky, so it also eats the 256px HEIGHT. The editable
-       text area is NOT itself an excepted two-dimensional layout — it is ordinary prose. -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Edit: Getting Started Guide — DocForge CMS</title>
   <style>
@@ -17,12 +12,6 @@
     .appbar .doc { font-weight: 600; }
     .appbar .meta { font-size: 12px; opacity: .75; }
 
-    /* The formatting toolbar is sticky and laid out as ONE non-wrapping row. With ~16
-       buttons plus a font-size select and a style dropdown, the row is ~640px wide. It does
-       NOT wrap (white-space:nowrap; overflow:auto), so at the 320px reflow viewport its
-       right half (link, image, code block, table, undo, redo, publish) is off-screen behind
-       a horizontal scrollbar — the user must scroll sideways inside the toolbar to reach
-       them. It is also min-height:104px (two visual rows of chrome), eating vertical space. */
     .toolbar {
       position: sticky; top: 0; z-index: 25;
       background: #fff; border-bottom: 1px solid #d3dae2;
@@ -31,7 +20,7 @@
       display: flex; align-items: center; gap: 6px;
       padding: 10px;
       white-space: nowrap;
-      overflow-x: auto;           /* horizontal scroll appears at 320px */
+      overflow-x: auto;           
     }
     .toolbar .grp { display: inline-flex; gap: 4px; padding-right: 8px; border-right: 1px solid #e3e8ee; }
     .toolbar button, .toolbar select {
@@ -56,14 +45,6 @@
   </style>
 </head>
 <body>
-  <!-- WHY AUTOMATED TOOLS MISS THIS:
-       overflow-x:auto + white-space:nowrap is a normal pattern; every toolbar button has a
-       name and good contrast. axe/WAVE/Lighthouse do not measure the rendered toolbar width
-       against 320px, do not detect that controls have scrolled off-canvas, and do not judge
-       that the editable region is ordinary prose (NOT an excepted persistent-toolbar editing
-       canvas that legitimately needs to stay visible). A human at 320px sees the right-hand
-       toolbar controls vanish behind a horizontal scrollbar AND the sticky bar eating the
-       short viewport — a dual-axis Reflow failure no static rule can assert. -->
   <header class="appbar">
     <span class="doc">Editing: Getting Started Guide</span>
     <span class="meta"> · draft · last saved 2 min ago by you</span>

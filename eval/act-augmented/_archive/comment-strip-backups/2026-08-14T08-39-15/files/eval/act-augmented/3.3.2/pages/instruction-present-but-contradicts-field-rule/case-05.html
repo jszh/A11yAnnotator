@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Make a gift — Riverside Food Bank</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS:
+  The donation-amount field has a correctly associated, VISIBLE instruction with a worked
+  example via aria-describedby ("Enter an amount in US dollars — for example 25.00"). The
+  hint is non-empty, gives a concrete example, and is in the accessibility tree. axe /
+  WAVE / Lighthouse confirm: <label for> resolves, aria-describedby resolves, contrast
+  fine, role textbox. The "instruction present" facet of 3.3.2 (TT 5.A) passes.
+  THE DEFECT IS SEMANTIC: the field's ENFORCED rule rejects decimals — step="1",
+  pattern="\d+" (no dot), inputmode="numeric", and the submit validator accepts WHOLE
+  DOLLARS ONLY. So the very example the instruction provides, "25.00", is itself an
+  INVALID value for this field. A user who types the worked example verbatim is rejected.
+  No checker reads "25.00" from the prose, reads step="1"/pattern="\d+", and judges that
+  the offered example violates the field's own rule.
+-->
+<style>
+  :root{ --ink:#1c1a17; --muted:#665f54; --line:#e0d8c9; --brand:#b5481b; --accent:#2e7d57;
+         --danger:#b1271b; --paper:#fffdf9; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font:16px/1.55 "Mulish",Segoe UI,system-ui,sans-serif; color:var(--ink);
+        background:#f6f0e6; }
+  .wrap{ max-width:520px; margin:0 auto; padding:42px 20px 70px; }
+  .brand{ text-align:center; margin-bottom:18px; }
+  .brand .bowl{ width:42px; height:42px; margin:0 auto 6px; border-radius:0 0 50% 50%;
+        background:var(--brand); }
+  .brand b{ font-size:1.2rem; }
+  .card{ background:var(--paper); border:1px solid var(--line); border-radius:14px;
+        padding:30px 28px; box-shadow:0 6px 20px rgba(60,40,20,.07); }
+  h1{ font-size:1.5rem; margin:0 0 4px; text-align:center; }
+  .sub{ color:var(--muted); margin:0 0 24px; text-align:center; font-size:.95rem; }
+  .presets{ display:flex; gap:8px; margin:0 0 18px; }
+  .presets button{ flex:1; background:#fff; border:1.5px solid var(--line); border-radius:8px;
+        padding:10px 0; font-weight:700; cursor:pointer; color:var(--ink); }
+  .presets button:focus{ outline:3px solid var(--brand); outline-offset:1px; }
+  .field{ margin:0 0 22px; }
+  label{ display:block; font-weight:700; margin:0 0 5px; }
+  .hint{ color:var(--muted); font-size:.88rem; margin:0 0 8px; }
+  .amount{ position:relative; }
+  .amount .dollar{ position:absolute; left:12px; top:50%; transform:translateY(-50%);
+        font-weight:700; color:var(--muted); pointer-events:none; }
+  input[type=text]{ width:100%; padding:12px 12px 12px 26px; font-size:1.15rem; font-weight:700;
+        border:2px solid var(--line); border-radius:9px; background:#fff; color:var(--ink); }
+  input:focus{ outline:3px solid var(--brand); outline-offset:1px; border-color:var(--brand); }
+  input[aria-invalid="true"]{ border-color:var(--danger); }
+  .err{ color:var(--danger); font-weight:600; font-size:.88rem; margin:8px 0 0; min-height:1em; }
+  button.give{ width:100%; margin-top:6px; background:var(--accent); color:#fff; border:0;
+        border-radius:10px; font-size:1.05rem; font-weight:800; padding:14px; cursor:pointer; }
+  button.give:focus{ outline:3px solid #15402c; outline-offset:2px; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand"><span class="bowl" aria-hidden="true"></span><b>Riverside Food Bank</b></div>
+    <main class="card">
+      <h1>Make a gift today</h1>
+      <p class="sub">$1 helps us provide 3 meals to neighbors in need.</p>
+
+      <form action="#" method="post" novalidate id="form" autocomplete="off">
+        <div class="presets" role="group" aria-label="Suggested amounts">
+          <button type="button" data-amt="10">$10</button>
+          <button type="button" data-amt="25">$25</button>
+          <button type="button" data-amt="50">$50</button>
+        </div>
+
+        <!-- DEFECTIVE CONTROL: the worked example "25.00" is itself invalid (no decimals allowed). -->
+        <div class="field">
+          <label for="amount">Or enter another amount</label>
+          <p class="hint" id="amount-hint">Enter an amount in US dollars — for example 25.00.</p>
+          <div class="amount">
+            <span class="dollar" aria-hidden="true">$</span>
+            <input type="text" id="amount" name="amount"
+                   aria-describedby="amount-hint amount-err"
+                   inputmode="numeric" step="1" pattern="\d+" placeholder="">
+          </div>
+          <p class="err" id="amount-err" role="alert"></p>
+        </div>
+
+        <button class="give" type="submit">Donate now</button>
+      </form>
+    </main>
+    <p style="text-align:center;margin-top:20px;color:#9a8f7d;font-size:.78rem">Riverside demo · renders from file://</p>
+  </div>
+
+<script>
+(function(){
+  var form = document.getElementById('form');
+  var amt  = document.getElementById('amount');
+  var err  = document.getElementById('amount-err');
+
+  document.querySelectorAll('.presets button').forEach(function(b){
+    b.addEventListener('click', function(){ amt.value = b.getAttribute('data-amt'); amt.focus(); });
+  });
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    var v = amt.value.trim();
+    // ENFORCED RULE: WHOLE DOLLARS ONLY — no decimal point. So "25.00" (the printed example) FAILS.
+    if (/^\d+$/.test(v) && parseInt(v,10) >= 1) {
+      amt.setAttribute('aria-invalid','false');
+      err.textContent = 'Thank you! Processing your $' + v + ' gift…';
+      err.style.color = '#2e7d57';
+    } else {
+      amt.setAttribute('aria-invalid','true');
+      // Real rule surfaces only on failure: cents are not allowed.
+      err.textContent = 'Please enter a whole dollar amount with no cents (for example 25).';
+      err.style.color = '';
+      amt.focus();
+    }
+  });
+})();
+</script>
+</body>
+</html>

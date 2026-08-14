@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shipping address — Pinewood Supply Co.</title>
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS (SC 2.1.2 — gate whose required fix is mouse-only):
+    The checkout's "Street address" field is gated by an inline validation error: forward Tab
+    past the address field is suppressed until the value EXACTLY matches the
+    address-verification service's canonical form (street fully spelled out, e.g.
+    "1450 Pinewood Avenue Northwest, Suite 200"). The user typed "1450 Pinewood Ave NW Ste
+    200", which the verifier rejects. The ONLY offered way to resolve the error is a
+    "Use suggested address" button — implemented as a <div onclick> that is not focusable, has
+    no role and no keydown. A keyboard user cannot click it and, in practice, cannot blindly
+    retype the exact canonical string the verifier wants, so they can satisfy NOTHING and Tab
+    never advances to the city/ZIP fields, the "Continue to payment" button, or the rest of
+    the page.
+    This is a trap, not the input-gate exception: the required interaction is not
+    keyboard-performable. axe / WAVE / Lighthouse see a labelled <input>, an alert region with
+    text, and a <div> with an onclick (no role/name rule fires). They never run validation,
+    never Tab, and cannot tell the only escape is a pointer-only control. A human must
+    discover (by mouse) that the "Use suggested address" div is the only fix and confirm it is
+    keyboard-unreachable.
+  -->
+  <style>
+    :root { --ink:#23211d; --muted:#6a6358; --line:#e0dacd; --brand:#7a4d12; --bg:#faf8f3; --err:#9a2b1f; }
+    * { box-sizing: border-box; }
+    body { font: 16px/1.55 "Helvetica Neue", Arial, sans-serif; color: var(--ink); margin: 0; background: var(--bg); }
+    header { background: #fff; border-bottom: 1px solid var(--line); padding: 14px 26px; display: flex; justify-content: space-between; align-items: baseline; }
+    header .brand { font-weight: 800; letter-spacing: .4px; }
+    header .cart { font-size: .85rem; color: var(--muted); }
+    main { max-width: 580px; margin: 30px auto; padding: 0 18px; }
+    h1 { font-size: 1.45rem; margin: 0 0 4px; }
+    .lede { color: var(--muted); margin: 0 0 22px; }
+    .card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 24px 26px; }
+    .row { margin: 0 0 16px; }
+    .two { display: flex; gap: 14px; }
+    .two .row { flex: 1; }
+    label { display: block; font-weight: 700; margin: 0 0 6px; font-size: .92rem; }
+    input[type="text"] { width: 100%; font: inherit; padding: 11px 12px; border: 1px solid #bcb3a4; border-radius: 8px; background: #fffdf9; }
+    input:focus-visible { outline: 3px solid #1652a8; outline-offset: 1px; }
+    input.invalid { border-color: var(--err); background: #fdf4f3; }
+    .alert {
+      display: none; margin: 8px 0 0; padding: 10px 12px; border-radius: 8px;
+      background: #fdeceA; border: 1px solid #e9c4bf; color: var(--err); font-size: .88rem;
+    }
+    .alert.show { display: block; }
+    .alert .fix {
+      display: inline-block; margin-top: 8px; background: var(--brand); color: #fff;
+      border-radius: 7px; padding: 7px 14px; font-weight: 700; font-size: .85rem; cursor: pointer;
+    }
+    .alert .fix:hover { background: #5e3a0d; }
+    .suggested { font-style: italic; }
+    .actions { margin-top: 12px; }
+    button.pay {
+      font: inherit; font-weight: 700; color: #fff; background: #1f6b3b;
+      border: 0; border-radius: 8px; padding: 12px 24px; cursor: pointer;
+    }
+    button.pay:focus-visible { outline: 3px solid #1652a8; outline-offset: 2px; }
+    footer { color: var(--muted); font-size: .8rem; text-align: center; margin: 28px 0; }
+  </style>
+</head>
+<body>
+  <header><span class="brand">Pinewood Supply Co.</span><span class="cart">Checkout · 2 items</span></header>
+
+  <main>
+    <h1>Shipping address</h1>
+    <p class="lede">We verify addresses with the carrier to avoid failed deliveries.</p>
+
+    <form class="card" action="#" method="post" aria-labelledby="sa-h" novalidate>
+      <h2 id="sa-h" style="margin:0 0 16px;font-size:1.1rem;">Where should we ship?</h2>
+
+      <div class="row">
+        <label for="street">Street address (required)</label>
+        <!-- Pre-filled with the user's input; the verifier wants a different canonical form. -->
+        <input type="text" id="street" name="street" class="invalid"
+               value="1450 Pinewood Ave NW Ste 200"
+               aria-describedby="street-alert" aria-invalid="true" required>
+        <div class="alert show" id="street-alert" role="alert">
+          We couldn't verify that address. Suggested:
+          <span class="suggested">1450 Pinewood Avenue Northwest, Suite 200</span>.
+          <!--
+            The ONLY offered resolution is this button — but it is a pointer-only <div>:
+            no tabindex, no role, no keydown. Keyboard users cannot activate it, and the
+            verifier won't accept anything but the exact canonical string, so they can
+            resolve the error by NO keyboard means. Forward Tab stays blocked. Trap.
+          -->
+          <div class="fix" onclick="useSuggested()">Use suggested address</div>
+        </div>
+      </div>
+
+      <div class="two">
+        <div class="row">
+          <label for="city">City (required)</label>
+          <input type="text" id="city" name="city" value="Atlanta" required>
+        </div>
+        <div class="row">
+          <label for="zip">ZIP (required)</label>
+          <input type="text" id="zip" name="zip" value="30309" inputmode="numeric" required>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button type="submit" class="pay">Continue to payment</button>
+      </div>
+    </form>
+  </main>
+
+  <footer>Pinewood Supply Co. · Free returns within 30 days · Ships from Atlanta, GA.</footer>
+
+  <script>
+    // The street field is gated by an unresolved verification error. Forward Tab is
+    // suppressed until the value matches the verifier's exact canonical form. The user's
+    // typed value does not match, and the only offered resolution is the pointer-only
+    // "Use suggested address" <div onclick>. A keyboard user therefore has no way to clear
+    // the error (they can edit the field, but cannot know/produce the exact canonical string
+    // the verifier requires), so forward Tab never releases. Genuine trap dressed as
+    // validation.
+    var street = document.getElementById('street');
+    var alertEl = document.getElementById('street-alert');
+    var CANON = '1450 Pinewood Avenue Northwest, Suite 200';
+
+    function verified() { return street.value.trim() === CANON; }
+
+    function useSuggested() {          // reachable ONLY via the div's onclick (pointer)
+      street.value = CANON;
+      street.classList.remove('invalid');
+      street.setAttribute('aria-invalid', 'false');
+      alertEl.classList.remove('show');
+    }
+
+    // Re-validate as the user edits; but free-typed text essentially never equals CANON,
+    // so editing does not clear the gate in practice.
+    street.addEventListener('input', function () {
+      if (verified()) {
+        street.classList.remove('invalid');
+        street.setAttribute('aria-invalid', 'false');
+        alertEl.classList.remove('show');
+      } else {
+        street.classList.add('invalid');
+        street.setAttribute('aria-invalid', 'true');
+        alertEl.classList.add('show');
+      }
+    });
+
+    // Suppress forward Tab while the address is unverified.
+    street.addEventListener('keydown', function (e) {
+      if (e.key === 'Tab' && !e.shiftKey && !verified()) {
+        e.preventDefault();
+      }
+    });
+  </script>
+</body>
+</html>

@@ -4,24 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Create your account — Cobalt Project Tracker</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS:
-  This SPA-style signup validates the password live: as the user types, an
-  aria-live="polite" region announces the result, the input gets aria-invalid, and the
-  message is tied via aria-describedby. axe / WAVE / Lighthouse confirm: labelled input,
-  associated live message, aria-invalid set, contrast fine, focus order sound. 3.3.1
-  passes (the error is identified and announced) and a "mentions fixing?" heuristic
-  passes — "Improve your password" is imperative, fix-oriented language.
-  THE DEFECT IS SEMANTIC ADEQUACY (3.3.3): the policy this field enforces is concrete and
-  fully knowable — the validator below requires >= 12 characters, at least one digit, and
-  at least one symbol — but the user is told only "Improve your password." with none of
-  those requirements surfaced. "Improve" gives no actionable direction: longer? a number?
-  a capital? The exact, statable rule set exists in code and is simply withheld. (Note:
-  3.3.3's security carve-out is about NOT disclosing why a *login* password is wrong; it
-  does NOT excuse hiding the *creation policy*, which is meant to be stated.) No checker
-  can read the validator, see the policy is determinate, and judge that "Improve your
-  password" fails to convey it — that is a human adequacy call.
--->
 <style>
   :root{ --ink:#11161d; --muted:#5d6b7a; --line:#d3dae3; --cobalt:#2b4ee0; --cobalt-d:#1c39ad;
          --danger:#c92a2a; --ok:#2b8a3e; --bg:#f4f6fb; --paper:#fff; --focus:#1558d6; }
@@ -70,8 +52,6 @@
         <input type="password" id="pw" name="pw"
                aria-describedby="pw-msg" autocomplete="new-password">
         <div class="meter" aria-hidden="true"><i id="pw-bar"></i></div>
-        <!-- DEFECTIVE: live message says only "Improve your password." while the policy
-             (>=12 chars, a digit, a symbol) is concrete and enforced below. -->
         <p class="msg" id="pw-msg" role="status" aria-live="polite"></p>
       </div>
 
@@ -86,7 +66,6 @@
   var msg = document.getElementById('pw-msg');
   var bar = document.getElementById('pw-bar');
 
-  // CONCRETE, KNOWABLE POLICY — this is what an adequate message would state.
   function passes(v){
     return v.length >= 12 && /\d/.test(v) && /[^A-Za-z0-9]/.test(v);
   }
@@ -94,7 +73,7 @@
     var s = 0;
     if (v.length >= 12) s++; if (/\d/.test(v)) s++; if (/[^A-Za-z0-9]/.test(v)) s++;
     if (/[A-Z]/.test(v) && /[a-z]/.test(v)) s++;
-    return s; // 0..4
+    return s; 
   }
 
   pw.addEventListener('input', function(){
@@ -105,14 +84,14 @@
     pw.setAttribute('aria-invalid', ok ? 'false' : 'true');
     if (!v) { msg.textContent = ''; msg.className = 'msg'; return; }
     if (ok) { msg.textContent = 'Password accepted.'; msg.className = 'msg ok'; }
-    else    { msg.textContent = 'Improve your password.'; msg.className = 'msg'; } // vague filler
+    else    { msg.textContent = 'Improve your password.'; msg.className = 'msg'; } 
   });
 
   document.querySelector('form').addEventListener('submit', function(e){
     e.preventDefault();
     if (!passes(pw.value)) {
       pw.setAttribute('aria-invalid','true');
-      msg.textContent = 'Improve your password.';  // still vague at submit
+      msg.textContent = 'Improve your password.';  
       msg.className = 'msg';
       pw.focus();
     } else {

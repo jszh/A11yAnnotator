@@ -15,7 +15,6 @@
   .specs { display:flex; flex-wrap:wrap; gap:10px 26px; margin:0 0 22px; padding:0; list-style:none; }
   .specs li { font-size:15px; }
   .specs .k { color:#7a7264; display:block; font-size:12px; text-transform:uppercase; letter-spacing:.5px; }
-  /* icon badges with hover info */
   .badge {
     position:relative; display:inline-flex; align-items:center; gap:6px;
     background:#eef3ea; border:1px solid #cfe0c8; color:#2f4f2f;
@@ -29,17 +28,10 @@
     font-size:14px; line-height:1.55; box-shadow:0 10px 26px rgba(0,0,0,.28);
     z-index:20; pointer-events:none; opacity:0;
   }
-  /*
-    THE DEFECT (pure CSS, no JS timer):
-    On hover/focus we run a keyframe animation that starts visible and FADES TO
-    opacity:0, with animation-fill-mode:forwards so it stays gone. After ~3.5s the
-    popup is invisible even though the badge is STILL hovered/focused. There is no
-    setTimeout anywhere — a source grep for timers finds nothing.
-  */
   @keyframes peekThenVanish {
     0%   { opacity:1; }
-    74%  { opacity:1; }   /* visible for ~2.6s of a 3.5s run */
-    100% { opacity:0; }   /* then gone, while still hovered */
+    74%  { opacity:1; }   
+    100% { opacity:0; }   
   }
   .badge:hover .pop,
   .badge:focus .pop {
@@ -95,20 +87,5 @@
 
 <footer>Sproutwell is a fictional demo storefront. No orders are processed.</footer>
 
-<!--
-  WHY AUTOMATED TOOLS MISS IT:
-  This is the trap variant — there is no JavaScript at all, so a tool (or a reviewer)
-  grepping for setTimeout/setInterval finds nothing and might wrongly clear the page.
-  The auto-dismiss lives in a CSS @keyframes (peekThenVanish) that animates the popup
-  to opacity:0 with animation-fill-mode:forwards, so it disappears ~3.5s after hover/
-  focus begins while the badge is STILL hovered/focused. axe/WAVE/Lighthouse see valid
-  role="tooltip" markup, real names/roles, hover+focus triggers, and a hoverable popup;
-  CSS animation timing is invisible to them. A low-vision magnifier user — who needs the
-  extra seconds the Persistent condition guarantees, to pan onto the popup and read the
-  zone guidance — loses it mid-read. Only a human watching the rendered timeline can see
-  the content vanish while still valid and still hovered.
-  (No Esc handler is needed to demonstrate the Persistent failure: even a perfectly
-  hoverable, dismissible tooltip fails 1.4.13 if it auto-closes after a time.)
--->
 </body>
 </html>

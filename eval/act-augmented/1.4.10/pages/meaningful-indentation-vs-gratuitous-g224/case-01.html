@@ -3,31 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!--
-    SC 1.4.10 FAILURE — GRATUITOUS non-wrapping prose (the "must reflow" limb of G224).
-
-    Context: a public-library blog. The author wrote a normal multi-paragraph announcement
-    in a Markdown editor. Because every paragraph was indented FOUR SPACES in the source
-    (they were copy-pasting from an email where the body happened to be indented), the
-    Markdown renderer interpreted each paragraph as an *indented code block* and wrapped it
-    in <pre><code>. The renderer's CSS gives <pre> `white-space: pre` and `overflow-x: auto`,
-    so the prose now refuses to wrap: each "line" is the entire paragraph on one physical
-    line that runs hundreds of CSS pixels past the right edge.
-
-    THE JUDGMENT: this is ordinary English announcement prose. Its layout carries NO meaning
-    whatsoever — there is no code, no indentation hierarchy, no ascii-art, nothing that would
-    be lost by wrapping. So the G224 / Understanding "Preformatted text conveys meaning"
-    EXCEPTION does NOT apply. At a 320px viewport a low-vision reader must scroll the text
-    block left-and-right to read every sentence. This MUST reflow -> FAIL.
-
-    WHY AUTOMATED TOOLS MISS IT: the markup is flawless. <pre> + <code> is the *correct,
-    semantic* element for preformatted text, so no linter complains. axe/WAVE/Lighthouse have
-    no rule that computes layout at 320px, and even if they detected horizontal overflow they
-    cannot read the bytes inside <pre> and decide "this is prose with no meaningful layout, so
-    it should have wrapped" versus "this is Python where indentation is load-bearing, so the
-    overflow is exempt". That read-the-content semantic call is the entire SC 1.4.10 exception
-    test and is unavailable to a static scanner.
-  -->
   <title>Summer Reading Program 2026 — Maple Ridge Public Library</title>
   <style>
     :root { --ink:#22272b; --muted:#5b6670; --line:#dfe5ea; --bg:#f5f7f9; --brand:#7a4b1e; }
@@ -41,15 +16,13 @@
     h1 { font-size:26px; line-height:1.2; margin:22px 0 4px; }
     .byline { color:var(--muted); font-size:13px; font-family:Arial,sans-serif; margin:0 0 18px; }
     article p { margin:0 0 14px; }
-    /* This is the renderer's stock prose/code styling. It is what every Markdown-to-HTML
-       converter ships: code blocks do not wrap, they scroll. Perfectly fine for code; a
-       barrier for prose that got mis-detected as code. */
+    
     pre {
       background:#2b2f33; color:#e7ebee; border-radius:6px;
       padding:14px 16px; margin:0 0 14px;
       font-family:"SF Mono",Menlo,Consolas,monospace; font-size:14px; line-height:1.55;
-      white-space: pre;          /* <-- refuses to wrap */
-      overflow-x: auto;          /* <-- so it scrolls sideways instead */
+      white-space: pre;          
+      overflow-x: auto;          
       -webkit-overflow-scrolling: touch;
     }
     pre code { font:inherit; color:inherit; }
@@ -74,9 +47,7 @@
 
         <p>We are thrilled to kick off another season of stories, prizes, and discovery. Here is everything families need to know before the program begins on July 1st.</p>
 
-        <!-- These three paragraphs were authored as ordinary text but indented in the source,
-             so the Markdown renderer wrapped each one in a non-wrapping <pre><code>. They are
-             prose. Their layout means nothing. They MUST reflow at 320px. -->
+        
         <pre><code>Registration is free and open to every child and teen who lives in, attends school in, or holds a library card from the Maple Ridge district. Sign-ups can be completed at the Youth Services desk on the second floor, or online through the library account portal at any time before the closing date in August.</code></pre>
 
         <pre><code>Readers in the Early Reader track (ages four through seven) earn a sticker for every two books a caregiver reads aloud with them, while readers in the Independent track log their own minutes and collect a small prize at each milestone of one hundred, three hundred, and six hundred minutes of reading.</code></pre>

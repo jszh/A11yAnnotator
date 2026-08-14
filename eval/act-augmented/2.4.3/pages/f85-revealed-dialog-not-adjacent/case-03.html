@@ -22,7 +22,6 @@
   footer.site { border-top:1px solid #dce7e2; padding:24px 28px; font-size:.9rem; color:#3a4843; }
   footer.site a { margin-right:16px; }
 
-  /* Non-modal disclosure dialog rendered INLINE, right after its trigger. */
   .signup-wrap { margin:22px 0; }
   .signup-panel {
     display:none; margin-top:12px; max-width:420px;
@@ -51,14 +50,6 @@
   <p class="lede">Fresh-roasted to order, shipped within 24 hours of roast. Net-30 terms for
      qualified accounts and free delivery within the metro area.</p>
 
-  <!--
-    THE FIX (Understanding non-modal PASS example): the disclosure dialog markup is placed
-    IMMEDIATELY AFTER its trigger button. Because the panel's interactive elements come
-    next in source order, the natural tab order goes button -> email field -> Send -> Cancel
-    with NO focus script required. This is the Understanding's passing pattern: "The
-    interactive elements in the dialog are inserted in the focus order immediately after
-    the button."
-  -->
   <div class="signup-wrap">
     <button class="btn" id="openSignup" aria-haspopup="dialog"
             aria-expanded="false" aria-controls="signupPanel">
@@ -112,9 +103,6 @@
 </footer>
 
 <script>
-  // Visibility toggle only — and that is CORRECT here, because the panel is already next
-  // in the source/tab order. No focus move is needed for the forward tab sequence to
-  // enter the dialog. (We still keep aria-expanded honest.)
   (function () {
     var btn = document.getElementById('openSignup');
     var panel = document.getElementById('signupPanel');
@@ -125,7 +113,7 @@
     document.getElementById('cancelSignup').addEventListener('click', function () {
       panel.classList.remove('open');
       btn.setAttribute('aria-expanded', 'false');
-      btn.focus(); // returning focus to the trigger on dismiss (F85 step 2 satisfied)
+      btn.focus(); 
     });
     document.getElementById('sendList').addEventListener('click', function () {
       panel.classList.remove('open');

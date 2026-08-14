@@ -101,7 +101,7 @@
   var idx = 0;
 
   function rove(n) {
-    n = (n + btns.length) % btns.length; // wrap — loops within the toolbar
+    n = (n + btns.length) % btns.length; 
     btns[idx].tabIndex = -1;
     btns[n].tabIndex = 0;
     btns[n].focus();
@@ -115,20 +115,15 @@
     });
   });
 
-  // In RTL, ArrowLeft advances and ArrowRight goes back (toolbar follows visual direction).
-  // BUG: Tab is captured too, and at the last button focus WRAPS to the first instead of
-  // exiting. This is a within-widget loop trap distinct from a single self-refocus — there is
-  // simply no index at which Tab leaves the toolbar. No Esc, no documented escape.
   bar.addEventListener('keydown', function (e) {
     switch (e.key) {
-      case 'ArrowLeft':  e.preventDefault(); rove(idx + 1); break; // RTL: left = next
-      case 'ArrowRight': e.preventDefault(); rove(idx - 1); break; // RTL: right = prev
+      case 'ArrowLeft':  e.preventDefault(); rove(idx + 1); break; 
+      case 'ArrowRight': e.preventDefault(); rove(idx - 1); break; 
       case 'Home':       e.preventDefault(); rove(0); break;
       case 'End':        e.preventDefault(); rove(btns.length - 1); break;
       case 'Tab':
-        // "Make Tab behave like the arrows so the toolbar feels self-contained."
         e.preventDefault();
-        rove(e.shiftKey ? idx - 1 : idx + 1); // wraps -> never exits
+        rove(e.shiftKey ? idx - 1 : idx + 1); 
         break;
     }
   });

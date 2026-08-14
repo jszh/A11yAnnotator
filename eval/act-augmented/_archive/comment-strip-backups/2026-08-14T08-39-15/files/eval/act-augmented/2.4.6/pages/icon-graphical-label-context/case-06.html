@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trailhead 30L Backpack — Summit Outfitters</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Segoe UI", system-ui, sans-serif; color:#22272e; background:#fff; }
+  .topbar { display:flex; align-items:center; gap:18px; padding:12px 22px; border-bottom:1px solid #e6e9ee; }
+  .topbar .brand { font-weight:800; color:#14532d; letter-spacing:.3px; }
+  form.sitesearch { display:flex; align-items:stretch; flex:1; max-width:440px;
+    border:1px solid #cdd3da; border-radius:9px; overflow:hidden; }
+  form.sitesearch input { flex:1; border:0; padding:11px 14px; font-size:14px; outline:none; }
+  form.sitesearch .go { width:46px; border:0; border-left:1px solid #e6e9ee; background:#14532d; color:#fff;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; }
+  form.sitesearch .go:hover { background:#0f3f23; }
+  form.sitesearch .go:focus-visible { outline:3px solid #8fd0a5; outline-offset:-3px; }
+  .go svg, .zoom svg { width:20px; height:20px; }
+  main { max-width:960px; margin:26px auto; padding:0 20px; display:grid; grid-template-columns:1fr 1fr; gap:34px; }
+  .gallery { position:relative; }
+  .hero-photo { width:100%; height:340px; border-radius:12px;
+    background:linear-gradient(135deg,#3b6e4f,#9bbf8d); }
+  .zoom {
+    position:absolute; bottom:12px; right:12px;
+    width:42px; height:42px; border:1px solid #cdd3da; border-radius:50%;
+    background:rgba(255,255,255,.94); color:#14532d;
+    display:inline-flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 1px 5px rgba(0,0,0,.15);
+  }
+  .zoom:hover { background:#fff; }
+  .zoom:focus-visible { outline:3px solid #8fd0a5; outline-offset:2px; }
+  h1 { font-size:24px; margin:0 0 4px; }
+  .price { font-size:22px; font-weight:700; color:#14532d; margin:8px 0 16px; }
+  .desc { line-height:1.6; font-size:14px; color:#3a424c; }
+  .buy { margin-top:18px; padding:12px 22px; border:0; border-radius:9px; background:#c2410c; color:#fff;
+    font-size:15px; font-weight:600; cursor:pointer; }
+  .buy:hover { background:#a3360a; }
+  dialog#lightbox { border:0; border-radius:12px; padding:0; max-width:90vw; }
+  dialog#lightbox .big { width:560px; max-width:86vw; height:420px;
+    background:linear-gradient(135deg,#3b6e4f,#9bbf8d); border-radius:12px; }
+  dialog#lightbox .close { position:absolute; top:10px; right:10px; border:0; background:#fff; border-radius:50%;
+    width:34px; height:34px; cursor:pointer; }
+  @media (max-width:720px){ main { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">Summit Outfitters</div>
+
+  <!-- CORRECT REUSE #1:
+       loupe glyph next to a TEXT FIELD, accessible name "Search".
+       Per the Understanding doc this is the canonical, commonly-understood Search affordance. -->
+  <form class="sitesearch" role="search" onsubmit="return siteSearch(event)">
+    <input type="text" id="q" aria-label="Search products" placeholder="Search packs, tents, boots…">
+    <button type="submit" class="go" aria-label="Search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+        <circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/>
+      </svg>
+    </button>
+  </form>
+</header>
+
+<main>
+  <section class="gallery">
+    <div class="hero-photo" role="img" aria-label="Trailhead 30L backpack in forest green, three-quarter view"></div>
+
+    <!-- CORRECT REUSE #2:
+         the SAME loupe glyph placed ON the product PHOTO, accessible name "Zoom image".
+         Per the Understanding doc, a magnifying glass on/near another image is commonly
+         understood as a means to view a magnified version — so this reuse IS descriptive. -->
+    <button type="button" class="zoom" aria-label="Zoom image"
+            onclick="document.getElementById('lightbox').showModal()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+        <circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/>
+        <line x1="11" y1="8.5" x2="11" y2="13.5"/><line x1="8.5" y1="11" x2="13.5" y2="11"/>
+      </svg>
+    </button>
+  </section>
+
+  <section class="info">
+    <h1>Trailhead 30L Backpack</h1>
+    <div class="price">$139.00</div>
+    <p class="desc">A do-everything daypack with a ventilated back panel, a floating top lid, and
+    an internal hydration sleeve. Tough 420D ripstop nylon shrugs off trail abuse; the roll-top
+    main compartment keeps gear dry through a surprise shower. Carries comfortably from a commute
+    to a fast-and-light overnight.</p>
+    <button type="button" class="buy" onclick="alert('Added to cart (demo).')">Add to cart</button>
+  </section>
+</main>
+
+<dialog id="lightbox">
+  <button type="button" class="close" aria-label="Close zoomed image" onclick="document.getElementById('lightbox').close()">×</button>
+  <div class="big" role="img" aria-label="Enlarged view: Trailhead 30L backpack in forest green"></div>
+</dialog>
+
+<script>
+  function siteSearch(e){ e.preventDefault(); alert('Searching products for: ' + (document.getElementById('q').value||'(empty)') + ' — demo.'); return false; }
+</script>
+
+<!--
+  WHY THIS PAGE PASSES (and why it sharpens the aspect)
+  This is the canonical CORRECT context-appropriate reuse described verbatim in the SC 2.4.6
+  Understanding document. The SAME magnifying-glass glyph appears twice:
+    (1) trailing a TEXT FIELD with accessible name "Search" — commonly understood as "enter and
+        submit a search query"; and
+    (2) overlaid ON the product PHOTO with accessible name "Zoom image" — commonly understood as
+        "view a magnified version of the image."
+  In each placement the glyph's meaning is the commonly-understood one for that context, AND the
+  accessible name names the FUNCTION (Search / Zoom image), not the glyph. Both controls actually
+  perform what their label says (the search submits a query; the zoom opens an enlarged lightbox).
+  So both graphical labels are descriptive — SC 2.4.6 PASSES. The page is included so a judge must
+  contrast appropriate same-icon reuse (this page) against the misuse in case-01..case-05, rather
+  than treating "icon-only control" as automatically failing.
+
+  Automated tools would also pass this page (both buttons have non-empty names) — but here that
+  pass verdict is CORRECT. The human-judgment value is in confirming the reuse is appropriate, not
+  in finding a defect.
+-->
+</body>
+</html>

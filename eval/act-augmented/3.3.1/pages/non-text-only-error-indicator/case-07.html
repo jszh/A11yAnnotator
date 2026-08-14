@@ -16,9 +16,7 @@
   input[type=text], input[type=email] {
     width:100%; box-sizing:border-box; padding:11px 12px; font-size:1rem;
     border:1px solid #cfc7bb; border-radius:7px; background:#fff; }
-  /* SAME red-border + tint visual styling as the failing cases... */
   input.flagged { border:2px solid #c4161c; background:#fdecec; }
-  /* ...but here it is ACCOMPANIED by a real text message, properly associated. */
   .err {
     display:flex; align-items:center; gap:7px;
     margin:7px 0 0; color:#a31218; font-size:.9rem; font-weight:600;
@@ -34,11 +32,6 @@
   <h1>Place a bid</h1>
   <p class="lot">Lot 214 · A Victorian rosewood writing slope · current bid £180</p>
 
-  <!-- CONTROL (should PASS). The email field carries the identical red border + tint as the
-       failing cases, BUT the error is also IDENTIFIED AND DESCRIBED IN TEXT: a visible
-       message "Email address is not valid" sits adjacent to the field and is programmatically
-       tied to it via aria-describedby. The red styling is now an acceptable ADDITIONAL cue,
-       not the sole one. -->
   <form action="/lots/214/bid" method="post" novalidate>
     <div class="field">
       <label for="bidder">Your name</label>
@@ -69,19 +62,5 @@
   </form>
 </div>
 
-<!--
-  WHY THIS PAGE PASSES (discrimination control)
-  Visually this looks like the failing cases — the same 2px red border and red tint on the
-  email field. The difference is that the error is now IDENTIFIED AND DESCRIBED IN TEXT:
-  "Email address is not valid." is a visible message tied to the field via
-  aria-describedby="email-err", and aria-invalid="true" exposes the state. The decorative
-  triangle is correctly aria-hidden, so the meaning rides on the text, not the icon. A
-  screen-reader user focusing the field hears "Email address, invalid entry, Email address
-  is not valid." Per WCAG the colour/icon are acceptable as ADDITIONAL indicators because a
-  text description is present. This page exists to test that the aspect's judgment
-  discriminates "styling + text" (pass) from "styling alone" (fail) — automated tools, which
-  cannot see the red styling as an error cue at all, would not distinguish these pages either
-  way, which is exactly why human visual reconciliation is required.
--->
 </body>
 </html>

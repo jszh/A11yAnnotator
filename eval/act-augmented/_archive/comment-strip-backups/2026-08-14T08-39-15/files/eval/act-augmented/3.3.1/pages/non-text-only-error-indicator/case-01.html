@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Course enrolment — Riverside Adult Learning</title>
+<style>
+  :root { --ink:#21262b; --line:#c7cdd3; }
+  body { font:16px/1.55 "Segoe UI",system-ui,sans-serif; color:var(--ink);
+         background:#f4f6f8; margin:0; }
+  .wrap { max-width:580px; margin:0 auto; padding:40px 24px 64px; }
+  header h1 { font-size:1.5rem; margin:0 0 4px; }
+  header p.lede { margin:0 0 28px; color:#4a555c; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:10px;
+          padding:28px 30px; box-shadow:0 1px 2px rgba(0,0,0,.05); }
+  .field { margin:0 0 20px; }
+  label { display:block; font-weight:600; margin:0 0 6px; }
+  input[type=text] {
+    width:100%; box-sizing:border-box; padding:11px 12px; font-size:1rem;
+    border:1px solid var(--line); border-radius:7px; background:#fff; }
+  input:focus { outline:2px solid #2b6cb0; outline-offset:1px; }
+  /* The post-submit error state: the ONLY signal that the value is wrong. */
+  input.flagged {
+    border:2px solid #d11f2d;
+    background:#fdecee;          /* soft red tint */
+  }
+  .btn { background:#2f5d8a; color:#fff; border:0; border-radius:7px;
+         padding:12px 22px; font-size:1rem; font-weight:600; cursor:pointer; }
+  .meta { margin:26px 0 0; font-size:.82rem; color:#7a848b; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Enrol on a spring course</h1>
+    <p class="lede">Reserve your place on a daytime or evening class. Confirmation is sent to
+       the email we hold on your library record.</p>
+  </header>
+
+  <main>
+    <!-- Server re-rendered the form after a failed submit. The learner asked for 6 seats but
+         this workshop is capped at 4 places, so the server added class="flagged" to that one
+         input. No message string was emitted anywhere on the page. The field is plain
+         type="text" with no required/pattern/min/max, so the browser raises NO native
+         constraint-validation error and the value is fully valid to the platform. -->
+    <form class="card" action="/enrol" method="post" novalidate>
+      <div class="field">
+        <label for="learner">Name on your library record</label>
+        <input type="text" id="learner" name="learner" value="Tom Reedley">
+      </div>
+
+      <div class="field">
+        <label for="course">Course you want to join</label>
+        <input type="text" id="course" name="course" value="Watercolour for Beginners (Tue eve)">
+      </div>
+
+      <div class="field">
+        <label for="seats">Number of places to reserve</label>
+        <input type="text" id="seats" name="seats" value="6" class="flagged" inputmode="numeric">
+      </div>
+
+      <button type="submit" class="btn">Confirm enrolment</button>
+    </form>
+
+    <p class="meta">Places are held for 48 hours pending payment. Concessions apply — bring proof
+       at your first session.</p>
+  </main>
+</div>
+
+<!--
+  WHY AUTOMATED TOOLS MISS THIS
+  The markup is flawless: every input has a programmatic <label>, the document has a title,
+  headings are sound, contrast passes. The "places" field carries a 2px red border and a
+  red-tinted background (class="flagged") that a sighted user reads unmistakably as "this
+  value is wrong." But the error is a BUSINESS RULE the server enforced (the class is full —
+  6 places exceeds the cap of 4), not anything the platform can see: the field is plain
+  type="text" with no required/pattern/min/max/maxlength, so validity.valid is true, the
+  browser raises no native constraint message, and the accessibility tree carries NO "invalid"
+  property. There is also NO text — no message span, no aria-label, no visually-hidden text,
+  no aria-invalid, no title attribute — stating that an error occurred or what it is.
+  axe/WAVE/Lighthouse have no concept that a red border IS an error indicator, so the page
+  passes vacuously, and ACT rule 36b590 finds no error-describing text to evaluate and is
+  inapplicable. A non-visual user hears "Number of places to reserve, edit, 6" — identical to
+  a valid field. Only a human looking at the rendered page can see that the sole conveyance of
+  the error is colour styling, with the meaning absent from text.
+-->
+</body>
+</html>

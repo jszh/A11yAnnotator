@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign your Auto Loan Agreement — Meridian Bank</title>
+<style>
+  :root { font-family: "Source Sans Pro", system-ui, Arial, sans-serif; }
+  body { margin: 0; background: #f4f6f8; color: #1b2733; }
+  header { background: #14406b; color: #fff; padding: 18px 26px; }
+  header h1 { margin: 0; font-size: 1.2rem; }
+  .doc { max-width: 700px; margin: 26px auto; padding: 0 18px; }
+  .agreement { background: #fff; border: 1px solid #d7dde4; border-radius: 10px; padding: 22px 24px; line-height: 1.6; }
+  .agreement h2 { margin-top: 0; font-size: 1.05rem; }
+  .agreement p { color: #354655; }
+  .signblock { margin-top: 22px; background: #fff; border: 1px solid #d7dde4; border-radius: 10px; padding: 20px 24px; }
+  .signblock h2 { font-size: 1.05rem; margin-top: 0; }
+  .hint { color: #5a6b7b; font-size: .92rem; }
+  .padwrap { position: relative; margin-top: 12px; }
+  canvas#sig {
+    width: 100%; height: 170px; display: block;
+    border: 2px dashed #9fb2c4; border-radius: 10px; background: #fbfdff; touch-action: none; cursor: crosshair;
+  }
+  .baseline { position: absolute; left: 22px; right: 60px; bottom: 42px; border-top: 1px solid #b9c6d4; pointer-events: none; }
+  .xmark { position: absolute; left: 10px; bottom: 44px; color: #8aa0b4; font-weight: 700; pointer-events: none; }
+  .controls { margin-top: 12px; display: flex; gap: 10px; align-items: center; }
+  .controls button { padding: 9px 16px; border: 1px solid #bccadb; background: #eef3f8; border-radius: 8px; font: inherit; cursor: pointer; }
+  .controls button:focus-visible { outline: 3px solid #14406b; outline-offset: 2px; }
+  .typed { margin-top: 18px; padding-top: 16px; border-top: 1px dashed #d7dde4; }
+  .typed label { display: block; font-weight: 600; margin-bottom: 6px; }
+  .typed input { width: 100%; box-sizing: border-box; padding: 11px; border: 1px solid #c2cdd9; border-radius: 8px; font: inherit; }
+  .submit { margin-top: 18px; background: #14406b; color: #fff; border: 0; padding: 12px 24px; border-radius: 8px; font: inherit; cursor: pointer; }
+  footer { color: #7d8b99; text-align: center; font-size: .85rem; margin: 30px 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Meridian Bank · Auto Loan Agreement #AL-2026-44817</h1>
+</header>
+
+<main class="doc">
+  <section class="agreement" aria-label="Agreement text">
+    <h2>Promissory Note &amp; Security Agreement</h2>
+    <p>Borrower promises to pay Meridian Bank the principal sum of $24,500.00 plus interest at an annual
+       percentage rate of 6.49%, in 60 monthly installments of $478.92, beginning July 1, 2026.</p>
+    <p>This vehicle (2024 Subaru Outback, VIN JF2SK…) secures the loan. Borrower has read and agrees to
+       the terms, including the prepayment and late-fee provisions described above.</p>
+  </section>
+
+  <form class="signblock" id="signform">
+    <h2>Your handwritten signature</h2>
+    <p class="hint">Sign with your finger, stylus, or mouse in the box below, exactly as you would on
+       paper. Your signature is recorded as a free-hand image of your actual pen strokes.</p>
+
+    <div class="padwrap">
+      <canvas id="sig" width="640" height="170"
+              role="img" aria-label="Signature drawing area. Draw your handwritten signature here using a pointer, finger, or stylus."></canvas>
+      <span class="xmark" aria-hidden="true">✕</span>
+      <span class="baseline" aria-hidden="true"></span>
+    </div>
+
+    <div class="controls">
+      <button type="button" id="clear">Clear signature</button>
+      <span class="hint" id="state" role="status" aria-live="polite">Signature box is empty.</span>
+    </div>
+
+    <div class="typed">
+      <label for="legalname">Type your full legal name (printed, for our records)</label>
+      <input id="legalname" type="text" autocomplete="name" placeholder="e.g. Jordan A. Rivera">
+    </div>
+
+    <button class="submit" type="submit">Agree &amp; sign</button>
+  </form>
+</main>
+
+<footer>Meridian Bank, N.A. · Member FDIC</footer>
+
+<!--
+  WHY THIS PAGE PASSES (correct application of the 2.1.1 path-of-movement EXCEPTION):
+  The signature <canvas> captures FREE-HAND pen strokes via pointer mousemove. A handwritten
+  signature is, by definition, input whose value depends on the PATH of the user's movement (the
+  shape of the curves, loops, and pressure), not merely on endpoints — it is the same class as
+  free-hand drawing / watercolour painting that the SC's own normative text and Understanding
+  examples carve out. There is NO known keyboard equivalent for reproducing a person's handwritten
+  signature, so the canvas drawing function legitimately invokes the exception and must NOT be
+  flagged as a 2.1.1 failure. Every OTHER function on the page is keyboard-operable: the "Clear
+  signature" button, the "Type your full legal name" field, and "Agree & sign" submit. The canvas
+  even carries a descriptive accessible name. A naive checker (or an over-eager reviewer) might flag
+  "a pointer-only canvas with no keyboard interaction" as a 2.1.1 failure — but that is the EXACTLY
+  the case the exception exists for. Correctly NOT flagging this requires the human judgment that
+  this particular drag is genuinely PATH-dependent (exempt), distinguishing it from endpoint-style
+  drags (reorder/resize/drop) that are NOT exempt.
+-->
+<script>
+  const canvas = document.getElementById('sig');
+  const ctx = canvas.getContext('2d');
+  const state = document.getElementById('state');
+  let drawing = false, has = false, last = null;
+
+  function pos(e) {
+    const r = canvas.getBoundingClientRect();
+    const sx = canvas.width / r.width, sy = canvas.height / r.height;
+    return { x: (e.clientX - r.left) * sx, y: (e.clientY - r.top) * sy };
+  }
+  // Path-dependent free-hand capture (the protected exception).
+  canvas.addEventListener('pointerdown', e => {
+    drawing = true; last = pos(e); canvas.setPointerCapture(e.pointerId);
+  });
+  canvas.addEventListener('pointermove', e => {
+    if (!drawing) return;
+    const p = pos(e);
+    ctx.strokeStyle = '#102a43'; ctx.lineWidth = 2.4; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(p.x, p.y); ctx.stroke();
+    last = p;
+    if (!has) { has = true; state.textContent = 'Signature captured.'; }
+  });
+  canvas.addEventListener('pointerup', () => { drawing = false; });
+
+  document.getElementById('clear').addEventListener('click', () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    has = false; state.textContent = 'Signature box is empty.';
+  });
+</script>
+</body>
+</html>

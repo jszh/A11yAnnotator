@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Funnel Overview — Northwind Analytics</title>
+<!--
+  SC 1.4.13 Dismissible — Method 1 (non-obscuring positioning) PASS (boundary case).
+
+  This page also has NO keyboard dismiss (no Esc handler, no close button, popover not
+  hoverable-to-close). So Method 1 is the ONLY available compliance path — same setup as
+  the FAIL cases on purpose.
+
+  The difference: the metric-help popover opens DOWNWARD into the large EMPTY dashboard
+  region below the KPI cards. That area is pure white space — there is no text, no control,
+  and no information-bearing graphic underneath it. Geometric overlap with the page exists
+  (the popover's box hangs below the left card over empty canvas), but it covers ONLY empty
+  space, which the SC explicitly exempts. Therefore Method 1 is satisfied and the page
+  PASSES even with no dismiss mechanism.
+
+  WHY AUTOMATED TOOLS MISS IT (and why it still matters as a test): a naive "any overlap
+  fails" checker would WRONGLY flag this page, because two rendered rectangles do intersect.
+  Only a human can see that the intersected region is an empty gutter, invoke the
+  white-space exception, and rule PASS. This is the exact decorative/white-space carve-out
+  that separates a true positive from a false positive — the inverse error to case-01/02.
+-->
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; background:#0f1320; color:#e8ebf2;
+    font:14px/1.5 "Inter",-apple-system,"Segoe UI",Roboto,Arial,sans-serif; }
+  .app { display:grid; grid-template-columns:210px 1fr; min-height:100vh; }
+  .side { background:#161b2c; border-right:1px solid #232a40; padding:18px 14px; }
+  .brand { font-weight:800; letter-spacing:.02em; font-size:15px; margin:0 0 22px; color:#9fd1ff; }
+  .nav a { display:block; color:#aeb6c9; text-decoration:none; padding:8px 10px; border-radius:8px; margin-bottom:2px; }
+  .nav a[aria-current="page"] { background:#22304e; color:#fff; }
+  main { padding:24px 28px 60px; }
+  h1 { font-size:20px; margin:0 0 2px; }
+  .sub { color:#8b93a8; margin:0 0 22px; }
+
+  /* Two cards with a generous EMPTY gutter between them. */
+  .row { display:grid; grid-template-columns:1fr 1fr; gap:64px; align-items:start; }
+  .card { background:#171d30; border:1px solid #28324d; border-radius:14px; padding:18px 20px; min-height:190px; }
+  .card h2 { font-size:14px; color:#9aa3bb; font-weight:600; margin:0 0 10px; display:flex; align-items:center; gap:8px; }
+  .kpi { font-size:34px; font-weight:800; margin:0; }
+  .delta { font-size:13px; color:#5fd08a; margin-top:6px; }
+  .bars { display:flex; gap:6px; align-items:flex-end; height:70px; margin-top:16px; }
+  .bars span { flex:1; background:#3b6ed0; border-radius:3px 3px 0 0; }
+
+  /* metric-help trigger */
+  .qmark {
+    border:0; width:18px; height:18px; border-radius:50%;
+    background:#2c3a5c; color:#cdd6ec; font:700 11px/1 inherit; cursor:help;
+  }
+  .qmark:focus-visible { outline:2px solid #9fd1ff; outline-offset:2px; }
+
+  /* Popover opens DOWNWARD from the LEFT card into the large empty dashboard region
+     below the cards — that area holds no text, controls, or informational graphics. */
+  .metric { position:relative; }
+  .metric .pop {
+    display:none;
+    position:absolute;
+    top:calc(100% + 14px);    /* drops below the card into empty space */
+    left:0;
+    width:240px;
+    background:#fbfdff; color:#1b2030;
+    border:1px solid #c9d3e6; border-radius:10px;
+    padding:11px 13px; font-size:12.5px; line-height:1.45;
+    box-shadow:0 10px 30px rgba(0,0,0,.45);
+    z-index:20;
+  }
+  .metric .pop.is-open { display:block; }
+</style>
+</head>
+<body>
+  <div class="app">
+    <nav class="side" aria-label="Primary">
+      <p class="brand">Northwind</p>
+      <div class="nav">
+        <a href="#" >Home</a>
+        <a href="#" aria-current="page">Funnel</a>
+        <a href="#">Cohorts</a>
+        <a href="#">Revenue</a>
+        <a href="#">Settings</a>
+      </div>
+    </nav>
+
+    <main>
+      <h1>Funnel Overview</h1>
+      <p class="sub">Last 30 days &middot; updated 6 minutes ago</p>
+
+      <div class="row">
+        <section class="card metric" aria-labelledby="m1">
+          <h2 id="m1">Activation rate
+            <button type="button" class="qmark" aria-label="What is activation rate?" aria-describedby="m1-pop">?</button>
+          </h2>
+          <p class="kpi">41.8%</p>
+          <p class="delta">&#9650; 3.2 pts vs. prior period</p>
+          <div class="bars" aria-hidden="true"><span style="height:40%"></span><span style="height:55%"></span><span style="height:48%"></span><span style="height:70%"></span><span style="height:62%"></span><span style="height:84%"></span></div>
+          <div role="tooltip" id="m1-pop" class="pop">
+            <strong>Activation rate</strong> = share of new signups that complete at least
+            one core action (create a project) within 7 days. Denominator excludes invited
+            seats that never logged in.
+          </div>
+        </section>
+
+        <section class="card" aria-labelledby="m2">
+          <h2 id="m2">Time to value</h2>
+          <p class="kpi">2.4 days</p>
+          <p class="delta" style="color:#e8a05f">&#9660; slower by 0.3 days</p>
+          <div class="bars" aria-hidden="true"><span style="height:60%"></span><span style="height:52%"></span><span style="height:58%"></span><span style="height:44%"></span><span style="height:50%"></span><span style="height:38%"></span></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // SCR39-style show/hide on hover AND focus, but with NO Escape handler and no close
+    // control: Method 2 is unavailable by design. Compliance rests entirely on Method 1,
+    // which holds because the popover lands in the empty 64px grid gutter (white space) and
+    // obscures no information-bearing content.
+    (function () {
+      var trig = document.querySelector('.metric .qmark');
+      var pop = document.getElementById('m1-pop');
+      var show = function () { pop.classList.add('is-open'); };
+      var hide = function () { pop.classList.remove('is-open'); };
+      trig.addEventListener('mouseenter', show);
+      trig.addEventListener('focus', show);
+      trig.addEventListener('mouseleave', hide);
+      trig.addEventListener('blur', hide);
+      // NOTE: no keydown/Escape handler -> no dismiss path (intentional).
+    })();
+  </script>
+</body>
+</html>

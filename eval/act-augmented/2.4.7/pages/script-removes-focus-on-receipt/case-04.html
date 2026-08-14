@@ -4,23 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>TalentBridge — Senior Data Engineer</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS:
-  The "Apply now" control is a custom widget: <div role="button" tabindex="0"> with a
-  correct accessible name and a valid :focus style. axe/WAVE/Lighthouse see a named,
-  focusable, role-button element and report nothing; there is no 2.4.7 automated rule.
-  The defect is a delegated focusin listener that, when this widget gains focus, calls
-  document.body.focus() — bouncing focus off the control to the <body> (focused via a
-  tabindex=-1 on body). The widget's :focus style never paints, and keyboard users can
-  reach but never land on the apply button. A static snapshot shows the body focused,
-  not the button; only stepping through Tab over time reveals the silent bounce.
--->
 <style>
   :root { --indigo: #2d2a8c; --teal: #0b7285; --bg: #f4f5f9; --line: #d9dbe9; }
   * { box-sizing: border-box; }
   body { font-family: "Inter", "Segoe UI", Arial, sans-serif; margin: 0; background: var(--bg);
     color: #20222e; line-height: 1.55; }
-  body:focus { outline: none; } /* body is given tabindex=-1; suppress its outline so the bounce is silent */
+  body:focus { outline: none; } 
   header.site { background: #fff; border-bottom: 1px solid var(--line); padding: 14px 28px;
     display: flex; align-items: center; gap: 10px; }
   header.site .mark { width: 26px; height: 26px; border-radius: 6px; background: linear-gradient(135deg,var(--indigo),var(--teal)); }
@@ -37,7 +26,6 @@
   .job li { margin: 4px 0; }
   .apply-bar { display: flex; gap: 14px; align-items: center; margin-top: 26px;
     padding-top: 20px; border-top: 1px solid var(--line); }
-  /* Custom button widget with a perfectly valid focus indicator. */
   .apply-btn {
     display: inline-flex; align-items: center; gap: 8px; background: var(--indigo);
     color: #fff; font-weight: 600; font-size: 1rem; padding: 12px 26px; border-radius: 8px;
@@ -70,12 +58,6 @@
     </ul>
 
     <div class="apply-bar">
-      <!--
-        Custom button: correct role + tabindex + accessible name + :focus style.
-        But a delegated focusin listener (below) calls document.body.focus() whenever
-        this widget receives focus, bouncing focus off it onto the (outline-suppressed)
-        body. The widget never shows its focus ring; it is operable only by mouse click.
-      -->
       <div class="apply-btn" role="button" tabindex="0"
            data-action="apply" aria-label="Apply now for Senior Data Engineer">
         Apply now
@@ -86,19 +68,13 @@
 </main>
 
 <script>
-  // Delegated focus handler. Intent (per the persona) was to "park" stray focus on the
-  // page body during a modal flow; instead it fires for the apply widget itself and
-  // immediately relocates focus to <body>, the F55 "moves focus elsewhere on receipt"
-  // variant. focusin bubbles, so a single document-level listener catches the widget.
   document.addEventListener('focusin', function (e) {
     var t = e.target;
     if (t && t.matches && t.matches('[data-action="apply"]')) {
-      // Programmatic focus theft: focus never settles on the apply button.
       document.body.focus();
     }
   });
 
-  // Real click behavior still works for mouse users, masking the keyboard defect.
   document.addEventListener('click', function (e) {
     var t = e.target.closest && e.target.closest('[data-action="apply"]');
     if (t) { window.location.href = '/jobs/sde-aurora/apply'; }

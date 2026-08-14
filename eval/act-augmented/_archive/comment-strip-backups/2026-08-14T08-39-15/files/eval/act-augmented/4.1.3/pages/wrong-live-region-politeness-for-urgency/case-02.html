@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Markets Daily — Is the rally running out of road?</title>
+<style>
+  body { font:17px/1.7 Georgia,'Times New Roman',serif; color:#1a1a1a; margin:0; background:#fbfbf8; }
+  .topbar { background:#0a0a0a; color:#f4f4f0; font:600 13px/1 Arial,sans-serif; padding:9px 20px; letter-spacing:.4px; }
+  .wrap { max-width:1080px; margin:0 auto; padding:0 20px; display:grid; grid-template-columns:1fr 290px; gap:36px; }
+  @media (max-width:780px){ .wrap{ grid-template-columns:1fr; } }
+  article { padding:28px 0; }
+  article h1 { font-size:34px; line-height:1.2; margin:.2em 0; }
+  .byline { font:13px/1 Arial,sans-serif; color:#777; margin-bottom:20px; }
+  article p { margin:0 0 1.05em; }
+  aside { padding:28px 0; }
+  .ticker { position:sticky; top:18px; border:1px solid #e2e0d8; border-radius:10px; background:#fff; padding:16px; font-family:Arial,sans-serif; }
+  .ticker h2 { font-size:13px; text-transform:uppercase; letter-spacing:.8px; color:#888; margin:0 0 12px; }
+  .row { display:flex; justify-content:space-between; align-items:baseline; padding:7px 0; border-bottom:1px solid #f0eee6; font-size:15px; }
+  .row:last-child { border-bottom:0; }
+  .sym { font-weight:700; }
+  .px { font-variant-numeric:tabular-nums; font-weight:600; }
+  .up { color:#0a7d34; } .down { color:#c0152b; }
+  .explain { font:13px/1.55 Arial,sans-serif; color:#5b4a16; background:#fff7e6; border:1px solid #ffe2a8; border-radius:9px; padding:13px 15px; margin-top:22px; }
+  code { background:#efeee8; padding:1px 5px; border-radius:4px; font-size:12.5px; }
+</style>
+</head>
+<body>
+<div class="topbar">MARKETS DAILY · LIVE</div>
+<div class="wrap">
+  <article>
+    <h1>Is the rally running out of road?</h1>
+    <p class="byline">By R. Okafor · 8 min read · Updated 2 hours ago</p>
+
+    <p>For eighteen months the index has done little but climb. Each pullback has been
+    shallow, each dip swiftly bought. To the bulls this is the hallmark of a durable
+    expansion: earnings broadening out beyond a handful of mega-caps, credit spreads
+    placid, the consumer stubbornly solvent. To the bears it is the late, giddy stage
+    of a cycle that has simply not yet been handed its bill.</p>
+
+    <p>The strongest argument for the optimists is breadth. A year ago the advance was
+    narrow to the point of fragility — strip out the seven largest names and the market
+    was flat. That is no longer true. Industrials, financials, and even the long-suffering
+    small-cap cohort have begun to participate, which historically is what a healthy,
+    self-sustaining advance looks like rather than a speculative blow-off.</p>
+
+    <p>And yet valuation is doing a great deal of heavy lifting. On a cyclically adjusted
+    basis the market sits in the richest decile of its own history. Rich does not mean
+    doomed — expensive markets can stay expensive for years — but it does compress the
+    margin for error. When prices already assume a soft landing, a flawless one, there is
+    little cushion left if the data merely disappoints rather than collapses.</p>
+
+    <p>The honest answer is that nobody ringing the bell at the top has ever done so on
+    schedule. The reader who skips to the bottom for a verdict will be disappointed:
+    there is no verdict, only a balance of probabilities that shifts a little with every
+    print of inflation and every earnings call. What follows is an attempt to weigh them.</p>
+
+    <p>Begin with rates. The path of policy from here is the single largest swing factor,
+    and it is the one over which corporate management has the least control...</p>
+  </article>
+
+  <aside aria-label="Live market data">
+    <!--
+      THE DEFECT is on #priceboard below.
+      A valid live region IS present at load, so every "no live region" checker passes.
+      But it is wired aria-live="assertive", and a setInterval rewrites three prices
+      every 2 seconds. Each refresh assertively INTERRUPTS the screen reader that is
+      reading the article to the left, every two seconds, indefinitely. A ticking price
+      board is the textbook low-value, high-frequency case that SCR14 says should be
+      polite AND toggleable. The right value here is polite (or off with an opt-in).
+    -->
+    <div class="ticker" id="priceboard" aria-live="assertive" aria-atomic="true">
+      <h2>Watchlist</h2>
+      <div class="row"><span class="sym">NDX</span><span class="px" id="p0">20,114.62</span></div>
+      <div class="row"><span class="sym">SPX</span><span class="px" id="p1">5,981.40</span></div>
+      <div class="row"><span class="sym">BTC</span><span class="px" id="p2">$67,420</span></div>
+    </div>
+
+    <div class="explain">
+      <strong>Why checkers pass this page:</strong> <code>#priceboard</code> is a real,
+      non-empty live region present at load with valid <code>aria-live="assertive"</code>
+      and <code>aria-atomic="true"</code>. axe / WAVE / Lighthouse confirm a status
+      message can be announced and stop there — <code>assertive</code> is a legal value.
+      Only a human listening realises a price tape interrupting the article every two
+      seconds is the "too chatty" failure (cf. SCR14, which makes such alerts polite
+      and toggleable).
+    </div>
+  </aside>
+</div>
+
+<script>
+  // A live tape: three instruments re-priced every 2 seconds, written into the
+  // ASSERTIVE region. Every write interrupts the screen reader mid-article.
+  var ids   = ['p0','p1','p2'];
+  var bases = [20114.62, 5981.40, 67420];
+  function jitter(v, i) {
+    var d = (Math.random() - 0.5) * (i === 2 ? 180 : 14);
+    return bases[i] + d;
+  }
+  function fmt(v, i) {
+    if (i === 2) return '$' + Math.round(v).toLocaleString('en-US');
+    return v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  setInterval(function () {
+    for (var i = 0; i < ids.length; i++) {
+      var v = jitter(0, i);
+      var el = document.getElementById(ids[i]);
+      el.textContent = fmt(v, i);
+      el.className = 'px ' + (v >= bases[i] ? 'up' : 'down');
+    }
+    // Rewriting children of an aria-atomic assertive region => the WHOLE board is
+    // re-announced assertively, interrupting the article reader, every 2 seconds.
+  }, 2000);
+</script>
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.3.1 PASS (boundary / inapplicable-to-F43 foil) — the SAME elements that F43 warns
+    about (heading over an address; blockquote; fieldset) are used here CORRECTLY, so the
+    asserted relationships are TRUE. This is the contrasting boundary case for the aspect: it
+    proves the verdict turns on whether the relationship is real, not on which element appears.
+
+    Three deliberate near-misses, all CORRECT:
+
+    (1) HEADING OVER AN ADDRESS — but it genuinely begins a section.
+        F43's canonical failure is <h2>3333 Third Avenue</h2> used only to make an address
+        big. Here the <h2> reads "Visit Our Downtown Office" and it DOES begin a real section
+        whose body is the office's address, hours, and parking. The address itself sits in a
+        plain <address> element INSIDE the section — it is NOT a heading. So the heading marks
+        a true sectioning relationship; nothing is misused.
+
+    (2) BLOCKQUOTE — but it is a REAL quotation with attribution.
+        A genuine client testimonial is quoted from a named source, with <cite> and a visible
+        attribution. The quotation relationship the <blockquote> asserts is TRUE.
+
+    (3) FIELDSET/LEGEND — but it really groups form controls.
+        The contact form's fieldset/legend groups actual radio + text inputs. The
+        control-grouping relationship is TRUE.
+
+    WHY THIS IS THE BOUNDARY: an automated tool sees valid heading/blockquote/fieldset here
+    and passes — SAME as it would (wrongly) pass cases 01–05. The difference is invisible to
+    tools and visible only to a human reading the content: here the relationships are real, so
+    the human ALSO returns PASS. Including this case forces the judgment "is the relationship
+    true?" rather than "does element X appear?".
+  -->
+  <title>Contact Us — Alderman &amp; Boyle, Attorneys at Law</title>
+  <style>
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Source Serif Pro", Georgia, serif; color:#22262b;
+           background:#f6f5f2; line-height:1.6; }
+    header { background:#1c2a39; color:#eef2f6; padding:1.1rem 1.4rem; }
+    header .firm { font-size:1.3rem; font-weight:700; letter-spacing:.02em; }
+    header .sub { font-size:.85rem; opacity:.85; }
+    main { max-width:46rem; margin:1.5rem auto 4rem; padding:0 1.2rem; }
+    h1 { font-size:1.9rem; margin:.2rem 0 .8rem; }
+    h2 { font-size:1.3rem; margin:2rem 0 .5rem; color:#1c2a39;
+         border-bottom:1px solid #d8d4cc; padding-bottom:.25rem; }
+    address { font-style:normal; line-height:1.7; }
+    .hours { margin:.6rem 0; }
+    /* Real quotation styling. */
+    blockquote { margin:1rem 0; padding:.8rem 1.1rem; border-left:4px solid #1c2a39;
+                 background:#fff; border-radius:0 6px 6px 0; font-style:italic; }
+    blockquote p { margin:0 0 .4rem; }
+    blockquote .attr { font-style:normal; font-size:.85rem; color:#5a626b; }
+    form fieldset { border:1px solid #d8d4cc; border-radius:8px; padding:1rem 1.1rem; margin:1rem 0; }
+    form legend { font-weight:700; padding:0 .4rem; color:#1c2a39; }
+    label.block { display:block; margin:.6rem 0 .2rem; font-size:.92rem; }
+    input[type=text], input[type=email], textarea { width:100%; padding:.55rem .65rem;
+            border:1px solid #c8c4bb; border-radius:6px; font:inherit; }
+    .radios label { margin-right:1rem; font-size:.92rem; }
+    .send { background:#1c2a39; color:#fff; border:none; padding:.7rem 1.5rem;
+            border-radius:8px; font-size:1rem; cursor:pointer; margin-top:.9rem; }
+    footer { max-width:46rem; margin:0 auto 3rem; padding:0 1.2rem; font-size:.8rem; color:#6b7280; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="firm">Alderman &amp; Boyle</div>
+    <div class="sub">Attorneys at Law · Estate &amp; Family Practice</div>
+  </header>
+
+  <main>
+    <h1>Contact Us</h1>
+    <p>We welcome new clients and are happy to answer questions about scheduling an initial
+    consultation. Reach us by phone, by the form below, or visit us in person.</p>
+
+    <!--
+      (1) CORRECT heading-over-address: this <h2> genuinely begins a section. The address
+      itself is in an <address> element inside the section, NOT marked as a heading.
+    -->
+    <h2>Visit Our Downtown Office</h2>
+    <address>
+      Alderman &amp; Boyle, LLP<br>
+      3333 Third Avenue, Suite 300<br>
+      New York, NY 10016
+    </address>
+    <p class="hours"><strong>Office hours:</strong> Monday–Friday, 9:00 a.m. – 5:30 p.m.
+    Validated parking is available in the Third Avenue garage adjacent to the building.</p>
+
+    <!-- (2) CORRECT blockquote: a genuine, attributed client quotation. -->
+    <h2>What Our Clients Say</h2>
+    <blockquote>
+      <p>"They guided our family through a difficult estate with patience and absolute
+      clarity. I never once felt like just another case file."</p>
+      <p class="attr">— <cite>Eleanor M., probate client</cite>, 2025</p>
+    </blockquote>
+
+    <!-- (3) CORRECT fieldset/legend: it groups real form controls. -->
+    <h2>Send Us a Message</h2>
+    <form action="#" method="post">
+      <fieldset>
+        <legend>How should we reach you?</legend>
+        <label class="block" for="name">Full name</label>
+        <input type="text" id="name" name="name" autocomplete="name">
+
+        <label class="block" for="email">Email address</label>
+        <input type="email" id="email" name="email" autocomplete="email">
+
+        <p class="radios" style="margin:.8rem 0 0">Preferred contact method:
+          <label><input type="radio" name="method" value="email" checked> Email</label>
+          <label><input type="radio" name="method" value="phone"> Phone</label>
+        </p>
+      </fieldset>
+
+      <label class="block" for="msg">How can we help?</label>
+      <textarea id="msg" name="msg" rows="4"></textarea>
+
+      <button class="send" type="submit">Send message</button>
+    </form>
+  </main>
+
+  <footer>Alderman &amp; Boyle, LLP · Attorney advertising. Prior results do not guarantee a
+  similar outcome.</footer>
+</body>
+</html>

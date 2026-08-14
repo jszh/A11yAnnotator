@@ -112,8 +112,8 @@
   var scrim = document.getElementById('scrim');
   var nameEl = document.getElementById('c-name');
   var list = document.getElementById('med-list');
-  var pendingLi = null;          // the <li> being removed
-  var triggerBtn = null;         // the Remove button that opened the dialog
+  var pendingLi = null;          
+  var triggerBtn = null;         
 
   list.addEventListener('click', function (e) {
     var btn = e.target.closest('.btn.remove');
@@ -122,13 +122,12 @@
     pendingLi = btn.closest('li');
     nameEl.textContent = btn.getAttribute('data-name');
     scrim.classList.add('open');
-    document.getElementById('c-cancel').focus();   // on-open focus is fine
+    document.getElementById('c-cancel').focus();   
     document.addEventListener('keydown', escClose);
   });
 
   function escClose(e) { if (e.key === 'Escape') cancel(); }
 
-  // Cancel correctly returns to the trigger (the Remove button still exists).
   function cancel() {
     scrim.classList.remove('open');
     document.removeEventListener('keydown', escClose);
@@ -136,16 +135,11 @@
     pendingLi = null; triggerBtn = null;
   }
 
-  // THE DEFECT: confirming deletes the row (so the trigger no longer exists), then
-  // closes the dialog and SCROLLS TO THE TOP rather than placing focus on the next
-  // (or previous) medication's controls. The "logical neighbor" that F85 requires is
-  // never chosen — focus is thrown to the top of the page via the brand link.
   function confirmRemove() {
     if (pendingLi) pendingLi.parentNode.removeChild(pendingLi);
     scrim.classList.remove('open');
     document.removeEventListener('keydown', escClose);
     window.scrollTo(0, 0);
-    // Developer's idea of "reset": focus the first thing in the page.
     document.querySelector('.topbar .brand') &&
       (document.querySelector('.topbar nav a') || document.body).focus();
     pendingLi = null; triggerBtn = null;
@@ -155,15 +149,5 @@
   document.getElementById('c-confirm').addEventListener('click', confirmRemove);
 </script>
 
-<!--
-  WHY AUTOMATED TOOLS MISS THIS
-  This is the subtle case F85 explicitly carves out. When the trigger is REMOVED by the
-  action, focus must move to a *logical neighbor* — the next or previous medication's
-  controls. A naive automated check of "focus === trigger" would be wrong here even on a
-  correct implementation (the trigger is gone). The only way to judge this is to reason
-  about the action's semantics (a delete removed item N, so focus belongs on item N or
-  N-1) and observe that this page instead throws focus to the page top. role=alertdialog,
-  aria-modal, labelledby/describedby, and on-open focus are all valid, so static scans pass.
--->
 </body>
 </html>

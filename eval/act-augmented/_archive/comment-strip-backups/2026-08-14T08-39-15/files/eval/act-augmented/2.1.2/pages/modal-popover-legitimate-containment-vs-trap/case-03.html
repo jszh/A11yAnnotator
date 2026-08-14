@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trail Runner GTX — Quick view — Summit & Pine Outfitters</title>
+<!--
+  SC 2.1.2 — modal-popover-legitimate-containment-vs-trap — case-03 (FAIL)
+  An e-commerce "Quick view" modal (role="dialog" aria-modal="true") traps Tab among its
+  form controls. Its ONLY dismiss is an "×" close glyph that is a <span> with an onclick
+  handler — it is NOT focusable (no tabindex, not a button) and has NO keydown handler.
+  So the dialog is dismissable by MOUSE (click the ×) but TRAPPED by keyboard: the × can
+  never be tabbed to and never be activated by keyboard, and there is no Esc handler.
+  WHY AUTOMATED TOOLS MISS IT: the × span carries aria-label="Close quick view" and
+  role="button", so a name/role linter is satisfied; the dialog has a proper accessible
+  name; every form field is labelled. Nothing is missing or empty. Only by Tab-driving the
+  open modal (the × is skipped) and pressing Esc (nothing happens) does the trap surface —
+  and a tool cannot judge that the visible Close is keyboard-unreachable.
+-->
+<style>
+  :root { font-family: "Inter", system-ui, sans-serif; color: #1f2430; }
+  body { margin: 0; background: #fbfaf7; }
+  header.shop { background: #2f4a3c; color: #fff; padding: 14px 26px; display: flex; align-items: center; gap: 18px; }
+  header.shop .brand { font-weight: 800; letter-spacing: .5px; }
+  header.shop nav a { color: #d6e4dc; text-decoration: none; font-size: .9rem; margin-left: 16px; }
+  .grid { max-width: 960px; margin: 26px auto; padding: 0 26px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .card { background: #fff; border: 1px solid #e6e2d8; border-radius: 10px; padding: 16px; }
+  .card h3 { margin: 0 0 4px; font-size: 1rem; }
+  .card .price { color: #2f4a3c; font-weight: 700; }
+  .card button { margin-top: 10px; width: 100%; background: #2f4a3c; color: #fff; border: none; border-radius: 7px; padding: 9px; font-weight: 600; cursor: pointer; }
+  .thumb { height: 120px; border-radius: 8px; background: linear-gradient(135deg,#cfe0d6,#9bbcab); }
+
+  .scrim { position: fixed; inset: 0; background: rgba(20,30,24,.55); display: none; align-items: center; justify-content: center; }
+  .scrim.show { display: flex; }
+  .qv { background: #fff; border-radius: 12px; width: min(520px, 92vw); box-shadow: 0 18px 50px rgba(0,0,0,.32); overflow: hidden; position: relative; }
+  /* The close glyph LOOKS like a tidy round button — purely visual. */
+  .qv .close {
+    position: absolute; top: 12px; right: 12px; width: 30px; height: 30px;
+    border-radius: 50%; background: #eef2ef; color: #2f4a3c; font-size: 1.1rem;
+    line-height: 30px; text-align: center; cursor: pointer; user-select: none;
+  }
+  .qv .close:hover { background: #dce6df; }
+  .qv .hero { height: 200px; background: linear-gradient(135deg,#bcd3c6,#7ea893); }
+  .qv .info { padding: 20px 22px 24px; }
+  .qv h2 { margin: 0 0 4px; font-size: 1.25rem; }
+  .qv .price { color: #2f4a3c; font-weight: 700; font-size: 1.1rem; }
+  .qv label { display: block; font-weight: 600; margin: 14px 0 5px; font-size: .88rem; }
+  .qv select, .qv input { width: 100%; box-sizing: border-box; padding: 9px 11px; border: 1px solid #b6bcae; border-radius: 7px; font-size: .95rem; }
+  .qv .add { margin-top: 18px; width: 100%; background: #b5602b; color: #fff; border: none; border-radius: 8px; padding: 12px; font-weight: 700; cursor: pointer; }
+</style>
+</head>
+<body>
+<header class="shop">
+  <span class="brand">SUMMIT &amp; PINE</span>
+  <nav>
+    <a href="#footwear">Footwear</a>
+    <a href="#packs">Packs</a>
+    <a href="#cart">Cart (0)</a>
+  </nav>
+</header>
+
+<section class="grid">
+  <article class="card">
+    <div class="thumb"></div>
+    <h3>Trail Runner GTX</h3>
+    <p class="price">$148.00</p>
+    <button type="button" onclick="openQV()">Quick view</button>
+  </article>
+  <article class="card">
+    <div class="thumb"></div>
+    <h3>Ridgeline 30L Pack</h3>
+    <p class="price">$210.00</p>
+    <button type="button">Quick view</button>
+  </article>
+  <article class="card">
+    <div class="thumb"></div>
+    <h3>Merino Crew Sock</h3>
+    <p class="price">$22.00</p>
+    <button type="button">Quick view</button>
+  </article>
+</section>
+
+<!-- Quick-view modal: trapped by keyboard, closable only by mouse-clicking the × span. -->
+<div class="scrim" id="scrim">
+  <div class="qv" role="dialog" aria-modal="true" aria-labelledby="qv-title" id="qv">
+    <!--
+      The close control: a <span> with role="button" + aria-label (so it READS like a
+      button to a name/role check) but it has NO tabindex (not focusable) and only an
+      onclick (mouse) handler — no keydown. Keyboard users can never reach or fire it.
+    -->
+    <span class="close" id="qv-close" role="button" aria-label="Close quick view"
+          onclick="closeQV()">✕</span>
+    <div class="hero" role="img" aria-label="Trail Runner GTX in slate grey"></div>
+    <div class="info">
+      <h2 id="qv-title">Trail Runner GTX</h2>
+      <p class="price">$148.00</p>
+      <label for="size">Size (US)</label>
+      <select id="size">
+        <option>9</option><option>10</option><option>11</option><option>12</option>
+      </select>
+      <label for="qty">Quantity</label>
+      <input id="qty" type="number" value="1" min="1">
+      <button class="add" id="add" type="button">Add to cart</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const scrim = document.getElementById('scrim');
+  const qv    = document.getElementById('qv');
+
+  function openQV() {
+    scrim.classList.add('show');
+    document.getElementById('size').focus();   // focus moves into the dialog
+  }
+  function closeQV() { scrim.classList.remove('show'); }
+
+  // Focus trap: cycles Tab among the FOCUSABLE controls only. The close × is a span with
+  // no tabindex, so it is NOT in this list — keyboard users cannot reach it.
+  qv.addEventListener('keydown', function (e) {
+    if (e.key !== 'Tab') return;               // no Escape branch — Esc does nothing
+    const items = qv.querySelectorAll('select, input, button');  // excludes the span ×
+    const first = items[0];
+    const last  = items[items.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  });
+
+  document.getElementById('add').addEventListener('click', function () {
+    this.textContent = 'Added to cart ✓';
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Getting Started with Pipelines — DriftDB Docs</title>
+<style>
+  /*
+    PASS CONTROL (boundary the evaluator must NOT flag):
+    A documentation tutorial embeds a wide video player (fixed 720px, NO max-width:100%),
+    which causes a page-level horizontal scrollbar at 320px. Per the Understanding doc, a
+    video is a fixed-dimension medium with a Reflow exception, and a page-level horizontal
+    scrollbar caused ONLY by such excepted media PASSES — so long as every non-excepted
+    section reflows. Here all prose, headings, code blocks (with overflow-wrap), the
+    on-this-page nav, and the callout DO reflow within 320px. So despite the scrollbar,
+    this page conforms. A naive evaluator who flags "there's a horizontal scrollbar!" would
+    be wrong; this is the BBC-Earth-video case from the Understanding doc.
+  */
+  * { box-sizing: border-box; }
+  :root { font-family: "IBM Plex Sans", system-ui, sans-serif; color: #1c2128; }
+  body { margin: 0; background: #fff; }
+  .docbar { background: #14181d; color: #fff; padding: 12px 18px; font-size: 0.95rem; }
+  .docbar code { color: #79c0ff; }
+  .layout { padding: 18px; }
+  h1 { font-size: 1.7rem; margin: 0 0 6px; }
+  .crumbs { color: #6b7480; font-size: 0.82rem; margin-bottom: 14px; }
+  p, li { line-height: 1.6; }
+  article { max-width: 70ch; }
+  h2 { margin-top: 28px; font-size: 1.25rem; }
+  /* Code blocks reflow safely: wrap long tokens instead of overflowing. */
+  pre {
+    background: #f6f8fa; border: 1px solid #e1e4e8; border-radius: 8px; padding: 12px;
+    overflow-wrap: anywhere; white-space: pre-wrap; font-size: 0.85rem;
+  }
+  code { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+  .callout {
+    border-left: 4px solid #1f6feb; background: #eef4ff; padding: 12px 14px; border-radius: 6px;
+    margin: 18px 0; max-width: 70ch;
+  }
+  /* On-this-page nav reflows (no fixed width). */
+  nav.toc { font-size: 0.88rem; margin: 18px 0; }
+  nav.toc ul { padding-left: 18px; }
+
+  /*
+    The EXCEPTED, fixed-dimension medium: a 720px-wide video player with NO max-width.
+    It overflows the 320px viewport on purpose — this is the legitimate exception.
+  */
+  figure.demo { margin: 20px 0; }
+  figure.demo video { width: 720px; height: 405px; background: #000; display: block; }
+  figure.demo figcaption { max-width: 70ch; color: #57606a; font-size: 0.85rem; margin-top: 6px; }
+</style>
+</head>
+<body>
+  <div class="docbar">DriftDB Docs · <code>v4.2</code></div>
+
+  <div class="layout">
+    <p class="crumbs">Docs › Guides › Pipelines</p>
+    <h1>Getting Started with Pipelines</h1>
+
+    <nav class="toc" aria-label="On this page">
+      <strong>On this page</strong>
+      <ul>
+        <li><a href="#concept">What a pipeline is</a></li>
+        <li><a href="#watch">Watch: a 90-second tour</a></li>
+        <li><a href="#first">Create your first pipeline</a></li>
+      </ul>
+    </nav>
+
+    <article>
+      <h2 id="concept">What a pipeline is</h2>
+      <p>
+        A pipeline is a declarative description of how raw events flow from a source,
+        through one or more transforms, into a destination table. Pipelines are versioned,
+        replayable, and run continuously: when new events arrive at the source, DriftDB
+        applies your transforms and writes the results downstream without you re-running
+        anything by hand.
+      </p>
+
+      <div class="callout">
+        <strong>Tip:</strong> Pipelines are idempotent. Re-deploying the same definition
+        will not duplicate already-processed events, so it is safe to redeploy often while
+        you are iterating.
+      </div>
+
+      <h2 id="watch">Watch: a 90-second tour</h2>
+      <figure class="demo">
+        <video controls aria-label="Ninety-second tour of building a DriftDB pipeline">
+          <!-- No src needed for the layout demo; the element keeps its fixed 720px width. -->
+        </video>
+        <figcaption>
+          A short screen recording that walks through creating, deploying, and inspecting a
+          pipeline. A full text transcript follows in the next section for anyone who prefers
+          to read.
+        </figcaption>
+      </figure>
+
+      <h2 id="first">Create your first pipeline</h2>
+      <p>
+        Define a pipeline in a single file. The example below reads from a Kafka topic,
+        keeps only completed orders, and writes a rolling daily total into a results table.
+        Notice that even a very long connection string wraps cleanly rather than forcing the
+        page to scroll sideways:
+      </p>
+      <pre><code>source kafka {
+  brokers = "broker-01.use1.prod.internal:9092,broker-02.use1.prod.internal:9092,broker-03.use1.prod.internal:9092"
+  topic   = "orders.v3"
+}
+
+transform filter_completed {
+  keep when status == "COMPLETED"
+}
+
+destination table daily_totals {
+  rollup = sum(amount) by date_trunc('day', ordered_at)
+}</code></pre>
+      <p>
+        Deploy it with <code>driftdb pipeline deploy ./orders.pipeline</code>. Within a few
+        seconds the pipeline shows as <em>running</em>, and the destination table begins to
+        fill as events are processed.
+      </p>
+    </article>
+  </div>
+
+  <!--
+    WHY THIS PASSES (and why automated tools can't adjudicate it):
+    A page-level horizontal scrollbar exists, caused ONLY by the fixed-720px video player —
+    a genuine fixed-dimension medium with a 1.4.10 exception. EVERY non-excepted section
+    reflows within 320px: prose (max-width:70ch), the TOC, the callout, headings, and the
+    code block (white-space:pre-wrap; overflow-wrap:anywhere) — even a long broker string
+    wraps. This is precisely the Understanding doc's BBC-Earth-video pass: a horizontal
+    scrollbar due to excepted media is acceptable when all non-excepted content reflows. A
+    scanner that flags any page horizontal scrollbar would FALSE-POSITIVE here; confirming
+    the pass requires the human judgment that the scrollbar is owed entirely to excepted media.
+  -->
+</body>
+</html>

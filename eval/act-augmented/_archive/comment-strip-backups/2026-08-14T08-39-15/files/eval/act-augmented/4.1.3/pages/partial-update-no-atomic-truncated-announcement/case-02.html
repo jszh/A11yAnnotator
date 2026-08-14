@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trailhead Outfitters — Hiking Boots</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.5 system-ui,Segoe UI,Roboto,sans-serif; color:#1c2024; background:#fff; }
+  .wrap { display:grid; grid-template-columns:230px 1fr; gap:30px; max-width:1000px; margin:0 auto; padding:26px 22px; }
+  h1 { grid-column:1/-1; font-size:22px; margin:0 0 4px; }
+  aside { border-right:1px solid #e6e8ea; padding-right:22px; }
+  fieldset { border:1px solid #e6e8ea; border-radius:8px; margin:0 0 16px; padding:12px 14px; }
+  legend { font-weight:600; padding:0 4px; }
+  label { display:block; padding:4px 0; }
+  .summary { font-size:16px; margin:0 0 16px; padding:10px 12px; background:#f3f6f4; border-radius:8px; }
+  .summary b { color:#1d6b3a; }
+  .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+  .prod { border:1px solid #e6e8ea; border-radius:8px; padding:12px; font-size:13px; }
+  .prod .nm { font-weight:600; }
+  .px { color:#1d6b3a; font-weight:700; }
+  footer { max-width:1000px; margin:22px auto; padding:0 22px; color:#5a636b; font-size:12.5px; }
+  :focus-visible { outline:3px solid #1a73e8; outline-offset:2px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Hiking Boots</h1>
+
+  <aside>
+    <form id="facets" aria-label="Filter products">
+      <fieldset>
+        <legend>Colour</legend>
+        <label><input type="checkbox" name="c" value="brown"> Brown</label>
+        <label><input type="checkbox" name="c" value="grey"> Grey</label>
+        <label><input type="checkbox" name="c" value="red"> Red</label>
+      </fieldset>
+      <fieldset>
+        <legend>Waterproof</legend>
+        <label><input type="checkbox" name="wp" value="1"> Gore-Tex only</label>
+      </fieldset>
+    </form>
+  </aside>
+
+  <section>
+    <!--
+      The result summary is wrapped in aria-live="polite" (so it IS a live region and DOES
+      announce). But aria-atomic is unset and ONLY the inner <b id="count"> number node is
+      rewritten when filters change. The static words "Showing" / "products" never re-render,
+      so the AT speaks just the changed numeral: "24". The listener has no idea 24 refers to
+      a product count, a filter, or anything at all.
+    -->
+    <p class="summary" aria-live="polite" id="result-line">
+      Showing <b id="count">38</b> products
+    </p>
+
+    <div class="grid" id="grid" aria-label="Products">
+      <article class="prod"><span class="nm">Cascade GTX</span><br>Brown · Waterproof<br><span class="px">$179</span></article>
+      <article class="prod"><span class="nm">Ridgeline Mid</span><br>Grey<br><span class="px">$129</span></article>
+      <article class="prod"><span class="nm">Summit Pro</span><br>Red · Waterproof<br><span class="px">$214</span></article>
+    </div>
+  </section>
+</div>
+
+<footer>
+  <strong>Why automated tools miss this:</strong> the count line is a valid
+  <code>aria-live="polite"</code> region with correct contrast and a labelled checkbox
+  filter set — axe/WAVE/Lighthouse pass it. The defect is that AJAX filtering rewrites only
+  the inner <code>&lt;b&gt;</code> numeral while the region is non-atomic, so AT announces
+  the lone token "24" with no "products showing" context. No automated rule judges whether a
+  spoken number is intelligible on its own.
+</footer>
+
+<script>
+  // Pretend product DB; the visible grid is illustrative. The point is the count line.
+  function recount() {
+    var boxes = document.querySelectorAll('#facets input:checked');
+    // Simulated facet count: fewer filters -> more results.
+    var n = 38 - boxes.length * 9;
+    if (n < 2) n = 2;
+    // ONLY the inner number node is updated. "Showing" and "products" are untouched,
+    // and #result-line has no aria-atomic, so AT hears just "24".
+    document.getElementById('count').textContent = String(n);
+  }
+  document.getElementById('facets').addEventListener('change', recount);
+</script>
+</body>
+</html>

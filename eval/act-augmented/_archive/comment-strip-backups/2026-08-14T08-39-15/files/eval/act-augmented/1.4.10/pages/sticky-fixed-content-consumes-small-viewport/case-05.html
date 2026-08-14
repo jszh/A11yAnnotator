@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <!-- PASS CONTROL (C34). Same generously-sized sticky course header as the failing cases,
+       BUT a media query un-fixes it (position: static) once the viewport is short. So at the
+       256px reflow height the header scrolls away with the content and the full lesson is
+       readable. This is the C34 advisory technique implemented correctly. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Week 4: Hypothesis Testing — STAT 201 — Northvale University</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body { font: 16px/1.6 "Source Sans Pro", "Segoe UI", Arial, sans-serif; color: #222; background: #fff; }
+
+    /* The course chrome. At tall viewports it is sticky and ~128px tall: course title,
+       breadcrumb, and a progress strip. */
+    .coursebar {
+      background: #14233f; color: #eef2f8;
+      padding: 12px 16px;
+      min-height: 128px;
+      border-bottom: 4px solid #f0a500;
+    }
+    .coursebar .course { font-size: 13px; opacity: .85; }
+    .coursebar h2.unit { font-size: 21px; margin: 4px 0 8px; }
+    .coursebar nav { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 13px; }
+    .coursebar nav a { color: #cfe0ff; text-decoration: none; }
+    .coursebar nav a[aria-current] { font-weight: 700; color: #ffd86b; }
+    .coursebar .progress { margin-top: 8px; font-size: 12px; opacity: .85; }
+
+    /* DEFAULT (tall viewport): make the course bar sticky, matching C34's min-height gate. */
+    @media (min-height: 481px) {
+      .coursebar { position: sticky; top: 0; z-index: 30; box-shadow: 0 3px 8px rgba(0,0,0,.2); }
+    }
+    /* REFLOW viewport (short): UN-FIX the bar so it scrolls away and the lesson body gets
+       the full height. This is the corrective core of WCAG technique C34. */
+    @media (max-height: 480px) {
+      .coursebar { position: static; }
+    }
+
+    main { padding: 18px 16px 50px; max-width: 680px; margin: 0 auto; }
+    h1 { font-size: 24px; margin: 4px 0 12px; }
+    h3 { font-size: 18px; color: #14233f; margin: 22px 0 6px; }
+    p { margin: 0 0 16px; }
+    .formula { background: #f4f6fa; border-left: 4px solid #f0a500; padding: 10px 14px; font-family: "Cambria Math", Georgia, serif; }
+    .callout { background: #eef7ee; border: 1px solid #cfe6cf; border-radius: 8px; padding: 12px 14px; margin: 18px 0; }
+  </style>
+</head>
+<body>
+  <!-- WHY THIS PASSES (and why a tool can't confirm it without rendering):
+       Automated tools see position:sticky inside a media query — they cannot evaluate
+       whether the gate produces enough readable space at 256px. A human rendering at the
+       reflow viewport sees the header become static and the lesson fully readable, confirming
+       the C34 corrective pattern is correctly applied. The PASS is a visual-proportion
+       judgment too — it just happens to come out the other way. -->
+  <header class="coursebar">
+    <div class="course">STAT 201 · Introduction to Statistical Inference · Spring</div>
+    <h2 class="unit">Week 4: Hypothesis Testing</h2>
+    <nav aria-label="Lesson sections">
+      <a href="#read" aria-current="page">Reading</a>
+      <a href="#video">Lecture</a>
+      <a href="#quiz">Quiz</a>
+      <a href="#forum">Discussion</a>
+    </nav>
+    <div class="progress">Module progress: 3 of 7 lessons complete</div>
+  </header>
+
+  <main id="read">
+    <h1>The Logic of a Hypothesis Test</h1>
+
+    <p>A hypothesis test is, at heart, a structured way of asking a single question: is the
+      pattern I see in my sample strong enough that I should doubt it arose by chance alone?
+      Everything else — the null hypothesis, the test statistic, the p-value — is machinery
+      built to answer that one question honestly.</p>
+
+    <h3>The null hypothesis</h3>
+    <p>We begin by stating a <em>null hypothesis</em>, written H₀, that represents "nothing
+      interesting is happening": the new drug has no effect, the coin is fair, the two groups
+      have the same mean. We then ask how surprising our data would be <em>if H₀ were true.</em>
+      Crucially, we never set out to prove H₀; we only ever gather evidence against it.</p>
+
+    <h3>The test statistic and the p-value</h3>
+    <p>From the sample we compute a test statistic — a single number that summarises how far our
+      data fall from what H₀ predicts. We then find the probability of seeing a statistic at
+      least that extreme, assuming H₀ is true. That probability is the p-value.</p>
+
+    <div class="formula">p = P( observe a statistic this extreme | H₀ is true )</div>
+
+    <p>A small p-value means our data would be surprising under H₀, which gives us grounds to
+      reject it. A large p-value means our data are entirely consistent with H₀, so we have no
+      reason to abandon it. Note the asymmetry: we either reject H₀ or fail to reject it. We
+      never "accept" it.</p>
+
+    <div class="callout">
+      <strong>Common misreading.</strong> A p-value is <em>not</em> the probability that H₀ is
+      true. It is the probability of the data given H₀, which is a different conditional
+      entirely. Confusing the two is the single most frequent error in applied statistics.
+    </div>
+
+    <h3>Significance level</h3>
+    <p>Before looking at the data, we choose a threshold α — commonly 0.05 — below which we will
+      treat the result as statistically significant. Fixing α in advance protects us from the
+      temptation to move the goalposts once we have seen which way the result points.</p>
+
+    <p>In the lecture that follows, we will work a full two-sample test from start to finish,
+      and you will see every piece of this machinery turning together on real data.</p>
+  </main>
+</body>
+</html>

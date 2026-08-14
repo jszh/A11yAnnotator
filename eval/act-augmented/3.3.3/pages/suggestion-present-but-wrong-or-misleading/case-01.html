@@ -4,25 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Set your password — Meridian Credit Union</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS:
-  Submit the form with a short password and an error message appears, correctly
-  associated to the field via aria-describedby, in a role=alert live region, with
-  good contrast and a clear, confident, SPECIFIC suggested fix:
-  "Your password is too short. Use at least 8 characters to continue."
-  Every structural facet of SC 3.3.3 passes: an error is detected, AND a concrete
-  correction suggestion IS provided (TT 5.G "suggestions for corrected input are
-  provided"). axe / WAVE / Lighthouse see present, associated, announced error text.
-  THE DEFECT IS SEMANTIC: the field's REAL, visible rule (stated in the bullet list
-  above the field, AND enforced by minlength="12" + the JS validator) requires at
-  least 12 characters. The suggestion names 8. A user who follows the suggestion
-  exactly — types a fresh 8-to-11 character password — is REJECTED AGAIN with the
-  same message. The suggestion is factually wrong for this field and guarantees a
-  re-failure. No scanner reads the prose "at least 8 characters", reads the
-  minlength="12" / the policy bullets / the validator, and judges that the number
-  in the suggestion contradicts the number the field enforces. Catching it needs a
-  human to compare the suggested fix against the field's true constraint.
--->
 <style>
   :root{
     --ink:#10243e; --muted:#5a6b7e; --line:#cdd7e1; --brand:#0a5f8f; --brand-d:#084b70;
@@ -127,7 +108,6 @@
     var v = pw.value;
     var hasUpper = /[A-Z]/.test(v), hasLower = /[a-z]/.test(v), hasNum = /[0-9]/.test(v);
 
-    // REAL ENFORCED RULE: minimum length is 12.
     if (v.length >= 12 && hasUpper && hasLower && hasNum){
       pw.setAttribute('aria-invalid','false');
       err.hidden = true; err.className = 'ok'; err.removeAttribute('role');
@@ -139,8 +119,6 @@
     pw.setAttribute('aria-invalid','true');
     err.className = 'err';
     err.setAttribute('role','alert');
-    // CONFIDENT, SPECIFIC — AND WRONG: the field requires 12, not 8.
-    // A user who follows this and supplies an 8-character password fails again.
     if (v.length < 12){
       err.innerHTML = ICON + '<span>Your password is too short. Use at least 8 characters to continue.</span>';
     } else {

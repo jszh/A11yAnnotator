@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 4.1.2 FAILURE (ARIA14 name-quality — UNTRANSLATED i18n KEY leaked into the name)
+    WITH a boundary PASS control to sharpen the aspect.
+    This is the live map of a municipal transit app. Floating over the map are three icon-only
+    map controls: zoom-in (+), zoom-out (−), and "locate me" (crosshair). The zoom buttons'
+    accessible names are raw i18n message KEYS that were never resolved by the translation
+    layer: aria-label="map.ctrl.zoomIn" and aria-label="map.ctrl.zoomOut". Those strings are
+    non-empty and machine-valid, so the ACT "Button has non-empty accessible name" rule PASSES,
+    but a screen reader announces "map.ctrl.zoomIn, button" — a dotted developer key, not a
+    purpose. The THIRD control (locate me) was wired correctly and announces aria-label="Center
+    map on my location" — included as a within-page PASS boundary so the contrast is sharp:
+    same widget, same toolbar, one descriptive name and two meaningless keys.
+    WHY AUTOMATED TOOLS MISS IT: all three names are non-empty, so every name rule passes on
+    all three. Recognizing that "map.ctrl.zoomIn" is an un-interpolated i18n key (a developer
+    string) while "Center map on my location" is a real purpose requires a human to read the
+    strings and the + / − / crosshair glyphs — automation treats all three as equally valid.
+  -->
+  <title>Trip planner — MetroLink Transit</title>
+  <style>
+    :root { --ink:#1b2733; --muted:#5a6b7b; --line:#cdd7e0; --brand:#1457b8; --bg:#eaeef2; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Roboto", "Segoe UI", Arial, sans-serif; color:var(--ink); background:var(--bg); }
+    header { background:#0c2a52; color:#fff; padding:12px 22px; display:flex; align-items:center; gap:14px; }
+    header .brand { font-weight:800; letter-spacing:.4px; }
+    header .route { margin-left:auto; font-size:14px; color:#bcd0ec; }
+    .layout { display:grid; grid-template-columns:320px 1fr; height:calc(100vh - 52px); }
+    aside { background:#fff; border-right:1px solid var(--line); padding:18px 20px; overflow:auto; }
+    aside h1 { font-size:18px; margin:0 0 12px; }
+    .leg { border-left:3px solid var(--brand); padding:8px 0 8px 12px; margin:0 0 14px; }
+    .leg .mode { font-weight:700; font-size:14px; }
+    .leg .det { color:var(--muted); font-size:13px; }
+    .mapwrap { position:relative; overflow:hidden; }
+    .map {
+      position:absolute; inset:0;
+      background:
+        repeating-linear-gradient(0deg, #dfe6ec 0 38px, #e7edf2 38px 39px),
+        repeating-linear-gradient(90deg, #dfe6ec 0 38px, #e7edf2 38px 39px);
+    }
+    .map .road { position:absolute; background:#c2ccd6; }
+    .map .r1 { top:30%; left:0; right:0; height:14px; }
+    .map .r2 { left:44%; top:0; bottom:0; width:14px; }
+    .map .pin { position:absolute; top:30%; left:44%; transform:translate(-50%,-100%); color:var(--brand); font-size:30px; }
+    .controls { position:absolute; right:16px; bottom:22px; display:flex; flex-direction:column; gap:8px; }
+    .mbtn { width:44px; height:44px; border:1px solid var(--line); background:#fff; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 4px rgba(0,0,0,.18); }
+    .mbtn:hover { background:#f3f6f9; }
+    .mbtn:focus-visible { outline:2px solid var(--brand); outline-offset:2px; }
+    .mbtn svg { width:22px; height:22px; fill:var(--ink); }
+    .zoomgroup { display:flex; flex-direction:column; border-radius:8px; overflow:hidden; }
+    .zoomgroup .mbtn { border-radius:0; }
+    .zoomgroup .mbtn:first-child { border-radius:8px 8px 0 0; }
+    .zoomgroup .mbtn:last-child { border-radius:0 0 8px 8px; border-top:0; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="brand">MetroLink</span>
+    <span class="route">Downtown Transit Center → Riverside College</span>
+  </header>
+
+  <div class="layout">
+    <aside aria-label="Trip itinerary">
+      <h1>Your trip · 34 min</h1>
+      <div class="leg"><div class="mode">Walk 4 min</div><div class="det">to Downtown Transit Center, Bay 6</div></div>
+      <div class="leg"><div class="mode">Route 21 — Express</div><div class="det">9:42 AM · 6 stops · 19 min</div></div>
+      <div class="leg"><div class="mode">Transfer · Route 8</div><div class="det">10:03 AM · 3 stops · 7 min</div></div>
+      <div class="leg"><div class="mode">Walk 4 min</div><div class="det">to Riverside College, Gate C</div></div>
+    </aside>
+
+    <div class="mapwrap" role="application" aria-label="Route map">
+      <div class="map" aria-hidden="true">
+        <div class="road r1"></div>
+        <div class="road r2"></div>
+        <div class="pin">●</div>
+      </div>
+
+      <div class="controls">
+        <div class="zoomgroup">
+          <!-- Zoom IN: name is an un-resolved i18n key -->
+          <button type="button" class="mbtn" aria-label="map.ctrl.zoomIn">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg>
+          </button>
+          <!-- Zoom OUT: name is an un-resolved i18n key -->
+          <button type="button" class="mbtn" aria-label="map.ctrl.zoomOut">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 11h14v2H5z"/></svg>
+          </button>
+        </div>
+        <!-- Locate me: BOUNDARY PASS — a correct, descriptive name on the same kind of control -->
+        <button type="button" class="mbtn" aria-label="Center map on my location">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm9 3h-2.07A7.01 7.01 0 0 0 13 5.07V3h-2v2.07A7.01 7.01 0 0 0 5.07 11H3v2h2.07A7.01 7.01 0 0 0 11 18.93V21h2v-2.07A7.01 7.01 0 0 0 18.93 13H21z"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

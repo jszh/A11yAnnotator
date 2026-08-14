@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Add a Course — Glenrock State LMS</title>
+<style>
+  :root { --ink:#1b1f24; --maroon:#7c2330; --bg:#f3f1ee; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Source Sans Pro",Arial,sans-serif; color:var(--ink);
+         background:var(--bg); }
+  .container { max-width:600px; margin:0 auto; padding:26px 20px 80px; }
+  .crest { display:flex; align-items:center; gap:12px; margin-bottom:18px; }
+  .crest .seal { width:38px; height:38px; border-radius:6px; background:var(--maroon); color:#fff;
+        display:flex; align-items:center; justify-content:center; font-weight:800; }
+  .crest h1 { font-size:1.2rem; margin:0; }
+  .panel { background:#fff; border:1px solid #ded8d2; border-radius:10px; padding:24px; }
+  .panel h2 { margin:0 0 16px; font-size:1.05rem; }
+  .row { margin-bottom:18px; }
+  .labelline { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+  label { font-weight:700; }
+  .warn { width:18px; height:18px; display:none; }
+  .row.invalid .warn { display:inline-block; }
+  input[type=text] { width:100%; padding:10px 12px; font:inherit; border:1px solid #b9b2ab;
+        border-radius:6px; background:#fff; }
+  .row.invalid input { border:2px solid #b22b39; background:#fcecee; }
+  /* The error message: same red as the icon, programmatically tied to the input via
+     aria-describedby, and it STATES THE CORRECTION (the required format + an example).
+     This is the only structural difference from the failing icon-only twins. */
+  .errmsg { color:#9c1f2c; font-size:.85rem; margin-top:6px; font-weight:600; }
+  .row:not(.invalid) .errmsg { display:none; }
+  .hint { font-size:.82rem; color:#5f655c; margin-top:5px; }
+  .actions { margin-top:8px; text-align:right; }
+  .actions button { background:var(--maroon); color:#fff; border:0; padding:11px 24px;
+        font:inherit; font-weight:700; border-radius:7px; cursor:pointer; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="crest">
+    <span class="seal" aria-hidden="true">GS</span>
+    <h1>Glenrock State — Course Registration</h1>
+  </div>
+
+  <!-- POST-SUBMIT STATE — the PASS twin. The student entered the term-start date as
+       "Aug 25 2026" but it must be MM/DD/YYYY. The field shows the SAME visual treatment
+       as the failing cases (red warning triangle + red border + pink fill), BUT it also
+       renders a text error message that is tied to the input via aria-describedby and that
+       STATES THE SUGGESTED CORRECTION (required format + a concrete example). So a screen
+       reader user hears the field is invalid AND exactly how to fix it. This page passes
+       SC 3.3.3 and exists to verify the judge fails only the text-absent twins. -->
+  <main class="panel">
+    <h2>Confirm your enrollment details</h2>
+    <form action="/lms/enroll" method="post" novalidate>
+      <div class="row">
+        <div class="labelline"><label for="course">Course code</label></div>
+        <input type="text" id="course" name="course" value="HIST-204" autocomplete="off">
+        <p class="hint">For example, HIST-204.</p>
+      </div>
+
+      <div class="row invalid">
+        <div class="labelline">
+          <label for="start">Term start date</label>
+          <svg class="warn" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+            <path d="M10 1 L19 18 H1 Z" fill="#b22b39"></path>
+            <rect x="9" y="7" width="2" height="6" fill="#fff"></rect>
+            <rect x="9" y="14" width="2" height="2" fill="#fff"></rect>
+          </svg>
+        </div>
+        <input type="text" id="start" name="start" value="Aug 25 2026" inputmode="numeric"
+               aria-invalid="true" aria-describedby="start-err">
+        <p class="errmsg" id="start-err">
+          Enter the term start date as MM/DD/YYYY — for example, 08/25/2026.
+        </p>
+      </div>
+
+      <div class="row">
+        <div class="labelline"><label for="advisor">Advisor email</label></div>
+        <input type="text" id="advisor" name="advisor" value="r.okafor@glenrock.edu" autocomplete="email">
+      </div>
+
+      <div class="actions">
+        <button type="submit">Confirm enrollment</button>
+      </div>
+    </form>
+  </main>
+</div>
+
+<!--
+  WHY THIS PASSES SC 3.3.3 (Error Suggestion) — the boundary / PASS twin:
+  The term-start date was rejected, and the suggested correction is provided IN TEXT and
+  programmatically associated: the input has aria-invalid="true" and aria-describedby="start-err",
+  and #start-err reads "Enter the term start date as MM/DD/YYYY — for example, 08/25/2026."
+  This satisfies G84/G85/G177 (a text description of the problem with the correct format and an
+  example). The red triangle and red border are now redundant reinforcement, not the sole carrier.
+
+  This page is visually near-identical to the failing icon/colour twins; the ONLY meaningful
+  difference is the presence of associated correction TEXT. It exists so the judge demonstrably
+  fails the text-absent versions and passes this one — i.e. the discriminator is the suggestion
+  text, exactly the 3.3.3 limb, not the red styling.
+
+  WHY AUTOMATED TOOLS ALSO CAN'T CONFIRM THE PASS:
+  Even here, no scanner can verify the message is a CORRECT, useful suggestion (it could read
+  "Invalid date" and still be aria-described). Confirming the text actually states the fix is a
+  human semantic judgment — which is exactly why the failing twins evade detection too.
+-->
+</body>
+</html>

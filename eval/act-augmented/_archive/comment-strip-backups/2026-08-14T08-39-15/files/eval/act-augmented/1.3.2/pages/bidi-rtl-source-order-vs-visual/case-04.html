@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>חשבונית מס — סטודיו "אור"</title>
+<style>
+  :root { --ink:#22272e; --teal:#0f6e64; --paper:#f5faf9; --line:#d9e8e5; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:16px/1.7 "Noto Sans Hebrew","Segoe UI",system-ui,sans-serif; color:var(--ink); background:var(--paper); }
+  header { background:var(--teal); color:#fff; padding:20px 26px; }
+  header h1 { margin:0; font-size:1.4rem; }
+  main { max-width:660px; margin:0 auto; padding:28px 22px 56px; }
+  .doc { background:#fff; border:1px solid var(--line); border-radius:10px; padding:24px 26px; }
+  h2 { margin-top:0; color:var(--teal); font-size:1.2rem; }
+  .field { display:flex; justify-content:space-between; gap:14px; padding:8px 0; border-bottom:1px dotted var(--line); }
+  .field .k { color:#556; font-weight:600; }
+  .field .v { font-family:"SFMono-Regular",Consolas,monospace; }
+  .compare { margin-top:26px; border-top:2px dashed var(--line); padding-top:16px; }
+  .compare h3 { color:#555; font-size:.95rem; }
+  .vis, .log { background:#fafdfc; border:1px solid var(--line); border-radius:8px; padding:10px 14px; margin:8px 0; }
+  .log { font-style:italic; color:#4d5a57; }
+  code { background:#e8f1ef; padding:1px 5px; border-radius:4px; font-size:.85em; }
+  footer { margin-top:34px; font-size:.85rem; color:#79857f; border-top:1px solid var(--line); padding-top:14px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>סטודיו "אור" — חשבונית מס</h1>
+</header>
+<main>
+  <div class="doc">
+    <h2>פרטי חשבונית</h2>
+
+    <div class="field"><span class="k">לקוח</span><span class="v">מאיה לוי</span></div>
+
+    <!--
+      THE FAILURE (G57, the <bdo> misuse / inverse case):
+      The invoice number must appear, visually, as:  INV-2024-0731
+      The author saw that inside the RTL document the trailing "0731" sometimes drifted,
+      and "fixed the visual" with the WRONG tool: they wrapped the number in
+      <bdo dir="rtl">, which FORCIBLY reverses the GLYPH ORDER on screen but does NOT
+      change the logical/source character order. To make the forced reversal LOOK correct,
+      they then typed the characters BACKWARDS in the source: "1370-4202-VNI".
+      Result on screen (bdo reverses it):  INV-2024-0731   ✓ looks perfect.
+      But a screen reader / copy-paste / programmatic reading takes the LOGICAL source
+      order, which is literally  "1370-4202-VNI"  — the reversed, meaningless string.
+      So the field is visually correct yet exposes a SCRAMBLED logical order to AT.
+      The correct fix is <bdi> or dir with the digits in proper logical order, NOT <bdo>
+      reversal of reversed source.
+    -->
+    <div class="field">
+      <span class="k">מספר חשבונית</span>
+      <span class="v"><bdo dir="rtl">1370-4202-VNI</bdo></span>
+    </div>
+
+    <div class="field"><span class="k">תאריך</span><span class="v">31/07/2024</span></div>
+    <div class="field"><span class="k">סכום לתשלום</span><span class="v">₪ 1,480</span></div>
+
+    <div class="compare">
+      <h3>להשוואה — סדר חזותי מול סדר מקור (לוגי)</h3>
+      <div class="vis"><strong>מה שנראה (אחרי היפוך <code>bdo</code>):</strong> INV-2024-0731</div>
+      <div class="log"><strong>מה שקורא־מסך / העתקה מקריאים (סדר מקור):</strong>
+        “1370-4202-VNI” — התווים הוקלדו הפוך בקוד כדי ש־<code>&lt;bdo dir="rtl"&gt;</code>
+        יציג אותם נכון; הסדר הלוגי שנחשף לטכנולוגיה מסייעת הפוך וחסר משמעות.</div>
+    </div>
+  </div>
+
+  <footer>
+    <p>מדוע כלים אוטומטיים לא מזהים זאת? ה־<code>&lt;bdo&gt;</code> תקין תחבירית והעמוד עובר
+       כל בדיקת linter. אין סמה חסרה והעיבוד החזותי מושלם. רק אדם שקורא את המחרוזת,
+       מעתיק אותה, או בודק את סדר התווים הלוגי לעומת החזותי יגלה שהמקור הפוך — שיפוט
+       אנושי ש־axe/WAVE/Lighthouse אינם מבצעים.</p>
+  </footer>
+</main>
+</body>
+</html>

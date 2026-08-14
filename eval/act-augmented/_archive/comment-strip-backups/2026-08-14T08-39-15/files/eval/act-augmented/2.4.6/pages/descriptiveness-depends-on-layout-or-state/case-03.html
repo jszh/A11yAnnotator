@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Riverside Health — Visit Summary</title>
+<!--
+  SC 2.4.6 (Headings limb, via a disclosure) — descriptiveness depends on
+  DISCLOSURE STATE. The visible heading text in the DEFAULT (collapsed) state
+  mis-describes what the section actually contains; the heading only becomes apt
+  once the panel is expanded.
+
+  The <summary> acts as the section heading. Collapsed by default, it reads
+  "Estimated cost for today's visit" — so a sighted user scanning the page is
+  told this section is about cost/pricing. But the panel body, revealed only on
+  expansion, is the practice's MISSED-APPOINTMENT / CANCELLATION POLICY. The
+  heading does not describe the topic of its content; it describes a DIFFERENT
+  section. (For contrast, the second details whose summary "Your prescriptions"
+  expands to the prescription list IS apt — the failure is isolated to the first.)
+
+  WHY AUTOMATED TOOLS MISS IT: <summary>/<details> is valid, the summary has a
+  non-empty accessible name, and in the FLAT TREE the summary is "followed by"
+  the policy text — a source-order rule (b49b2e) sees a heading-then-content pair
+  and passes; it has no notion that the visible label promises "cost" while the
+  content is "cancellation policy." b49b2e's Assumptions explicitly carve out
+  expandable/hidden content. Judging it needs reading the visible summary,
+  expanding the disclosure, and comparing meaning — human semantic judgment.
+-->
+<style>
+  body { margin: 0; font-family: "Helvetica Neue", Arial, sans-serif; background: #f3f7fb; color: #19222e; }
+  header { background: #0f5e8c; color: #fff; padding: 16px 28px; display: flex; align-items: baseline; gap: 14px; }
+  header .logo { font-weight: 700; font-size: 1.15rem; letter-spacing: .02em; }
+  header .sub { opacity: .85; font-size: .9rem; }
+  main { max-width: 760px; margin: 24px auto; padding: 0 18px; }
+  h1 { font-size: 1.4rem; margin: 0 0 4px; }
+  .meta { color: #5a6675; margin: 0 0 20px; font-size: .92rem; }
+
+  details { background: #fff; border: 1px solid #d6dee6; border-radius: 8px;
+            margin: 0 0 14px; overflow: hidden; }
+  summary { cursor: pointer; list-style: none; padding: 14px 18px; font-weight: 600;
+            font-size: 1.02rem; color: #0f5e8c; background: #f7fafc;
+            border-bottom: 1px solid transparent; }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: "▸"; float: right; color: #8a97a6; transition: transform .15s; }
+  details[open] summary::after { transform: rotate(90deg); }
+  details[open] summary { border-bottom-color: #e2e9f0; }
+  .body { padding: 14px 18px; line-height: 1.55; font-size: .95rem; }
+  .body table { width: 100%; border-collapse: collapse; }
+  .body td, .body th { text-align: left; padding: 6px 4px; border-bottom: 1px solid #eef2f6; }
+  .body th { color: #5a6675; font-weight: 600; }
+  footer { text-align: center; color: #6b7280; font-size: .8rem; padding: 26px 0; }
+</style>
+</head>
+<body>
+<header>
+  <span class="logo">Riverside Health</span>
+  <span class="sub">Patient Portal</span>
+</header>
+
+<main>
+  <h1>Visit summary — June 14, 2026</h1>
+  <p class="meta">Dr. Lillian Osei · Internal Medicine · Reference #VS-208814</p>
+
+  <!-- FAILING disclosure: the visible summary (collapsed heading) promises COST,
+       but expanding it reveals the cancellation/no-show POLICY. Mis-orienting in
+       the default visual state. -->
+  <details>
+    <summary>Estimated cost for today's visit</summary>
+    <div class="body">
+      <p><strong>Missed-appointment &amp; cancellation policy.</strong> Appointments
+         not cancelled at least 24 hours in advance are billed a $45 no-show fee.
+         Cancellations made within 24 hours of the scheduled time are subject to a
+         $25 late-cancellation charge. Three no-shows in a 12-month period may
+         result in discharge from the practice. To cancel, call the front desk or
+         use the "Reschedule" tool in this portal.</p>
+      <p>This policy applies to all in-person and telehealth appointments.</p>
+    </div>
+  </details>
+
+  <!-- Apt disclosure: summary matches its expanded body. -->
+  <details>
+    <summary>Your prescriptions from this visit</summary>
+    <div class="body">
+      <table>
+        <tr><th>Medication</th><th>Instructions</th><th>Refills</th></tr>
+        <tr><td>Lisinopril 10 mg</td><td>One tablet daily, morning</td><td>3</td></tr>
+        <tr><td>Atorvastatin 20 mg</td><td>One tablet at bedtime</td><td>3</td></tr>
+      </table>
+      <p>Sent electronically to Riverside Pharmacy on Elm St.</p>
+    </div>
+  </details>
+
+  <!-- Apt disclosure: summary matches its expanded body. -->
+  <details>
+    <summary>Follow-up &amp; next steps</summary>
+    <div class="body">
+      <p>Schedule a follow-up in 3 months to recheck blood pressure. Complete the
+         fasting lipid panel at the lab before your next visit. Contact us sooner
+         if you experience dizziness or a dry cough.</p>
+    </div>
+  </details>
+</main>
+
+<footer>Riverside Health System · This summary is part of your medical record.</footer>
+</body>
+</html>

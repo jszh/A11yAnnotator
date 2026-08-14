@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Residential parking permits — City of Harborview</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (DISCRIMINATOR case):
+  The page is full of NON-data-entry controls that must NOT be flagged under 3.3.2:
+    - 4 "jump to section" in-page anchor links
+    - 5 expand/collapse policy accordions (aria-expanded, real show/hide)
+    - breadcrumb links, a "language" menu-button, "back to top" links
+  These are links / disclosure widgets, which 3.3.2 explicitly does not apply to.
+
+  There is EXACTLY ONE genuine data-entry control: a free-text feedback <textarea>
+  at the bottom ("Was this page helpful? Tell us how we can improve."). It has a
+  programmatic accessible name supplied by aria-label="Feedback", so it PASSES
+  axe/4.1.2 — but it carries NO VISIBLE label and NO VISIBLE instruction. The only
+  on-screen cue is a faint placeholder ("Type your comments...") that vanishes on
+  input. SC 3.3.2 requires a label OR instruction that is presented to ALL users
+  (not only AT users via aria-label), and a placeholder is not a reliable visible
+  label/instruction (it disappears on entry). So THIS ONE FIELD fails 3.3.2.
+
+  The correct evaluation is surgically precise: FAIL on the feedback textarea ONLY;
+  the dozens of links and accordions are out of scope and must be left untouched.
+
+  THE TRAP runs both ways: (a) an over-eager evaluator over-flags the accordions/
+  links (false positive); (b) a naive automated checker sees the textarea HAS an
+  accessible name (aria-label) and PASSES it, missing that no visible label/
+  instruction is shown to sighted/cognitively-loaded users (false negative). Only a
+  human/model reasoning about "visible to all users, not just AT" + "scope =
+  data-entry only" lands the single correct failure.
+-->
+<style>
+  :root{ --ink:#1c2530; --muted:#5c6773; --line:#d8dee5; --gov:#13447a; --bg:#f4f6f9; --accent:#0b6e4f; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font:16px/1.6 "Source Sans 3","Segoe UI",system-ui,sans-serif; color:var(--ink); background:var(--bg); }
+  a{ color:var(--gov); }
+  .gbar{ background:var(--gov); color:#fff; font-size:.82rem; padding:6px 18px; }
+  .gbar-in{ max-width:860px; margin:0 auto; display:flex; align-items:center; gap:12px; }
+  .gbar-in .lang{ margin-left:auto; position:relative; }
+  .gbar-in .lang button{ background:transparent; color:#fff; border:1px solid rgba(255,255,255,.5); border-radius:6px; padding:3px 9px; font-size:.8rem; cursor:pointer; }
+  .gbar-in .lang .menu{ position:absolute; right:0; top:30px; background:#fff; color:var(--ink); border:1px solid var(--line); border-radius:8px; box-shadow:0 8px 20px rgba(0,0,0,.14); min-width:150px; padding:5px; }
+  .gbar-in .lang .menu[hidden]{ display:none; }
+  .gbar-in .lang .menu a{ display:block; padding:7px 9px; border-radius:6px; text-decoration:none; color:var(--ink); font-size:.85rem; }
+  header.site{ background:#fff; border-bottom:3px solid var(--gov); }
+  .head-in{ max-width:860px; margin:0 auto; padding:14px 18px; display:flex; align-items:center; gap:12px; }
+  .seal{ width:34px; height:34px; border-radius:50%; background:var(--gov); }
+  .site strong{ font-size:1.05rem; }
+  nav.crumbs{ max-width:860px; margin:0 auto; padding:10px 18px 0; font-size:.85rem; }
+  nav.crumbs a{ text-decoration:none; }
+  .layout{ max-width:860px; margin:6px auto 0; padding:0 18px; }
+  h1{ font-size:1.8rem; margin:10px 0 4px; }
+  .lede{ color:var(--muted); margin:0 0 16px; }
+  .toc{ background:#fff; border:1px solid var(--line); border-left:4px solid var(--gov); border-radius:8px; padding:12px 16px; margin:0 0 22px; }
+  .toc h2{ font-size:.82rem; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); margin:0 0 6px; }
+  .toc ul{ margin:0; padding-left:18px; }
+  .toc a{ text-decoration:none; }
+  .acc{ border:1px solid var(--line); border-radius:9px; background:#fff; margin-bottom:10px; overflow:hidden; }
+  .acc h3{ margin:0; }
+  .acc button{ width:100%; text-align:left; background:#fff; border:0; padding:14px 16px; font-size:1.02rem; font-weight:600; cursor:pointer; display:flex; justify-content:space-between; align-items:center; color:var(--ink); }
+  .acc button:focus{ outline:2px solid var(--gov); outline-offset:-2px; }
+  .acc .chev{ color:var(--muted); }
+  .acc button[aria-expanded="true"] .chev{ transform:rotate(45deg); }
+  .acc .panel{ padding:0 16px 16px; color:#384350; font-size:.96rem; }
+  .acc .panel[hidden]{ display:none; }
+  .backtop{ font-size:.82rem; display:inline-block; margin:4px 0 18px; }
+  /* The ONE data-entry control: textarea with NO visible label/instruction (placeholder only). */
+  .feedback{ background:#fff; border:1px solid var(--line); border-radius:10px; padding:18px 18px 20px; margin:24px 0 10px; }
+  .feedback .head{ font-size:1.1rem; font-weight:700; margin:0 0 10px; }
+  .feedback textarea{ width:100%; min-height:96px; padding:11px 13px; font:1rem/1.5 inherit; border:2px solid var(--line); border-radius:9px; resize:vertical; }
+  .feedback textarea::placeholder{ color:#9aa6b1; }
+  .feedback textarea:focus{ outline:2px solid var(--gov); outline-offset:1px; }
+  .feedback .send{ margin-top:12px; background:var(--gov); color:#fff; border:0; padding:10px 18px; border-radius:8px; font-size:.95rem; cursor:pointer; }
+  footer{ max-width:860px; margin:22px auto; padding:16px 18px; border-top:1px solid var(--line); color:var(--muted); font-size:.82rem; }
+</style>
+</head>
+<body>
+  <div class="gbar">
+    <div class="gbar-in">
+      <span>An official website of the City of Harborview</span>
+      <div class="lang">
+        <button type="button" id="langBtn" aria-haspopup="menu" aria-expanded="false" aria-controls="langMenu">Language: English ▾</button>
+        <div class="menu" id="langMenu" role="menu" aria-label="Choose language" hidden>
+          <a role="menuitem" href="#es">Español</a>
+          <a role="menuitem" href="#zh">中文</a>
+          <a role="menuitem" href="#vi">Tiếng Việt</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <header class="site">
+    <div class="head-in"><span class="seal" aria-hidden="true"></span><strong>City of Harborview</strong></div>
+  </header>
+
+  <nav class="crumbs" aria-label="Breadcrumb">
+    <a href="#home">Home</a> › <a href="#services">Services</a> › <a href="#parking">Parking</a> › Residential permits
+  </nav>
+
+  <div class="layout">
+    <h1>Residential parking permits</h1>
+    <p class="lede">Eligibility, fees, renewal, and visitor passes for permit zones A through F.</p>
+
+    <nav class="toc" aria-label="On this page">
+      <h2>Jump to a section</h2>
+      <ul>
+        <li><a href="#elig">Who is eligible</a></li>
+        <li><a href="#fees">Fees and payment</a></li>
+        <li><a href="#renew">Renewing a permit</a></li>
+        <li><a href="#visitor">Visitor passes</a></li>
+      </ul>
+    </nav>
+
+    <section id="elig">
+      <div class="acc">
+        <h3><button type="button" aria-expanded="false" aria-controls="p1">Who is eligible?<span class="chev" aria-hidden="true">＋</span></button></h3>
+        <div class="panel" id="p1" hidden>You must be a resident of a designated permit zone and the registered keeper of the vehicle. Proof of address dated within 90 days is required when you collect the permit in person.</div>
+      </div>
+    </section>
+    <section id="fees">
+      <div class="acc">
+        <h3><button type="button" aria-expanded="false" aria-controls="p2">What are the fees?<span class="chev" aria-hidden="true">＋</span></button></h3>
+        <div class="panel" id="p2" hidden>The first permit per household is $35 per year. A second permit is $90. Visitor pass books (10 days) are $12.</div>
+      </div>
+    </section>
+    <section id="renew">
+      <div class="acc">
+        <h3><button type="button" aria-expanded="false" aria-controls="p3">How do I renew?<span class="chev" aria-hidden="true">＋</span></button></h3>
+        <div class="panel" id="p3" hidden>Renewal opens 30 days before expiry. If your details are unchanged you can renew online; otherwise visit the Civic Center with updated proof of residence.</div>
+      </div>
+    </section>
+    <section id="visitor">
+      <div class="acc">
+        <h3><button type="button" aria-expanded="false" aria-controls="p4">Can I get visitor passes?<span class="chev" aria-hidden="true">＋</span></button></h3>
+        <div class="panel" id="p4" hidden>Each permit household may hold up to two visitor pass books at a time. Passes are scratch-to-activate and valid only within your home zone.</div>
+      </div>
+    </section>
+    <section id="more">
+      <div class="acc">
+        <h3><button type="button" aria-expanded="false" aria-controls="p5">What if my permit is lost or stolen?<span class="chev" aria-hidden="true">＋</span></button></h3>
+        <div class="panel" id="p5" hidden>Report it at the Civic Center. A replacement is $15; if the vehicle was stolen, bring the police report and the replacement fee is waived.</div>
+      </div>
+    </section>
+
+    <a class="backtop" href="#top">↑ Back to top</a>
+
+    <!--
+      THE ONE DATA-ENTRY CONTROL — and the ONLY 3.3.2 failure on the page.
+      It has an aria-label (so axe/4.1.2 pass: "field has an accessible name") but
+      NO visible <label> and NO visible instruction. The placeholder vanishes on
+      input. Sighted / cognitively-loaded users get no persistent on-screen cue.
+    -->
+    <section class="feedback" aria-labelledby="fb-head">
+      <p class="head" id="fb-head">Was this page helpful?</p>
+      <textarea aria-label="Feedback" placeholder="Type your comments..."></textarea>
+      <br>
+      <button type="button" class="send">Send feedback</button>
+    </section>
+  </div>
+
+  <footer>City of Harborview · Renters and owners alike · Renders from file:// · The accordions and jump links above are not form fields.</footer>
+
+<script>
+  document.querySelectorAll('.acc button').forEach(function(b){
+    b.addEventListener('click', function(){
+      var open = b.getAttribute('aria-expanded') === 'true';
+      b.setAttribute('aria-expanded', String(!open));
+      document.getElementById(b.getAttribute('aria-controls')).hidden = open;
+    });
+  });
+  var lb = document.getElementById('langBtn'), lm = document.getElementById('langMenu');
+  lb.addEventListener('click', function(){
+    var open = lb.getAttribute('aria-expanded') === 'true';
+    lb.setAttribute('aria-expanded', String(!open)); lm.hidden = open;
+  });
+</script>
+</body>
+</html>

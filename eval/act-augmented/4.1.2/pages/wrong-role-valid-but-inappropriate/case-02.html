@@ -3,41 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!--
-    SC 4.1.2 (Name, Role, Value) — the "Role" limb, valid-but-INAPPROPRIATE role.
-
-    Aspect: wrong-role-valid-but-inappropriate.
-
-    "Cadence" — a productivity-app marketing page, pricing section. The "Choose Pro"
-    call-to-action is a solid blue PILL that depresses on press (transform + shadow) and,
-    when activated, runs an IN-PAGE action: it selects the Pro plan, updates the order
-    summary below, and shows an inline confirmation — it does NOT navigate anywhere (no
-    href, no URL change, no new document).
-
-    THE DEFECT: the control is coded
-        <span role="link" tabindex="0" ...>Choose Pro</span>
-    role="link" is a valid ARIA token, so 674b10 ("Role attribute has valid value")
-    PASSES. The link role has no extra required states, so 4e8ab6 has nothing to fail.
-    The accessible name ("Choose Pro") is correct. But role="link" tells AT this control
-    NAVIGATES — moves the user to a new location/context. This control does NOT navigate;
-    it performs an in-page action. The correct role for "press me to do something here"
-    is role="button". ARIA distinguishes them by behaviour: a link changes location/
-    context; a button performs an action. Announcing an in-page action control as a
-    "link" misleads AT users about what will happen.
-
-    WHAT AT EXPERIENCES: a screen-reader user hears "Choose Pro, link." Link semantics
-    set the expectation of navigation — many SR users have a links-list mode and treat
-    links as "go somewhere". Activating it instead silently changes the order summary on
-    the same page, defeating that expectation. (A button would announce "Choose Pro,
-    button" and set the correct "this does something here" expectation.)
-
-    WHY AUTOMATED TOOLS MISS IT: axe-core / WAVE / Lighthouse confirm role="link" is a
-    valid token, the element has an accessible name, and it is focusable/operable. A link
-    role without an href is not itself an automatic violation. No tool observes that the
-    click handler performs an in-page action (mutating the summary) rather than navigating,
-    and concludes the role should be "button". Distinguishing navigation from in-page
-    action requires reading the behaviour — human judgment.
-  -->
   <title>Pricing — Cadence</title>
   <style>
     :root { --ink:#101828; --muted:#475467; --line:#e4e7ec; --brand:#2563eb; --brand-d:#1d4ed8; --bg:#f8fafc; }
@@ -55,7 +20,6 @@
     ul.feat { list-style:none; padding:0; margin:1rem 0 1.3rem; }
     ul.feat li { padding:.35rem 0 .35rem 1.5rem; position:relative; color:var(--muted); font-size:.92rem; }
     ul.feat li::before { content:"✓"; position:absolute; left:0; color:var(--brand); font-weight:700; }
-    /* the pill that depresses on press — visually a button */
     .cta { display:inline-block; width:100%; text-align:center; background:var(--brand); color:#fff;
            font-weight:600; padding:.8rem 1rem; border-radius:10px; cursor:pointer; user-select:none;
            transition:transform .06s ease, background .15s ease; }
@@ -81,7 +45,6 @@
           <li>Basic reminders</li>
           <li>Community support</li>
         </ul>
-        <!-- in-page action coded as a link -->
         <span class="cta ghost" role="link" tabindex="0" data-plan="Starter">Choose Starter</span>
       </div>
 
@@ -93,8 +56,6 @@
           <li>Smart scheduling</li>
           <li>Priority support</li>
         </ul>
-        <!-- DEFECT: depresses-and-acts pill coded role="link" (valid token) — should be
-             role="button"; activating it performs an in-page action, not navigation. -->
         <span class="cta" role="link" tabindex="0" data-plan="Pro">Choose Pro</span>
       </div>
     </div>
@@ -105,7 +66,6 @@
   </div>
 
   <script>
-    // In-page action — NOT navigation. No href, no URL change, no new context.
     var sel = document.getElementById('sel');
     document.querySelectorAll('.cta[role="link"]').forEach(function (el) {
       function act() {
@@ -114,7 +74,6 @@
       }
       el.addEventListener('click', act);
       el.addEventListener('keydown', function (e) {
-        // link semantics: Enter activates. (No Space, reinforcing the "link" mis-coding.)
         if (e.key === 'Enter') { e.preventDefault(); act(); }
       });
     });

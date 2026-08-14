@@ -4,22 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>New arrivals — Loom &amp; Larder Homeware</title>
-  <!--
-    WHY AUTOMATED TOOLS MISS THIS (SC 2.1.1, F54):
-    Each product card is a <div role="link"> with a non-empty aria-label, so axe-core's
-    "interactive controls must be operable" / "elements must have valid roles" / "named
-    control" checks all PASS — the card has a role and a name. But the whole card is made
-    navigable ONLY by a pointerup listener attached at runtime via addEventListener
-    (capture_full_page DOM snapshots show no inline onclick), there is NO tabindex (so the
-    card is not focusable / not in the tab order), and there is NO keydown handler (so even
-    if focused, Enter would do nothing). The page ALSO contains, inside each card, a real
-    "Quick view" <button> that IS keyboard operable — a matched accessible control — so a
-    scanner sees focusable buttons and named link-role divs and reports a clean page.
-    A human must mouse over a card, see the whole tile is clickable (cursor:pointer, lift
-    on hover) and navigates on click, then Tab through the page and discover the card body
-    itself is unreachable and Enter never triggers the navigation. That mapping of
-    "this tile does something on click" to "no keyboard path to it" is the F54 judgment.
-  -->
   <style>
     :root { --ink:#1f2430; --muted:#5e6675; --line:#e3e6ee; --brand:#2f5d50; --accent:#c2603b; }
     * { box-sizing: border-box; }
@@ -66,12 +50,6 @@
     <p class="sub">Hand-selected pieces for the season. Tap a card for the full product page.</p>
 
     <div class="grid" id="grid">
-      <!--
-        Each card is role="link" with an aria-label (so it HAS a name + role and passes
-        axe), but: no tabindex (not focusable), no keydown, and the navigation is bound
-        only via addEventListener('pointerup', ...) below. Keyboard users can never open
-        a product page through the card.
-      -->
       <div class="card" role="link" aria-label="Stoneware mug, Clay, £18 — view product" data-href="/p/stoneware-mug-clay">
         <div class="thumb t-clay" aria-hidden="true">&#9749;</div>
         <div class="body">
@@ -119,22 +97,14 @@
   <footer>Loom &amp; Larder · Free UK delivery over £40 · 30-day returns</footer>
 
   <script>
-    // Whole-card navigation is wired ONLY through a pointer event, at runtime, with no
-    // keyboard equivalent and no tabindex. This is the F54 failure dressed up with a
-    // role + aria-label so static scanners see a "named link" and pass it.
     document.querySelectorAll('#grid .card').forEach(function (card) {
       card.addEventListener('pointerup', function (e) {
-        // Don't hijack the genuinely-accessible Quick view button.
         if (e.target.closest('.qv')) return;
-        // In production this would navigate; here we just record the intent.
         document.getElementById('status').textContent =
           'Opening ' + card.getAttribute('aria-label');
-        // location.href = card.dataset.href;
       });
     });
 
-    // The Quick view button is a real, keyboard-operable control (matched accessible
-    // affordance) so the page is otherwise sound and the failure is localized to the card body.
     document.querySelectorAll('.qv').forEach(function (btn) {
       btn.addEventListener('click', function () {
         document.getElementById('status').textContent =

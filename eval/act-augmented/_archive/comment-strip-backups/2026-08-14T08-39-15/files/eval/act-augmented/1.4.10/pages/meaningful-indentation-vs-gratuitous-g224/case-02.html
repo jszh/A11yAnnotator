@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.4.10 PASS-BY-EXCEPTION — meaningful code indentation (the G224 exception limb).
+
+    Context: a developer documentation page on a data-engineering platform ("Tidepool"). The
+    page embeds a real Python function whose BLOCK STRUCTURE is conveyed entirely by leading
+    whitespace — in Python, indentation IS syntax. If this code were wrapped (soft-wrapped) or
+    flattened to fit 320px, the visual relationship between `if`, `for`, `else`, and the
+    statements they govern would be destroyed, and a reader could no longer tell which block a
+    statement belongs to. The deepest nested line also genuinely exceeds 320 CSS px.
+
+    THE JUDGMENT: at 320px this <pre> overflows horizontally and exposes a horizontal scrollbar.
+    For a normal paragraph that would be a FAIL. But this is Python: the indentation carries
+    meaning that would be LOST if wrapped, so SC 1.4.10's preformatted-text exception applies.
+    The overflow is a permitted, excepted 2-D scroll of a single section of content. PASS.
+    (Note: the author ALSO did the conforming-extra from G224 — they reduce tab-size at the
+    narrow breakpoint so less horizontal scrolling is needed — but the exception alone is enough.)
+
+    THE BOUNDARY THIS SHARPENS: compare to case-01 (prose in <pre>, which must reflow) and
+    case-05 (wrappable shell/SQL where wrapping does NOT lose meaning, which must wrap). The
+    ONLY difference is what the bytes mean. A human must read the code to decide.
+
+    WHY AUTOMATED TOOLS MISS IT: a scanner sees <pre> overflowing 320px in BOTH this page and
+    case-01 identically (same element, same white-space:pre, same horizontal scrollbar). It
+    cannot read the content and conclude "this one is Python — indentation is load-bearing, so
+    the overflow is exempt" while "that one is prose — must wrap". The exempt/not-exempt call is
+    the human semantic judgment at the core of 1.4.10.
+  -->
+  <title>Tidepool Docs — Writing an idempotent backfill task</title>
+  <style>
+    :root { --ink:#1b2330; --muted:#5a6678; --line:#e2e7ef; --bg:#fbfcfe; --accent:#1f5fbf; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Inter","Segoe UI",Roboto,Arial,sans-serif; color:var(--ink); background:var(--bg); line-height:1.6; }
+    .wrap { max-width:760px; margin:0 auto; padding:24px 18px 60px; }
+    header.doc { font-size:13px; color:var(--muted); border-bottom:1px solid var(--line); padding-bottom:12px; }
+    header.doc .crumbs a { color:var(--accent); text-decoration:none; }
+    h1 { font-size:25px; margin:20px 0 6px; line-height:1.2; }
+    .lede { color:var(--muted); margin:0 0 18px; }
+    h2 { font-size:17px; margin:26px 0 8px; }
+    p { margin:0 0 14px; }
+    code.inline { background:#eef1f6; border-radius:4px; padding:1px 5px; font-family:"SF Mono",Menlo,Consolas,monospace; font-size:.9em; }
+    figure.code { margin:0 0 16px; }
+    figure.code figcaption { font-size:12.5px; color:var(--muted); margin:0 0 6px; }
+    pre {
+      background:#0f1b2d; color:#dbe6f5; border-radius:8px; padding:16px 18px; margin:0;
+      font-family:"SF Mono",Menlo,Consolas,monospace; font-size:13.5px; line-height:1.6;
+      white-space: pre;        /* code MUST keep its indentation — it is Python syntax */
+      overflow-x: auto;        /* excepted 2-D scroll of one section of content */
+      tab-size: 4;
+    }
+    /* G224 conforming-extra: shrink indentation at narrow widths so less horizontal scroll is
+       needed, while STILL preserving the meaningful structure. */
+    @media (max-width: 480px) { pre { tab-size: 2; font-size: 13px; } }
+    .tok-k { color:#7fb2ff; }   /* keyword */
+    .tok-s { color:#9be3a6; }   /* string */
+    .tok-c { color:#7d8aa0; font-style:italic; } /* comment */
+    .tok-f { color:#ffd479; }   /* function */
+    .note { background:#eef4ff; border-left:3px solid var(--accent); padding:10px 14px; border-radius:0 6px 6px 0; font-size:14px; }
+    footer { margin-top:30px; border-top:1px solid var(--line); padding-top:14px; color:var(--muted); font-size:12px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="doc">
+      <p class="crumbs"><a href="#">Docs</a> / <a href="#">Tasks</a> / Idempotent backfills</p>
+    </header>
+
+    <main>
+      <h1>Writing an idempotent backfill task</h1>
+      <p class="lede">A backfill recomputes historical partitions. To be safe to re-run, it must
+      skip partitions that already landed and only emit rows for the window it owns. The block
+      structure below is what makes that decision tree readable.</p>
+
+      <h2>The decision tree</h2>
+      <p>The nesting in <code class="inline">run_backfill</code> mirrors the logic exactly: each
+      deeper indent is a condition that must hold before the inner statements run. Removing or
+      wrapping the indentation would make it impossible to see which <code class="inline">else</code>
+      pairs with which <code class="inline">if</code>.</p>
+
+      <figure class="code">
+        <figcaption>backfill.py &mdash; indentation is the control flow</figcaption>
+        <pre><code><span class="tok-k">def</span> <span class="tok-f">run_backfill</span>(ctx, start_day, end_day):
+    <span class="tok-k">for</span> day <span class="tok-k">in</span> daterange(start_day, end_day):
+        partition = ctx.partition_for(day)
+        <span class="tok-k">if</span> partition.exists() <span class="tok-k">and</span> <span class="tok-k">not</span> ctx.force:
+            <span class="tok-k">if</span> partition.checksum == ctx.expected_checksum(day):
+                log.info(<span class="tok-s">"skip %s: already landed and verified"</span>, day)
+                <span class="tok-k">continue</span>
+            <span class="tok-k">else</span>:
+                log.warning(<span class="tok-s">"rewriting %s: checksum drift detected"</span>, day)
+        <span class="tok-k">for</span> source <span class="tok-k">in</span> ctx.sources_for(day):
+            <span class="tok-k">if</span> source.is_late_arriving:
+                rows = source.read(day, include_grace_window=<span class="tok-k">True</span>)
+            <span class="tok-k">else</span>:
+                rows = source.read(day)
+            <span class="tok-k">if</span> rows:
+                partition.merge(rows, on=<span class="tok-s">"event_id"</span>, dedupe=<span class="tok-k">True</span>)
+        partition.commit()
+</code></pre>
+      </figure>
+
+      <div class="note">
+        <p>Note the <code class="inline">continue</code> on the verified-skip branch versus the
+        <code class="inline">partition.commit()</code> at the bottom of the loop body. Their relationship
+        is visible only because of the indentation level each sits at.</p>
+      </div>
+
+      <h2>Why this stays preformatted</h2>
+      <p>This is the one place on the page where text deliberately does not wrap. In Python,
+      indentation is not decoration — it determines which block a statement belongs to, and the
+      language will refuse to run if it is altered. So at a narrow viewport this code is allowed to
+      scroll horizontally as an excepted section of content; we only shrink the tab width to keep
+      that scrolling to a minimum.</p>
+    </main>
+
+    <footer>Tidepool data platform &middot; Documentation v9.2</footer>
+  </div>
+</body>
+</html>

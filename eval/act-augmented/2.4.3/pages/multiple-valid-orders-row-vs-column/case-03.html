@@ -3,34 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!--
-    SC 2.4.3 — FAIL (F44: tabindex order does not preserve meaning/operability).
-    This is the MEANING-DESTROYING near-twin of the valid column-major grids
-    (case-01/case-02). It is a departmental budget spreadsheet: ROWS are expense
-    categories (Salaries, Travel, Equipment, Software) and COLUMNS are the four
-    quarters (Q1-Q4). A FY-budget is entered either row-by-row (one category's
-    full year) or column-by-column (one quarter at a time) — BOTH would be valid.
-
-    But this page does NEITHER. The author applied tabindex that snakes
-    DIAGONALLY across the grid with no relationship to either rows or columns:
-    Salaries-Q1 -> Travel-Q2 -> Equipment-Q3 -> Software-Q4 -> Travel-Q1 ->
-    Equipment-Q2 -> ... The focus zig-zags between unrelated categories AND
-    unrelated quarters on every Tab, so neither the "per-category year" nor the
-    "per-quarter snapshot" relationship is preserved. A keyboard user cannot
-    enter Q1 for all categories, nor a full year for any category, without
-    hunting; the cells visited consecutively have nothing to do with each other.
-
-    This is NOT the protected "valid alternative order" — it is the failure the
-    valid cases are contrasted against. Correct verdict: FAIL (F44).
-
-    Why automated tools miss it: every cell has a real <label>, headers/scope are
-    correct, contrast is fine, and the tabindex values are syntactically valid
-    positive integers (1..16). axe/WAVE/Lighthouse do not model "does this order
-    follow a row/column relationship," so they pass it (or only whisper the generic
-    positive-tabindex advisory). Recognizing that the diagonal snake destroys BOTH
-    logical orders — versus a column-major order that would have preserved one —
-    requires a human reasoning about the content's two-dimensional meaning.
-  -->
   <title>FY26 Budget Worksheet — Meridian Libraries</title>
   <style>
     :root { --ink:#1d1d23; --muted:#666; --line:#d3d3da; --brand:#3a3f7d; --grid:#eef0f7; }
@@ -83,15 +55,6 @@
           </tr>
         </thead>
         <tbody>
-          <!--
-            tabindex SNAKES DIAGONALLY (no row or column relationship):
-            visiting order by tabindex 1..16 is:
-              1 Salaries-Q1, 2 Travel-Q2, 3 Equipment-Q3, 4 Software-Q4,
-              5 Travel-Q1, 6 Equipment-Q2, 7 Software-Q3, 8 Salaries-Q4,
-              9 Equipment-Q1, 10 Software-Q2, 11 Salaries-Q3, 12 Travel-Q4,
-              13 Software-Q1, 14 Salaries-Q2, 15 Travel-Q3, 16 Equipment-Q4
-            Consecutive stops share neither a category nor a quarter.
-          -->
           <tr>
             <th scope="row">Salaries &amp; wages</th>
             <td class="money"><span>$</span><input aria-label="Salaries Q1" name="sal_q1" type="text" inputmode="numeric" tabindex="1"></td>

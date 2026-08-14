@@ -4,21 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The Proof Sheet — Issue 47</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS (F46 / TT 14.C, HTML-email variant):
-  HTML email is built almost entirely from nested LAYOUT tables (the only reliable
-  cross-client layout primitive), and email best practice is to add role="presentation"
-  to every layout table so AT ignores the table semantics. Here the OUTER wrapper and
-  most inner tables are correctly role="presentation" — so a checker sees a tidy,
-  presentation-marked email. The defect is one leftover artefact: the "header band"
-  table (logo + issue line) was copied from a DATA-table snippet in the ESP's block
-  library and still carries a <th scope="col">The Proof Sheet</th> AND it is the ONE
-  layout table here that is NOT role="presentation". So this single band re-enters the
-  accessibility tree as a data table with a column header, falsely asserting that
-  "The Proof Sheet" is the column header for the masthead/issue cells. axe/WAVE cannot
-  tell that this band is layout (vs. the genuinely-presentational siblings around it) —
-  that is the TT 14.C human judgment.
--->
 <style>
   body { margin:0; padding:0; background:#e8e6e1; font-family:Arial, Helvetica, sans-serif; color:#26221d; }
   .email { width:600px; margin:0 auto; background:#ffffff; }
@@ -38,18 +23,11 @@
 </style>
 </head>
 <body>
-  <!-- OUTER WRAPPER: correctly marked presentational layout table -->
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
     <tr>
       <td align="center">
         <table role="presentation" class="email" cellpadding="0" cellspacing="0" border="0">
 
-          <!--
-            HEADER BAND: this layout table is the defect. Copied from a data-table
-            block in the ESP library, it still carries a <th scope="col"> AND, unlike
-            its siblings, it is NOT role="presentation" — so it re-enters the a11y tree
-            as a data table whose column header is "The Proof Sheet".
-          -->
           <tr>
             <td>
               <table class="header-band" width="100%" cellpadding="0" cellspacing="0" border="0">
@@ -63,7 +41,6 @@
             </td>
           </tr>
 
-          <!-- HERO: presentational layout table -->
           <tr>
             <td>
               <table role="presentation" class="hero" width="100%" cellpadding="0" cellspacing="0" border="0">
@@ -81,7 +58,6 @@
             </td>
           </tr>
 
-          <!-- STORIES: presentational layout table -->
           <tr>
             <td>
               <table role="presentation" class="story" width="100%" cellpadding="0" cellspacing="0" border="0">
@@ -106,7 +82,6 @@
             </td>
           </tr>
 
-          <!-- FOOTER: presentational layout table -->
           <tr>
             <td>
               <table role="presentation" class="footer" width="100%" cellpadding="0" cellspacing="0" border="0">

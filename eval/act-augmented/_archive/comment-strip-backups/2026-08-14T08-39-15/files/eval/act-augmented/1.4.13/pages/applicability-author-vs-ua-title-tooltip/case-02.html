@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Northwind Pharmacy — Refill Queue</title>
+<style>
+  :root { --rx:#0a6b54; --ink:#14271f; --line:#dce6e1; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", system-ui, sans-serif;
+    margin: 0; color: var(--ink); background: #f3f8f6;
+  }
+  header.bar {
+    background: var(--rx); color: #fff; padding: 12px 24px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  header.bar h1 { font-size: 16px; margin: 0; font-weight: 600; }
+  header.bar .rx-mark {
+    width: 28px; height: 28px; border-radius: 6px; background: #fff; color: var(--rx);
+    display: grid; place-items: center; font-weight: 800; font-size: 15px;
+  }
+  main { max-width: 760px; margin: 26px auto; padding: 0 20px 70px; }
+  h2 { font-size: 18px; margin: 0 0 14px; }
+  .card {
+    background: #fff; border: 1px solid var(--line); border-radius: 10px;
+    padding: 16px 18px; margin-bottom: 12px; display: flex; align-items: center; gap: 14px;
+  }
+  .pill { font-size: 12px; padding: 3px 9px; border-radius: 999px; font-weight: 600; }
+  .pill.ready { background: #e3f5ec; color: #0a6b54; }
+  .pill.hold  { background: #fdeede; color: #9a5a00; }
+  .rx-name { font-weight: 600; }
+  .rx-sub { color: #5b6f66; font-size: 13px; margin-top: 2px; }
+  .grow { flex: 1; }
+
+  /* The status pill carries an info icon. On hover it shows a hint that LOOKS like
+     the browser's native title tooltip: same dark gray, same small rounded corners,
+     same font, same ~12px size, positioned just below. But it is an author DIV. */
+  .info {
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 1px solid #b9c8c1; color: #5b6f66; background: #fff;
+    font-size: 11px; font-weight: 700; display: inline-grid; place-items: center;
+    cursor: help; position: relative;
+  }
+  /* Author tooltip styled to imitate the native UA tooltip's chrome. */
+  .nwtip {
+    position: absolute; top: 24px; left: 50%; transform: translateX(-50%);
+    background: #4a4a4a; color: #fff; font-size: 12px; line-height: 1.35;
+    font-family: "Segoe UI", system-ui, sans-serif; font-weight: 400;
+    padding: 5px 8px; border-radius: 4px; white-space: nowrap;
+    box-shadow: 0 1px 3px rgba(0,0,0,.35);
+    /* Crucially: the bubble does NOT accept the pointer, so moving toward it to
+       read it makes mouseleave fire on the trigger and the bubble vanishes. */
+    pointer-events: none;
+    opacity: 0; visibility: hidden; transition: opacity .12s ease;
+    z-index: 5;
+  }
+  .note { margin-top: 26px; font-size: 12px; color: #6a7e75; line-height: 1.55; }
+  .note code { background: #e8f1ed; padding: 1px 5px; border-radius: 4px; }
+</style>
+</head>
+<body>
+  <header class="bar">
+    <span class="rx-mark">Rx</span>
+    <h1>Northwind Pharmacy — Refill Queue</h1>
+  </header>
+
+  <main>
+    <h2>Today&rsquo;s refills</h2>
+
+    <div class="card">
+      <div class="grow">
+        <div class="rx-name">Atorvastatin 20 mg</div>
+        <div class="rx-sub">Maria Delgado · 30 tablets · Dr. Okafor</div>
+      </div>
+      <span class="pill ready">Ready</span>
+      <!-- Native title is set on the server template, then a JS init() STRIPS it
+           and re-renders the same text as an author bubble (classic Bootstrap /
+           jQuery-UI tooltip behavior: it reads element.title, blanks it, and shows
+           its own div so the OS tooltip won't double up). -->
+      <span class="info" data-tip="Ready for pickup. Held at counter for 14 days."
+            title="Ready for pickup. Held at counter for 14 days." tabindex="0"
+            role="img" aria-label="Status help">i</span>
+    </div>
+
+    <div class="card">
+      <div class="grow">
+        <div class="rx-name">Levothyroxine 75 mcg</div>
+        <div class="rx-sub">James Whitfield · 90 tablets · Dr. Patel</div>
+      </div>
+      <span class="pill hold">On hold</span>
+      <span class="info" data-tip="Insurance prior-authorization pending since Apr 12."
+            title="Insurance prior-authorization pending since Apr 12." tabindex="0"
+            role="img" aria-label="Status help">i</span>
+    </div>
+
+    <div class="card">
+      <div class="grow">
+        <div class="rx-name">Metformin 500 mg</div>
+        <div class="rx-sub">Aisha Rahman · 60 tablets · Dr. Lindqvist</div>
+      </div>
+      <span class="pill ready">Ready</span>
+      <span class="info" data-tip="Ready for pickup. Counseling recommended on first fill."
+            title="Ready for pickup. Counseling recommended on first fill." tabindex="0"
+            role="img" aria-label="Status help">i</span>
+    </div>
+
+    <p class="note">
+      Implementation note: each help icon shipped with a <code>title</code>, but our
+      tooltip script removes the native attribute on load and renders its own bubble
+      so the styling matches the brand. The bubble uses
+      <code>pointer-events:none</code>.
+    </p>
+  </main>
+
+  <script>
+    // Bootstrap/jQuery-UI-style tooltip plugin (condensed). On init it MOVES the
+    // native title into a data attribute (blanking title=) and shows an AUTHOR div.
+    // => The visible bubble is author-controlled, so 1.4.13 DOES apply. And because
+    //    the bubble is pointer-events:none and only listens to mouseenter/leave on
+    //    the trigger (no Esc handler, no hover-bridge), it is NOT hoverable and NOT
+    //    dismissible-without-moving-the-pointer => FAILS 1.4.13.
+    (function () {
+      var triggers = document.querySelectorAll('.info[data-tip]');
+      triggers.forEach(function (el) {
+        // Suppress the native UA tooltip so it does not appear alongside ours.
+        var text = el.getAttribute('title') || el.getAttribute('data-tip');
+        el.removeAttribute('title');
+        var bubble = document.createElement('span');
+        bubble.className = 'nwtip';
+        bubble.setAttribute('role', 'tooltip');
+        bubble.textContent = text;
+        el.appendChild(bubble);
+        function show() { bubble.style.opacity = '1'; bubble.style.visibility = 'visible'; }
+        function hide() { bubble.style.opacity = '0'; bubble.style.visibility = 'hidden'; }
+        el.addEventListener('mouseenter', show);
+        el.addEventListener('mouseleave', hide);   // fires the instant the pointer
+                                                    // leaves the 18px icon — there is
+                                                    // no path onto the bubble.
+        el.addEventListener('focus', show);
+        el.addEventListener('blur', hide);
+        // NOTE: no keydown/Escape handler anywhere.
+      });
+    })();
+  </script>
+
+  <!-- WHY AUTOMATED TOOLS MISS IT:
+       A static scan sees, at rest, plain <span> icons (the title= has already been
+       stripped by JS at runtime, and even before that, a title= alone is valid). It
+       cannot tell that the visible gray bubble on hover is an AUTHOR div rather than
+       the browser's native title rendering. That attribution is exactly what flips
+       this from "out of scope (UA title)" to "in scope, and failing (author bubble
+       that is not hoverable / not dismissible)." Determining hoverable/dismissible
+       are interaction-time properties no static checker exercises. -->
+</body>
+</html>

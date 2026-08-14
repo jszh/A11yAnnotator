@@ -4,23 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Renew your driving licence — DVLA-style service</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS:
-  Every form control on this page has a correctly associated, VISIBLE label and a
-  visible, programmatically linked format instruction (via aria-describedby). axe / WAVE
-  / Lighthouse confirm: <label for> resolves, the hint is non-empty and in the
-  accessibility tree, contrast is fine, role textbox, nothing hidden. The page therefore
-  PASSES every structural facet of 3.3.2 — "a visible label/instruction is present" (TT
-  test 5.A) is true for the date field.
-  THE DEFECT IS SEMANTIC: the visible instruction for the date-of-birth field reads
-  "Format: MM/DD/YYYY" but the field's ENFORCED rule (pattern + maxlength + the inline
-  validator) accepts only DD/MM/YYYY. A user who literally follows the printed
-  instruction and types their birth month first (e.g. an American-style 03/04/1990 for
-  4 March) is REJECTED, while the contradicting input the field actually wants is never
-  stated. No checker reads the prose hint, parses the pattern attribute, and judges that
-  the two specify OPPOSITE field orders. Catching this needs a human to read the hint,
-  infer the enforced rule, and notice they disagree.
--->
 <style>
   :root{ --ink:#0b0c0c; --muted:#505a5f; --line:#b1b4b6; --brand:#1d70b8; --green:#00703c;
          --danger:#d4351c; --paper:#fff; --focus:#fd0; }
@@ -64,7 +47,6 @@
 
       <form action="#" method="post" novalidate id="form" autocomplete="off">
 
-        <!-- ALWAYS-CORRECT CONTROL (contrast): hint matches the enforced rule. -->
         <div class="group">
           <label for="licence">Driving licence number</label>
           <p class="hint" id="licence-hint">16 characters, no spaces — for example MORGA753116SM9IJ.</p>
@@ -73,7 +55,6 @@
                  maxlength="16" pattern="[A-Za-z0-9]{16}" inputmode="text">
         </div>
 
-        <!-- DEFECTIVE CONTROL: visible hint says MM/DD/YYYY, the field enforces DD/MM/YYYY. -->
         <div class="group">
           <label for="dob">Date of birth</label>
           <p class="hint" id="dob-hint">Format: MM/DD/YYYY — for example 03/27/1986.</p>
@@ -100,8 +81,6 @@
   var err  = document.getElementById('dob-err');
   var live = document.getElementById('live');
 
-  // The ENFORCED rule: strictly DD/MM/YYYY (day 01-31 first, then month 01-12).
-  // This DIRECTLY contradicts the visible hint "Format: MM/DD/YYYY".
   var DDMMYYYY = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
 
   form.addEventListener('submit', function(e){
@@ -114,7 +93,6 @@
       live.className = 'live ok';
     } else {
       dob.setAttribute('aria-invalid','true');
-      // The error states the REAL rule — but only AFTER rejection, contradicting the printed hint.
       err.textContent = 'Enter your date of birth as DD/MM/YYYY, for example 27/03/1986.';
       err.hidden = false;
       live.textContent = 'There is a problem with the date of birth.';

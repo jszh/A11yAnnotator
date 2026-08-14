@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Report a missed bin collection — Brindleford Borough Council</title>
+  <style>
+    :root { --ink:#0b0c0c; --muted:#505a5f; --line:#b1b4b6; --green:#00703c; --red:#d4351c; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Helvetica Neue", Arial, sans-serif; color:var(--ink);
+           background:#fff; line-height:1.5; }
+    .crown { background:#0b0c0c; color:#fff; padding:10px 16px; font-weight:700; letter-spacing:.3px; }
+    .wrap { max-width:640px; margin:0 auto; padding:24px 16px 64px; }
+    h1 { font-size:32px; line-height:1.1; margin:18px 0 6px; }
+    .lede { color:var(--muted); margin:0 0 28px; }
+    .field { margin:0 0 26px; }
+    label { display:block; font-weight:700; margin:0 0 6px; font-size:19px; }
+    .hint { color:var(--muted); font-size:16px; margin:0 0 8px; }
+    input[type=text] { font-size:18px; padding:9px 10px; width:100%; max-width:240px;
+            border:2px solid var(--ink); border-radius:0; }
+    input.err { border-color:var(--red); }
+    .err-msg { color:var(--red); font-weight:700; margin:6px 0 0; }
+    button { background:var(--green); color:#fff; border:0; font-size:18px; font-weight:700;
+             padding:12px 18px; cursor:pointer; box-shadow:0 2px 0 #002d18; }
+    .errsummary { border:4px solid var(--red); padding:14px 16px; margin:0 0 24px; display:none; }
+    .errsummary h2 { margin:0 0 8px; font-size:20px; color:var(--red); }
+    .errsummary a { color:var(--red); }
+    .note { background:#f3f2f1; padding:14px 16px; margin-top:40px; font-size:13px; color:var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="crown">Brindleford Borough Council</div>
+  <main class="wrap">
+    <h1>Report a missed bin collection</h1>
+    <p class="lede">Tell us the day your bin was not emptied and we will arrange a return visit within three working days.</p>
+
+    <div class="errsummary" id="summary" role="alert" tabindex="-1">
+      <h2>There is a problem</h2>
+      <ul><li><a href="#missed-date">Enter the date in the format DD-MM-YYYY, for example 06-11-2026</a></li></ul>
+    </div>
+
+    <form id="binform" novalidate>
+      <div class="field">
+        <!-- ISSUE: the label is the topically-correct noun "Date" with no statement of the
+             accepted format. The handler below silently requires DD-MM-YYYY (day first) and
+             rejects everything else. A UK resident might type 6 November 2026 as 11/06/2026
+             (US habit), 2026-11-06, or "6 Nov 2026" — all rejected. The only place the format
+             appears is the error message, which TT 5.B says is NOT sufficient. -->
+        <label for="missed-date">Date</label>
+        <input type="text" id="missed-date" name="missed-date" autocomplete="off"
+               inputmode="numeric" aria-describedby="">
+        <p class="err-msg" id="date-err" style="display:none" role="status"></p>
+      </div>
+
+      <button type="submit">Continue</button>
+    </form>
+
+    <p class="note">Demo note (not shown to users): This page fails WCAG 2.4.6 Test 5.B. The visual
+      label "Date" names the topic correctly but states none of the field's data requirements. The
+      input is a free-text field (not <code>type=date</code>, so no native picker reveals the format)
+      whose JavaScript validator below accepts only DD-MM-YYYY. Automated checkers pass it: the
+      <code>&lt;label&gt;</code> is present, correctly associated via <code>for</code>, and non-empty,
+      so axe-core/WAVE/Lighthouse report a properly labelled field. No tool can know the backend wants
+      day-first ordering, because that constraint lives only in the script and the after-submit error.</p>
+  </main>
+
+  <script>
+    // Validator: accept ONLY DD-MM-YYYY (day-first). This format is never stated in the label.
+    var form = document.getElementById('binform');
+    var input = document.getElementById('missed-date');
+    var err = document.getElementById('date-err');
+    var summary = document.getElementById('summary');
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var v = input.value.trim();
+      var ok = /^(0[1-9]|[12]\d|3[01])-(0[1-9]|1[0-2])-\d{4}$/.test(v);
+      if (!ok) {
+        input.classList.add('err');
+        // The format is disclosed for the FIRST time here, after the failed submit.
+        err.textContent = 'Enter the date in the format DD-MM-YYYY, for example 06-11-2026';
+        err.style.display = 'block';
+        summary.style.display = 'block';
+        summary.focus();
+      } else {
+        input.classList.remove('err');
+        err.style.display = 'none';
+        summary.style.display = 'none';
+        alert('Thank you — a return collection has been booked.');
+      }
+    });
+  </script>
+</body>
+</html>

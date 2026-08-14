@@ -25,7 +25,6 @@
   .pull { border-left:3px solid var(--accent); padding-left:16px; font-style:italic; color:#333; margin:22px 0; }
   a.inline { color:var(--accent); }
 
-  /* Search overlay */
   .search-overlay { position:fixed; inset:0; background:rgba(251,250,247,.98); display:none; z-index:80; padding-top:14vh; }
   .search-overlay.open { display:block; }
   .search-inner { max-width:680px; margin:0 auto; padding:0 20px; }
@@ -77,7 +76,6 @@
   </article>
 </main>
 
-<!-- Search overlay; opened from the masthead Search button -->
 <div class="search-overlay" id="search-overlay" role="dialog" aria-modal="true" aria-label="Site search" aria-hidden="true">
   <div class="search-inner">
     <label for="q">Search The Meridian</label>
@@ -97,38 +95,21 @@
   function openSearch() {
     overlay.classList.add('open');
     overlay.setAttribute('aria-hidden', 'false');
-    input.focus();                       // on-open focus is correct
+    input.focus();                       
     document.addEventListener('keydown', onKey);
   }
 
   function onKey(e) { if (e.key === 'Escape') closeSearch(); }
 
-  // THE DEFECT: Escape (and the Close button) hide the overlay visually and re-set
-  // aria-hidden="true" on the container, but DO NOT move focus back to #open-search.
-  // The element that had focus (the search input) is now inside an aria-hidden,
-  // display:none subtree. Focus is not explicitly moved, so it lingers on the hidden
-  // container/body. The next Tab therefore restarts from the first focusable element
-  // in the document — the masthead — and a screen reader is parked on a hidden node.
   function closeSearch() {
     overlay.classList.remove('open');
     overlay.setAttribute('aria-hidden', 'true');
     document.removeEventListener('keydown', onKey);
-    // (no openBtn.focus())
   }
 
   openBtn.addEventListener('click', openSearch);
   document.getElementById('search-close').addEventListener('click', closeSearch);
 </script>
 
-<!--
-  WHY AUTOMATED TOOLS MISS THIS
-  When the overlay is CLOSED (its resting state, and the state a page-load scan sees),
-  aria-hidden="true" sits on a display:none container — which is perfectly valid, so the
-  axe "aria-hidden must not contain focusable elements" rule does not fire (display:none
-  removes the descendants from the focus order). The defect is purely temporal: AFTER a
-  keyboard user opens search and presses Escape, focus is never restored to the Search
-  button, so it is stranded on the just-hidden overlay and the next Tab jumps to the top
-  of the page. No static snapshot captures this open-then-dismiss focus transition.
--->
 </body>
 </html>

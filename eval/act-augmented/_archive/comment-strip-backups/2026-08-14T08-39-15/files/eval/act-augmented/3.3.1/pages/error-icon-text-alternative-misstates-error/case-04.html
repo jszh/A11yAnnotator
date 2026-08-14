@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Checkout — Loomfield Home</title>
+<style>
+  :root { --ink:#2a2622; --line:#ddd6cd; --brand:#7a5230; --err:#bb3a2c; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Helvetica Neue",Arial,sans-serif; color:var(--ink); background:#faf7f2; }
+  header { background:#fff; border-bottom:1px solid var(--line); padding:14px 30px; font-weight:800;
+           letter-spacing:.6px; color:var(--brand); }
+  main { max-width:680px; margin:34px auto; padding:0 18px; }
+  h1 { font-size:1.4rem; margin:0 0 18px; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:18px 22px; }
+  .col { background:#fff; border:1px solid var(--line); border-radius:10px; padding:20px 22px; }
+  .col h2 { font-size:1rem; margin:0 0 14px; }
+  label { display:block; font-weight:600; font-size:.82rem; margin:12px 0 5px; }
+  .field { display:flex; align-items:center; gap:7px; }
+  .field input { flex:1; padding:10px 12px; border:1px solid var(--line); border-radius:7px; font-size:.98rem; }
+  .field input.bad { border-color:var(--err); }
+  .field input:focus { outline:3px solid #2f80c8; outline-offset:1px; }
+  .errico { width:20px; height:20px; flex:0 0 auto; }
+  .pay { display:block; width:100%; max-width:680px; margin:22px auto 0; padding:14px; border:0;
+         border-radius:8px; background:var(--brand); color:#fff; font-size:1.05rem; font-weight:700; cursor:pointer; }
+  footer { max-width:680px; margin:14px auto 50px; color:#9a8f80; font-size:.74rem; text-align:center; }
+</style>
+</head>
+<body>
+<header>LOOMFIELD HOME</header>
+
+<main>
+  <h1>Checkout</h1>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS
+    Two separate fields are in error for two DIFFERENT reasons: the shipping postcode "9021"
+    is too short (UK postcodes are 5-8 chars), and the billing postcode "SW1A 0AA!" contains an
+    illegal "!" character. The dev reused ONE SVG sprite (<use href="#warn">) for both error
+    icons and applied a single shared aria-label="Invalid input" string to both, so BOTH icons
+    expose the IDENTICAL accessible name "Invalid input". axe/WAVE/Lighthouse see two role=img graphics
+    each WITH a non-empty accessible name — every structural rule passes (names present, SVG
+    titled, contrast fine). The defect is SEMANTIC + CONTEXTUAL: "Invalid input" is too generic
+    to identify WHICH field or WHAT the error is, and because both icons say the same thing a
+    screen-reader user tabbing the form cannot distinguish the too-short shipping postcode from
+    the illegal-character billing postcode. Only a human judging whether each alternative
+    identifies its own field's specific error can catch that one shared generic title fails both.
+  -->
+
+  <!-- One reusable symbol, two <use> references. Both <svg role="img"> wrappers carry the SAME
+       hardcoded aria-label="Invalid input", so both icons expose the identical generic name. -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <symbol id="warn" viewBox="0 0 20 20">
+      <path d="M10 1 L19 18 H1 Z" fill="#bb3a2c"/>
+      <rect x="9" y="6" width="2" height="6" fill="#fff"/>
+      <circle cx="10" cy="15" r="1.1" fill="#fff"/>
+    </symbol>
+  </svg>
+
+  <form action="#" method="post" novalidate>
+    <div class="grid">
+      <section class="col">
+        <h2>Shipping address</h2>
+        <label for="ship-line">Street address</label>
+        <div class="field"><input type="text" id="ship-line" value="14 Marsh Lane"></div>
+
+        <label for="ship-zip">Postcode</label>
+        <div class="field">
+          <input type="text" id="ship-zip" class="bad" aria-invalid="true"
+                 aria-describedby="ship-zip-ico" value="9021">
+          <svg class="errico" role="img" id="ship-zip-ico" aria-label="Invalid input"><use href="#warn"></use></svg>
+        </div>
+      </section>
+
+      <section class="col">
+        <h2>Billing address</h2>
+        <label for="bill-line">Street address</label>
+        <div class="field"><input type="text" id="bill-line" value="14 Marsh Lane"></div>
+
+        <label for="bill-zip">Postcode</label>
+        <div class="field">
+          <input type="text" id="bill-zip" class="bad" aria-invalid="true"
+                 aria-describedby="bill-zip-ico" value="SW1A 0AA!">
+          <svg class="errico" role="img" id="bill-zip-ico" aria-label="Invalid input"><use href="#warn"></use></svg>
+        </div>
+      </section>
+    </div>
+
+    <button type="submit" class="pay">Place order &middot; £248.00</button>
+  </form>
+</main>
+
+<footer>Loomfield Home Ltd, registered in England. Free returns within 30 days.</footer>
+</body>
+</html>

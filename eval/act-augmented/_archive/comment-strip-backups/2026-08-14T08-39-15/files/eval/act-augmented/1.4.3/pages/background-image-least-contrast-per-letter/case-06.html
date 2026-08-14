@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aurora Trails — Guided night hikes in Tromsø</title>
+<!--
+  SC 1.4.3 F83 BOUNDARY — PASS variant (sharpens the aspect).
+  This page deliberately mirrors the failing cases: live white text over a high-variance
+  photographic raster (a vivid aurora-over-forest with a bright moon patch that WOULD threaten
+  white text). The difference is that a solid dark scrim is baked into the raster across the
+  text band, so the LEAST-contrast pixel behind EVERY letter of the headline stays at or above
+  ~4.8:1 — it passes the per-letter / Trusted Tester least-contrast check everywhere, not just
+  at the best-case pixel. The lesson: "text over a busy image" is NOT automatically an F83
+  failure; the determining question is the worst-case pixel behind the letters, and here the
+  author guaranteed it. Automated tools STILL can't read the raster and STILL fall back to the
+  solid #06140d (~16:1) — they would "pass" this for the wrong reason (they never measured the
+  image). A human applying F83's Quickcheck (white vs the LIGHTEST band pixel) finds it already
+  meets 4.5:1, so the failure condition does not apply: expected PASSED.
+-->
+<style>
+  body { margin:0; background:#06140d; color:#e7f0ea;
+    font-family: "Helvetica Neue", Arial, sans-serif; }
+  .site-head { display:flex; justify-content:space-between; align-items:center;
+    padding:14px 26px; background:#06140d; }
+  .site-head .brand { font-weight:800; letter-spacing:.12em; color:#7fe3b0; }
+  .site-head nav a { color:#bcd8ca; margin-left:20px; text-decoration:none; font-size:.92rem; }
+  .hero {
+    position:relative; min-height:340px;
+    background-color:#06140d;                 /* fallback scanners measure */
+    background-image:url("bg-06-forest-scrim.png");
+    background-size:100% 100%; background-position:center;
+    display:flex; align-items:center;
+  }
+  .hero .copy { padding:0 6vw; max-width:780px; }
+  .hero h1 {
+    margin:0 0 12px;
+    color:#ffffff;                            /* white over scrim-protected aurora */
+    font-size: clamp(2rem, 5.4vw, 3.4rem);
+    font-weight:800; line-height:1.08;
+  }
+  .hero p { margin:0 0 18px; color:#ffffff; font-size:1.05rem; opacity:.97; }
+  .hero .cta { display:inline-block; background:#7fe3b0; color:#06321f; font-weight:700;
+    padding:12px 26px; border-radius:4px; text-decoration:none; }
+  main { max-width:760px; margin:0 auto; padding:34px 22px 56px; }
+  main h2 { font-size:1.35rem; }
+  main p { line-height:1.7; color:#cfe0d6; }
+  .tiers { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; margin-top:20px; }
+  .tiers article { background:#0c2418; border:1px solid #17402b; border-radius:8px; padding:16px; }
+  .tiers h3 { margin:0 0 6px; color:#9fe9c2; }
+  .tiers .price { font-weight:700; color:#e7b765; }
+</style>
+</head>
+<body>
+<header class="site-head">
+  <div class="brand">AURORA TRAILS</div>
+  <nav aria-label="Primary">
+    <a href="#tours">Tours</a>
+    <a href="#gear">Gear</a>
+    <a href="#book">Book</a>
+  </nav>
+</header>
+
+<section class="hero" aria-label="Night hike promotion">
+  <div class="copy">
+    <h1>Chase The Northern Lights On Foot</h1>
+    <p>Small-group night hikes above the Tromsø treeline, September through March.</p>
+    <a class="cta" href="#book">Reserve a guide</a>
+  </div>
+</section>
+
+<main>
+  <h2 id="tours">What the night looks like</h2>
+  <p>
+    We leave the trailhead at dusk and climb above the spruce line, where light pollution drops
+    away and the sky opens up. Guides carry spare thermals, hot lingonberry cordial, and a
+    tripod mount for your phone so you can keep your gloves on.
+  </p>
+  <div class="tiers">
+    <article><h3>Treeline Walk</h3><p>3 hours, easy grade.</p><p class="price">kr 690</p></article>
+    <article><h3>Summit Vigil</h3><p>5 hours, moderate.</p><p class="price">kr 1,140</p></article>
+    <article><h3>Private Guide</h3><p>Flexible, up to 4 guests.</p><p class="price">kr 2,400</p></article>
+  </div>
+</main>
+</body>
+</html>

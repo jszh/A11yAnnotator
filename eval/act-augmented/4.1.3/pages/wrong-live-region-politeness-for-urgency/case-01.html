@@ -24,7 +24,6 @@
   .actions { display:flex; align-items:center; gap:16px; margin-top:8px; }
   button.save { background:var(--brand); color:#fff; border:0; border-radius:9px; padding:11px 20px; font-size:15px; font-weight:600; cursor:pointer; }
   button.save:focus-visible { outline:3px solid #b9c0f7; outline-offset:2px; }
-  /* The confirmation banner. Visually a normal green "saved" status. */
   .saved {
     display:inline-flex; align-items:center; gap:8px;
     background:var(--okbg); color:var(--ok); border:1px solid #bfe6cf;
@@ -70,26 +69,6 @@
     <div class="actions">
       <button class="save" type="submit">Save preferences</button>
 
-      <!--
-        THE DEFECT lives on the line below.
-
-        On submit, JS reveals this banner and writes "Preferences saved." into it.
-        It is a STATUS MESSAGE by the WCAG definition: it does not take focus and it
-        reports the SUCCESS of the user's save action.
-
-        The element carries an aria-live ATTRIBUTE, so to a quick code reading (and to
-        every static linter) it "looks like a live region" — the live-region wiring is
-        visibly present. But the value is aria-live="OFF". `off` means assistive
-        technology MUST NOT announce updates to this region. There is also no
-        role="status" / role="alert" / role="log" and no <output> to supply an implicit
-        live politeness. So the message is shown to sighted users and is NEVER announced
-        to screen-reader users.
-
-        The developer set `off` on purpose — they thought "off" was a politeness level
-        that just made the region less chatty/quieter, not realising `off` is silence.
-        Picking the wrong politeness VALUE here crosses from a usability nuance into a
-        genuine 4.1.3 failure: the status is not programmatically surfaced at all.
-      -->
       <span class="saved" id="savedMsg" aria-live="off" aria-atomic="true"></span>
     </div>
   </form>
@@ -109,21 +88,16 @@
 </main>
 
 <script>
-  // Submitting the form "saves" preferences client-side and reveals the confirmation.
   var form  = document.getElementById('prefs');
   var saved = document.getElementById('savedMsg');
 
   form.addEventListener('submit', function (e) {
     e.preventDefault();
-    // Status message: reports the SUCCESS of the user's action, does not take focus.
-    // Written into a region whose aria-live="off" means AT announces nothing.
     saved.innerHTML =
       '<svg viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2">' +
       '<path d="M4 10.5l4 4 8-9" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
       'Preferences saved.';
     saved.classList.add('show');
-    // Focus stays on the Save button — this is NOT a change of context, so the
-    // SC's modal-dialog exception does not apply: it is squarely a status message.
   });
 </script>
 </body>

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Tidewater Review — Markets &amp; Policy</title>
+<style>
+  :root { --ed:#1a1a1a; --rule:#e2ded4; --accent:#8a1f2b; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: Georgia, "Times New Roman", serif;
+    margin: 0; color: var(--ed); background: #fbfaf6; line-height: 1.65;
+  }
+  .nameplate {
+    border-bottom: 3px double var(--ed); padding: 18px 24px 12px;
+    text-align: center;
+  }
+  .nameplate h1 { font-size: 30px; margin: 0; letter-spacing: 1px; font-variant: small-caps; }
+  .nameplate .kicker { font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
+                       color: #6b6b6b; font-family: "Helvetica Neue", Arial, sans-serif; }
+  article { max-width: 660px; margin: 28px auto; padding: 0 24px 80px; }
+  article h2 { font-size: 23px; margin: 0 0 4px; line-height: 1.2; }
+  .byline { font-family: "Helvetica Neue", Arial, sans-serif; font-size: 12px;
+            color: #6b6b6b; margin: 0 0 22px; letter-spacing: .3px; }
+  article p { font-size: 17px; margin: 0 0 18px; }
+  abbr { text-decoration: underline dotted; cursor: help; }
+
+  /* The SECOND abbreviation is wrapped in an author tooltip span. The expansion is
+     rendered as an author bubble on hover/focus, styled to read like a footnote. It
+     is positioned ABOVE and uses pointer-events:none, so it cannot be hovered and
+     offers no Esc dismissal. */
+  .gloss { position: relative; }
+  .gloss > .bub {
+    position: absolute; bottom: 1.6em; left: 0;
+    background: #2d2a26; color: #f7f3ea; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 13px; line-height: 1.4; padding: 8px 11px; border-radius: 5px;
+    width: 16em; box-shadow: 0 2px 8px rgba(0,0,0,.3);
+    opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .12s;
+    z-index: 4;
+  }
+  .note { font-family: "Helvetica Neue", Arial, sans-serif; font-size: 12px;
+          color: #6b6b6b; border-top: 1px solid var(--rule); padding-top: 14px;
+          margin-top: 30px; line-height: 1.55; }
+  .note code { background: #efece3; padding: 1px 5px; border-radius: 4px; font-family: ui-monospace, monospace; }
+</style>
+</head>
+<body>
+  <div class="nameplate">
+    <div class="kicker">Established 1974 · Independent Daily</div>
+    <h1>The Tidewater Review</h1>
+  </div>
+
+  <article>
+    <h2>Central bank holds rate as inflation cools</h2>
+    <p class="byline">By Eleanor Vance · Economics Desk · May 14, 2026</p>
+
+    <p>
+      The board voted to keep the benchmark rate unchanged, citing a softer reading on
+      core prices. Analysts had expected the
+      <!-- NATIVE: plain abbr with title=. The expansion bubble on hover is the
+           browser's own rendering of the title attribute. Out of scope for 1.4.13
+           (UA-controlled appearance) => PASS by exclusion. -->
+      <abbr title="Federal Open Market Committee">FOMC</abbr>
+      to signal a pause, and the statement&rsquo;s language largely matched that view.
+    </p>
+
+    <p>
+      Markets were calm into the afternoon. The
+      <!-- AUTHOR: visually identical dotted-underline abbreviation, but the expansion
+           is rendered by an author <span class="bub"> tooltip shown via JS on hover/
+           focus. Same look as the native one above, different OWNER => 1.4.13 APPLIES,
+           and it fails (bubble is pointer-events:none, no Esc). -->
+      <abbr class="gloss" tabindex="0" aria-describedby="gdp-bub">GDP<span class="bub" id="gdp-bub" role="tooltip">Gross Domestic Product — the total market value of goods and services produced in a period.</span></abbr>
+      print for the quarter is due Friday, and traders said a downside surprise could
+      revive rate-cut bets before the next meeting.
+    </p>
+
+    <p>
+      Bond desks reported thin volume. A strategist at a regional dealer said the
+      <abbr title="basis points; one hundredth of a percentage point">bps</abbr>
+      move priced into futures had narrowed sharply since April.
+    </p>
+
+    <p class="note">
+      Editorial CMS note: most abbreviations use the standard <code>&lt;abbr title&gt;</code>
+      glossary helper, but &ldquo;GDP&rdquo; was upgraded to our styled
+      <code>.gloss</code> footnote-tooltip component for the explainer series.
+    </p>
+  </article>
+
+  <script>
+    // Author tooltip for the .gloss abbreviation ONLY. The native <abbr title> items
+    // are left to the browser. This script reveals the author bubble on hover/focus
+    // and hides it on leave/blur — with NO Escape handler and a pointer-events:none
+    // bubble, so the author one fails hoverable + dismissible.
+    document.querySelectorAll('.gloss').forEach(function (g) {
+      var bub = g.querySelector('.bub');
+      function show() { bub.style.opacity = '1'; bub.style.visibility = 'visible'; }
+      function hide() { bub.style.opacity = '0'; bub.style.visibility = 'hidden'; }
+      g.addEventListener('mouseenter', show);
+      g.addEventListener('mouseleave', hide);
+      g.addEventListener('focus', show);
+      g.addEventListener('blur', hide);
+    });
+  </script>
+
+  <!-- WHY AUTOMATED TOOLS MISS IT:
+       Both abbreviations look identical on the page (dotted underline, hover reveals an
+       expansion). A scanner sees two <abbr> elements and no rule fires. It cannot
+       reason that FOMC's bubble is the browser's title rendering (out of scope, PASS)
+       while GDP's bubble is an author <span> driven by JS (in scope, and failing
+       hoverable/dismissible). The per-element attribution of WHO renders the bubble —
+       and the interaction-time test of whether the author bubble can be hovered or
+       dismissed — both require human judgment. -->
+</body>
+</html>

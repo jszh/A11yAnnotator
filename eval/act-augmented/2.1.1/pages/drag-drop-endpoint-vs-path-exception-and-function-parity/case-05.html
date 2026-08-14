@@ -75,22 +75,6 @@
 
 <footer>Meridian Bank, N.A. · Member FDIC</footer>
 
-<!--
-  WHY THIS PAGE PASSES (correct application of the 2.1.1 path-of-movement EXCEPTION):
-  The signature <canvas> captures FREE-HAND pen strokes via pointer mousemove. A handwritten
-  signature is, by definition, input whose value depends on the PATH of the user's movement (the
-  shape of the curves, loops, and pressure), not merely on endpoints — it is the same class as
-  free-hand drawing / watercolour painting that the SC's own normative text and Understanding
-  examples carve out. There is NO known keyboard equivalent for reproducing a person's handwritten
-  signature, so the canvas drawing function legitimately invokes the exception and must NOT be
-  flagged as a 2.1.1 failure. Every OTHER function on the page is keyboard-operable: the "Clear
-  signature" button, the "Type your full legal name" field, and "Agree & sign" submit. The canvas
-  even carries a descriptive accessible name. A naive checker (or an over-eager reviewer) might flag
-  "a pointer-only canvas with no keyboard interaction" as a 2.1.1 failure — but that is the EXACTLY
-  the case the exception exists for. Correctly NOT flagging this requires the human judgment that
-  this particular drag is genuinely PATH-dependent (exempt), distinguishing it from endpoint-style
-  drags (reorder/resize/drop) that are NOT exempt.
--->
 <script>
   const canvas = document.getElementById('sig');
   const ctx = canvas.getContext('2d');
@@ -102,7 +86,6 @@
     const sx = canvas.width / r.width, sy = canvas.height / r.height;
     return { x: (e.clientX - r.left) * sx, y: (e.clientY - r.top) * sy };
   }
-  // Path-dependent free-hand capture (the protected exception).
   canvas.addEventListener('pointerdown', e => {
     drawing = true; last = pos(e); canvas.setPointerCapture(e.pointerId);
   });

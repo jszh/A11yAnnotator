@@ -4,24 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Reserve a Table — Olive &amp; Thyme</title>
-<!--
-  ASPECT: is-it-a-status-message-scope-boundary
-  INTENDED CLASSIFICATION: failed
-  False-negative direction, distinguished from a non-status LIST. On submit the
-  booking is confirmed WITHOUT a page reload and WITHOUT moving focus. Two new
-  things appear:
-    (A) a one-line success message "Your table is booked. Confirmation sent to
-        your email." -> this IS a status message (success/result of an action).
-    (B) a reservation-summary card listing date/time/party/table -> this is just
-        the booking DETAILS being displayed, like a results list, and does NOT
-        meet the status-message definition; it needs no live region.
-  The author wrapped NEITHER in a live region and did NOT move focus. The summary
-  card being silent is fine (it's not a status). The SUCCESS line being silent is
-  the FAILURE: a genuine "Your form was successfully submitted" status (the
-  Understanding's own example) is left programmatically undeterminable. A sighted
-  user sees the green confirmation; a screen-reader user, still focused on the now
-  hidden "Reserve" button, hears nothing and may re-submit, double-booking.
--->
 <style>
   :root { --olive:#5b6b35; --terra:#bf6a3a; --green:#2e7d4f; --ink:#2b2a26; --muted:#6c685f; --line:#e7e3da; }
   * { box-sizing:border-box; }
@@ -38,12 +20,10 @@
   .row > div { flex:1; }
   button { font-family:"Inter",system-ui,sans-serif; cursor:pointer; border:0; border-radius:9px; padding:13px 26px; background:var(--terra); color:#fff; font-weight:600; margin-top:24px; width:100%; font-size:1rem; }
   button:focus-visible, input:focus-visible, select:focus-visible { outline:3px solid #3a86ff; outline-offset:2px; }
-  /* (A) Success message — a STATUS message, but a plain styled div, no role=status / aria-live. */
   .confirm { display:none; }
   .confirm.show { display:block; }
   .confirm .ok { display:flex; gap:10px; align-items:center; background:#e9f5ee; border:1px solid #bfe3cd; color:#1f5c3a; border-radius:10px; padding:14px 16px; font-family:"Inter",system-ui,sans-serif; font-weight:600; }
   .confirm .ok .tick { width:24px; height:24px; flex:0 0 auto; border-radius:50%; background:var(--green); color:#fff; display:grid; place-items:center; font-size:.85rem; }
-  /* (B) Reservation summary card — booking DETAILS, NOT a status message; needs no live region. */
   .summary { margin-top:18px; border:1px solid var(--line); border-radius:12px; padding:18px 20px; font-family:"Inter",system-ui,sans-serif; }
   .summary h2 { margin:0 0 10px; font-size:1.02rem; }
   .summary dl { display:grid; grid-template-columns:auto 1fr; gap:6px 18px; margin:0; font-size:.92rem; }
@@ -92,14 +72,12 @@
     <button type="submit" id="reserveBtn">Reserve table</button>
   </form>
 
-  <!-- (A) STATUS message (success) — plain div, NO role=status / aria-live, NO focus move. -->
   <div class="confirm" id="confirm">
     <div class="ok">
       <span class="tick" aria-hidden="true">✓</span>
       <span id="okText">Your table is booked. A confirmation has been emailed to you.</span>
     </div>
 
-    <!-- (B) Booking DETAILS — not a status message; correctly needs no live region. -->
     <div class="summary">
       <h2>Reservation details</h2>
       <dl>
@@ -129,10 +107,6 @@
 </footer>
 
 <script>
-  // On submit, confirm the booking WITHOUT a reload and WITHOUT moving focus. The success line and the
-  // details card are both revealed in a plain container with no role=status / aria-live. Focus stays on
-  // the (now hidden) Reserve button. The SUCCESS message is a genuine status message left
-  // programmatically undeterminable -> 4.1.3 FAIL. The details card is NOT a status message and is fine.
   document.getElementById('book').addEventListener('submit', function (e) {
     e.preventDefault();
     var time = document.getElementById('time').value;
@@ -141,7 +115,6 @@
     document.getElementById('sParty').textContent = party;
     document.getElementById('confirm').classList.add('show');
     document.getElementById('book').style.display = 'none';
-    // No focus move, no aria-live: a sighted user sees the green success; AT users hear nothing.
   });
 </script>
 </body>

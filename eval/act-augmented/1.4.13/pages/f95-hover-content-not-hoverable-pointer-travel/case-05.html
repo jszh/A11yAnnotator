@@ -4,40 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Bayside Pharmacy — Prescription details</title>
-<!--
-  SC 1.4.13 Content on Hover or Focus — HOVERABLE limb — F95 (the HARD one).
-
-  This is the trap variant where the GEOMETRY LOOKS CORRECT but the BEHAVIOR
-  still fails — exactly the human-judgment boundary.
-
-  THE SETUP that looks like a PASS: a glossary term <dfn> ("contraindication")
-  shows a definition pop-up DIRECTLY ADJACENT to and slightly OVERLAPPING the
-  term. The pop-up is a DOM child of the term, positioned to overlap (top:-2px so
-  it covers the term's bottom edge — no gap at all). On a screenshot it looks like
-  the passing arrangement the Understanding describes: "additional content overlaps
-  or is positioned adjacent to the target." A reviewer checking only geometry would
-  pass it.
-
-  THE DEFECT (behavioral, hidden): the pop-up carries  pointer-events:none . And
-  reveal is bound to the TERM's :hover only (CSS), which uses the term's box, NOT
-  including the pop-up. So:
-    - The pop-up renders over/adjacent to the term, satisfying the LOOK of adjacency.
-    - But because pointer-events:none, the pop-up is transparent to the pointer:
-      moving the cursor onto the pop-up means the cursor is no longer over the term
-      (the pop-up swallows the space but accepts no hover), :hover goes false, and
-      the pop-up vanishes. The user can never rest the pointer ON the content to
-      read it under magnification or with a large cursor.
-    - There is therefore NO continuous pointer path that keeps the content visible,
-      despite perfect visual adjacency. Adjacency is necessary but NOT sufficient —
-      the content must be genuinely HOVERABLE, which pointer-events:none forbids.
-
-  WHY AUTOMATED TOOLS MISS IT: no 1.4.13 automated rule. A geometry-only review (or
-  a tool checking popup-overlaps-trigger) PASSES it. A markup review passes it:
-  <dfn>, role="tooltip", aria-describedby, focus parity, great contrast. Catching it
-  requires noticing that pointer-events:none on a hover-revealed popup makes the
-  popup un-hoverable even though it sits right on the trigger — a CSS-behavior +
-  pointer-path inference, not a layout measurement and not an attribute check.
--->
 <style>
   :root{ --ink:#16212b; --muted:#5d6b76; --line:#dde5ec; --bg:#ffffff;
          --rx:#0a6b8a; --panel:#eef5f8; --danger:#9a2b2b; }
@@ -57,24 +23,20 @@
   dl.facts dd{margin:0;}
   .note{font-size:.95rem;}
 
-  /* The glossary term and its OVERLAPPING/ADJACENT definition pop-up. */
   dfn.term{
     position:relative; font-style:normal; color:var(--rx);
     border-bottom:2px dotted var(--rx); cursor:help;
   }
   .def{
-    position:absolute; left:0; top:-2px;       /* OVERLAPS the term — no gap at all */
+    position:absolute; left:0; top:-2px;       
     transform:translateY(-100%);
     width:280px; background:#16212b; color:#fff;
     font-size:.86rem; line-height:1.4; padding:10px 12px; border-radius:8px;
     box-shadow:0 8px 24px rgba(0,0,0,.22);
     opacity:0; visibility:hidden;
-    /* THE DEFECT: the pop-up accepts NO pointer input, so it can never be hovered;
-       moving onto it drops the term's :hover and the pop-up disappears. */
     pointer-events:none;
     z-index:6;
   }
-  /* Reveal is keyed to the TERM's hover/focus only (its box excludes the popup region). */
   dfn.term:hover .def,
   dfn.term:focus-within .def,
   dfn.term:focus .def{opacity:1; visibility:visible;}

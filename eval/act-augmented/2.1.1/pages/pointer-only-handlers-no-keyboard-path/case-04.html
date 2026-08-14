@@ -4,21 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Campaign budget — Northstar Ads Manager</title>
-  <!--
-    WHY AUTOMATED TOOLS MISS THIS (SC 2.1.1, F54 — drag-only slider):
-    The "daily budget" control is a draggable thumb built from a <div> on a track, wired
-    with mousedown/mousemove/pointermove (drag) only. It has no role="slider", no
-    tabindex, no aria-value*, and no arrow-key handler — so the value can be set by mouse
-    drag but never by keyboard. The drag here sets only the ENDPOINT value (a number), so
-    it is NOT a path-dependent function and the 2.1.1 exception does not apply. Everything
-    else in the form — the campaign-name input, the objective <select>, the schedule date
-    inputs, and the "Save campaign" button — is fully keyboard operable. Because the
-    slider thumb has no role and no tabindex, axe/WAVE/Lighthouse see only inert divs and
-    cannot know they are meant to be a slider, so no rule fires; nothing is missing or
-    invalid. A human must drag the thumb to discover it is a value control, then try the
-    keyboard (Tab past it, arrow keys do nothing) to find there is no keyboard path. The
-    same budget value can NOT be typed anywhere — the slider is the only input for it.
-  -->
   <style>
     :root { --ink:#13161c; --muted:#5d6470; --line:#dfe3ea; --brand:#3b4ed8; --track:#e7eaf2; --fill:#3b4ed8; }
     * { box-sizing: border-box; }
@@ -39,7 +24,6 @@
     }
     input:focus-visible, select:focus-visible, button:focus-visible { outline: 3px solid #1652a8; outline-offset: 2px; }
     .row { display: flex; gap: 16px; } .row .field { flex: 1; }
-    /* Slider — looks and reads like a normal budget slider */
     .slider-wrap { padding: 10px 4px 0; }
     .slider-value { font-size: 1.5rem; font-weight: 800; color: var(--brand); }
     .slider-value small { font-size: .8rem; color: var(--muted); font-weight: 600; }
@@ -93,11 +77,6 @@
       <div class="panel">
         <h2>Daily budget</h2>
         <div class="slider-wrap">
-          <!--
-            F54: the budget is set ONLY by dragging this thumb (mousedown/pointermove).
-            No role=slider, no tabindex, no aria-value*, no arrow keys. There is no number
-            field anywhere that lets a keyboard user type the budget instead.
-          -->
           <div class="slider-value"><span id="amount">£35</span> <small>per day</small></div>
           <div class="track" id="track">
             <div class="fill" id="fill"></div>
@@ -117,9 +96,6 @@
   </main>
 
   <script>
-    // Drag-only slider: pointer events set the value. No keyboard handler exists, and
-    // the value is the drag ENDPOINT (a number), not a path — so this is a genuine F54
-    // failure, not the path-dependent 2.1.1 exception.
     (function () {
       var track = document.getElementById('track');
       var thumb = document.getElementById('thumb');
@@ -143,7 +119,6 @@
       track.addEventListener('mousedown', function (e) { dragging = true; setFromX(e.clientX); });
       document.addEventListener('mousemove', function (e) { if (dragging) setFromX(e.clientX); });
       document.addEventListener('mouseup', function () { dragging = false; });
-      // Touch parity for completeness — still pointer-only, still no keyboard path.
       thumb.addEventListener('touchstart', function () { dragging = true; }, { passive: true });
       document.addEventListener('touchmove', function (e) {
         if (dragging && e.touches[0]) setFromX(e.touches[0].clientX);

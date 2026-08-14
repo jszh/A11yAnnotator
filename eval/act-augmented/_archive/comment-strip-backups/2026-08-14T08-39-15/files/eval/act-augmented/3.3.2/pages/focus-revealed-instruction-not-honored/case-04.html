@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--
+  ASPECT: focus-revealed-instruction-not-honored (SC 3.3.2 Labels or Instructions, Level A)
+  PAGE STATE TO JUDGE: tab into the "Choose a username" field. The on-focus instruction tooltip
+  fades in, then AUTO-DISMISSES after 1.5 seconds via a timer — vanishing before a slow reader can
+  finish, and it never returns unless the field is blurred and re-focused.
+
+  WHAT THIS PAGE IS: the account-creation page of a community forum (Thornwood Makers). The username
+  has non-obvious rules ("3–20 characters; letters, numbers, hyphens and underscores only; must start
+  with a letter"). Those rules are the field's only instruction — the visible <label> is just "Choose
+  a username", which does not state them. Per the focus-revealed pattern, the rules appear on focus.
+
+  THE DEFECT (present, not absent): on focus the instruction tooltip fades in correctly, but a
+  setTimeout(...) of 1500ms then fades it back out and sets it aria-hidden — so the instruction
+  auto-dismisses while the field still has focus. A user who reads slowly (or is using a screen
+  magnifier and panning to the tooltip) loses the instruction mid-read; it does not reappear while the
+  field stays focused. The instruction node is real and the text is correct; it is simply timed out of
+  existence before it can be read or acted on, and is gone for the rest of the focus session.
+
+  WHY AUTOMATED TOOLS MISS IT: the input has a correct <label> ("Choose a username"), so the
+  form-label check passes. The instruction node exists, is shown on focus, and is wired via
+  aria-describedby, so a static scan sees an instruction that appears on focus. No linter measures
+  how long the instruction stays perceivable, drives focus and waits, or judges that a 1.5s
+  auto-dismiss leaves the instruction effectively unavailable for the focused user. Timing the
+  appearance/disappearance requires interacting and observing over time.
+-->
+<title>Join Thornwood Makers</title>
+<style>
+  :root { --ink:#1c2522; --muted:#5f6f69; --line:#dde6e2; --brand:#1f6d52; --bg:#eef4f1; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Inter",system-ui,Arial,sans-serif; color:var(--ink); background:var(--bg); }
+  header { background:#fff; border-bottom:1px solid var(--line); padding:14px 24px; display:flex; align-items:center; gap:10px; }
+  header .mark { width:28px; height:28px; border-radius:7px; background:var(--brand); color:#fff; display:grid; place-items:center; font-weight:800; }
+  main { max-width:460px; margin:34px auto 60px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:30px 32px; }
+  h1 { font-size:1.4rem; margin:0 0 4px; }
+  .lead { color:var(--muted); margin:0 0 26px; font-size:.92rem; }
+  .field { margin:0 0 20px; position:relative; }
+  label { display:block; font-weight:600; margin-bottom:6px; font-size:.92rem; }
+  input { width:100%; padding:11px 12px; border:1px solid #b7c5bf; border-radius:8px; font-size:1rem; }
+  input:focus { outline:2px solid var(--brand); outline-offset:1px; }
+  /* On-focus instruction tooltip. JS fades it in on focus, then a timer fades it back out. */
+  .uname-tip {
+    position:absolute; left:0; right:0; top:100%; margin-top:7px; z-index:3;
+    padding:10px 12px; background:#0f3a2c; color:#eafff5; border-radius:8px;
+    font-size:.82rem; line-height:1.4; opacity:0; transform:translateY(-4px);
+    transition:opacity .25s ease, transform .25s ease; pointer-events:none;
+  }
+  .uname-tip.show { opacity:1; transform:translateY(0); }
+  .uname-tip::after {
+    content:""; position:absolute; left:18px; top:-6px; width:12px; height:12px;
+    background:#0f3a2c; transform:rotate(45deg);
+  }
+  .actions { margin-top:8px; }
+  button.primary { background:var(--brand); color:#fff; border:0; border-radius:8px; padding:12px 18px; font-size:1rem; cursor:pointer; width:100%; }
+  footer { max-width:460px; margin:0 auto 50px; color:var(--muted); font-size:.76rem; text-align:center; }
+</style>
+</head>
+<body>
+<header>
+  <span class="mark">T</span>
+  <strong>Thornwood Makers</strong>
+</header>
+
+<main>
+  <h1>Join the community</h1>
+  <p class="lead">Create your account to post in the woodworking forums.</p>
+
+  <form action="/join" method="post" novalidate>
+    <div class="field">
+      <label for="email">Email address</label>
+      <input type="email" id="email" name="email" autocomplete="email">
+    </div>
+
+    <div class="field">
+      <!-- Visible label is just "Choose a username". It does NOT state the rules, so the tooltip
+           below is this field's only instruction. -->
+      <label for="uname">Choose a username</label>
+      <input type="text" id="uname" name="uname" autocomplete="username"
+             aria-describedby="uname-tip" autocapitalize="off" spellcheck="false">
+      <!-- Real, populated instruction tooltip. Shown on focus, then auto-dismissed after 1.5s. -->
+      <div class="uname-tip" id="uname-tip">
+        Usernames are 3–20 characters, may use letters, numbers, hyphens (-) and underscores (_),
+        and must start with a letter.
+      </div>
+    </div>
+
+    <div class="actions">
+      <button type="submit" class="primary">Create account</button>
+    </div>
+  </form>
+</main>
+
+<footer>
+  Thornwood Makers · A community of woodworkers since 2014
+</footer>
+
+<script>
+  // On-focus tooltip with an AUTO-DISMISS timer. INTENT (per a "subtle, non-cluttered" design note):
+  // fade the rules in on focus, then quietly fade them away so they don't linger. EFFECT: the only
+  // instruction disappears 1.5s into the focus session and does not return while the field stays
+  // focused — a slow reader, magnifier user, or anyone who pauses loses it and cannot get it back
+  // without blurring and re-focusing.
+  (function () {
+    var input = document.getElementById('uname');
+    var tip = document.getElementById('uname-tip');
+    var timer = null;
+    input.addEventListener('focus', function () {
+      tip.classList.add('show');
+      tip.removeAttribute('aria-hidden');
+      clearTimeout(timer);
+      timer = setTimeout(function () {
+        tip.classList.remove('show');      // fades out while the field is STILL focused
+        tip.setAttribute('aria-hidden', 'true');
+      }, 1500);
+    });
+    input.addEventListener('blur', function () {
+      clearTimeout(timer);
+      tip.classList.remove('show');
+      tip.setAttribute('aria-hidden', 'true');
+    });
+  })();
+</script>
+</body>
+</html>

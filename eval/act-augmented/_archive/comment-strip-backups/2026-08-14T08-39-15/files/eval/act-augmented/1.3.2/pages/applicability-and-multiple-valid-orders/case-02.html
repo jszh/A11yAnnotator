@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cedar &amp; Co. Roastery — Single-origin coffee, roasted weekly</title>
+<!--
+  SC 1.3.2 APPLICABILITY GATE — EXPECTED: PASS (Understanding "Example 2": nav vs main order)
+
+  This is a CONFORMANT control modelled on the Understanding's Example 2. The visual layout shows
+  a navigation bar across the top. But in the DOM, <main> comes FIRST and the <nav> landmark comes
+  LAST (just before </body>); CSS `position:fixed` lifts the nav to the top of the viewport, and
+  the main content is padded down to clear it. The promotional aside and the footer also sit in a
+  source order that differs from where they appear on screen.
+
+  The point: the relative order of a navigation section and the main section does NOT affect their
+  meaning — they may occur in either order in the reading sequence. An evaluator must NOT flag this
+  page just because the nav is read after the main content; each landmark is internally coherent and
+  reachable, and AT users can jump to the nav by landmark at any time. This is the canonical
+  "more than one reading order can satisfy the SC" case.
+
+  WHY AUTOMATED TOOLS MISS IT: no 1.3.2 rule exists; and a DOM-vs-visual-order heuristic would
+  wrongly flag "nav appears on top but is last in source." Deciding that nav-vs-main order is
+  immaterial requires knowing these are independent regions whose order carries no meaning.
+-->
+<style>
+  :root { --bean:#3b2417; --crema:#caa472; --paper:#fbf7f0; --ink:#2a201a; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.65 "Helvetica Neue", Arial, sans-serif;
+         color:var(--ink); background:var(--paper); }
+
+  /* The <nav> is LAST in the DOM but pinned to the top of the viewport. */
+  nav.sitebar {
+    position:fixed; top:0; left:0; right:0; height:56px; z-index:10;
+    background:var(--bean); color:#fff;
+    display:flex; align-items:center; gap:22px; padding:0 24px;
+  }
+  nav.sitebar .brand { font-weight:700; letter-spacing:.04em; margin-right:auto; }
+  nav.sitebar a { color:#f3e6d6; text-decoration:none; font-size:.95rem; }
+  nav.sitebar a:hover, nav.sitebar a:focus { text-decoration:underline; }
+
+  main { max-width:760px; margin:0 auto; padding:84px 20px 24px; }
+  .hero h1 { font-size:2rem; margin:0 0 .3rem; color:var(--bean); }
+  .hero p.lede { font-size:1.1rem; color:#5a4636; margin:0 0 1.6rem; }
+  .swatch { height:220px; border-radius:8px; margin:0 0 1.8rem;
+            background:radial-gradient(circle at 30% 30%, var(--crema), var(--bean)); }
+  section.copy h2 { color:var(--bean); margin:1.6rem 0 .5rem; }
+
+  /* Promo aside: DOM-after-main, floated up beside the hero visually. */
+  aside.promo {
+    position:fixed; right:24px; bottom:24px; width:240px;
+    background:#fff; border:2px solid var(--crema); border-radius:10px;
+    padding:14px 16px; box-shadow:0 6px 18px rgba(59,36,23,.18);
+  }
+  aside.promo h2 { margin:0 0 .35rem; font-size:1rem; color:var(--bean); }
+  aside.promo p { margin:0; font-size:.85rem; }
+  footer { max-width:760px; margin:0 auto; padding:24px 20px 48px;
+           color:#6b5848; font-size:.85rem; border-top:1px solid #e7ddcd; }
+  @media (max-width:640px){ aside.promo{ position:static; width:auto; margin:1.5rem 0; } }
+</style>
+</head>
+<body>
+
+  <!-- MAIN comes FIRST in the DOM. -->
+  <main>
+    <div class="hero">
+      <h1>Roasted on Tuesday, on your table by Friday</h1>
+      <p class="lede">
+        Cedar &amp; Co. is a small-batch roastery on the harbour. We buy single lots, roast to
+        order each week, and ship within forty-eight hours so the beans never sit on a shelf.
+      </p>
+    </div>
+    <div class="swatch" role="img"
+         aria-label="Glossy dark-roast coffee beans cascading from a steel scoop."></div>
+
+    <section class="copy">
+      <h2>How the weekly roast works</h2>
+      <p>
+        Every Monday we cup the green coffee that landed that week and decide the roast curves.
+        On Tuesday we run the batches; on Wednesday and Thursday we rest and bag them; on Friday
+        the couriers collect. Order before Sunday midnight to make the coming Tuesday roast.
+      </p>
+      <h2>What&rsquo;s on this week</h2>
+      <p>
+        This week&rsquo;s lots are a washed Kenyan from Nyeri (blackcurrant, cane sugar) and a
+        natural Ethiopian from Guji (blueberry, jasmine). Both are available as whole bean or
+        ground for your brew method, in 250&nbsp;g and 1&nbsp;kg bags.
+      </p>
+      <h2>Subscriptions</h2>
+      <p>
+        A rolling subscription locks in the early-bird price and a rotating choice of lots. Pause
+        or skip any week from your account before the Sunday cut-off; there is no minimum term.
+      </p>
+    </section>
+  </main>
+
+  <!-- Promotional aside: DOM-after-main, pinned bottom-right visually. -->
+  <aside class="promo" aria-labelledby="promo-h">
+    <h2 id="promo-h">First bag free shipping</h2>
+    <p>New here? Use code FRESH at checkout for free delivery on your first weekly roast.</p>
+  </aside>
+
+  <footer>
+    <p>
+      Cedar &amp; Co. Roastery, 4 Harbour Steps. The site navigation, the offer above and the
+      page body are independent regions and may be read in any order.
+    </p>
+  </footer>
+
+  <!-- NAV is LAST in the DOM; CSS pins it to the top of the screen. -->
+  <nav class="sitebar" aria-label="Primary">
+    <span class="brand">Cedar &amp; Co.</span>
+    <a href="#shop">Shop</a>
+    <a href="#subscriptions">Subscriptions</a>
+    <a href="#brewing">Brewing guides</a>
+    <a href="#about">Our story</a>
+    <a href="#cart">Cart</a>
+  </nav>
+
+</body>
+</html>

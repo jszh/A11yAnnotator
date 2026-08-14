@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.4.10 FAIL — a nested list that COSPLAYS the G224 conforming pattern but actually fails.
+
+    Context: a legal-research product's regulatory "issue tree" sidebar. The hierarchy is real
+    meaningful indentation (Title > Chapter > Part > Section > Subsection), exactly the kind of nesting
+    where flattening would lose the parent/child relationship — so the indentation legitimately needs to
+    be preserved, and the container is allowed to scroll horizontally to bring a level into view.
+
+    THE TRAP: the author copied the *scaffolding* of G224 (semantic <ul>/<li>, overflow-x:auto on the
+    container, a media query) but got the crucial half WRONG. The list-item LABELS are forced onto a
+    single physical line — white-space:nowrap — and each label is long regulatory prose. So at 320px the
+    failure is NOT "scroll a level into view, then read vertically." It is: even after a level is in view,
+    every single item's TEXT runs off the right edge and the user must scroll left-and-right to read each
+    line. The G224 list procedure's pass arrangement (check 4) requires that once a nested list is visible,
+    "only vertical scrolling will be necessary to read the content of the nested list's items." That is
+    exactly what this page DENIES. G224's own description says "it is important for the individual list
+    item text to reflow" — and here it does not.
+
+    WHY IT IS A FAIL, not the exception: the indentation (which level contains which) is meaningful and
+    may be preserved; but the *wrapping of the prose inside each item* carries no meaning and could wrap
+    with zero loss. Regulatory sentences are not Python and not ascii-art. So the per-item text must
+    reflow, and it doesn't. FAIL.
+
+    WHY AUTOMATED TOOLS MISS IT: byte-for-byte this looks like the conforming case — semantic nested
+    list, overflow-x:auto, indentation media query, even a min-width "safety net" comment. A scanner sees
+    a deep <ul> in a horizontally-scrollable box and cannot tell that white-space:nowrap on the labels
+    means the item TEXT (not just the level indent) is what's forcing two-dimensional reading. Deciding
+    that the indentation is meaningful (keep it) but the prose wrapping is NOT (must reflow) — and that
+    this specific arrangement breaks G224 check 4 rather than satisfying it — is human reading.
+
+    The trap is sharpened against case-01 (prose in <pre>, FAIL) and case-05 (wrappable code in <pre>,
+    FAIL): those fail INSIDE a <pre>. This one fails inside a real semantic <ul> dressed up to imitate
+    the G224 PASS pattern of case-02 — so the only thing separating pass from fail is reading whether the
+    item text can reflow.
+  -->
+  <title>Issue Tree — Title 42 CFR navigator — Lexbridge Regulatory Research</title>
+  <style>
+    :root { --ink:#1c2230; --muted:#5b6577; --line:#dde3ec; --bg:#f6f8fb; --accent:#1f3a5f; --rule:#c9d3e2; }
+    *, *::before, *::after { box-sizing:border-box; }
+    body { margin:0; font-family:"Inter","Segoe UI",Roboto,Arial,sans-serif; color:var(--ink); background:var(--bg); line-height:1.55; }
+    .wrap { max-width:1060px; margin:0 auto; padding:22px 18px 60px; }
+    header.app { display:flex; gap:10px; align-items:baseline; border-bottom:2px solid var(--accent); padding-bottom:10px; }
+    header.app .logo { font-weight:700; color:var(--accent); letter-spacing:.01em; }
+    header.app .tag { color:var(--muted); font-size:13px; }
+    .layout { display:grid; grid-template-columns: 340px 1fr; gap:24px; margin-top:18px; }
+    @media (max-width: 720px) { .layout { grid-template-columns: 1fr; } }
+    h1 { font-size:21px; margin:0 0 6px; }
+    .sidebar h2 { font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:0 0 8px; }
+    p.note { font-size:13px; color:var(--muted); margin:0 0 12px; }
+
+    .sidebar { min-width: 0; }                /* let the column shrink to the viewport at narrow widths */
+    /* --- looks like the G224 nested-list pattern; the container scrolls a level into view --- */
+    .issuetree {
+      border:1px solid var(--line); border-radius:8px; background:#fff; padding:10px 8px;
+      max-width: 100%;                        /* bound the box to the column so overflow-x engages */
+      overflow-x: auto;                       /* "bring a nested level into view" — the G224 scaffolding */
+      -webkit-overflow-scrolling: touch;
+    }
+    .issuetree ul { list-style:none; margin:0; padding-inline-start: 1.5em; border-left:1px dotted var(--rule); }
+    .issuetree > ul { padding-inline-start: .3em; border-left:none; }
+    .issuetree li { position:relative; margin:.3em 0; }
+    .issuetree li > .node {
+      display:block; padding:.32em .5em; border-radius:5px;
+      white-space: nowrap;                    /* THE DEFECT: each item's prose is locked to one line */
+    }
+    .issuetree li > .node:hover { background:#eef3fa; }
+    .issuetree .cite { color:var(--accent); font-weight:600; font-variant-numeric:tabular-nums; }
+    .issuetree .heading { color:var(--ink); }
+    .issuetree .meta { color:var(--muted); font-size:12px; }
+
+    /* Author reduced the per-level indent at the narrow breakpoint (the G224 indentation advice) —
+       but left white-space:nowrap intact, so the item TEXT still cannot reflow. The min-width comment
+       is a red herring: it is never paired with wrapping. */
+    @media (max-width: 480px) {
+      .issuetree ul { padding-inline-start: .8em; }   /* indent reduced; prose still one line */
+    }
+    .panel { background:#fff; border:1px solid var(--line); border-radius:8px; padding:16px 18px; }
+    .panel h2 { margin-top:0; font-size:17px; }
+    .panel code { background:#eef1f6; padding:.05em .35em; border-radius:4px; font-size:.92em; }
+    footer { margin-top:30px; border-top:1px solid var(--line); padding-top:14px; color:var(--muted); font-size:12px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="app">
+      <span class="logo">Lexbridge Regulatory Research</span>
+      <span class="tag">Public-health regulation navigator</span>
+    </header>
+
+    <div class="layout">
+      <nav class="sidebar" aria-label="Regulation outline">
+        <h1>Issue tree — 42 CFR</h1>
+        <h2>Title &middot; Chapter &middot; Part &middot; Section</h2>
+        <p class="note">The indentation shows which provision sits inside which. The outline is a
+        horizontally scrollable tree so you can bring a nested level into view, then read its items.</p>
+
+        <div class="issuetree">
+          <ul>
+            <li>
+              <span class="node"><span class="cite">Title 42</span> &mdash; <span class="heading">Public Health and Welfare regulations promulgated under the Public Health Service Act</span></span>
+              <ul>
+                <li>
+                  <span class="node"><span class="cite">Chapter IV</span> &mdash; <span class="heading">Centers for Medicare &amp; Medicaid Services, Department of Health and Human Services</span></span>
+                  <ul>
+                    <li>
+                      <span class="node"><span class="cite">Part 482</span> &mdash; <span class="heading">Conditions of Participation for Hospitals participating in Medicare and Medicaid programs</span></span>
+                      <ul>
+                        <li>
+                          <span class="node"><span class="cite">&sect; 482.13</span> &mdash; <span class="heading">Condition of participation: Patient's rights, including notification and the exercise of those rights</span></span>
+                          <ul>
+                            <li><span class="node"><span class="cite">&sect; 482.13(a)</span> &mdash; <span class="heading">A hospital must inform each patient, or the patient's representative, of the patient's rights in advance of furnishing or discontinuing patient care</span> <span class="meta">(notice of rights)</span></span></li>
+                            <li><span class="node"><span class="cite">&sect; 482.13(b)</span> &mdash; <span class="heading">The patient has the right to participate in the development and implementation of his or her plan of care, including discharge planning</span> <span class="meta">(exercise of rights)</span></span></li>
+                          </ul>
+                        </li>
+                        <li>
+                          <span class="node"><span class="cite">&sect; 482.21</span> &mdash; <span class="heading">Condition of participation: Quality assessment and performance improvement program requirements</span></span>
+                          <ul>
+                            <li><span class="node"><span class="cite">&sect; 482.21(a)</span> &mdash; <span class="heading">The hospital must develop, implement, and maintain an effective, ongoing, hospital-wide, data-driven quality assessment and performance improvement program</span> <span class="meta">(program scope)</span></span></li>
+                          </ul>
+                        </li>
+                      </ul>
+                    </li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+      </nav>
+
+      <main class="panel">
+        <h2>About this outline</h2>
+        <p>Selecting a provision opens its full text and annotations. The outline is intentionally
+        indented so you can see the nesting &mdash; for example, that subsection
+        <code>&sect; 482.13(a)</code> sits inside section <code>&sect; 482.13</code>, which sits inside
+        <code>Part 482</code>. That containment is meaningful, so the tree is not flattened.</p>
+        <p>The container scrolls sideways so a nested level can be brought into view. However, each
+        outline item's text is held on a single line, so once a level is in view a reader at a narrow
+        width must still scroll the row left and right to read the whole provision &mdash; the sentence
+        runs past the right edge instead of wrapping into the column.</p>
+      </main>
+    </div>
+
+    <footer>Lexbridge Regulatory Research &middot; Outline reflects 42 CFR as published; not legal advice</footer>
+  </div>
+</body>
+</html>

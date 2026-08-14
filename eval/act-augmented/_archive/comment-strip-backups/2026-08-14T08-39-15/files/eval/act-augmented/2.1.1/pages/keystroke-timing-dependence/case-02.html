@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trip planner — Metro Transit</title>
+<style>
+  body { font: 15px/1.55 system-ui,Segoe UI,Roboto,Arial,sans-serif; margin:0; color:#13202b; background:#eef3f6; }
+  .top { background:#0b3d5c; color:#fff; padding:12px 20px; display:flex; align-items:center; gap:12px; }
+  .top .mark { width:24px;height:24px;border-radius:50%;background:#f5b301; color:#0b3d5c; font-weight:800; display:grid; place-items:center; }
+  .top h1 { font-size:16px; margin:0; font-weight:600; }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 22px 20px 70px; }
+  .layout { display:grid; grid-template-columns: 320px 1fr; gap:18px; }
+  @media (max-width:760px){ .layout{ grid-template-columns:1fr; } }
+  .panel { background:#fff; border:1px solid #d6dee4; border-radius:10px; padding:18px; }
+  .panel h2 { font-size:14px; margin:0 0 12px; text-transform:uppercase; letter-spacing:.04em; color:#5a6b78; }
+  label { display:block; font-size:13px; margin:0 0 4px; color:#3b4a55; }
+  input[type=text], select { width:100%; padding:9px 10px; border:1px solid #cfd8df; border-radius:7px; font:inherit; margin-bottom:14px; }
+  .btn { font:600 14px inherit; border:0; border-radius:8px; padding:10px 14px; cursor:pointer; }
+  .btn-primary { background:#0b6e4f; color:#fff; }
+  .btn-primary:focus-visible { outline:3px solid #8fd4bd; outline-offset:2px; }
+  .map { height: 320px; border-radius:8px; background:
+        repeating-linear-gradient(90deg,#e7eef2 0 38px,#dde7ec 38px 40px),
+        repeating-linear-gradient(0deg,#e7eef2 0 38px,#dde7ec 38px 40px);
+        position:relative; border:1px solid #cdd8df; overflow:hidden; }
+  .map .route { position:absolute; left:18%; top:62%; width:64%; height:5px; background:#0b6e4f; border-radius:3px; transform:rotate(-14deg); transform-origin:left; }
+  .map .pin { position:absolute; width:16px;height:16px;border-radius:50% 50% 50% 0; background:#b3261e; transform:rotate(-45deg); }
+  .map .pin.a { left:17%; top:60%; } .map .pin.b { left:78%; top:42%; }
+  .map .badge { position:absolute; right:10px; top:10px; background:#0b3d5c; color:#fff; font-size:12px; padding:3px 8px; border-radius:20px; }
+  .map .badge.geo { background:#1f7a3d; }
+  .map-tools { margin-top:12px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .kbd { font:12px ui-monospace,Menlo,Consolas,monospace; background:#13202b; color:#fff; border-radius:5px; padding:2px 7px; }
+  .toast { margin-top:12px; min-height:20px; font-size:14px; color:#1f7a3d; }
+  .note { margin-top:36px; padding:16px 18px; background:#dde8ee; border-radius:10px; font-size:12.5px; color:#3b4a55; }
+  .note code { background:#cbd9e1; padding:1px 5px; border-radius:4px; }
+</style>
+</head>
+<body>
+<div class="top"><span class="mark">M</span><h1>Metro Transit · Trip Planner</h1></div>
+<div class="wrap">
+  <div class="layout">
+    <form class="panel" aria-labelledby="ph" onsubmit="return false">
+      <h2 id="ph">Plan a trip</h2>
+      <label for="from">From</label>
+      <input type="text" id="from" value="Riverside Station" autocomplete="off">
+      <label for="to">To</label>
+      <input type="text" id="to" value="Civic Center" autocomplete="off">
+      <label for="when">Depart</label>
+      <select id="when"><option>Now</option><option>In 15 min</option><option>In 30 min</option></select>
+      <button type="submit" class="btn btn-primary">Find routes</button>
+    </form>
+
+    <section class="panel" aria-labelledby="mh">
+      <h2 id="mh">Route map</h2>
+      <div class="map" id="map" tabindex="0" role="application" aria-label="Route map. Riverside Station to Civic Center.">
+        <span class="badge" id="modeBadge">Map mode</span>
+        <div class="route"></div>
+        <div class="pin a" title="Riverside Station"></div>
+        <div class="pin b" title="Civic Center"></div>
+      </div>
+      <div class="map-tools">
+        <span>Live vehicle tracking:</span>
+        <span class="kbd">G</span> <span>double-press to center on your location</span>
+      </div>
+      <p class="toast" id="toast" role="status" aria-live="polite"></p>
+    </section>
+  </div>
+
+  <div class="note">
+    <p><strong>Why automated checkers pass this page:</strong> The map container is focusable
+    (<code>tabindex="0"</code>), has an accessible name and a role, and a documented keyboard
+    shortcut — pressing <code>G</code> — is exposed in visible text. A scanner sees a reachable,
+    named, keyboard-wired region and reports no error. What it cannot detect is that the
+    "center on your location / live tracking" function activates <em>only</em> on a
+    <strong>rapid double-press of G within 250&nbsp;ms</strong>; a single press of G, or two
+    presses spaced more than 250&nbsp;ms apart, do nothing, and there is no single-press button or
+    menu item for the same function. Users who cannot press a key twice that fast are locked out of
+    geolocation — a second-limb SC 2.1.1 timing failure that is purely a runtime behaviour.</p>
+  </div>
+</div>
+
+<script>
+(function () {
+  var map = document.getElementById('map');
+  var toast = document.getElementById('toast');
+  var badge = document.getElementById('modeBadge');
+  var pinB = map.querySelector('.pin.b');
+
+  var DOUBLE_MS = 250;       // the double-press must land within this window
+  var lastG = 0;
+
+  function centerOnLocation() {
+    badge.textContent = 'Live tracking on';
+    badge.classList.add('geo');
+    toast.textContent = 'Centered on your live location. Tracking the 12B bus in real time.';
+    // visually nudge the map to show the geolocation engaged
+    map.style.boxShadow = 'inset 0 0 0 3px #1f7a3d';
+  }
+
+  // The ONLY way to trigger geolocation/live-tracking is a fast double-tap of G.
+  // A single G never fires (we wait to see if a second G arrives in time, but a
+  // lone press is simply discarded). Two presses >250ms apart are treated as two
+  // separate first-presses and never fire. There is no button, menu item, or other
+  // keyboard path to this function.
+  map.addEventListener('keydown', function (e) {
+    if (e.key === 'g' || e.key === 'G') {
+      var now = Date.now();
+      if (now - lastG <= DOUBLE_MS) {
+        centerOnLocation();
+        lastG = 0;            // consume the pair
+      } else {
+        lastG = now;          // first press; arm for a fast second press
+        // intentionally NO single-press fallback action
+      }
+      e.preventDefault();
+    }
+  });
+})();
+</script>
+</body>
+</html>

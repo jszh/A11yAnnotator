@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Webhooks — Paystack-style Developer Docs</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (scope-guard / false-positive case):
+  This page is DENSE with interactive controls that are NOT data-entry controls:
+    - 9 sidebar navigation <a> links
+    - 5 expand/collapse FAQ disclosure <button>s (aria-expanded, real show/hide)
+    - 3 in-page anchor jump links
+    - a "Copy" code button, a "Theme" toggle button
+  None of these accept user data, so SC 3.3.2 ("labels OR instructions ... when
+  content requires user input") does NOT apply to them. The Understanding doc is
+  explicit: 3.3.2 "does not apply to links or other controls (such as an
+  expand/collapse widget, or similar interactive components) that are not
+  associated with data entry."
+  The ONE genuine data-entry control on the page — the docs search field — is
+  CORRECTLY in scope and IS given both a visible <label> AND a visible
+  format/scope instruction ("Type a topic, then press Enter..."). So the page
+  PASSES 3.3.2.
+  An over-eager checker or model can FALSE-POSITIVE here by demanding a
+  "3.3.2 instruction" for every <button>/<a> (e.g. "the FAQ toggles have no
+  instructions", "the Copy button has no field hint"). That is the exact mistake
+  this page guards against. axe/WAVE/Lighthouse do not flag any of it (every
+  control has an accessible name; the search field has a real label), but they
+  ALSO cannot confirm the harder judgment: that the non-input controls are
+  correctly OUT of scope while the one input is correctly satisfied. Recognising
+  which controls are "associated with data entry" is a semantic role judgment, not
+  an attribute lint.
+-->
+<style>
+  :root{
+    --ink:#16202b; --muted:#5d6b7a; --line:#dfe5ec; --brand:#1763d6;
+    --bg:#f6f8fb; --code:#0d1b2a; --code-ink:#cfe3ff; --ok:#0a7d4d;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font:16px/1.6 "Inter","Segoe UI",system-ui,sans-serif; color:var(--ink); background:var(--bg); }
+  a{ color:var(--brand); }
+  .topbar{ display:flex; align-items:center; gap:14px; padding:12px 22px; background:#fff; border-bottom:1px solid var(--line); }
+  .topbar .brand{ font-weight:800; letter-spacing:.3px; }
+  .topbar nav{ display:flex; gap:16px; font-size:.9rem; margin-left:8px; }
+  .topbar .right{ margin-left:auto; display:flex; gap:10px; }
+  .ghost{ border:1px solid var(--line); background:#fff; color:var(--ink); padding:6px 11px; border-radius:7px; font-size:.85rem; cursor:pointer; }
+  /* The search field: the ONLY data-entry control. Correctly labelled + instructed. */
+  .docsearch{ background:#fff; border-bottom:1px solid var(--line); padding:16px 22px; }
+  .docsearch form{ max-width:560px; }
+  .docsearch label{ display:block; font-weight:700; font-size:.92rem; margin-bottom:5px; }
+  .docsearch .hint{ color:var(--muted); font-size:.82rem; margin:0 0 8px; }
+  .docsearch input{ width:100%; padding:11px 13px; font-size:1rem; border:2px solid var(--line); border-radius:9px; }
+  .docsearch input:focus{ outline:2px solid var(--brand); outline-offset:1px; }
+  .layout{ display:grid; grid-template-columns:240px 1fr; gap:30px; max-width:1080px; margin:26px auto; padding:0 22px; }
+  aside h2{ font-size:.74rem; text-transform:uppercase; letter-spacing:.09em; color:var(--muted); margin:18px 0 6px; }
+  aside ul{ list-style:none; margin:0 0 8px; padding:0; }
+  aside a{ display:block; padding:5px 8px; border-radius:6px; text-decoration:none; color:var(--ink); font-size:.9rem; }
+  aside a[aria-current="page"]{ background:#e7f0ff; color:var(--brand); font-weight:700; }
+  aside a:hover{ background:#eef2f7; }
+  main h1{ font-size:1.7rem; margin:0 0 4px; }
+  main .lede{ color:var(--muted); margin:0 0 18px; }
+  .jump{ display:flex; gap:14px; flex-wrap:wrap; font-size:.85rem; margin:0 0 22px; padding:10px 12px; background:#fff; border:1px solid var(--line); border-radius:9px; }
+  pre{ background:var(--code); color:var(--code-ink); padding:14px 16px; border-radius:10px; overflow:auto; font:13px/1.5 "SF Mono",ui-monospace,monospace; position:relative; }
+  .copy{ position:absolute; top:9px; right:9px; }
+  h2.sec{ font-size:1.2rem; margin:30px 0 8px; }
+  .faq{ border:1px solid var(--line); border-radius:10px; background:#fff; overflow:hidden; }
+  .faq + .faq{ margin-top:10px; }
+  .faq button.q{ width:100%; text-align:left; background:#fff; border:0; padding:13px 16px; font-size:1rem; font-weight:600; cursor:pointer; display:flex; justify-content:space-between; align-items:center; color:var(--ink); }
+  .faq button.q:focus{ outline:2px solid var(--brand); outline-offset:-2px; }
+  .faq .chev{ transition:transform .15s; color:var(--muted); }
+  .faq button.q[aria-expanded="true"] .chev{ transform:rotate(180deg); }
+  .faq .a{ padding:0 16px 14px; color:var(--muted); font-size:.94rem; }
+  .faq .a[hidden]{ display:none; }
+  footer{ max-width:1080px; margin:30px auto; padding:18px 22px; color:var(--muted); font-size:.8rem; border-top:1px solid var(--line); }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <span class="brand">Vaultpay&nbsp;Docs</span>
+    <nav aria-label="Primary">
+      <a href="#guides">Guides</a>
+      <a href="#api">API Reference</a>
+      <a href="#sdks">SDKs</a>
+      <a href="#changelog">Changelog</a>
+    </nav>
+    <div class="right">
+      <button type="button" class="ghost" id="theme">Theme: Light</button>
+      <a class="ghost" href="#status" style="text-decoration:none">Status</a>
+    </div>
+  </div>
+
+  <!-- THE ONE DATA-ENTRY CONTROL — correctly labelled AND instructed (in scope, satisfied) -->
+  <div class="docsearch">
+    <form role="search" action="#results" method="get">
+      <label for="q">Search the developer docs</label>
+      <p class="hint" id="q-hint">Type a topic such as <em>“webhook signature”</em>, then press Enter. Use quotes for an exact phrase.</p>
+      <input type="search" id="q" name="q" aria-describedby="q-hint" placeholder="e.g. retry policy" autocomplete="off">
+    </form>
+  </div>
+
+  <div class="layout">
+    <aside>
+      <nav aria-label="Webhooks section">
+        <h2>Webhooks</h2>
+        <ul>
+          <li><a href="#overview" aria-current="page">Overview</a></li>
+          <li><a href="#events">Event types</a></li>
+          <li><a href="#verify">Verifying signatures</a></li>
+          <li><a href="#retries">Retries &amp; backoff</a></li>
+          <li><a href="#testing">Local testing</a></li>
+        </ul>
+        <h2>Related</h2>
+        <ul>
+          <li><a href="#idempotency">Idempotency keys</a></li>
+          <li><a href="#rate">Rate limits</a></li>
+          <li><a href="#errors">Error codes</a></li>
+          <li><a href="#sandbox">Sandbox mode</a></li>
+        </ul>
+      </nav>
+    </aside>
+
+    <main id="overview">
+      <h1>Webhooks</h1>
+      <p class="lede">Receive real-time notifications when events happen in your Vaultpay account.</p>
+
+      <div class="jump" aria-label="On this page">
+        <strong style="color:var(--ink)">On this page:</strong>
+        <a href="#endpoint">Register an endpoint</a>
+        <a href="#payload">Payload shape</a>
+        <a href="#faq">FAQ</a>
+      </div>
+
+      <h2 class="sec" id="endpoint">Register an endpoint</h2>
+      <p>Send a <code>POST</code> to <code>/v1/webhook_endpoints</code> with the URL you want to receive events on. Vaultpay signs every delivery with your endpoint secret.</p>
+      <pre>curl https://api.vaultpay.com/v1/webhook_endpoints \
+  -u sk_test_4242: \
+  -d url="https://example.com/hooks" \
+  -d "enabled_events[]=charge.succeeded"<button type="button" class="ghost copy" data-copied="false">Copy</button></pre>
+
+      <h2 class="sec" id="payload">Payload shape</h2>
+      <p>Each delivery is a JSON object with a top-level <code>type</code> and a <code>data.object</code> matching the resource for that event.</p>
+
+      <h2 class="sec" id="faq">Frequently asked questions</h2>
+      <p class="lede" style="font-size:.92rem">Expand a question to read the answer. These are disclosure controls, not form fields.</p>
+
+      <div class="faq">
+        <button type="button" class="q" aria-expanded="false" aria-controls="faq1">
+          How do I verify a webhook came from Vaultpay?<span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <div class="a" id="faq1" hidden>Compute an HMAC-SHA256 of the raw request body using your endpoint secret and compare it (in constant time) to the <code>Vaultpay-Signature</code> header.</div>
+      </div>
+      <div class="faq">
+        <button type="button" class="q" aria-expanded="false" aria-controls="faq2">
+          What happens if my endpoint is down?<span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <div class="a" id="faq2" hidden>We retry with exponential backoff for up to 3 days, then mark the endpoint as failing and email the account owner.</div>
+      </div>
+      <div class="faq">
+        <button type="button" class="q" aria-expanded="false" aria-controls="faq3">
+          Are events delivered in order?<span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <div class="a" id="faq3" hidden>No. Design your handler to be idempotent and to tolerate out-of-order delivery; use the event <code>created</code> timestamp to reconcile.</div>
+      </div>
+      <div class="faq">
+        <button type="button" class="q" aria-expanded="false" aria-controls="faq4">
+          Can I replay a past event?<span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <div class="a" id="faq4" hidden>Yes — from the Dashboard, open any event and choose “Resend”. Replays carry a fresh signature.</div>
+      </div>
+      <div class="faq">
+        <button type="button" class="q" aria-expanded="false" aria-controls="faq5">
+          Is there a sandbox for webhooks?<span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <div class="a" id="faq5" hidden>Use a <code>sk_test_</code> key. Test-mode deliveries are clearly marked and never touch live data.</div>
+      </div>
+    </main>
+  </div>
+
+  <footer>Vaultpay Docs · Renders from file:// · All controls below the search box are navigation/disclosure controls, not data entry.</footer>
+
+<script>
+  // Real disclosure behaviour so an AT user genuinely experiences expand/collapse.
+  document.querySelectorAll('.faq button.q').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var open = btn.getAttribute('aria-expanded') === 'true';
+      btn.setAttribute('aria-expanded', String(!open));
+      document.getElementById(btn.getAttribute('aria-controls')).hidden = open;
+    });
+  });
+  var theme = document.getElementById('theme');
+  theme.addEventListener('click', function(){
+    theme.textContent = theme.textContent.indexOf('Light') > -1 ? 'Theme: Dark' : 'Theme: Light';
+  });
+  document.querySelectorAll('.copy').forEach(function(c){
+    c.addEventListener('click', function(){ c.textContent = 'Copied'; setTimeout(function(){ c.textContent='Copy'; }, 1200); });
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Get your auto quote — Beacon Mutual Insurance</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (SC 3.3.3 Error Suggestion, Level AA):
+  Post-submit error state in an insurance quote wizard. The "State" <input> is a free
+  TEXT field, but the server accepts ONLY the small, fixed enumerated set of the 50
+  USPS two-letter codes (the set is preserved in this page's inline comment). The user
+  typed "Calif." — clearly intending California (code CA). The error is identified in
+  text — "Please enter a valid state." — correctly associated via aria-describedby,
+  aria-invalid="true", high contrast. SC 3.3.1 passes; axe / WAVE / Lighthouse go green.
+
+  THE DEFECT IS SC 3.3.3: this is the classic "limited set of allowed values" case from
+  the Understanding doc. The correction is doubly knowable: (a) the allowed values are a
+  fixed enumerated list that could be shown ("use the two-letter code, e.g. CA"), and
+  (b) the entered text "Calif." is similar to exactly one allowed value, so the system
+  could even suggest "Did you mean CA?". The message offers NEITHER — no list, no
+  format hint, no nearest-match suggestion. It merely restates that the value is wrong.
+
+  A checker cannot tell "Please enter a valid state." (restatement) from "Enter the
+  two-letter state code, e.g. CA for California." (suggestion) — both are valid
+  non-empty strings. Distinguishing them requires knowing the field accepts a small
+  enumerated set and judging that the message neither lists it nor hints the match.
+-->
+<style>
+  :root{ --ink:#1c2530; --muted:#5d6b78; --line:#c5cfd8; --navy:#13315c; --danger:#b02a2a; --acc:#e8a317; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font:16px/1.55 "Inter","Segoe UI",system-ui,sans-serif; color:var(--ink);
+        background:#eef2f6; }
+  .wrap{ max-width:720px; margin:0 auto; padding:0 20px; }
+  header{ background:var(--navy); color:#fff; padding:14px 0; }
+  header .wrap{ display:flex; align-items:center; gap:10px; }
+  header .lighthouse{ width:18px; height:18px; background:var(--acc); border-radius:3px; }
+  header b{ font-size:1.05rem; }
+  .steps{ display:flex; gap:6px; font-size:.78rem; color:var(--muted); margin:18px 0 4px; }
+  .steps .on{ color:var(--navy); font-weight:700; }
+  main{ background:#fff; border:1px solid var(--line); border-radius:8px; padding:28px 30px;
+        margin:8px 0 30px; }
+  h1{ font-size:1.4rem; margin:0 0 4px; }
+  .lede{ color:var(--muted); margin:0 0 24px; }
+  .grid{ display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  .field.full{ grid-column:1 / -1; }
+  label{ display:block; font-weight:600; font-size:.9rem; margin-bottom:6px; }
+  input{ width:100%; padding:10px 12px; font-size:1rem; border:2px solid var(--line); border-radius:6px; }
+  input[aria-invalid="true"]{ border-color:var(--danger); background:#fdf3f3; }
+  input:focus{ outline:3px solid var(--navy); outline-offset:1px; }
+  .err{ color:var(--danger); font-size:.85rem; font-weight:600; margin:7px 0 0; }
+  button{ margin-top:22px; padding:12px 26px; font-size:1rem; font-weight:700; color:#13315c;
+        background:var(--acc); border:0; border-radius:6px; cursor:pointer; }
+  .disc{ color:var(--muted); font-size:.78rem; margin:16px 0 0; }
+</style>
+</head>
+<body>
+  <header><div class="wrap"><span class="lighthouse" aria-hidden="true"></span><b>Beacon Mutual Insurance</b></div></header>
+
+  <div class="wrap">
+    <p class="steps"><span>1. Vehicle</span> › <span class="on">2. Garaging address</span> › <span>3. Coverage</span> › <span>4. Quote</span></p>
+    <main>
+      <h1>Where is the vehicle garaged?</h1>
+      <p class="lede">We use the garaging location to rate your policy.</p>
+
+      <form action="#" method="post" novalidate>
+        <div class="grid">
+          <div class="field full">
+            <label for="street">Street address</label>
+            <input type="text" id="street" name="street" value="488 Mariposa Ave" autocomplete="address-line1">
+          </div>
+          <div class="field">
+            <label for="city">City</label>
+            <input type="text" id="city" name="city" value="Fresno" autocomplete="address-level2">
+          </div>
+          <div class="field">
+            <label for="state">State</label>
+            <!--
+              Authoritative accepted set (fixed enumeration of 50 USPS codes):
+              ["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA",
+               "KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ",
+               "NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT",
+               "VA","WA","WV","WI","WY"]
+              Retained value "Calif." is similar to exactly one allowed value: CA.
+              The message neither lists the set nor suggests the nearest match.
+            -->
+            <input type="text" id="state" name="state"
+                   aria-describedby="state-error"
+                   aria-invalid="true"
+                   value="Calif."
+                   autocomplete="address-level1">
+            <p class="err" id="state-error">Please enter a valid state.</p>
+          </div>
+          <div class="field">
+            <label for="zip">ZIP code</label>
+            <input type="text" id="zip" name="zip" value="93704" autocomplete="postal-code" inputmode="numeric">
+          </div>
+        </div>
+
+        <button type="submit">Continue to coverage</button>
+      </form>
+
+      <p class="disc">Beacon Mutual is licensed in all 50 states. Quote subject to underwriting. Renders from file://</p>
+    </main>
+  </div>
+</body>
+</html>

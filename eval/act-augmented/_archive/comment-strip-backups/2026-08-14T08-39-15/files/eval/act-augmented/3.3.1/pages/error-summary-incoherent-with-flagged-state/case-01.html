@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Apply for a Council Tax Reduction — Northvale Borough Council</title>
+<style>
+  :root { --ink:#0b0c0c; --muted:#505a5f; --link:#1d70b8; --err:#d4351c; --line:#b1b4b6; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: "GDS Transport", Arial, system-ui, sans-serif; color:var(--ink); background:#fff; line-height:1.5; }
+  .topbar { background:#0b0c0c; color:#fff; padding:10px 0; }
+  .wrap { max-width:680px; margin:0 auto; padding:0 16px; }
+  .topbar .wrap { font-weight:700; }
+  main { padding:24px 0 64px; }
+  h1 { font-size:2rem; margin:8px 0 24px; line-height:1.1; }
+  /* Error summary box, GOV.UK style */
+  .error-summary { border:5px solid var(--err); padding:16px 20px 4px; margin:0 0 28px; }
+  .error-summary h2 { font-size:1.5rem; margin:0 0 12px; }
+  .error-summary ul { margin:0 0 12px; padding-left:18px; }
+  .error-summary li { margin-bottom:6px; }
+  .error-summary a { color:var(--err); font-weight:700; }
+  .form-group { margin-bottom:26px; }
+  .form-group.has-error { border-left:5px solid var(--err); padding-left:14px; }
+  label { display:block; font-weight:700; margin-bottom:4px; }
+  .hint { color:var(--muted); margin:0 0 6px; font-size:.95rem; }
+  .field-error { color:var(--err); font-weight:700; margin:0 0 6px; }
+  input[type=text], input[type=email], input[type=tel] {
+    font-size:1.05rem; padding:7px 8px; width:100%; max-width:480px; border:2px solid var(--ink);
+  }
+  .form-group.has-error input { border-color:var(--err); border-width:4px; }
+  .btn { background:#00703c; color:#fff; border:0; padding:12px 18px; font-size:1.05rem; cursor:pointer; margin-top:8px; }
+  footer { border-top:1px solid var(--line); margin-top:48px; padding-top:16px; color:var(--muted); font-size:.85rem; }
+  .audit { background:#f3f2f1; border-left:4px solid #505a5f; padding:12px 16px; margin-top:32px; font-size:.82rem; color:#202020; }
+</style>
+</head>
+<body>
+<div class="topbar"><div class="wrap">Northvale Borough Council</div></div>
+<main>
+<div class="wrap">
+  <span style="color:var(--muted);font-size:.9rem;">Council Tax &rsaquo; Reductions &rsaquo; Apply</span>
+  <h1>Apply for a Council Tax Reduction</h1>
+
+  <!-- Error summary: descriptive, visible, in the tree. Each line passes message-level checks.
+       But the SET of fields it names (Full name, Email) does NOT match the field actually flagged
+       on the page (Telephone number). And the count "2" disagrees with the single flagged field. -->
+  <div class="error-summary" role="alert" aria-labelledby="err-title" tabindex="-1">
+    <h2 id="err-title">There is a problem</h2>
+    <p>We found 2 errors. Please correct them before continuing.</p>
+    <ul>
+      <li><a href="#full-name">Enter your full name as it appears on your bill</a></li>
+      <li><a href="#email">Enter an email address in the correct format, like name@example.com</a></li>
+    </ul>
+  </div>
+
+  <form novalidate>
+    <!-- Full name: NOT flagged. Has a value, no error styling, no aria-invalid. -->
+    <div class="form-group">
+      <label for="full-name">Full name</label>
+      <p class="hint" id="name-hint">As shown on your most recent Council Tax bill.</p>
+      <input type="text" id="full-name" name="full-name" value="Priya Chandra" aria-describedby="name-hint" autocomplete="name">
+    </div>
+
+    <!-- Email: NOT flagged. Valid value, no error. -->
+    <div class="form-group">
+      <label for="email">Email address</label>
+      <p class="hint" id="email-hint">We will send your reference number here.</p>
+      <input type="email" id="email" name="email" value="priya.chandra@gmail.com" aria-describedby="email-hint" autocomplete="email">
+    </div>
+
+    <!-- Telephone: THE ONLY field actually in error. Red border, inline message, aria-invalid.
+         The summary above never mentions it. -->
+    <div class="form-group has-error">
+      <label for="phone">Telephone number</label>
+      <p class="hint" id="phone-hint">We may call you about your application.</p>
+      <p class="field-error" id="phone-err">Error: Enter a UK telephone number using only digits, for example 01632 960 001</p>
+      <input type="tel" id="phone" name="phone" value="ring me weekdays" aria-invalid="true" aria-describedby="phone-hint phone-err" autocomplete="tel">
+    </div>
+
+    <button type="submit" class="btn">Continue</button>
+  </form>
+
+  <div class="audit">
+    <strong>Why automated checkers pass this page:</strong> The error-summary block is present,
+    visible, inside a live region, and every list item is a fluent, specific error description that
+    references a real field label (so ACT 36b590 passes each message at the message level). The
+    genuinely-flagged field (Telephone) carries <code>aria-invalid="true"</code> and a programmatically
+    associated, descriptive inline error. Every individual indicator is well formed. The failure is only
+    visible when you <em>reconcile the summary against the page state</em>: the summary claims "2 errors"
+    in Full name and Email — both of which are valid and unflagged — while the one field that is actually
+    in error (Telephone) is never listed. No rule cross-references the summary's enumerated set against
+    the set of fields bearing <code>aria-invalid</code>/red borders, so the count-and-membership mismatch
+    is invisible to axe, WAVE and Lighthouse.
+  </div>
+
+  <footer>Northvale Borough Council · Council Tax team · This is a sample page.</footer>
+</div>
+</main>
+</body>
+</html>

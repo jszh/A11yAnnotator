@@ -36,22 +36,6 @@
   <span class="doc">Untitled document — saved</span>
 </header>
 
-<!--
-  BOUNDARY / PASSED CASE — looks like F55 in source, but is NOT a 2.1.1 failure.
-  This is the standard rich-text-editor toolbar pattern: each formatting button suppresses
-  focus ONLY for pointer interaction, via mousedown -> e.preventDefault(). That keeps the
-  text caret in the document when you CLICK Bold (so Bold applies to your selection instead
-  of yanking focus out of the editor). Crucially it does NOT touch keyboard focus:
-    - There is NO onfocus="this.blur()" and NO focusin re-grab.
-    - A keyboard user can Tab to every toolbar button; focus RESTS on it (the focus ring
-      stays), and Enter/Space toggles aria-pressed. The buttons are fully keyboard operable.
-  mousedown.preventDefault() fires only on a real pointer press; pressing Tab dispatches no
-  mousedown, so keyboard focus is never removed. A careless reviewer who greps for
-  "preventDefault" near focus might mistake this for F55, but F55 requires that focus be
-  removed WHEN RECEIVED for keyboard users — here focus is received and held. This sharpens
-  the aspect: suppressing the MOUSE's focus-on-click is a legitimate, accessibility-friendly
-  pattern, not a keyboard failure.
--->
 <div class="toolbar" role="toolbar" aria-label="Text formatting" id="tb">
   <button type="button" aria-pressed="false" data-cmd="bold"   aria-label="Bold"><b>B</b></button>
   <button type="button" aria-pressed="false" data-cmd="italic" aria-label="Italic"><i>I</i></button>
@@ -82,11 +66,8 @@
     var buttons = Array.prototype.slice.call(tb.querySelectorAll('button'));
 
     buttons.forEach(function (btn) {
-      // POINTER-ONLY focus suppression: keep the editor caret on click.
-      // Fires only on a physical mouse/touch press — never on keyboard Tab.
       btn.addEventListener('mousedown', function (e) { e.preventDefault(); });
 
-      // Keyboard activation toggles a pressed state; focus is NEVER removed.
       btn.addEventListener('click', function () {
         if (btn.hasAttribute('aria-pressed')) {
           var on = btn.getAttribute('aria-pressed') === 'true';
@@ -94,7 +75,6 @@
         }
       });
     });
-    // No focus/focusin/blur handlers anywhere: keyboard focus rests normally.
   })();
 </script>
 </body>

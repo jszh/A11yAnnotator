@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.4.5 FAILURE hidden inside a footer "logo wall" — long-tail case.
+
+    A nonprofit footer shows a row of partner/supporter LOGOS: six tiles, each an inline-SVG
+    image of a partner company wordmark ("Helix Bank", "Verdant Foods", "Ardent Mobility",
+    "Kestrel Labs", "Northstar Media"). Those five are genuine logotypes — exempt by 1.4.5.
+
+    The SIXTH tile, dropped into the same grid and given the IDENTICAL logo styling (same box,
+    same muted grey, same height), is NOT a logo. Its pixels are a sentence of substantive
+    legal/financial disclaimer text: "Registered charity No. 1180992. Donations are tax
+    deductible where the law allows." Someone styled the disclaimer to "blend into the partner
+    strip," but it is informational legal text — not a brand name — that must be live so a
+    donor can enlarge, recolour, or copy the registration number. -> FAILS 1.4.5.
+
+    The disclaimer image's alt reproduces the text (so 1.1.1 passes), isolating this to a pure
+    1.4.5 logotype-vs-information judgment. The trap: in a wall of legitimate logos, one tile is
+    informational text wearing the logo costume.
+
+    WHY AUTOMATED TOOLS MISS IT: every tile is an <img> with correct non-empty alt -> image-alt
+    passes for all six. No tool OCRs the tiles to tell five wordmarks apart from one disclaimer
+    sentence, nor reasons that a charity-registration statement is not "branding." Human-only.
+  -->
+  <title>Bright Futures Trust — Support a child's education</title>
+  <style>
+    :root { --ink:#20242b; --green:#2f7d4f; --muted:#5e6873; --line:#e4e8ec; --bg:#ffffff; --footbg:#f5f7f8; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Inter", system-ui, Arial, sans-serif; color:var(--ink); background:var(--bg); }
+    header { padding:18px 28px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:10px; }
+    header .mark { width:30px; height:30px; border-radius:7px; background:var(--green); }
+    header .name { font-weight:800; letter-spacing:.01em; }
+    header nav { margin-left:auto; display:flex; gap:18px; }
+    header nav a { color:var(--ink); text-decoration:none; font-size:14px; }
+    .hero { max-width:820px; margin:0 auto; padding:46px 24px 24px; text-align:center; }
+    .hero h1 { font-size:32px; margin:0 0 12px; }
+    .hero p { font-size:17px; color:#3a424c; line-height:1.7; }
+    .hero a.donate { display:inline-block; margin-top:18px; background:var(--green); color:#fff; text-decoration:none; padding:13px 28px; border-radius:8px; font-weight:600; }
+    section.impact { max-width:900px; margin:30px auto; display:grid; grid-template-columns:repeat(3,1fr); gap:18px; padding:0 24px; }
+    .stat { background:#f3f8f4; border-radius:10px; padding:20px; text-align:center; }
+    .stat .n { font-size:30px; font-weight:800; color:var(--green); }
+    .stat .l { font-size:14px; color:var(--muted); }
+    footer { background:var(--footbg); border-top:1px solid var(--line); margin-top:30px; padding:30px 24px; }
+    footer h2 { text-align:center; font-size:14px; text-transform:uppercase; letter-spacing:.12em; color:var(--muted); margin:0 0 18px; font-weight:700; }
+    /* THE LOGO WALL — every tile gets identical logo styling. One tile is not a logo. */
+    .logo-wall { display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:26px; max-width:1000px; margin:0 auto; }
+    .logo-wall img { height:30px; width:auto; opacity:.78; filter:grayscale(100%); }
+    .logo-wall img:hover { opacity:1; }
+    footer .legal { text-align:center; font-size:12px; color:var(--muted); margin-top:24px; }
+    @media (max-width:760px){ section.impact{ grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="mark" aria-hidden="true"></span>
+    <span class="name">Bright Futures Trust</span>
+    <nav aria-label="Primary"><a href="#">Our work</a><a href="#">Stories</a><a href="#">Donate</a></nav>
+  </header>
+
+  <section class="hero">
+    <h1>Every child deserves a classroom</h1>
+    <p>We fund school places, books, and meals for children in eleven countries. A gift of
+       just $15 keeps one child in school for a month.</p>
+    <a class="donate" href="#donate">Donate now</a>
+  </section>
+
+  <section class="impact" aria-label="Our impact">
+    <div class="stat"><div class="n">42,800</div><div class="l">children in school</div></div>
+    <div class="stat"><div class="n">11</div><div class="l">countries</div></div>
+    <div class="stat"><div class="n">93¢</div><div class="l">of every dollar to programs</div></div>
+  </section>
+
+  <footer>
+    <h2>Our supporters</h2>
+    <div class="logo-wall">
+      <!-- Five genuine partner WORDMARKS — exempt logotypes. -->
+      <img alt="Helix Bank"
+           src="data:image/svg+xml;utf8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='160'%20height='34'%20viewBox='0%200%20160%2034'%3E%3Ctext%20x='0'%20y='26'%20fill='%2320242b'%20font-family='Georgia,serif'%20font-size='26'%20font-weight='bold'%3EHelix%20Bank%3C/text%3E%3C/svg%3E">
+      <img alt="Verdant Foods"
+           src="data:image/svg+xml;utf8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='190'%20height='34'%20viewBox='0%200%20190%2034'%3E%3Ctext%20x='0'%20y='26'%20fill='%2320242b'%20font-family='Verdana,sans-serif'%20font-size='24'%20font-style='italic'%3EVerdant%20Foods%3C/text%3E%3C/svg%3E">
+      <img alt="Ardent Mobility"
+           src="data:image/svg+xml;utf8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='210'%20height='34'%20viewBox='0%200%20210%2034'%3E%3Ctext%20x='0'%20y='26'%20fill='%2320242b'%20font-family='Trebuchet%20MS,sans-serif'%20font-size='24'%20font-weight='bold'%20letter-spacing='1'%3EArdent%20Mobility%3C/text%3E%3C/svg%3E">
+      <img alt="Kestrel Labs"
+           src="data:image/svg+xml;utf8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='170'%20height='34'%20viewBox='0%200%20170%2034'%3E%3Ctext%20x='0'%20y='26'%20fill='%2320242b'%20font-family='Courier%20New,monospace'%20font-size='24'%20font-weight='bold'%3EKestrel%20Labs%3C/text%3E%3C/svg%3E">
+      <img alt="Northstar Media"
+           src="data:image/svg+xml;utf8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='200'%20height='34'%20viewBox='0%200%20200%2034'%3E%3Ctext%20x='0'%20y='26'%20fill='%2320242b'%20font-family='Georgia,serif'%20font-size='24'%3ENorthstar%20Media%3C/text%3E%3C/svg%3E">
+
+      <!--
+        THE 1.4.5 VIOLATION: this tile is NOT a logo. Its pixels are a legal/financial
+        disclaimer sentence, styled to match the logo wall. Informational text that must be
+        live so a donor can enlarge, recolour, or copy the registration number.
+      -->
+      <img alt="Registered charity No. 1180992. Donations are tax deductible where the law allows."
+           src="data:image/svg+xml;utf8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='520'%20height='34'%20viewBox='0%200%20520%2034'%3E%3Ctext%20x='0'%20y='15'%20fill='%2320242b'%20font-family='Georgia,serif'%20font-size='12'%3ERegistered%20charity%20No.%201180992.%3C/text%3E%3Ctext%20x='0'%20y='30'%20fill='%2320242b'%20font-family='Georgia,serif'%20font-size='12'%3EDonations%20are%20tax%20deductible%20where%20the%20law%20allows.%3C/text%3E%3C/svg%3E">
+    </div>
+
+    <div class="legal">© 2026 Bright Futures Trust · 7 Almond Court · privacy · contact</div>
+  </footer>
+</body>
+</html>

@@ -26,9 +26,6 @@
   .submit { background:var(--brand); color:#fff; border:0; border-radius:8px; font-weight:700;
             font-size:.95rem; padding:12px 28px; margin-top:6px; cursor:pointer; }
   .meta { color:var(--muted); font-size:.78rem; margin-top:16px; line-height:1.5; }
-  /* Visually-hidden helper. The element stays in the DOM and in the accessibility tree
-     (it is NOT display:none and NOT aria-hidden), so a screen reader reading the input's
-     description will speak it — but it occupies a 1px clipped box and is invisible on screen. */
   .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden;
              clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; border:0; }
 </style>
@@ -47,10 +44,6 @@
                readonly>
       </div>
 
-      <!-- THE GOVERNED FIELD. The security answer has a strict, non-obvious matching rule
-           (case-sensitive, spaces significant). The rule EXISTS and is programmatically
-           associated via aria-describedby — but the element it points to is .sr-only, so the
-           rule is delivered ONLY to assistive technology and is never shown to sighted users. -->
       <div class="field">
         <label for="answer">Your answer</label>
         <input type="text" id="answer" name="answer" aria-describedby="answer-rule"
@@ -67,27 +60,5 @@
     </form>
   </main>
 
-  <!--
-    WHY AUTOMATED TOOLS MISS IT
-    The security-answer field requires a non-obvious matching rule (case-sensitive, spaces
-    significant). That instruction is real, complete, accurate, present in the DOM (#answer-rule),
-    and correctly associated via aria-describedby="answer-rule" pointing at an existing id. So
-    "instruction exists?", "programmatic association present?", and "aria-describedby target
-    resolves?" all PASS, and an .sr-only span is a textbook, intentional, lint-clean pattern.
-
-    The element is .sr-only (1px clipped box) but NOT display:none and NOT aria-hidden, so it
-    remains in Chromium's accessibility tree: a screen-reader user reading the input's accessible
-    description WILL hear the rule. The defect is for SIGHTED users only — the rule is invisible on
-    the rendered page, so a sighted keyboard/mouse user sees the "Your answer" field with no cue
-    that case and spaces matter, types it however they remember it, and is rejected.
-
-    This is the exact distinction SC 3.3.2 draws (and 4.1.2 does not): an instruction can reach
-    assistive-technology users via an accessible description yet still fail to be PRESENTED to all
-    users — specifically the sighted population. axe/WAVE/Lighthouse do not flag a properly
-    associated, in-the-a11y-tree description as a failure, and cannot judge that the content it
-    delivers is a mandatory input rule that sighted users never see. It needs human visual +
-    semantic judgment: read the page, see that nothing visible tells a sighted user about
-    case/space sensitivity, and recognize that "served to AT" is not "presented to all users".
-  -->
 </body>
 </html>

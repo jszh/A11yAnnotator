@@ -46,14 +46,6 @@
         <input type="text" id="treatment" name="treatment">
       </div>
 
-      <!-- ISSUE: the label is the correct topic noun "Betrag" (Amount) with no statement of the
-           accepted format. The handler requires a plain German-formatted decimal with a COMMA and
-           NO currency symbol and NO thousands separator: /^\d+,\d{2}$/  (e.g. "85,00").
-           It rejects the most natural German entry "85,00 €" (the € symbol is rejected), "85.00"
-           (English decimal point), and "1.250,00" (German thousands dot). The required shape is
-           disclosed only in the after-submit error. The page itself is in German (lang="de") but
-           one of its own hints elsewhere mixes English habits — the locale-specific decimal/symbol
-           rule is exactly the kind TT 5.B says must be in the label. -->
       <div class="field">
         <label for="betrag">Betrag</label>
         <input type="text" id="betrag" name="betrag" inputmode="decimal">
@@ -85,11 +77,10 @@
     var err = document.getElementById('betrag-err');
     f.addEventListener('submit', function (e) {
       e.preventDefault();
-      // Accept ONLY "NN,NN": comma decimal, two fraction digits, no symbol, no thousands separator.
       var ok = /^\d+,\d{2}$/.test(betrag.value.trim());
       if (!ok) {
         betrag.classList.add('err');
-        err.style.display = 'block';   // format disclosed for the first time, on error
+        err.style.display = 'block';   
       } else {
         betrag.classList.remove('err');
         err.style.display = 'none';

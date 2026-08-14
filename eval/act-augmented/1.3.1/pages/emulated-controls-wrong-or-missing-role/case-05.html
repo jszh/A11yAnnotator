@@ -3,36 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!--
-    SC 1.3.1 (Info and Relationships) — F42 emulated-control path, tabindex-present variant.
-    Aspect: emulated-controls-wrong-or-missing-role.
-
-    "Plumeline Analytics" dashboard. Below the title is a row of three tab-shaped
-    controls — "Overview", "Acquisition", "Retention" — drawn as pill/underline tabs.
-    The active one is darker with a teal underline; the others are grey. Clicking one
-    switches the panel below. Each control is keyboard-FOCUSABLE: they carry
-    tabindex="0", show a focus ring, and a keydown handler lets Enter/Space activate
-    them. So this is the harder F42 sub-case: focusable, operable… but role-less.
-
-    THE DEFECT: each control is <div class="tab" tabindex="0" onclick=... onkeydown=...>.
-    There is NO role="tab" / role="button" / role="link", and the wrapper is not a
-    role="tablist". So:
-      - a sighted user sees an obvious selected/unselected tab strip;
-      - a screen-reader user, on focusing each control, hears only the text with a
-        GENERIC role — no "tab", no "button", no "selected" state, no "1 of 3", and no
-        tablist grouping. Which one is active is conveyed by colour/underline only.
-    The control relationship and selected-state relationship that the styling conveys
-    are not programmatically determinable. Because the elements ARE focusable, this is
-    precisely the "focusable thing with no role" failure the aspect calls out.
-
-    WHY AUTOMATED TOOLS MISS IT: there is no role attribute anywhere, so 1.3.1
-    role-validity rules never apply, and "tablist must contain tabs" never fires (nothing
-    claims to be a tablist). The divs ARE focusable and ARE keyboard-operable, so no
-    keyboard rule trips. axe/WAVE/Lighthouse see focusable divs with click/keydown
-    handlers and text — nothing static says "this is a tab strip exposing a generic
-    role". Recognising the selected/unselected tab affordance and that its exposed role
-    is generic is human visual judgment.
-  -->
   <title>Funnel report — Plumeline Analytics</title>
   <style>
     :root { --ink:#1a2230; --muted:#677182; --line:#e4e8ef; --teal:#0e9488; --bg:#f6f8fb; --card:#fff; }
@@ -42,14 +12,13 @@
     h1 { font-size:1.45rem; margin:0 0 .15rem; }
     .sub { color:var(--muted); font-size:.9rem; margin:0 0 1.3rem; }
 
-    /* Tab strip — drawn unmistakably as tabs */
     .tabs { display:flex; gap:.4rem; border-bottom:2px solid var(--line); }
     .tab {
       padding:.6rem 1rem; cursor:pointer; user-select:none; font-weight:600; font-size:.95rem;
       color:var(--muted); border-bottom:3px solid transparent; margin-bottom:-2px;
     }
     .tab:hover { color:var(--ink); }
-    .tab.active { color:var(--ink); border-bottom-color:var(--teal); }   /* selected = colour + underline only */
+    .tab.active { color:var(--ink); border-bottom-color:var(--teal); }   
     .tab:focus-visible { outline:2px solid var(--teal); outline-offset:2px; border-radius:4px; }
 
     .panel { background:var(--card); border:1px solid var(--line); border-top:0; border-radius:0 0 12px 12px; padding:1.4rem; }
@@ -64,11 +33,6 @@
     <h1>Funnel report</h1>
     <p class="sub">Acme Store &middot; last 30 days &middot; updated 09:12</p>
 
-    <!--
-      DEFECT: a tab strip built from focusable <div>s with NO role=tab / role=tablist.
-      tabindex=0 + keydown make them operable, but their exposed role is generic and the
-      selected state is colour/underline only.
-    -->
     <div class="tabs" aria-label="Funnel report sections">
       <div class="tab active" tabindex="0" data-panel="overview"    onclick="pick(this)" onkeydown="keyPick(event,this)">Overview</div>
       <div class="tab"        tabindex="0" data-panel="acquisition" onclick="pick(this)" onkeydown="keyPick(event,this)">Acquisition</div>

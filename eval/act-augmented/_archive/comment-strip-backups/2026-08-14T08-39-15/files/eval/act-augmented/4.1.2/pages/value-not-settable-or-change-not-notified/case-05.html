@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rate your visit — Trattoria Bianca</title>
+<style>
+  body { font-family: Georgia, "Times New Roman", serif; margin:0; background:#fbf7f0; color:#33291f; }
+  .hero { background:#6b1f1f; color:#fff; padding:22px 26px; }
+  .hero h1 { margin:0; font-size:1.5rem; font-family:"Helvetica Neue",Arial,sans-serif; }
+  .hero p { margin:4px 0 0; color:#e9cccc; font-family:"Helvetica Neue",Arial,sans-serif; font-size:.9rem; }
+  .review { max-width:600px; margin:30px auto; background:#fff; border:1px solid #ece2d2; border-radius:10px; padding:26px 30px; }
+  .q { font-size:1.1rem; margin:0 0 14px; }
+  /* star rating */
+  .stars { display:inline-flex; gap:6px; outline-offset:6px; }
+  .stars:focus-visible { outline:3px solid #1c6fb8; }
+  .star {
+    font-size:2.2rem; line-height:1; color:#d8cdb8; cursor:pointer; background:none; border:0; padding:0;
+    transition:color .1s, transform .1s;
+  }
+  .star.filled { color:#e8a417; }
+  .star:hover { transform:scale(1.12); }
+  .hint { font-family:"Helvetica Neue",Arial,sans-serif; font-size:.85rem; color:#8a7a60; margin-top:10px; }
+  textarea { width:100%; min-height:90px; margin-top:18px; padding:10px; border:1px solid #d8cdb8; border-radius:6px; font:inherit; box-sizing:border-box; }
+  .submit { margin-top:18px; background:#6b1f1f; color:#fff; border:0; padding:11px 28px; border-radius:6px; font-size:1rem; cursor:pointer; font-family:"Helvetica Neue",Arial,sans-serif; }
+</style>
+</head>
+<body>
+<div class="hero">
+  <h1>Trattoria Bianca</h1>
+  <p>Tell us about your visit</p>
+</div>
+
+<div class="review">
+  <p class="q">How would you rate your overall experience?</p>
+
+  <div
+    id="rating"
+    class="stars"
+    role="slider"
+    tabindex="0"
+    aria-label="Overall rating, 1 to 5 stars"
+    aria-valuemin="1"
+    aria-valuemax="5"
+    aria-valuenow="3"
+    aria-valuetext="3 out of 5 stars">
+    <button class="star filled" type="button" data-v="1" aria-hidden="true" tabindex="-1">★</button>
+    <button class="star filled" type="button" data-v="2" aria-hidden="true" tabindex="-1">★</button>
+    <button class="star filled" type="button" data-v="3" aria-hidden="true" tabindex="-1">★</button>
+    <button class="star"        type="button" data-v="4" aria-hidden="true" tabindex="-1">★</button>
+    <button class="star"        type="button" data-v="5" aria-hidden="true" tabindex="-1">★</button>
+  </div>
+  <p class="hint" id="hint">Currently selected: 3 stars — Good</p>
+
+  <textarea placeholder="Add a comment (optional)"></textarea>
+  <br>
+  <button class="submit" type="button">Submit review</button>
+</div>
+
+<script>
+/*
+  Persona: a restaurant owner installed a WordPress review plugin; the dev wrapped the
+  five star <button>s in a parent given role="slider" with a correct INITIAL value
+  (aria-valuenow=3, aria-valuetext="3 out of 5 stars"). The individual stars are
+  aria-hidden so AT only sees the slider — a reasonable pattern. But the jQuery-style
+  click handler only:
+    (1) toggles the .filled class on the stars (the visual fill), and
+    (2) rewrites the visible .hint text.
+  It never updates the slider's aria-valuenow / aria-valuetext, and there is no keydown
+  handler, so Arrow keys on the focused slider do nothing.
+
+  AT experience: the rating reads "3 out of 5 stars" no matter what the user picks with
+  the mouse, and an AT/keyboard user cannot set the rating at all. The role, name and the
+  valid initial value all pass static checks; the failure is that the value the user sets
+  is neither settable via AT nor notified when it changes.
+*/
+(function () {
+  var stars = Array.prototype.slice.call(document.querySelectorAll('#rating .star'));
+  var hint = document.getElementById('hint');
+  var words = { 1:'Poor', 2:'Fair', 3:'Good', 4:'Very good', 5:'Excellent' };
+
+  stars.forEach(function (star) {
+    star.addEventListener('click', function () {
+      var v = parseInt(star.getAttribute('data-v'), 10);
+      stars.forEach(function (s, i) { s.classList.toggle('filled', i < v); });
+      hint.textContent = 'Currently selected: ' + v + ' stars — ' + words[v];
+      // aria-valuenow / aria-valuetext on #rating are never updated.
+    });
+  });
+  // No keydown handler on #rating; arrow keys are inert.
+})();
+</script>
+</body>
+</html>

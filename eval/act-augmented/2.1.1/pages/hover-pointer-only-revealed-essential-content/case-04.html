@@ -32,8 +32,6 @@
     border-radius: 4px;
     font-size: 15px;
   }
-  /* "help" marker — a styled span carrying a title attribute. cursor:help, looks
-     like the standard government "?" affordance. */
   .help {
     display: inline-flex; align-items: center; justify-content: center;
     width: 17px; height: 17px; margin-left: 5px;
@@ -100,30 +98,5 @@
     Form ST-100 · Rev. 2/25
   </footer>
 
-  <!--
-    WHY THIS FAILS SC 2.1.1 (keyboard, essential-information branch) AND WHY TOOLS MISS IT:
-
-    Two fields carry essential filing instructions ONLY inside a `title` attribute on a
-    decorative "?" span:
-
-      • "Nontaxable / exempt sales": the title warns NOT to include collected sales tax here
-        ("the most common cause of a rejected return"). Getting this wrong rejects the return.
-      • "Jurisdiction code": the title states the code must be the DELIVERY county, not the
-        business county ("the second most common filing error").
-
-    This information is essential to completing the form correctly and appears nowhere else on
-    the page (the footer only points to an external PDF, which is off-page). The "?" markers
-    are non-interactive <span>s: no tabindex, so Tab never lands on them; and even if focus
-    could reach them, a title attribute is NOT reliably surfaced as a tooltip on keyboard
-    focus (only on mouse hover) — per the Trusted Tester two-second rule, focus will not reveal
-    the title. There is no aria-describedby tying the title text to the input, so screen reader
-    users typing in the field never hear the warning either.
-
-    Automated tools PASS this: every input has an associated <label>, the title attributes are
-    non-empty, there are no missing/empty attributes, and contrast is fine. A static checker
-    cannot judge that the title text is ESSENTIAL (return-rejecting) rather than a nicety,
-    cannot determine that a title on a non-focusable span won't surface on keyboard focus, and
-    cannot confirm the instruction is absent elsewhere on the page. Verdict: FAILED.
-  -->
 </body>
 </html>

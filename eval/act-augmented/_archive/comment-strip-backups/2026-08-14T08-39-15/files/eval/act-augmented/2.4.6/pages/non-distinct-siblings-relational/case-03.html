@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your accounts overview — Meridian Bank</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (SC 2.4.6, heading limb, relational/uniqueness):
+  Three account sections each open with <h2>Account Summary</h2>. Each heading is
+  present, non-empty, properly nested under the single <h1>, and h2 order is
+  sequential, so axe-core / WAVE / Lighthouse find nothing: empty-heading PASS,
+  heading-order PASS, page-has-heading-one PASS. "Account Summary" is a perfectly
+  ordinary, accurate heading for a block summarizing an account. The failure is
+  RELATIONAL: the page has THREE different accounts (Checking, Savings, Credit
+  Card) and a heading-list / heading-jump user hears "Account Summary, Account
+  Summary, Account Summary" with no way to land on the one they want. The fix
+  (G130) is to lead each heading with the distinguishing account: "Everyday
+  Checking — summary", etc. No static rule can detect that three sibling headings
+  fail to differentiate three real sections.
+-->
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Inter", system-ui, sans-serif; background:#eef1f6; color:#1c2330; }
+  header.bank { background:#06245a; color:#fff; padding:16px 30px; display:flex; justify-content:space-between; align-items:center; }
+  header.bank .logo { font-weight:800; letter-spacing:.5px; }
+  header.bank .who { font-size:.9rem; color:#bcd0ee; }
+  main { max-width:840px; margin:0 auto; padding:26px; }
+  h1 { font-size:1.6rem; margin:.2em 0 18px; }
+  .acct { background:#fff; border:1px solid #d8dfea; border-radius:12px; padding:18px 22px; margin-bottom:18px; }
+  .acct h2 { font-size:1.15rem; margin:0 0 4px; }
+  .acct .nick { font-weight:600; color:#06245a; }
+  .acct .num { font-size:.85rem; color:#6a7488; letter-spacing:.5px; }
+  .acct .bal { font-size:1.7rem; font-weight:800; margin:10px 0 2px; }
+  .acct .sub { font-size:.85rem; color:#6a7488; }
+  .acct .row { display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:10px; }
+  .acct .actions a { font-size:.88rem; color:#1769ff; text-decoration:none; margin-left:14px; }
+  .neg { color:#b00020; }
+  footer { text-align:center; color:#7c8499; font-size:.82rem; padding:24px; }
+</style>
+</head>
+<body>
+<header class="bank">
+  <span class="logo">MERIDIAN</span>
+  <span class="who">Signed in as J. Okafor · Sign out</span>
+</header>
+
+<main>
+  <h1>Your accounts overview</h1>
+
+  <section class="acct" aria-labelledby="h-checking">
+    <h2 id="h-checking">Account Summary</h2>
+    <div class="num">Everyday Checking · &bull;&bull;&bull;&bull; 4821</div>
+    <div class="row">
+      <div>
+        <div class="bal">$3,204.57</div>
+        <div class="sub">Available balance</div>
+      </div>
+      <div class="actions">
+        <a href="#">Transfer</a><a href="#">View transactions</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="acct" aria-labelledby="h-savings">
+    <h2 id="h-savings">Account Summary</h2>
+    <div class="num">High-Yield Savings · &bull;&bull;&bull;&bull; 9037</div>
+    <div class="row">
+      <div>
+        <div class="bal">$18,940.12</div>
+        <div class="sub">Available balance · 4.10% APY</div>
+      </div>
+      <div class="actions">
+        <a href="#">Transfer</a><a href="#">View transactions</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="acct" aria-labelledby="h-credit">
+    <h2 id="h-credit">Account Summary</h2>
+    <div class="num">Platinum Rewards Card · &bull;&bull;&bull;&bull; 1265</div>
+    <div class="row">
+      <div>
+        <div class="bal neg">&minus;$742.18</div>
+        <div class="sub">Current balance · payment due Jul 3</div>
+      </div>
+      <div class="actions">
+        <a href="#">Make a payment</a><a href="#">View transactions</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>Meridian Bank, N.A. · Member FDIC · Equal Housing Lender</footer>
+</body>
+</html>

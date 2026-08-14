@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>City of Ashford — Apply for a residential parking permit</title>
+<!--
+  SC 1.4.13 Content on Hover or Focus — HOVERABLE limb — PASSING counter-fixture.
+
+  This page is the deliberate PASS anchor for the F95 aspect. It is built so a
+  continuous pointer path keeps the tooltip visible, so PASS vs FAIL can both be
+  grounded against the SAME component (a "?" help tooltip beside a form field).
+
+  WHY IT PASSES the Hoverable condition:
+    1. SHARED HOVER REGION: the trigger button and the tooltip live inside one
+       wrapper (.help) and show/hide is keyed to the WRAPPER's mouseenter/mouseleave
+       (and to keyboard focus-within). Because the wrapper's bounding box encloses
+       BOTH the button and the tooltip, the wrapper stays hovered the whole way.
+    2. NO DEAD-ZONE: the tooltip is positioned ADJACENT/OVERLAPPING — it starts
+       flush against the button (a 4px overlap, no transparent gap) and the wrapper
+       is padded so there is no point on the trigger→tooltip path that is outside
+       the wrapper.
+    3. POPUP IS ITSELF HOVERABLE: the tooltip has pointer-events:auto AND its own
+       mouseenter that keeps it open (belt-and-suspenders with the wrapper). Moving
+       the pointer onto the tooltip does NOT hide it.
+    4. A small hide-DELAY (120ms) on mouseleave tolerates the instant the pointer
+       transitions between sub-elements, so it never flickers shut mid-travel.
+    5. DISMISSIBLE + PERSISTENT too: Esc closes it without moving the pointer, and
+       it does not auto-close on a timer. (Those satisfy the sibling limbs; the
+       aspect under test is Hoverable, which is the focus.)
+
+  WHY AUTOMATED TOOLS MISS IT (i.e., why a tool can't confirm the PASS either): no
+  automated engine evaluates 1.4.13 at all, so it can neither fail nor confirm this
+  page. Establishing the PASS requires a human to trace the pointer from the button
+  onto the tooltip and verify the shared hover region + popup mouseenter keep it
+  open — the same simulation the FAIL cases require, here resolving to PASS.
+-->
+<style>
+  :root{ --ink:#142033; --muted:#54627a; --line:#d7deea; --bg:#ffffff;
+         --brand:#10367a; --panel:#eef2fb; --ok:#1f7a3d; }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink);
+       font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  header{background:#10367a; color:#fff; padding:14px 26px; display:flex; align-items:center; gap:12px;}
+  header .seal{width:26px; height:26px; border-radius:50%; background:#cfe0ff;}
+  header .name{font-weight:700;}
+  main{max-width:640px; margin:0 auto; padding:28px 26px 60px;}
+  h1{font-size:1.45rem; margin:0 0 4px;}
+  .lede{color:var(--muted); margin:0 0 24px;}
+  form{display:grid; gap:18px;}
+  .field label{display:block; font-weight:600; margin-bottom:6px;}
+  .field input, .field select{
+    width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px; font:inherit;
+  }
+  .field input:focus, .field select:focus{outline:2px solid #10367a; outline-offset:1px;}
+  .row{display:flex; align-items:center; gap:8px;}
+
+  /* Shared-hover wrapper: its box encloses BOTH the button and the tooltip. */
+  .help{position:relative; display:inline-flex; align-items:center; padding:2px;}
+  button.help-btn{
+    appearance:none; width:22px; height:22px; border-radius:50%;
+    border:1px solid var(--line); background:var(--panel); color:#10367a;
+    font:700 12px/1 ui-monospace,monospace; cursor:help; padding:0;
+  }
+  button.help-btn:focus-visible{outline:2px solid #10367a; outline-offset:2px;}
+
+  /* Tooltip is ADJACENT/OVERLAPPING the trigger (4px overlap, no gap), hoverable,
+     and inside the shared wrapper. */
+  .tip{
+    position:absolute; left:50%; bottom:calc(100% - 4px);   /* 4px overlap, no dead-zone */
+    transform:translateX(-50%);
+    width:260px; background:#142033; color:#fff;
+    font-size:.85rem; line-height:1.4; padding:10px 12px; border-radius:8px;
+    box-shadow:0 8px 24px rgba(0,0,0,.22);
+    pointer-events:auto;                /* the popup CAN be hovered */
+    opacity:0; visibility:hidden; z-index:7;
+  }
+  .help.open .tip{opacity:1; visibility:visible;}
+  .tip::after{ content:""; position:absolute; left:50%; bottom:-6px; transform:translateX(-50%) rotate(45deg);
+               width:12px; height:12px; background:#142033; }
+  .actions{display:flex; gap:10px; margin-top:6px;}
+  .btn{font:inherit; border:none; border-radius:8px; padding:11px 18px; cursor:pointer;}
+  .btn.primary{background:#10367a; color:#fff; font-weight:600;}
+  .btn.ghost{background:var(--panel); color:#10367a;}
+  .hint{font-size:.85rem; color:var(--muted);}
+</style>
+</head>
+<body>
+<header>
+  <span class="seal" aria-hidden="true"></span>
+  <span class="name">City of Ashford</span>
+  <span style="opacity:.85;">Online Services</span>
+</header>
+
+<main>
+  <h1>Residential parking permit</h1>
+  <p class="lede">Apply for a permit for a vehicle registered at your address in Zones A–E.</p>
+
+  <form>
+    <div class="field">
+      <label for="plate">License plate</label>
+      <input id="plate" name="plate" autocomplete="off" placeholder="e.g. ASH-4417">
+    </div>
+
+    <div class="field">
+      <div class="row">
+        <label for="zone" style="margin:0;">Parking zone</label>
+        <!-- Shared-hover wrapper: button + adjacent hoverable tooltip in one region -->
+        <span class="help" id="zone-help">
+          <button type="button" class="help-btn" id="zone-trigger"
+                  aria-describedby="zone-tip" aria-label="How do I find my parking zone?">?</button>
+          <span class="tip" id="zone-tip" role="tooltip">
+            Your zone is printed on the renewal letter, top-right, as “Zone A–E”. No letter?
+            Look up your street in the <strong>Zone finder</strong> on this page. Press Esc to close.
+          </span>
+        </span>
+      </div>
+      <select id="zone" name="zone" style="margin-top:6px;">
+        <option value="">Select a zone</option>
+        <option>Zone A — Old Town</option>
+        <option>Zone B — Harbourside</option>
+        <option>Zone C — University</option>
+        <option>Zone D — Maple Heights</option>
+        <option>Zone E — Riverside</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="email">Email for confirmation</label>
+      <input id="email" name="email" type="email" placeholder="you@example.com">
+    </div>
+
+    <div class="actions">
+      <button type="submit" class="btn primary">Continue</button>
+      <button type="reset" class="btn ghost">Clear</button>
+    </div>
+    <p class="hint">Hover or focus the <strong>?</strong> beside “Parking zone” for help. The help text
+      stays open while you move onto it, and Esc closes it.</p>
+  </form>
+</main>
+
+<script>
+  // Hoverable-correct tooltip: a SHARED hover region (the .help wrapper encloses
+  // both the button and the tooltip), the popup is itself hoverable
+  // (pointer-events:auto + its own mouseenter), a small hide delay tolerates the
+  // sub-element transition, and Esc dismisses without moving the pointer.
+  (function () {
+    var wrap = document.getElementById('zone-help');
+    var tip  = document.getElementById('zone-tip');
+    var hideTimer = null;
+
+    function open()  { clearTimeout(hideTimer); wrap.classList.add('open'); }
+    function close() { wrap.classList.remove('open'); }
+    function scheduleClose() { clearTimeout(hideTimer); hideTimer = setTimeout(close, 120); }
+
+    // Keyed to the WRAPPER, whose box encloses both button and tooltip:
+    wrap.addEventListener('mouseenter', open);
+    wrap.addEventListener('mouseleave', scheduleClose);
+    // The popup itself is hoverable and cancels any pending close:
+    tip.addEventListener('mouseenter', open);
+    tip.addEventListener('mouseleave', scheduleClose);
+    // Keyboard parity:
+    wrap.addEventListener('focusin', open);
+    wrap.addEventListener('focusout', scheduleClose);
+    // Dismissible (sibling limb): Esc closes without moving the pointer/focus away.
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') close();
+    });
+  })();
+</script>
+</body>
+</html>

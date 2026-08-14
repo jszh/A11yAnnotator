@@ -37,10 +37,6 @@
   .card .foot { display: flex; align-items: center; justify-content: space-between; color: #7b8694; font-size: 12px; }
   .avatar { width: 22px; height: 22px; border-radius: 50%; background: #b9c4d2; display: inline-block; }
 
-  /* The card overflow ("…") menu button. It is HIDDEN by default and revealed when the
-     card is hovered OR when the button itself receives focus (:focus-within). It is a real
-     <button>, in the DOM and focusable; opacity:0 still allows focus, and the focus rule
-     un-hides it. So keyboard users CAN reach it. */
   .card .more {
     position: absolute;
     top: 8px; right: 8px;
@@ -137,12 +133,6 @@
   </div>
 
   <script>
-    // The "…" button is the ONLY way to move, assign, or archive a card. It is hidden by
-    // opacity:0 to keep the board clean — but opacity does NOT remove it from the tab order,
-    // and the CSS reveals it on BOTH `.card:hover .more` AND `.card .more:focus` /
-    // `.card:focus-within .more`. So a keyboard user Tabs to the button (it becomes visible
-    // on focus), presses Enter/Space, and the menu opens — exactly the same content the mouse
-    // user gets on hover. Modality-equivalent: hover and focus reveal the same control.
     document.querySelectorAll('.card .more').forEach(function (btn) {
       var menu = btn.parentElement.querySelector('.menu');
       function close() {
@@ -162,38 +152,11 @@
           menu.querySelector('button').focus();
         }
       });
-      // Esc closes and returns focus to the trigger.
       menu.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') { close(); btn.focus(); }
       });
     });
   </script>
 
-  <!--
-    WHY THIS PASSES SC 2.1.1 (keyboard) — THE MODALITY-EQUIVALENCE BOUNDARY:
-
-    The "…" overflow button is the ONLY way to move, assign, or archive a card — essential
-    functionality. It is visually hidden by default (opacity:0) so the board looks clean, which
-    superficially resembles case-02's hidden row actions. The critical difference is HOW it is
-    hidden and revealed:
-
-      • case-02 used `visibility:hidden`, which REMOVES the control from the tab order, and
-        revealed it only on `:hover` — keyboard users could never reach it. FAIL.
-      • here the control uses `opacity:0`, which keeps it FOCUSABLE and in the tab order, and
-        the CSS reveals it on BOTH `.card:hover .more` AND `.card .more:focus` /
-        `.card:focus-within .more`. A keyboard user Tabs to the button (it appears on focus),
-        presses Enter, and gets the identical menu the mouse user gets on hover. Esc closes and
-        restores focus. PASS.
-
-    This is the second human judgment the SC requires: does FOCUS actually reveal the SAME
-    content that HOVER does? Here it does — the hover and focus paths are equivalent and the
-    function is fully keyboard-operable. SC 2.1.1 is met.
-
-    An automated tool cannot make this call either way: it would see a focusable, named
-    <button> with aria-haspopup and a role="menu" in both case-02 and here, and could not
-    distinguish `visibility:hidden` (fails) from `opacity:0 + :focus reveal` (passes), nor
-    confirm that the keyboard reveal produces the same control. Distinguishing these is the
-    human visual/interaction judgment. Verdict: PASSED.
-  -->
 </body>
 </html>

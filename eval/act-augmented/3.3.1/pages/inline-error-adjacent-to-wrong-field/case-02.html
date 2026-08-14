@@ -15,7 +15,6 @@
   .lede { font-family: Arial, sans-serif; color:#4a4f57; font-size:.9rem; margin:0 0 28px; }
   fieldset { border:1px solid #c9ccd2; border-radius:4px; padding:20px 22px 8px; margin:0 0 24px; }
   legend { font-family: Arial, sans-serif; font-weight:700; font-size:.95rem; padding:0 8px; }
-  /* Two-column grid: each visual row holds a left field and a right field. */
   .grid2 { display:grid; grid-template-columns:1fr 1fr; column-gap:34px; row-gap:4px; }
   .cell { display:flex; flex-direction:column; margin-bottom:16px; }
   label { font-family: Arial, sans-serif; font-weight:600; font-size:.82rem; margin-bottom:5px; }
@@ -48,14 +47,11 @@
       <fieldset>
         <legend>Your legal name</legend>
         <div class="grid2">
-          <!-- LEFT column, row 1: First name -->
           <div class="cell">
             <label for="fname">First (given) name <span class="req">*</span></label>
             <input id="fname" name="firstName" type="text" value="Maria">
           </div>
 
-          <!-- RIGHT column, row 1: Last name. The inline error rendered HERE,
-               in the Last-name slot, names the FIRST-name field. -->
           <div class="cell">
             <label for="lname">Last (family) name <span class="req">*</span></label>
             <input id="lname" name="lastName" type="text" value="Delgado-Ruiz"
@@ -63,13 +59,11 @@
             <span class="inline-error">First name is required.</span>
           </div>
 
-          <!-- LEFT column, row 2: Middle initial -->
           <div class="cell">
             <label for="minit">Middle initial</label>
             <input id="minit" name="middleInitial" type="text" maxlength="1" value="C">
           </div>
 
-          <!-- RIGHT column, row 2: Preferred name -->
           <div class="cell">
             <label for="pname">Preferred name</label>
             <input id="pname" name="preferredName" type="text" value="">
@@ -81,20 +75,5 @@
     </form>
   </main>
 
-  <!--
-    WHY AUTOMATED TOOLS MISS IT
-    The error message "First name is required." is non-empty, visible, in the
-    accessibility tree, and describes the cause of an error — so it satisfies every
-    programmatic expectation of ACT 36b590. There is no aria-describedby tying the span
-    to ANY control, so no programmatic association exists for a rule to verify; the only
-    available identification cue is presentation (proximity), which the rule accepts.
-    But the span is laid out in the right column of row 1, directly under the Last name
-    input (which is even the one marked aria-invalid), while its text names the First name
-    field in the left column. The First name field actually has a value ("Maria") and is
-    not the field in error. A sighted reader scanning the column reads "First name is
-    required" against the Last name field and is misled. Static scanners have no spatial
-    grid model, so they cannot notice that the message's column position points at a
-    different field than its text names.
-  -->
 </body>
 </html>

@@ -4,28 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Assembling the Lindholm shelf bracket — quick guide</title>
-<!--
-  SC 1.3.2 — EXPECTED: FAIL (genuinely order-dependent steps scrambled in the DOM)
-
-  This is the contrast case: order IS meaningful here (assembly steps), and the DOM order is wrong.
-  The visible step bodies start with "First,", "Next,", "Then,", "Finally," — but the headings are
-  NOT numbered ("Attach the wall plate", "Hang the shelf", ...) and the steps are NOT in an <ol>;
-  they are sibling <div class="step"> cards in a flex container. CSS `order:` puts them in the
-  CORRECT visual sequence on screen, but in the DOM they are scrambled, so the linearized reading
-  order is: Hang the shelf -> Tighten -> Attach the wall plate -> Insert the shelf pins. Following
-  the spoken order, you would hang a shelf on a wall plate that has not yet been attached, and
-  tighten brackets that do not exist yet.
-
-  This is genuinely order-dependent content (an assembly procedure), so unlike cases 01-03 the
-  applicability gate IS tripped; and unlike the harmless nav/main reorder, reordering here breaks
-  meaning. The "First/Next/Then/Finally" cues in the prose are the only thing that reveals the DOM
-  order is wrong — there are no "Step N" numbers a tool could compare against position.
-
-  WHY AUTOMATED TOOLS MISS IT: divs + flex `order` are all valid; no numbered list, no missing
-  attribute. No 1.3.2 rule exists. Knowing these are sequential steps AND that the spoken order
-  ("Hang... before Attach the wall plate...") is nonsensical requires reading and understanding the
-  procedure — pure human semantic judgement.
--->
 <style>
   :root { --ink:#22272b; --muted:#5d676d; --line:#dfe4e6; --accent:#0b6e6e; --bg:#f4f6f6; }
   * { box-sizing:border-box; }
@@ -34,8 +12,6 @@
   h1 { font-size:1.6rem; margin:0 0 .2rem; }
   .lead { color:var(--muted); margin:0 0 1.6rem; }
 
-  /* Steps are flex siblings; CSS `order` renders them in the right VISUAL sequence,
-     but the DOM order (and therefore the AT reading order) is scrambled. */
   .steps { display:flex; flex-direction:column; gap:14px; }
   .step { background:#fff; border:1px solid var(--line); border-radius:10px; padding:16px 18px;
           display:flex; gap:16px; align-items:flex-start; }
@@ -45,7 +21,6 @@
   .step h2 { margin:0 0 .25rem; font-size:1.05rem; }
   .step p { margin:0; }
 
-  /* VISUAL order forced by CSS to be correct: plate -> pins -> shelf -> tighten. */
   #s-plate    { order:1; }
   #s-pins     { order:2; }
   #s-shelf    { order:3; }
@@ -64,7 +39,6 @@
 
     <div class="steps">
 
-      <!-- DOM #1 (visually 3rd): "Hang the shelf" — but this is the THIRD action. -->
       <div class="step" id="s-shelf">
         <span class="dot" aria-hidden="true">&#9679;</span>
         <div>
@@ -74,7 +48,6 @@
         </div>
       </div>
 
-      <!-- DOM #2 (visually 4th): "Tighten and check" — the LAST action. -->
       <div class="step" id="s-tighten">
         <span class="dot" aria-hidden="true">&#9679;</span>
         <div>
@@ -84,7 +57,6 @@
         </div>
       </div>
 
-      <!-- DOM #3 (visually 1st): "Attach the wall plate" — the FIRST action. -->
       <div class="step" id="s-plate">
         <span class="dot" aria-hidden="true">&#9679;</span>
         <div>
@@ -94,7 +66,6 @@
         </div>
       </div>
 
-      <!-- DOM #4 (visually 2nd): "Insert the bracket pins" — the SECOND action. -->
       <div class="step" id="s-pins">
         <span class="dot" aria-hidden="true">&#9679;</span>
         <div>

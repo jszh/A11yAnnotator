@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Listings — Cedar &amp; Co. Realty</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: #f4f5f3; color: #232a25;
+      font-family: ui-sans-serif, "Helvetica Neue", Arial, sans-serif;
+    }
+    .topbar { background: #14361f; color: #fff; padding: 1rem 1.6rem; }
+    .topbar strong { font-size: 1.2rem; letter-spacing: .03em; }
+    main { max-width: 1040px; margin: 0 auto; padding: 2rem 1.4rem 4rem; }
+    h1 { font-size: 1.7rem; margin: 0 0 .25rem; }
+    .sub { color: #5a6359; margin-top: 0; }
+
+    .grid {
+      display: grid; gap: 1.2rem;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      margin-top: 1.6rem;
+    }
+
+    /* Each listing is a card. The DESIGNER added a "lift + ring" interaction
+       in the page builder, bound to the card wrapper, to make the whole tile
+       feel responsive. Because :focus-within bubbles from any descendant that
+       gains focus, it appears to "cover" keyboard focus too. */
+    .card {
+      background: #fff; border-radius: 12px; overflow: hidden;
+      border: 1px solid #e1e5df;
+      transition: box-shadow .18s ease, transform .18s ease;
+    }
+    .card:hover,
+    .card:focus-within {
+      box-shadow: 0 10px 26px rgba(20,54,31,.18);
+      transform: translateY(-3px);
+    }
+
+    .card .photo { height: 160px; background: linear-gradient(135deg,#9db89f,#6f8f73); }
+    .card .body { padding: .9rem 1rem 1.1rem; }
+    .card .price { font-size: 1.25rem; font-weight: 700; color: #14361f; }
+    .card .addr { margin: .15rem 0 .4rem; }
+
+    /* The real focusable element is THIS link. Its UA outline was stripped so the
+       "tile lift" reads as the only feedback. The lift renders on the WRAPPER,
+       far from where the focus actually is, and is visually identical to hover. */
+    .card .addr a {
+      color: #14361f; text-decoration: none; font-weight: 600;
+    }
+    .card .addr a:focus { outline: none; }
+    .card .addr a:hover { text-decoration: underline; }
+
+    .meta { color: #5a6359; font-size: .9rem; display: flex; gap: 1rem; }
+    .meta span::before { content: "• "; color: #9db89f; }
+    .meta span:first-child::before { content: ""; }
+  </style>
+</head>
+<body>
+  <header class="topbar"><strong>Cedar &amp; Co. Realty</strong></header>
+  <main>
+    <h1>Homes in Linden Heights</h1>
+    <p class="sub">12 active listings · updated this morning</p>
+
+    <div class="grid">
+      <article class="card">
+        <div class="photo" role="img" aria-label="Front exterior of 48 Larch Court"></div>
+        <div class="body">
+          <div class="price">$429,000</div>
+          <p class="addr"><a href="/listing/larch-court-48">48 Larch Court</a></p>
+          <div class="meta"><span>3 bd</span><span>2 ba</span><span>1,740 sqft</span></div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="photo" role="img" aria-label="Front exterior of 12 Birchwood Lane"></div>
+        <div class="body">
+          <div class="price">$515,000</div>
+          <p class="addr"><a href="/listing/birchwood-lane-12">12 Birchwood Lane</a></p>
+          <div class="meta"><span>4 bd</span><span>3 ba</span><span>2,310 sqft</span></div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="photo" role="img" aria-label="Front exterior of 7 Sycamore Place"></div>
+        <div class="body">
+          <div class="price">$372,500</div>
+          <p class="addr"><a href="/listing/sycamore-place-7">7 Sycamore Place</a></p>
+          <div class="meta"><span>2 bd</span><span>1 ba</span><span>1,120 sqft</span></div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="photo" role="img" aria-label="Front exterior of 30 Maple Ridge Road"></div>
+        <div class="body">
+          <div class="price">$648,000</div>
+          <p class="addr"><a href="/listing/maple-ridge-30">30 Maple Ridge Road</a></p>
+          <div class="meta"><span>5 bd</span><span>4 ba</span><span>3,050 sqft</span></div>
+        </div>
+      </article>
+    </div>
+  </main>
+
+  <!--
+    WHY THIS FAILS SC 2.4.7 (Focus Visible) AND WHY AUTOMATED TOOLS MISS IT
+    ----------------------------------------------------------------------
+    There IS a visual change on Tab: focusing the listing link triggers
+    `.card:focus-within`, lifting the card and drawing a shadow. But that
+    indicator sits on the WRAPPER <article>, not on the focused link, and it is
+    pixel-identical to the :hover state. Two problems make it fail for a keyboard
+    user: (1) the indicated region is the entire tile, so when several cards are
+    on screen the user cannot tell WHICH element inside the lifted card holds
+    focus — the actual target's own outline was removed (`a:focus{outline:none}`);
+    (2) the lift is ambiguous with hover and does not mark the focused control.
+    A naive pixel-diff under programmatic focus WOULD see a change (the lift), so
+    even a diff-based check like oj04fd can be fooled — the change is real but is
+    not a focus indicator ON the focused element.
+
+    Automated tools miss it because a perceptible change does occur on focus, so
+    any "did anything change?" heuristic passes. Judging that the change is on the
+    wrong node, is hover-ambiguous, and leaves the real target bare requires a
+    human to reason about WHICH element focus is on versus WHERE the feedback
+    appears.
+  -->
+</body>
+</html>

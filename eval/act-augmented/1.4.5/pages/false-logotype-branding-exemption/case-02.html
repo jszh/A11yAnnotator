@@ -3,31 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!--
-    SC 1.4.5 FAILURE — a section HEADING dressed up with class="logo" + role="img" to claim
-    the logotype exemption, on a SaaS pricing page.
-
-    The page has a real brand logo in the top bar: <span> with the live word "Quanta" — that
-    is fine (and it is even live text, no issue). The 1.4.5 trap is further down: the pricing
-    section's heading "Our 2026 Pricing Plans" is rendered as an inline-SVG <text> IMAGE,
-    wrapped in <div class="logo" role="img" aria-label="Our 2026 Pricing Plans">, using the
-    same brand display face. The author argues "the section title is part of the brand look,
-    so it's branding and exempt."
-
-    It is NOT. "Our 2026 Pricing Plans" is the page's section HEADING — ordinary informational
-    text. WCAG even lists "Styled Headings" as the canonical thing that must be CSS text, not a
-    bitmap. A heading is not a logo or brand name; the branding/logotype exemption does not
-    reach it. The text should be a live <h2> styled with CSS so a user can resize/recolour it.
-
-    Note the heading is ALSO not exposed as a heading to AT (it's role="img"), but the ASPECT
-    under test is the 1.4.5 image-of-text-styled-as-branding judgment, not the missing heading
-    role.
-
-    WHY AUTOMATED TOOLS MISS IT: the role="img" element HAS an accessible name (aria-label), so
-    axe's "image must have alt"/"role=img needs name" checks PASS. Nothing flags that the
-    image's pixels are the section heading rather than a logo. Deciding "this styled title is
-    informational text, not branding" is a human semantic call.
-  -->
   <title>Pricing — Quanta Analytics</title>
   <style>
     :root { --ink:#16181d; --violet:#5b3df5; --muted:#6a7180; --line:#e7e9ef; --bg:#fbfbfe; }
@@ -39,7 +14,6 @@
     .topbar nav a { color:var(--ink); text-decoration:none; font-size:14px; }
     .topbar nav a:hover { color:var(--violet); }
     main { max-width:980px; margin:0 auto; padding:40px 24px; }
-    /* The section heading is delivered as an IMAGE wearing the brand styling. */
     .section-head { text-align:center; margin-bottom:8px; }
     .section-head .logo { display:inline-block; }
     .section-head .logo img, .section-head .logo svg { height:40px; width:auto; }
@@ -58,7 +32,6 @@
 </head>
 <body>
   <header class="topbar">
-    <!-- Genuine brand name as LIVE text — fine, no 1.4.5 issue here. -->
     <span class="brand">Quanta</span>
     <nav aria-label="Primary">
       <a href="#product">Product</a>
@@ -69,11 +42,6 @@
 
   <main>
     <div class="section-head">
-      <!--
-        THE 1.4.5 VIOLATION: the section heading is a flat IMAGE wrapped as class="logo"
-        role="img" so it is argued to be "branding". It is a styled heading = informational
-        text that must be live, resizable CSS text.
-      -->
       <div class="logo" role="img" aria-label="Our 2026 Pricing Plans">
         <img alt=""
              src="data:image/svg+xml;utf8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='460'%20height='48'%20viewBox='0%200%20460%2048'%3E%3Ctext%20x='230'%20y='38'%20fill='%235b3df5'%20font-family='Georgia,serif'%20font-size='38'%20font-weight='bold'%20text-anchor='middle'%3EOur%202026%20Pricing%20Plans%3C/text%3E%3C/svg%3E">

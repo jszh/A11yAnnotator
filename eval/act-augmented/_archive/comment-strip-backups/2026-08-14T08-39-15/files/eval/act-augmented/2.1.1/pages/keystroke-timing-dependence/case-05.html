@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pixel Forge — Limited drop</title>
+<style>
+  body { font:15px/1.55 system-ui,Segoe UI,Roboto,Arial,sans-serif; margin:0; color:#e7ecf3; background:#0c1018; }
+  .hero { max-width: 760px; margin:0 auto; padding: 40px 22px 90px; }
+  .kicker { color:#7dd3fc; font:600 12px/1 ui-monospace,Menlo,monospace; letter-spacing:.18em; text-transform:uppercase; }
+  h1 { font-size:30px; margin:8px 0 10px; }
+  .sub { color:#9aa6b6; margin:0 0 26px; max-width:52ch; }
+  .grid { display:grid; grid-template-columns: 1.2fr 1fr; gap:22px; }
+  @media (max-width:680px){ .grid{ grid-template-columns:1fr; } }
+  .product { background:#131a26; border:1px solid #233044; border-radius:14px; padding:20px; }
+  .product .thumb { height:160px; border-radius:10px; background:
+        radial-gradient(circle at 30% 30%, #7c3aed, #1e293b 70%); margin-bottom:14px; }
+  .price { font-size:24px; font-weight:800; }
+  .price s { color:#6b7280; font-size:16px; font-weight:500; margin-right:8px; }
+  .panel { background:#131a26; border:1px solid #233044; border-radius:14px; padding:20px; }
+  .panel h2 { font-size:15px; margin:0 0 10px; }
+  .panel p { color:#9aa6b6; font-size:13.5px; }
+  .combo { display:flex; gap:6px; margin:12px 0; flex-wrap:wrap; }
+  .key { font:12px ui-monospace,Menlo,monospace; background:#0c1018; border:1px solid #2c3b52; border-radius:6px; padding:4px 9px; }
+  .vault { margin-top:14px; padding:12px 14px; border-radius:10px; background:#0c1018; border:1px dashed #2c3b52; }
+  .vault.unlocked { border-color:#22c55e; background:#0f2417; }
+  .vault .code { font:700 18px ui-monospace,Menlo,monospace; letter-spacing:.12em; color:#22c55e; }
+  .vault .locked { color:#6b7280; }
+  .cta { margin-top:26px; }
+  .btn { font:600 14px inherit; border:0; border-radius:9px; padding:11px 16px; cursor:pointer; background:#7c3aed; color:#fff; }
+  .field { margin-top:22px; }
+  .field label { display:block; font-size:13px; color:#9aa6b6; margin-bottom:5px; }
+  .field input { padding:10px 12px; border-radius:8px; border:1px solid #2c3b52; background:#0c1018; color:#e7ecf3; font:inherit; width:220px; }
+  .status { margin-top:10px; min-height:18px; font-size:13px; color:#facc15; }
+  .note { margin-top:40px; padding:16px 18px; background:#101725; border:1px solid #233044; border-radius:10px; font-size:12.5px; color:#9aa6b6; }
+  .note code { background:#0c1018; border:1px solid #2c3b52; padding:1px 5px; border-radius:4px; }
+</style>
+</head>
+<body>
+<div class="hero">
+  <div class="kicker">Founders' Drop</div>
+  <h1>Pixel Forge Mechanical Keycaps</h1>
+  <p class="sub">Limited run of 500. Members who know the combo unlock the founders' price.</p>
+
+  <div class="grid">
+    <section class="product" aria-labelledby="ph">
+      <h2 id="ph" style="position:absolute;left:-9999px">Product</h2>
+      <div class="thumb" aria-hidden="true"></div>
+      <div class="price" id="price"><s>$89</s> $89.00</div>
+      <p class="sub" style="margin:6px 0 0">Doubleshot PBT, 142-key set, GMK-compatible.</p>
+    </section>
+
+    <section class="panel" aria-labelledby="uh" id="unlockPanel" tabindex="0"
+             aria-label="Founders' code vault. Enter the unlock combo.">
+      <h2 id="uh">Unlock the founders' price</h2>
+      <p>Enter the combo on your keyboard to reveal the discount code:</p>
+      <div class="combo" aria-hidden="true">
+        <span class="key">↑</span><span class="key">↑</span><span class="key">↓</span>
+        <span class="key">↓</span><span class="key">B</span><span class="key">A</span>
+      </div>
+      <div class="vault" id="vault">
+        <span class="locked" id="vaultText">🔒 Locked — enter the combo to reveal your code</span>
+      </div>
+    </section>
+  </div>
+
+  <div class="field">
+    <label for="promo">Promo code</label>
+    <input type="text" id="promo" placeholder="Enter code to apply" autocomplete="off">
+    <div class="cta"><button class="btn" id="apply" type="button">Apply &amp; checkout</button></div>
+    <p class="status" id="status" role="status" aria-live="polite"></p>
+  </div>
+
+  <div class="note">
+    <p><strong>Why automated checkers pass this page:</strong> Everything visible is well-formed and
+    reachable — the unlock panel is focusable and named, the promo field has a label, the checkout
+    button is a real button. axe-core / WAVE / Lighthouse find nothing wrong. The barrier is that the
+    discount code (an <em>essential</em> function — it is the only way to get the founders' price)
+    is revealed only when the full 6-key combo <code>↑ ↑ ↓ ↓ B A</code> is entered with each
+    keystroke landing within <strong>600&nbsp;ms of the previous one</strong>; pause too long between
+    any two keys and the sequence resets to the start. There is no untimed way to obtain the code —
+    no "reveal code" button, no link. Users who cannot sustain a 6-key burst at that cadence cannot
+    get the price. This is a second-limb SC 2.1.1 timing failure (multiple keystrokes within a short
+    period), undetectable by static analysis.</p>
+  </div>
+</div>
+
+<script>
+(function () {
+  var SEQ = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','b','a'];
+  var WINDOW_MS = 600;          // each key must follow the previous within this window
+  var idx = 0, lastAt = 0;
+  var vault = document.getElementById('vault');
+  var vaultText = document.getElementById('vaultText');
+  var promo = document.getElementById('promo');
+  var price = document.getElementById('price');
+  var status = document.getElementById('status');
+  var apply = document.getElementById('apply');
+  var REVEALED_CODE = 'FORGE-FOUNDER-30';
+  var unlocked = false;
+
+  function reset(){ idx = 0; }
+
+  // Essential function (revealing the only discount code) is gated behind a fast burst:
+  // the whole 6-key sequence must be entered with <600ms between consecutive keys.
+  // Any slower gap resets progress to the first key. No untimed reveal path exists.
+  document.addEventListener('keydown', function (e) {
+    if (unlocked) return;
+    var now = Date.now();
+    var want = SEQ[idx];
+    var got = (e.key.length === 1) ? e.key.toLowerCase() : e.key;
+    var wanted = (want.length === 1) ? want.toLowerCase() : want;
+
+    if (idx > 0 && (now - lastAt) > WINDOW_MS) {
+      reset();                  // too slow → start over (timing gate)
+    }
+
+    if (got === wanted) {
+      idx++; lastAt = now;
+      if (idx === SEQ.length) {
+        unlocked = true;
+        vault.classList.add('unlocked');
+        vaultText.outerHTML = '<span class="code" id="vaultText">' + REVEALED_CODE + '</span>';
+      }
+    } else {
+      // wrong key restarts (and re-checks if this key happens to be the first of SEQ)
+      reset();
+      if (got === ((SEQ[0].length===1)?SEQ[0].toLowerCase():SEQ[0])) { idx = 1; lastAt = now; }
+    }
+  });
+
+  apply.addEventListener('click', function () {
+    if (promo.value.trim().toUpperCase() === REVEALED_CODE) {
+      price.innerHTML = '<s>$89</s> $59.00';
+      status.style.color = '#22c55e';
+      status.textContent = 'Founders’ price applied: $59.00. Proceeding to checkout…';
+    } else {
+      status.style.color = '#facc15';
+      status.textContent = 'That code isn’t valid. Unlock the founders’ code with the combo.';
+    }
+  });
+})();
+</script>
+</body>
+</html>

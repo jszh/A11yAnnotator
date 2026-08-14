@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Set a new password — Cadence HR</title>
+<style>
+  :root { --ink:#1d2733; --line:#d3dae2; --brand:#3949ab; --err:#d23b3b; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Inter",system-ui,Arial,sans-serif; color:var(--ink); background:#eef1f7; }
+  .wrap { max-width:440px; margin:54px auto; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:32px 34px;
+          box-shadow:0 4px 18px rgba(57,73,171,.08); }
+  .logo { display:flex; align-items:center; gap:9px; margin-bottom:22px; }
+  .logo .dot { width:24px; height:24px; border-radius:6px; background:var(--brand); }
+  .logo span { font-weight:800; letter-spacing:.4px; color:var(--brand); }
+  h1 { font-size:1.3rem; margin:0 0 4px; }
+  p.intro { margin:0 0 22px; color:#5c6873; font-size:.92rem; }
+  label { display:block; font-weight:600; font-size:.85rem; margin:16px 0 6px; }
+  .field { display:flex; align-items:center; gap:8px; }
+  .field input { flex:1; padding:11px 12px; border:1px solid var(--line); border-radius:7px; font-size:1rem; }
+  .field input.bad { border-color:var(--err); }
+  .field input:focus { outline:3px solid #2f80c8; outline-offset:1px; }
+  .ico { width:22px; height:22px; flex:0 0 auto; }
+  ul.rules { margin:8px 2px 0; padding-left:18px; font-size:.8rem; color:#6a7682; }
+  ul.rules li.met { color:#2e7d32; }
+  ul.rules li.unmet { color:var(--err); font-weight:600; }
+  .submit { margin-top:24px; width:100%; padding:13px; border:0; border-radius:7px;
+            background:var(--brand); color:#fff; font-size:1rem; font-weight:600; cursor:pointer; }
+  .foot { text-align:center; color:#8a96a1; font-size:.74rem; margin-top:16px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div class="logo"><span class="dot"></span><span>Cadence HR</span></div>
+    <h1>Set a new password</h1>
+    <p class="intro">For <strong>m.okonkwo@cadence-hr.com</strong>. Your password must meet the policy below.</p>
+
+    <!--
+      WHY AUTOMATED TOOLS MISS THIS
+      The user DID fill the password field (value "summer7"), so it is NOT empty — the actual
+      error is that the password is too short (7 chars; policy requires 10). On the failed submit,
+      a jQuery-validation-plugin template was wired up so that every invalid field renders the
+      SAME shared error icon whose alt is hardcoded to the plugin's default "required" string.
+      The image HAS a non-empty alt ("This field is required"), so axe/WAVE/Lighthouse see a
+      properly-labelled image and a properly described aria-errormessage relationship — nothing
+      to flag (alt present, aria wiring intact, contrast fine). The defect is SEMANTIC: the alt
+      names the WRONG CAUSE. A screen-reader user hears "This field is required" for a field they
+      already filled, sending them to re-type something that is in fact present, never learning
+      the real problem (too short). Only a human comparing the alt's meaning to the field's true
+      state (filled-but-too-short) can detect that the text alternative misstates the error.
+    -->
+
+    <form action="#" method="post" novalidate>
+      <label for="newpw">New password</label>
+      <div class="field">
+        <input type="password" id="newpw" name="newpw" class="bad" aria-invalid="true"
+               aria-errormessage="newpw-icon" value="summer7" autocomplete="new-password">
+        <img id="newpw-icon" class="ico" alt="This field is required"
+             src="data:image/svg+xml;utf8,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'&gt;&lt;path d='M11 1 L21 20 H1 Z' fill='%23d23b3b'/&gt;&lt;rect x='10' y='7' width='2' height='7' fill='white'/&gt;&lt;circle cx='11' cy='17' r='1.2' fill='white'/&gt;&lt;/svg&gt;">
+      </div>
+      <ul class="rules">
+        <li class="met">Contains a number</li>
+        <li class="unmet">At least 10 characters (yours has 7)</li>
+        <li class="met">Contains a lowercase letter</li>
+      </ul>
+
+      <label for="confirmpw">Confirm new password</label>
+      <div class="field">
+        <input type="password" id="confirmpw" name="confirmpw" value="summer7" autocomplete="new-password">
+      </div>
+
+      <button type="submit" class="submit">Update password</button>
+    </form>
+    <p class="foot">Cadence HR &middot; Need help? Contact your workspace admin.</p>
+  </div>
+</div>
+</body>
+</html>

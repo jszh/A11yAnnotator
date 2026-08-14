@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Meridian Health — Patient Portal</title>
+  <style>
+    :root { font-family: "IBM Plex Sans", system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f7f9fb; color: #16202c; }
+    .nav { display: flex; align-items: center; gap: 30px; padding: 0 28px; height: 64px;
+      background: #ffffff; border-bottom: 1px solid #e6ebf0; }
+    .brand-lockup { display: flex; align-items: center; gap: 8px; }
+    /* The wordmark PASSES: dark teal #0c5c50 on white ≈ 7.9:1. It is the real logotype. */
+    .brand-lockup .mark { font-weight: 800; font-size: 22px; color: #0c5c50;
+      letter-spacing: -.3px; }
+    /* The "BETA" pill sits inside the lockup, so it LOOKS like part of the logo. But it is
+       a product STATUS label (this portal is in beta), not the brand mark. Muted gold
+       #b6a45f on white ≈ 2.48:1 — below 4.5:1. */
+    .brand-lockup .beta { font-size: 11px; font-weight: 700; letter-spacing: 1px;
+      text-transform: uppercase; color: #b6a45f; border: 1px solid #e4dcc2;
+      border-radius: 999px; padding: 2px 8px; }
+    .nav nav { display: flex; gap: 22px; margin-left: 8px; }
+    .nav nav a { color: #2c3a48; text-decoration: none; font-size: 15px; }
+    .nav nav a[aria-current="page"] { color: #0c5c50; font-weight: 600; }
+    .nav .right { margin-left: auto; font-size: 14px; color: #41506180; }
+    .nav .right strong { color: #16202c; font-weight: 600; }
+    main { max-width: 880px; margin: 0 auto; padding: 30px 28px; }
+    h1 { font-size: 1.6rem; margin: 0 0 6px; }
+    .muted { color: #41525f; margin: 0 0 22px; }
+    .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .panel { background: #fff; border: 1px solid #e6ebf0; border-radius: 12px; padding: 18px; }
+    .panel h2 { font-size: 1.05rem; margin: 0 0 8px; }
+    .panel p { margin: 0; color: #41525f; font-size: .95rem; }
+    .panel a { color: #0c5c50; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="nav">
+      <div class="brand-lockup">
+        <!-- The wordmark is the exempt logotype AND passes contrast anyway (7.9:1). -->
+        <span class="mark">Meridian Health</span>
+        <!-- The BETA pill is visually glued into the brand lockup, but it is a product
+             status label, NOT part of the logo. It must meet 4.5:1; it is at ~2.48:1. -->
+        <span class="beta">Beta</span>
+      </div>
+      <nav aria-label="Portal">
+        <a href="/dashboard" aria-current="page">Dashboard</a>
+        <a href="/appointments">Appointments</a>
+        <a href="/records">Records</a>
+        <a href="/messages">Messages</a>
+      </nav>
+      <span class="right">Signed in as <strong>R. Okonkwo</strong></span>
+    </div>
+  </header>
+
+  <main>
+    <h1>Good afternoon, Rita</h1>
+    <p class="muted">You have 1 upcoming appointment and 2 unread messages.</p>
+
+    <div class="cards">
+      <section class="panel">
+        <h2>Next appointment</h2>
+        <p>Endocrinology · Tue 23 Jun, 10:15 · Dr. Aliyev · <a href="/appt/8841">View details</a></p>
+      </section>
+      <section class="panel">
+        <h2>Prescriptions</h2>
+        <p>2 active · 1 refill available · <a href="/rx">Manage prescriptions</a></p>
+      </section>
+    </div>
+  </main>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS:
+    The brand lockup contains two strings: "Meridian Health" (#0c5c50 on white, ~7.9:1 —
+    passes, and is the exempt logotype anyway) and a "Beta" pill (#b6a45f on white,
+    ~2.48:1 — fails). Because the pill is positioned INSIDE the .brand-lockup next to the
+    wordmark, it visually reads as part of the logo, and a reviewer might extend the
+    logotype exemption to it. It is NOT the logo: "Beta" is a product STATUS label telling
+    the user this portal is pre-release — informative content, not a brand mark. WCAG: the
+    exemption covers the logo/logotype, and "brand guidelines beyond logo and logotype are
+    not included in the exception." Deciding that the wordmark is exempt while the adjacent
+    badge is a separate, non-exempt status label requires parsing meaning and the lockup's
+    composition — axe/WAVE/Lighthouse compute the 2.48:1 ratio but cannot decide which
+    span is "the logo" and which is smuggled-in status text. Correct verdict: failed (the
+    Beta badge), even though the wordmark itself is fine.
+  -->
+</body>
+</html>

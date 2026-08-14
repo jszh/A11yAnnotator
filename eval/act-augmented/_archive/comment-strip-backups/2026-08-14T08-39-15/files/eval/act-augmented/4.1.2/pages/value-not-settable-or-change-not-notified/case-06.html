@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Choose delivery speed — Northfield Outfitters Checkout</title>
+<style>
+  body { font-family: "Helvetica Neue", Arial, sans-serif; margin:0; background:#f3f4f6; color:#1f2937; }
+  .bar { background:#111827; color:#fff; padding:14px 24px; font-weight:600; }
+  .panel { max-width:560px; margin:30px auto; background:#fff; border-radius:10px; padding:26px 28px; box-shadow:0 1px 4px rgba(0,0,0,.08); }
+  h1 { font-size:1.25rem; margin:0 0 4px; }
+  .sub { color:#6b7280; margin:0 0 20px; font-size:.9rem; }
+  .segmented { display:flex; flex-direction:column; gap:10px; }
+  .opt {
+    border:2px solid #e5e7eb; border-radius:8px; padding:14px 16px; cursor:pointer;
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .opt:focus-visible { outline:3px solid #2563eb; outline-offset:2px; }
+  .opt[aria-checked="true"] { border-color:#2563eb; background:#eff6ff; }
+  .opt .label { font-weight:600; }
+  .opt .meta { color:#6b7280; font-size:.85rem; }
+  .opt .price { font-weight:700; }
+  .opt .tick { color:#2563eb; font-weight:700; margin-left:10px; visibility:hidden; }
+  .opt[aria-checked="true"] .tick { visibility:visible; }
+  .next { margin-top:22px; background:#2563eb; color:#fff; border:0; padding:12px 26px; border-radius:6px; font-size:1rem; cursor:pointer; }
+</style>
+</head>
+<body>
+<div class="bar">Northfield Outfitters — Checkout</div>
+<div class="panel">
+  <h1>Choose delivery speed</h1>
+  <p class="sub">Step 2 of 3 • Use the arrow keys to move between options.</p>
+
+  <div class="segmented" role="radiogroup" aria-label="Delivery speed">
+    <div class="opt" role="radio" tabindex="0" aria-checked="true" data-price="Free">
+      <div><div class="label">Standard</div><div class="meta">Arrives in 5–7 business days</div></div>
+      <div><span class="price">Free</span><span class="tick" aria-hidden="true">✓</span></div>
+    </div>
+    <div class="opt" role="radio" tabindex="-1" aria-checked="false" data-price="$9.99">
+      <div><div class="label">Express</div><div class="meta">Arrives in 2 business days</div></div>
+      <div><span class="price">$9.99</span><span class="tick" aria-hidden="true">✓</span></div>
+    </div>
+    <div class="opt" role="radio" tabindex="-1" aria-checked="false" data-price="$24.99">
+      <div><div class="label">Overnight</div><div class="meta">Arrives next business day</div></div>
+      <div><span class="price">$24.99</span><span class="tick" aria-hidden="true">✓</span></div>
+    </div>
+  </div>
+
+  <button class="next" type="button">Continue to payment</button>
+</div>
+
+<script>
+/*
+  BOUNDARY / PASS variant. This is the same family of custom control (a radio group built
+  from divs) but it correctly satisfies the 4.1.2 set + notify limb:
+    - selecting an option (mouse OR keyboard) reassigns aria-checked on every radio,
+    - it implements the APG roving-tabindex + Arrow-key pattern so the value is fully
+      SETTABLE via AT/keyboard,
+    - the non-color tick (✓) is driven off the same aria-checked attribute, so the
+      programmatic state and the visible state can never diverge.
+  Role, name, and value are all present AND the value is programmatically settable and its
+  change is notified to AT. Included to sharpen the aspect: the FAILING pages differ from
+  this one only in that their handlers update visuals without updating the exposed value.
+*/
+(function () {
+  var radios = Array.prototype.slice.call(document.querySelectorAll('.opt[role="radio"]'));
+
+  function select(target) {
+    radios.forEach(function (r) {
+      var on = r === target;
+      r.setAttribute('aria-checked', on ? 'true' : 'false'); // programmatic state IS updated
+      r.tabIndex = on ? 0 : -1;
+    });
+    target.focus();
+  }
+
+  radios.forEach(function (radio, idx) {
+    radio.addEventListener('click', function () { select(radio); });
+    radio.addEventListener('keydown', function (e) {
+      var next;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowRight') { next = radios[(idx + 1) % radios.length]; }
+      else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') { next = radios[(idx - 1 + radios.length) % radios.length]; }
+      else if (e.key === ' ' || e.key === 'Enter') { next = radio; }
+      if (next) { e.preventDefault(); select(next); }
+    });
+  });
+})();
+</script>
+</body>
+</html>

@@ -57,7 +57,6 @@
         <tr><th>Order</th><th>Customer</th><th>Total</th><th>Status</th><th><span class="sr" style="position:absolute;left:-9999px">Actions</span></th></tr>
       </thead>
       <tbody>
-        <!-- ROW 1: action menu CORRECTLY returns focus to its trigger on close (PASS path) -->
         <tr>
           <td>#LG-90412</td><td>R. Okafor</td><td>$128.00</td>
           <td><span class="status paid">Paid</span></td>
@@ -73,7 +72,6 @@
             </div>
           </td>
         </tr>
-        <!-- ROW 2: VISUALLY IDENTICAL menu, but on close focus is reset to body (FAIL path) -->
         <tr>
           <td>#LG-90411</td><td>S. Mehta</td><td>$54.50</td>
           <td><span class="status hold">On hold</span></td>
@@ -121,37 +119,32 @@
 </div>
 
 <script>
-  // ROW 1: the "good" menu — closing (selecting an item or Escape) returns focus to its trigger.
   (function () {
     var trg = document.getElementById('trg-1');
     var menu = document.getElementById('menu-1');
     function open() { menu.classList.add('open'); trg.setAttribute('aria-expanded','true'); menu.querySelector('[role=menuitem]').focus(); }
     function close(returnFocus) {
       menu.classList.remove('open'); trg.setAttribute('aria-expanded','false');
-      if (returnFocus) trg.focus();          // <-- correct: focus back to trigger
+      if (returnFocus) trg.focus();          
     }
     trg.addEventListener('click', function () { menu.classList.contains('open') ? close(true) : open(); });
     menu.addEventListener('click', function (e) { if (e.target.closest('[role=menuitem]')) close(true); });
     menu.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(true); });
   })();
 
-  // ROW 2: the "twin" menu — IDENTICAL markup and styling, but closing it blurs the
-  // active item without returning focus to the trigger, so focus drops to <body> and the
-  // next Tab restarts from the sidebar nav. THIS is the F85 close-branch failure.
   (function () {
     var trg = document.getElementById('trg-2');
     var menu = document.getElementById('menu-2');
     function open() { menu.classList.add('open'); trg.setAttribute('aria-expanded','true'); menu.querySelector('[role=menuitem]').focus(); }
     function close() {
       menu.classList.remove('open'); trg.setAttribute('aria-expanded','false');
-      if (document.activeElement) document.activeElement.blur();   // <-- defect: focus -> body
+      if (document.activeElement) document.activeElement.blur();   
     }
     trg.addEventListener('click', function () { menu.classList.contains('open') ? close() : open(); });
     menu.addEventListener('click', function (e) { if (e.target.closest('[role=menuitem]')) close(); });
     menu.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
   })();
 
-  // Rows 3 & 4: also correct (return focus to trigger).
   ['3','4'].forEach(function (n) {
     var trg = document.getElementById('trg-' + n);
     var menu = document.getElementById('menu-' + n);
@@ -163,18 +156,5 @@
   });
 </script>
 
-<!--
-  WHY AUTOMATED TOOLS MISS THIS
-  Every menu on this page is structurally identical and structurally valid: a real
-  <button> trigger with aria-haspopup + aria-expanded, a role="menu" with role="menuitem"
-  children, accessible names, and correct on-open focus. The ONLY difference between the
-  passing rows (1,3,4) and the failing row (2) is the close handler: rows 1/3/4 call
-  trg.focus(); row 2 calls document.activeElement.blur(), dropping focus to <body>. axe,
-  WAVE, and Lighthouse cannot tell these four identical-looking menus apart — they never
-  open each one, dismiss it, and observe where focus lands. Distinguishing the broken twin
-  requires a human to operate each menu by keyboard and notice that closing row 2 throws
-  focus to the top of the page while the others restore it to the trigger. The page FAILS
-  because of row 2.
--->
 </body>
 </html>

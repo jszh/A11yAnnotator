@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Green Line — Metrolink service updates</title>
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS (SC 2.1.2, F10 — advice present but FALSE):
+    An interactive route diagram is embedded as a separate SVG document via
+    <object type="image/svg+xml" data="case-05-map.svg">. The SVG's four station <a>
+    elements are focusable; the SVG's own script loops forward Tab from the last station
+    back to the first, so Tab cycles among the stations forever and never crosses the
+    <object> boundary forward to the parent page's "Next: fares & passes" link.
+    The cruel twist: the paragraph immediately BEFORE the diagram reads "Tab through the
+    diagram, then Tab again to continue to fares." That is exactly the kind of exit advice
+    G21 says can rescue a trap — EXCEPT it is false. There is no "Tab again" that exits;
+    the extra Tab just re-enters the loop. So a human who trusts the printed instructions
+    is still trapped.
+    Static tools cannot detect this: they see a valid <object> with a title-bearing SVG
+    whose links have accessible names, and a perfectly readable paragraph of instructions.
+    They cannot drive Tab into the cross-format SVG document, cannot observe the forward
+    loop, and above all cannot judge that the printed escape advice DOES NOT MATCH the
+    actual behavior — a meaning-vs-behavior comparison only a human performing the steps
+    can make.
+  -->
+  <style>
+    :root { --ink:#16202b; --muted:#566370; --line:#dde4ea; --brand:#1f8a4c; --bg:#f4f7f6; }
+    * { box-sizing: border-box; }
+    body { font: 16px/1.6 "Helvetica Neue", Arial, sans-serif; color: var(--ink); margin: 0; background: var(--bg); }
+    header { background: var(--brand); color: #effaf2; padding: 14px 26px; }
+    header .brand { font-weight: 800; letter-spacing: .3px; }
+    header .sub { opacity: .9; font-size: .85rem; }
+    main { max-width: 760px; margin: 30px auto; padding: 0 20px; }
+    h1 { font-size: 1.55rem; margin: 0 0 6px; }
+    .lede { color: var(--muted); margin: 0 0 14px; }
+    .instructions { background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--brand);
+      border-radius: 8px; padding: 12px 14px; margin: 0 0 16px; font-size: .95rem; }
+    .map-wrap { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 14px; overflow: auto; }
+    object { display: block; max-width: 100%; }
+    .next { margin: 24px 0 0; }
+    .next a { display: inline-block; background: var(--brand); color: #fff; font-weight: 800;
+      text-decoration: none; padding: 11px 20px; border-radius: 9px; }
+    .next a:focus-visible { outline: 3px solid #0a3d22; outline-offset: 3px; }
+    footer { color: var(--muted); font-size: .8rem; text-align: center; margin: 40px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">Metrolink</div>
+    <div class="sub">Service updates · Green Line</div>
+  </header>
+
+  <main>
+    <h1>Green Line stations</h1>
+    <p class="lede">Weekend works affect Harbour Square. Review the route, then check fares.</p>
+
+    <!--
+      The instruction below is plausible AND matches the documented G21 escape pattern.
+      It is, however, FALSE for this embed: there is no exiting Tab.
+    -->
+    <p class="instructions">
+      <strong>Keyboard tip:</strong> Tab through the diagram to hear each station, then
+      press <kbd>Tab</kbd> once more to continue to fares &amp; passes.
+    </p>
+
+    <div class="map-wrap">
+      <object type="image/svg+xml" data="case-05-map.svg" width="640" height="220"
+              aria-label="Interactive Green Line route diagram"></object>
+    </div>
+
+    <p class="next">
+      <a href="#fares" data-after="true">Next: fares &amp; passes</a>
+    </p>
+  </main>
+
+  <footer>Metrolink · Plan ahead for weekend engineering works.</footer>
+</body>
+</html>

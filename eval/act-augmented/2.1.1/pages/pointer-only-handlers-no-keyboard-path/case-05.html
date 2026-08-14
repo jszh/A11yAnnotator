@@ -4,20 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Confirm transfer — Meridian Credit Union</title>
-  <!--
-    WHY AUTOMATED TOOLS MISS THIS (SC 2.1.1, F54 — focusable but keyboard-dead):
-    The final "Confirm & send" tile is a <div role="button" tabindex="0"> with a non-empty
-    accessible name. axe-core / WAVE / Lighthouse therefore PASS it on every check they run:
-    it has a button role, it has an accessible name, and it is focusable. The trap is that
-    activation is wired ONLY to pointer events — a "double-click to confirm" guard
-    (dblclick) plus a pointerup fallback — and there is NO keydown/keyup handler. So a
-    keyboard user CAN Tab to the tile and see the focus ring, but pressing Enter or Space
-    does nothing: the transfer can never be confirmed from the keyboard. This is subtler than
-    a div-with-onclick (which lacks a role and is linter-catchable) — here the element looks
-    fully ARIA-correct and focusable, so the only way to detect the failure is to focus it
-    and actually press Enter/Space and observe nothing happens. The "Cancel" control beside
-    it is a real <button> that works by keyboard, so the page is otherwise sound.
-  -->
   <style>
     :root { --ink:#11203a; --muted:#566079; --line:#d9dee8; --brand:#0a4a8f; --ok:#1f7a4d; --warn:#9a3324; }
     * { box-sizing: border-box; }
@@ -37,7 +23,6 @@
     .review .amt { color: var(--brand); font-size: 1.15rem; }
     .note { background: #fff8ec; border: 1px solid #f0dcae; border-radius: 8px; padding: 11px 13px; color: #6b4e12; font-size: .86rem; margin: 0 0 20px; }
     .actions { display: flex; gap: 12px; align-items: stretch; }
-    /* The confirm tile — styled exactly like a primary button */
     .confirm {
       flex: 1; text-align: center; font-weight: 700; color: #fff; background: var(--ok);
       border-radius: 9px; padding: 13px 18px; cursor: pointer; user-select: none;
@@ -75,15 +60,8 @@
       <p class="note">Once confirmed, this transfer cannot be reversed. Please check the recipient and amount.</p>
 
       <div class="actions">
-        <!-- Cancel is a real, keyboard-operable <button>. -->
         <button type="button" class="cancel" onclick="cancelTransfer()">Cancel</button>
 
-        <!--
-          The confirm control LOOKS fully accessible: role="button", tabindex="0",
-          and a clear accessible name. It is focusable and axe passes it. But it is wired
-          to confirm ONLY on a double-click / pointerup — there is NO keydown handler, so
-          Enter and Space do nothing. A keyboard user can focus it but cannot confirm.
-        -->
         <div class="confirm" role="button" tabindex="0"
              aria-describedby="confirm-hint" id="confirmTile">
           Confirm &amp; send £420.00
@@ -111,13 +89,9 @@
     }
 
     var tile = document.getElementById('confirmTile');
-    // Pointer-only activation: a "double-click to confirm" guard plus a pointerup
-    // fallback. Deliberately NO keydown/keyup handler — Enter and Space are dead.
     tile.addEventListener('dblclick', doConfirm);
     tile.addEventListener('pointerup', function (e) {
-      // require a real pointer (mouse/touch/pen), not a synthetic keyboard "click"
       if (e.pointerType === 'mouse' || e.pointerType === 'touch' || e.pointerType === 'pen') {
-        // single pointerup arms; a second confirms — mouse users naturally double-click
         if (tile.dataset.armed === '1') { doConfirm(); }
         else { tile.dataset.armed = '1'; }
       }

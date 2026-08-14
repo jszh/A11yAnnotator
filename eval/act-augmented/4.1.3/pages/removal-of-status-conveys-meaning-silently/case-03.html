@@ -17,7 +17,6 @@
   .send { background:var(--gov); color:#fff; border:0; padding:12px 22px; border-radius:7px; font-size:1rem; font-weight:600; cursor:pointer; }
   .send:hover { background:var(--gov-dk); }
   .send:disabled { background:#9bb4c6; cursor:default; }
-  /* status region */
   .statusline { margin:22px 0 6px; min-height:24px; font-size:.96rem; }
   .statusline .working { color:#7a5b00; display:inline-flex; align-items:center; gap:9px; }
   .statusline .working .dot { width:10px; height:10px; border-radius:50%; background:#d8a200; animation:pulse 1s infinite; }
@@ -41,8 +40,6 @@
 
   <button id="send" class="send" type="button">Send verification code</button>
 
-  <!-- Status region. PASS pattern: the busy message is REPLACED in-place with an
-       explicit completion message; the region is never emptied. -->
   <p id="status" class="statusline" role="status" aria-live="polite" aria-atomic="true"></p>
 
   <div id="codebox" class="codebox">
@@ -54,23 +51,6 @@
 <footer>State Digital Office — myGovAccess. Never share your verification code.</footer>
 
 <script>
-/*
-  PASS / boundary control for this aspect.
-
-  Same two-phase shape as the failing cases:
-  Phase 1 (entry): inject "Sending verification code…" into the polite live region
-  → announced.
-  Phase 2 (completion): instead of REMOVING the busy text, we OVERWRITE the SAME
-  live region with an explicit, non-visible-equivalent completion status:
-  "Code sent to the mobile number ending 47. Enter it below." That replacement is a
-  fresh text mutation inside the polite region, so a screen reader announces it.
-
-  An AT user therefore hears BOTH the start ("Sending…") AND the end of the waiting
-  state ("Code sent…"). The disappearance of the busy text is no longer the only
-  signal that the wait is over — the SC's "Removal of status text" requirement is met
-  precisely because the message is updated to a 'system available'-style string rather
-  than silently removed. This is the one-line difference from case-01/02.
-*/
 (function () {
   var send = document.getElementById('send');
   var status = document.getElementById('status');
@@ -78,11 +58,9 @@
 
   send.addEventListener('click', function () {
     send.disabled = true;
-    // Phase 1 — announced.
     status.innerHTML = '<span class="working"><span class="dot" aria-hidden="true"></span>Sending verification code…</span>';
 
     window.setTimeout(function () {
-      // Phase 2 — the waiting state's END is announced by REPLACING (not removing) the text.
       status.innerHTML = '<span class="done"><span aria-hidden="true">✓</span>Code sent to the mobile number ending 47. Enter it below.</span>';
       codebox.classList.add('show');
       send.disabled = false;

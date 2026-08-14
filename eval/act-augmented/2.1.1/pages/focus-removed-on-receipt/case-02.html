@@ -51,19 +51,6 @@
     <p class="hint">Suchen Sie nach Anträgen, Formularen und Öffnungszeiten der Ämter.</p>
 
     <div class="searchrow">
-      <!--
-        THE DEFECT (F55 variant: focus moved to <body>, not this.blur).
-        Pattern: a "select all on focus" convenience helper was meant to highlight the
-        placeholder so users could overtype. An agency dev mis-wired it: instead of
-        this.select(), an early-return guard accidentally calls document.body.focus()
-        whenever the box is NOT empty-and-untouched. On load the box has a remembered
-        last query ("Personalausweis"), so the guard fires on the FIRST focus: every
-        Tab into the search field bounces focus to <body>. The field is in the source,
-        is labelled, is a valid type=search, and the magnifier button works — but a
-        keyboard user can never land in the box to type. document.body is focusable here
-        because tabindex="-1" was added to it (a common "let me focus the page" hack),
-        so focus genuinely lands on body and is silently lost.
-      -->
       <label for="q" class="visually-hidden" style="position:absolute;left:-9999px;">Suchbegriff</label>
       <input type="search" id="q" name="q" value="Personalausweis" placeholder="z. B. Anwohnerparkausweis"
              autocomplete="off" onfocus="selectOnFocus(this)">
@@ -85,15 +72,11 @@
 <footer>Stadtverwaltung Rheinstadt · Impressum · Datenschutz · Barrierefreiheit</footer>
 
 <script>
-  // Make the page itself programmatically focusable for the "scroll to top" helper.
   document.body.tabIndex = -1;
 
   function selectOnFocus(el) {
-    // INTENDED: if the field still holds the remembered query, select it so the user can overtype.
-    // BUG: the early branch calls document.body.focus() (copied from a "dismiss" helper) instead
-    // of el.select(). So focusing a non-empty box throws focus back to <body> every time.
     if (el.value && el.dataset.touched !== 'yes') {
-      document.body.focus();   // <-- focus removed the instant the field receives it
+      document.body.focus();   
       return;
     }
     el.dataset.touched = 'yes';

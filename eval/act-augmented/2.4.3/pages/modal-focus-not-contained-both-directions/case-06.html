@@ -4,21 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>حجز موعد — عيادة النخيل</title>
-<!--
-  SC 2.4.3 — modal-focus-not-contained-both-directions — case-06 (PASS)
-  CORRECTLY CONTAINED BOTH DIRECTIONS, RTL. An Arabic (dir=rtl) clinic appointment page
-  shows a "Confirm appointment" modal. The author hand-rolled the dialog (not native
-  <dialog>) but did containment RIGHT: on open they (1) set the background wrapper inert AND
-  aria-hidden="true", and (2) installed a keydown handler that wraps BOTH directions — Tab on
-  the last control returns to the first, AND Shift+Tab on the first control returns to the
-  last. Focus is set into the dialog on open and restored to the trigger on close; Esc closes
-  it. In RTL the visual left/right is reversed but Tab/Shift+Tab semantics are unchanged, and
-  the author got that right. Focus never escapes the modal in either direction. This is a
-  PASS — and a useful contrast to case-01 (same hand-rolled shape, but case-01 omitted the
-  Shift+Tab branch). The RTL/Arabic context is included so the corpus is not all-LTR.
-  WHY A HUMAN MUST CONFIRM PASS: a model that pattern-matches "hand-rolled trap in RTL" might
-  suspect a direction bug. A human must drive Tab AND Shift+Tab and confirm both wrap inside.
--->
 <style>
   :root { font-family: "Noto Naskh Arabic", "Segoe UI", system-ui, sans-serif; color: #1c2b2b; }
   body { margin: 0; background: #eef5f3; }
@@ -81,19 +66,15 @@
   const page = document.getElementById('page');
   const modal = document.getElementById('modal');
 
-  // Correct containment, both layers:
-  // (1) Background made inert AND hidden from AT.
   page.inert = true;
   page.setAttribute('aria-hidden', 'true');
 
-  // (2) Hand-rolled trap that wraps BOTH directions (contrast with case-01, which omitted
-  // the Shift+Tab branch). Note: RTL does not change Tab/Shift+Tab semantics.
   function f() { return Array.from(modal.querySelectorAll('input, select, button')).filter(el => !el.disabled); }
   modal.addEventListener('keydown', function (e) {
     if (e.key !== 'Tab') return;
     const items = f(), first = items[0], last = items[items.length - 1];
-    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }   // backward wrap
-    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); } // forward wrap
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }   
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); } 
   });
 
   window.addEventListener('load', () => document.getElementById('name').focus());

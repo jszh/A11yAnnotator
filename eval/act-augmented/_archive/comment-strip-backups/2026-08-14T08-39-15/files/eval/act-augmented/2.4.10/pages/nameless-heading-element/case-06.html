@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Olive &amp; Ember — Dinner Menu</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (SC 2.4.10, aspect nameless-heading-element) — BOUNDARY PASS:
+  This page looks, to a tool, almost identical to the FAILING decorative-image cases: each
+  menu-course heading renders as a hand-lettered IMAGE of the course name with the visible
+  text painted into the picture. The DIFFERENCE — invisible to axe/WAVE/Lighthouse — is that
+  each <h2> ALSO carries a real, programmatic section name: the decorative <img> is alt="" and
+  a visually-hidden <span class="sr-only"> supplies the course name ("Small Plates",
+  "From the Hearth", "Sweet"). So the heading IS named for AT even though the on-screen title
+  is a picture. A screen-reader heading list reads "Small Plates, heading level 2 · From the
+  Hearth, heading level 2 · Sweet, heading level 2" — the section name is present and meaningful.
+  An automated tool cannot distinguish this PASS from the FAIL cases, because in BOTH the visual
+  title is an image; only a human (or AT) checking that the COMPUTED accessible name is a real
+  section name — not empty, not the emoji/dingbat — can tell them apart. Included to sharpen the
+  aspect boundary: image-as-title is fine IF a text alternative names the section.
+-->
+<style>
+  :root { --ink:#2c241d; --muted:#7b6f63; --paper:#fdfaf4; --line:#e6dccb; --olive:#5c6b3c; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Spectral", Georgia, serif; color:var(--ink);
+         background:var(--paper); line-height:1.6; }
+  .sr-only { position:absolute !important; width:1px; height:1px; padding:0; margin:-1px;
+             overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+  header.top { text-align:center; padding:40px 20px 26px; border-bottom:2px solid var(--olive); }
+  header.top .name { font-size:2.4rem; letter-spacing:.16em; margin:0; text-transform:uppercase; }
+  header.top .tag { color:var(--muted); letter-spacing:.3em; text-transform:uppercase;
+                    font-size:.72rem; margin-top:8px; }
+  main { max-width:620px; margin:0 auto; padding:38px 24px 80px; }
+  section { margin:0 0 44px; }
+  /* Course headings rendered as hand-lettered images of the course name */
+  h2.lettered { text-align:center; margin:0 0 18px; }
+  h2.lettered img { height:46px; width:auto; }
+  .item { display:flex; justify-content:space-between; gap:18px; padding:8px 0;
+          border-bottom:1px dotted var(--line); }
+  .item .desc { max-width:78%; }
+  .item .name { font-weight:600; }
+  .item .note { color:var(--muted); font-size:.9rem; font-style:italic; }
+  .item .price { white-space:nowrap; color:var(--olive); font-variant-numeric:tabular-nums; }
+  footer { text-align:center; color:var(--muted); font-size:.8rem; padding:22px;
+           border-top:1px solid var(--line); }
+</style>
+</head>
+<body>
+<header class="top">
+  <p class="name">Olive &amp; Ember</p>
+  <p class="tag">Wood-fired &middot; Seasonal &middot; Dinner</p>
+</header>
+
+<main>
+  <!-- Each course title is a calligraphy IMAGE (alt="") but the section is NAMED for AT by
+       a visually-hidden span, so the heading has a real accessible name. -->
+  <section aria-labelledby="c-small">
+    <h2 class="lettered" id="c-small">
+      <span class="sr-only">Small Plates</span>
+      <img alt="" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='46'><text x='0' y='36' font-family='Brush Script MT, cursive' font-size='38' fill='%232c241d'>Small Plates</text></svg>">
+    </h2>
+    <div class="item"><div class="desc"><span class="name">Charred padr&oacute;n peppers</span> <span class="note">sea salt, lemon</span></div><span class="price">8</span></div>
+    <div class="item"><div class="desc"><span class="name">Whipped cod roe</span> <span class="note">grilled sourdough</span></div><span class="price">11</span></div>
+    <div class="item"><div class="desc"><span class="name">Burrata</span> <span class="note">heritage tomato, basil oil</span></div><span class="price">13</span></div>
+  </section>
+
+  <section aria-labelledby="c-hearth">
+    <h2 class="lettered" id="c-hearth">
+      <span class="sr-only">From the Hearth</span>
+      <img alt="" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='280' height='46'><text x='0' y='36' font-family='Brush Script MT, cursive' font-size='38' fill='%232c241d'>From the Hearth</text></svg>">
+    </h2>
+    <div class="item"><div class="desc"><span class="name">Dry-aged ribeye</span> <span class="note">bone marrow butter, watercress</span></div><span class="price">32</span></div>
+    <div class="item"><div class="desc"><span class="name">Whole sea bream</span> <span class="note">fennel, salsa verde</span></div><span class="price">26</span></div>
+    <div class="item"><div class="desc"><span class="name">Roast celeriac</span> <span class="note">hazelnut, brown butter (v)</span></div><span class="price">19</span></div>
+  </section>
+
+  <section aria-labelledby="c-sweet">
+    <h2 class="lettered" id="c-sweet">
+      <span class="sr-only">Sweet</span>
+      <img alt="" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='150' height='46'><text x='0' y='36' font-family='Brush Script MT, cursive' font-size='38' fill='%232c241d'>Sweet</text></svg>">
+    </h2>
+    <div class="item"><div class="desc"><span class="name">Burnt Basque cheesecake</span></div><span class="price">9</span></div>
+    <div class="item"><div class="desc"><span class="name">Dark chocolate &amp; olive oil tart</span> <span class="note">crème fraîche</span></div><span class="price">10</span></div>
+  </section>
+</main>
+
+<footer>
+  Olive &amp; Ember &middot; A discretionary 12.5% service charge is added to tables of six or more.
+</footer>
+</body>
+</html>

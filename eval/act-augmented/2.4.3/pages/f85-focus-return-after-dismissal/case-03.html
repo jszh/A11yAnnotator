@@ -66,9 +66,6 @@
 
   <aside aria-label="Issue metadata">
     <h2>Labels</h2>
-    <!-- Tag/chip list. Each chip's × opens a confirm; on confirm the chip is removed
-         and focus moves to the NEXT chip's × (or the previous one if last) — the
-         logical neighbor required by F85's tag-delete note. -->
     <ul class="chips" id="labels">
       <li class="chip" data-label="bug">
         <span class="dot" style="background:#d73a4a" aria-hidden="true"></span>bug
@@ -125,7 +122,6 @@
 
   function escClose(e) { if (e.key === 'Escape') cancel(); }
 
-  // Cancel: the chip still exists, so return to its remove button.
   function cancel() {
     scrim.classList.remove('open');
     document.removeEventListener('keydown', escClose);
@@ -133,13 +129,9 @@
     pendingChip = null; triggerX = null;
   }
 
-  // CORRECT (PASS): the confirm removes the chip, so the trigger no longer exists.
-  // Focus is placed on the NEXT chip's remove button; if the removed chip was last,
-  // focus goes to the now-last chip's remove button; if none remain, focus the
-  // "+ Add label" button. This is the logical neighbor F85 prescribes — NOT a failure.
   function confirmRemove() {
-    var next = pendingChip.nextElementSibling;       // next chip
-    var prev = pendingChip.previousElementSibling;   // previous chip
+    var next = pendingChip.nextElementSibling;       
+    var prev = pendingChip.previousElementSibling;   
     pendingChip.parentNode.removeChild(pendingChip);
     scrim.classList.remove('open');
     document.removeEventListener('keydown', escClose);
@@ -157,16 +149,5 @@
   document.getElementById('rm-confirm').addEventListener('click', confirmRemove);
 </script>
 
-<!--
-  WHY THIS IS A PASS (and why a naive tool would wrongly flag it)
-  This is the exact exception in F85's design note: deleting a tag removes its trigger,
-  so focus CANNOT return to the trigger and instead moves to the next tag in the list
-  (or the previous tag when the deleted one was last, or "+ Add label" when none remain).
-  A naive automated heuristic of "after close, focus must equal the opening trigger"
-  would FALSE-POSITIVE here — the trigger is gone by design. Judging that the chosen
-  destination (the neighboring chip) is "logical" requires understanding that a delete
-  removed item N and that item N's neighbor is the correct landing spot. The cancel path,
-  by contrast, correctly returns to the still-present trigger.
--->
 </body>
 </html>

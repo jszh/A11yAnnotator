@@ -4,26 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Confirm transfer — Açorano Bank</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS (expected: PASS):
-  A bank wire-confirmation step asks the user to re-key the LAST FOUR DIGITS of the
-  recipient's account number as a confirmation challenge. The user typed the wrong
-  four digits. The error reads: "Those digits don't match the account on file.
-  Re-enter the last four digits exactly as shown on the recipient's statement."
-  Crucially the page does NOT echo the correct four digits, does NOT show the full
-  recipient account number, and does NOT say "you typed X, we expected Y".
-  A G177/G85-style "provide the suggested correct text" rule would WANT the page to
-  show the expected value next to the field. Doing so here would print part of the
-  recipient's account number on screen / into the accessibility tree — exactly the
-  disclosure that "would jeopardize the security or purpose of the content." So the
-  page deliberately gives a NON-revealing fix ("re-enter exactly as shown on the
-  statement" — a source only the legitimate party can see) instead of the literal
-  correct value. That withholding is the CORRECT outcome => PASS.
-  Automated tools cannot tell that the expected value is a secret, cannot know the
-  exception applies, and (worse) a literal "show the suggested correction" rule would
-  push the author toward a SECURITY LEAK. Only a human can judge that NOT echoing the
-  expected digits is conformant here.
--->
 <style>
   :root{ --ink:#10141a; --muted:#586271; --line:#cfd6df; --brand:#0a4d8c; --gold:#b8860b;
          --danger:#a91b29; --paper:#fff; }
@@ -79,7 +59,6 @@
         <div class="field">
           <label id="confirm-label" for="d1">Confirm recipient: last four digits of the account number</label>
           <p class="hint" id="confirm-hint">Find these on the recipient's bank statement or remittance slip.</p>
-          <!-- Post-submit error state: user keyed the wrong four digits. -->
           <div class="codebox" role="group" aria-labelledby="confirm-label"
                aria-describedby="confirm-hint confirm-error">
             <input id="d1" name="d1" inputmode="numeric" maxlength="1" value="8"

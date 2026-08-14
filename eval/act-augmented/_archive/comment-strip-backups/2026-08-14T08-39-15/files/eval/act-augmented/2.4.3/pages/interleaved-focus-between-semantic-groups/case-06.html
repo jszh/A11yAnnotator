@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Talentforge ATS — Application: Background</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (SC 2.4.3 Focus Order):
+  A job application's "Background" step has two stacked, single-column sections under
+  headings: "Education" (degree, school, graduation year) and "Work experience" (job title,
+  company, years). Visually it reads as one section fully above the other. Every control has
+  a real <label for>, correct name/role, and is keyboard-operable; there is NO tabindex.
+  But the DOM interleaves the two sections row-by-row: education-degree, work-title,
+  education-school, work-company, education-year, work-years. The CSS grid pins each field
+  into the correct section block, so on screen "Education" appears as a complete block above
+  a complete "Work experience" block. A keyboard user, however, is bounced from the
+  Education section down to Work and back on alternate tabs: they enter their degree, get
+  thrown to a job title, back to their school, over to a company name, etc. The two distinct
+  parts of a CV are woven together, destroying the "I'm filling in my education" model.
+  Automated tools see valid labeled inputs and report nothing; they have no concept that
+  "school" and "graduation year" belong with "degree" (Education) and not between Education
+  and Work fields. Only a human reasoning about CV structure can catch the interleave.
+-->
+<style>
+  :root { --ink:#1c2128; --brand:#c2410c; --line:#e6e1da; --muted:#5f6670; --bg:#fbfaf8; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.55 "Inter",system-ui,sans-serif; color:var(--ink); background:var(--bg); }
+  header { background:#23272e; color:#fff; padding:22px 28px; }
+  header h1 { margin:0; font-size:1.4rem; }
+  header p { margin:.3rem 0 0; opacity:.8; font-size:.9rem; }
+  .steps { background:#fff; border-bottom:1px solid var(--line); padding:12px 28px;
+           font-size:.85rem; color:var(--muted); }
+  .steps b { color:var(--brand); }
+  main { max-width:680px; margin:0 auto; padding:30px 24px 80px; }
+  .lede { color:var(--muted); margin:0 0 24px; }
+
+  /* Single-column form, two stacked sections. One CSS grid with named rows; each field is
+     pinned to its section's row so the DOM (interleaved) order is decoupled from the
+     visual (section-blocked) order. */
+  form { display:grid;
+         grid-template-columns:1fr;
+         grid-template-areas:
+           "ed-head"
+           "ed-degree"
+           "ed-school"
+           "ed-year"
+           "wk-head"
+           "wk-title"
+           "wk-company"
+           "wk-years"
+           "go";
+         gap:14px; }
+  .sec-head { font-weight:700; color:var(--brand); font-size:1.05rem; padding-top:8px;
+              border-top:2px solid var(--line); }
+  .ed-head{grid-area:ed-head} .wk-head{grid-area:wk-head}
+  .field {}
+  label { display:block; font-weight:600; font-size:.88rem; margin-bottom:5px; }
+  input, select { width:100%; padding:9px 11px; border:1px solid #c2bdb4; border-radius:8px; font-size:.95rem; background:#fff; }
+  :focus-visible { outline:3px solid var(--brand); outline-offset:2px; }
+
+  .ed-degree{grid-area:ed-degree} .ed-school{grid-area:ed-school} .ed-year{grid-area:ed-year}
+  .wk-title{grid-area:wk-title} .wk-company{grid-area:wk-company} .wk-years{grid-area:wk-years}
+
+  .go { grid-area:go; margin-top:16px; }
+  button { background:var(--brand); color:#fff; border:0; border-radius:9px;
+           padding:12px 28px; font-size:1rem; font-weight:700; cursor:pointer; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Talentforge</h1>
+  <p>Application — Senior Logistics Coordinator</p>
+</header>
+<div class="steps">Contact · <b>Background</b> · Questions · Review</div>
+<main>
+  <p class="lede">Step 2 of 4 — tell us about your education and work history.</p>
+
+  <!--
+    DOM / TAB ORDER (no tabindex, pure source order) is INTERLEAVED row-by-row:
+      education-degree -> work-title -> education-school -> work-company ->
+      education-year -> work-years -> submit
+    The grid-areas re-route each field into its section block, so on screen "Education"
+    is a complete block above a complete "Work experience" block — but keyboard focus
+    alternates between the two sections on every Tab.
+  -->
+  <form action="#" method="post" novalidate aria-label="Education and work history">
+
+    <h2 class="sec-head ed-head">Education</h2>
+    <h2 class="sec-head wk-head">Work experience</h2>
+
+    <!-- interleaved: education row, then work row -->
+    <div class="field ed-degree"><label for="ed-degree">Highest degree</label>
+      <input id="ed-degree" name="ed_degree" type="text" placeholder="e.g. B.S. Supply Chain Management"></div>
+    <div class="field wk-title"><label for="wk-title">Most recent job title</label>
+      <input id="wk-title" name="wk_title" type="text" autocomplete="organization-title"></div>
+
+    <div class="field ed-school"><label for="ed-school">School / university</label>
+      <input id="ed-school" name="ed_school" type="text"></div>
+    <div class="field wk-company"><label for="wk-company">Most recent company</label>
+      <input id="wk-company" name="wk_company" type="text" autocomplete="organization"></div>
+
+    <div class="field ed-year"><label for="ed-year">Graduation year</label>
+      <input id="ed-year" name="ed_year" type="text" inputmode="numeric" placeholder="YYYY"></div>
+    <div class="field wk-years"><label for="wk-years">Years in role</label>
+      <select id="wk-years" name="wk_years">
+        <option>Less than 1 year</option><option>1–3 years</option>
+        <option>3–5 years</option><option>5+ years</option>
+      </select></div>
+
+    <div class="go"><button type="submit">Continue to questions</button></div>
+  </form>
+</main>
+</body>
+</html>

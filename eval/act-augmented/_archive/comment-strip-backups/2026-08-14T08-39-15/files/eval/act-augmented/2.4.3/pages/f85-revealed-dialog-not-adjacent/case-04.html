@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cedar &amp; Vine Realty — Homes for Sale</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family: system-ui, "Segoe UI", sans-serif; color:#1d2733; background:#f5f7fa; }
+  a { color:#16557a; }
+  header.site { background:#0f2c44; color:#fff; padding:14px 26px; display:flex; align-items:center; gap:18px; }
+  header.site .brand { font-weight:700; }
+  header.site nav a { color:#cfe1ee; text-decoration:none; margin-right:16px; font-size:.95rem; }
+  .layout { max-width:1080px; margin:0 auto; padding:22px 26px; display:grid; grid-template-columns:1fr; gap:18px; }
+  .toolbar { display:flex; align-items:center; gap:14px; }
+  .toolbar h1 { font-size:1.4rem; margin:0; flex:1; }
+  .btn { font:inherit; cursor:pointer; border:1px solid #16557a; background:#fff; color:#16557a; padding:8px 15px; border-radius:6px; }
+  .btn.primary { background:#16557a; color:#fff; }
+  .results { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:16px; }
+  .listing { background:#fff; border:1px solid #dde4ec; border-radius:10px; overflow:hidden; }
+  .listing .ph { height:120px; background:linear-gradient(135deg,#c9d6e2,#9fb4c6); }
+  .listing .body { padding:12px 14px; }
+  .listing .price { font-size:1.15rem; font-weight:700; }
+  .listing .addr { color:#4b5a69; font-size:.92rem; margin:2px 0 8px; }
+  .listing a.view { display:inline-block; font-size:.92rem; }
+  footer.site { border-top:1px solid #dde4ec; padding:22px 26px; font-size:.9rem; color:#46566a; }
+
+  /*
+    The filter panel is rendered fixed on the LEFT, visually next to the "Filters" button,
+    but its markup is the LAST thing in the DOM (after the footer). Toggle is class-only.
+  */
+  .filter-panel {
+    display:none; position:fixed; top:120px; left:26px; width:280px; z-index:40;
+    background:#fff; border:1px solid #dde4ec; border-radius:10px;
+    box-shadow:0 16px 40px rgba(0,0,0,.16); padding:18px;
+  }
+  .filter-panel.open { display:block; }
+  .filter-panel h2 { margin:0 0 10px; font-size:1.05rem; }
+  .filter-panel fieldset { border:0; padding:0; margin:0 0 12px; }
+  .filter-panel legend { font-weight:600; padding:0; margin-bottom:6px; }
+  .filter-panel label { display:block; font-size:.92rem; margin:4px 0; }
+  .filter-panel select, .filter-panel input { font:inherit; padding:6px; border:1px solid #cdd6e0; border-radius:5px; }
+  .filter-panel .apply { margin-top:8px; }
+</style>
+</head>
+<body>
+<header class="site">
+  <span class="brand">Cedar &amp; Vine Realty</span>
+  <nav aria-label="Primary">
+    <a href="#buy">Buy</a>
+    <a href="#rent">Rent</a>
+    <a href="#sell">Sell</a>
+    <a href="#agents">Find an Agent</a>
+    <a href="#mortgage">Mortgage</a>
+  </nav>
+</header>
+
+<div class="layout">
+  <div class="toolbar">
+    <h1>Homes for sale in Maplewood</h1>
+    <!-- Trigger near the top of the results region. Panel markup is at the very end. -->
+    <button class="btn" id="filterToggle" aria-haspopup="true" aria-expanded="false"
+            aria-controls="filterPanel">Filters</button>
+    <button class="btn primary" id="sortBtn">Sort: Newest</button>
+  </div>
+
+  <section class="results" aria-label="Search results">
+    <article class="listing"><div class="ph"></div><div class="body">
+      <div class="price">$429,000</div><div class="addr">14 Birch Hollow Ln · 3 bd · 2 ba</div>
+      <a class="view" href="#l1">View 14 Birch Hollow Ln</a></div></article>
+    <article class="listing"><div class="ph"></div><div class="body">
+      <div class="price">$515,000</div><div class="addr">88 Orchard Terrace · 4 bd · 3 ba</div>
+      <a class="view" href="#l2">View 88 Orchard Terrace</a></div></article>
+    <article class="listing"><div class="ph"></div><div class="body">
+      <div class="price">$372,500</div><div class="addr">5 Willow Court · 2 bd · 2 ba</div>
+      <a class="view" href="#l3">View 5 Willow Court</a></div></article>
+    <article class="listing"><div class="ph"></div><div class="body">
+      <div class="price">$640,000</div><div class="addr">221 Crestview Dr · 5 bd · 4 ba</div>
+      <a class="view" href="#l4">View 221 Crestview Dr</a></div></article>
+    <article class="listing"><div class="ph"></div><div class="body">
+      <div class="price">$298,000</div><div class="addr">9 Sycamore St #2 · 1 bd · 1 ba</div>
+      <a class="view" href="#l5">View 9 Sycamore St #2</a></div></article>
+    <article class="listing"><div class="ph"></div><div class="body">
+      <div class="price">$487,900</div><div class="addr">160 Linden Ave · 3 bd · 2.5 ba</div>
+      <a class="view" href="#l6">View 160 Linden Ave</a></div></article>
+    <article class="listing"><div class="ph"></div><div class="body">
+      <div class="price">$555,000</div><div class="addr">33 Magnolia Pkwy · 4 bd · 3 ba</div>
+      <a class="view" href="#l7">View 33 Magnolia Pkwy</a></div></article>
+    <article class="listing"><div class="ph"></div><div class="body">
+      <div class="price">$410,000</div><div class="addr">77 Aspen Ridge · 3 bd · 2 ba</div>
+      <a class="view" href="#l8">View 77 Aspen Ridge</a></div></article>
+  </section>
+</div>
+
+<footer class="site">
+  <nav aria-label="Footer">
+    <a href="#about">About</a> ·
+    <a href="#contact">Contact</a> ·
+    <a href="#fairhousing">Fair Housing</a> ·
+    <a href="#accessibility">Accessibility</a>
+  </nav>
+  <p>© 2026 Cedar &amp; Vine Realty. Equal Housing Opportunity.</p>
+</footer>
+
+<!--
+  THE BUG (F85, open branch): the filter panel is positioned (position:fixed; left:26px)
+  to appear VISUALLY just under the "Filters" button on the left, but its markup is the
+  LAST element in the document — after every listing and the footer. The toggle only adds
+  .open and flips aria-expanded; nothing moves focus into the panel. So a keyboard user who
+  opens "Filters" stays on the button, and the next Tab goes to "Sort: Newest" (the next
+  source-order control), then through all eight "View …" listing links and the footer
+  before ever reaching the price/beds/type controls that visually sit right beside the
+  button. The visual adjacency is a lie about the tab order.
+-->
+<form class="filter-panel" id="filterPanel" aria-label="Filter listings">
+  <h2>Filter</h2>
+  <fieldset>
+    <legend>Price</legend>
+    <label>Min <select name="min"><option>Any</option><option>$300k</option><option>$400k</option></select></label>
+    <label>Max <select name="max"><option>Any</option><option>$500k</option><option>$700k</option></select></label>
+  </fieldset>
+  <fieldset>
+    <legend>Bedrooms</legend>
+    <label><input type="radio" name="bd" value="1"> 1+</label>
+    <label><input type="radio" name="bd" value="2"> 2+</label>
+    <label><input type="radio" name="bd" value="3"> 3+</label>
+  </fieldset>
+  <fieldset>
+    <legend>Property type</legend>
+    <label><input type="checkbox" name="type" value="house"> House</label>
+    <label><input type="checkbox" name="type" value="condo"> Condo</label>
+    <label><input type="checkbox" name="type" value="townhome"> Townhome</label>
+  </fieldset>
+  <button type="button" class="btn primary apply" id="applyFilters">Apply filters</button>
+</form>
+
+<script>
+  (function () {
+    var btn = document.getElementById('filterToggle');
+    var panel = document.getElementById('filterPanel');
+    btn.addEventListener('click', function () {
+      var open = panel.classList.toggle('open');
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      // No panel.querySelector('select,input,button').focus(); no focus management.
+    });
+    document.getElementById('applyFilters').addEventListener('click', function () {
+      panel.classList.remove('open');
+      btn.setAttribute('aria-expanded', 'false');
+    });
+  })();
+</script>
+</body>
+</html>

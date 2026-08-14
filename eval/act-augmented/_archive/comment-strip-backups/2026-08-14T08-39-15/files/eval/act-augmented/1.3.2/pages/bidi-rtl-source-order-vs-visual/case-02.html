@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>חנות "תבלין" — דף מוצר</title>
+<style>
+  :root { --ink:#2a2118; --spice:#a8531b; --paper:#fdf8f2; --line:#ecdfd0; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:16px/1.75 "Noto Sans Hebrew","Segoe UI",system-ui,sans-serif; color:var(--ink); background:var(--paper); }
+  header { background:var(--spice); color:#fff; padding:20px 26px; }
+  header h1 { margin:0; font-size:1.4rem; }
+  main { max-width:660px; margin:0 auto; padding:28px 22px 56px; }
+  .product { background:#fff; border:1px solid var(--line); border-radius:10px; padding:24px 26px; }
+  h2 { margin-top:0; color:var(--spice); font-size:1.25rem; }
+  .price { font-size:1.3rem; font-weight:700; color:var(--spice); }
+  .notice { background:#fcefe2; border:1px solid #f0d6bd; border-radius:8px; padding:12px 16px; margin:16px 0; font-size:1.05rem; }
+  .compare { margin-top:26px; border-top:2px dashed var(--line); padding-top:16px; }
+  .compare h3 { color:#555; font-size:.95rem; }
+  .vis, .log { background:#fdfbf8; border:1px solid var(--line); border-radius:8px; padding:10px 14px; margin:8px 0; }
+  .log { font-style:italic; color:#6a5a48; }
+  code { background:#f3e7da; padding:1px 5px; border-radius:4px; font-size:.85em; }
+  footer { margin-top:34px; font-size:.85rem; color:#897a68; border-top:1px solid var(--line); padding-top:14px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>תבלין — חנות התבלינים</h1>
+</header>
+<main>
+  <div class="product">
+    <h2>זעפרן כתמים אדומים — 2 גרם</h2>
+    <p class="price">₪ 89</p>
+
+    <!--
+      THE FAILURE (G57, source-reordered punctuation):
+      The store imports a supplier status badge written in ENGLISH and drops it inside the
+      Hebrew (RTL) stock line. The intended, meaningful sentence is:
+          "פריט זה אזל מהמלאי DUE TO HIGH DEMAND today."   (RTL Hebrew, then an English clause,
+           then the sentence-ending period).
+      In NATURAL source order the bidi algorithm renders that trailing period floating to the
+      far LEFT edge of the line, visually DETACHED from the English word "today" — which looked
+      wrong to the author. Instead of using <bdi>/dir to isolate the English clause, the author
+      "fixed the visual" by PHYSICALLY MOVING the period in the source: they typed it at the
+      FRONT of the English run (".DUE TO HIGH DEMAND today" -> here written as the byte sequence
+      with the period before "DUE"). The bidi algorithm then mirrors it so on screen the period
+      sits correctly after "today.".
+      VERIFIED with the rendering harness:
+        LOGICAL (source / what a screen reader reads): "...אזל מהמלאי .DUE TO HIGH DEMAND today"
+        VISUAL  (on screen):                            "...אזל מהמלאי DUE TO HIGH DEMAND today."
+      So AT reads the sentence period BEFORE the English clause ("...out of stock PERIOD due to
+      high demand today"), detached and out of order, while the screen looks perfect.
+      The correct fix is markup (<bdi> around the English clause) with the period in logical
+      final position — NOT relocating the period in the byte stream.
+    -->
+    <p class="notice">פריט זה אזל מהמלאי .DUE TO HIGH DEMAND today</p>
+
+    <p>השזירה שלנו מיובאת ישירות מחקלאי כורכום ונשמרת באריזת ואקום אטומה לאור.</p>
+
+    <div class="compare">
+      <h3>להשוואה — סדר חזותי מול סדר מקור (לוגי)</h3>
+      <div class="vis"><strong>מה שנראה על המסך:</strong>
+        פריט זה אזל מהמלאי DUE TO HIGH DEMAND today.</div>
+      <div class="log"><strong>מה שקורא־מסך מקריא (סדר מקור):</strong>
+        הנקודה הסופית הוקלדה <em>לפני</em> "DUE" בקוד כדי שהאלגוריתם הדו־כיווני יציב אותה
+        נכון בצד שמאל; לכן קורא־המסך משמיע את סוף־המשפט לפני הסעיף האנגלי — מנותק וחוץ
+        למקומו. לא נעשה שימוש ב־<code>&lt;bdi&gt;</code>.</div>
+    </div>
+  </div>
+
+  <footer>
+    <p>מדוע כלים אוטומטיים לא מזהים זאת? התגית <code>dir="rtl"</code> קיימת, ה־HTML תקין
+       ואין סמה חסרה. העיבוד החזותי מושלם, ולכן דבר אינו נראה שגוי על המסך. רק אדם הקורא
+       עברית ואנגלית ומשווה את מיקום הנקודה הלוגי למיקומה החזותי יבחין שתו פיסוק הוזז במקור
+       — שיפוט רב־לשוני ש־axe, WAVE ו־Lighthouse אינם מבצעים.</p>
+  </footer>
+</main>
+</body>
+</html>

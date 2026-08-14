@@ -24,7 +24,6 @@
           font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; letter-spacing:1px; }
   input:focus { outline:2px solid var(--brand); outline-offset:1px; }
   input::placeholder { color:#9aa3ad; letter-spacing:2px; }
-  /* The card number is split into four equal groups separated by dashes. */
   .cc-groups { display:flex; align-items:center; gap:9px; }
   .cc-groups input { width:78px; text-align:center; }
   .cc-groups .dash { color:#9aa3ad; font-weight:700; user-select:none; }
@@ -44,10 +43,6 @@
     <p class="lede">Your card details are encrypted end-to-end and tokenized before storage.</p>
 
     <form action="#" novalidate aria-label="Add a payment card">
-      <!-- THE DEFECT: the 16-digit card number is split into four inputs. The only visible
-           "label" for each is a placeholder of four dashes, and there is NO "Card number"
-           text labelling the group. The four-part grouping is conveyed only by the literal
-           dash separators between the boxes. -->
       <div class="field">
         <div class="cc-groups">
           <input id="cc1" name="cc_g1" inputmode="numeric" maxlength="4" placeholder="----" aria-label="First four digits">
@@ -85,27 +80,5 @@
     </form>
   </div>
 
-  <!--
-    WHY AUTOMATED TOOLS MISS IT
-    Every one of the four card-number boxes carries a non-empty programmatic accessible name
-    via aria-label ("First four digits" / "Next four digits" / "Last four digits"), and
-    Expiry, Security code and Name on card all have real associated <label>s. So axe's "form
-    elements must have labels" rule and every 4.1.2 name/role check PASS — there is no
-    empty/missing name to flag.
-
-    The defect is precisely the 3.3.2 limb the Understanding calls out: a label can satisfy
-    4.1.2 (via aria-label) yet still fail 3.3.2 if it "isn't presented to all users, not
-    just those using assistive technologies." Here the four card boxes have NO meaningful
-    VISIBLE label — only a placeholder of four dashes "----", which is not a label and
-    vanishes on input — and there is NO visible "Card number" text labelling the SET at all.
-    The four-part grouping and its meaning are conveyed solely by the visual dash separators
-    between the boxes — exactly F82 (visually formatting a set of fields without a text label
-    identifying the set). A sighted, non-AT user must infer "credit card" purely from the
-    four-by-four dashed layout; nothing on screen says these compose a card number, and the
-    aria-labels read "First/Next/Last four digits" — never "card number" — so even an AT
-    user never hears the set's purpose. Tools cannot judge that a four-dash placeholder is
-    not a real visible label, nor that the dashed four-box layout silently encodes (without
-    stating) "card number" — that is a human visual-semantic judgment.
-  -->
 </body>
 </html>

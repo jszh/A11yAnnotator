@@ -85,19 +85,6 @@
 
 <footer>PollForge · changes autosave every 30s</footer>
 
-<!--
-  WHY AUTOMATED TOOLS MISS THIS (this page PASSES, and that is the point):
-  The DRAG markup here is essentially IDENTICAL to a failing page — draggable=true on the
-  list items, dragstart/dragover/drop handlers, insertBefore on drop. A scanner that tried to
-  flag "drag-only reorder" would flag this page too. But this page PASSES SC 2.1.1 because the
-  SAME reorder FUNCTION is also fully keyboard-operable: every card carries real <button> Move-up /
-  Move-down controls that reorder the list via keyboard, with first/last buttons disabled at the
-  ends, and the new position announced in a live region. G202 / the Understanding note explicitly
-  allow function-level parity ("multiple methods to perform the same function") rather than making
-  the draggable item itself keyboard-operable. Deciding pass-vs-fail here is a FUNCTION-LEVEL human
-  judgment — does a keyboard equivalent for the reorder function exist somewhere? — which no static
-  rule encodes. Identical drag markup, opposite verdict from case-01.
--->
 <script>
   const list = document.getElementById('qlist');
   const status = document.getElementById('orderstatus');
@@ -115,7 +102,6 @@
     status.textContent = li.querySelector('.qtext').textContent + ' moved to position ' + pos + ' of ' + items.length;
   }
 
-  // KEYBOARD-OPERABLE reorder (same function as drag): real buttons, focus-managed.
   list.addEventListener('click', e => {
     const btn = e.target.closest('button.up, button.down');
     if (!btn) return;
@@ -126,12 +112,10 @@
       list.insertBefore(li.nextElementSibling, li);
     }
     refreshMovers();
-    // keep focus on the same logical control so keyboard users can keep moving
     li.querySelector(btn.classList.contains('up') ? '.up' : '.down').focus();
     announce(li);
   });
 
-  // POINTER reorder (convenience, redundant with the buttons).
   let dragging = null;
   list.addEventListener('dragstart', e => { dragging = e.target.closest('.q'); dragging.classList.add('dragging'); });
   list.addEventListener('dragend', () => {

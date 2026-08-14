@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Statuslane — Compose Update</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.5 system-ui,"Segoe UI",Roboto,sans-serif; color:#0f1419; background:#fff; }
+  .composer { max-width:540px; margin:36px auto; border:1px solid #cfd9de; border-radius:16px; padding:18px; }
+  .who { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .avatar { width:40px; height:40px; border-radius:50%; background:#1d9bf0; color:#fff;
+            display:flex; align-items:center; justify-content:center; font-weight:700; }
+  .handle { color:#536471; font-size:13px; }
+  textarea { width:100%; border:0; resize:vertical; min-height:90px; font:18px/1.4 inherit; padding:6px 2px; }
+  textarea:focus-visible { outline:3px solid #1a73e8; outline-offset:2px; }
+  .bar { display:flex; align-items:center; justify-content:space-between; border-top:1px solid #eff3f4; padding-top:12px; }
+  .meter { font-size:14px; color:#536471; }
+  .meter b { color:#0f1419; font-variant-numeric:tabular-nums; }
+  .meter.warn b { color:#d93025; }
+  button { font:inherit; cursor:pointer; border:0; border-radius:999px; padding:9px 20px; background:#0f1419; color:#fff; font-weight:700; }
+  button:focus-visible { outline:3px solid #1a73e8; outline-offset:2px; }
+  footer { max-width:540px; margin:18px auto; color:#536471; font-size:12.5px; line-height:1.6; }
+</style>
+</head>
+<body>
+<div class="composer">
+  <div class="who">
+    <span class="avatar" aria-hidden="true">SL</span>
+    <span>
+      <strong>Statuslane</strong><br>
+      <span class="handle">@statuslane</span>
+    </span>
+  </div>
+
+  <label for="post" class="visually-hidden" style="position:absolute;left:-9999px">Compose a new post</label>
+  <textarea id="post" placeholder="What's happening?" maxlength="280"></textarea>
+
+  <div class="bar">
+    <!--
+      A character-budget meter. The full visible text is "280 characters remaining".
+      role="status" makes it a live region, but aria-atomic is unset and JS rewrites ONLY the
+      inner <b id="left"> number node on every keystroke. In a non-atomic environment AT
+      announces just the bare number ("two hundred sixty-seven") with no "characters
+      remaining". Worse: a bare number here is AMBIGUOUS even to someone guessing — is it
+      characters typed, characters remaining, or the limit? The polarity is carried solely by
+      the un-announced trailing words.
+    -->
+    <p class="meter" role="status" id="meter">
+      <b id="left">280</b> characters remaining
+    </p>
+    <button id="send" type="button">Post</button>
+  </div>
+</div>
+
+<footer>
+  <strong>Why automated tools miss this:</strong> the meter is a valid
+  <code>role="status"</code> live region with correct contrast and a properly labelled
+  textarea — axe/WAVE/Lighthouse pass it. The defect: only the inner count node mutates and
+  the region is non-atomic, so AT speaks a lone "267". Beyond losing context, a bare number
+  here does not even reveal its <em>polarity</em> (characters used vs. remaining) — that
+  meaning lives entirely in the un-announced words "characters remaining". No automated rule
+  evaluates whether a spoken number is intelligible, let alone whether its direction is clear.
+</footer>
+
+<script>
+  var ta = document.getElementById('post');
+  var leftEl = document.getElementById('left');
+  var meter = document.getElementById('meter');
+  var LIMIT = 280;
+  ta.addEventListener('input', function () {
+    var remaining = LIMIT - ta.value.length;
+    // ONLY the inner number node is rewritten on each keystroke. The trailing words
+    // "characters remaining" (which carry the polarity) are never re-announced, and
+    // #meter has no aria-atomic, so AT hears just "267".
+    leftEl.textContent = String(remaining);
+    meter.classList.toggle('warn', remaining <= 20);
+  });
+</script>
+</body>
+</html>

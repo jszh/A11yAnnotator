@@ -3,36 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!--
-    SC 1.3.1 (Info and Relationships) — F42 emulated-control failure path (img variant).
-    Aspect: emulated-controls-wrong-or-missing-role.
-
-    "Skylark Air" flight-search widget. The submit control at the end of the search bar
-    is an IMAGE: a glossy round teal disc with a white magnifying glass + the word
-    "Search" baked into the picture (here an inline SVG data URI standing in for a PNG).
-    It has cursor:pointer and a subtle hover scale. Clicking it submits the search.
-    Visually and behaviourally it IS the search BUTTON.
-
-    THE DEFECT: it is <img ... onclick="submitSearch()"> with NO role, NO tabindex, and
-    its alt describes the PICTURE ("Round teal search icon with a magnifying glass"),
-    not the action. So:
-      - exposed role is "img" (a graphic), not "button";
-      - keyboard users cannot Tab to it or activate it;
-      - even a sighted SR user who hovers gets "image, Round teal search icon…",
-        i.e. announced as a decorative-ish graphic, never as the submit control.
-    The button relationship conveyed by appearance + click-to-submit behaviour is not
-    programmatically determinable.
-
-    NOTE: the alt is PRESENT and non-empty, so the missing-alt linter passes. The alt is
-    describing the wrong thing (the graphic, not the function) AND the element is the
-    wrong role — both human-judgment failures, not a missing attribute.
-
-    WHY AUTOMATED TOOLS MISS IT: <img> has alt (no 1.1.1 missing-alt flag) and no role
-    (so 1.3.1 role-validity rules don't apply). axe/WAVE/Lighthouse see a valid image
-    with a click handler; nothing static says "this image is actually the submit button
-    and is exposed as a graphic". Reading the rendered disc + 'Search' wording + submit
-    behaviour AS a button is human visual/behavioural judgment.
-  -->
   <title>Find flights — Skylark Air</title>
   <style>
     :root { --ink:#0e2433; --muted:#5a6b78; --line:#d8e0e8; --teal:#0d7d8c; --bg:#eef4f8; --card:#fff; }
@@ -44,7 +14,6 @@
     @media (max-width:680px){ form.search { grid-template-columns:1fr 1fr; } }
     .field label { display:block; font-size:.72rem; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); margin-bottom:.3rem; }
     .field input, .field select { width:100%; padding:.6rem .65rem; border:1px solid var(--line); border-radius:9px; font:inherit; background:#fff; }
-    /* The IMG that acts as the submit button */
     .searchbtn { width:60px; height:60px; cursor:pointer; transition:transform .1s; display:block; justify-self:center; }
     .searchbtn:hover { transform:scale(1.05); }
     .results-note { color:var(--muted); font-size:.9rem; margin-top:1rem; }
@@ -68,11 +37,6 @@
         <input id="depart" name="depart" type="date" value="2026-07-14">
       </div>
 
-      <!--
-        DEFECT: the submit control is an <img> (role=img), not a <button>/<input type=submit>.
-        alt describes the GRAPHIC, not the action; no role=button, no tabindex.
-        The inline SVG data URI stands in for a PNG button graphic (keeps file:// self-contained).
-      -->
       <img
         class="searchbtn"
         onclick="submitSearch()"

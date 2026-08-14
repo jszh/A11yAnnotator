@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shipping address — Trailhead Outfitters checkout</title>
+<!--
+  WHY THIS IS THE PASS BOUNDARY (read against the FAIL cases):
+  This is the SAME aspect's mirror. The ZIP field is flagged on submit exactly like the
+  failing pages — aria-invalid="true", error tied via aria-describedby, role="alert"
+  summary, focus moved — but the message is ADEQUATE: it both names the format AND gives a
+  worked example AND offers a suggested correction derived from the user's own input:
+    "Enter a 5-digit ZIP code, for example 90210. You entered '9021' — it looks like one
+     digit is missing."
+  Compare to the FAIL twin string that a vague version would use ("Something's wrong with
+  this field.") shown only in this comment for contrast. Because the message tells the user
+  WHAT to change (a 5-digit number), shows an example, AND suggests the corrected value, it
+  satisfies BOTH limbs of the Trusted Tester result: a suggestion is provided, and the
+  description contains adequate information to fix the error. This page exists to sharpen
+  the judge's line between "mentions fixing" (FAIL) and "tells you how" (PASS) — automated
+  tools cannot tell these two apart because both are present-and-associated error text.
+-->
+<style>
+  :root{ --ink:#1d2521; --muted:#5f6b64; --line:#d6ddd8; --moss:#3a6b3a; --moss-d:#2a5029;
+         --danger:#b23b2e; --ok:#2c7a3f; --bg:#f5f7f5; --paper:#fff; --focus:#1558d6; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font:16px/1.5 "Helvetica Neue",Arial,sans-serif; color:var(--ink); background:var(--bg); }
+  header{ border-bottom:3px solid var(--moss); background:var(--paper); padding:14px 0; }
+  .wrap{ max-width:620px; margin:0 auto; padding:0 22px; }
+  header .brand{ font-weight:800; font-size:1.2rem; color:var(--moss); letter-spacing:.3px; }
+  main{ padding:28px 0 60px; }
+  h1{ font-size:1.45rem; margin:0 0 4px; }
+  .step{ color:var(--muted); margin:0 0 22px; font-size:.9rem; }
+  .alert{ background:#fbeeec; border-left:5px solid var(--danger); border-radius:6px;
+          padding:13px 16px; margin:0 0 24px; }
+  .alert h2{ margin:0 0 6px; font-size:1.02rem; color:var(--danger); }
+  .alert a{ color:var(--danger); font-weight:700; }
+  .grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .field{ margin:0 0 16px; }
+  .field.full{ grid-column:1 / -1; }
+  label{ display:block; font-weight:600; margin:0 0 5px; }
+  input{ width:100%; padding:10px 12px; font-size:1rem; border:1px solid var(--line);
+         border-radius:7px; background:#fff; }
+  input:focus{ outline:3px solid var(--focus); outline-offset:1px; border-color:var(--focus); }
+  input[aria-invalid="true"]{ border:2px solid var(--danger); background:#fff7f6; }
+  .hint{ color:var(--muted); font-size:.85rem; margin:5px 0 0; }
+  .err{ color:var(--danger); font-weight:600; font-size:.88rem; margin:7px 0 0; }
+  button{ background:var(--moss); color:#fff; border:0; border-radius:8px; font-size:1rem;
+          font-weight:700; padding:13px 30px; cursor:pointer; margin-top:6px; }
+  button:hover{ background:var(--moss-d); }
+  button:focus{ outline:3px solid var(--focus); outline-offset:2px; }
+  .foot{ color:var(--muted); font-size:.78rem; margin-top:24px; }
+</style>
+</head>
+<body>
+  <header><div class="wrap"><span class="brand">Trailhead Outfitters</span></div></header>
+  <main>
+    <div class="wrap">
+      <h1>Shipping address</h1>
+      <p class="step">Checkout · Step 2 of 3</p>
+
+      <div class="alert" role="alert">
+        <h2>Check the highlighted field</h2>
+        <p>Your ZIP code needs a small fix. <a href="#zip">Go to ZIP code.</a></p>
+      </div>
+
+      <form action="#" method="post" novalidate autocomplete="off">
+        <div class="field full">
+          <label for="addr">Street address</label>
+          <input type="text" id="addr" name="addr" value="48 Cedar Ridge Rd" autocomplete="address-line1">
+        </div>
+        <div class="grid">
+          <div class="field">
+            <label for="city">City</label>
+            <input type="text" id="city" name="city" value="Boulder" autocomplete="address-level2">
+          </div>
+          <div class="field">
+            <label for="state">State</label>
+            <input type="text" id="state" name="state" value="CO" autocomplete="address-level1" maxlength="2">
+          </div>
+        </div>
+
+        <!-- ADEQUATE: names the format, gives an example, AND suggests the fix from input. -->
+        <div class="field">
+          <label for="zip">ZIP code</label>
+          <input type="text" id="zip" name="zip" value="9021" inputmode="numeric"
+                 autocomplete="postal-code" maxlength="5"
+                 aria-invalid="true" aria-describedby="zip-err">
+          <p class="err" id="zip-err">Enter a 5-digit ZIP code, for example 90210. You entered "9021" — it looks like one digit is missing.</p>
+        </div>
+
+        <button type="submit">Continue to payment</button>
+      </form>
+
+      <p class="foot">Demo checkout · renders from file:// · no data leaves this page.</p>
+    </div>
+  </main>
+
+<script>
+(function(){
+  var zip = document.getElementById('zip');
+  var err = document.getElementById('zip-err');
+  if (zip) { zip.focus(); zip.setSelectionRange(zip.value.length, zip.value.length); }
+
+  function valid(v){ return /^\d{5}$/.test(v); }
+
+  document.querySelector('form').addEventListener('submit', function(e){
+    e.preventDefault();
+    var v = zip.value.trim();
+    if (valid(v)) {
+      zip.setAttribute('aria-invalid','false');
+      err.textContent = 'ZIP code looks good.';
+      err.style.color = '#2c7a3f';
+    } else {
+      zip.setAttribute('aria-invalid','true');
+      // Stays ADEQUATE: restates the format + example, and tailors the suggestion to input.
+      var n = v.replace(/\D/g,'');
+      var diag = !v ? 'This field is empty.'
+        : n.length < 5 ? 'You entered "' + v + '" — it looks like ' + (5 - n.length) + ' digit(s) are missing.'
+        : 'Use exactly 5 digits with no letters or spaces.';
+      err.textContent = 'Enter a 5-digit ZIP code, for example 90210. ' + diag;
+      zip.focus();
+    }
+  });
+})();
+</script>
+</body>
+</html>

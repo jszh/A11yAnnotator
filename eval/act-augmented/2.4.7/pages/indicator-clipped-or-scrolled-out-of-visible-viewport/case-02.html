@@ -11,7 +11,6 @@
     color: #1b2733; background: #eef1f4; line-height: 1.6;
   }
 
-  /* Government services brand bar. NOT sticky — ordinary document flow. */
   .gov-bar { background: #0b3d62; color: #fff; padding: 10px 0; }
   .gov-bar .inner { max-width: 760px; margin: 0 auto; padding: 0 24px; display:flex; align-items:center; gap:12px; }
   .gov-bar .seal { width: 26px; height: 26px; border-radius: 50%; background:#f0c419; flex:0 0 auto; }
@@ -22,8 +21,6 @@
   h1 { font-size: 26px; margin: 8px 0 4px; }
   .lede { color:#52606d; margin: 0 0 18px; max-width: 60ch; }
 
-  /* A validation summary that the server renders at the top after a failed
-     submit. Its single button is a real keyboard control in the tab order. */
   .errsum {
     background:#fdecea; border:1px solid #e0b4ad; border-left:5px solid #c0392b;
     border-radius:10px; padding:16px 18px; margin: 0 0 26px;
@@ -53,8 +50,6 @@
   .field.invalid input, .field.invalid textarea { border-color:#c0392b; }
   .field .err { color:#c0392b; font-size:13px; margin:6px 0 0; }
 
-  /* The author DID write a clear, high-contrast focus indicator — a 3px solid
-     ring with an offset. It is real and conformant; the bug is NOT here. */
   .errsum button:focus-visible,
   .field input:focus-visible,
   .field select:focus-visible,
@@ -86,8 +81,6 @@
     <h1>Residential Building Permit Application</h1>
     <p class="lede">You submitted the form, but some required fields need attention. Use the button below to jump straight to the first field that needs fixing.</p>
 
-    <!-- Server re-rendered this summary after a failed submit. The "Go to first
-         error" button is a genuine control in the tab order. -->
     <div class="errsum" role="alert">
       <h2>We couldn't submit your application</h2>
       <p>2 fields need to be corrected. The first one is near the bottom of the form.</p>
@@ -156,7 +149,6 @@
         <h2>Contacts &amp; certification</h2>
         <p class="hint">The applicant of record certifies the information is true.</p>
         <fieldset>
-          <!-- FIRST ERROR: empty required email, far down the page. -->
           <div class="field invalid" id="field-email">
             <label for="email">Applicant email <span aria-hidden="true">*</span></label>
             <input id="email" name="email" type="email" value="" aria-invalid="true" aria-describedby="email-err">
@@ -178,19 +170,6 @@
   </main>
 
   <script>
-    // "Go to first error" sends keyboard focus to the first invalid field so a
-    // keyboard user lands right where they must type.
-    //
-    // BUG: an earlier build scrolled the page when focusing the field, and an
-    // accessibility reviewer (mis)reported the scroll jump as "disorienting", so
-    // the dev added { preventScroll: true }. Now activating the button moves
-    // focus to #email — a genuine sequential-focus-order control with a real,
-    // high-contrast focus ring — but the browser keeps the current scroll
-    // position (the top of the form) instead of scrolling #email into view.
-    // #email sits near the bottom of a long form, well below the fold, so its
-    // focus ring is painted entirely outside the visible viewport. The user
-    // pressed the button, focus moved, yet no focus indicator is visible
-    // anywhere on screen, and the page did not move.
     document.getElementById('gotoError').addEventListener('click', function () {
       var firstInvalid = document.querySelector('[aria-invalid="true"]');
       if (firstInvalid) {
@@ -199,21 +178,5 @@
     });
   </script>
 
-  <!--
-    WHY AUTOMATED TOOLS MISS IT
-    Every control has a real, high-contrast 3px :focus-visible ring, so a
-    CSS/DOM scanner (axe, WAVE, Lighthouse) sees a conformant focus style and
-    flags nothing. ACT rule oj04fd is satisfied too: when #email is focused,
-    pixels DO change (the ring is painted) within the document's scrolling area.
-    The failure is runtime + positional: "Go to first error" moves focus with
-    focus({ preventScroll: true }), so the browser does NOT scroll the focused
-    field into the VISIBLE viewport — and #email is far below the fold. The
-    focused element is a genuine sequential-focus-order control (a native
-    <input type=email>), the ring is drawn, yet it is rendered entirely outside
-    what the user can see, and the page does not move to reveal it. Detecting
-    this needs running the keyboard journey and comparing the focused element's
-    rectangle to the visual viewport — a viewport-aware human (or visual) check,
-    not a static markup scan.
-  -->
 </body>
 </html>

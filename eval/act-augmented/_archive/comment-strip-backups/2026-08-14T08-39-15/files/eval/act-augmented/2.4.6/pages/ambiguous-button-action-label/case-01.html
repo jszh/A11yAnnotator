@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Unsaved dashboard layout — Northwind Analytics</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font: 15px/1.55 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0; color: #1f2733; background: #eef1f5;
+    }
+    .app-bar {
+      background: #1b2a4a; color: #fff; padding: .8rem 1.25rem;
+      display: flex; align-items: center; gap: .75rem;
+    }
+    .app-bar strong { font-size: 1.05rem; }
+    .app-bar .crumb { color: #b8c4dd; font-size: .85rem; }
+    .canvas { padding: 1.5rem 1.25rem; }
+    .tile {
+      background: #fff; border: 1px solid #d7dde7; border-radius: 8px;
+      padding: 1rem 1.1rem; margin: 0 0 1rem; box-shadow: 0 1px 2px rgba(20,30,60,.05);
+    }
+    .tile h2 { margin: 0 0 .4rem; font-size: 1rem; }
+    .tile p { margin: 0; color: #5a6577; font-size: .9rem; }
+    /* Modal */
+    .scrim {
+      position: fixed; inset: 0; background: rgba(15,22,40,.55);
+      display: flex; align-items: center; justify-content: center; padding: 1rem;
+    }
+    .dialog {
+      background: #fff; border-radius: 10px; max-width: 460px; width: 100%;
+      box-shadow: 0 12px 40px rgba(10,18,40,.35); overflow: hidden;
+    }
+    .dialog header { padding: 1.1rem 1.3rem .4rem; }
+    .dialog header h1 { margin: 0; font-size: 1.15rem; }
+    .dialog .body { padding: .3rem 1.3rem 1rem; color: #444f61; font-size: .92rem; }
+    .dialog .body ul { margin: .5rem 0 0; padding-left: 1.2rem; }
+    .dialog .actions {
+      display: flex; justify-content: flex-end; gap: .6rem;
+      padding: .9rem 1.3rem 1.2rem; border-top: 1px solid #eef1f5;
+    }
+    .btn {
+      font: inherit; font-weight: 600; cursor: pointer;
+      padding: .5rem 1.15rem; border-radius: 6px; border: 1px solid transparent;
+    }
+    .btn-primary { background: #1f6feb; color: #fff; }
+    .btn-neutral { background: #f2f4f8; color: #29313f; border-color: #cdd5e1; }
+    .btn-ghost   { background: #fff; color: #1f6feb; border-color: #b9ccef; }
+    .btn:focus-visible { outline: 3px solid #ffb000; outline-offset: 2px; }
+  </style>
+</head>
+<body>
+  <div class="app-bar">
+    <strong>Northwind Analytics</strong>
+    <span class="crumb">/ Workspaces / Q3 Revenue / Edit layout</span>
+  </div>
+
+  <main class="canvas" aria-hidden="true">
+    <div class="tile"><h2>Net revenue by region</h2><p>Last refreshed 4 minutes ago · 6 regions</p></div>
+    <div class="tile"><h2>Pipeline coverage</h2><p>Forecast vs. closed-won, trailing 4 quarters</p></div>
+    <div class="tile"><h2>Churn cohort heatmap</h2><p>Monthly retention by signup cohort</p></div>
+  </main>
+
+  <!-- Confirmation dialog raised when the editor tries to leave with unsaved layout changes -->
+  <div class="scrim">
+    <div class="dialog" role="alertdialog" aria-labelledby="dlg-title" aria-describedby="dlg-desc">
+      <header>
+        <h1 id="dlg-title">You have unsaved layout changes</h1>
+      </header>
+      <div class="body" id="dlg-desc">
+        <p>You moved three tiles and resized the revenue chart since your last save.
+           Choose what to do before leaving the editor:</p>
+        <ul>
+          <li><strong>Keep your edits</strong> — write the new layout to this workspace.</li>
+          <li><strong>Throw the edits away</strong> — revert to the last saved layout.</li>
+          <li><strong>Take a copy with you</strong> — download the current layout as a <code>.json</code> file.</li>
+        </ul>
+      </div>
+      <div class="actions">
+        <!--
+          ISSUE: three buttons, three DIFFERENT destructive/persistent functions,
+          all visibly labeled "OK". The order of the three list items above is
+          save / discard / export, but the buttons below are NOT in that order
+          (export, save, discard), and nothing in the BUTTON text says which is which.
+        -->
+        <button type="button" class="btn btn-ghost"   onclick="return false">OK</button>
+        <button type="button" class="btn btn-primary" onclick="return false">OK</button>
+        <button type="button" class="btn btn-neutral" onclick="return false">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS:
+    Each of the three <button> elements has a non-empty accessible name ("OK"), a
+    valid button role, and is keyboard-focusable, so axe "button-name", WAVE, and
+    Lighthouse all PASS — there is no missing/empty label and no duplicate-id error.
+    Duplicate accessible names are not, by themselves, a violation any linter flags.
+    The defect is purely SEMANTIC: the label "OK" tells the user NOTHING about which
+    function each button performs. The buttons map to three different and consequential
+    actions (persist edits, discard edits, export a file), the prose above describes
+    the actions but is not connected to any individual button, and the buttons are not
+    even rendered in the same order the prose lists them. A screen-reader user tabbing
+    the dialog hears "OK button, OK button, OK button" and cannot tell save from
+    discard from export. Only a human reading the dialog and reasoning about the
+    consequences of each control can judge that the labels fail to convey function.
+  -->
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.3.1 FAILURE (F48 / F34: tabular data laid out with spaces inside <pre>).
+    This is a developer-docs "Troubleshooting" page. The doc tells operators to read the columns of
+    `kubectl get pods` output to diagnose a stuck rollout. The pasted terminal output is a REAL
+    data table: column headers NAME / READY / STATUS / RESTARTS / AGE, one row per pod, and the
+    diagnosis depends on reading DOWN the STATUS column and comparing READY across rows. But it is
+    pasted verbatim into a <pre> — the columns are space-aligned, no <table>, no <th>, no role.
+    Crucially the prose around it says "note the STATUS column" and "the second pod's RESTARTS
+    count" — instructions that are MEANINGLESS to a screen-reader user, because the columns the
+    text references do not exist programmatically.
+    WHY AUTOMATED TOOLS MISS IT: pasted CLI output in <pre> is the single most common, valid use of
+    <pre>; nothing distinguishes "decorative terminal log" from "table you must read by column."
+    No rule flags it. A reader hears one run-on line per pod with the header row detached, so
+    "STATUS column" and per-column comparison are impossible. Telling the difference requires
+    understanding that THIS <pre> carries column relationships the reader must compare — human
+    semantic judgment of the surrounding instructions + the aligned text.
+  -->
+  <title>Troubleshooting a stuck rollout — Helmsman Docs</title>
+  <style>
+    :root { --bg:#0f1419; --panel:#161b22; --ink:#e6edf3; --muted:#8b949e; --accent:#58a6ff; --line:#30363d; --warn:#d29922; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:-apple-system, "Segoe UI", system-ui, Arial, sans-serif; color:var(--ink); background:var(--bg); }
+    header.doc { border-bottom:1px solid var(--line); padding:14px 28px; display:flex; align-items:center; gap:10px; }
+    header.doc .logo { font-weight:700; color:var(--accent); }
+    header.doc .bc { color:var(--muted); font-size:13px; }
+    .wrap { max-width:840px; margin:28px auto; padding:0 28px; }
+    h1 { font-size:26px; margin:0 0 6px; }
+    .sub { color:var(--muted); margin:0 0 26px; }
+    h2 { font-size:18px; margin:30px 0 10px; }
+    p { line-height:1.65; }
+    code.inline { background:#262c36; padding:1px 6px; border-radius:5px; font-family:"SFMono-Regular",Consolas,monospace; font-size:13px; }
+    .step { color:var(--accent); font-weight:600; }
+    /* Pasted terminal output: a real data table, but it is just space-aligned text in <pre>. */
+    pre.term {
+      background:#010409; border:1px solid var(--line); border-radius:8px;
+      padding:14px 16px; overflow-x:auto; margin:14px 0;
+      font-family:"SFMono-Regular","Cascadia Code",Consolas,monospace;
+      font-size:13px; line-height:1.6; color:#d1d9e0;
+    }
+    pre.term .prompt { color:#7ee787; }
+    .callout { border-left:3px solid var(--warn); background:#1b1810; padding:12px 16px; border-radius:0 6px 6px 0; margin:18px 0; color:#e3d8b8; font-size:14px; }
+  </style>
+</head>
+<body>
+  <header class="doc">
+    <span class="logo">Helmsman</span>
+    <span class="bc">Docs / Operations / Troubleshooting</span>
+  </header>
+
+  <main class="wrap">
+    <h1>Troubleshooting a stuck rollout</h1>
+    <p class="sub">Diagnose why a new deployment never reaches the <code class="inline">Running</code> state.</p>
+
+    <h2>1. Inspect the pods</h2>
+    <p><span class="step">Step 1.</span> List the pods in the namespace and read the output by column:</p>
+
+<pre class="term"><span class="prompt">$</span> kubectl get pods -n payments
+NAME                       READY   STATUS             RESTARTS   AGE
+checkout-7d9f8c6b4-2xk9q   1/1     Running            0          6d
+checkout-7d9f8c6b4-pl4mn   0/1     CrashLoopBackOff   8          4m
+ledger-5c7b9d4f6-qq8wz     1/1     Running            0          6d
+ledger-5c7b9d4f6-zt2vr     0/1     ImagePullBackOff   0          4m
+worker-6f4c8a9e2-h7n3d     2/2     Running            1          6d</pre>
+
+    <p><span class="step">Step 2.</span> Scan <strong>down the STATUS column</strong>. Any value other than
+       <code class="inline">Running</code> is your culprit. Then cross-reference the same row's
+       <strong>READY</strong> count (e.g. <code class="inline">0/1</code>) and its
+       <strong>RESTARTS</strong> total to tell a crash loop apart from an image-pull failure.</p>
+
+    <div class="callout">
+      In the output above, two rows fail: the second <code class="inline">checkout</code> pod is in
+      <code class="inline">CrashLoopBackOff</code> with 8 restarts, and the second
+      <code class="inline">ledger</code> pod is stuck on <code class="inline">ImagePullBackOff</code>.
+      Compare their READY columns against the healthy rows to confirm.
+    </div>
+
+    <h2>2. Next steps</h2>
+    <p>For a crash loop, pull the previous container's logs; for an image-pull error, verify the
+       registry credentials in the namespace's pull secret.</p>
+  </main>
+</body>
+</html>

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maple & Stone Realty — Featured Listings</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (SC 1.4.10 Reflow, G225)
+  This page has TWO sibling horizontally-scrolling carousels built from the SAME
+  component, side by side, so the contrast is the whole point:
+
+   * "Just Listed" (id=good) — every panel is clamped: width:min(86vw,300px). At a
+     320px viewport each panel fits and reads top-to-bottom. The STRIP scrolls
+     horizontally (allowed). This carousel PASSES.
+
+   * "Luxury Collection" (id=bad) — a designer overrode the panel width to a fixed
+     380px (".lux .listing { width:380px }") to show off larger hero photos. At a
+     320px viewport EVERY panel in this second carousel overflows and needs an
+     in-panel horizontal scrollbar. This carousel FAILS.
+
+  Both carousels show a horizontal scrollbar; both contain valid markup. The page as a
+  whole is FAILED because the second carousel's panels don't fit 320px. The evaluator
+  must NOT flag the strip-scroll of either carousel, and must correctly PASS the first
+  while FAILING the second.
+
+  axe-core / WAVE / Lighthouse cannot detect this:
+   - No markup errors; both carousels look identical to a static parser.
+   - Reflow at 320px is a rendered measurement; the only difference is one CSS width
+     value (min(86vw,300px) vs 380px) and its effect AT 320px.
+   - An overflow detector sees horizontal scroll on BOTH strips (allowed) and cannot
+     tell that one carousel's PANELS fit while the other's PANELS don't. That requires
+     rendering at 320px and judging each carousel's panels individually.
+  To reproduce: render at width:320px. Panels in "Just Listed" fit; every panel in
+  "Luxury Collection" overflows the viewport.
+-->
+<style>
+  :root { --olive:#43523a; --stone:#8b8275; --cream:#f6f3ec; --ink:#262420; --gold:#a8843f; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:Georgia,"Times New Roman",serif; color:var(--ink);
+         background:var(--cream); line-height:1.5; }
+  header.brand { background:var(--olive); color:#f3efe6; padding:16px 22px;
+                 display:flex; align-items:baseline; gap:14px; }
+  header.brand .name { font-size:20px; font-weight:700; letter-spacing:.5px; }
+  header.brand .tag { font-size:13px; color:#cdd3c4; font-style:italic; }
+  main { padding:18px 16px 64px; }
+  h1 { font-size:24px; margin:6px 0 4px; }
+  .intro { color:#5b574d; max-width:60ch; margin:0 0 18px; }
+  h2 { font-size:18px; margin:26px 0 8px; color:var(--olive); }
+  .note { font-size:13px; color:#6a665b; margin:0 0 12px; }
+
+  .rail {
+    display:flex;
+    gap:16px;
+    overflow-x:auto;            /* allowed carousel strip navigation (both rails) */
+    padding:6px 2px 18px;
+    scroll-snap-type:x mandatory;
+  }
+  .listing {
+    flex:0 0 auto;
+    scroll-snap-align:start;
+    background:#fff;
+    border:1px solid #e0dac9;
+    border-radius:8px;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;      /* reads top-to-bottom inside the panel */
+    font-family:"Helvetica Neue",Arial,sans-serif;
+  }
+  .listing img { width:100%; height:150px; object-fit:cover; display:block; }
+  .listing .info { padding:12px 14px 14px; }
+  .listing .price { font-size:17px; font-weight:800; color:var(--olive); }
+  .listing h3 { font-size:14px; margin:4px 0 4px; font-weight:600; }
+  .listing .addr { font-size:13px; color:#6a665b; }
+  .listing .stats { font-size:12.5px; color:#444; margin-top:8px; }
+
+  /* PASSING carousel: panels clamp to <=300px, so each fits a 320px viewport. */
+  .good .listing { width:min(86vw,300px); }
+
+  /* FAILING carousel: designer fixed panels at 380px for bigger hero shots.
+     At 320px EVERY panel here overflows and needs within-panel horizontal scroll. */
+  .lux .listing { width:380px; }
+  .lux .listing { border-color:var(--gold); }
+  .lux .listing img { height:200px; }
+
+  footer.brand { background:#34402d; color:#cdd3c4; font-size:12.5px; padding:16px 22px; }
+</style>
+</head>
+<body>
+<header class="brand">
+  <span class="name">Maple &amp; Stone Realty</span>
+  <span class="tag">Homes with a story</span>
+</header>
+
+<main>
+  <h1>Featured Listings</h1>
+  <p class="intro">Browse this week's highlights. Swipe each row to see more homes.</p>
+
+  <h2>Just Listed</h2>
+  <p class="note">Newest homes on the market.</p>
+  <div class="rail good" role="list" aria-label="Just listed homes">
+
+    <article class="listing" role="listitem">
+      <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='150'><rect width='300' height='150' fill='%237a8a6a'/><text x='150' y='82' font-size='16' fill='%23f3efe6' text-anchor='middle'>Craftsman Bungalow</text></svg>" alt="Single-story craftsman bungalow with a covered front porch">
+      <div class="info">
+        <div class="price">$429,000</div>
+        <h3>3 bd · 2 ba · 1,640 sqft</h3>
+        <div class="addr">214 Linden Ave, Cedar Park</div>
+        <div class="stats">Built 1928 · Updated kitchen · Detached garage</div>
+      </div>
+    </article>
+
+    <article class="listing" role="listitem">
+      <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='150'><rect width='300' height='150' fill='%235f6f80'/><text x='150' y='82' font-size='16' fill='%23eef2f6' text-anchor='middle'>Lakeside Cottage</text></svg>" alt="Two-story cottage overlooking a small lake">
+      <div class="info">
+        <div class="price">$512,500</div>
+        <h3>3 bd · 2.5 ba · 1,910 sqft</h3>
+        <div class="addr">8 Harbor Loop, Millbrook</div>
+        <div class="stats">Dock rights · New roof 2024 · Open plan</div>
+      </div>
+    </article>
+
+    <article class="listing" role="listitem">
+      <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='150'><rect width='300' height='150' fill='%237d6a55'/><text x='150' y='82' font-size='16' fill='%23f1e9dd' text-anchor='middle'>Garden Townhome</text></svg>" alt="Brick townhome with a small front garden">
+      <div class="info">
+        <div class="price">$365,000</div>
+        <h3>2 bd · 2 ba · 1,200 sqft</h3>
+        <div class="addr">47 Willow Court, Riverton</div>
+        <div class="stats">HOA · Fenced patio · Walk to transit</div>
+      </div>
+    </article>
+
+  </div>
+
+  <h2>Luxury Collection</h2>
+  <p class="note">Premier homes, curated by our concierge team.</p>
+  <div class="rail lux" role="list" aria-label="Luxury collection homes">
+
+    <article class="listing" role="listitem">
+      <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='380' height='200'><rect width='380' height='200' fill='%23434a3a'/><text x='190' y='108' font-size='18' fill='%23e9e4d6' text-anchor='middle'>Hillcrest Estate</text></svg>" alt="Modern hillside estate with floor-to-ceiling windows">
+      <div class="info">
+        <div class="price">$2,180,000</div>
+        <h3>5 bd · 4.5 ba · 4,820 sqft</h3>
+        <div class="addr">1 Summit Ridge, Highland Hills</div>
+        <div class="stats">Infinity pool · Wine cellar · 3-car garage</div>
+      </div>
+    </article>
+
+    <article class="listing" role="listitem">
+      <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='380' height='200'><rect width='380' height='200' fill='%23574a3a'/><text x='190' y='108' font-size='18' fill='%23f0e6d6' text-anchor='middle'>Vineyard Villa</text></svg>" alt="Mediterranean villa surrounded by vineyard rows">
+      <div class="info">
+        <div class="price">$3,450,000</div>
+        <h3>6 bd · 6 ba · 6,100 sqft</h3>
+        <div class="addr">90 Estate Drive, Sonoma Reach</div>
+        <div class="stats">12 acres · Guest house · Tasting room</div>
+      </div>
+    </article>
+
+    <article class="listing" role="listitem">
+      <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='380' height='200'><rect width='380' height='200' fill='%233a4654'/><text x='190' y='108' font-size='18' fill='%23e6edf4' text-anchor='middle'>Penthouse Loft</text></svg>" alt="Top-floor penthouse loft with a wraparound terrace">
+      <div class="info">
+        <div class="price">$1,790,000</div>
+        <h3>3 bd · 3 ba · 2,640 sqft</h3>
+        <div class="addr">700 Marina Tower #PH2, Bayfront</div>
+        <div class="stats">Wraparound terrace · Concierge · Skyline views</div>
+      </div>
+    </article>
+
+  </div>
+</main>
+
+<footer class="brand">© 2026 Maple &amp; Stone Realty · Each office independently owned and operated</footer>
+</body>
+</html>

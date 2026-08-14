@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 4.1.2 FAILURE (ARIA14 name-quality — identical generic token across distinct text fields).
+    This is the "edit contact" panel of a real-estate CRM. Three rich-text fields are built as
+    contentEditable <div role="textbox">: a mailing ADDRESS, the contact's INTERNAL NOTES, and a
+    pinned FOLLOW-UP REMINDER. Each is a labelable-looking field with a visible heading above it,
+    but the heading text is NOT programmatically tied to the field — each editor instead carries
+    the identical aria-label="editor". Every editor therefore has a non-empty, machine-valid
+    accessible name (the ACT "Form field has non-empty accessible name" rule PASSES), and the
+    role=textbox + aria-multiline are correct. But a screen-reader user tabbing the form hears
+    "editor, edit text … editor, edit text … editor, edit text" — three indistinguishable
+    fields — and cannot tell which one is the address versus the private notes versus the
+    reminder. Putting notes into the address field is a real, silent error.
+    WHY AUTOMATED TOOLS MISS IT: each editor has a non-empty name ("editor"), so name rules
+    pass; nothing is empty or missing. The contentEditable divs are NOT native inputs, so the
+    visible <h3> headings sitting above them do not auto-associate, yet a scanner cannot judge
+    that the SAME name on three fields fails to identify each one. Realizing "editor" is generic
+    and that the three fields hold different content requires reading the visible headings and
+    the field contents — human semantic judgment.
+  -->
+  <title>Edit contact · Dana Whitfield — Beacon Realty CRM</title>
+  <style>
+    :root { --ink:#1f2430; --muted:#6b7280; --line:#dfe3ea; --brand:#4338ca; --bg:#f5f6f9; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Inter", "Segoe UI", Arial, sans-serif; color:var(--ink); background:var(--bg); }
+    header { background:#1e1b4b; color:#fff; padding:13px 24px; display:flex; align-items:center; gap:14px; }
+    header .brand { font-weight:800; }
+    header .who { margin-left:auto; font-size:14px; color:#c7c5f5; }
+    main { max-width:680px; margin:26px auto; background:#fff; border:1px solid var(--line); border-radius:12px; padding:24px 28px 28px; }
+    .contact-head { display:flex; align-items:center; gap:14px; border-bottom:1px solid var(--line); padding-bottom:14px; margin-bottom:20px; }
+    .avatar { width:46px; height:46px; border-radius:50%; background:#ddd6fe; color:#4338ca; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:18px; }
+    .contact-head h1 { font-size:20px; margin:0; }
+    .contact-head .role { color:var(--muted); font-size:13px; }
+    .field { margin:0 0 20px; }
+    .field h3 { font-size:13px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); margin:0 0 6px; }
+    .editor { min-height:64px; border:1px solid var(--line); border-radius:8px; padding:10px 12px; font-size:15px; line-height:1.5; background:#fff; }
+    .editor:focus { outline:2px solid var(--brand); outline-offset:1px; border-color:var(--brand); }
+    .field.notes .editor { min-height:96px; }
+    .toolbar-mini { display:flex; gap:6px; margin-bottom:6px; }
+    .toolbar-mini button { border:1px solid var(--line); background:#fff; border-radius:6px; width:30px; height:28px; font-size:14px; cursor:pointer; }
+    .actions { display:flex; justify-content:flex-end; gap:10px; border-top:1px solid var(--line); padding-top:18px; }
+    .btn { border:0; border-radius:8px; padding:11px 20px; font-size:15px; cursor:pointer; }
+    .btn.primary { background:var(--brand); color:#fff; }
+    .btn.ghost { background:#fff; border:1px solid var(--line); color:var(--ink); }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="brand">Beacon Realty CRM</span>
+    <span class="who">Agent: J. Morales</span>
+  </header>
+
+  <main>
+    <div class="contact-head">
+      <div class="avatar" aria-hidden="true">DW</div>
+      <div>
+        <h1>Dana Whitfield</h1>
+        <div class="role">Buyer · pre-approved · viewing 14 Larkspur Ln Sat</div>
+      </div>
+    </div>
+
+    <form>
+      <div class="field address">
+        <h3 id="h-address">Mailing address</h3>
+        <div class="editor" role="textbox" aria-multiline="true" aria-label="editor" contenteditable="true">2210 Cedar Park Ave, Apt 7B, Riverside, CA 92507</div>
+      </div>
+
+      <div class="field notes">
+        <h3 id="h-notes">Internal notes (not shared with client)</h3>
+        <div class="toolbar-mini" aria-hidden="true">
+          <button type="button" tabindex="-1"><b>B</b></button>
+          <button type="button" tabindex="-1"><i>i</i></button>
+          <button type="button" tabindex="-1">•</button>
+        </div>
+        <div class="editor" role="textbox" aria-multiline="true" aria-label="editor" contenteditable="true">Motivated; budget firm at $640k. Disliked the Maple St listing — wants a real yard. Co-buyer is sister, joining Sat.</div>
+      </div>
+
+      <div class="field followup">
+        <h3 id="h-followup">Pinned follow-up reminder</h3>
+        <div class="editor" role="textbox" aria-multiline="true" aria-label="editor" contenteditable="true">Call Mon AM to confirm financing letter before we write the offer.</div>
+      </div>
+
+      <div class="actions">
+        <button type="button" class="btn ghost">Cancel</button>
+        <button type="submit" class="btn primary">Save contact</button>
+      </div>
+    </form>
+  </main>
+</body>
+</html>

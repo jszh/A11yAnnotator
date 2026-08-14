@@ -20,7 +20,6 @@
   input, textarea { width:100%; padding:10px 11px; font-size:.93rem; border:1px solid var(--line); border-radius:7px; }
   input:focus, textarea:focus { outline:2px solid var(--accent); outline-offset:1px; }
   .hint { color:var(--muted); font-size:.76rem; margin:5px 0 0; }
-  /* The two coordinate inputs sit in one neat row, monospaced like a readout. */
   .pair { display:flex; gap:14px; }
   .pair > div { flex:1 1 0; min-width:0; }
   .pair input { font-family: "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace; letter-spacing:.3px; }
@@ -54,9 +53,6 @@
         <span class="pin"></span>
       </div>
 
-      <!-- THE DEFECT: a latitude/longitude PAIR. Each input is labeled only with its UNIT
-           ("Decimal degrees"), so neither field alone says it is a latitude or a longitude,
-           and nothing labels the pair as a coordinate. -->
       <div class="field">
         <div class="pair">
           <div>
@@ -82,25 +78,5 @@
     </form>
   </div>
 
-  <!--
-    WHY AUTOMATED TOOLS MISS IT
-    Both coordinate inputs have a correctly associated, visible, non-empty <label> reading
-    "Decimal degrees", so axe/WAVE/Lighthouse pass the missing-label check. There is also a
-    proper aria-label on the map preview, so nothing trips a name/role rule.
-
-    The defect: this is a latitude/longitude PAIR, and "Decimal degrees" labels only the
-    UNIT, not the role of each field. The LEFT field is the latitude (name="lat") and the
-    RIGHT is the longitude (name="lng"), but a user is never told that — neither field alone
-    says "latitude" or "longitude", and nothing labels the two together as "Coordinates" or
-    "GPS location". The order and meaning are conveyed purely by left-to-right position and
-    by the programmatic name= attribute (invisible to users). A sighted user sees two
-    identically-labeled "Decimal degrees" boxes and must GUESS which is lat and which is lng;
-    a screen-reader user hears "Decimal degrees, edit … Decimal degrees, edit" — two
-    identical fields, no group meaning. Entering 44.06 / -121.32 in the wrong order silently
-    moves the pin to the South Atlantic. This is F82's rationale generalized: a set of
-    fields whose individual labels are insufficient and whose group purpose (a coordinate)
-    is required but never provided in text. Detecting it needs human knowledge that two
-    "Decimal degrees" fields form an ordered lat/lng pair — no scanner models that.
-  -->
 </body>
 </html>

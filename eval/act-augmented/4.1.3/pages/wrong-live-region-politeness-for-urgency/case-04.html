@@ -47,25 +47,6 @@
     </div>
   </div>
 
-  <!--
-    THE DEFECT lives in the interaction between #focusToggle and #refillStatus.
-
-    #refillStatus is a PRESENT, VALID live region at page load:
-        <p id="refillStatus" role="status" aria-live="polite" aria-atomic="true">
-    so axe / WAVE / Lighthouse all see a real status container that announces — they pass.
-
-    But the developer copied SCR14's "let users silence non-emergency alerts" toggle and
-    wired it BACKWARDS. The "Focus mode" button is meant to quiet chatty announcements.
-    Instead, its handler sets aria-live="off" on #refillStatus, AND focus mode is ON BY
-    DEFAULT (aria-pressed="true", the region starts aria-live="off"). So at the exact
-    moment the consequential refill OUTCOME is written into the region — "Refill request
-    FAILED: this medication requires prescriber re-authorization. Call your clinic." —
-    the container is aria-live="off", and the screen reader announces NOTHING. A status
-    message exists in the DOM but is not programmatically surfaced: a real F103 failure.
-    A sighted user sees the red error; a screen-reader user hears silence and believes
-    the refill went through. Only a human who toggles state and listens catches that the
-    live region was muted precisely when it had to speak.
-  -->
   <div class="focusrow">
     <span>Reduce on-screen announcements while you work</span>
     <button type="button" id="focusToggle" aria-pressed="true">Focus mode: On</button>
@@ -80,7 +61,6 @@
 
   <button type="button" class="submit" id="submitBtn">Submit refill request</button>
 
-  <!-- Valid status live region, present at load. role=status + aria-live + aria-atomic. -->
   <p id="refillStatus" role="status" aria-live="off" aria-atomic="true"></p>
 </div>
 
@@ -102,16 +82,12 @@
   var statusEl  = document.getElementById('refillStatus');
   var submitBtn = document.getElementById('submitBtn');
 
-  // BACKWARDS SCR14: "Focus mode" is meant to quiet chatty alerts, but it is ON by default
-  // and it mutes #refillStatus by setting aria-live="off". The region therefore starts
-  // muted, and stays muted unless the user happens to turn focus mode OFF.
   function applyFocusMode(on) {
     toggleBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
     toggleBtn.textContent = 'Focus mode: ' + (on ? 'On' : 'Off');
-    // The bug: focus mode "On" sets the *outcome* region to aria-live="off".
     statusEl.setAttribute('aria-live', on ? 'off' : 'polite');
   }
-  applyFocusMode(true); // default state: muted
+  applyFocusMode(true); 
 
   toggleBtn.addEventListener('click', function () {
     var on = toggleBtn.getAttribute('aria-pressed') === 'true';
@@ -119,15 +95,10 @@
   });
 
   submitBtn.addEventListener('click', function () {
-    // Simulated gateway response for this controlled medication: the refill is blocked and
-    // the user must act (call the clinic). This is unambiguously a status message:
-    // it reports the result of an action and the existence of an error, and takes no focus.
     statusEl.className = 'err';
     statusEl.textContent =
       'Refill request FAILED: Warfarin 5 mg requires prescriber re-authorization. ' +
       'No refill was submitted — please call your clinic at (555) 0140 to reauthorize.';
-    // Because #refillStatus is aria-live="off" while focus mode is On (the default),
-    // this consequential failure is written silently: no AT announcement is produced.
   });
 </script>
 </body>

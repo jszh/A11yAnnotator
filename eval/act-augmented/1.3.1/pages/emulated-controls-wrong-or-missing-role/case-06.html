@@ -3,36 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!--
-    SC 1.3.1 (Info and Relationships) — BOUNDARY / PASS variant of the F42 aspect.
-    Aspect: emulated-controls-wrong-or-missing-role (the line that separates fail from pass).
-
-    "Riverbank Trust" donation page. The amount chooser is a row of pill controls
-    ($25 / $50 / $100 / Other) that look exactly like the styled <div> "buttons" in the
-    failing cases — rounded, filled-when-selected, pointer cursor, hover state. The
-    "Continue" action is also a styled box, not a native <button>.
-
-    WHY THIS PASSES (the contrast that sharpens the aspect): every emulated control here
-    carries the CORRECT programmatic semantics for what it presents:
-      - the amount pills are <div role="radio"> inside a <div role="radiogroup"
-        aria-labelledby>, with aria-checked tracking selection (a radio group is the
-        right model for "pick one amount"); they are focusable and arrow/Space operable;
-      - the "Continue" box is <div role="button" tabindex="0"> with an Enter/Space
-        keydown handler.
-    So a screen-reader user hears "Donation amount, radio group… $50, radio button,
-    selected, 2 of 4" and "Continue, button". The role each control EXPOSES matches the
-    role it PRESENTS. This is NOT F42: F42 fails only when the programmatically
-    determined role is generic/absent/wrong. Here it is correct, so 1.3.1 is satisfied
-    for these controls.
-
-    This case exists so the aspect is judged on the role↔presentation MATCH, not on
-    "is it a <div>?". A <div> control is fine when its role is right; the failing cases
-    fail because the role is generic, not because they use <div>.
-
-    (Note: native <button>/<input type=radio> would still be best practice per ARIA's
-    "use native elements first," but correctly-roled custom controls do convey the
-    relationship programmatically and do not fail SC 1.3.1.)
-  -->
   <title>Make a gift — Riverbank Trust</title>
   <style>
     :root { --ink:#1d2a22; --muted:#5e6b62; --line:#dde6df; --green:#2c7a4b; --green-hi:#216139; --bg:#f4f8f5; --card:#fff; }
@@ -71,10 +41,6 @@
 
     <p class="group-label" id="amt-label">Choose an amount</p>
 
-    <!--
-      PASS: emulated controls that EXPOSE the role they PRESENT.
-      Amount chooser = radio group (pick one); each pill = role=radio with aria-checked.
-    -->
     <div class="amounts" role="radiogroup" aria-labelledby="amt-label">
       <div class="amt" role="radio" tabindex="0"  aria-checked="false" data-v="25">$25</div>
       <div class="amt" role="radio" tabindex="-1" aria-checked="true"  data-v="50">$50</div>
@@ -82,7 +48,6 @@
       <div class="amt" role="radio" tabindex="-1" aria-checked="false" data-v="other">Other</div>
     </div>
 
-    <!-- PASS: a styled box that is correctly a role=button, focusable + key-operable. -->
     <div class="continue" role="button" tabindex="0" onclick="proceed()" onkeydown="keyAct(event)">Continue</div>
 
     <p class="note" id="note">Selected: $50</p>

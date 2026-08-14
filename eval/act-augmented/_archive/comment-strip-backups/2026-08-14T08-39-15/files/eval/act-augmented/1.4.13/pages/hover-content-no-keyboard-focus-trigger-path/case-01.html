@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Open a high-yield savings account — Banco Aurora</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: #f4f6f9;
+    color: #16202b;
+    line-height: 1.5;
+  }
+  header {
+    background: #0b3d62;
+    color: #fff;
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  header .mark { width: 28px; height: 28px; border-radius: 50%; background: #f2b134; }
+  header strong { font-size: 17px; letter-spacing: .2px; }
+  main { max-width: 660px; margin: 32px auto; padding: 0 22px; }
+  h1 { font-size: 24px; margin: 0 0 6px; }
+  .lede { color: #4c5663; margin: 0 0 26px; }
+  .card {
+    background: #fff;
+    border: 1px solid #dde3ea;
+    border-radius: 12px;
+    padding: 26px 28px;
+  }
+  .rate {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin: 0 0 4px;
+  }
+  .rate .pct { font-size: 40px; font-weight: 800; color: #0b3d62; }
+  .rate .label { font-size: 15px; color: #4c5663; }
+
+  /* The information icon. It is a styled span — looks like a control, but it is
+     not a button, has no tabindex, and no focus handler. */
+  .info {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px; height: 18px;
+    margin-left: 6px;
+    border-radius: 50%;
+    background: #0b3d62;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    font-style: normal;
+    cursor: help;
+    position: relative;
+    top: -1px;
+    user-select: none;
+  }
+  /* The definition pop-up. Hidden until JS shows it on mouseover. */
+  .apy-popup {
+    position: absolute;
+    z-index: 20;
+    max-width: 300px;
+    background: #16202b;
+    color: #fff;
+    font-size: 13px;
+    line-height: 1.45;
+    padding: 12px 14px;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.22);
+    display: none;
+  }
+  .apy-popup::after {
+    content: "";
+    position: absolute;
+    top: -7px; left: 18px;
+    border: 7px solid transparent;
+    border-top: 0;
+    border-bottom: 7px solid #16202b;
+  }
+  .terms { margin: 22px 0 0; font-size: 13px; color: #6b7280; }
+  .terms li { margin-bottom: 6px; }
+  .btn {
+    margin-top: 22px;
+    background: #0b3d62; color: #fff; border: 0;
+    border-radius: 8px; padding: 12px 22px; font-size: 15px; font-weight: 600;
+    cursor: pointer;
+  }
+  footer { max-width: 660px; margin: 18px auto 60px; padding: 0 22px; color: #6b7280; font-size: 12px; }
+</style>
+</head>
+<body>
+  <header>
+    <span class="mark" aria-hidden="true"></span>
+    <strong>Banco Aurora</strong>
+  </header>
+
+  <main>
+    <h1>Premier high-yield savings</h1>
+    <p class="lede">Grow your balance with one of our most competitive rates. No monthly fees, no minimum to open.</p>
+
+    <section class="card" aria-labelledby="offer-h">
+      <h2 id="offer-h" style="margin:0 0 14px; font-size:16px;">Your offer</h2>
+      <p class="rate">
+        <span class="pct">4.35%</span>
+        <span class="label">APY<span class="info" id="apy-info" aria-describedby="apy-popup">i</span></span>
+      </p>
+      <div class="apy-popup" id="apy-popup" role="tooltip">
+        <strong>APY (Annual Percentage Yield)</strong> reflects compounding and is
+        variable. This 4.35% rate applies only to the portion of your balance up to
+        $250,000; balances above that earn 0.50% APY. The rate may change at any time
+        after account opening.
+      </div>
+      <ul class="terms">
+        <li>FDIC insured up to applicable limits.</li>
+        <li>Interest compounds daily and is credited monthly.</li>
+        <li>External transfers may take 1–3 business days to settle.</li>
+      </ul>
+      <button type="button" class="btn">Continue to application</button>
+    </section>
+  </main>
+
+  <footer>
+    Banco Aurora, N.A. Member FDIC. Rates current as of today and subject to change.
+  </footer>
+
+  <script>
+    // The "i" icon reveals the APY definition ON MOUSEOVER ONLY.
+    // There is intentionally no focus/focusin handler, and the span carries no
+    // tabindex — so the Tab key never lands on it and keyboard users never see
+    // the tiered-rate caveat (the only place the $250k cap is disclosed on screen).
+    (function () {
+      var icon = document.getElementById('apy-info');
+      var popup = document.getElementById('apy-popup');
+      function place() {
+        var r = icon.getBoundingClientRect();
+        popup.style.left = (window.scrollX + r.left - 8) + 'px';
+        popup.style.top = (window.scrollY + r.bottom + 10) + 'px';
+      }
+      icon.addEventListener('mouseover', function () {
+        place();
+        popup.style.display = 'block';
+      });
+      icon.addEventListener('mouseout', function () {
+        popup.style.display = 'none';
+      });
+    })();
+  </script>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS IT (and why this FAILS 1.4.13 on the focus limb):
+    Everything an automated checker inspects is clean. The popup has role="tooltip",
+    the icon has aria-describedby pointing at a real, non-empty element, the title is
+    descriptive, every control has an accessible name, and there is no contrast issue.
+    axe/WAVE/Lighthouse therefore report no error. What they cannot do is OPERATE the
+    page: only a human who (a) reads the popup and recognizes it carries UNIQUE, material
+    information (the $250k tiered-rate cap, disclosed nowhere else on screen) AND (b) Tabs
+    through the page and observes the popup never appears can conclude this violates the
+    1.4.13 Additional Note that "content which can be triggered via pointer hover should
+    also be able to be triggered by keyboard focus." The trigger is a <span> with no
+    tabindex and only a mouseover/mouseout handler, so keyboard and many AT users can never
+    perceive the caveat. (aria-describedby exposes the text to *some* screen readers when
+    they reach the icon — but the icon is not in the tab order or accessibility tree as an
+    interactive node, and sighted keyboard / magnifier users get nothing.) Present-but-
+    unreachable, not absent. Verdict: FAILED.
+  -->
+</body>
+</html>

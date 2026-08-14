@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reflow incident — recovery runbook</title>
+<style>
+  :root { --bg:#0f1117; --panel:#171a24; --line:#262b3a; --ink:#e8eaf2;
+          --muted:#9aa0b4; --accent:#3ddc97; --num:#1f2533; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.6 ui-sans-serif,system-ui,sans-serif;
+         color:var(--ink); background:var(--bg); }
+  .wrap { max-width:680px; margin:48px auto; padding:0 20px; }
+  .eyebrow { color:var(--accent); font-weight:700; letter-spacing:.08em;
+             text-transform:uppercase; font-size:.72rem; margin:0 0 .4rem; }
+  h1 { font-size:1.45rem; margin:0 0 .3rem; }
+  .lede { color:var(--muted); margin:0 0 1.6rem; }
+  .panel { background:var(--panel); border:1px solid var(--line);
+           border-radius:14px; padding:8px 6px; }
+
+  /* Runbook steps. The markup IS a real <ol> with <li> children, so the
+     numbered ordinals are genuine list markers in the DOM/a11y tree. BUT the
+     author put role="presentation" on the <ol> (and role="none" on each <li>)
+     to "control the styling" — which strips the list + listitem semantics. */
+  ol.runbook { list-style:none; margin:0; padding:0;
+               counter-reset:rb; }
+  ol.runbook > li {
+    counter-increment:rb;
+    display:flex; gap:14px; align-items:flex-start;
+    padding:14px 16px; border-bottom:1px solid var(--line); }
+  ol.runbook > li:last-child { border-bottom:0; }
+  ol.runbook > li::before {
+    content:counter(rb);
+    flex:0 0 28px; height:28px; border-radius:7px;
+    background:var(--num); color:var(--accent); font-weight:700;
+    display:flex; align-items:center; justify-content:center; font-size:.9rem; }
+  .step-title { font-weight:600; margin:.05rem 0 .2rem; }
+  .step-body { color:var(--muted); margin:0; }
+  .warn { margin:1.4rem 0 0; padding:12px 14px; border-radius:10px;
+          background:#2a1d14; border:1px solid #5a3a1f; color:#f3c79a;
+          font-size:.92rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">Runbook · Sev-2</p>
+  <h1>Recover from a stuck reflow worker</h1>
+  <p class="lede">Run these steps <strong>in order</strong>. Each step assumes
+     the previous one finished — skipping ahead can corrupt the job queue.</p>
+
+  <div class="panel">
+    <!-- The author wanted a numbered procedure and used a real <ol>, then
+         added role="presentation"/role="none" so the list "would not be
+         announced as a list" (a misremembered ARIA tip). The numbered
+         ordinals 1-4 are real <ol> markers and remain in the a11y tree as
+         text/marker content; what is destroyed is the ORDERED-LIST
+         RELATIONSHIP — no list/listitem roles, no "1 of 4" positional
+         semantics, no list navigation. -->
+    <ol class="runbook" role="presentation">
+      <li role="none">
+        <div>
+          <p class="step-title">Drain the active queue</p>
+          <p class="step-body">Pause intake so no new reflow jobs are accepted
+             while you work.</p>
+        </div>
+      </li>
+      <li role="none">
+        <div>
+          <p class="step-title">Kill the wedged worker</p>
+          <p class="step-body">Terminate the PID holding the lock; confirm the
+             lock file is released before continuing.</p>
+        </div>
+      </li>
+      <li role="none">
+        <div>
+          <p class="step-title">Replay the dead-letter batch</p>
+          <p class="step-body">Re-enqueue only the jobs that failed after the
+             worker stalled, oldest first.</p>
+        </div>
+      </li>
+      <li role="none">
+        <div>
+          <p class="step-title">Resume intake</p>
+          <p class="step-body">Un-pause the queue and watch the dashboard for
+             one full cycle before closing the incident.</p>
+        </div>
+      </li>
+    </ol>
+  </div>
+
+  <p class="warn">Order is mandatory: resuming intake (step 4) before the
+     dead-letter batch is replayed (step 3) duplicates jobs.</p>
+</div>
+</body>
+</html>

@@ -4,23 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The Tideline Review — Long-form journalism</title>
-<!--
-  SC 2.4.3 — modal-focus-not-contained-both-directions — case-03 (FAIL)
-  DIMS BUT NEVER INERT. A newsletter-signup promo (Privy/Mailchimp-style) slides up over
-  a dim scrim after the reader scrolls. It LOOKS modal (dark scrim, centered card) and the
-  developer even moved initial focus into the email field. But NO focus trap exists and the
-  background was never made inert/aria-hidden. Tab quietly walks past the dialog's two
-  controls and straight onto the article page's "Search the archive" field and its button,
-  which are visually hidden under the dim scrim. The user is typing into / activating
-  controls they cannot see have focus. Both forward AND backward leak because there is no
-  containment at all — the modal pretense is purely visual.
-  WHY AUTOMATED TOOLS MISS IT: there is no role=dialog/aria-modal here at all (the promo is
-  a plain styled <div> — common in marketing widgets), so there is nothing for a rule to
-  even key on; the background search form is perfectly valid labelled markup. axe/WAVE see
-  two normal forms. Only a human who tabs forward from the email field and watches focus
-  disappear under the scrim onto the search box — or notices the scrim does not actually
-  make the page inert — can tell the "modal" fails to contain focus.
--->
 <style>
   :root { font-family: Georgia, "Times New Roman", serif; color: #20242b; }
   body { margin: 0; background: #fffdf8; }
@@ -33,7 +16,6 @@
   main h1 { font-size: 2rem; line-height: 1.2; }
   main p { font-size: 1.05rem; }
   .byline { color: #5b606a; font-style: italic; }
-  /* dim scrim + centered card: looks modal, behaves like nothing */
   .scrim { position: fixed; inset: 0; background: rgba(20,24,30,.6); display: flex; align-items: center; justify-content: center; }
   .promo { background: #fffdf8; width: min(420px, 90vw); border-radius: 6px; padding: 26px; box-shadow: 0 18px 50px rgba(0,0,0,.4); text-align: center; }
   .promo h2 { margin-top: 0; font-size: 1.4rem; }
@@ -46,7 +28,6 @@
 <body>
 <header class="pub">
   <span class="masthead">The Tideline Review</span>
-  <!-- These controls sit UNDER the scrim but remain focusable: the leak target -->
   <form class="archive-search" role="search" action="#results">
     <label for="q" class="sr-only" style="position:absolute;left:-9999px">Search the archive</label>
     <input id="q" name="q" type="search" placeholder="Search the archive">
@@ -67,11 +48,6 @@
   </article>
 </main>
 
-<!--
-  Newsletter promo. NO role/dialog semantics, NO trap, background NOT inert. It only
-  *looks* modal because of the scrim. Initial focus is moved into the email field, which
-  fools a quick keyboard check into thinking it behaves like a dialog.
--->
 <div class="scrim" id="scrim">
   <section class="promo" id="promo" aria-label="Newsletter signup">
     <h2>Read without limits</h2>
@@ -85,13 +61,10 @@
 </div>
 
 <script>
-  // The marketing widget moves focus to the email field so it "feels" like a modal.
-  // That is the ONLY focus management. No trap; background never inerted.
   window.addEventListener('load', () => document.getElementById('news-email').focus());
   document.getElementById('news-sub').addEventListener('click', () => {
     document.getElementById('news-sub').textContent = 'Subscribed ✓';
   });
-  // Esc closes the scrim (so this is not a 2.1.2 trap) — but while it is open, Tab leaks.
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') document.getElementById('scrim').remove();
   });

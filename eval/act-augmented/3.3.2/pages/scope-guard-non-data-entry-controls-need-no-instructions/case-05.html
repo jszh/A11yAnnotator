@@ -4,38 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Weeknight miso-glazed salmon — Saffron &amp; Salt</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS (DISCRIMINATOR, boundary in the OTHER direction):
-  The page has many NON-data-entry controls that must NOT be flagged under 3.3.2:
-    - a "Recipe actions" menu-button (Print / Save / Share) -> links & actions
-    - 4 expand/collapse step disclosures (aria-expanded)
-    - a "jump to recipe" link, tag links, a "scale x2 / x3" group of action buttons
-  Those are buttons/links/disclosures; 3.3.2 does not apply to them.
-
-  BUT there IS a genuine data-entry selection control: an ingredient SHOPPING
-  CHECKLIST built from real <input type="checkbox"> controls — these are exactly
-  the "checkboxes ... that provide users with options" the SC's Intent names as IN
-  SCOPE. The defect: the heading "Add to shopping list" sits in a sibling <h3>, the
-  list has NO group label tying the checkboxes to that purpose (no fieldset/legend,
-  no role=group + name), and crucially the INDIVIDUAL checkbox labels are
-  AMBIGUOUS QUANTITY-ONLY fragments — "2 fillets", "1 tbsp", "2 cloves", "to taste"
-  — with the actual ingredient noun living in a separate visual column that is NOT
-  part of each checkbox's label. Each checkbox's accessible name is just its
-  quantity ("2 fillets", "1 tbsp"), so a screen-reader user checking the list hears
-  "2 fillets, checkbox" / "1 tbsp, checkbox" and cannot tell WHAT they are
-  selecting. The SC's Intent: "each option must have an appropriate label so that
-  users know what they are actually selecting." These options do NOT. -> FAIL on
-  the checkbox group only.
-
-  Correct evaluation: FAIL the ingredient checkbox options (ambiguous per-option
-  labels); leave the menu-button, step disclosures, scale buttons, and links alone.
-
-  WHY AUTO TOOLS MISS: every checkbox HAS an associated <label> (the quantity text),
-  so axe sees "form element has a label" and passes. No checker judges that the
-  label "2 fillets" fails to tell the user WHAT they are selecting — that the noun
-  is in an adjacent column not in the accessible name. That is a semantic
-  "do you know what you're selecting?" judgment, not an attribute presence check.
--->
 <style>
   :root{ --ink:#2a2118; --muted:#7a6e60; --line:#e7ded2; --herb:#5a7d3c; --bg:#fbf7f0; --warm:#b5532a; }
   *{ box-sizing:border-box; }
@@ -62,11 +30,9 @@
   .scale button[aria-pressed="true"]{ background:var(--herb); color:#fff; border-color:var(--herb); }
   h2.sec{ font-size:1.3rem; margin:26px 0 6px; border-bottom:2px solid var(--line); padding-bottom:6px; }
   h3.sub{ font-size:1.05rem; font-family:"Helvetica Neue",Arial,sans-serif; margin:18px 0 8px; }
-  /* The ingredient shopping checklist: REAL checkboxes (data-entry selection control). */
   .ing{ list-style:none; margin:0; padding:0; font:16px/1.5 "Helvetica Neue",Arial,sans-serif; }
   .ing li{ display:grid; grid-template-columns:24px 92px 1fr; align-items:center; gap:10px; padding:7px 0; border-bottom:1px dotted var(--line); }
   .ing input[type=checkbox]{ width:18px; height:18px; accent-color:var(--herb); }
-  /* The qty is the checkbox's LABEL; the ingredient NOUN is a separate column, NOT in the label. */
   .ing .qty{ font-weight:600; }
   .ing .name{ color:var(--ink); }
   .steps .acc{ border:1px solid var(--line); border-radius:9px; background:#fff; margin-bottom:10px; overflow:hidden; }
@@ -112,13 +78,6 @@
       <button type="button" aria-pressed="false">3×</button>
     </div>
 
-    <!--
-      REAL checkboxes = data-entry selection controls (IN SCOPE for 3.3.2).
-      Each checkbox's <label> is the QUANTITY ONLY ("2 fillets", "1 tbsp", "2 cloves",
-      "to taste"). The ingredient NOUN lives in the .name column, which is NOT part of
-      the label/accessible name. So each option's name fails to say WHAT is selected.
-      No fieldset/legend or group name ties the checkboxes to "Add to shopping list".
-    -->
     <ul class="ing">
       <li>
         <input type="checkbox" id="i1">

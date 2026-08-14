@@ -4,21 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Your order — Saffron Kitchen</title>
-<!--
-  SC 4.1.3 aspect: non-textual status (icon + chime) in a present live region — PASS / boundary control.
-  This page is the CORRECT counterpart to the failing cases. The order-confirmation toast:
-    - is a real role="alert" present at load (live region OK),
-    - shows a green-check icon AND plays a short success chime (non-text status), BUT
-    - co-locates a visually-hidden text label "Order placed — confirmation #SK-4471" INSIDE the same
-      atomic region, and the check SVG is aria-hidden (decorative, because the text carries meaning).
-  So the icon/sound are backed by an accurate programmatic text equivalent and the present live region
-  announces a meaningful status. This is what cases 01-05 each omit. Included to SHARPEN the aspect:
-  the only difference from a failure is the presence of a correct text alternative inside the live region.
-  WHY AUTOMATED TOOLS ALSO CAN'T "PASS" THIS WITH CONFIDENCE: an automated tool sees a valid live region
-  and an aria-hidden decorative icon either way (pass OR fail); only reading the region's text content in
-  context and confirming it conveys the real status distinguishes this PASS from case-01/02. The chime
-  having a visible+text equivalent is likewise a semantic call no scanner makes.
--->
 <style>
   :root { --ink:#26201a; --line:#e3d9cc; --brand:#9a3b2e; --ok:#1f7a44; }
   * { box-sizing:border-box; }
@@ -30,9 +15,7 @@
   .row { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px dashed var(--line); }
   .row:last-of-type { border-bottom:0; font-weight:700; }
   button { font:inherit; font-weight:700; padding:13px 22px; border-radius:9px; border:1px solid transparent; background:var(--brand); color:#fff; cursor:pointer; margin-top:18px; width:100%; }
-  /* visually hidden but exposed to AT */
   .vh { position:absolute; width:1px; height:1px; margin:-1px; padding:0; border:0; clip:rect(0 0 0 0); clip-path:inset(50%); overflow:hidden; white-space:nowrap; }
-  /* toast */
   .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px);
            min-width:280px; max-width:90vw; background:#13301f; color:#eafff0; border-radius:12px;
            padding:14px 16px; display:flex; align-items:center; gap:12px; opacity:0; pointer-events:none;
@@ -57,13 +40,7 @@
 
   <button type="button" id="placeBtn">Place order</button>
 
-  <!--
-    role="alert" present at load. On success it gets a decorative (aria-hidden) check icon
-    AND a meaningful, co-located text node. A short chime plays; the chime's information is
-    duplicated by the visible+programmatic text "Order placed — confirmation #SK-4471".
-  -->
   <div class="toast" id="toast" role="alert" aria-atomic="true">
-    <!-- filled on success -->
   </div>
 </div>
 
@@ -73,8 +50,6 @@
             '<path d="M7 12.4l3 3 7-7.2" fill="none" stroke="#13301f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   var toast = document.getElementById('toast');
 
-  // Self-contained "chime": a short WebAudio beep, no external file. Sound is supplementary;
-  // the same information is in the toast text.
   function chime() {
     try {
       var Ctx = window.AudioContext || window.webkitAudioContext;
@@ -87,11 +62,10 @@
       g.gain.exponentialRampToValueAtTime(0.2, ac.currentTime + 0.02);
       g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + 0.35);
       o.connect(g); g.connect(ac.destination); o.start(); o.stop(ac.currentTime + 0.36);
-    } catch (e) { /* audio optional */ }
+    } catch (e) {   }
   }
 
   document.getElementById('placeBtn').addEventListener('click', function () {
-    // Inject decorative icon + the accessible text equivalent into the same atomic alert.
     toast.innerHTML = CHK +
       '<span class="txt"><b>Order placed</b>' +
       '<span>Confirmation #SK-4471 &middot; ready ~6:45 PM</span></span>';

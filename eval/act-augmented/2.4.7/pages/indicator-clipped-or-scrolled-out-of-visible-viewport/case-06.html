@@ -24,13 +24,6 @@
     font:inherit; font-size:14px; background:#fff;
   }
 
-  /* A position:fixed checkout footer with the running total + "Place order".
-     It overlaps the bottom ~76px of the viewport. WITHOUT mitigation, tabbing
-     to a field near the page bottom would scroll it flush to the window bottom
-     where the fixed footer covers it and its focus ring. The author KNEW this
-     and mitigated it correctly (see scroll-padding-bottom + scroll-margin),
-     so this page PASSES: the focus ring of every field always lands in the
-     clear band above the footer. This is the boundary/pass variant. */
   .checkout-footer {
     position: fixed; left:0; right:0; bottom:0; height:76px; z-index:40;
     background:#fff; border-top:1px solid #dce2e9;
@@ -45,19 +38,10 @@
     font:inherit; font-size:14px; font-weight:700; cursor:pointer;
   }
 
-  /* MITIGATION 1: the scroll container reserves space at the bottom equal to
-     the fixed footer, so any scroll-into-view for a focused field stops above
-     the footer rather than under it. */
   html { scroll-padding-bottom: 96px; }
-  /* MITIGATION 2: each focusable field carries scroll-margin so when it is
-     scrolled into view there is a clear gap above the footer where its ring
-     can be seen. */
   .field input, .field select, .checkout-footer button { scroll-margin-bottom: 96px; }
-  /* Extra bottom space in the flow so the last fields never need to sit under
-     the footer. */
   .wrap { padding-bottom: 140px; }
 
-  /* Author focus ring — high contrast, fully visible, never clipped. */
   input:focus, select:focus, button:focus { outline:none; }
   input:focus-visible, select:focus-visible, button:focus-visible {
     outline: 3px solid #1b6fe0; outline-offset: 2px; border-radius: 9px;

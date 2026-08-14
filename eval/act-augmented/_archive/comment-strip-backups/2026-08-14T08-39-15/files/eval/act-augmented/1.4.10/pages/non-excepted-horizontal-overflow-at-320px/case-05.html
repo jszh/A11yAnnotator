@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <!-- Permissive viewport; zoom allowed → b4f0c3 passes.
+       The reflow break is the absolutely-positioned off-canvas sidebar. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Trailhead — June Conditions &amp; Permit Notes</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font: 16px/1.65 "Avenir Next", system-ui, sans-serif;
+      color: #1c2a22; background: #f3f6f2;
+    }
+    header.site { background: #234d34; color: #e9f6ee; padding: 14px 18px; }
+    header.site h1 { margin: 0; font-size: 1.2rem; }
+
+    /* The page is positioned relative so the absolute sidebar anchors to it. */
+    .layout { position: relative; padding: 22px; }
+
+    /* The article is fluid and on its own reflows perfectly. */
+    .trip { max-width: 640px; }
+    .trip h2 { font-size: 1.4rem; margin: 0 0 .5em; }
+    .trip p { margin: 0 0 1em; }
+    .trip .updated { color: #5f7165; font-size: .85rem; }
+
+    /* THE DEFECT.
+       The "conditions" sidebar is taken out of flow and pinned at left:340px.
+       On a desktop, 340px lands it neatly to the right of the article. But the
+       absolute position is fixed in CSS pixels, so at a 320 CSS-px viewport the
+       sidebar's left edge already sits past the right edge of the screen. The
+       page must grow a horizontal scrollbar to reach it. The sidebar is plain,
+       reflowable informational content — current trail status — with no 2-D
+       requirement; it should stack under the article, not float off-canvas. */
+    .conditions {
+      position: absolute;
+      top: 22px;
+      left: 340px;
+      width: 280px;
+      background: #fff; border: 1px solid #cfe0d4; border-radius: 10px;
+      padding: 16px;
+    }
+    .conditions h3 { margin: 0 0 .5em; font-size: 1rem; color: #234d34; }
+    .conditions dl { margin: 0; }
+    .conditions dt { font-weight: 600; margin-top: .6em; }
+    .conditions dd { margin: 0 0 .2em; }
+  </style>
+</head>
+<body>
+  <header class="site">
+    <h1>Cascade Ridge Trailhead</h1>
+  </header>
+
+  <div class="layout">
+    <article class="trip">
+      <h2>June conditions on the Ridge Loop</h2>
+      <p class="updated">Last updated this morning by the volunteer trail crew.</p>
+      <p>The snow line has finally retreated above the second switchback, which means the full Ridge Loop is walkable again for the first time since October. Expect soft, muddy tread in the shaded sections below the saddle for at least another week as the ground keeps thawing.</p>
+      <p>The creek crossing at mile 3.1 is running fast and cold with snowmelt. The footlog is in place and stable, but it is slick in the mornings; trekking poles are strongly recommended and small children should be carried across rather than walked.</p>
+      <p>Wildflowers are just beginning along the upper meadow, and the marmots are out and unbothered. Please stay on the established tread through the meadow — the alpine soil takes decades to recover from a single boot print off-trail.</p>
+      <p>Permits are required for overnight use between June and September and can be reserved online up to two weeks ahead. Day use does not require a permit, but the parking lot fills by 8 a.m. on weekends.</p>
+    </article>
+
+    <aside class="conditions" aria-label="Current trail status">
+      <h3>At a glance</h3>
+      <dl>
+        <dt>Trail status</dt><dd>Open — full loop</dd>
+        <dt>Snow line</dt><dd>Above switchback 2</dd>
+        <dt>Creek crossing</dt><dd>Footlog in place</dd>
+        <dt>Bugs</dt><dd>Light, increasing</dd>
+        <dt>Parking</dt><dd>Fills by 8 a.m. weekends</dd>
+      </dl>
+    </aside>
+  </div>
+</body>
+</html>

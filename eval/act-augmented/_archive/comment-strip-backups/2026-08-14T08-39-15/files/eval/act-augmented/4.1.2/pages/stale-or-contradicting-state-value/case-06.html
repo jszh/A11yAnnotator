@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Filter Candidates — TalentPipe ATS</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui, "Segoe UI", sans-serif; background:#f5f6f8; color:#1f2733; }
+  .topbar { background:#fff; border-bottom:1px solid #e3e6eb; padding:12px 22px; display:flex; gap:10px; align-items:center; }
+  .topbar .b { font-weight:700; color:#2b59c3; }
+  .topbar .c { color:#6b7280; font-size:.85rem; }
+  .layout { max-width:880px; margin:24px auto; padding:0 18px; display:grid; grid-template-columns:280px 1fr; gap:24px; }
+  h1 { grid-column:1 / -1; font-size:1.3rem; margin:0; }
+  .card { background:#fff; border:1px solid #e3e6eb; border-radius:10px; padding:18px; }
+  .card h2 { font-size:.95rem; margin:0 0 10px; }
+  [role="listbox"] { list-style:none; margin:0; padding:0; border:1px solid #d6dae0; border-radius:8px; overflow:hidden; }
+  [role="option"] {
+    padding:10px 14px 10px 38px; position:relative; cursor:pointer; font-size:.9rem;
+    border-top:1px solid #eef0f3; user-select:none;
+  }
+  [role="option"]:first-child { border-top:0; }
+  [role="option"]:hover { background:#f3f6fc; }
+  /* Selected options: tinted background + a check mark. The check is driven by aria-selected,
+     so the visual highlight and the exposed state are guaranteed to agree. */
+  [role="option"][aria-selected="true"] { background:#e7efff; font-weight:600; color:#1d3f8b; }
+  [role="option"][aria-selected="true"]::before { content:"\2713"; position:absolute; left:14px; color:#2b59c3; font-weight:700; }
+  [role="listbox"]:focus-visible { outline:3px solid #2b59c3; outline-offset:2px; }
+  [aria-activedescendant] [role="option"].focused { box-shadow:inset 3px 0 0 #2b59c3; }
+  .results { font-size:.9rem; }
+  .cand { padding:12px 0; border-top:1px solid #eef0f3; }
+  .cand:first-of-type { border-top:0; }
+  .cand .nm { font-weight:600; }
+  .cand .meta { color:#6b7280; font-size:.82rem; }
+  .pill { display:inline-block; background:#eef2f8; color:#3a4658; border-radius:10px; padding:1px 8px; font-size:.72rem; margin-right:4px; }
+  .why { grid-column:1 / -1; background:#fff; border-left:4px solid #2b59c3; padding:13px 16px; font-size:.82rem; color:#43525a; line-height:1.55; border-radius:0 8px 8px 0; }
+</style>
+</head>
+<body>
+<div class="topbar"><span class="b">TalentPipe</span><span class="c">Requisition #4821 · Senior Backend Engineer</span></div>
+
+<div class="layout">
+  <h1>Filter Candidates</h1>
+
+  <div class="card">
+    <h2 id="lbl">Required skills <span style="font-weight:400;color:#6b7280">(multi-select)</span></h2>
+    <!--
+      PASSED BOUNDARY. This multi-select listbox visually highlights TWO options (Go and PostgreSQL):
+      both have the tinted background and a check mark. Critically, BOTH carry aria-selected="true",
+      so the exposed state matches the rendered state for every option. There is no contradiction.
+    -->
+    <ul role="listbox" aria-labelledby="lbl" aria-multiselectable="true" tabindex="0" aria-activedescendant="opt-go">
+      <li role="option" id="opt-go"   class="focused" aria-selected="true">Go</li>
+      <li role="option" id="opt-py"   aria-selected="false">Python</li>
+      <li role="option" id="opt-pg"   aria-selected="true">PostgreSQL</li>
+      <li role="option" id="opt-k8s"  aria-selected="false">Kubernetes</li>
+      <li role="option" id="opt-rust" aria-selected="false">Rust</li>
+    </ul>
+  </div>
+
+  <div class="card results">
+    <h2>3 matching candidates</h2>
+    <div class="cand">
+      <div class="nm">Priya Raman</div>
+      <div class="meta">7 yrs · Remote (IST)</div>
+      <div><span class="pill">Go</span><span class="pill">PostgreSQL</span><span class="pill">gRPC</span></div>
+    </div>
+    <div class="cand">
+      <div class="nm">Marcus Webb</div>
+      <div class="meta">5 yrs · Austin, TX</div>
+      <div><span class="pill">Go</span><span class="pill">PostgreSQL</span><span class="pill">Redis</span></div>
+    </div>
+    <div class="cand">
+      <div class="nm">Sofia Lindqvist</div>
+      <div class="meta">9 yrs · Stockholm</div>
+      <div><span class="pill">Go</span><span class="pill">PostgreSQL</span><span class="pill">Kafka</span></div>
+    </div>
+  </div>
+
+  <div class="why">
+    <strong>Why this is the PASS boundary:</strong> two options (Go, PostgreSQL) are visually highlighted with a
+    tint and a check mark, and the highlight is generated directly from aria-selected="true", so the rendered
+    selection and the exposed selection cannot disagree. Every option also has a permitted, valid aria-selected
+    boolean and the listbox carries aria-multiselectable, so ACT 4e8ab6 / 5c01ea / 6a7281 pass for the right
+    reason here. This page sharpens the aspect: the failure under test is value <em>contradiction</em> (visual
+    state &ne; exposed state), not the mere presence of selection state or the multi-select pattern. A checker
+    cannot tell this page apart from a contradicting one &mdash; only a human/vision comparison confirms the
+    highlighted options and aria-selected="true" line up.
+  </div>
+</div>
+
+<script>
+  // Toggling an option flips aria-selected; because the highlight + check are CSS bound to
+  // [aria-selected="true"], the visual can never drift from the exposed state.
+  var lb = document.querySelector('[role="listbox"]');
+  lb.addEventListener('click', function (e) {
+    var opt = e.target.closest('[role="option"]');
+    if (!opt) return;
+    var on = opt.getAttribute('aria-selected') === 'true';
+    opt.setAttribute('aria-selected', on ? 'false' : 'true');
+    lb.querySelectorAll('.focused').forEach(function (n){ n.classList.remove('focused'); });
+    opt.classList.add('focused');
+    lb.setAttribute('aria-activedescendant', opt.id);
+  });
+</script>
+</body>
+</html>

@@ -3,37 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!--
-    SC 2.4.3 — FAIL (focus order scatters across a seating grid with no relationship).
-    This is the MEANING-DESTROYING near-twin of a legitimate seating picker. It is
-    a theatre seat-selection map: ROWS are seat rows (A, B, C, D — front to back)
-    and COLUMNS are seat numbers (1..6 within each row). Each seat is a focusable
-    <button role="checkbox"> the patron toggles to select.
-
-    For a seating map BOTH orders are valid: row-by-row (A1..A6, B1..B6, ...) OR
-    column-by-column (A1,B1,C1,D1 then A2,...). Either reflects the spatial
-    relationship of the auditorium. This page provides NEITHER. The seats are
-    emitted in DOM source order in a RANDOM SCATTER (the order they were dragged
-    onto the canvas in the layout tool): B3, A6, D1, A2, C5, B1, D4, ... So Tab
-    teleports the focus ring all over the auditorium map — front-left, then
-    back-right, then mid-center — with no relationship to seat rows, seat numbers,
-    or proximity. A keyboard user watching the focus ring cannot track their
-    position in the seating plan; a screen-reader user hears seats announced in an
-    order that conveys no spatial structure ("Row B Seat 3", "Row A Seat 6",
-    "Row D Seat 1"). Both meaning (the auditorium's spatial layout) and operability
-    (methodically choosing adjacent seats) are destroyed.
-
-    This is the failure the valid row/column orders are contrasted against —
-    NOT a protected alternative. Correct verdict: FAIL.
-
-    Why automated tools miss it: every seat button has an accessible name
-    (aria-label "Row B, Seat 3, available"), correct role/aria-checked, fine
-    contrast, visible focus ring — axe/WAVE/Lighthouse find nothing wrong. No
-    static tool computes whether the DOM/focus sequence follows the seating grid's
-    spatial relationship. Telling this random scatter apart from a valid
-    column-major seat order requires a human reasoning about the spatial meaning
-    of the map and watching where the focus ring actually goes.
-  -->
   <title>Choose your seats — Glasshouse Playhouse</title>
   <style>
     :root { --ink:#20171f; --muted:#6a5f68; --line:#d8ccd4; --brand:#7a1f4b; --avail:#fbeef4; --sel:#7a1f4b; --bg:#faf6f8; }
@@ -78,7 +47,6 @@
 
     <form>
       <div class="map" role="group" aria-label="Stalls seating map, rows A to D, seats 1 to 6">
-        <!-- header: seat numbers -->
         <span class="rowlbl" style="grid-column:1;grid-row:1;"></span>
         <span class="seatnum" style="grid-column:2;grid-row:1;">1</span>
         <span class="seatnum" style="grid-column:3;grid-row:1;">2</span>
@@ -87,20 +55,11 @@
         <span class="seatnum" style="grid-column:6;grid-row:1;">5</span>
         <span class="seatnum" style="grid-column:7;grid-row:1;">6</span>
 
-        <!-- row labels -->
         <span class="rowlbl" style="grid-column:1;grid-row:2;">A</span>
         <span class="rowlbl" style="grid-column:1;grid-row:3;">B</span>
         <span class="rowlbl" style="grid-column:1;grid-row:4;">C</span>
         <span class="rowlbl" style="grid-column:1;grid-row:5;">D</span>
 
-        <!--
-          Seats are emitted in DOM source order as a RANDOM SCATTER (the drag order
-          from the layout tool). CSS Grid pins each to its true (row,seat) position
-          so the MAP looks correct, but Tab follows the scattered source order:
-          B3, A6, D1, A2, C5, B1, D4, A4, C2, B6, D3, A1, C6, B4, D5, A3, C1, B5,
-          D2, A5, C4, B2, D6, C3.
-          Consecutive focus stops share neither a row, a seat number, nor adjacency.
-        -->
         <button type="button" class="seat" role="checkbox" aria-checked="false" aria-label="Row B, Seat 3, available" style="grid-column:4;grid-row:3;">B3</button>
         <button type="button" class="seat" role="checkbox" aria-checked="false" aria-label="Row A, Seat 6, available" style="grid-column:7;grid-row:2;">A6</button>
         <button type="button" class="seat" role="checkbox" aria-checked="false" aria-label="Row D, Seat 1, available" style="grid-column:2;grid-row:5;">D1</button>
@@ -137,7 +96,6 @@
     </form>
   </main>
   <script>
-    // Toggle seat selection on click/Enter/Space (button already handles keys).
     document.querySelectorAll('.seat').forEach(function (b) {
       b.addEventListener('click', function () {
         var on = b.getAttribute('aria-checked') === 'true';

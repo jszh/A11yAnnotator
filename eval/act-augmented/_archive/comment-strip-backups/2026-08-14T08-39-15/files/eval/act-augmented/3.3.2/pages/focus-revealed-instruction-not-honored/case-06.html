@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--
+  ASPECT: focus-revealed-instruction-not-honored (SC 3.3.2 Labels or Instructions, Level A)
+  BOUNDARY / PASSING VARIANT — this page does the focus-revealed pattern CORRECTLY. It exists to
+  sharpen the aspect: the discriminator is not "is there a :focus rule / hidden instruction node?"
+  (every failing case in this set has one) but "when the field is focused, does the promised
+  instruction ACTUALLY become perceivable?" Here it does.
+
+  PAGE STATE TO JUDGE: tab into the "Policy reference number" field. The format instruction
+  ("two letters, a hyphen, eight digits — e.g. GB-49120753") un-hides on focus AND on hover AND
+  whenever the field has a value, is fully on-screen (not clipped, not occluded, not off-screen),
+  stays visible for the entire time the field is focused (no timer dismisses it), and contains real,
+  meaningful text. The instruction is the field's only instruction (the visible <label> is just
+  "Policy reference number" and does not state the format).
+
+  WHY THIS PASSES where the others fail:
+  - The reveal fires on KEYBOARD focus, not only hover: ".policy-field:focus-within .policy-hint" plus
+    the explicit "#policy:focus ~ .policy-hint". A keyboard user gets it. (contrast with case-02)
+  - The class toggle is correct, so display:none is actually lifted on focus. (contrast with case-01)
+  - The hint is in normal flow, fully visible, nothing paints over it. (contrast with case-03)
+  - There is NO auto-dismiss timer — it persists for the whole focus session. (contrast with case-04)
+  - The hint text is real and populated, not a placeholder. (contrast with case-05)
+  - It also persists while the field holds a value (:not(:placeholder-shown)) so a returning user
+    keeps the guidance — defensive, not required, but honors the "available to accomplish the task".
+
+  WHY AUTOMATED TOOLS MISS IT (i.e. why a human is still needed even for the PASS): a static scan
+  cannot confirm a PASS here either — it sees the same shape as the failing cases (a label, a hidden
+  instruction node, a :focus rule, aria-describedby) and cannot tell that THIS one actually renders
+  the instruction perceptibly on focus. Confirming the pass requires driving focus and visually
+  judging that the promised instruction truly appears, on-screen, and stays.
+-->
+<title>Verify your policy — Harbour Mutual</title>
+<style>
+  :root { --ink:#152230; --muted:#566373; --line:#dce3ec; --brand:#10557a; --bg:#eef3f7; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Inter",system-ui,Arial,sans-serif; color:var(--ink); background:var(--bg); }
+  header { background:#fff; border-bottom:1px solid var(--line); padding:14px 24px; display:flex; align-items:center; gap:10px; }
+  header .mark { width:28px; height:28px; border-radius:7px; background:var(--brand); color:#fff; display:grid; place-items:center; font-weight:800; }
+  main { max-width:480px; margin:34px auto 60px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:30px 32px; }
+  h1 { font-size:1.4rem; margin:0 0 4px; }
+  .lead { color:var(--muted); margin:0 0 26px; font-size:.92rem; }
+  .policy-field { margin:0 0 20px; }
+  label { display:block; font-weight:600; margin-bottom:6px; font-size:.92rem; }
+  input { width:100%; padding:11px 12px; border:1px solid #b7c0cc; border-radius:8px; font-size:1rem; }
+  input:focus { outline:2px solid var(--brand); outline-offset:1px; }
+  /* Focus-revealed format instruction. Hidden by default; revealed correctly on keyboard focus
+     (focus-within / :focus), on hover, AND whenever the field holds a value. In normal flow, fully
+     visible, no overlay, no timer. */
+  .policy-hint {
+    display:none; margin-top:8px; padding:10px 12px; background:#e8f2f8; border:1px solid #bcdcec;
+    border-left:4px solid var(--brand); border-radius:6px; font-size:.84rem; color:#0e4361; line-height:1.45;
+  }
+  .policy-field:focus-within .policy-hint,
+  .policy-field:hover .policy-hint,
+  #policy:focus ~ .policy-hint,
+  #policy:not(:placeholder-shown) ~ .policy-hint { display:block; }
+  .actions { margin-top:8px; }
+  button.primary { background:var(--brand); color:#fff; border:0; border-radius:8px; padding:12px 18px; font-size:1rem; cursor:pointer; width:100%; }
+  footer { max-width:480px; margin:0 auto 50px; color:var(--muted); font-size:.76rem; text-align:center; }
+</style>
+</head>
+<body>
+<header>
+  <span class="mark">H</span>
+  <strong>Harbour Mutual</strong>
+</header>
+
+<main>
+  <h1>Verify your policy</h1>
+  <p class="lead">Enter your policy reference so we can pull up your cover.</p>
+
+  <form action="/policy/verify" method="post" novalidate>
+    <div class="policy-field">
+      <label for="surname">Policyholder surname</label>
+      <input type="text" id="surname" name="surname" autocomplete="family-name" placeholder=" ">
+    </div>
+
+    <div class="policy-field">
+      <!-- Visible label is just "Policy reference number". It does NOT state the format, so the
+           focus-revealed hint below is this field's only instruction. -->
+      <label for="policy">Policy reference number</label>
+      <input type="text" id="policy" name="policy" autocomplete="off"
+             aria-describedby="policy-hint" autocapitalize="characters" placeholder=" ">
+      <!-- Real, populated format instruction. Revealed correctly on focus (and hover, and while the
+           field has a value); fully visible in normal flow; persists for the whole focus session. -->
+      <div class="policy-hint" id="policy-hint">
+        Your policy reference is <strong>two letters, a hyphen, then eight digits</strong> — for
+        example <strong>GB-49120753</strong>. You will find it at the top right of your policy
+        schedule or renewal letter.
+      </div>
+    </div>
+
+    <div class="actions">
+      <button type="submit" class="primary">Find my policy</button>
+    </div>
+  </form>
+</main>
+
+<footer>
+  Harbour Mutual · Authorised and regulated · Lines open Mon–Fri 9–5
+</footer>
+</body>
+</html>

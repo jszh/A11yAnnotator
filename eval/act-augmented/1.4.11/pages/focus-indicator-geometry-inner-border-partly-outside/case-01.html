@@ -4,32 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Transfer Funds — Meridian Online Banking</title>
-<!--
-  ACCESSIBILITY DEFECT (SC 1.4.11 Non-text Contrast, Level AA) — present-but-wrong.
-  GEOMETRY ASPECT: an INNER focus indicator must contrast with the adjacent colour(s)
-  INSIDE the component, not merely with the component's own border.
-
-  Two near-identical primary buttons sit side by side. Both are brand-blue (#4189B9)
-  with a 2px black (#000) border. On focus each adds a 3px INSET ring (drawn INSIDE the
-  visible boundary via box-shadow inset).
-    - #btn-confirm  : inner ring is dark green #008000.
-        vs black border = 4.09:1 (passes)   vs blue interior = 1.35:1 (FAILS)
-        Because the ring is ENTIRELY INSIDE the component, the adjacency it must beat is
-        the BLUE interior — and it does not. -> SC 1.4.11 FAIL.
-    - #btn-schedule : inner ring is white #fff.
-        vs black border = 21:1               vs blue interior = 3.82:1 (passes)
-        White beats the inner blue surface -> SC 1.4.11 PASS.
-  The ONLY difference between the two focused indicators is the ring colour; the verdict
-  flips purely on which inner adjacency the indicator must contrast with.
-
-  WHY AUTOMATED TOOLS MISS IT: axe-core / WAVE / Lighthouse have no concept of "inner vs
-  outer focus indicator." They cannot segment the ring's position relative to the visible
-  boundary, so they cannot decide that an inset ring must contrast with the INTERIOR
-  rather than the border it happens to sit beside. A naive checker that compares the green
-  ring against the nearest dark pixels (the black border, 4.09:1) would wrongly mark it a
-  pass. Both buttons have real <button> semantics, accessible names, and a visible focus
-  change, so every automatable focus-visible heuristic is satisfied.
--->
 <style>
   :root { --ink:#16202c; --blue:#4189B9; --line:#d8dee6; }
   body { font:16px/1.55 "Segoe UI",system-ui,sans-serif; color:var(--ink);
@@ -47,16 +21,13 @@
   .summary dt { color:#5b6b7c; } .summary dd { margin:0; font-weight:600; text-align:right; }
   .actions { display:flex; gap:16px; margin-top:8px; }
 
-  /* Both primary buttons: brand-blue fill with a 2px BLACK border. */
   .btn-primary {
     appearance:none; cursor:pointer; font:inherit; font-weight:600;
     color:#fff; background:var(--blue); border:2px solid #000;
     border-radius:6px; padding:12px 26px;
   }
-  /* THE DEFECT vs the control: both add a 3px INSET ring on focus (drawn INSIDE the
-     visible boundary). The colour decides which inner adjacency it can beat. */
-  #btn-confirm:focus  { outline:none; box-shadow: inset 0 0 0 3px #008000; } /* dark green: fails blue interior 1.35:1 */
-  #btn-schedule:focus { outline:none; box-shadow: inset 0 0 0 3px #ffffff; } /* white: beats blue interior 3.82:1 */
+  #btn-confirm:focus  { outline:none; box-shadow: inset 0 0 0 3px #008000; } 
+  #btn-schedule:focus { outline:none; box-shadow: inset 0 0 0 3px #ffffff; } 
 
   .note { color:#5a6675; font-size:.85rem; margin-top:22px; }
 </style>

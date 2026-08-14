@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tideline Coffee Roasters — Wholesale</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family: "Helvetica Neue", Arial, sans-serif; color:#22302b; background:#fff; line-height:1.55; }
+  a { color:#1f6f5c; }
+  header.site { background:#13362d; color:#eef6f2; padding:16px 28px; display:flex; gap:24px; align-items:center; }
+  header.site .brand { font-weight:700; font-size:1.1rem; }
+  header.site nav a { color:#cfe6dc; text-decoration:none; margin-right:18px; font-size:.95rem; }
+  main { max-width:820px; margin:0 auto; padding:28px; }
+  h1 { font-size:1.7rem; }
+  .btn { font:inherit; cursor:pointer; border:1px solid #1f6f5c; background:#1f6f5c; color:#fff; padding:9px 16px; border-radius:6px; }
+  .btn.ghost { background:#fff; color:#1f6f5c; }
+  .lede { font-size:1.05rem; max-width:62ch; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:18px; margin:24px 0; }
+  .tile { border:1px solid #dce7e2; border-radius:8px; padding:16px; }
+  .tile h2 { font-size:1.05rem; margin:.1em 0 .4em; }
+  footer.site { border-top:1px solid #dce7e2; padding:24px 28px; font-size:.9rem; color:#3a4843; }
+  footer.site a { margin-right:16px; }
+
+  /* Non-modal disclosure dialog rendered INLINE, right after its trigger. */
+  .signup-wrap { margin:22px 0; }
+  .signup-panel {
+    display:none; margin-top:12px; max-width:420px;
+    border:1px solid #cfe0d9; border-radius:8px; padding:18px; background:#f4faf7;
+  }
+  .signup-panel.open { display:block; }
+  .signup-panel label { display:block; font-weight:600; margin:12px 0 4px; }
+  .signup-panel input[type=email] { width:100%; padding:9px; border:1px solid #cfe0d9; border-radius:5px; font:inherit; }
+  .signup-panel .row { margin-top:14px; display:flex; gap:10px; }
+</style>
+</head>
+<body>
+<header class="site">
+  <span class="brand">Tideline Coffee Roasters</span>
+  <nav aria-label="Primary">
+    <a href="#beans">Single-Origin</a>
+    <a href="#blends">Blends</a>
+    <a href="#wholesale">Wholesale</a>
+    <a href="#equipment">Equipment</a>
+    <a href="#contact">Contact</a>
+  </nav>
+</header>
+
+<main>
+  <h1>Wholesale coffee for cafés &amp; offices</h1>
+  <p class="lede">Fresh-roasted to order, shipped within 24 hours of roast. Net-30 terms for
+     qualified accounts and free delivery within the metro area.</p>
+
+  <!--
+    THE FIX (Understanding non-modal PASS example): the disclosure dialog markup is placed
+    IMMEDIATELY AFTER its trigger button. Because the panel's interactive elements come
+    next in source order, the natural tab order goes button -> email field -> Send -> Cancel
+    with NO focus script required. This is the Understanding's passing pattern: "The
+    interactive elements in the dialog are inserted in the focus order immediately after
+    the button."
+  -->
+  <div class="signup-wrap">
+    <button class="btn" id="openSignup" aria-haspopup="dialog"
+            aria-expanded="false" aria-controls="signupPanel">
+      Get the wholesale price list
+    </button>
+
+    <div class="signup-panel" id="signupPanel" role="dialog" aria-modal="false"
+         aria-labelledby="signupTitle">
+      <h2 id="signupTitle" style="margin-top:0;font-size:1.05rem;">Send me the price list</h2>
+      <p style="margin:0;">We'll email the current wholesale sheet and minimum-order terms.</p>
+      <label for="wsEmail">Work email</label>
+      <input type="email" id="wsEmail" name="email" autocomplete="email" placeholder="name@cafe.com">
+      <div class="row">
+        <button type="button" class="btn" id="sendList">Send price list</button>
+        <button type="button" class="btn ghost" id="cancelSignup">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <section class="tile" id="beans">
+      <h2>Single-Origin</h2>
+      <p>Rotating lots from Ethiopia, Colombia, and Guatemala.</p>
+      <a href="#shop-beans">Browse origins</a>
+    </section>
+    <section class="tile" id="blends">
+      <h2>Signature Blends</h2>
+      <p>Harbor House espresso and our Cold-Brew Reserve.</p>
+      <a href="#shop-blends">Browse blends</a>
+    </section>
+    <section class="tile" id="equipment">
+      <h2>Equipment &amp; Service</h2>
+      <p>Grinders, brewers, and on-site maintenance plans.</p>
+      <a href="#shop-equip">Browse equipment</a>
+    </section>
+  </div>
+
+  <h2 id="contact">Talk to our wholesale team</h2>
+  <p>Email <a href="#mail">wholesale@tideline.example</a> or call (555) 010-3344,
+     Monday–Friday 7am–4pm.</p>
+</main>
+
+<footer class="site">
+  <nav aria-label="Footer">
+    <a href="#terms">Wholesale Terms</a>
+    <a href="#shipping">Shipping</a>
+    <a href="#sustainability">Sourcing</a>
+    <a href="#accessibility">Accessibility</a>
+  </nav>
+  <p>© 2026 Tideline Coffee Roasters.</p>
+</footer>
+
+<script>
+  // Visibility toggle only — and that is CORRECT here, because the panel is already next
+  // in the source/tab order. No focus move is needed for the forward tab sequence to
+  // enter the dialog. (We still keep aria-expanded honest.)
+  (function () {
+    var btn = document.getElementById('openSignup');
+    var panel = document.getElementById('signupPanel');
+    btn.addEventListener('click', function () {
+      var open = panel.classList.toggle('open');
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    document.getElementById('cancelSignup').addEventListener('click', function () {
+      panel.classList.remove('open');
+      btn.setAttribute('aria-expanded', 'false');
+      btn.focus(); // returning focus to the trigger on dismiss (F85 step 2 satisfied)
+    });
+    document.getElementById('sendList').addEventListener('click', function () {
+      panel.classList.remove('open');
+      btn.setAttribute('aria-expanded', 'false');
+      btn.focus();
+    });
+  })();
+</script>
+</body>
+</html>

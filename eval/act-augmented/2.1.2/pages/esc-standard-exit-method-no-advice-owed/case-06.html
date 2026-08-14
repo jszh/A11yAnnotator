@@ -128,7 +128,6 @@
 (function () {
   var grid = document.getElementById('plan');
   var cells = Array.prototype.slice.call(grid.querySelectorAll('[role=gridcell]'));
-  // 3 columns x 3 rows, row-major in document order
   var COLS = 3;
 
   function indexOfActive() {
@@ -159,17 +158,11 @@
       case 'Enter':
       case ' ':          e.preventDefault(); toggle(cells[i]); break;
       case 'Tab':
-        // DEFECT: a "keep the grid keyboard-self-contained" tweak. Tab and Shift+Tab are
-        // captured and wrapped INSIDE the grid, so focus never leaves this (non-modal) widget.
-        // There is content after the grid (Save plan, dashboard link, footer nav) that a
-        // keyboard user can now never reach. This is the F10 "focus stuck in an embedded
-        // widget" trap — no standard exit method releases focus.
         e.preventDefault();
         if (e.shiftKey) { moveTo(i === 0 ? cells.length - 1 : i - 1); }
         else            { moveTo(i === cells.length - 1 ? 0 : i + 1); }
         break;
       default:
-        // The ONLY way out: a non-standard, undocumented combo. Nothing on the page names it.
         if (e.ctrlKey && e.shiftKey && e.key === 'ArrowDown') {
           e.preventDefault();
           document.getElementById('saveBtn').focus();

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aurora Transit — Trip Planner</title>
+<style>
+  :root { --transit:#2b2f77; --ink:#1b1d2b; --line:#dcdfee; --hl:#f0b429; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+    margin: 0; color: var(--ink); background: #eef0f8;
+  }
+  header {
+    background: var(--transit); color: #fff; padding: 12px 22px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  header h1 { font-size: 16px; margin: 0; font-weight: 600; }
+  header .badge { background: var(--hl); color: #1b1d2b; font-weight: 800;
+                  border-radius: 5px; padding: 2px 7px; font-size: 13px; }
+  main { max-width: 720px; margin: 24px auto; padding: 0 20px 80px; }
+  h2 { font-size: 18px; margin: 0 0 6px; }
+  .lede { color: #54607a; font-size: 13px; margin: 0 0 22px; }
+  .leg {
+    background: #fff; border: 1px solid var(--line); border-radius: 10px;
+    padding: 14px 16px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px;
+  }
+  .route-chip {
+    width: 30px; height: 30px; border-radius: 6px; color: #fff; font-weight: 800;
+    display: grid; place-items: center; font-size: 14px;
+  }
+  .r-blue { background: #1d6fe0; } .r-green { background: #2a9d5c; } .r-red { background: #c23b3b; }
+  .leg-main { flex: 1; }
+  .leg-time { font-weight: 600; }
+  .leg-stop { color: #54607a; font-size: 13px; margin-top: 2px; }
+
+  /* Accessibility/feature icon. The author explicitly sets title="" to KILL the
+     browser's native tooltip, then paints an identical-looking gray bubble using a
+     CSS ::after that pulls its text from a data-* attribute via attr(). No JS. */
+  .feat {
+    position: relative; width: 22px; height: 22px; border-radius: 50%;
+    background: #eef0f8; color: var(--transit); border: 1px solid #c7ccec;
+    display: inline-grid; place-items: center; font-size: 12px; cursor: help;
+  }
+  .feat::after {
+    content: attr(data-hint);
+    position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%);
+    background: #3a3a3a; color: #fff; font-size: 12px; line-height: 1.3;
+    padding: 5px 8px; border-radius: 4px; white-space: nowrap;
+    box-shadow: 0 1px 4px rgba(0,0,0,.3);
+    opacity: 0; pointer-events: none; transition: opacity .1s ease;
+  }
+  /* The bubble appears ONLY while the 22px icon itself is hovered. A ::after pseudo-
+     element is not in the accessibility tree, cannot receive the pointer, and there
+     is no Esc affordance — so it is neither hoverable nor dismissible. */
+  .feat:hover::after { opacity: 1; }
+  .note { margin-top: 24px; font-size: 12px; color: #6a7287; line-height: 1.55; }
+  .note code { background: #e3e6f4; padding: 1px 5px; border-radius: 4px; }
+</style>
+</head>
+<body>
+  <header>
+    <span class="badge">AT</span>
+    <h1>Aurora Transit — Trip Planner</h1>
+  </header>
+
+  <main>
+    <h2>Sat 9:14 AM · Downtown → Riverside Campus</h2>
+    <p class="lede">3 legs · 41 min · 1 transfer. Hover the&nbsp;<span aria-hidden="true">&#9432;</span>&nbsp;icons for service notes.</p>
+
+    <div class="leg">
+      <span class="route-chip r-blue">12</span>
+      <div class="leg-main">
+        <div class="leg-time">9:14 AM — board Route 12 (Blue) at 4th &amp; Main</div>
+        <div class="leg-stop">Ride 6 stops to Union Station</div>
+      </div>
+      <!-- title="" suppresses native; CSS ::after reimplements the bubble. -->
+      <span class="feat" title="" data-hint="Low-floor bus · wheelchair accessible"
+            tabindex="0" role="img" aria-label="Service note: low-floor bus, wheelchair accessible">&#9855;</span>
+    </div>
+
+    <div class="leg">
+      <span class="route-chip r-green">G</span>
+      <div class="leg-main">
+        <div class="leg-time">9:31 AM — transfer to Green Line at Union Station</div>
+        <div class="leg-stop">Platform 2 · departs every 8 min</div>
+      </div>
+      <span class="feat" title="" data-hint="Elevator out of service — use ramp at south entrance"
+            tabindex="0" role="img" aria-label="Service note: elevator out of service, use ramp at south entrance">&#9888;</span>
+    </div>
+
+    <div class="leg">
+      <span class="route-chip r-red">44</span>
+      <div class="leg-main">
+        <div class="leg-time">9:48 AM — Route 44 (Red) to Riverside Campus</div>
+        <div class="leg-stop">2 stops · arrive 9:55 AM</div>
+      </div>
+      <span class="feat" title="" data-hint="Bike rack full at peak — board with bike at rear"
+            tabindex="0" role="img" aria-label="Service note: bike rack full at peak, board with bike at rear">&#128690;</span>
+    </div>
+
+    <p class="note">
+      Implementation note: the service-note icons use <code>title=""</code> to hide the
+      OS tooltip, and the gray bubble you see on hover is drawn with
+      <code>.feat::after { content: attr(data-hint) }</code> — entirely the author&rsquo;s
+      CSS, not the user agent.
+    </p>
+  </main>
+
+  <!-- WHY AUTOMATED TOOLS MISS IT:
+       The element carries a title attribute (title=""), which a scanner reads as
+       "has a native tooltip" — and an empty title produces no UA tooltip at all, so a
+       tool may conclude there is simply nothing on hover. Neither view captures the
+       reality: the visible gray bubble is an author CSS ::after, so 1.4.13 APPLIES.
+       And because a ::after pseudo-element cannot be hovered into and has no Esc/
+       dismiss path, it FAILS the hoverable + dismissible conditions. Recognizing that
+       the visible bubble is author-painted (not the suppressed UA tooltip) and that a
+       pseudo-element can't be hovered are both semantic/visual judgments outside any
+       static checker's reach. -->
+</body>
+</html>

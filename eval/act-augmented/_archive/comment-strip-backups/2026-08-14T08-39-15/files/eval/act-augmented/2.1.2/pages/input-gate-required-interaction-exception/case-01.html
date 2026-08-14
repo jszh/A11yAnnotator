@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Create your account — Meridian Library</title>
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS (SC 2.1.2 — TT Test 2.b Note, INPUT-GATE EXCEPTION):
+    This page LOOKS like a keyboard trap. The required "email" field installs a keydown
+    handler that swallows the forward-Tab key (preventDefault) while the field does not yet
+    hold a syntactically valid e-mail address, so a keyboard user who tabs while the field
+    is empty/invalid does NOT advance — Tab appears dead. axe-core / WAVE / Lighthouse
+    cannot see this at all: there is no missing attribute, the <input> has a real <label>,
+    a real type, and the markup is well-formed; static scanners never press Tab so they
+    never observe that focus does not move. A naive HUMAN keyboard tester who taps Tab once
+    on the empty field might ALSO wrongly call it a trap.
+    It is NOT a trap and NOT a failure: the moment the user types a valid address by
+    keyboard, the gate releases and forward Tab advances to the password field, the submit
+    button, and the rest of the page. Per the Trusted Tester Note, "If a section of a page
+    requires input or interaction before allowing focus to progress to the rest of the
+    page, this is not a failure." Deciding PASS requires understanding the gate's INTENT and
+    verifying it is keyboard-SATISFIABLE — judgment a tool cannot make.
+  -->
+  <style>
+    :root { --ink:#1f2530; --muted:#5d6470; --line:#d6dbe2; --brand:#1d6f5c; --bg:#f3f5f7; }
+    * { box-sizing: border-box; }
+    body { font: 16px/1.55 "Segoe UI", system-ui, sans-serif; color: var(--ink); margin: 0; background: var(--bg); }
+    header { background: var(--brand); color: #eafff8; padding: 14px 26px; display: flex; align-items: baseline; gap: 12px; }
+    header .brand { font-weight: 800; letter-spacing: .3px; font-size: 1.15rem; }
+    header .tag { font-size: .85rem; opacity: .85; }
+    main { max-width: 560px; margin: 34px auto; padding: 0 18px; }
+    h1 { font-size: 1.55rem; margin: 0 0 4px; }
+    .lede { color: var(--muted); margin: 0 0 24px; }
+    .card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 24px 26px; }
+    .row { margin: 0 0 18px; }
+    label { display: block; font-weight: 600; margin: 0 0 6px; }
+    input[type="email"], input[type="password"] {
+      width: 100%; font: inherit; padding: 11px 12px;
+      border: 1px solid #b3bcc7; border-radius: 8px; background: #fcfdff;
+    }
+    input:focus-visible { outline: 3px solid #1652a8; outline-offset: 1px; }
+    .hint { color: var(--muted); font-size: .85rem; margin: 6px 0 0; }
+    .gatemsg { font-size: .85rem; margin: 6px 0 0; min-height: 1.2em; color: #8a5a00; }
+    .gatemsg.ok { color: var(--brand); }
+    .actions { margin-top: 8px; display: flex; gap: 12px; align-items: center; }
+    button[type="submit"] {
+      font: inherit; font-weight: 700; color: #fff; background: var(--brand);
+      border: 0; border-radius: 8px; padding: 11px 22px; cursor: pointer;
+    }
+    button[type="submit"]:focus-visible { outline: 3px solid #1652a8; outline-offset: 2px; }
+    a.help { color: var(--brand); }
+    footer { color: var(--muted); font-size: .8rem; text-align: center; margin: 30px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="brand">Meridian Library</span>
+    <span class="tag">Member services</span>
+  </header>
+
+  <main>
+    <h1>Create your account</h1>
+    <p class="lede">Borrow e-books and reserve study rooms. We'll send a confirmation to the address you enter.</p>
+
+    <form class="card" action="#" method="post" aria-labelledby="su-h" novalidate>
+      <h2 id="su-h" style="margin:0 0 16px;font-size:1.1rem;">Account details</h2>
+
+      <div class="row">
+        <label for="email">Email address (required)</label>
+        <!--
+          GATE: forward Tab is suppressed ONLY while the value is not a valid e-mail.
+          As soon as a valid address is typed by keyboard, Tab advances normally.
+          The handler does NOT block Shift+Tab (you can always go back), so the user
+          is never stuck — focus is releasable. This is the conformant input-gate.
+        -->
+        <input type="email" id="email" name="email" autocomplete="email"
+               aria-describedby="email-gate" required>
+        <p class="hint">Used as your sign-in name.</p>
+        <p class="gatemsg" id="email-gate" role="status">Enter a valid email to continue to the next field.</p>
+      </div>
+
+      <div class="row">
+        <label for="pw">Choose a password (required)</label>
+        <input type="password" id="pw" name="pw" autocomplete="new-password" minlength="8" required>
+        <p class="hint">At least 8 characters.</p>
+      </div>
+
+      <div class="actions">
+        <button type="submit">Create account</button>
+        <a class="help" href="#help">Need help signing up?</a>
+      </div>
+    </form>
+  </main>
+
+  <footer>Meridian Public Library · 88 Carrow Road · Accessibility statement available on request.</footer>
+
+  <script>
+    // ---- Conformant input-gate (TT Test 2.b Note) ----
+    // While the email is not yet valid, forward Tab from the email field is suppressed so
+    // focus is held on the required field. The instant a valid address exists, the gate
+    // releases and Tab moves on. The gate is fully keyboard-satisfiable: the user types a
+    // value with the keyboard and is then free to advance. Shift+Tab is never blocked.
+    var email = document.getElementById('email');
+    var gate  = document.getElementById('email-gate');
+    function valid() {
+      // Native constraint validation = the same rule a browser would apply.
+      return email.value.length > 0 && email.checkValidity();
+    }
+    function refresh() {
+      if (valid()) {
+        gate.textContent = 'Looks good — press Tab to continue.';
+        gate.classList.add('ok');
+      } else {
+        gate.textContent = 'Enter a valid email to continue to the next field.';
+        gate.classList.remove('ok');
+      }
+    }
+    email.addEventListener('input', refresh);
+    email.addEventListener('keydown', function (e) {
+      // Only intercept a PLAIN forward Tab, and only while invalid. Once valid, do nothing
+      // (the browser performs the normal Tab). Shift+Tab is always allowed through.
+      if (e.key === 'Tab' && !e.shiftKey && !valid()) {
+        e.preventDefault();
+        gate.textContent = 'Please enter a valid email address before moving on.';
+        gate.classList.remove('ok');
+      }
+    });
+    refresh();
+  </script>
+</body>
+</html>

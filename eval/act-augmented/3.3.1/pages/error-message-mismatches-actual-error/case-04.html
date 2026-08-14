@@ -4,24 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Spende abschließen — Stiftung Lichtblick</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS (locale-mismatch boilerplate):
-  Post-submit donation page in German (lang="de", de-DE locale). The donation-amount
-  field retains "1.234,56" — which is a perfectly valid de-DE currency string (dot =
-  thousands separator, comma = decimal separator => one thousand two hundred thirty-four
-  euros and fifty-six cents). The visible, associated German error (aria-describedby=
-  "betrag-err") reads: "Bitte geben Sie einen gültigen Betrag im Format 1234.56 ein."
-  ("Please enter a valid amount in the format 1234.56.") — i.e. it demands an EN-US
-  decimal format (period as decimal point), which is WRONG for a German user and for a
-  value that is already valid in the page's own declared locale.
-  ACT 36b590 passes: the indicator is visible, in the accessibility tree, names the
-  field, and "describes how to resolve it" (a format). axe/WAVE/Lighthouse pass: lang is
-  a valid BCP-47 tag, label present, describedby resolves, contrast fine.
-  THE DEFECT IS SEMANTIC + LOCALE-AWARE: judging the error requires knowing de-DE number
-  formatting, recognizing the value is already valid for the declared locale, and seeing
-  that the error prescribes the wrong (foreign) format. No checker parses locale-specific
-  number grammar to judge value-vs-message agreement.
--->
 <style>
   :root{ --ink:#1c2128; --muted:#5f6873; --line:#d3d9df; --brand:#b8521a; --danger:#c22b22; }
   *{ box-sizing:border-box; }
@@ -62,10 +44,6 @@
         <label for="betrag">Spendenbetrag</label>
         <p class="hint" id="betrag-hint">Geben Sie den Betrag in Euro ein.</p>
         <div class="amount">
-          <!--
-            "1.234,56" is valid de-DE: 1.234,56 € = one thousand two hundred thirty-four
-            euros, fifty-six cents. The error demands "1234.56" (en-US decimal format).
-          -->
           <input id="betrag" name="betrag" type="text" inputmode="decimal"
                  value="1.234,56"
                  aria-describedby="betrag-hint betrag-err" aria-invalid="true">

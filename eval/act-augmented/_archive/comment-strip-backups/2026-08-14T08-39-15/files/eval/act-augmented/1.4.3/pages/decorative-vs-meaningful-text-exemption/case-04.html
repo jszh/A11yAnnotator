@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Café Lumière — Le Menu du Jour</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Cormorant Garamond", Georgia, serif;
+         background: #fbf8f3; color: #2a2520; }
+  .page { max-width: 720px; margin: 48px auto; padding: 0 28px; }
+  header { text-align: center; margin-bottom: 8px; }
+  header h1 { font-size: 38px; margin: 0; letter-spacing: 1px; }
+  header .sub { font-size: 15px; color: #6a5f52; letter-spacing: .18em;
+                text-transform: uppercase; margin: 6px 0 0; }   /* passes */
+
+  /* Ornamental rule between sections: a faint repeated word used purely as a
+     decorative divider line. The repeated token "menu" carries no information —
+     the real section name is the <h2> right below it. ~1.51:1 by design. */
+  .ornarule {
+    margin: 34px 0 18px;
+    text-align: center;
+    overflow: hidden;
+    white-space: nowrap;
+    color: #d2d2d2;                 /* #d2d2d2 on #fbf8f3 ≈ 1.5:1 */
+    font-size: 13px;
+    letter-spacing: .55em;
+    text-transform: lowercase;
+    user-select: none;
+  }
+
+  section h2 { text-align: center; font-size: 24px; margin: 0 0 16px; font-weight: 600; }
+  .item { display: flex; justify-content: space-between; align-items: baseline;
+          gap: 14px; padding: 9px 0; border-bottom: 1px dotted #d8cfc1; }
+  .item .name { font-size: 19px; color: #2a2520; }
+  .item .desc { display: block; font-size: 13px; color: #6a5f52; }  /* passes */
+  .item .price { font-size: 18px; color: #2a2520; white-space: nowrap; }
+  footer { text-align: center; margin-top: 40px; font-size: 13px; color: #6a5f52; }
+</style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>Café Lumière</h1>
+      <p class="sub">Le Menu du Jour</p>
+    </header>
+
+    <!-- Decorative divider: the faint repeated word is an ornamental rule, not a
+         label. Swap "menu" for "etoile", dots, or any glyph and nothing changes. -->
+    <div class="ornarule" aria-hidden="true">menu · menu · menu · menu · menu · menu · menu · menu · menu · menu</div>
+
+    <section aria-label="Entrées">
+      <h2>Entrées</h2>
+      <div class="item">
+        <span class="name">Soupe à l'oignon gratinée
+          <span class="desc">Caramelized onions, beef broth, gruyère crouton</span>
+        </span>
+        <span class="price">12</span>
+      </div>
+      <div class="item">
+        <span class="name">Salade de chèvre chaud
+          <span class="desc">Warm goat cheese, mesclun, walnut, honey</span>
+        </span>
+        <span class="price">14</span>
+      </div>
+    </section>
+
+    <div class="ornarule" aria-hidden="true">menu · menu · menu · menu · menu · menu · menu · menu · menu · menu</div>
+
+    <section aria-label="Plats">
+      <h2>Plats</h2>
+      <div class="item">
+        <span class="name">Coq au vin
+          <span class="desc">Braised chicken, red wine, pearl onions, lardons</span>
+        </span>
+        <span class="price">23</span>
+      </div>
+      <div class="item">
+        <span class="name">Steak frites
+          <span class="desc">Bavette, maître d'hôtel butter, hand-cut fries</span>
+        </span>
+        <span class="price">26</span>
+      </div>
+    </section>
+
+    <footer>Prices in EUR &middot; Service compris</footer>
+  </div>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS:
+    The faint divider text "menu · menu · ..." is #d2d2d2 ≈ 1.5:1 and a scanner could flag
+    it. But this is a genuine pure-decoration case and the CORRECT verdict is PASS. The
+    repeated word is an ornamental rule: it conveys no information (the real section names
+    are the dark <h2> "Entrées"/"Plats"), it is aria-hidden, and per the Understanding test
+    it could be substituted ("etoile", a dot pattern, an em-dash row) or removed with no
+    change in meaning. All informative text (headings, item names, descriptions, prices) is
+    dark and passes. A contrast tool cannot read the divider, judge that the repeated word
+    is ornament, and confirm the real content is contrasted — so it FALSE-POSITIVES. A human
+    must rule the divider exempt.
+  -->
+</body>
+</html>

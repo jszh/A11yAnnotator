@@ -4,26 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>New Patient Intake — Step 2 of 4 | Cedar Valley Family Health</title>
-<!--
-  SC 1.4.13 Dismissible — Method 1 (non-obscuring positioning) FAILURE.
-
-  No keyboard dismiss exists: there is no Esc handler and the help popover cannot be
-  closed without moving focus off the trigger. Method 1 is therefore the only path.
-
-  The defect: the "What's this?" help popover on the INSURANCE MEMBER ID field opens to
-  the RIGHT and downward, and lands on top of the NEXT field's required-asterisk and its
-  label ("Patient date of birth *"), as well as the member-ID input the user is filling.
-  It obscures information-bearing content — the visual "* required" marker, the adjacent
-  field's label, and the active input. Method 1 is violated.
-
-  WHY AUTOMATED TOOLS MISS IT: the form is exemplary on paper — every input has a real
-  <label for>, required fields use aria-required and a programmatic note via
-  aria-describedby, the popover is role="tooltip" with aria-describedby wiring, contrast
-  passes. Nothing is missing or malformed. A checker cannot see, in the rendered
-  hover/focus state, that the popover rectangle covers the asterisk + helper text of the
-  adjacent field. Deciding "the covered pixels carry required-field information, not white
-  space" is a visual + semantic human judgment.
--->
 <style>
   * { box-sizing:border-box; }
   body { margin:0; background:#eef3f4; color:#15303a;
@@ -43,18 +23,16 @@
   input[type=text]:focus { outline:3px solid #0e6b6b; outline-offset:1px; border-color:#0e6b6b; }
   .help-note { font-size:12.5px; color:#52666c; margin-top:5px; }
 
-  /* "What's this?" trigger sits inline at the end of the label row */
   .help-trigger {
     border:0; background:#0e6b6b; color:#fff; font:600 11px/1 inherit;
     border-radius:999px; padding:4px 9px; margin-left:8px; cursor:help; vertical-align:middle;
   }
   .help-trigger:focus-visible { outline:3px solid #15303a; outline-offset:2px; }
 
-  /* The popover opens to the right + down. It overhangs the NEXT field below. */
   .popover {
     display:none;
     position:absolute;
-    top:30px;            /* below the label row */
+    top:30px;            
     left:60px;
     width:300px; max-width:80vw;
     background:#0b3a3a; color:#eafafa;
@@ -114,11 +92,6 @@
   </form>
 
   <script>
-    // Canonical SCR39-style show/hide on hover AND focus (works for keyboard + mouse),
-    // but DELIBERATELY with NO Escape-to-dismiss and no close button. Because the popover
-    // cannot be dismissed while focus stays on the trigger, Method 2 is unavailable; and
-    // because the popover overlaps the date-of-birth required asterisk + helper text,
-    // Method 1 also fails. Hidden on blur/mouseout only.
     (function () {
       var trig = document.querySelector('.help-trigger');
       var pop = document.getElementById('memberId-pop');
@@ -128,7 +101,6 @@
       trig.addEventListener('focus', show);
       trig.addEventListener('mouseleave', hide);
       trig.addEventListener('blur', hide);
-      // NOTE: no keydown/Escape handler -> no dismiss path.
     })();
     document.querySelector('form').addEventListener('submit', function (e) { e.preventDefault(); });
   </script>

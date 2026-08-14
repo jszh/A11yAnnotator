@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 2.4.3 (Focus Order) — PASS COUNTER-EXAMPLE (the legitimate "tabindex repairs
+    a CSS reflow" case). This page USES positive tabindex, so a judge that fails on
+    the mere PRESENCE of positive tabindex would wrongly fail it. The verdict turns
+    on whether the resulting order PRESERVES meaning — and here it does.
+
+    The donation form is laid out with CSS flexbox `order` for a specific design
+    reason: the marketing team wanted the big "Choose an amount" preset block to sit
+    visually FIRST/topmost, then the donor's contact details below it. But in the
+    SOURCE/DOM the amount block was authored AFTER the contact fieldset (it was added
+    later as a component). Left alone, DOM tab order would be:
+      Name -> Email -> Amount presets -> Custom amount -> Donate
+    ...which does NOT match the visual order the user sees:
+      Amount presets -> Custom amount -> Name -> Email -> Donate.
+    The developer used positive tabindex to RESTORE the visually-meaningful entry
+    order (amount first, then who you are, then Donate). After the fix, Tab follows
+    exactly what the eye sees, top to bottom. Meaning and operability are preserved.
+
+    This mirrors the Understanding doc's point that focus order need not follow the
+    source, only the meaning implied by the visual presentation — and that authors
+    may legitimately use tabindex to align focus with that presentation.
+
+    WHY THIS IS A PASS, NOT A FAIL: the tab order (1,2,3,4,5) matches the VISUAL
+    top-to-bottom sequence the donor reads. Nothing jumps around; no field is
+    stranded; Donate is last.
+
+    WHY AUTOMATED TOOLS MISS IT (i.e. why this matters as a hard negative): axe will
+    emit the SAME best-practice "remove positive tabindex" note here as on the
+    failing pages. A tool (or naive judge) keying on tabindex presence would flag
+    this legitimate repair as a violation — a false positive. Only by computing the
+    rendered visual order, comparing it to the focus traversal, and seeing they
+    AGREE can one conclude this passes. That comparison is the human judgment.
+  -->
+  <title>Make a Donation — Riverkeeper Alliance</title>
+  <style>
+    :root { --ink:#172a1f; --muted:#5a6b60; --rule:#cfe0d4; --brand:#1c7d4d; --bg:#f3f8f4; --accent:#0f5c38; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Helvetica Neue",Arial,sans-serif; color:var(--ink); background:var(--bg); line-height:1.5; }
+    header { background:var(--accent); color:#fff; padding:1rem 1.3rem; }
+    header .org { font-weight:800; letter-spacing:.02em; }
+    header .tag { font-size:.8rem; opacity:.9; }
+    .card { max-width:560px; margin:1.6rem auto; background:#fff; border:1px solid var(--rule); border-radius:12px; padding:1.6rem; }
+    h1 { font-size:1.5rem; margin:0 0 .3rem; }
+    .sub { color:var(--muted); margin:0 0 1.2rem; }
+
+    /*
+      Visual layout via flexbox order: amount block (order:1) sits on top,
+      contact block (order:2) below, actions (order:3) last. The DOM puts the
+      contact fieldset FIRST and the amount block second, hence the reorder.
+    */
+    form.donate { display:flex; flex-direction:column; }
+    .block-amount  { order:1; }
+    .block-contact { order:2; }
+    .block-actions { order:3; }
+
+    fieldset { border:1px solid var(--rule); border-radius:10px; margin:0 0 1.1rem; padding:1rem 1.1rem 1.2rem; }
+    legend { font-weight:700; padding:0 .4rem; }
+    .presets { display:flex; gap:.6rem; flex-wrap:wrap; margin:.4rem 0 .8rem; }
+    .presets label { flex:1 1 28%; }
+    .presets input { position:absolute; opacity:0; }
+    .presets span { display:block; text-align:center; border:1px solid var(--rule); border-radius:8px; padding:.7rem .2rem; font-weight:700; cursor:pointer; }
+    .presets input:focus + span { outline:3px solid #ffbf47; outline-offset:2px; }
+    .presets input:checked + span { background:var(--brand); color:#fff; border-color:var(--brand); }
+    label.fld { display:block; font-weight:600; font-size:.9rem; margin:.6rem 0 .3rem; }
+    input.txt { width:100%; padding:.55rem .65rem; font-size:1rem; border:1px solid var(--rule); border-radius:6px; }
+    input.txt:focus { outline:3px solid #ffbf47; outline-offset:1px; border-color:var(--brand); }
+    button { width:100%; font-size:1.05rem; font-weight:800; padding:.8rem; border:0; border-radius:8px; background:var(--brand); color:#fff; cursor:pointer; }
+    button:focus { outline:3px solid #ffbf47; outline-offset:2px; }
+    footer { color:var(--muted); font-size:.76rem; text-align:center; padding:1.4rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="org">Riverkeeper Alliance</div>
+    <div class="tag">Protecting the watershed since 1987</div>
+  </header>
+
+  <main>
+    <form class="donate" action="/process" method="post" novalidate>
+      <h1 style="order:0">Make a one-time donation</h1>
+      <p class="sub" style="order:0">Choose an amount, tell us who you are, and you're done.</p>
+
+      <!--
+        DOM ORDER: contact fieldset comes FIRST in source.
+        VISUAL ORDER: it is pushed BELOW the amount block by CSS order:2.
+        tabindex 3 & 4 here put it AFTER the amount block (tabindex 1 & 2),
+        matching what the user sees.
+      -->
+      <fieldset class="block-contact">
+        <legend>Your details</legend>
+        <label class="fld" for="name">Full name</label>
+        <input class="txt" id="name" name="name" autocomplete="name" tabindex="3">
+        <label class="fld" for="email">Email for your receipt</label>
+        <input class="txt" id="email" name="email" type="email" autocomplete="email" tabindex="4">
+      </fieldset>
+
+      <!--
+        DOM ORDER: amount block comes SECOND in source (added later as a widget).
+        VISUAL ORDER: CSS order:1 floats it to the TOP.
+        tabindex 1 & 2 make Tab reach it FIRST, matching the visual top position.
+      -->
+      <fieldset class="block-amount">
+        <legend>Choose an amount</legend>
+        <div class="presets" role="radiogroup" aria-label="Preset donation amount">
+          <label><input type="radio" name="amt" value="25" tabindex="1"><span>$25</span></label>
+          <label><input type="radio" name="amt" value="50" tabindex="1"><span>$50</span></label>
+          <label><input type="radio" name="amt" value="100" tabindex="1"><span>$100</span></label>
+        </div>
+        <label class="fld" for="custom">Or enter a custom amount (USD)</label>
+        <input class="txt" id="custom" name="custom_amount" inputmode="decimal" placeholder="e.g. 75" tabindex="2">
+      </fieldset>
+
+      <div class="block-actions">
+        <button type="submit" tabindex="5">Donate now</button>
+      </div>
+    </form>
+  </main>
+
+  <footer>Riverkeeper Alliance is a registered 501(c)(3). Donations are tax-deductible.</footer>
+</body>
+</html>

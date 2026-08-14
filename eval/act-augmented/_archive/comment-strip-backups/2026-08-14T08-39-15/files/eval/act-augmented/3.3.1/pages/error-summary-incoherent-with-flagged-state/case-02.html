@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Catering Enquiry — The Copper Pot Kitchen</title>
+<style>
+  :root { --ink:#241b13; --muted:#7a6a5a; --gold:#b07a2e; --err:#a3261c; --cream:#fbf7f0; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Georgia", "Times New Roman", serif; color:var(--ink); background:var(--cream); }
+  header { background:#241b13; color:#f4ead8; padding:22px 0; text-align:center; }
+  header h1 { margin:0; font-size:1.7rem; letter-spacing:.04em; }
+  header p { margin:4px 0 0; color:#cdb892; font-style:italic; font-size:.95rem; }
+  main { max-width:640px; margin:0 auto; padding:28px 20px 70px; }
+  h2.section { font-size:1.35rem; border-bottom:2px solid var(--gold); padding-bottom:6px; }
+  .alert { background:#fff0ee; border:2px solid var(--err); border-radius:6px; padding:16px 20px; margin:0 0 26px; }
+  .alert h3 { margin:0 0 8px; color:var(--err); font-size:1.15rem; }
+  .alert ul { margin:0; padding-left:20px; }
+  .alert li { margin-bottom:5px; }
+  .row { margin-bottom:22px; }
+  label { display:block; font-weight:bold; margin-bottom:4px; font-family:Arial, sans-serif; font-size:.95rem; }
+  .err-line { color:var(--err); font-family:Arial, sans-serif; font-size:.88rem; margin:4px 0 0; font-weight:bold; }
+  input, textarea, select { width:100%; font-family:Arial, sans-serif; font-size:1rem; padding:8px; border:1px solid #c9b9a4; border-radius:4px; background:#fff; }
+  .row.bad input, .row.bad textarea { border:2px solid var(--err); background:#fff6f5; }
+  .help { color:var(--muted); font-size:.85rem; font-family:Arial, sans-serif; margin:3px 0 0; }
+  button { background:var(--gold); color:#fff; border:0; padding:11px 22px; font-size:1rem; border-radius:4px; cursor:pointer; font-family:Arial, sans-serif; }
+  .note { background:#f1ece3; border-left:4px solid var(--gold); padding:12px 16px; margin-top:34px; font-size:.82rem; font-family:Arial, sans-serif; color:#3a3027; }
+</style>
+</head>
+<body>
+<header>
+  <h1>The Copper Pot Kitchen</h1>
+  <p>Private dining &amp; event catering since 1998</p>
+</header>
+<main>
+  <h2 class="section">Catering enquiry</h2>
+
+  <!-- Error summary lists THREE items. Two ("Event date", "Number of guests") correspond to real
+       flagged fields below. The third — "City is required so we can confirm travel" — names a field
+       that DOES NOT EXIST anywhere on this form. The summary therefore asserts an error for a
+       phantom field the user can neither find nor fix. -->
+  <div class="alert" role="alert" aria-labelledby="alert-h">
+    <h3 id="alert-h">We couldn&rsquo;t send your enquiry</h3>
+    <ul>
+      <li>Event date is required &mdash; please choose the date of your event.</li>
+      <li>City is required so we can confirm travel to your venue.</li>
+      <li>Number of guests must be at least 1.</li>
+    </ul>
+  </div>
+
+  <form novalidate>
+    <!-- Flagged: event date empty -->
+    <div class="row bad">
+      <label for="evt-date">Event date</label>
+      <input type="date" id="evt-date" name="evt-date" value="" aria-invalid="true" aria-describedby="evt-date-err">
+      <p class="err-line" id="evt-date-err">Please choose the date of your event.</p>
+    </div>
+
+    <!-- Venue address present, NOT flagged. There is NO standalone "City" field; the form collects a
+         single free-text venue address instead. -->
+    <div class="row">
+      <label for="venue">Venue name &amp; full address</label>
+      <textarea id="venue" name="venue" rows="3" aria-describedby="venue-help">Riverside Barn, Mill Lane, near Ashford</textarea>
+      <p class="help" id="venue-help">Include any access notes for our team.</p>
+    </div>
+
+    <!-- Flagged: guests = 0 -->
+    <div class="row bad">
+      <label for="guests">Number of guests</label>
+      <input type="number" id="guests" name="guests" value="0" min="1" aria-invalid="true" aria-describedby="guests-err">
+      <p class="err-line" id="guests-err">Number of guests must be at least 1.</p>
+    </div>
+
+    <div class="row">
+      <label for="contact">Contact email</label>
+      <input type="email" id="contact" name="contact" value="events@riversidebarn.co.uk">
+    </div>
+
+    <button type="submit">Send enquiry</button>
+  </form>
+
+  <div class="note">
+    <strong>Why automated checkers pass this page:</strong> The summary is a valid, visible
+    <code>role="alert"</code> region and each line is a fluent, specific error description. Two of the
+    three lines (Event date, Number of guests) correctly correspond to fields carrying
+    <code>aria-invalid="true"</code> and matching inline messages. The third line claims
+    <em>"City is required"</em> &mdash; but no <code>&lt;input&gt;</code>, <code>&lt;label&gt;</code>, or
+    control named "City" exists in the DOM (the form collects a single free-text "Venue name &amp;
+    address" instead). A linter has no way to know that a summary line refers to a field that is absent:
+    there is no broken attribute, no orphan <code>for</code>/<code>id</code>, nothing structurally wrong.
+    Recognising that the summary asserts an error for a field the user cannot locate requires reading the
+    summary's claims and confirming each named field actually exists and is flagged &mdash; a semantic
+    reconciliation no automated rule performs.
+  </div>
+</main>
+</body>
+</html>

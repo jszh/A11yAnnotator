@@ -35,22 +35,6 @@
   <h1>Add a payee</h1>
   <p class="sub">Verify the IBAN carefully. Transfers to a wrong account cannot be reversed.</p>
 
-  <!--
-    WHY AUTOMATED TOOLS MISS THIS
-    The entered German IBAN "DE89 3704 0044 0532 0130 0X" ends in an "X" — it fails the IBAN
-    checksum / contains a non-alphanumeric position, so it is genuinely INVALID. In this Vue app,
-    each field renders one status SVG whose <title> is bound to a validation state. A merge bug
-    left the IBAN field bound to the field's INITIAL "valid" state, so the SVG still carries the
-    stale success title <title>Looks good!</title> AND a green check glyph — even though the value
-    is invalid (red border shown by a separate rule). axe/WAVE/Lighthouse see an SVG role=img WITH
-    a non-empty accessible name "Looks good!": all structural rules pass (name present, role
-    correct, contrast fine, no empty title). The defect is SEMANTIC and INVERTED: the text
-    alternative asserts the OPPOSITE of the field's real state. A screen-reader user on an invalid
-    IBAN hears "Looks good!" and submits a broken transfer, never told an error exists. Only a
-    human comparing the alternative's MEANING ("valid") against the field's actual error state
-    (invalid IBAN) can detect that the text alternative not only fails to identify the error but
-    affirmatively denies it.
-  -->
 
   <form action="#" method="post" novalidate>
     <label for="payee">Payee name</label>
@@ -63,7 +47,6 @@
     <div class="field">
       <input type="text" id="iban" class="bad" aria-invalid="true" aria-describedby="iban-ico"
              value="DE89 3704 0044 0532 0130 0X">
-      <!-- Stale success status left from the field's initial state by a Vue merge bug. -->
       <svg class="statico" role="img" id="iban-ico" viewBox="0 0 22 22">
         <title>Looks good!</title>
         <circle cx="11" cy="11" r="10" fill="#2e8b57"/>

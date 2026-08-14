@@ -4,20 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Helmsman — Operations Dashboard</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS (F46 / TT 14.C, ARIA variant):
-  This is F46 reincarnated in ARIA. No <table> element exists; instead a CSS-grid
-  container of independent dashboard widgets (each its own card with its own metric)
-  is given role="table", the top row of cards is given role="row" with role="columnheader"
-  on each, and the cards below are role="cell". The ARIA is SYNTACTICALLY VALID and the
-  required-owned-elements contract is satisfied (table > row > columnheader/cell), so
-  axe's "required ARIA children / parent" and "valid role" checks all PASS. But the
-  widgets are INDEPENDENT PANELS — "Active Incidents", "Deploy Frequency", "Error Rate"
-  are not columns of a shared dataset, and "System Health" is not the column header that
-  governs the "Latency p95" panel beneath it. The role=table asserts tabular structure
-  over content that has no row/column data relationship. TT 14.C explicitly covers
-  role="table" on layout. Deciding these panels are NOT a data grid is a human judgment.
--->
 <style>
   * { box-sizing:border-box; }
   body { margin:0; font-family:"Inter", system-ui, sans-serif; background:#0f172a; color:#e2e8f0; }
@@ -29,7 +15,6 @@
   main > h1 { font-size:1.25rem; margin:0 0 4px; }
   main > .since { color:#94a3b8; font-size:.82rem; margin:0 0 22px; }
 
-  /* The "table" is purely a positioning grid for independent widgets. */
   .board { display:grid; grid-template-columns:repeat(3, 1fr); gap:18px; }
   .widget { background:#152138; border:1px solid #1e2b45; border-radius:12px; padding:18px 20px; }
   .widget .k { font-size:.78rem; color:#94a3b8; text-transform:uppercase; letter-spacing:.06em; }
@@ -52,12 +37,6 @@
     <h1>Operations Dashboard</h1>
     <p class="since">Live · refreshed 12 seconds ago</p>
 
-    <!--
-      LAYOUT GRID falsely declared a data table. role="table" wraps a set of
-      independent monitoring widgets; the top row is role="row" with three
-      role="columnheader" cards; the lower widgets are role="cell". No widget is
-      actually the column header that classifies the widget beneath it.
-    -->
     <div class="board" role="table" aria-label="Operations metrics">
       <div role="row">
         <div class="widget head" role="columnheader">

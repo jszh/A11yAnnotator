@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PaleoCon 2026 — Workshop booking</title>
+<style>
+  :root { --ink:#20242c; --muted:#5d6675; --line:#dfe4ec; --accent:#3a6b35; --accent-d:#2c5226; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.5 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:var(--ink); background:#f4f6f2; }
+  .wrap { max-width:1000px; margin:0 auto; padding:24px 18px 64px; }
+  header h1 { font-size:24px; margin:0 0 2px; }
+  header p { color:var(--muted); margin:0 0 20px; font-size:14px; }
+  table { width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+  caption { text-align:left; font-weight:600; padding:12px 14px; border-bottom:1px solid var(--line); }
+  th, td { border:1px solid var(--line); padding:10px 12px; vertical-align:top; }
+  thead th { background:#eef3ec; font-size:13px; text-align:center; }
+  tbody th[scope="row"] { background:#f7faf6; white-space:nowrap; }
+  td h2 { font-size:15px; margin:0 0 2px; }
+  td .seats { color:var(--muted); font-size:12px; margin:0 0 8px; }
+  .attend { display:inline-flex; align-items:center; gap:6px; font-size:13px; cursor:pointer; }
+  .attend input { width:16px; height:16px; accent-color:var(--accent); }
+  .legend { color:var(--muted); font-size:12px; margin:14px 2px 0; }
+</style>
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <h1>PaleoCon 2026 — Reserve your workshops</h1>
+      <p>Two parallel tracks. Tick <strong>Attend</strong> on each session you want; seats are confirmed at checkout.</p>
+    </header>
+
+    <table>
+      <caption id="cap">Workshop booking grid — Thursday 12 March</caption>
+      <thead>
+        <tr>
+          <th scope="col" id="h-track">Track</th>
+          <th scope="col" id="h-am">9 to 12 AM</th>
+          <th scope="col" id="h-pm">2 to 5 PM</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row" id="r-t1">Track 1</th>
+          <!-- THE DEFECT IS IN THIS CELL.
+               This checkbox physically sits in the Track 1 / 9-12 AM / "The Paleozoic era" cell.
+               It SHOULD be named by:  r-t1  h-am  ttl-paleo  att-paleo
+               During a copy-paste of the booking loop the author pasted the IDREFs from the
+               OTHER row/column, so it is named by:  r-t2  h-pm  ttl-cretaceous  att-paleo.
+               Every IDREF below is valid and resolves to a real, on-screen <th>/<h2>/<label>.
+               The computed name is a grammatical, real string: "Track 2 2 to 5 PM The
+               Cretaceous period Attend" — and it DOES contain the checkbox's own visible
+               label word "Attend", so a label-vs-name string check is satisfied.
+               But the name describes a DIFFERENT workshop than the one this control books. -->
+          <td>
+            <h2 id="ttl-paleo">The Paleozoic era</h2>
+            <p class="seats">2 places left</p>
+            <label class="attend">
+              <input type="checkbox" name="bk-paleo"
+                     aria-labelledby="r-t2 h-pm ttl-cretaceous att-paleo">
+              <span id="att-paleo">Attend</span>
+            </label>
+          </td>
+          <td>
+            <h2 id="ttl-meso">The Mesozoic overview</h2>
+            <p class="seats">5 places left</p>
+            <label class="attend">
+              <input type="checkbox" name="bk-meso"
+                     aria-labelledby="r-t1 h-pm ttl-meso att-meso">
+              <span id="att-meso">Attend</span>
+            </label>
+          </td>
+        </tr>
+        <tr>
+          <th scope="row" id="r-t2">Track 2</th>
+          <td>
+            <h2 id="ttl-triassic">The Triassic, rise of the dinosaurs</h2>
+            <p class="seats">1 place left</p>
+            <label class="attend">
+              <input type="checkbox" name="bk-triassic"
+                     aria-labelledby="r-t2 h-am ttl-triassic att-triassic">
+              <span id="att-triassic">Attend</span>
+            </label>
+          </td>
+          <td>
+            <h2 id="ttl-cretaceous">The Cretaceous period</h2>
+            <p class="seats">8 places left</p>
+            <label class="attend">
+              <input type="checkbox" name="bk-cretaceous"
+                     aria-labelledby="r-t2 h-pm ttl-cretaceous att-cretaceous">
+              <span id="att-cretaceous">Attend</span>
+            </label>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p class="legend">Tip: with a screen reader, tabbing to a checkbox reads its track, time, and session so you can book without seeing the grid.</p>
+  </main>
+</body>
+</html>

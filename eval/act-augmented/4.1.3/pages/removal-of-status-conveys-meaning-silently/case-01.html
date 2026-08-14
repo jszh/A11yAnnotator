@@ -18,7 +18,6 @@
   .searchbar input { flex:1; padding:12px 14px; border:1px solid #c3cdd8; border-radius:7px; font-size:1rem; }
   .searchbar button { background:var(--brand); color:#fff; border:0; padding:0 24px; border-radius:7px; font-size:1rem; font-weight:600; cursor:pointer; }
   .searchbar button:hover { background:var(--brand-dk); }
-  /* status / spinner */
   #liveStatus { min-height:0; }
   .searching { display:flex; align-items:center; gap:12px; margin:22px 0 4px; color:#4a5868; font-size:.96rem; }
   .spinner {
@@ -26,7 +25,6 @@
     border-radius:50%; animation:spin .8s linear infinite;
   }
   @keyframes spin { to { transform:rotate(360deg); } }
-  /* results */
   .results { margin-top:18px; }
   .result-row { display:flex; justify-content:space-between; align-items:center; padding:14px 4px; border-bottom:1px solid var(--line); }
   .result-row:last-child { border-bottom:0; }
@@ -53,34 +51,14 @@
     <button id="go" type="button">Search</button>
   </div>
 
-  <!-- Live region is correctly present and correctly announces the BUSY message on entry. -->
   <div id="liveStatus" role="status" aria-live="polite" aria-atomic="true"></div>
 
-  <!-- Results render here. NOTE: this container is a plain region, NOT a live region. -->
   <section class="results" id="results" aria-label="Search results"></section>
 </main>
 
 <footer>Northbridge Auto Supply Co. — prices include core charges where applicable.</footer>
 
 <script>
-/*
-  WHAT HAPPENS (two-phase async, button-triggered):
-  Phase 1 (entry): we inject "Searching the catalog…" + spinner INTO the role=status
-  live region. This IS announced by a screen reader — the appearance test passes.
-  Phase 2 (completion): when the fake fetch resolves we EMPTY the live region
-  (status.textContent = '') and render the result rows + an "8 matches" count into
-  #results, which is NOT a live region.
-
-  For a SIGHTED user the spinner DISAPPEARING is the signal "search done, here are
-  your results." For an AT user: the busy text is silently removed (removing a node
-  from a polite region produces no announcement, by design), and the result count
-  "8 matches found" lands in a non-live container, so nothing is spoken. The end of
-  the waiting state — and the result count, itself a status message per the SC's
-  search examples — are never conveyed.
-
-  The author did the additive direction correctly (busy message in a live region) and
-  is one line away from compliance: writing "8 matches found" back into #liveStatus.
-*/
 (function () {
   var go = document.getElementById('go');
   var status = document.getElementById('liveStatus');
@@ -98,14 +76,12 @@
   ];
 
   function showSearching() {
-    // Phase 1 — announced on entry (correct so far).
     status.innerHTML = '<div class="searching"><span class="spinner" aria-hidden="true"></span>' +
                        '<span>Searching the catalog…</span></div>';
     results.innerHTML = '';
   }
 
   function renderResults() {
-    // Phase 2 — the busy text is simply REMOVED. Nothing replaces it in the live region.
     status.textContent = '';
 
     var html = '<p style="margin:6px 0 14px;font-weight:700;">8 matches found</p>';
@@ -119,7 +95,6 @@
                 '</div>' +
               '</div>';
     });
-    // Count + rows go into the NON-live results container.
     results.innerHTML = html;
   }
 

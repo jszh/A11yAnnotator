@@ -4,19 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Move money — Northshore Credit Union</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS:
-  The "Transfer funds" submit button has a perfectly valid :focus style in CSS
-  (a 3px solid outline) and a real, computable accessible name. axe-core / WAVE /
-  Lighthouse have no rule for 2.4.7 at all, and even a CSS-aware scanner sees a
-  legitimate focus indicator declared. What they cannot see is the inline
-  onfocus="this.blur()" handler that fires the instant Tab lands on the button and
-  immediately removes focus — so the :focus rule is real but never gets to paint.
-  A single focused snapshot renders as UNFOCUSED because focus was already stolen.
-  Catching this requires driving keyboard focus and observing OVER TIME that the
-  indicator never settles (a temporal/behavioral check), which static scanners
-  and single-frame pixel diffs do not perform.
--->
 <style>
   :root { --navy: #103a5e; --gold: #b8860b; --line: #d4dbe2; }
   * { box-sizing: border-box; }
@@ -47,8 +34,6 @@
     background: var(--navy); color: #fff; border: 0; border-radius: 6px;
     padding: 12px 26px; font-size: 1rem; font-weight: 600; cursor: pointer;
   }
-  /* A genuine, perfectly valid keyboard focus indicator IS declared here — */
-  /* it just never gets to paint because onfocus blurs the button first.    */
   .btn-primary:focus { outline: 3px solid var(--gold); outline-offset: 2px; }
   .btn-secondary {
     background: #fff; color: var(--navy); border: 1px solid var(--navy);
@@ -94,11 +79,6 @@
       <input type="text" id="memo" name="memo" maxlength="60" placeholder="e.g. Rent, savings goal">
 
       <div class="actions">
-        <!--
-          The defect: onfocus="this.blur()" removes focus the instant Tab reaches
-          the submit button. The :focus outline above never paints; the button is
-          reachable only by mouse. Markup is well-formed; name & focus style exist.
-        -->
         <input type="submit" class="btn-primary" value="Review transfer"
                onfocus="this.blur();">
         <button type="reset" class="btn-secondary">Clear</button>

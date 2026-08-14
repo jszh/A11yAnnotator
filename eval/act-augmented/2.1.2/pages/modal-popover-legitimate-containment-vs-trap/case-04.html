@@ -4,20 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Create alert rule — Cadence Analytics</title>
-<!--
-  SC 2.1.2 — modal-popover-legitimate-containment-vs-trap — case-04 (FAIL)
-  A SaaS dashboard modal (role="dialog" aria-modal="true") has a fully focusable, real
-  <button> "Close" in its header AND a "Cancel" in its footer. BUT the hand-rolled focus
-  trap was scoped to a hard-coded selector ('.dialog-form :is(input,select,button)') that
-  matches ONLY the form-body controls — it deliberately EXCLUDES the header Close and (by
-  living outside .dialog-form) the footer Cancel. The trap wraps Tab strictly among the
-  three form fields + the "Create rule" button, so the user can SEE the Close/Cancel but
-  Tab can never land on them. There is also no Esc handler.
-  WHY AUTOMATED TOOLS MISS IT: the Close and Cancel are genuine, focusable, named <button>
-  elements — a tool sees a perfectly reachable close control in the DOM and passes. Only by
-  actually tabbing the open modal does it emerge that the trap's cycle SKIPS them, so the
-  visible dismiss is unreachable by keyboard. No attribute is missing or wrong.
--->
 <style>
   :root { font-family: "IBM Plex Sans", system-ui, sans-serif; color: #1a1f29; }
   body { margin: 0; background: #0f1521; }
@@ -61,7 +47,6 @@
   </section>
 </div>
 
-<!-- Modal HAS real focusable Close + Cancel buttons, but the trap excludes them. -->
 <div class="scrim" id="scrim">
   <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="rule-title" id="dialog">
     <div class="head">
@@ -101,15 +86,11 @@
   document.getElementById('close').addEventListener('click', close);
   document.getElementById('cancel').addEventListener('click', close);
 
-  // BUG: the focus trap was scoped to the form body only. The maintainer's snippet
-  // hard-coded the container as '.dialog-form' to "keep the inputs together", which
-  // silently drops the header Close (#close) and the footer Cancel (#cancel) — both of
-  // which live OUTSIDE .dialog-form — from the cycle. There is also no Escape branch.
   dialog.addEventListener('keydown', function (e) {
-    if (e.key !== 'Tab') return;                      // Esc is not handled
+    if (e.key !== 'Tab') return;                      
     const items = Array.from(
       document.querySelectorAll('.dialog-form input, .dialog-form select, .dialog-form button')
-    );                                                // <-- excludes #close and #cancel
+    );                                                
     const first = items[0];
     const last  = items[items.length - 1];
     if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.4.3 FAILURE — operable label over album-art (no solid background to sample),
+    sitting beside a GENUINELY disabled control that is correctly exempt.
+
+    A "Now playing" card. The player bar is laid directly over the album artwork (here a
+    diagonal CSS gradient standing in for a photo so the page renders from file://). It holds
+    two controls:
+
+      1) "Shuffle" — a NATIVE <button disabled>. It is genuinely not available for interaction
+         (removed from the tab order, inert, AT announces "dimmed/unavailable"). Per Understanding
+         1.4.3, an inactive component is exempt, so its faint label needs no contrast. CORRECT.
+
+      2) "Save to library" — a FULLY OPERABLE control (real <button>, no disabled/aria-disabled,
+         live handler). Its white label text sits ON the artwork. Over the dark end of the art it
+         reads fine (~16:1); but the art brightens toward the lower-right to a pale sand tone, and
+         where the label crosses that region white-on-#e0cfa3..#e9d9b6 falls to ~1.4–1.8:1 — far
+         below 4.5:1. Because this control IS operable, 1.4.3 governs its label, and at its
+         worst-case region it FAILS.
+
+    There is exactly ONE genuinely-disabled control (Shuffle) and ONE operable control whose
+    label is the failure (Save to library). The exemption boundary is the whole point: a judge
+    must (a) confirm Shuffle is truly inactive → exempt, and (b) sample the WORST-CASE pixels
+    behind the operable "Save to library" label → failing.
+
+    WHY AUTOMATED TOOLS MISS IT: the failing label sits over a background IMAGE/GRADIENT, so
+    there is no single solid background color to compute against. axe-core does NOT flag it — its
+    color-contrast rule returns "incomplete" with "Element's background color could not be
+    determined due to a background gradient" (likewise for background images). Lighthouse/WAVE
+    behave the same. Determining the failure requires a human to eyedropper the LEAST-CONTRAST
+    foreground/background pixels (the Trusted Tester / Colour Contrast Analyser procedure), which
+    static checkers do not do. The genuinely-disabled Shuffle button is correctly skipped, so the
+    only contrast question on the page is the one no scanner can answer.
+  -->
+  <title>Now playing — Larkwave</title>
+  <style>
+    :root { --panel:#0c1f2b; --ink:#eef4f7; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Helvetica Neue",Arial,sans-serif; background:#07141c; color:var(--ink); }
+    .app { max-width:760px; margin:36px auto; padding:0 18px; }
+    .app h1 { font-size:20px; margin:0 0 16px; color:#cfe0e9; }
+
+    .card {
+      position:relative; border-radius:14px; overflow:hidden;
+      box-shadow:0 18px 50px rgba(0,0,0,.5); aspect-ratio:16/9;
+      /* "album artwork": a diagonal gradient, dark at top-left, bright sand at bottom-right.
+         Stands in for a JPEG so the page is self-contained and renders from file://. */
+      background-image:linear-gradient(135deg,
+        #0c1f2b 0%, #16323f 30%, #4b6256 52%, #b6a679 70%, #e0cfa3 84%, #e9d9b6 100%);
+      background-size:cover;
+    }
+
+    /* track meta, over the dark (top-left) end — white here is ~16:1, fine */
+    .meta { position:absolute; top:18px; left:20px; }
+    .meta .now { font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:#bcd2dd; margin:0 0 4px; }
+    .meta .title { font-size:22px; font-weight:800; margin:0; color:#ffffff; }   /* ~16:1 over dark end */
+    .meta .artist { font-size:14px; margin:4px 0 0; color:#e8eef2; }             /* ~14:1 over dark end */
+
+    /* player bar overlaid across the FULL width — it crosses into the bright sand region */
+    .bar {
+      position:absolute; left:0; right:0; bottom:0;
+      display:flex; align-items:center; gap:18px;
+      padding:16px 20px;
+    }
+    .ctrl {
+      background:transparent; border:0; padding:6px 4px;
+      font-size:15px; font-weight:700; cursor:pointer;
+      display:inline-flex; align-items:center; gap:8px;
+    }
+    .ctrl .ico { width:18px; height:18px; flex:0 0 auto; }
+    .ctrl:focus-visible { outline:2px solid #ffffff; outline-offset:3px; border-radius:6px; }
+
+    /* OPERABLE control — white label painted directly on the artwork.
+       Sits at the bright (lower-right) end, where white drops to ~1.4–1.8:1. */
+    .save { color:#ffffff; margin-left:auto; }     /* white on pale sand ~1.4–1.8:1 — FAILS */
+    .save .ico { stroke:#ffffff; }
+
+    /* GENUINELY disabled control — native [disabled], inert, exempt from 1.4.3 */
+    .shuffle[disabled] { color:#7f8a86; cursor:not-allowed; }  /* exempt: not operable */
+    .shuffle[disabled] .ico { stroke:#7f8a86; }
+
+    .toast {
+      margin-top:14px; padding:10px 14px; border-radius:8px;
+      background:#10303f; color:#dff3e6; border:1px solid #1e6b46;
+      font-size:14px; display:none;
+    }
+    .hint { margin-top:14px; color:#9fb3bf; font-size:13px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <h1>Larkwave</h1>
+
+    <section class="card" aria-label="Now playing">
+      <div class="meta">
+        <p class="now">Now playing</p>
+        <p class="title">Harbour Lights</p>
+        <p class="artist">The Tessellates</p>
+      </div>
+
+      <div class="bar">
+        <!--
+          GENUINELY DISABLED: native <button disabled>. Inert, out of tab order,
+          AT says "dimmed". Inactive component → exempt from 1.4.3. Correct.
+        -->
+        <button type="button" class="ctrl shuffle" id="shuffle" disabled
+                aria-label="Shuffle (Premium only)">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+            <path d="M16 3h5v5M21 3l-7 7M8 21H3v-5M3 21l7-7M16 21h5v-5M21 21l-7-7M3 3l5 5"/>
+          </svg>
+          Shuffle
+        </button>
+
+        <!--
+          OPERABLE: real <button>, no disabled / no aria-disabled, live handler.
+          Its WHITE label sits on the bright end of the artwork → ~1.4–1.8:1 worst case.
+          In scope for 1.4.3; FAILS. No solid bg to measure → axe returns "incomplete".
+        -->
+        <button type="button" class="ctrl save" id="save" onclick="saved()">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+            <path d="M12 21s-7-4.5-9.5-8.5C.9 9.6 2.2 6 5.5 6 7.4 6 8.9 7 12 10c3.1-3 4.6-4 6.5-4 3.3 0 4.6 3.6 3 6.5C19 16.5 12 21 12 21z"/>
+          </svg>
+          Save to library
+        </button>
+      </div>
+    </section>
+
+    <p class="toast" id="toast" role="status">Saved “Harbour Lights” to your library.</p>
+    <p class="hint">Tip: tap the heart to save tracks for offline listening.</p>
+  </div>
+
+  <script>
+    // Proves "Save to library" is genuinely operable (local only — no network).
+    function saved() {
+      var t = document.getElementById('toast');
+      t.style.display = 'block';
+      document.getElementById('save').setAttribute('aria-pressed', 'true');
+    }
+  </script>
+</body>
+</html>

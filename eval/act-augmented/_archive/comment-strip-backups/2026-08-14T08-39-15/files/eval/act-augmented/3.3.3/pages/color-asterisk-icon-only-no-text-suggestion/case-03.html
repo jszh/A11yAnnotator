@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Create your Plotline account</title>
+<style>
+  :root { --ink:#15181f; --indigo:#4f46e5; --bg:#0f1117; --card:#ffffff; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Inter",system-ui,Arial,sans-serif; color:var(--ink);
+         background:linear-gradient(160deg,#1a1d29,#0f1117); min-height:100vh;
+         display:flex; align-items:center; justify-content:center; padding:24px; }
+  .card { background:var(--card); width:100%; max-width:420px; border-radius:14px;
+          padding:32px 30px 36px; box-shadow:0 24px 60px rgba(0,0,0,.4); }
+  .logo { font-weight:800; font-size:1.05rem; letter-spacing:-.01em; color:var(--indigo);
+          margin-bottom:4px; }
+  h1 { font-size:1.5rem; margin:0 0 4px; }
+  .sub { color:#5b6172; margin:0 0 26px; font-size:.95rem; }
+  label { display:block; font-weight:600; font-size:.9rem; margin:0 0 6px; }
+  input[type=email], input[type=password] {
+        width:100%; padding:11px 13px; font:inherit; border:1.5px solid #d2d6e0;
+        border-radius:9px; background:#fff; }
+  input:focus { outline:2px solid var(--indigo); outline-offset:1px; border-color:var(--indigo); }
+  .group { margin-bottom:20px; }
+  /* The strength meter. Four segments; weak passwords light only the first, in red.
+     This colour-and-fill is the ENTIRE guidance about how to make the password
+     acceptable — there is no text listing the rules. */
+  .meter { display:flex; gap:6px; margin-top:9px; }
+  .meter .seg { height:6px; flex:1; border-radius:3px; background:#e4e7ef; }
+  .meter[data-level="weak"] .seg:nth-child(1) { background:#e0392b; }
+  .meter[data-level="fair"] .seg:nth-child(-n+2) { background:#e9a23b; }
+  .meter[data-level="good"] .seg:nth-child(-n+3) { background:#3b9e5b; }
+  .meter[data-level="strong"] .seg { background:#23a455; }
+  /* When weak, the password field border also goes red — colour only. */
+  .group.weak input { border-color:#e0392b; }
+  .create { width:100%; margin-top:6px; background:var(--indigo); color:#fff; border:0;
+            padding:13px; font:inherit; font-weight:700; border-radius:10px; cursor:pointer; }
+  .legal { margin-top:18px; font-size:.78rem; color:#7a808f; text-align:center; }
+  .legal a { color:var(--indigo); }
+</style>
+</head>
+<body>
+  <main class="card">
+    <div class="logo" aria-hidden="true">▰ Plotline</div>
+    <h1>Create your account</h1>
+    <p class="sub">Start your 14-day trial. No card required.</p>
+
+    <form action="/signup" method="post" novalidate>
+      <div class="group">
+        <label for="email">Work email</label>
+        <input type="email" id="email" name="email" value="dana@northwind.io" autocomplete="email">
+      </div>
+
+      <!-- The user has typed "summer24". The JS classified it as weak and set the meter
+           to one red segment + a red field border. The submit was BLOCKED (button does
+           nothing while weak), but NO text tells the user WHY it is weak or what would
+           make it acceptable (length, mixed case, a symbol, not a common word). The red
+           bar is the only "suggestion." -->
+      <div class="group weak">
+        <label for="pw">Choose a password</label>
+        <input type="password" id="pw" name="pw" value="summer24" autocomplete="new-password">
+        <div class="meter" data-level="weak" aria-hidden="true">
+          <span class="seg"></span><span class="seg"></span>
+          <span class="seg"></span><span class="seg"></span>
+        </div>
+      </div>
+
+      <button type="submit" class="create">Create account</button>
+    </form>
+
+    <p class="legal">By continuing you agree to our <a href="/terms">Terms</a> and
+       <a href="/privacy">Privacy Policy</a>.</p>
+  </main>
+
+<script>
+  // Minimal strength gate. Blocks submit while weak; surfaces strength ONLY through the
+  // coloured meter + red border. Deliberately prints no rules and no suggestion text.
+  (function () {
+    var pw = document.getElementById('pw');
+    var group = pw.closest('.group');
+    var meter = group.querySelector('.meter');
+    var form = pw.closest('form');
+    function classify(v) {
+      var score = 0;
+      if (v.length >= 8) score++;
+      if (/[A-Z]/.test(v) && /[a-z]/.test(v)) score++;
+      if (/[0-9]/.test(v)) score++;
+      if (/[^A-Za-z0-9]/.test(v)) score++;
+      if (/^(summer|winter|spring|autumn|password|qwerty)/i.test(v)) score = Math.min(score, 1);
+      return ['weak','weak','fair','good','strong'][score];
+    }
+    function render() {
+      var level = classify(pw.value);
+      meter.setAttribute('data-level', level);
+      group.classList.toggle('weak', level === 'weak');
+    }
+    pw.addEventListener('input', render);
+    form.addEventListener('submit', function (e) {
+      if (classify(pw.value) === 'weak') { e.preventDefault(); /* silently refuse */ }
+    });
+    render();
+  })();
+</script>
+
+<!--
+  WHY THIS FAILS SC 3.3.3 (Error Suggestion):
+  The password "summer24" is rejected (submit is blocked) — an input error is detected and
+  the correction is entirely knowable: the rules are length>=8 AND mixed case AND a digit AND
+  a symbol AND not a common word-stem. None of that is in text. The lone red meter segment and
+  red border are the only conveyance, and per G84/G85 colour and symbols do not satisfy the SC;
+  a text description of the required format/values is needed.
+
+  WHY AUTOMATED TOOLS MISS IT:
+  - The field has a real <label for>, valid type="password", and meter is aria-hidden so it is
+    not exposed as a broken widget. Nothing is empty or malformed — linters pass.
+  - The validity API reports the password field valid:true (no HTML pattern/minlength is set;
+    the gate is in JS), so the accessibility tree shows invalid:false. There is no aria-invalid.
+  - No tool can know the JS strength rules or that the meter colour is the only place they are
+    expressed. Determining that the *suggestion text* (the rules) is the missing element requires
+    typing a weak password, watching the meter, and reasoning that the rules are knowable but
+    never written down. Pure human judgment.
+-->
+</body>
+</html>

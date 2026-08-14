@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MyChart — Retinal Imaging Results · Patient Portal</title>
+<style>
+  body {
+    margin: 0; font-family: "Source Sans Pro", system-ui, Arial, sans-serif;
+    background: #f3f5f7; color: #1d2733; line-height: 1.55;
+  }
+  header { background: #006a71; color: #fff; padding: 16px 26px; }
+  header h1 { margin: 0; font-size: 1.2rem; }
+  header p { margin: 3px 0 0; font-size: .82rem; color: #cdeaec; }
+  main { max-width: 880px; margin: 22px auto; padding: 0 22px 60px; display: grid; gap: 22px; }
+  .card { background: #fff; border: 1px solid #dde3e8; border-radius: 10px; padding: 18px 20px; }
+  .card h2 { font-size: 1rem; margin: 0 0 12px; color: #00474c; }
+  figure { margin: 0; }
+  figcaption { font-size: .78rem; color: #5a6772; margin-top: 8px; }
+  .imaging { position: relative; display: inline-block; }
+
+  /*
+   * The annotation control sits ON TOP of the essential schematic. It is a
+   * clickable UI marker (role=button) drawn as a hollow ring. Its ring color
+   * #b8c0c8 against the adjacent pale #e9eef1 schematic area ≈ 1.6:1 — under
+   * 3:1. THIS is a user-interface component required to identify a control,
+   * so it FAILS 1.4.11. (The schematic + heatmap behind it are essential, NA.)
+   */
+  .pin {
+    position: absolute; width: 26px; height: 26px; border-radius: 50%;
+    border: 3px solid #b8c0c8;            /* ~1.6:1 vs adjacent schematic — FAILS */
+    background: transparent; cursor: pointer; padding: 0;
+  }
+  .pin:focus-visible { outline: 3px solid #006a71; outline-offset: 2px; }
+  .legend-note { font-size: .8rem; color: #5a6772; margin-top: 10px; }
+
+  .why {
+    background: #fff8ec; border: 1px solid #f0d9a8; border-radius: 8px;
+    padding: 14px 16px; font-size: .82rem; color: #5b4a26;
+  }
+  code { background: #eef2f4; padding: 1px 5px; border-radius: 3px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Retinal imaging results</h1>
+  <p>MyChart · Patient: A. Demir · Exam date: 2026-05-30 · Dr. L. Vance, Ophthalmology</p>
+</header>
+
+<main>
+  <section class="card">
+    <h2>Fundus schematic with measurement overlay</h2>
+    <figure>
+      <div class="imaging">
+        <!-- ESSENTIAL #1: a medical schematic that uses the real anatomical/clinical
+             colors. Recoloring for contrast would misrepresent the finding -> NA. -->
+        <svg width="420" height="260" role="img"
+             aria-label="Cross-sectional schematic of the right eye showing macula and optic disc, with a thickness heat-map overlay.">
+          <rect x="0" y="0" width="420" height="260" fill="#e9eef1"/>
+          <!-- eye globe -->
+          <ellipse cx="210" cy="130" rx="150" ry="110" fill="#f4ece0" stroke="#d8c9b4" stroke-width="2"/>
+          <!-- vitreous -->
+          <ellipse cx="200" cy="130" rx="118" ry="86" fill="#fbf7ef"/>
+          <!-- ESSENTIAL #2: retinal-thickness HEAT MAP — a measurement gradient.
+               Low blue-to-green contrast is intrinsic to the data scale -> NA. -->
+          <defs>
+            <radialGradient id="heat" cx="60%" cy="45%" r="55%">
+              <stop offset="0%"  stop-color="#d24b3e"/>
+              <stop offset="35%" stop-color="#e8a13a"/>
+              <stop offset="60%" stop-color="#9bd06a"/>
+              <stop offset="100%" stop-color="#3f7fb0"/>
+            </radialGradient>
+          </defs>
+          <path d="M150,150 q60,-55 140,-8 q-10,60 -70,66 q-55,4 -70,-58 z" fill="url(#heat)" opacity="0.92"/>
+          <!-- optic nerve stub (essential anatomy color) -->
+          <path d="M360,128 q26,2 40,2 q-2,18 -40,16 z" fill="#f0d27a" stroke="#c9a94f"/>
+        </svg>
+
+        <!-- The FAILING UI control: a clickable annotation marker over the macula -->
+        <button class="pin" type="button" style="left:188px; top:118px;"
+                aria-label="View thickness measurement at macula (312 µm)"></button>
+      </div>
+      <figcaption>
+        Cross-section of the right eye. The warm-to-cool overlay encodes retinal
+        thickness (µm). Tap the marker over the macula to read the exact value.
+      </figcaption>
+    </figure>
+    <p class="legend-note">
+      Heat-map scale (thickness): red = thickest → blue = thinnest. Reproduced in
+      clinical false-color; do not adjust.
+    </p>
+  </section>
+
+  <div class="why">
+    <strong>Why automated tools miss this:</strong> Three low-contrast graphics
+    share this card. The <em>fundus schematic</em> uses anatomical colors and the
+    <em>heat-map</em> uses a measurement gradient — both are <strong>Essential</strong>:
+    altering their colors to hit 3:1 would falsify clinical information, so they
+    are NA. But the hollow <code>#b8c0c8</code> annotation ring (the
+    <code>.pin</code> button) is a genuine UI control whose only identifying
+    visual is its ~1.6:1 outline against the schematic — that one FAILS 1.4.11.
+    A contrast scanner cannot tell an essential clinical gradient from a styling
+    choice, and it cannot tell a decorative dot from an operable control that
+    must reach 3:1. Splitting NA-essential from failing-control here is pure
+    domain + intent judgement.
+  </div>
+</main>
+
+<script>
+  document.querySelector('.pin').addEventListener('click', function () {
+    this.setAttribute('aria-pressed', 'true');
+    this.style.borderColor = '#006a71';   // selected state would contrast — but default fails
+  });
+</script>
+</body>
+</html>

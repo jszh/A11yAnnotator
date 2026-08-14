@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spende abschließen — Stiftung Lichtblick</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (locale-mismatch boilerplate):
+  Post-submit donation page in German (lang="de", de-DE locale). The donation-amount
+  field retains "1.234,56" — which is a perfectly valid de-DE currency string (dot =
+  thousands separator, comma = decimal separator => one thousand two hundred thirty-four
+  euros and fifty-six cents). The visible, associated German error (aria-describedby=
+  "betrag-err") reads: "Bitte geben Sie einen gültigen Betrag im Format 1234.56 ein."
+  ("Please enter a valid amount in the format 1234.56.") — i.e. it demands an EN-US
+  decimal format (period as decimal point), which is WRONG for a German user and for a
+  value that is already valid in the page's own declared locale.
+  ACT 36b590 passes: the indicator is visible, in the accessibility tree, names the
+  field, and "describes how to resolve it" (a format). axe/WAVE/Lighthouse pass: lang is
+  a valid BCP-47 tag, label present, describedby resolves, contrast fine.
+  THE DEFECT IS SEMANTIC + LOCALE-AWARE: judging the error requires knowing de-DE number
+  formatting, recognizing the value is already valid for the declared locale, and seeing
+  that the error prescribes the wrong (foreign) format. No checker parses locale-specific
+  number grammar to judge value-vs-message agreement.
+-->
+<style>
+  :root{ --ink:#1c2128; --muted:#5f6873; --line:#d3d9df; --brand:#b8521a; --danger:#c22b22; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font:16px/1.55 "Source Sans 3","Segoe UI",system-ui,sans-serif;
+        color:var(--ink); background:#f6f2ec; }
+  .wrap{ max-width:560px; margin:38px auto; padding:0 18px; }
+  .brand{ display:flex; align-items:center; gap:10px; margin-bottom:20px; }
+  .brand .sun{ width:30px; height:30px; border-radius:50%;
+        background:radial-gradient(circle at 50% 45%, #f7b733, var(--brand)); }
+  .brand strong{ font-size:1.1rem; }
+  .card{ background:#fff; border:1px solid var(--line); border-radius:12px; padding:28px 26px;
+         box-shadow:0 4px 16px rgba(40,30,20,.06); }
+  h1{ font-size:1.3rem; margin:0 0 4px; }
+  .lede{ color:var(--muted); font-size:.92rem; margin:0 0 22px; }
+  label{ display:block; font-weight:600; font-size:.9rem; margin-bottom:6px; }
+  .hint{ color:var(--muted); font-size:.82rem; margin:0 0 8px; }
+  .amount{ position:relative; }
+  .amount .cur{ position:absolute; right:12px; top:50%; transform:translateY(-50%);
+        color:var(--muted); font-weight:600; }
+  input{ width:100%; padding:11px 36px 11px 12px; font-size:1.1rem; border:2px solid var(--line);
+         border-radius:8px; text-align:right; }
+  input[aria-invalid="true"]{ border-color:var(--danger); }
+  input:focus{ outline:2px solid var(--brand); outline-offset:1px; }
+  .err{ color:var(--danger); font-size:.86rem; margin-top:8px; font-weight:600; }
+  button{ margin-top:18px; width:100%; padding:12px; font-size:1rem; font-weight:600; color:#fff;
+          background:var(--brand); border:0; border-radius:8px; cursor:pointer; }
+  .foot{ margin-top:16px; color:var(--muted); font-size:.78rem; text-align:center; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand"><span class="sun" aria-hidden="true"></span><strong>Stiftung Lichtblick</strong></div>
+    <main class="card" lang="de">
+      <h1>Spende abschließen</h1>
+      <p class="lede">Schritt 2 von 3 — bestätigen Sie Ihren Spendenbetrag.</p>
+
+      <form action="#" method="post" novalidate>
+        <label for="betrag">Spendenbetrag</label>
+        <p class="hint" id="betrag-hint">Geben Sie den Betrag in Euro ein.</p>
+        <div class="amount">
+          <!--
+            "1.234,56" is valid de-DE: 1.234,56 € = one thousand two hundred thirty-four
+            euros, fifty-six cents. The error demands "1234.56" (en-US decimal format).
+          -->
+          <input id="betrag" name="betrag" type="text" inputmode="decimal"
+                 value="1.234,56"
+                 aria-describedby="betrag-hint betrag-err" aria-invalid="true">
+          <span class="cur" aria-hidden="true">€</span>
+        </div>
+        <p class="err" id="betrag-err">Der Betrag ist ungültig. Bitte geben Sie einen gültigen Betrag im Format 1234.56 ein.</p>
+
+        <button type="submit">Weiter zur Zahlung</button>
+      </form>
+    </main>
+    <p class="foot">Stiftung Lichtblick · Spenderservice 030 555 0199 · Läuft über file://</p>
+  </div>
+</body>
+</html>

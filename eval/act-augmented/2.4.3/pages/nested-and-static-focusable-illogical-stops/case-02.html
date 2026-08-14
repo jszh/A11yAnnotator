@@ -23,9 +23,6 @@
     .row { display:flex; gap:14px; }
     .row .field { flex:1; }
 
-    /* A "design accent" the marketing team wanted between fields. The author made it
-       tabindex="0" so they could attach a scroll-reveal animation that triggers on focus.
-       It is purely decorative text but now sits IN the tab sequence, mid-form. */
     .accent { text-align:center; color:#627d98; font-size:.8rem; letter-spacing:.14em;
               text-transform:uppercase; margin: 4px 0 14px; }
     .accent:focus { outline:3px solid #2bb0ed; outline-offset:3px; }
@@ -59,12 +56,6 @@
                  inputmode="numeric" type="text" placeholder="1234 5678 9012 3456">
         </div>
 
-        <!--
-          THE DEFECT: a focusable decorative divider lands in the middle of the card-entry
-          sequence, between "Card number" and "Expiry". Tab goes:
-          Card number  ->  (this meaningless "PAYMENT DETAILS" accent stop)  ->  Expiry.
-          The injected stop breaks the entry flow of a tightly-coupled numeric sequence.
-        -->
         <div class="accent" tabindex="0">Payment details</div>
 
         <div class="row">
@@ -86,15 +77,5 @@
     </form>
   </div>
 
-  <!--
-    WHY AUTOMATED TOOLS MISS IT:
-    The decorative divider is a valid <div> with tabindex="0" — perfectly legal. It has no
-    role, no broken ARIA, no missing label (it is not a control). axe/WAVE/Lighthouse cannot
-    know that a non-interactive text accent dropped BETWEEN "Card number" and "Expiry"
-    interrupts a meaningful, sequential data-entry flow. Whether the extra stop "impedes
-    operation" (it forces the user to Tab past dead content right in the middle of typing
-    their card) versus being a harmless focusable element elsewhere is a contextual,
-    position-dependent human judgment.
-  -->
 </body>
 </html>

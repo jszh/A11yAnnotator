@@ -19,12 +19,10 @@
   .pay { width:100%; margin-top:22px; background:var(--brand); color:#fff; border:0; padding:14px; border-radius:8px; font-size:1.05rem; font-weight:700; cursor:pointer; }
   .pay:hover { background:var(--brand-dk); }
   .pay:disabled { background:#c8b29c; cursor:default; }
-  /* processing overlay text — sits in a live region */
   .processing { margin-top:18px; min-height:22px; text-align:center; color:#7a5b00; font-size:.96rem; }
   .processing .bar { height:5px; background:#eadfce; border-radius:3px; overflow:hidden; margin-top:9px; }
   .processing .bar i { display:block; height:100%; width:35%; background:#d8a200; animation:slide 1.1s ease-in-out infinite; }
   @keyframes slide { 0%{margin-left:-35%;} 100%{margin-left:100%;} }
-  /* confirmation panel — built fresh, NOT a live region */
   .confirmation { display:none; }
   .confirmation.show { display:block; }
   .confirmation .check { font-size:2.4rem; color:#1e7a46; text-align:center; }
@@ -53,11 +51,9 @@
     <input id="exp" autocomplete="cc-exp" value="08 / 28">
     <button id="pay" class="pay" type="button">Pay $88.50</button>
 
-    <!-- The BUSY status is in a polite live region (correct on entry). -->
     <div id="proc" class="processing" role="status" aria-live="polite" aria-atomic="true"></div>
   </div>
 
-  <!-- The RESULT confirmation is a normal panel — NOT a live region, no role=status. -->
   <div class="card confirmation" id="confirm">
     <div class="check" aria-hidden="true">✓</div>
     <h2>Thank you — your order is confirmed</h2>
@@ -68,25 +64,6 @@
 <footer>Lumière Candle Co. — hand-poured in small batches.</footer>
 
 <script>
-/*
-  Two-phase checkout:
-  Phase 1 (entry): "Processing payment…" + an indeterminate progress bar are injected
-  into #proc, which is role=status / aria-live=polite. This IS announced.
-  Phase 2 (completion): on success we (a) EMPTY #proc (proc.textContent = '') AND
-  (b) hide the pay card and reveal the #confirm panel, which is an ORDINARY div with
-  NO role=status / aria-live. The confirmation text ("your order is confirmed",
-  order number) is therefore never announced.
-
-  Sighted users see the progress bar vanish and a green check + "order confirmed"
-  appear. An AT user hears "Processing payment…" then nothing: the end of the wait is
-  silent (region emptied) AND the result lands outside any live region. They cannot
-  tell if the payment went through — a high-stakes ambiguity that invites a duplicate
-  charge if they re-press, or abandonment.
-
-  This differs from a plain toast case: the result is rendered in a brand-new visible
-  PANEL (so it's clearly meaningful page content), yet it is still not a status message,
-  and the busy region is cleared rather than reused.
-*/
 (function () {
   var pay = document.getElementById('pay');
   var proc = document.getElementById('proc');
@@ -95,15 +72,12 @@
 
   pay.addEventListener('click', function () {
     pay.disabled = true;
-    // Phase 1 — announced.
     proc.innerHTML = 'Processing payment…<div class="bar" aria-hidden="true"><i></i></div>';
 
     window.setTimeout(function () {
-      // Phase 2 — busy region emptied (silent); result rendered OUTSIDE any live region.
       proc.textContent = '';
       payCard.style.display = 'none';
       confirm.classList.add('show');
-      // No live region ever receives "order confirmed" / "Order #LUM-50418".
     }, 1800);
   });
 })();

@@ -3,32 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!--
-    SC 1.4.5 FAILURE — fake "CAPTCHA": clean stylized text image with no distortion/noise.
-
-    Trusted Tester explicitly EXCLUDES CAPTCHA from images of text: a real CAPTCHA distorts the
-    glyphs and overlays noise/lines precisely so that OCR (and a human substituting live text)
-    cannot trivially reproduce it — the distortion IS the security function, the "significant
-    other visual content." Such an image legitimately cannot be replaced by live text.
-
-    THIS page mimics the security widget but DOES NOT distort anything. The "verification code"
-    image (inline-SVG `data:` URI) renders the word "SUNFLOWER" in a clean decorative display
-    font on a flat tinted panel — no warping, no rotation per-glyph, no overlapping strokes, no
-    noise field, no occluding lines. It is just styled text saved as a picture. There is no
-    security reason it must be an image: a normal text label (or a real, accessible challenge)
-    would serve identically. So the CAPTCHA exclusion does NOT apply — it is an ordinary image of
-    text used RATHER THAN text -> 1.4.5 FAIL. (It also has the classic CAPTCHA accessibility
-    problem, but here the SC-1.4.5 point is the misapplied exclusion.)
-
-    A real distorted CAPTCHA would be INAPPLICABLE for 1.4.5; this clean one is not. The
-    judgment hinges on whether the image carries the distinguishing "significant other visual
-    content" (distortion/noise) that defines a CAPTCHA — it does not.
-
-    WHY AUTOMATED TOOLS MISS IT: the <img> has alt="verification code", so image-alt passes. No
-    scanner measures glyph distortion or noise density to decide "this is a real CAPTCHA (excluded)
-    vs. clean decorative text masquerading as one (image of text, fail)". Distinguishing genuine
-    security distortion from cosmetic styling is a human visual judgment.
-  -->
   <title>Verify it's you — RiverCity Permits</title>
   <style>
     :root { --ink:#13243a; --muted:#54637a; --line:#d8e0ea; --bg:#eef3f8; --brand:#13447a; --ok:#1f7a4d; }
@@ -61,9 +35,6 @@
 
       <label id="codeLabel" for="codeInput">Type the code from the image</label>
       <div class="captcha">
-        <!-- Looks like a CAPTCHA widget, but the image is CLEAN styled text — no distortion,
-             no noise, no occluding lines. No security distortion = not the CAPTCHA exclusion =
-             an ordinary image of text used rather than text -> 1.4.5 FAIL. -->
         <img alt="verification code"
              src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 64'><rect width='200' height='64' fill='%23eef3f8'/><text x='100' y='42' font-family='Georgia, serif' font-size='26' letter-spacing='1.5' fill='%2313243a' text-anchor='middle' font-weight='bold'>SUNFLOWER</text></svg>">
         <button type="button" class="reload" aria-label="Get a new code">&#10227;</button>

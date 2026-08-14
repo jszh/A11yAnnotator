@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--
+  PAGE STATE: This is the donation page AFTER the supporter pressed "Give now". The amount was
+  submitted as 0.00 (below the stated $5 minimum) AND no frequency radio was chosen (a required
+  group). The processor rejected it and the form came back with the bad amount retained and the
+  radio group still empty. Above it the campaign template printed a warm neutral/success line:
+  "Thank you for your generosity — every gift makes a difference." That message reads like the
+  donation went through. No error text appears, and the required radio group has no selection and
+  no flag.
+
+  WHY AUTOMATED TOOLS MISS THIS: the amount field has a real <label for> and a valid value; the
+  frequency choices are a proper <fieldset><legend> radio group with labelled radios — axe is happy
+  that the group has an accessible name and the inputs have labels. "No radio is checked" is a
+  perfectly legal state for a radio group, so nothing is malformed. The thank-you line is valid
+  visible text. A scanner has no way to know the gift FAILED, that $0.00 is below the minimum, or
+  that the empty required group is an error — only a human reading the page-state can.
+-->
+<title>Thank you — Brightwater Rivers Trust</title>
+<style>
+  :root { --ink:#152023; --muted:#5c6a6e; --line:#dbe4e3; --teal:#0e7c86; --ok:#157347; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Trebuchet MS",system-ui,sans-serif; color:var(--ink); background:#eef4f3; }
+  header { background:var(--teal); color:#fff; padding:16px 24px; display:flex; align-items:center; gap:10px; }
+  header .drop { font-size:1.3rem; }
+  main { max-width:640px; margin:24px auto 50px; padding:0 22px; }
+  .thanks {
+    background:#e8f6ee; border:1px solid #bfe6cd; color:var(--ok);
+    border-radius:10px; padding:16px 20px; font-size:1rem; margin-bottom:22px;
+  }
+  .thanks strong { display:block; font-size:1.1rem; margin-bottom:2px; }
+  .panel { background:#fff; border:1px solid var(--line); border-radius:10px; padding:24px 26px; }
+  h1 { font-size:1.3rem; margin:0 0 18px; }
+  .field { margin-bottom:20px; }
+  label.top { display:block; font-weight:700; margin-bottom:6px; }
+  .req::after { content:" (required)"; color:#8a1c1c; font-weight:600; font-size:.8rem; }
+  .amount-wrap { display:flex; align-items:center; border:1px solid #b7c2c1; border-radius:7px; overflow:hidden; max-width:220px; }
+  .amount-wrap .cur { padding:10px 12px; background:#f2f6f5; border-right:1px solid #b7c2c1; font-weight:700; }
+  .amount-wrap input { border:0; padding:10px 12px; font-size:1.05rem; width:100%; }
+  .hint { color:var(--muted); font-size:.82rem; margin-top:5px; }
+  fieldset { border:1px solid #cdd7d6; border-radius:8px; padding:14px 16px; margin:0; }
+  legend { font-weight:700; padding:0 6px; }
+  .choices { display:flex; gap:18px; flex-wrap:wrap; margin-top:6px; }
+  .choices label { display:flex; align-items:center; gap:7px; font-size:.95rem; }
+  button.give { background:var(--teal); color:#fff; border:0; border-radius:7px; padding:12px 24px; font-size:1.05rem; font-weight:700; cursor:pointer; }
+  footer { max-width:640px; margin:0 auto 40px; padding:0 22px; color:var(--muted); font-size:.78rem; }
+</style>
+</head>
+<body>
+<header>
+  <span class="drop" aria-hidden="true">💧</span>
+  <strong>Brightwater Rivers Trust</strong>
+</header>
+
+<main>
+  <!-- Warm neutral/success message that contradicts the rejected gift. -->
+  <div class="thanks">
+    <strong>Thank you for your generosity</strong>
+    Every gift helps us keep our rivers clean. Your support means the world to us.
+  </div>
+
+  <div class="panel">
+    <h1>Complete your gift</h1>
+
+    <form action="/donate/charge" method="post" novalidate>
+      <div class="field">
+        <!-- Amount submitted as 0.00, below the stated $5 minimum; retained, unflagged. -->
+        <label class="top" for="amount">Donation amount</label>
+        <div class="amount-wrap">
+          <span class="cur">$</span>
+          <input type="text" id="amount" name="amount" value="0.00" inputmode="decimal">
+        </div>
+        <p class="hint" id="amount-hint">Minimum gift is $5.</p>
+      </div>
+
+      <div class="field">
+        <!-- Required radio group; nothing is checked after the "submission". -->
+        <fieldset>
+          <legend class="req">How often?</legend>
+          <div class="choices">
+            <label><input type="radio" name="freq" value="once"> One time</label>
+            <label><input type="radio" name="freq" value="month"> Monthly</label>
+            <label><input type="radio" name="freq" value="year"> Yearly</label>
+          </div>
+        </fieldset>
+      </div>
+
+      <div class="field">
+        <label class="top" for="email">Email for your receipt</label>
+        <input type="email" id="email" name="email" value="dana.w@example.com"
+               style="width:100%;max-width:320px;padding:10px 12px;border:1px solid #b7c2c1;border-radius:7px;font-size:1rem;"
+               autocomplete="email">
+      </div>
+
+      <button type="submit" class="give">Give now</button>
+    </form>
+  </div>
+</main>
+
+<footer>
+  Brightwater Rivers Trust · Registered charity 1098442 · donations@brightwater.example
+</footer>
+</body>
+</html>

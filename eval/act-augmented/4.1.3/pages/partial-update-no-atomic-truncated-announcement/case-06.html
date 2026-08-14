@@ -24,14 +24,6 @@
 <div class="player">
   <div class="art"><span class="live">On air</span></div>
 
-  <!--
-    PASS CONTROL. Same partial-update mechanism as the failing cases: the "skip" button
-    rewrites ONLY the inner #track / #title / #artist nodes (the static "Now playing:" label
-    is never touched). What rescues this page is aria-atomic="true" on the role="status"
-    region: when ANY descendant mutates, AT re-announces the ENTIRE region, so the listener
-    hears the full "Now playing: Track 4, Tidal Glass by Marin Vale" — not a bare "Track 4".
-    The visible whole and the announced whole are equivalent.
-  -->
   <p class="now" role="status" aria-atomic="true" id="now-playing">
     Now playing: <b id="track">Track 1</b> —
     <span class="ttl" id="title">Slow Harbor</span>
@@ -65,8 +57,6 @@
   document.getElementById('skip').addEventListener('click', function () {
     i = (i + 1) % tracks.length;
     var tr = tracks[i];
-    // Only the inner value nodes are rewritten — but aria-atomic="true" on the region means
-    // AT re-announces the ENTIRE "Now playing: …" sentence, so the framing is preserved.
     document.getElementById('track').textContent = tr.t;
     document.getElementById('title').textContent = tr.n;
     document.getElementById('artist').textContent = tr.a;

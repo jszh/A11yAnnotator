@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Transfer money — Rivergate Bank</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS:
+  There are TWO state-only contrast defects, both invisible to a static initial scan:
+    (1) The inline validation error is INJECTED BY JS only after a failed submit.
+        On load there is no error node in the DOM, so axe/WAVE/Lighthouse find nothing
+        to measure. After the user submits with an empty amount, JS inserts
+        <p class="err">Enter an amount to transfer.</p> styled #e98a8a on #fff => ~2.48:1.
+        The text is real, meaningful, and below threshold — but it exists only in the
+        post-submit error state, which a scanner never triggers.
+    (2) Long-tail twist: the submit button label is high-contrast at rest and on hover,
+        but the :active (pressed) rule sets color:#a9c2e8 on the #2f6fd6 button =>
+        ~2.65:1. While the button is held down its label is unreadable. Scanners never
+        synthesize :active, so the pressed-state label is never measured.
+  Both failures require DRIVING the page (submit to spawn the error; press-and-hold the
+  button to see the active label). The static markup is well-formed and all initially
+  present text passes, so naive automated checks are green.
+-->
+<style>
+  :root { --ink:#15202b; --line:#cfd8e3; --brand:#2f6fd6; --paper:#fff; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.55 "Segoe UI",system-ui,sans-serif; color:var(--ink); background:#eef2f7; }
+  .wrap { max-width:520px; margin:42px auto; }
+  .card { background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:28px 30px; }
+  .bankbar { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+  .bankbar .mk { width:24px; height:24px; border-radius:5px; background:var(--brand); }
+  .bankbar strong { letter-spacing:.3px; }
+  h1 { font-size:1.35rem; margin:12px 0 4px; }
+  .sub { color:#566273; margin:0 0 22px; font-size:.92rem; }
+  .field { margin-bottom:18px; }
+  label { display:block; font-weight:600; font-size:.86rem; margin:0 0 6px; }
+  input, select {
+    width:100%; padding:10px 12px; font-size:1rem; border:1px solid var(--line);
+    border-radius:8px; background:#fff; color:var(--ink);
+  }
+  input:focus, select:focus { outline:2px solid var(--brand); outline-offset:1px; }
+  .amount-row { display:flex; }
+  .amount-row .cur { padding:10px 12px; border:1px solid var(--line); border-right:0; border-radius:8px 0 0 8px; background:#f4f7fb; color:#566273; }
+  .amount-row input { border-radius:0 8px 8px 0; }
+
+  /* === Defect (1): JS-injected error text at ~2.48:1 === */
+  .err {
+    color:#e98a8a;          /* #e98a8a on #fff ~ 2.48:1 — fails. Only present after a failed submit. */
+    font-size:.86rem; margin:6px 0 0; display:flex; align-items:center; gap:6px;
+  }
+  .err::before { content:"!"; display:inline-flex; align-items:center; justify-content:center;
+    width:15px; height:15px; border-radius:50%; background:#e98a8a; color:#fff; font-size:.7rem; font-weight:700; }
+
+  .submit {
+    width:100%; padding:12px; font-size:1rem; font-weight:600; color:#fff;
+    background:var(--brand); border:0; border-radius:8px; cursor:pointer;
+  }
+  .submit:hover { background:#2a64c2; color:#fff; }                 /* hover label still fine */
+  /* === Defect (2) long-tail: pressed/active label at ~1.9:1 === */
+  .submit:active { color:#a9c2e8; }    /* #a9c2e8 on #2f6fd6 ~ 2.65:1 — label unreadable while pressed */
+
+  .note { color:#566273; font-size:.82rem; margin-top:18px; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="bankbar"><span class="mk" aria-hidden="true"></span><strong>Rivergate Bank</strong></div>
+      <h1>Transfer money</h1>
+      <p class="sub">Move funds between your accounts or to a saved payee.</p>
+
+      <form id="xfer" novalidate>
+        <div class="field">
+          <label for="from">From account</label>
+          <select id="from" name="from">
+            <option>Everyday Current · ••4471 · £3,182.10</option>
+            <option>Rainy Day Saver · ••9920 · £11,540.55</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="payee">To payee</label>
+          <select id="payee" name="payee">
+            <option>J. Mensah (saved)</option>
+            <option>Octopus Energy (saved)</option>
+            <option>New payee…</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="amount">Amount</label>
+          <div class="amount-row">
+            <span class="cur" aria-hidden="true">£</span>
+            <input id="amount" name="amount" type="text" inputmode="decimal"
+                   aria-describedby="amount-err" placeholder="0.00">
+          </div>
+          <!-- error node intentionally absent on load; JS injects it into #amount-err -->
+          <div id="amount-err" aria-live="polite"></div>
+        </div>
+
+        <button type="submit" class="submit">Review transfer</button>
+      </form>
+
+      <p class="note">Press and hold “Review transfer” to see the pressed-state label. Submit empty to spawn the error. Renders from file://</p>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('xfer');
+    const amount = document.getElementById('amount');
+    const errSlot = document.getElementById('amount-err');
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      errSlot.innerHTML = '';
+      const v = amount.value.trim();
+      if (!v || isNaN(parseFloat(v)) || parseFloat(v) <= 0) {
+        // Inject the low-contrast error text only now, in the failed-submit state.
+        const p = document.createElement('p');
+        p.className = 'err';
+        p.textContent = 'Enter an amount to transfer.';
+        errSlot.appendChild(p);
+        amount.focus();
+      } else {
+        errSlot.innerHTML = '<p style="color:#1b7a3d;font-size:.86rem;margin:6px 0 0">Looks good — proceeding to review…</p>';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.1.1 FAILURE — informative <canvas> infographic declared decorative.
+
+    The energy "rate plan comparison" is painted entirely onto a <canvas>: the day/night
+    (peak / off-peak) unit prices and the standing charge for each of the three tariffs are
+    drawn as canvas pixels. Canvas pixels are NOT part of the accessibility tree — a <canvas>
+    exposes nothing to AT unless it is given a role/name or carries fallback DOM content. Here
+    the author ALSO put role="presentation" on it and supplied NO fallback content, no <table>,
+    no <dl>, no text duplicate. So a screen-reader shopper gets the heading and the marketing
+    sentence, but ZERO prices, and cannot compare tariffs or pick one.
+
+    WHY THE SUPPRESSION IS REAL (unlike role="presentation" on an inline <svg>, whose <text>
+    descendants stay in the tree): a <canvas> has no DOM descendants that become a11y nodes —
+    the numbers exist only as rasterised pixels. role="presentation" simply confirms the author
+    intends it to be ignored. Accessibility.getFullAXTree shows the canvas as an ignored node
+    with no descendant StaticText for any price.
+
+    WHY AUTOMATED TOOLS MISS IT: a <canvas role="presentation"> with no fallback is valid,
+    decorative-by-construction markup. axe/WAVE/Lighthouse cannot OCR the painted prices, cannot
+    know the tariff data appears nowhere else, and see only a correctly-decorative canvas plus a
+    properly-labelled <select> and button. Only a human who reads the rendered prices and
+    confirms there is no text equivalent can judge the "decorative" declaration wrong.
+  -->
+  <title>Compare energy tariffs | Brightwater Energy</title>
+  <style>
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Segoe UI",Arial,sans-serif; color:#1f2933;
+           background:#f3f6f8; line-height:1.55; }
+    header { background:#0b5a64; color:#fff; padding:.85rem 1.2rem; font-weight:700;
+             letter-spacing:.04em; font-size:1.05rem; }
+    main { max-width:52rem; margin:1.6rem auto; padding:0 1rem; }
+    h1 { font-size:1.5rem; font-weight:700; margin:.2rem 0 .1rem; }
+    .lede { color:#52606d; margin:0 0 1.4rem; }
+    .panel { background:#fff; border:1px solid #d9e2ec; border-radius:8px; padding:1.4rem; }
+    h2 { font-size:1.05rem; margin:0 0 .9rem; }
+    .chart-wrap { text-align:center; }
+    canvas { max-width:100%; height:auto; }
+    .blurb { font-size:.9rem; color:#52606d; margin-top:1rem; }
+    .cta { margin-top:1.6rem; display:flex; gap:.8rem; align-items:center; flex-wrap:wrap; }
+    label { font-weight:600; }
+    select { padding:.55rem .7rem; border:1px solid #bcccdc; border-radius:6px; font-size:1rem; }
+    button { background:#0b5a64; color:#fff; border:none; padding:.65rem 1.5rem;
+             border-radius:6px; font-size:1rem; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <header>Brightwater Energy</header>
+  <main>
+    <h1>Compare our tariffs</h1>
+    <p class="lede">Pick the plan that fits how you use energy, then switch in minutes.</p>
+
+    <section class="panel" aria-labelledby="rateh">
+      <h2 id="rateh">Tariff comparison (prices include VAT)</h2>
+      <div class="chart-wrap">
+        <!--
+          The entire comparison — peak / off-peak unit prices and standing charge for each of
+          the three tariffs — is painted onto this <canvas>. There is NO <table>, NO <dl>, NO
+          text duplicate, and NO fallback content inside <canvas>, so AT users get no prices.
+        -->
+        <canvas id="rateChart" role="presentation" width="640" height="280"></canvas>
+      </div>
+      <p class="blurb">All tariffs are fixed for 12 months with no exit fees. Prices shown are for a typical home in the South East region.</p>
+
+      <div class="cta">
+        <label for="plan">Choose a tariff:</label>
+        <select id="plan" name="plan">
+          <option value="">Select a tariff…</option>
+          <option>Standard Saver</option>
+          <option>Day &amp; Night</option>
+          <option>Green Fixed</option>
+        </select>
+        <button type="button">Continue to switch</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // Paint the tariff comparison onto the canvas. These numbers are the ONLY copy of the
+    // pricing data on the page — they exist only as canvas pixels.
+    (function () {
+      var c = document.getElementById('rateChart');
+      var ctx = c.getContext('2d');
+      var W = c.width, H = c.height;
+
+      // background + frame
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+      ctx.strokeStyle = '#d9e2ec'; ctx.lineWidth = 1; ctx.strokeRect(0.5, 0.5, W - 1, H - 1);
+
+      var cols = [40, 250, 400, 540];          // label col + 3 tariff cols (left edges)
+      var headerY = 38, rowH = 44, firstRow = 78;
+
+      // header band
+      ctx.fillStyle = '#eef4f5'; ctx.fillRect(1, 1, W - 2, 54);
+      ctx.fillStyle = '#0b5a64';
+      ctx.font = 'bold 16px Segoe UI, Arial, sans-serif';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('Standard Saver', cols[1], headerY);
+      ctx.fillText('Day & Night', cols[2], headerY);
+      ctx.fillText('Green Fixed', cols[3], headerY);
+
+      // column separators
+      ctx.strokeStyle = '#e4ebf1';
+      [232, 384, 524].forEach(function (x) {
+        ctx.beginPath(); ctx.moveTo(x, 56); ctx.lineTo(x, H - 1); ctx.stroke();
+      });
+
+      var rows = [
+        ['Peak unit price',      '28.4p',  '38.9p',  '29.7p'],
+        ['Off-peak unit price',  '28.4p',  '11.5p',  '27.2p'],
+        ['Standing charge / day','54.8p',  '49.0p',  '61.3p'],
+        ['Avg. annual bill',     '£1,184', '£1,062', '£1,247']
+      ];
+
+      rows.forEach(function (r, i) {
+        var y = firstRow + i * rowH;
+        if (i % 2 === 0) { ctx.fillStyle = '#f7fafc'; ctx.fillRect(1, y - rowH / 2 + 6, W - 2, rowH); }
+        ctx.fillStyle = '#52606d';
+        ctx.font = '14px Segoe UI, Arial, sans-serif';
+        ctx.fillText(r[0], cols[0], y);
+        ctx.fillStyle = '#1f2933';
+        ctx.font = 'bold 15px Segoe UI, Arial, sans-serif';
+        ctx.fillText(r[1], cols[1], y);
+        ctx.fillText(r[2], cols[2], y);
+        ctx.fillText(r[3], cols[3], y);
+      });
+    })();
+  </script>
+</body>
+</html>

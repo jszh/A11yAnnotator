@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Transfer Funds — Meridian Online Banking</title>
+<!--
+  ACCESSIBILITY DEFECT (SC 1.4.11 Non-text Contrast, Level AA) — present-but-wrong.
+  GEOMETRY ASPECT: an INNER focus indicator must contrast with the adjacent colour(s)
+  INSIDE the component, not merely with the component's own border.
+
+  Two near-identical primary buttons sit side by side. Both are brand-blue (#4189B9)
+  with a 2px black (#000) border. On focus each adds a 3px INSET ring (drawn INSIDE the
+  visible boundary via box-shadow inset).
+    - #btn-confirm  : inner ring is dark green #008000.
+        vs black border = 4.09:1 (passes)   vs blue interior = 1.35:1 (FAILS)
+        Because the ring is ENTIRELY INSIDE the component, the adjacency it must beat is
+        the BLUE interior — and it does not. -> SC 1.4.11 FAIL.
+    - #btn-schedule : inner ring is white #fff.
+        vs black border = 21:1               vs blue interior = 3.82:1 (passes)
+        White beats the inner blue surface -> SC 1.4.11 PASS.
+  The ONLY difference between the two focused indicators is the ring colour; the verdict
+  flips purely on which inner adjacency the indicator must contrast with.
+
+  WHY AUTOMATED TOOLS MISS IT: axe-core / WAVE / Lighthouse have no concept of "inner vs
+  outer focus indicator." They cannot segment the ring's position relative to the visible
+  boundary, so they cannot decide that an inset ring must contrast with the INTERIOR
+  rather than the border it happens to sit beside. A naive checker that compares the green
+  ring against the nearest dark pixels (the black border, 4.09:1) would wrongly mark it a
+  pass. Both buttons have real <button> semantics, accessible names, and a visible focus
+  change, so every automatable focus-visible heuristic is satisfied.
+-->
+<style>
+  :root { --ink:#16202c; --blue:#4189B9; --line:#d8dee6; }
+  body { font:16px/1.55 "Segoe UI",system-ui,sans-serif; color:var(--ink);
+         background:#eef1f5; margin:0; }
+  .app { max-width:680px; margin:32px auto; background:#fff; border:1px solid var(--line);
+         border-radius:12px; overflow:hidden; }
+  header { background:#0f2a43; color:#fff; padding:16px 28px; }
+  header .brand { font-weight:700; letter-spacing:.02em; }
+  header .sub { font-size:.85rem; opacity:.85; }
+  .body { padding:26px 28px 32px; }
+  h1 { font-size:1.3rem; margin:0 0 6px; }
+  .summary { background:#f5f8fb; border:1px solid #e1e9f1; border-radius:8px;
+             padding:14px 18px; margin:14px 0 22px; font-size:.95rem; }
+  .summary dl { display:grid; grid-template-columns:auto 1fr; gap:4px 18px; margin:0; }
+  .summary dt { color:#5b6b7c; } .summary dd { margin:0; font-weight:600; text-align:right; }
+  .actions { display:flex; gap:16px; margin-top:8px; }
+
+  /* Both primary buttons: brand-blue fill with a 2px BLACK border. */
+  .btn-primary {
+    appearance:none; cursor:pointer; font:inherit; font-weight:600;
+    color:#fff; background:var(--blue); border:2px solid #000;
+    border-radius:6px; padding:12px 26px;
+  }
+  /* THE DEFECT vs the control: both add a 3px INSET ring on focus (drawn INSIDE the
+     visible boundary). The colour decides which inner adjacency it can beat. */
+  #btn-confirm:focus  { outline:none; box-shadow: inset 0 0 0 3px #008000; } /* dark green: fails blue interior 1.35:1 */
+  #btn-schedule:focus { outline:none; box-shadow: inset 0 0 0 3px #ffffff; } /* white: beats blue interior 3.82:1 */
+
+  .note { color:#5a6675; font-size:.85rem; margin-top:22px; }
+</style>
+</head>
+<body>
+<main class="app">
+  <header>
+    <div class="brand">Meridian</div>
+    <div class="sub">Online Banking · Move Money</div>
+  </header>
+  <div class="body">
+    <h1>Confirm your transfer</h1>
+    <p>Review the details below, then confirm to move funds between your accounts.</p>
+
+    <div class="summary">
+      <dl>
+        <dt>From</dt><dd>Everyday Checking ••2841</dd>
+        <dt>To</dt><dd>High-Yield Savings ••9075</dd>
+        <dt>Amount</dt><dd>$1,250.00</dd>
+        <dt>Date</dt><dd>Today, 20 Jun 2026</dd>
+      </dl>
+    </div>
+
+    <div class="actions">
+      <button id="btn-confirm" class="btn-primary" type="submit">Confirm transfer</button>
+      <button id="btn-schedule" class="btn-primary" type="button">Schedule for later</button>
+    </div>
+
+    <p class="note">Tab to each button to see its focus indicator. Transfers post immediately.</p>
+  </div>
+</main>
+</body>
+</html>

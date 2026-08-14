@@ -4,25 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Contents insurance quote — number of items</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS:
-  This quote wizard asks how many high-value items to schedule. Enter 80 and an error
-  fires, associated via aria-describedby, announced in role=alert, with a confident,
-  specific correction suggestion:
-  "Please enter a number between 1 and 100."
-  SC 3.3.3 structural facets all pass: error detected AND a corrected-value range is
-  suggested. axe/WAVE/Lighthouse confirm associated, announced, contrasty text.
-  THE DEFECT IS SEMANTIC: the field's REAL documented rule — printed in the visible
-  help text beside the field AND enforced by max="50" + the JS validator — is a
-  MAXIMUM of 50 ("Online quotes cover up to 50 scheduled items"). The suggested range
-  "1 to 100" overstates the true ceiling: any value from 51–100, which the suggestion
-  explicitly invites, is rejected. A user who follows the suggestion and enters 80
-  (or 100) fails again. The suggested upper bound contradicts the field's own stated
-  and enforced limit. No scanner reads the prose "between 1 and 100", reads max="50"
-  and the help text, and judges that 100 > 50 makes the suggested range wrong.
-  Catching it needs a human to compare the suggested range with the field's true
-  allowed range.
--->
 <style>
   :root{
     --ink:#1c2230; --muted:#5d6675; --line:#d4dae3; --brand:#3b3f8f; --brand-d:#2c2f6e;
@@ -91,7 +72,6 @@
   var items = document.getElementById('items');
   var err  = document.getElementById('items-err');
 
-  // REAL ENFORCED RULE: 1..50 inclusive (matches the visible help text + max="50").
   form.addEventListener('submit', function(e){
     e.preventDefault();
     var raw = items.value.trim();
@@ -109,8 +89,6 @@
     if (raw === '' || !Number.isInteger(n)){
       err.textContent = 'Enter a whole number of items.';
     } else {
-      // CONFIDENT, SPECIFIC — AND WRONG: the field's ceiling is 50, not 100.
-      // Following this and entering 51–100 fails again.
       err.textContent = 'That number isn’t valid. Please enter a number between 1 and 100.';
     }
     err.hidden = false;

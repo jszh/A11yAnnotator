@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Step 3 of 4 — Pet insurance quote — Burrowguard</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font: 16px/1.6 "Inter", "Segoe UI", system-ui, sans-serif;
+      margin: 0; color: #20262e; background: #f6f8f7;
+    }
+    .shell { max-width: 680px; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; }
+    .brand { font-weight: 800; color: #156450; letter-spacing: -.02em; font-size: 1.2rem; }
+    /* Step indicator */
+    ol.steps {
+      list-style: none; display: flex; gap: .5rem; padding: 0; margin: 1rem 0 1.75rem;
+      font-size: .8rem; color: #7b8a82;
+    }
+    ol.steps li { flex: 1; border-top: 4px solid #d4ded9; padding-top: .45rem; }
+    ol.steps li[aria-current] { border-top-color: #1c8a6e; color: #156450; font-weight: 700; }
+    .card {
+      background: #fff; border: 1px solid #dce5e0; border-radius: 12px;
+      padding: 1.5rem 1.6rem; box-shadow: 0 1px 3px rgba(20,40,30,.06);
+    }
+    h1 { font-size: 1.4rem; margin: 0 0 .3rem; }
+    .sub { color: #5d6b63; margin: 0 0 1.4rem; }
+    .summary { border: 1px solid #e6ece9; border-radius: 9px; padding: 1rem 1.2rem; margin: 0 0 1.3rem; }
+    .summary dl { display: grid; grid-template-columns: 1fr auto; gap: .45rem 1rem; margin: 0; }
+    .summary dt { color: #5d6b63; }
+    .summary dd { margin: 0; font-weight: 600; text-align: right; }
+    .total { border-top: 1px dashed #cdd9d3; margin-top: .8rem; padding-top: .8rem; font-size: 1.05rem; }
+    fieldset { border: 0; padding: 0; margin: 0 0 1.3rem; }
+    legend { font-weight: 600; margin-bottom: .5rem; }
+    .opt { display: flex; gap: .6rem; align-items: flex-start; padding: .35rem 0; }
+    .nav { display: flex; justify-content: space-between; gap: 1rem; margin-top: 1.4rem; }
+    .btn {
+      font: inherit; font-weight: 700; cursor: pointer; border-radius: 8px;
+      padding: .75rem 1.6rem; border: 1px solid transparent;
+    }
+    .btn-back { background: #fff; color: #156450; border-color: #b9d2c8; }
+    .btn-next { background: #1c8a6e; color: #fff; }
+    .btn:focus-visible { outline: 3px solid #ffb000; outline-offset: 2px; }
+    .fineprint { color: #8a9790; font-size: .78rem; margin: 1rem 0 0; }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <p class="brand">Burrowguard&nbsp;Pet&nbsp;Cover</p>
+
+    <ol class="steps" aria-label="Quote progress">
+      <li>Your pet</li>
+      <li>Choose cover</li>
+      <li aria-current="step">Review</li>
+      <li>Done</li>
+    </ol>
+
+    <div class="card">
+      <h1>Review your cover</h1>
+      <p class="sub">Step 3 of 4 — check the details before we set things up.</p>
+
+      <div class="summary" aria-label="Quote summary">
+        <dl>
+          <dt>Pet</dt><dd>Mabel (Cat, age 4)</dd>
+          <dt>Plan</dt><dd>Lifetime — £7,000/yr vet fees</dd>
+          <dt>Excess</dt><dd>£90 per condition</dd>
+          <dt>Start date</dt><dd>Today</dd>
+          <dt class="total">Monthly premium</dt><dd class="total">£28.40</dd>
+        </dl>
+      </div>
+
+      <form action="#" onsubmit="return false">
+        <fieldset>
+          <legend>Add-ons</legend>
+          <label class="opt"><input type="checkbox" name="dental"> Dental cover (+£4.10/mo)</label>
+          <label class="opt"><input type="checkbox" name="travel"> EU travel cover (+£2.60/mo)</label>
+        </fieldset>
+
+        <div class="nav">
+          <button type="button" class="btn btn-back" onclick="return false">Back</button>
+          <!--
+            ISSUE: the primary button reads "Continue", implying it advances to a
+            further step (there is a step 4, "Done", still ahead in the indicator).
+            But this button is the BIND action: clicking it activates the policy AND
+            takes the first £28.40 from the saved card immediately, with no further
+            confirm step. The label's action verb ("Continue") mismatches the actual
+            function (purchase / charge). Step 4 is only a receipt screen.
+          -->
+          <button type="button" class="btn btn-next" onclick="return false">Continue</button>
+        </div>
+        <p class="fineprint">
+          By proceeding you agree to the policy terms. Cover begins immediately.
+        </p>
+      </form>
+    </div>
+  </div>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS:
+    The primary <button> has a clear, non-empty, perfectly ordinary accessible name
+    ("Continue") and a valid role, so axe/WAVE/Lighthouse pass it without comment —
+    "Continue" is exactly the kind of label a checker would consider good. The defect
+    is that the action verb is MISMATCHED to the function: in a 4-step wizard showing
+    "Review" as step 3 with "Done" still ahead, "Continue" reads as "go to the next
+    step," but the control actually binds the policy and charges the card with no
+    intervening confirmation. Detecting this requires (a) reading the step indicator
+    to see the user reasonably expects another step, (b) reading the fine print and
+    summary to learn the button charges money now, and (c) judging that "Continue"
+    therefore fails to convey the control's true, consequential function. No static
+    rule models the gap between a label's implied action and the code's real effect.
+  -->
+</body>
+</html>

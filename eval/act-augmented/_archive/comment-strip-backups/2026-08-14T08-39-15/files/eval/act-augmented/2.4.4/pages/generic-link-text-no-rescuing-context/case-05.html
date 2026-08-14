@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Volt &amp; Wire — Electronics</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Helvetica Neue", Arial, sans-serif; margin: 0;
+    color: #15181d; background: #fff; line-height: 1.6;
+  }
+  .topbar { background: #111418; color: #fff; padding: 12px 26px; font-weight: 700; letter-spacing: 1px; }
+  main { max-width: 760px; margin: 0 auto; padding: 36px 24px 80px; }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .lede { color: #5c6671; margin: 0 0 30px; }
+  h2 { font-size: 1.05rem; text-transform: uppercase; letter-spacing: 1.5px; color: #2a2f37; margin: 34px 0 10px; }
+  .spotlight {
+    border: 1px solid #e4e7eb; border-radius: 10px; padding: 18px 20px; margin: 0 0 14px;
+    background: #fafbfc;
+  }
+  .spotlight p { margin: 0; }
+  /* The ">>" glyph link. Same styling in both contexts so only the surrounding
+     words differ. */
+  a.chev {
+    color: #c2410c; font-weight: 800; text-decoration: none; font-size: 1.05em;
+    padding: 0 .15em;
+  }
+  a.chev:hover, a.chev:focus { color: #9a3412; text-decoration: underline; }
+  .promo {
+    margin-top: 26px; padding: 22px; border: 2px dashed #c2410c; border-radius: 10px;
+    text-align: center; background: #fff7ed;
+  }
+  .promo .big { font-size: 1.3rem; font-weight: 800; color: #9a3412; margin: 0 0 4px; }
+</style>
+</head>
+<body>
+  <div class="topbar">VOLT &amp; WIRE</div>
+
+  <main>
+    <h1>This Week's Highlights</h1>
+    <p class="lede">Hand-picked gear from our editors.</p>
+
+    <h2>Editor's pick</h2>
+    <!-- PASS: the ">>" glyph link is in the SAME sentence as a specific product name
+         that precedes it. Reading the sentence, an AT user hears the product, then the
+         link. The same-sentence context supplies the purpose (G53). -->
+    <div class="spotlight">
+      <p>
+        Our top phone this season is the iPhone 15 Pro <a class="chev" href="/products/iphone-15-pro" aria-label="iPhone 15 Pro details">&raquo;</a>
+      </p>
+    </div>
+
+    <h2>Also trending</h2>
+    <!-- FAIL: the IDENTICAL ">>" glyph link, but now ALONE in its own paragraph with no
+         product name in the block. The destination (a Bluetooth speaker page) is
+         conveyed nowhere in the link's programmatic context. -->
+    <div class="spotlight">
+      <p>
+        <a class="chev" href="/products/aurora-bt-speaker">&raquo;</a>
+      </p>
+    </div>
+
+    <div class="promo">
+      <p class="big">Free 2-day shipping over $75</p>
+      <p>Applied automatically at checkout. No code needed.</p>
+    </div>
+
+    <!--
+      WHY AUTOMATED TOOLS MISS IT:
+      Both links resolve to a non-empty accessible name. The first uses aria-label
+      "iPhone 15 Pro details" AND sits beside the product name in-sentence; the second's
+      accessible name is the glyph ">>" (the » character), which is non-empty, so c487ae /
+      axe link-name PASS for it too. A glyph like ">>" is not on typical phrase blocklists,
+      so heuristic checkers stay silent on BOTH. The correct verdict requires reading each
+      link's enclosing sentence: the first is rescued by "iPhone 15 Pro"; the second has no
+      product name anywhere in its block, so its purpose ("go to the Aurora speaker") is
+      undeterminable. Separating the pass link from the fail link is a pure meaning judgment.
+    -->
+  </main>
+</body>
+</html>

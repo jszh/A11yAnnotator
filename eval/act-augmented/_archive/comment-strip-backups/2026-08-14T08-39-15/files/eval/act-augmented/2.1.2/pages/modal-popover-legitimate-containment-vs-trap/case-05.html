@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Ardent Review — Subscribe</title>
+<!--
+  SC 2.1.2 — modal-popover-legitimate-containment-vs-trap — case-05 (FAIL)
+  A newsletter capture uses the HTML popover attribute, BUT the author has overridden the
+  popover's native dismissal: they call manual popover state and re-focus the first field
+  on blur (a focusin guard that yanks focus back into the popover whenever it tries to
+  leave), creating a hand-built trap on top of a popover. The popover prints "Press Esc to
+  dismiss" but NO Esc listener is wired — and because it was switched to popover="manual"
+  (light-dismiss disabled) the browser's own Esc-to-close is also off. So the documented
+  exit is FALSE: Esc does nothing, and the focusin guard re-traps any Tab/Shift+Tab attempt
+  to leave.
+  WHY AUTOMATED TOOLS MISS IT: a real popover with a labelled email field and a visible,
+  human-readable "Press Esc to dismiss" instruction looks fully conformant — the advice
+  even satisfies the "user is advised of the method" clause on its face. Only by pressing
+  Esc (nothing) and Tabbing (focus snaps back) does the lie surface. No attribute is empty
+  or missing; the instruction text is PRESENT but WRONG.
+-->
+<style>
+  :root { font-family: Georgia, "Times New Roman", serif; color: #20242b; }
+  body { margin: 0; background: #f7f4ee; }
+  header.mast { border-bottom: 3px double #20242b; padding: 18px 28px; text-align: center; }
+  header.mast .name { font-size: 1.8rem; letter-spacing: 2px; }
+  header.mast .sub { font-style: italic; color: #5a5247; font-size: .9rem; }
+  main { max-width: 680px; margin: 26px auto; padding: 0 28px; line-height: 1.6; }
+  main h1 { font-size: 1.5rem; }
+  main a { color: #7a2e1d; }
+  .read-more { font-family: "Helvetica Neue", sans-serif; }
+
+  [popover] {
+    border: none; border-radius: 10px; padding: 0; width: min(420px, 92vw);
+    box-shadow: 0 20px 60px rgba(0,0,0,.3); margin: auto;
+  }
+  [popover]::backdrop { background: rgba(20,20,20,.45); }
+  .pop-head { background: #20242b; color: #f7f4ee; padding: 16px 20px; }
+  .pop-head h2 { margin: 0; font-size: 1.2rem; font-family: Georgia, serif; }
+  .pop-body { padding: 20px; font-family: "Helvetica Neue", sans-serif; }
+  .pop-body label { display: block; font-weight: 600; margin-bottom: 6px; font-size: .9rem; }
+  .pop-body input { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid #9a9286; border-radius: 7px; font-size: .95rem; }
+  .pop-body .go { margin-top: 14px; width: 100%; background: #7a2e1d; color: #fff; border: none; border-radius: 8px; padding: 12px; font-weight: 700; cursor: pointer; }
+  .pop-body .dismiss-hint { margin-top: 12px; font-size: .82rem; color: #6a6256; text-align: center; }
+</style>
+</head>
+<body>
+<header class="mast">
+  <div class="name">THE ARDENT REVIEW</div>
+  <div class="sub">Long-form essays on cities, climate, and the built world</div>
+</header>
+
+<main>
+  <h1>The quiet engineering of the night train</h1>
+  <p>Across the Alps, a generation of sleeper services thought lost to budget airlines has
+     returned — and with it, a different idea of what a journey is for. This essay traces the
+     overnight revival from Vienna's railyards to the new cross-border timetables now binding
+     a dozen capitals together after dark.</p>
+  <p>It begins, as these things do, with a man and a spreadsheet&hellip;
+     <a class="read-more" href="#full">continue reading</a>.</p>
+</main>
+
+<!--
+  popover="manual" disables the browser's light-dismiss AND its native Esc-to-close. The
+  page shows "Press Esc to dismiss" but never wires an Esc listener, and a focusin guard
+  re-traps focus. So the documented standard exit is false.
+-->
+<div id="subpop" popover="manual" role="dialog" aria-labelledby="sub-title">
+  <div class="pop-head">
+    <h2 id="sub-title">Read without limits</h2>
+  </div>
+  <div class="pop-body">
+    <label for="subemail">Your email address</label>
+    <input id="subemail" type="email" placeholder="you@example.com">
+    <button class="go" id="subgo" type="button">Subscribe — first month free</button>
+    <p class="dismiss-hint">Not now? Press <kbd>Esc</kbd> to dismiss.</p>
+  </div>
+</div>
+
+<script>
+  const pop = document.getElementById('subpop');
+
+  // Show the popover shortly after load (typical engagement-gate behaviour).
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      pop.showPopover();
+      document.getElementById('subemail').focus();
+    }, 400);
+  });
+
+  // Focusin guard: whenever focus tries to leave the popover (Tab/Shift+Tab past the
+  // edges), snap it back to the first field. This is the hand-built trap layered on top of
+  // the popover.
+  document.addEventListener('focusin', function (e) {
+    if (pop.matches(':popover-open') && !pop.contains(e.target)) {
+      e.stopPropagation();
+      document.getElementById('subemail').focus();
+    }
+  });
+
+  // The "Subscribe" button is the only thing wired. There is NO keydown/Escape listener
+  // anywhere — the on-screen "Press Esc to dismiss" instruction is therefore false, and
+  // because popover="manual" the browser's own Esc-close is disabled too.
+  document.getElementById('subgo').addEventListener('click', function () {
+    this.textContent = 'Check your inbox ✓';
+  });
+</script>
+</body>
+</html>

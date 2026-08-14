@@ -3,36 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!--
-    SC 1.4.5 FAILURE — the "significant other visual content" EXCLUSION limb.
-
-    This page shows TWO images side by side inside a marketing-analytics weekly digest.
-    BOTH are delivered as flat images (inline-SVG `data:` URIs, so the glyphs are image
-    pixels, not live DOM text). Both have a non-empty, accurate alt, so axe/WAVE/Lighthouse
-    pass them. The 1.4.5 question is NOT "is alt present" — it is the gestalt judgment:
-    "Does this picture contain SIGNIFICANT OTHER VISUAL CONTENT (a graph), excluding it from
-    the images-of-text rule, OR is it really an image of text dressed up to look like a chart?"
-
-    LEFT image (figure id=real-chart)  -> a genuine bar chart. The BAR GEOMETRY carries the
-      information: relative bar heights, a quota gridline, an axis. The words ("Mon", "Tue",
-      "Revenue") are mere labels. This is an excluded "graph" -> INAPPLICABLE for 1.4.5
-      (it's still fine because it's not an image of text). It is here to make the boundary tight.
-
-    RIGHT image (figure id=fake-chart) -> looks chart-ish (it has a title bar, a coloured
-      header row, gridlines, a legend swatch) BUT there is NO graphical encoding at all: every
-      "bar" is just the same fixed-width coloured rectangle, identical for every row; the only
-      thing that varies between rows is the NUMBER printed inside. The information ($ values,
-      the +/- deltas, the campaign names) lives entirely in TEXT laid out in a grid. Strip the
-      chrome and it is a data table rendered as a picture. That makes it an IMAGE OF TEXT that
-      could trivially have been a live <table> -> 1.4.5 FAIL. The user cannot resize, restyle,
-      recolour, or select this text; it pixelates on zoom and the dollar values are pixels.
-
-    WHY AUTOMATED TOOLS MISS IT: both <img> have good alt, so image-alt passes for both. No
-    scanner OCRs the two pictures, classifies one as "graph (geometry carries meaning)" and the
-    other as "table-as-image (geometry carries nothing)", and concludes only the second is an
-    image of text. That classification IS the subjective limb of 1.4.5 — pure human judgment of
-    whether the non-text visual content is "significant".
-  -->
   <title>Weekly Performance Digest — Lumen Commerce Marketing</title>
   <style>
     :root { --ink:#1d2733; --muted:#5d6b7a; --line:#e1e7ee; --bg:#eef2f7; --brand:#0b6e6e; }
@@ -70,8 +40,6 @@
     </p>
 
     <div class="grid2">
-      <!-- LEFT: a GENUINE bar chart. Bar HEIGHTS encode the data; the words are axis labels.
-           Excluded "graph" -> not an image of text -> 1.4.5 INAPPLICABLE. Boundary anchor. -->
       <section class="card">
         <h2>Daily sessions</h2>
         <p class="sub">Organic + direct, Mon–Sun</p>
@@ -82,10 +50,6 @@
         <figcaption>Source: web analytics export. Bar heights show relative session volume.</figcaption>
       </section>
 
-      <!-- RIGHT: dressed-up to look like a chart (title strip, coloured header row, "legend"
-           swatch, gridlines) but EVERY coloured cell is the SAME size for every row. No bar
-           length, no slice, no position encodes anything. The data is purely the printed text
-           in a grid -> an IMAGE OF TEXT that should be a live <table> -> 1.4.5 FAIL. -->
       <section class="card">
         <h2>Paid campaign breakdown</h2>
         <p class="sub">Spend, revenue and ROAS by campaign</p>

@@ -4,22 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>New patient intake — Cedar Valley Family Health</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS:
-  Post-submit intake form. The date-of-birth field has a visible, correctly associated
-  error (aria-describedby="dob-err") that names the field and states a concrete format
-  fix: "Please use the MM/DD/YYYY format." That message satisfies ACT 36b590 — an
-  indicator exists, identifies the field, and describes how to resolve it, visibly and
-  in the accessibility tree. axe/WAVE/Lighthouse pass: label present, describedby
-  resolves, role textbox, contrast fine.
-  THE DEFECT IS SEMANTIC: the retained value is "03/14/2027" — which ALREADY conforms
-  perfectly to MM/DD/YYYY. The stated fix is a no-op; the constraint it names is already
-  satisfied. The ACTUAL error is that 03/14/2027 is a FUTURE date (this is a birth date),
-  which the message never mentions. Following the only guidance given, the user re-enters
-  the same well-formatted date and is rejected again, never learning the real problem.
-  No checker compares the value's actual conformance to the named format against the
-  message's claim, nor reasons that a future DOB is the undescribed real defect.
--->
 <style>
   :root{ --ink:#1a2230; --muted:#5d6675; --line:#d2d8e0; --brand:#1f5fa8; --danger:#c0271f; }
   *{ box-sizing:border-box; }
@@ -74,11 +58,6 @@
             <div class="field">
               <label for="dob">Date of birth</label>
               <p class="hint" id="dob-hint">Format: MM/DD/YYYY</p>
-              <!--
-                Value "03/14/2027" already matches MM/DD/YYYY exactly.
-                The format fix is therefore inapplicable; the real error (a future
-                birth date) is never described.
-              -->
               <input id="dob" name="dob" type="text" inputmode="numeric"
                      value="03/14/2027"
                      aria-describedby="dob-hint dob-err" aria-invalid="true"

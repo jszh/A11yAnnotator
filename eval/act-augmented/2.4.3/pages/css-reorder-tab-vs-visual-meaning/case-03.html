@@ -4,21 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Riverside College — BIO 210 Course Home</title>
-<!--
-  WHY THIS PASSES (SC 2.4.3 Focus Order) — and why a naive "visual != DOM order" flag
-  would WRONGLY fail it:
-  No positive tabindex; no focus-managing JavaScript. The page has two visual columns:
-  a wide MAIN course-content column on the left, and a narrow ASIDE on the right holding
-  an UNRELATED "Annual Fund" donation widget. CSS flexbox `order` paints the aside on the
-  RIGHT, but the donation form is FIRST in the DOM, so Tab visits the donate amount,
-  the donate button, then moves into the main course links/quiz button.
-  Crucially the two columns are INDEPENDENT: completing or skipping the donation widget
-  has zero effect on the meaning or operation of the course content, and vice versa.
-  Per the Understanding, when columns are independent and meaning/operation are not
-  affected, it is NOT a failure if the right column receives focus first. A tool that
-  simply flags any visual-order/DOM-order mismatch would over-flag this. The correct
-  verdict requires judging that the two regions are independent.
--->
 <style>
   :root { --ink:#1b1b1f; --brand:#5a187b; --accent:#0b6b53; --line:#e3dde8; --bg:#f6f2f8; }
   * { box-sizing:border-box; }
@@ -29,9 +14,6 @@
   .wrap { max-width:1000px; margin:0 auto; padding:28px 24px 80px;
           display:flex; gap:30px; align-items:flex-start; }
 
-  /* The donation aside is FIRST in the DOM but painted on the RIGHT via order:2;
-     the main course content is SECOND in the DOM but painted LEFT via order:1.
-     No tabindex, no JS. The two regions are unrelated. */
   main.course { order:1; flex:1 1 64%; background:#fff; border:1px solid var(--line);
                 border-radius:12px; padding:22px 26px; }
   aside.fund  { order:2; flex:1 1 34%; background:#eafaf3; border:1px solid #bfe6d6;
@@ -59,14 +41,8 @@
   <p>Course home · Spring term</p>
 </header>
 
-<!-- VISUAL: wide course column on the LEFT, narrow Annual-Fund donation card on the RIGHT.
-     DOM/TAB ORDER (no tabindex/JS): donation amount -> donate button -> [course module
-     links] -> "Start Module 3 quiz" button.
-     The donation widget is COMPLETELY UNRELATED to the course content; doing or skipping
-     it changes nothing about the course, so reaching it first is harmless. PASS. -->
 <div class="wrap">
 
-  <!-- DOM-FIRST, painted on the RIGHT -->
   <aside class="fund" aria-labelledby="fund-h">
     <h2 id="fund-h">Riverside Annual Fund</h2>
     <p>Support student scholarships. This appears site-wide and is unrelated to your coursework.</p>
@@ -77,7 +53,6 @@
     </form>
   </aside>
 
-  <!-- DOM-SECOND, painted on the LEFT -->
   <main class="course">
     <h2>Welcome to Cell Biology</h2>
     <p>This page lists your modules and lets you start the current quiz. Everything you

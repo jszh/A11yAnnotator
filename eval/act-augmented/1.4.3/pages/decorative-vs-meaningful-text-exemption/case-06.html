@@ -12,7 +12,7 @@
          box-shadow: 0 2px 16px rgba(31,36,43,.10); padding: 36px 40px 44px; }
   .top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 26px; }
   .brand { font-size: 20px; font-weight: 800; color: #1f242b; }
-  .meta { text-align: right; font-size: 13px; color: #4b5560; line-height: 1.7; }  /* passes */
+  .meta { text-align: right; font-size: 13px; color: #4b5560; line-height: 1.7; }  
   .meta strong { color: #1f242b; }
 
   table { width: 100%; border-collapse: collapse; margin-top: 8px; }
@@ -23,17 +23,12 @@
              padding: 12px 10px; vertical-align: top; }
   td.amt, th.amt { text-align: right; white-space: nowrap; }
 
-  /* A line item that was cancelled. The ONLY indication that this charge no longer
-     applies is a faint diagonal "VOID" stamp laid across the row. The row text
-     itself is NOT struck through and NOT greyed — it reads like a live charge.
-     The stamp is #cdb3b3 ≈ 1.96:1. The anchor cell is position:relative and the
-     stamp overflows across the full row (valid: span lives inside a <td>). */
   td.line { position: relative; }
   .void-stamp {
     position: absolute; left: 0; top: 50%;
     transform: translateY(-50%) rotate(-12deg);
     font-size: 30px; font-weight: 800; letter-spacing: .22em;
-    color: #cdb3b3;                 /* faded red-gray stamp ≈ 1.96:1 on white */
+    color: #cdb3b3;                 
     border: 3px solid #cdb3b3;
     padding: 1px 12px; border-radius: 4px;
     pointer-events: none; user-select: none;
@@ -75,10 +70,6 @@
           <td class="amt">$2,400.00</td>
         </tr>
         <tr>
-          <!-- This line was cancelled. The faint diagonal VOID stamp is the ONLY
-               signal that this $1,800 charge no longer applies. The row text is
-               full-contrast and not struck through. The stamp <span> lives inside
-               the first <td> (valid markup) and overflows across the row. -->
           <td class="line">On-site implementation &mdash; 3 days<span class="void-stamp" aria-hidden="false">VOID</span></td>
           <td class="amt">3</td>
           <td class="amt">$600.00</td>
@@ -102,20 +93,5 @@
     <a class="pay" href="/pay/INV-2026-0418">Pay invoice</a>
   </div>
 
-  <!--
-    WHY AUTOMATED TOOLS MISS THIS:
-    The "VOID" stamp (#cdb3b3 ≈ 1.96:1) is the single signal that the $1,800 implementation
-    line no longer applies — note the row text is full-contrast and NOT struck through, and
-    the line amount is still printed, so without reading the stamp a viewer would think the
-    charge is live (and the printed $1,800 even appears to conflict with the $3,360 total,
-    which already excludes it). The stamp therefore carries critical financial STATUS
-    information and must meet contrast; at 1.96:1 it FAILS. But a contrast checker sees a
-    faint rotated word that is visually identical to a purely decorative "stamp" graphic
-    (the kind designers add for flavor), and the author rationalized it as a stylistic
-    overlay. Some scanners also ignore absolutely-positioned rotated overlays as decorative
-    chrome. Deciding that "VOID" conveys non-substitutable status (you cannot swap it for
-    "PAID" or remove it) requires reading the word and reconciling it with the line amount
-    and the total — a meaning judgment no automated tool performs.
-  -->
 </body>
 </html>

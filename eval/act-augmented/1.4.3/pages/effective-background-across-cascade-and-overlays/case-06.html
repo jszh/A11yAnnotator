@@ -7,10 +7,6 @@
 <style>
   :root { font-family: "Cormorant Garamond", Georgia, serif; }
   body { margin:0; background:#0d0d0d; color:#222; }
-  /* Hero uses CSS multiple backgrounds: a STRONG dark scrim layered OVER the bright photo.
-     Layer order: the gradient is listed first => it paints ON TOP of the photo. rgba black
-     at 0.72 across the whole band, so even the photo's brightest (sun/sky) region resolves
-     to a dark backdrop. */
   .hero {
     min-height: 520px;
     background:
@@ -20,8 +16,6 @@
     background-position: center, center;
     display:flex; align-items:center; justify-content:center; text-align:center;
   }
-  /* The menu text element has NO background of its own (transparent). Its declared color is
-     a warm off-white. */
   .menu { color:#f2f2f2; max-width:560px; padding:24px; }
   .menu .est { letter-spacing:6px; font-size:.8rem; font-family:system-ui,sans-serif;
                text-transform:uppercase; margin:0 0 18px; color:#f2f2f2; }
@@ -51,19 +45,5 @@
   <section class="hours">
     <p>Dinner Tuesday–Sunday, 5–10pm. Walk-ins welcome at the bar.</p>
   </section>
-  <!--
-    WHY THIS PASSES, AND WHY AUTOMATED TOOLS STILL MIS-HANDLE IT (boundary case):
-    This page is a deliberate PASS that a naive checker gets WRONG for the right reasons.
-    The .menu element has a transparent background and warm off-white text (#f2f2f2). A CSSOM
-    tool that walks ancestors finds no opaque background on .menu and either (a) falls back to
-    a WHITE canvas assumption -> off-white-on-white -> reports a contrast FAILURE, or (b)
-    cannot reduce the .hero multiple-background (gradient over image) to a single color and
-    SKIPS the node. Both are wrong. The real EFFECTIVE backdrop is the linear-gradient
-    rgba(0,0,0,0.72) scrim composited over the photo: even over the photo's BRIGHTEST region
-    (sun/sky) the composite resolves to roughly #474744, against which #f2f2f2 is about 8.3:1
-    -- comfortably above 4.5:1. Confirming the PASS requires compositing the scrim over the
-    worst-case (lightest) photo region behind the glyphs and computing least-contrast -- the
-    same human visual judgment the failing cases need, here yielding a pass.
-  -->
 </body>
 </html>

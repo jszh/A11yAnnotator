@@ -4,33 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MyCare Portal — Upcoming Visits</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS (SC 1.4.10 Reflow, G225)
-  A patient portal shows "Upcoming Visits" as a horizontally-scrolling row of
-  appointment cards. The STRIP scroll is the allowed carousel navigation, and every
-  card is width:300px and reads top-to-bottom. ONE card (the medication-review visit)
-  includes the patient's current medication schedule rendered in a <pre> block so the
-  columns line up. <pre> uses white-space:pre — it does NOT wrap — and the longest
-  line ("Metoprolol succ. ER 50 mg ... 08:00, 20:00 ... w/ food") is far wider than
-  320px. So that ONE panel needs a within-panel horizontal scrollbar to read the
-  schedule, even though the strip scroll is fine and every other panel fits.
-
-  Note: a <pre>/code block whose layout is meaningful CAN be excepted from Reflow, but
-  the Understanding doc says to PREFER wrapping where meaning is not lost and advises
-  reducing indentation; here the schedule is a simple two-column med list whose meaning
-  survives wrapping into label/value pairs — it is NOT preformatted code that needs 2D
-  layout. So the over-wide <pre> is a genuine within-panel reflow failure, not an
-  excepted section.
-
-  axe-core / WAVE / Lighthouse cannot detect this:
-   - The <pre> is valid; headings nest; the table-of-meds is readable text. No error.
-   - Reflow is a rendered measurement at 320px; static tools don't compute it.
-   - Even an overflow detector cannot decide whether this <pre> "requires 2D layout"
-     (excepted) or is over-wide content that should wrap (fail). That judgment —
-     does the layout carry essential meaning? — is exactly what WCAG assigns a human.
-  To reproduce: render at width:320px, scroll to the "Medication Review" card; the
-  <pre> schedule overflows the panel horizontally.
--->
 <style>
   :root { --teal:#0d6e6e; --ink:#1c2630; --paper:#f4f7f8; --line:#d8e1e3; }
   * { box-sizing:border-box; }
@@ -48,13 +21,13 @@
   .visits {
     display:flex;
     gap:14px;
-    overflow-x:auto;          /* allowed carousel strip navigation */
+    overflow-x:auto;          
     padding:6px 2px 20px;
     scroll-snap-type:x mandatory;
   }
   .visit {
     flex:0 0 auto;
-    width:300px;              /* conforming panels fit 320px and read top-to-bottom */
+    width:300px;              
     scroll-snap-align:start;
     background:var(--paper);
     border:1px solid var(--line);
@@ -72,10 +45,7 @@
                 border-radius:6px; padding:7px 10px; font-size:13px; text-decoration:none; }
   .visit .btn.primary { background:var(--teal); color:#fff; }
 
-  /* THE ROGUE PANEL.
-     The medication-review card embeds the current schedule in a <pre> so columns align.
-     <pre> does not wrap; the longest line is ~430px and overflows the 300px panel and
-     the 320px viewport, forcing within-panel horizontal scrolling. */
+  
   .visit pre.schedule {
     margin:0 0 10px;
     font-family:"SFMono-Regular",Menlo,Consolas,monospace;
@@ -85,8 +55,8 @@
     border:1px solid var(--line);
     border-radius:8px;
     padding:10px 12px;
-    /* white-space:pre is the <pre> default — lines do NOT wrap */
-    overflow-x:auto;          /* this is the in-panel horizontal scrollbar */
+    
+    overflow-x:auto;          
   }
   footer.app { background:#0c2d2d; color:#bcd3d3; font-size:12.5px; padding:16px 20px; }
 </style>
@@ -115,7 +85,7 @@
       </div>
     </section>
 
-    <!-- ROGUE PANEL: <pre> medication schedule whose longest line overflows 320px -->
+    
     <section class="visit" role="listitem">
       <span class="when">Thu, Jun 26 · 2:00 PM</span>
       <h3>Medication Review</h3>

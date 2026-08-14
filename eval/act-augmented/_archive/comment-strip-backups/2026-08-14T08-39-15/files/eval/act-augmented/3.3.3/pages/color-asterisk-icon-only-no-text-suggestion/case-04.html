@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patient Registration — Cedar Mesa Health</title>
+<style>
+  :root { --ink:#16242b; --teal:#0d7a7a; --bg:#eef4f5; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Segoe UI",Roboto,Arial,sans-serif; color:var(--ink);
+         background:var(--bg); }
+  .page { max-width:640px; margin:0 auto; padding:26px 20px 80px; }
+  .masthead { background:var(--teal); color:#fff; border-radius:10px; padding:18px 22px;
+              margin-bottom:22px; }
+  .masthead h1 { margin:0; font-size:1.3rem; }
+  .masthead p { margin:4px 0 0; opacity:.92; font-size:.92rem; }
+  .step { font-size:.8rem; color:#5d6e74; letter-spacing:.05em; text-transform:uppercase;
+          margin-bottom:8px; }
+  form { background:#fff; border:1px solid #d9e3e5; border-radius:10px; padding:24px; }
+  fieldset { border:0; padding:0; margin:0 0 4px; }
+  legend { font-weight:700; font-size:1.05rem; margin-bottom:16px; }
+  .row { margin-bottom:18px; }
+  .labelline { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+  label { font-weight:600; }
+  /* The error icon. It is swapped in next to the field label on validation failure.
+     Its alt/aria are intentionally empty so it is purely decorative to AT — the visual
+     triangle is the entire error+correction cue, and it carries no format guidance. */
+  .warn { width:18px; height:18px; display:none; }
+  .row.invalid .warn { display:inline-block; }
+  input[type=text], input[type=tel] {
+        width:100%; padding:10px 12px; font:inherit; border:1px solid #b6c2c5;
+        border-radius:6px; background:#fff; }
+  .row.invalid input { border:2px solid #c43c2f; background:#fdeeec; }
+  .hint { font-size:.82rem; color:#5d6e74; margin-top:5px; }
+  .actions { margin-top:8px; display:flex; justify-content:flex-end; gap:10px; }
+  .actions button { font:inherit; border-radius:7px; padding:11px 22px; cursor:pointer; }
+  .secondary { background:#fff; border:1px solid #b6c2c5; }
+  .primary { background:var(--teal); color:#fff; border:0; font-weight:700; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="masthead">
+    <h1>Cedar Mesa Health — New Patient Registration</h1>
+    <p>Step 2 of 4 · Personal details</p>
+  </div>
+
+  <p class="step">Personal details</p>
+
+  <!-- POST-SUBMIT STATE. The patient typed their birth date as "7 Mar 1981" but the
+       system requires MM/DD/YYYY. The server flagged the field by adding class="invalid"
+       which (a) reveals a red warning-triangle icon beside the label and (b) gives the
+       input a red border + pink fill. The icon's alt and aria-label are EMPTY, so it is
+       invisible to AT. No text anywhere states the required format or that an error
+       occurred. Note the OTHER rows carry a normal .hint with format guidance, which
+       makes the silent invalid row stand out for a sighted user — and underlines that
+       the error row alone lost its guidance. -->
+  <form action="/register/step2" method="post" novalidate>
+    <fieldset>
+      <legend>Tell us about yourself</legend>
+
+      <div class="row">
+        <div class="labelline"><label for="legalname">Legal name</label></div>
+        <input type="text" id="legalname" name="legalname" value="Priya Raman" autocomplete="name">
+      </div>
+
+      <div class="row invalid">
+        <div class="labelline">
+          <label for="dob">Date of birth</label>
+          <!-- decorative-to-AT warning icon: empty alt-equivalent, aria-hidden -->
+          <svg class="warn" viewBox="0 0 20 20" role="img" aria-label="" aria-hidden="true" focusable="false">
+            <path d="M10 1 L19 18 H1 Z" fill="#c43c2f"></path>
+            <rect x="9" y="7" width="2" height="6" fill="#fff"></rect>
+            <rect x="9" y="14" width="2" height="2" fill="#fff"></rect>
+          </svg>
+        </div>
+        <input type="text" id="dob" name="dob" value="7 Mar 1981" inputmode="numeric" autocomplete="bday">
+      </div>
+
+      <div class="row">
+        <div class="labelline"><label for="phone">Mobile phone</label></div>
+        <input type="tel" id="phone" name="phone" value="(505) 555-0148" autocomplete="tel">
+        <p class="hint">Format: (XXX) XXX-XXXX</p>
+      </div>
+
+      <div class="row">
+        <div class="labelline"><label for="mrn">Existing medical record number (optional)</label></div>
+        <input type="text" id="mrn" name="mrn" value="" autocomplete="off">
+        <p class="hint">Leave blank if this is your first visit.</p>
+      </div>
+    </fieldset>
+
+    <div class="actions">
+      <button type="button" class="secondary">Back</button>
+      <button type="submit" class="primary">Continue</button>
+    </div>
+  </form>
+</div>
+
+<!--
+  WHY THIS FAILS SC 3.3.3 (Error Suggestion):
+  "7 Mar 1981" was rejected; the correction is fully knowable ("enter your date of birth as
+  MM/DD/YYYY, e.g. 03/07/1981"). That suggestion appears NOWHERE. The red triangle icon is the
+  sole error cue, and per G84 swapping in an icon / turning the field red does not satisfy the
+  SC — a text description of the problem and the correct format is required. Note the phone and
+  MRN rows DO carry format hints; only the errored row has none, which is the giveaway.
+
+  WHY AUTOMATED TOOLS MISS IT:
+  - The icon is correctly hidden from AT (aria-hidden="true", empty aria-label, focusable=false),
+    which is *valid* decorative markup — there is no missing-alt defect to catch. (Tools would
+    actually be happy the icon is hidden.)
+  - The field is plain type="text" with a well-formed string value, so validity.valid is true and
+    the accessibility tree shows invalid:false. No aria-invalid is present.
+  - No tool can know MM/DD/YYYY is required or that the icon is the only error carrier.
+    Recognising that the missing element is the *format-correction text* needs reading the page,
+    seeing the other rows have hints while the errored one does not, and judging meaning.
+-->
+</body>
+</html>

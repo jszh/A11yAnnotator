@@ -42,7 +42,6 @@
   ul.feat li { padding: 7px 0; border-bottom: 1px solid #f0f2f6; display: flex; align-items: center; gap: 8px; }
   ul.feat li::before { content: "✓"; color: #2f9e57; font-weight: 700; }
 
-  /* "info dot" trigger — a styled span. JS reveals the tooltip on mouseover only. */
   .infodot {
     display: inline-flex; align-items: center; justify-content: center;
     width: 16px; height: 16px; margin-left: 4px;
@@ -117,10 +116,6 @@
     </section>
   </div>
 
-  <!-- Tooltip payloads. The "Spot capacity" tip on the Starter plan carries ESSENTIAL,
-       non-obvious information: the instance can be reclaimed at any time with 30 seconds'
-       notice, and in-progress renders are LOST. This caveat appears nowhere else on the
-       page. The "Scale" committed-use note is the only place the 1-year lock-in is stated. -->
   <div class="tips" hidden>
     <div data-for="spot">Spot instances cost less but can be <strong>reclaimed at any time
       with 30 seconds' notice</strong>. Any render in progress is lost and is not refunded.
@@ -131,11 +126,6 @@
   </div>
 
   <script>
-    // Each infodot reveals its tooltip ON MOUSEOVER (and hides on mouseout). There is NO
-    // focus/keydown handler. Note: the FIRST infodot was given tabindex="0" and
-    // role="button" by the dev (so it tab-stops and looks accessible to a linter), but the
-    // reveal still only fires on mouseover — so even when a keyboard user focuses it, the
-    // tooltip never appears. The other dots are plain spans with no tabindex at all.
     (function () {
       var tips = {};
       document.querySelectorAll('.tips [data-for]').forEach(function (el) {
@@ -156,32 +146,9 @@
           bubble.style.display = 'block';
         });
         dot.addEventListener('mouseout', function () { bubble.style.display = 'none'; });
-        // NOTE: intentionally no 'focus'/'keydown' listener.
       });
     })();
   </script>
 
-  <!--
-    WHY THIS FAILS SC 2.1.1 (keyboard, essential-information branch) AND WHY TOOLS MISS IT:
-
-    The "Spot capacity" info dot reveals a tooltip stating that spot instances can be
-    reclaimed with 30 seconds' notice and that in-progress renders are LOST and not refunded.
-    That is information essential to deciding whether the Starter plan is usable — and it is
-    disclosed NOWHERE else on the page. Likewise the Scale dot is the only place the 12-month
-    committed-use lock-in / $3.10 on-demand rate is stated.
-
-    The reveal fires only on `mouseover`. There is deliberately NO focus or keydown handler.
-    The author even put tabindex="0" role="button" aria-label on the FIRST dot — so it tab-
-    stops and a linter/axe sees a named, focusable "button" — but focusing it still shows
-    nothing, because the script only listens for mouseover. A keyboard user tabs onto the dot,
-    waits, and (per the Trusted Tester two-second rule) sees no tooltip; there is no
-    aria-describedby pulling the text into the accessible name either. So the essential caveat
-    is unreachable by keyboard and unavailable elsewhere.
-
-    Automated tools pass this: the trigger has a role, a tabindex, and an aria-label; the
-    payloads are non-empty; nothing is malformed. Static analysis cannot read the tooltip text
-    and judge it ESSENTIAL, cannot tell that mouseover-only means focus reveals nothing, and
-    cannot confirm the text appears nowhere else. Verdict: FAILED.
-  -->
 </body>
 </html>

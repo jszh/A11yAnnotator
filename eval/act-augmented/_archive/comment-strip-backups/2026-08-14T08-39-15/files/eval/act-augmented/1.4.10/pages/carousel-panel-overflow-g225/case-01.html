@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Highland & Field — Outdoor Gear | Trending This Week</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (SC 1.4.10 Reflow, G225)
+  This is a REAL horizontally-scrolling product carousel: a flex strip with
+  overflow-x:auto. Strip-level horizontal scrolling is EXPLICITLY ALLOWED by the
+  Understanding doc ("implementations of carousels can allow for horizontal scrolling
+  of their content"). The violation is NOT the strip scroll. It is that ONE panel —
+  the "Trail Pack Bundle" promo card — is hard-coded to width:420px (every other card
+  is width:300px). At a 320 CSS px viewport that single card cannot fit; its own
+  content (a 396px-wide feature image + a no-wrap price row) forces a SECOND, in-panel
+  horizontal scrollbar. A user must scroll horizontally WITHIN the panel to read it,
+  defeating single-direction reading for that section of content.
+
+  axe-core / WAVE / Lighthouse cannot detect this:
+   - There is no markup error: every <img> has alt, headings nest, list semantics
+     are valid, contrast is fine. Naive checks PASS.
+   - Reflow is a RENDERED-LAYOUT property at a specific viewport. Static analyzers
+     do not lay the page out at 320px and measure per-panel overflow.
+   - Even a tool that measured overflow would see overflow on the STRIP (expected,
+     allowed) and could not distinguish "the carousel working" from "one panel too
+     wide". That requires judging the widget's purpose and inspecting EACH panel
+     individually at 320px — human semantic + visual judgment.
+  To reproduce: render at width:320px, scroll the strip to the 4th card
+  ("Trail Pack Bundle"); it overflows 320px and needs its own horizontal scroll.
+-->
+<style>
+  :root { --pine:#1f4d36; --bark:#5a4632; --sun:#d98324; --paper:#f7f4ee; --ink:#222; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Helvetica Neue",Arial,sans-serif; color:var(--ink);
+         background:var(--paper); line-height:1.5; }
+  header.site { background:var(--pine); color:#fff; padding:14px 20px;
+                display:flex; align-items:center; justify-content:space-between; }
+  header.site .logo { font-weight:800; letter-spacing:.5px; }
+  header.site nav a { color:#dfe9e2; text-decoration:none; margin-left:16px; font-size:14px; }
+  main { padding:18px 16px 60px; }
+  h1 { font-size:22px; margin:8px 0 4px; }
+  .lede { color:#555; max-width:60ch; margin:0 0 20px; }
+  h2.section { font-size:18px; margin:26px 0 10px; }
+
+  /* The carousel: a horizontally-scrolling strip of panels.
+     overflow-x:auto on the strip is the INTENDED, allowed navigation. */
+  .carousel {
+    display:flex;
+    gap:16px;
+    overflow-x:auto;
+    overflow-y:hidden;
+    scroll-snap-type:x mandatory;
+    padding:6px 2px 18px;
+    -webkit-overflow-scrolling:touch;
+  }
+  .card {
+    flex:0 0 auto;
+    width:300px;                 /* every conforming panel fits well inside 320px */
+    scroll-snap-align:start;
+    background:#fff;
+    border:1px solid #e3ddd1;
+    border-radius:10px;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;       /* content reads TOP-TO-BOTTOM within the panel */
+  }
+  .card img { width:100%; height:170px; object-fit:cover; display:block; }
+  .card .body { padding:12px 14px 16px; }
+  .card h3 { font-size:16px; margin:0 0 6px; }
+  .card p.desc { font-size:14px; color:#444; margin:0 0 10px; }
+  .card .meta { display:flex; align-items:center; justify-content:space-between; }
+  .price { font-weight:800; color:var(--pine); font-size:16px; }
+  .rating { font-size:13px; color:var(--bark); }
+  .buy { display:inline-block; margin-top:10px; background:var(--sun); color:#1c1206;
+         border:0; border-radius:6px; padding:9px 12px; font-weight:700; font-size:14px;
+         text-decoration:none; }
+
+  /* THE ROGUE PANEL.
+     The agency dropped in a wider "bundle" promo card and a wider hero photo to make
+     it pop. At desktop width it just looks like a featured card. But width:420px means
+     it CANNOT fit in a 320px viewport, and the inner feature image (396px) plus the
+     no-wrap price/save row force horizontal scrolling INSIDE this one panel. */
+  .card.promo {
+    width:420px;                 /* <-- over-wide: does not fit 320 CSS px */
+    border:2px solid var(--sun);
+    background:linear-gradient(180deg,#fff,#fff7ec);
+  }
+  .card.promo .feature {
+    width:396px;                 /* fixed-width inner media, wider than 320px */
+    height:180px;
+    object-fit:cover;
+  }
+  .card.promo .pricerow {
+    display:flex;
+    gap:14px;
+    align-items:baseline;
+    white-space:nowrap;          /* "$189.00  •  You save $61 vs. buying separately" can't wrap */
+    font-size:16px;
+  }
+  .card.promo .pricerow .save { color:#a23; font-weight:700; }
+  footer.site { background:#26352b; color:#cdd7cf; font-size:13px; padding:18px 20px; }
+</style>
+</head>
+<body>
+<header class="site">
+  <span class="logo">Highland &amp; Field</span>
+  <nav aria-label="Primary">
+    <a href="#">Hike</a><a href="#">Camp</a><a href="#">Climb</a><a href="#">Sale</a>
+  </nav>
+</header>
+
+<main>
+  <h1>Trending This Week</h1>
+  <p class="lede">Hand-picked kit our guides are actually carrying this season. Swipe the row to
+  browse — each card opens to a full product page.</p>
+
+  <h2 class="section">Top sellers</h2>
+  <div class="carousel" role="list" aria-label="Trending products">
+
+    <article class="card" role="listitem">
+      <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='170'><rect width='300' height='170' fill='%23355e46'/><text x='150' y='95' font-size='20' fill='%23cfe3d6' text-anchor='middle'>Summit Daypack</text></svg>" alt="Summit 24L daypack in forest green standing upright on a rock">
+      <div class="body">
+        <h3>Summit 24L Daypack</h3>
+        <p class="desc">Lightweight ripstop pack with a ventilated back panel and hip-belt pockets for day hikes.</p>
+        <div class="meta"><span class="price">$118.00</span><span class="rating">★ 4.8 (212)</span></div>
+        <a class="buy" href="#">Add to cart</a>
+      </div>
+    </article>
+
+    <article class="card" role="listitem">
+      <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='170'><rect width='300' height='170' fill='%234a3b27'/><text x='150' y='95' font-size='20' fill='%23e7dcc6' text-anchor='middle'>Trail Runner</text></svg>" alt="Pair of low-cut trail running shoes in clay orange">
+      <div class="body">
+        <h3>Ridgeline Trail Runners</h3>
+        <p class="desc">Grippy 4mm lugs and a rock plate for fast, rough descents. True to size.</p>
+        <div class="meta"><span class="price">$135.00</span><span class="rating">★ 4.6 (88)</span></div>
+        <a class="buy" href="#">Add to cart</a>
+      </div>
+    </article>
+
+    <article class="card" role="listitem">
+      <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='170'><rect width='300' height='170' fill='%232f4858'/><text x='150' y='95' font-size='20' fill='%23d6e6ef' text-anchor='middle'>Down Hood</text></svg>" alt="Packable down hooded jacket in slate blue">
+      <div class="body">
+        <h3>Cirrus Down Hoody</h3>
+        <p class="desc">800-fill packable hoody that stuffs into its own pocket. Three-season warmth.</p>
+        <div class="meta"><span class="price">$199.00</span><span class="rating">★ 4.9 (340)</span></div>
+        <a class="buy" href="#">Add to cart</a>
+      </div>
+    </article>
+
+    <!-- ROGUE PANEL: 420px wide promo "bundle" card with a 396px inner image and a
+         no-wrap price/save row. It will not fit a 320px viewport and forces a
+         within-panel horizontal scrollbar. -->
+    <article class="card promo" role="listitem">
+      <img class="feature" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='396' height='180'><rect width='396' height='180' fill='%23d98324'/><text x='198' y='100' font-size='22' fill='%231c1206' text-anchor='middle'>Trail Pack Bundle</text></svg>" alt="Daypack, water filter and trekking poles bundled together on a wooden table">
+      <div class="body">
+        <h3>Trail Pack Bundle — Save 25%</h3>
+        <p class="desc">Our Summit daypack, the Aquaflow filter, and folding poles, together for one trip-ready price.</p>
+        <div class="pricerow">
+          <span class="price">$189.00</span>
+          <span class="save">You save $61 vs. buying separately</span>
+        </div>
+        <a class="buy" href="#">Add bundle to cart</a>
+      </div>
+    </article>
+
+    <article class="card" role="listitem">
+      <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='170'><rect width='300' height='170' fill='%23404a2f'/><text x='150' y='95' font-size='20' fill='%23e2ead0' text-anchor='middle'>Headlamp</text></svg>" alt="Rechargeable headlamp with a wide elastic strap">
+      <div class="body">
+        <h3>Nightwatch Headlamp</h3>
+        <p class="desc">400-lumen rechargeable headlamp with a red night mode and a lock-out switch.</p>
+        <div class="meta"><span class="price">$49.00</span><span class="rating">★ 4.7 (156)</span></div>
+        <a class="buy" href="#">Add to cart</a>
+      </div>
+    </article>
+
+  </div>
+</main>
+
+<footer class="site">© 2026 Highland &amp; Field Outfitters. Free returns within 60 days.</footer>
+</body>
+</html>

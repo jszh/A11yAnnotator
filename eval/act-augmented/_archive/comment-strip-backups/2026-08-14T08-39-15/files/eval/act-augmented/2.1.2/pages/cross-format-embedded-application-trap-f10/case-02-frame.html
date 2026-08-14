@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Secure card payment</title>
+  <style>
+    body { font: 15px/1.5 "Helvetica Neue", Arial, sans-serif; color: #152019; margin: 0; padding: 20px; background: #fff; }
+    .row { margin: 0 0 14px; }
+    label { display: block; font-weight: 700; font-size: .82rem; margin: 0 0 5px; color: #2c3a32; }
+    input { width: 100%; font: inherit; padding: 10px 12px; border: 1px solid #b8c6bd; border-radius: 8px; background: #fbfdfc; }
+    input:focus-visible { outline: 3px solid #1f7a4d; outline-offset: 1px; }
+    .split { display: flex; gap: 12px; }
+    .split .row { flex: 1; }
+    button { width: 100%; font: inherit; font-weight: 800; color: #fff; background: #1f7a4d; border: 0; border-radius: 9px; padding: 12px; cursor: pointer; margin-top: 4px; }
+    button:focus-visible { outline: 3px solid #0c4d30; outline-offset: 2px; }
+  </style>
+</head>
+<body>
+  <form id="pay" action="#" method="post" novalidate>
+    <div class="row">
+      <label for="amt">Amount (USD)</label>
+      <input id="amt" name="amount" type="text" inputmode="decimal" value="25.00" autocomplete="off">
+    </div>
+    <div class="row">
+      <label for="card">Card number</label>
+      <input id="card" name="card" type="text" inputmode="numeric" autocomplete="cc-number" placeholder="1234 5678 9012 3456">
+    </div>
+    <div class="split">
+      <div class="row">
+        <label for="exp">Expiry</label>
+        <input id="exp" name="exp" type="text" autocomplete="cc-exp" placeholder="MM/YY">
+      </div>
+      <div class="row">
+        <label for="cvc">CVC</label>
+        <input id="cvc" name="cvc" type="text" inputmode="numeric" autocomplete="cc-csc" placeholder="123">
+      </div>
+    </div>
+    <button id="donate" type="submit">Donate $25</button>
+  </form>
+  <script>
+    /* F10 / G21 mechanism #1 violated: instead of letting Tab exit after the final
+       control, the widget loops focus back to the first field, and Shift+Tab from the
+       first field loops to the final button. Tab therefore cycles forever among the
+       widget's own controls and never advances across the iframe boundary. No documented
+       exit. This re-creates the classic "hosted card fields" trap where the embedded
+       form re-implements its own tab cycle and forgets to release the boundary. */
+    var first = document.getElementById('amt');
+    var last = document.getElementById('donate');
+    last.addEventListener('keydown', function (e) {
+      if (e.key === 'Tab' && !e.shiftKey) { e.preventDefault(); first.focus(); }
+    });
+    first.addEventListener('keydown', function (e) {
+      if (e.key === 'Tab' && e.shiftKey) { e.preventDefault(); last.focus(); }
+    });
+  </script>
+</body>
+</html>

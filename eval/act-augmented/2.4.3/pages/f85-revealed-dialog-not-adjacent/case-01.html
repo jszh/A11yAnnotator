@@ -25,7 +25,6 @@
   .card a { display:inline-block; margin-top:8px; }
   footer.site { border-top:1px solid var(--line); padding:24px 28px; font-size:.9rem; color:#445; }
   footer.site nav a { margin-right:16px; }
-  /* The dialog is visually centered over the page when shown */
   .modal-scrim { position:fixed; inset:0; background:rgba(6,20,38,.45); display:none; }
   .modal-scrim.open { display:block; }
   .modal {
@@ -52,7 +51,6 @@
   </nav>
 </header>
 
-<!-- The trigger sits near the top of the page, in the announcement bar -->
 <div class="subscribe-bar">
   <p>Get weather alerts, trash-pickup changes, and meeting agendas by email.</p>
   <button id="openSubscribe" class="btn" aria-haspopup="dialog">Subscribe to alerts</button>
@@ -112,15 +110,6 @@
   <p>© 2026 City of Brookhaven. This site is an official government website.</p>
 </footer>
 
-<!--
-  THE BUG (F85, open branch): the subscribe dialog is the LAST thing before </body>,
-  far from its trigger in the subscribe-bar near the top. The open script only toggles
-  the .open class — it never moves focus into the dialog. So after a keyboard user
-  activates "Subscribe to alerts", focus stays on that button; the very next Tab does
-  NOT land in the dialog — it lands on the next link in source order (the "Services"
-  nav link / main-content links), forcing the user to Tab through the entire page,
-  past the footer, to reach the email field that is visually centered in front of them.
--->
 <div class="modal-scrim" id="scrim"></div>
 <div class="modal" id="subscribeDialog" role="dialog" aria-modal="false"
      aria-labelledby="subTitle" aria-describedby="subDesc">
@@ -135,15 +124,11 @@
 </div>
 
 <script>
-  // NOTE: deliberately a visibility-only toggle. No focus management whatsoever —
-  // this mirrors the F85 example "Script was created to reveal the dialog, but no
-  // script was added to move focus to it."
   var dlg = document.getElementById('subscribeDialog');
   var scrim = document.getElementById('scrim');
   function openDialog() {
     dlg.classList.add('open');
     scrim.classList.add('open');
-    // (No dlg.focus(), no subEmail.focus(), no focus trap.)
   }
   function closeDialog() {
     dlg.classList.remove('open');

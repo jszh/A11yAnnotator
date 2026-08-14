@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Northcrest College — Certificate Verification</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", Roboto, Arial, sans-serif;
+    color: #21262e;
+    background: #eef1f5;
+    line-height: 1.55;
+  }
+  header.site {
+    background: #0b3d63; color: #eaf2fb;
+    padding: 14px 26px; display: flex; align-items: center; gap: 12px;
+  }
+  header.site .crest { font-size: 22px; }
+  header.site h1 { font-size: 18px; font-weight: 600; margin: 0; }
+
+  main { max-width: 820px; margin: 0 auto; padding: 28px 24px 70px; }
+
+  .controls {
+    background: #fff; border: 1px solid #d6dde6; border-radius: 10px;
+    padding: 14px 16px; margin-bottom: 22px;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 16px;
+  }
+  .controls fieldset { border: 0; margin: 0; padding: 0; display: flex; align-items: center; gap: 8px; }
+  .controls legend { font-weight: 600; font-size: 14px; padding: 0; margin-right: 6px; }
+  .controls button, .controls select {
+    font: inherit; font-size: 14px;
+    border: 1px solid #9fb0c4; border-radius: 6px; background: #f3f7fc;
+    padding: 5px 11px; cursor: pointer;
+  }
+  .controls button:focus-visible, .controls select:focus-visible { outline: 3px solid #2f7cd6; outline-offset: 1px; }
+  .controls .size-out { font-size: 13px; color: #4a586a; min-width: 56px; }
+
+  /* The certificate title is drawn into a <canvas> = a genuine image of text,
+     but it is RE-RENDERED on demand at the user's chosen size and colour. */
+  .cert-wrap { background: #fff; border: 1px solid #d6dde6; border-radius: 10px; padding: 22px; text-align: center; }
+  #certTitle { max-width: 100%; height: auto; }
+
+  .verify { margin-top: 26px; }
+  .verify dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 18px; }
+  .verify dt { font-weight: 600; color: #44546a; }
+  .badge { display: inline-block; background: #167a3a; color: #fff; border-radius: 999px; padding: 2px 12px; font-size: 13px; }
+  footer { border-top: 1px solid #d6dde6; margin-top: 36px; padding-top: 16px; font-size: 13px; color: #6a7686; }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <span class="crest" aria-hidden="true">&#9876;</span>
+  <h1>Northcrest College &middot; Credential Verification</h1>
+</header>
+
+<main>
+  <!-- C30-style control located near the start of the content, before the image of text. -->
+  <div class="controls" role="region" aria-label="Customize the certificate heading">
+    <fieldset>
+      <legend>Heading size</legend>
+      <button type="button" id="dec" aria-label="Decrease heading size">A&minus;</button>
+      <button type="button" id="inc" aria-label="Increase heading size">A+</button>
+      <span class="size-out" id="sizeOut" aria-live="polite">36 px</span>
+    </fieldset>
+    <fieldset>
+      <legend><label for="colorSel">Heading colour</label></legend>
+      <select id="colorSel">
+        <option value="#0b3d63">Navy (default)</option>
+        <option value="#111111">Black (high contrast)</option>
+        <option value="#7a3f00">Sepia</option>
+        <option value="#1d6f2b">Forest green</option>
+      </select>
+    </fieldset>
+  </div>
+
+  <!--
+    IMAGE OF TEXT: "Certificate of Completion" is rendered by JS into <canvas>. It is a true
+    bitmap of text (canvas pixels), NOT live HTML. The control above genuinely re-renders
+    this canvas at the chosen font size and colour, vector-sharp at every step (we redraw,
+    we do not CSS-scale), satisfying the customizability exception. The <canvas> also carries
+    a text fallback for AT.
+  -->
+  <div class="cert-wrap">
+    <canvas id="certTitle" width="660" height="90" role="img"
+            aria-label="Certificate of Completion">Certificate of Completion</canvas>
+  </div>
+
+  <section class="verify" aria-labelledby="vh">
+    <h2 id="vh">Verification result <span class="badge">Valid</span></h2>
+    <dl>
+      <dt>Recipient</dt><dd>Priya R. Anand</dd>
+      <dt>Programme</dt><dd>Postgraduate Certificate in Data Analytics</dd>
+      <dt>Awarded</dt><dd>14 November 2025</dd>
+      <dt>Credential ID</dt><dd>NC-2025-PGDA-04417</dd>
+      <dt>Status</dt><dd>Verified against the Northcrest registry</dd>
+    </dl>
+  </section>
+
+  <footer>
+    <p>Northcrest College Registry &middot; This page confirms the authenticity of a single credential.</p>
+  </footer>
+</main>
+
+<script>
+  // Genuine C30: the image of text (canvas) is RE-RENDERED to the user's chosen
+  // size and colour. We redraw the glyphs each time, so the result is sharp at any size
+  // (no pixelation), and the full original wording is always drawn — i.e. truly equivalent.
+  (function () {
+    var canvas = document.getElementById('certTitle');
+    var ctx = canvas.getContext('2d');
+    var TEXT = 'Certificate of Completion';
+    var sizes = [28, 32, 36, 42, 50, 60];
+    var sizeIdx = 2;
+    var color = '#0b3d63';
+    var dpr = window.devicePixelRatio || 1;
+
+    function render() {
+      var fontPx = sizes[sizeIdx];
+      // Size the canvas to fit the text at the chosen font size (re-render, not scale).
+      ctx.font = '600 ' + fontPx + 'px "Segoe UI", Roboto, Arial, sans-serif';
+      var metrics = ctx.measureText(TEXT);
+      var cssW = Math.ceil(metrics.width) + 40;
+      var cssH = Math.ceil(fontPx * 1.6);
+      canvas.style.width = cssW + 'px';
+      canvas.style.height = cssH + 'px';
+      canvas.width = cssW * dpr;
+      canvas.height = cssH * dpr;
+      ctx.scale(dpr, dpr);
+      ctx.clearRect(0, 0, cssW, cssH);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, cssW, cssH);
+      ctx.font = '600 ' + fontPx + 'px "Segoe UI", Roboto, Arial, sans-serif';
+      ctx.fillStyle = color;
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'center';
+      ctx.fillText(TEXT, cssW / 2, cssH / 2);
+      document.getElementById('sizeOut').textContent = fontPx + ' px';
+      // Keep the accessible name in sync with the rendered text.
+      canvas.setAttribute('aria-label', TEXT);
+    }
+
+    document.getElementById('inc').addEventListener('click', function () {
+      sizeIdx = Math.min(sizes.length - 1, sizeIdx + 1); render();
+    });
+    document.getElementById('dec').addEventListener('click', function () {
+      sizeIdx = Math.max(0, sizeIdx - 1); render();
+    });
+    document.getElementById('colorSel').addEventListener('change', function (e) {
+      color = e.target.value; render();
+    });
+    render();
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Confirm appointment — Cedar Park Health Portal</title>
+<!--
+  ACCESSIBILITY DEFECT (SC 1.4.11 Non-text Contrast, Level AA) — present-but-wrong.
+  GEOMETRY ASPECT: when focus changes the component's OWN border WITHIN the visible
+  boundary (rather than adding an outline AROUND it), that recoloured border must contrast
+  with the COMPONENT it borders (the interior fill), not merely look "different from before."
+
+  The "Confirm appointment" button is a SOLID brand-blue primary button: its interior fill
+  is blue #4189B9 and it carries a 2px blue (#4189B9) border that traces the visible edge.
+  On focus the button does NOT add an outer outline — it RECOLOURS its own existing border
+  in place, from blue #4189B9 to green #4B933A. The border does not move; it stays at the
+  visible edge of the component, so this is a change to the border WITHIN the visible
+  boundary. The adjacency that matters is therefore the component interior (the blue fill):
+    green #4B933A  vs  blue interior #4189B9  =  1.005:1.
+  The focused border does not contrast with the inside of the component -> SC 1.4.11 FAIL.
+
+  This is NOT the out-of-scope "change of background colour between states" case — the SC
+  does not compare focused vs unfocused. (For reference, the blue->green state delta also
+  happens to be 1.005:1, but that comparison is irrelevant.) The real failure is the
+  IN-SCOPE adjacency one: the recoloured border, sitting just inside the visible edge, must
+  contrast with the component it borders, and green-on-blue does not.
+
+  WHY AUTOMATED TOOLS MISS IT: a clear visual change happens on focus (the border colour
+  changes), so focus-visible heuristics pass. axe/WAVE/Lighthouse have no rule that (a)
+  recognises the recoloured border AS the focus indicator, (b) locates it just inside the
+  visible boundary, and (c) requires it to contrast with the component interior. A blunt
+  "did anything change on :focus?" check is satisfied; a blunt border-vs-page check would
+  even read the green border against the white card (3.79:1) and call it fine — exactly the
+  wrong adjacency.
+-->
+<style>
+  :root { --ink:#1d2330; --blue:#4189B9; }
+  body { font:16px/1.55 "Inter",system-ui,sans-serif; color:var(--ink);
+         background:#eef1f6; margin:0; }
+  main { max-width:520px; margin:40px auto; padding:0 20px; }
+  h1 { font-size:1.45rem; margin:0 0 4px; }
+  .sub { color:#5a677a; margin:0 0 22px; }
+  .card { background:#fff; border:1px solid #e2e7f0; border-radius:12px;
+          padding:24px 26px 26px; }
+  .card h2 { font-size:1.05rem; margin:0 0 14px; }
+  dl { margin:0 0 22px; display:grid; grid-template-columns:auto 1fr; gap:8px 18px;
+       font-size:.94rem; }
+  dt { color:#7a8699; }
+  dd { margin:0; font-weight:600; }
+  .actions { display:flex; gap:12px; }
+
+  /* The "Confirm" button is a SOLID blue primary button. Its interior fill IS blue
+     #4189B9, and the 2px blue border traces its visible edge (border same hue as fill,
+     so the resting boundary reads as one solid blue shape on the white card). */
+  .btn-primary {
+    appearance:none; cursor:pointer;
+    font:600 1rem/1 inherit; color:#fff;
+    background:var(--blue);            /* solid blue interior fill */
+    border:2px solid var(--blue);      /* blue boundary, same hue as the fill */
+    border-radius:8px; padding:12px 22px;
+  }
+  /* THE DEFECT: focus recolours the SAME border in place (within the visible boundary)
+     from blue to green. Green #4B933A vs the blue interior #4189B9 = 1.005:1 -> fails.
+     No outer outline is added. */
+  #confirm:focus { outline:none; border-color:#4B933A; }
+
+  .btn-ghost {
+    appearance:none; cursor:pointer;
+    font:600 1rem/1 inherit; color:#43505f;
+    background:#fff; border:2px solid #c2ccda;
+    border-radius:8px; padding:12px 22px;
+  }
+  #cancel:focus { outline:2px solid #1d2330; outline-offset:2px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Confirm your appointment</h1>
+  <p class="sub">Review the details below, then confirm to reserve this time.</p>
+
+  <div class="card">
+    <h2>Appointment summary</h2>
+    <dl>
+      <dt>Provider</dt><dd>Dr. A. Mensah — Cardiology</dd>
+      <dt>Date</dt><dd>Tue, 7 Jul 2026</dd>
+      <dt>Time</dt><dd>10:30 AM</dd>
+      <dt>Location</dt><dd>Cedar Park Clinic, Suite 4</dd>
+    </dl>
+    <div class="actions">
+      <button class="btn-primary" type="button" id="confirm">Confirm appointment</button>
+      <button class="btn-ghost" type="button" id="cancel">Go back</button>
+    </div>
+  </div>
+
+  <p class="sub" style="margin-top:18px;font-size:.85rem;">
+    Tab to “Confirm appointment” to see its focus state.</p>
+</main>
+</body>
+</html>

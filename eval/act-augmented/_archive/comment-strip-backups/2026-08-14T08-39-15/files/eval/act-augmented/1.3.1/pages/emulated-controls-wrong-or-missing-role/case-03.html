@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.3.1 (Info and Relationships) — F42 emulated-link failure path (whole-row variant).
+    Aspect: emulated-controls-wrong-or-missing-role.
+
+    "Harbourline Realty" agent dashboard, "Active Listings" table. Each <tr> is a
+    clickable row: hovering highlights the whole row and shows a pointer cursor, and a
+    helper line above the table reads "Click a row to open the listing." Clicking any
+    row navigates to that property's detail page (location.href). Each row visually and
+    behaviourally PRESENTS ITSELF as a single big link to the listing.
+
+    THE DEFECT: the navigation lives on <tr onclick="openListing('PX-...')"> with
+    cursor:pointer. There is NO <a> wrapping the row's content, NO role="link"/"button"
+    on the <tr>, and NO tabindex. The cells contain plain text (and one inert status
+    pill), so there is nothing focusable inside either. Sighted users get an obvious
+    clickable row; AT exposes a generic table row with no interactive semantics — no
+    link is announced, the row never appears in the links list, and keyboard users
+    cannot reach or open any listing.
+
+    WHY AUTOMATED TOOLS MISS IT: the table markup itself is correct (<table>, <thead>,
+    <th scope="col">, <caption>) — a data-table checker is happy. There is no role on
+    the <tr>, so role-validity rules never apply. axe/WAVE/Lighthouse cannot tell that a
+    <tr> with cursor:pointer and an onclick IS PRESENTED AS a link to the listing; that
+    a whole row is "the control" is a visual/behavioural inference. Empty/missing
+    attributes? None — every cell has real text. The defect is present-but-wrong-shaped,
+    not absent.
+  -->
+  <title>Active Listings — Harbourline Realty</title>
+  <style>
+    :root { --ink:#1c2733; --muted:#64727f; --line:#e2e8ef; --hi:#eef5ff; --accent:#1763c7; --bg:#f5f7fa; --card:#fff; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Segoe UI",Roboto,Arial,sans-serif; color:var(--ink); background:var(--bg); line-height:1.5; }
+    .page { max-width:920px; margin:2rem auto; padding:0 1.25rem; }
+    h1 { font-size:1.5rem; margin:0 0 .2rem; }
+    .hint { color:var(--muted); font-size:.9rem; margin:0 0 1.2rem; }
+    table { width:100%; border-collapse:collapse; background:var(--card); border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+    caption { text-align:left; font-weight:600; padding:.9rem 1rem; border-bottom:1px solid var(--line); }
+    thead th { text-align:left; font-size:.74rem; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); padding:.7rem 1rem; border-bottom:1px solid var(--line); background:#fafcfe; }
+    tbody td { padding:.85rem 1rem; border-bottom:1px solid var(--line); font-size:.95rem; }
+    tbody tr:last-child td { border-bottom:0; }
+    /* The whole row is presented as one big clickable link */
+    tbody tr.listing { cursor:pointer; transition:background .12s; }
+    tbody tr.listing:hover { background:var(--hi); }
+    .addr { font-weight:600; color:var(--accent); }   /* looks link-ish */
+    .pill { display:inline-block; font-size:.72rem; font-weight:700; padding:.15rem .5rem; border-radius:999px; }
+    .pill.active { background:#e3f6ea; color:#1c7a45; }
+    .pill.pending { background:#fff2db; color:#9a6a12; }
+    .price { font-variant-numeric:tabular-nums; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <h1>Active Listings</h1>
+    <p class="hint">Click a row to open the listing.</p>
+
+    <table>
+      <caption>Active listings &middot; Harbourline Realty (12 of 47)</caption>
+      <thead>
+        <tr>
+          <th scope="col">Reference</th>
+          <th scope="col">Address</th>
+          <th scope="col">Beds</th>
+          <th scope="col">Status</th>
+          <th scope="col">List price</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- DEFECT: each <tr> is the clickable control (onclick + cursor:pointer),
+             but it is a plain table row — no <a>, no role, no tabindex. -->
+        <tr class="listing" onclick="openListing('PX-2291')">
+          <td>PX-2291</td>
+          <td class="addr">14 Mariner's Walk, Saltcoats</td>
+          <td>3</td>
+          <td><span class="pill active">Active</span></td>
+          <td class="price">$649,000</td>
+        </tr>
+        <tr class="listing" onclick="openListing('PX-2288')">
+          <td>PX-2288</td>
+          <td class="addr">88 Quay Street, Unit 6, Greenock</td>
+          <td>2</td>
+          <td><span class="pill pending">Offer pending</span></td>
+          <td class="price">$412,500</td>
+        </tr>
+        <tr class="listing" onclick="openListing('PX-2274')">
+          <td>PX-2274</td>
+          <td class="addr">3 Beacon Hill Road, Largs</td>
+          <td>4</td>
+          <td><span class="pill active">Active</span></td>
+          <td class="price">$835,000</td>
+        </tr>
+        <tr class="listing" onclick="openListing('PX-2260')">
+          <td>PX-2260</td>
+          <td class="addr">221 Esplanade, Apt 12B, Gourock</td>
+          <td>1</td>
+          <td><span class="pill active">Active</span></td>
+          <td class="price">$298,750</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    // Real behaviour: clicking the row opens the listing — what an <a> would do.
+    function openListing(ref) {
+      window.location.href = '/listings/' + encodeURIComponent(ref);
+    }
+  </script>
+</body>
+</html>

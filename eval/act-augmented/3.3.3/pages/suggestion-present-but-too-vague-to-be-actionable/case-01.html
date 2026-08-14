@@ -4,25 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Schedule an appointment — Northbrook Family Health patient portal</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS:
-  After a failed submit, the date-of-birth field is correctly flagged: input has
-  aria-invalid="true", the error <p id="dob-err"> is wired via aria-describedby, the
-  error sits in a role="alert" summary, focus is moved to the field, contrast is fine.
-  axe / WAVE / Lighthouse confirm an error IS identified and programmatically
-  associated — so SC 3.3.1 (Error Identification) PASSES, and any "does the message
-  exist / is it tied to the field / does it mention fixing?" heuristic also passes
-  (the words "check your entry and try again" are fix-oriented language).
-  THE DEFECT IS SEMANTIC ADEQUACY (3.3.3): the message — "Please check your entry and
-  try again." — tells the user to fix it but conveys NOTHING about WHAT is wrong or
-  what input the field wants. The correct constraint is fully knowable and trivial to
-  state (a date in MM/DD/YYYY, in the past, the patient's birth date) but none of it is
-  surfaced. A screen-reader user who typed "March 3 1990" or "3/3/90" or "1990-03-03"
-  is told only to "try again" with no idea which of those the field will accept. No
-  checker can judge that fix-oriented prose is content-free filler for THIS field's
-  knowable rule — that is a semantic adequacy call. The PASS twin field below (insurance
-  member ID) shows the same component with an ADEQUATE message for contrast.
--->
 <style>
   :root{ --ink:#13243a; --muted:#5b6b7e; --line:#cdd6e0; --teal:#0a7d77; --teal-d:#075f5a;
          --danger:#c0392b; --bg:#eef3f6; --paper:#fff; --focus:#1558d6; }
@@ -68,9 +49,6 @@
         <h1>Request an appointment</h1>
         <p class="step">Step 2 of 4 — Confirm patient identity</p>
 
-        <!-- Server re-displayed the form after a failed POST. The summary is a real
-             role="alert"; the DOB error below it is correctly associated. Only the
-             WORDING is inadequate. -->
         <div class="alert" role="alert">
           <h2>We couldn't continue</h2>
           <p>There is a problem with one field. <a href="#dob">Please check your entry and try again.</a></p>
@@ -78,7 +56,6 @@
 
         <form action="#" method="post" novalidate autocomplete="off">
 
-          <!-- DEFECTIVE FIELD: the inline error repeats the same content-free filler. -->
           <div class="field">
             <label for="dob">Date of birth <span class="req" aria-hidden="true">*</span></label>
             <input type="text" id="dob" name="dob" value="march 3 1990"
@@ -86,9 +63,6 @@
             <p class="err" id="dob-err">Please check your entry and try again.</p>
           </div>
 
-          <!-- PASS-TWIN CONTROL (contrast): same component, ADEQUATE message that names
-               the exact format. Not in error in this render, but its hint shows what an
-               actionable suggestion looks like for a knowable constraint. -->
           <div class="field">
             <label for="member">Insurance member ID</label>
             <input type="text" id="member" name="member"
@@ -106,17 +80,12 @@
 
 <script>
 (function(){
-  // Move focus to the flagged field on load, exactly like a real accessible redisplay.
-  // (This is what makes 3.3.1 pass — the error IS identified and reached.)
   var dob = document.getElementById('dob');
   if (dob) { dob.focus(); dob.setSelectionRange(dob.value.length, dob.value.length); }
 
-  // The form would re-validate on resubmit, but the message it produces is the same
-  // content-free filler — proving the inadequacy is in the WORDING, not in plumbing.
   document.querySelector('form').addEventListener('submit', function(e){
     e.preventDefault();
     var v = dob.value.trim();
-    // The field actually accepts MM/DD/YYYY in the past — a knowable, statable rule.
     var ok = /^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/\d{4}$/.test(v);
     var err = document.getElementById('dob-err');
     if (ok) {
@@ -125,7 +94,7 @@
       err.style.color = '#0a7d77';
     } else {
       dob.setAttribute('aria-invalid','true');
-      err.textContent = 'Please check your entry and try again.';  // still vague
+      err.textContent = 'Please check your entry and try again.';  
       dob.focus();
     }
   });

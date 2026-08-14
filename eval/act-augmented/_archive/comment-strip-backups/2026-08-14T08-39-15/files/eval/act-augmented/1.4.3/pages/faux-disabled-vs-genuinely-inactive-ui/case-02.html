@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.4.3 FAILURE — custom div-button that CLAIMS aria-disabled="true" but still fires.
+
+    A mobile-banking "Send transfer" screen. The pay control is a custom
+    <div role="button" tabindex="0"> painted pale grey (#a4a4a4 on #eeeeee ≈ 2.2:1). The author
+    marked it aria-disabled="true" "while we re-check your balance", intending it to be inert
+    until the balance promise resolves. But the keydown (Enter/Space) and click handlers were
+    never guarded against the aria-disabled flag, so the control STILL fires: focusing it and
+    pressing Enter submits the transfer immediately. aria-disabled is a CLAIM, not enforcement —
+    it does not remove the control from the focus order, and nothing here blocks activation.
+    Because the control is genuinely operable, the inactive-UI exemption does NOT apply, and its
+    ~2.2:1 label must (but does not) meet 4.5:1. The page FAILS 1.4.3.
+
+    THE TRAP — why this defeats automated tools (verified against axe-core 4.12.1 color-contrast):
+      • The CURRENT page (div + aria-disabled="true") → axe emits NO violation, NO incomplete:
+        it trusts the ARIA state and silently treats the control as a disabled/inactive widget,
+        so the failing label is never measured. A clean automated pass — but WRONG.
+      • Strip the aria-disabled (an operable control should not carry it) and axe flips to a HARD
+        color-contrast violation on the same pixels. So the verdict hinges entirely on the ARIA
+        claim, which a scanner cannot validate. Resolving it requires a HUMAN to focus the div
+        and press Enter, watch the balance drop / the receipt appear, and conclude: it fired,
+        therefore it is operable, therefore in scope, therefore failing.
+
+    Compare the truly-inert twin below ("Schedule for later", native <button disabled>, same
+    grey) which IS exempt. Same look, opposite verdict — decided by behavior, not appearance.
+  -->
+  <title>Send money — Halcyon Bank</title>
+  <style>
+    :root { --ink:#101418; --line:#dfe3e8; --brand:#1457b8; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"SF Pro Text",system-ui,-apple-system,Segoe UI,Arial,sans-serif; color:var(--ink); background:#eef1f5; }
+    .phone { max-width:380px; margin:36px auto; background:#fff; border:1px solid var(--line); border-radius:18px; padding:22px 22px 26px; box-shadow:0 8px 28px rgba(16,24,40,.10); }
+    .bar { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+    .bar .back { color:var(--brand); font-size:14px; text-decoration:none; }
+    h1 { font-size:18px; margin:0; }
+    .bal { background:#f5f8fd; border:1px solid #e2ebf8; border-radius:12px; padding:14px 16px; margin:8px 0 18px; }
+    .bal .lbl { font-size:12px; color:#5a626c; }
+    .bal .amt { font-size:24px; font-weight:700; font-variant-numeric:tabular-nums; }
+    label { display:block; font-size:13px; font-weight:600; margin:14px 0 4px; }
+    input { width:100%; padding:10px 12px; border:1px solid #c3c9d2; border-radius:8px; font-size:15px; }
+    .row { display:flex; gap:10px; margin-top:20px; }
+    .row > * { flex:1; }
+    .ctl {
+      display:inline-flex; align-items:center; justify-content:center;
+      padding:12px 16px; border-radius:10px; font-size:15px; font-weight:600;
+      user-select:none; text-align:center; font-family:inherit;
+    }
+    /* custom div-button, painted to look disabled while it "re-checks the balance" */
+    .ctl.pay {
+      cursor:pointer;
+      background:#eeeeee;
+      color:#a4a4a4;          /* #a4a4a4 on #eeeeee ≈ 2.2:1 — fails 4.5:1 */
+      border:1px solid #e4e4e4;
+    }
+    .ctl.pay:focus-visible { outline:2px solid var(--brand); outline-offset:2px; }
+    /* genuinely-inert twin: native <button disabled>, same grey — EXEMPT */
+    .ctl.later { background:#eeeeee; color:#a4a4a4; border:1px solid #e4e4e4; cursor:not-allowed; }
+    .hint { color:#5a626c; font-size:12px; margin-top:14px; line-height:1.5; }
+    .done { margin-top:14px; padding:11px 13px; background:#e7f6ee; border:1px solid #bfe6cf; border-radius:8px; color:#11703f; font-weight:600; font-size:14px; display:none; }
+  </style>
+</head>
+<body>
+  <main class="phone">
+    <div class="bar">
+      <a class="back" href="#accounts">&larr; Accounts</a>
+      <h1>Send money</h1>
+    </div>
+
+    <div class="bal">
+      <div class="lbl">Everyday account &middot; available</div>
+      <div class="amt" id="bal">$2,480.00</div>
+    </div>
+
+    <label for="payee">To</label>
+    <input id="payee" type="text" value="Mara Okonkwo" autocomplete="off">
+
+    <label for="amount">Amount</label>
+    <input id="amount" type="text" inputmode="decimal" value="$150.00">
+
+    <div class="row">
+      <!--
+        CLAIMS aria-disabled="true" ("re-checking balance") but the handlers were never guarded:
+        keydown (Enter/Space) and click both call send(). aria-disabled does NOT remove it from
+        the focus order and does NOT block activation, so the control is OPERABLE. In scope for
+        1.4.3; the ~2.2:1 label FAILS. axe trusts the ARIA claim and skips it — a false negative.
+      -->
+      <div class="ctl pay" id="sendBtn" role="button" tabindex="0" aria-disabled="true">Send transfer</div>
+
+      <!--
+        Genuinely inert twin: native <button disabled>, identical grey. Scheduling opens next
+        week, so the browser makes this control inert — not focusable, never fires. EXEMPT.
+      -->
+      <button type="button" class="ctl later" id="laterBtn" disabled>Schedule for later</button>
+    </div>
+
+    <p class="done" id="done" role="status">Transfer of $150.00 sent to Mara Okonkwo.</p>
+    <p class="hint">Transfers post instantly between Halcyon accounts. Scheduling for a future
+      date is coming soon.</p>
+  </main>
+
+  <script>
+    var sent = false;
+    function send() {
+      if (sent) return;
+      sent = true;
+      document.getElementById('bal').textContent = '$2,330.00';
+      document.getElementById('sendBtn').textContent = 'Transfer sent';
+      document.getElementById('done').style.display = 'block';
+    }
+    var btn = document.getElementById('sendBtn');
+    // BUG: no `if (btn.getAttribute('aria-disabled')==='true') return;` guard.
+    // The control fires despite the aria-disabled claim -> it is operable -> in scope for 1.4.3.
+    btn.addEventListener('click', send);
+    btn.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); send(); }
+    });
+  </script>
+</body>
+</html>

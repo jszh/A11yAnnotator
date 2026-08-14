@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Campaign budget — Northstar Ads Manager</title>
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS (SC 2.1.1, F54 — drag-only slider):
+    The "daily budget" control is a draggable thumb built from a <div> on a track, wired
+    with mousedown/mousemove/pointermove (drag) only. It has no role="slider", no
+    tabindex, no aria-value*, and no arrow-key handler — so the value can be set by mouse
+    drag but never by keyboard. The drag here sets only the ENDPOINT value (a number), so
+    it is NOT a path-dependent function and the 2.1.1 exception does not apply. Everything
+    else in the form — the campaign-name input, the objective <select>, the schedule date
+    inputs, and the "Save campaign" button — is fully keyboard operable. Because the
+    slider thumb has no role and no tabindex, axe/WAVE/Lighthouse see only inert divs and
+    cannot know they are meant to be a slider, so no rule fires; nothing is missing or
+    invalid. A human must drag the thumb to discover it is a value control, then try the
+    keyboard (Tab past it, arrow keys do nothing) to find there is no keyboard path. The
+    same budget value can NOT be typed anywhere — the slider is the only input for it.
+  -->
+  <style>
+    :root { --ink:#13161c; --muted:#5d6470; --line:#dfe3ea; --brand:#3b4ed8; --track:#e7eaf2; --fill:#3b4ed8; }
+    * { box-sizing: border-box; }
+    body { font: 15px/1.5 "Segoe UI", system-ui, Arial, sans-serif; color: var(--ink); margin: 0; background: #f4f6fa; }
+    header { background: #fff; border-bottom: 1px solid var(--line); padding: 12px 22px; display: flex; align-items: center; gap: 12px; }
+    header .logo { width: 26px; height: 26px; border-radius: 7px; background: linear-gradient(135deg,#3b4ed8,#7d3bd8); }
+    header .name { font-weight: 800; }
+    header .crumbs { color: var(--muted); font-size: .85rem; }
+    main { max-width: 720px; margin: 26px auto; padding: 0 18px; }
+    h1 { font-size: 1.4rem; margin: 0 0 4px; }
+    .sub { color: var(--muted); margin: 0 0 22px; }
+    .panel { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 22px; margin-bottom: 18px; }
+    .panel h2 { font-size: 1rem; margin: 0 0 14px; }
+    .field { margin-bottom: 18px; }
+    label { display: block; font-weight: 600; margin-bottom: 6px; }
+    input[type="text"], input[type="date"], select {
+      width: 100%; font: inherit; padding: 9px 11px; border: 1px solid #b9c0cd; border-radius: 8px; background: #fff;
+    }
+    input:focus-visible, select:focus-visible, button:focus-visible { outline: 3px solid #1652a8; outline-offset: 2px; }
+    .row { display: flex; gap: 16px; } .row .field { flex: 1; }
+    /* Slider — looks and reads like a normal budget slider */
+    .slider-wrap { padding: 10px 4px 0; }
+    .slider-value { font-size: 1.5rem; font-weight: 800; color: var(--brand); }
+    .slider-value small { font-size: .8rem; color: var(--muted); font-weight: 600; }
+    .track {
+      position: relative; height: 8px; background: var(--track); border-radius: 999px; margin: 18px 8px 8px;
+    }
+    .fill { position: absolute; left: 0; top: 0; height: 100%; background: var(--fill); border-radius: 999px; width: 35%; }
+    .thumb {
+      position: absolute; top: 50%; left: 35%; transform: translate(-50%, -50%);
+      width: 22px; height: 22px; border-radius: 50%; background: #fff; border: 3px solid var(--brand);
+      box-shadow: 0 1px 4px rgba(0,0,0,.25); cursor: grab;
+    }
+    .thumb:active { cursor: grabbing; }
+    .scale { display: flex; justify-content: space-between; color: var(--muted); font-size: .78rem; margin: 0 6px; }
+    .actions { display: flex; gap: 12px; }
+    button.primary { font: inherit; font-weight: 700; color: #fff; background: var(--brand); border: 0; border-radius: 8px; padding: 11px 20px; cursor: pointer; }
+    button.ghost { font: inherit; font-weight: 600; color: var(--brand); background: #eef0fc; border: 1px solid #cfd5f6; border-radius: 8px; padding: 11px 20px; cursor: pointer; }
+    .hint { color: var(--muted); font-size: .82rem; margin: 6px 0 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="logo" aria-hidden="true"></span>
+    <span class="name">Northstar Ads Manager</span>
+    <span class="crumbs">Campaigns › New campaign</span>
+  </header>
+
+  <main>
+    <h1>Create campaign</h1>
+    <p class="sub">Set up your campaign details and daily budget, then save to review.</p>
+
+    <form action="#" method="post">
+      <div class="panel">
+        <h2>Campaign details</h2>
+        <div class="field">
+          <label for="cname">Campaign name</label>
+          <input type="text" id="cname" name="cname" required>
+        </div>
+        <div class="field">
+          <label for="objective">Objective</label>
+          <select id="objective" name="objective">
+            <option>Traffic</option><option>Conversions</option><option>Brand awareness</option><option>Lead generation</option>
+          </select>
+        </div>
+        <div class="row">
+          <div class="field"><label for="start">Start date</label><input type="date" id="start" name="start"></div>
+          <div class="field"><label for="end">End date</label><input type="date" id="end" name="end"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Daily budget</h2>
+        <div class="slider-wrap">
+          <!--
+            F54: the budget is set ONLY by dragging this thumb (mousedown/pointermove).
+            No role=slider, no tabindex, no aria-value*, no arrow keys. There is no number
+            field anywhere that lets a keyboard user type the budget instead.
+          -->
+          <div class="slider-value"><span id="amount">£35</span> <small>per day</small></div>
+          <div class="track" id="track">
+            <div class="fill" id="fill"></div>
+            <div class="thumb" id="thumb" title="Drag to set your daily budget"></div>
+          </div>
+          <div class="scale"><span>£10</span><span>£55</span><span>£100</span></div>
+          <p class="hint">Drag the handle to choose how much you want to spend each day.</p>
+          <input type="hidden" name="dailyBudget" id="dailyBudget" value="35">
+        </div>
+      </div>
+
+      <div class="actions">
+        <button type="submit" class="primary">Save campaign</button>
+        <button type="button" class="ghost">Save as draft</button>
+      </div>
+    </form>
+  </main>
+
+  <script>
+    // Drag-only slider: pointer events set the value. No keyboard handler exists, and
+    // the value is the drag ENDPOINT (a number), not a path — so this is a genuine F54
+    // failure, not the path-dependent 2.1.1 exception.
+    (function () {
+      var track = document.getElementById('track');
+      var thumb = document.getElementById('thumb');
+      var fill = document.getElementById('fill');
+      var amount = document.getElementById('amount');
+      var hidden = document.getElementById('dailyBudget');
+      var MIN = 10, MAX = 100;
+      var dragging = false;
+
+      function setFromX(clientX) {
+        var rect = track.getBoundingClientRect();
+        var pct = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+        var value = Math.round(MIN + pct * (MAX - MIN));
+        thumb.style.left = (pct * 100) + '%';
+        fill.style.width = (pct * 100) + '%';
+        amount.textContent = '£' + value;
+        hidden.value = value;
+      }
+
+      thumb.addEventListener('mousedown', function () { dragging = true; });
+      track.addEventListener('mousedown', function (e) { dragging = true; setFromX(e.clientX); });
+      document.addEventListener('mousemove', function (e) { if (dragging) setFromX(e.clientX); });
+      document.addEventListener('mouseup', function () { dragging = false; });
+      // Touch parity for completeness — still pointer-only, still no keyboard path.
+      thumb.addEventListener('touchstart', function () { dragging = true; }, { passive: true });
+      document.addEventListener('touchmove', function (e) {
+        if (dragging && e.touches[0]) setFromX(e.touches[0].clientX);
+      }, { passive: true });
+      document.addEventListener('touchend', function () { dragging = false; });
+    })();
+  </script>
+</body>
+</html>

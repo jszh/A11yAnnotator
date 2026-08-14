@@ -4,25 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Morning Dashboard — Greenfield Co-working</title>
-<!--
-  SC 1.3.2 APPLICABILITY GATE — EXPECTED: PASS (multiple valid orders; container not meaningful)
-
-  A personal "start page" / dashboard of independent widgets: weather, a stock ticker, today's
-  room bookings, and a transit-departures board. CSS grid uses `grid-template-areas` and explicit
-  `grid-area` / `order` so the VISUAL placement is: weather top-left, transit top-right, bookings
-  bottom-left, stocks bottom-right. The DOM order is different again (bookings, stocks, weather,
-  transit). None of that matters: each widget is self-contained, and ANY permutation reads
-  sensibly because the widgets are mutually independent.
-
-  The point: an evaluator might be tempted to flag the DOM-vs-visual mismatch, but there is no
-  single "correct" sequence to violate — every reading order is correct. Each widget is internally
-  ordered (e.g. the transit board lists soonest-first), and no widget is interleaved with another.
-
-  Contrast with the FAIL cases (04/05/06) where reordering DOES break meaning. Here it cannot.
-
-  WHY AUTOMATED TOOLS MISS IT: no 1.3.2 rule; a DOM-vs-visual heuristic would mis-fire. Knowing the
-  four widgets are independent — so any order is valid — is a semantic judgement.
--->
 <style>
   :root { --bg:#0f1b2d; --card:#17263d; --line:#2a3b56; --ink:#e8eef7; --dim:#9fb1cc;
           --good:#4ade80; --bad:#f87171; --accent:#60a5fa; }
@@ -33,7 +14,6 @@
   header h1 { margin:0; font-size:1.25rem; font-weight:600; }
   header p { margin:.2rem 0 0; color:var(--dim); font-size:.85rem; }
 
-  /* Grid: VISUAL placement differs from DOM order. Widgets are independent. */
   .grid {
     display:grid; gap:18px; padding:22px 24px;
     grid-template-columns:1fr 1fr;
@@ -71,7 +51,6 @@
 
   <div class="grid">
 
-    <!-- DOM #1: Room bookings (visually bottom-left). Self-contained, chronological. -->
     <section class="widget" id="w-bookings" aria-labelledby="b-bookings">
       <h2 id="b-bookings">Today&rsquo;s room bookings</h2>
       <ul class="clean">
@@ -82,7 +61,6 @@
       </ul>
     </section>
 
-    <!-- DOM #2: Stock ticker (visually bottom-right). Self-contained watchlist. -->
     <section class="widget" id="w-stocks" aria-labelledby="b-stocks">
       <h2 id="b-stocks">Watchlist</h2>
       <ul class="clean">
@@ -93,14 +71,12 @@
       </ul>
     </section>
 
-    <!-- DOM #3: Weather (visually top-left). Self-contained. -->
     <section class="widget" id="w-weather" aria-labelledby="b-weather">
       <h2 id="b-weather">Weather &mdash; Greenfield</h2>
       <p class="big">14&deg;C</p>
       <p class="muted">Overcast, light breeze. High 17&deg;, low 9&deg;. Rain after 18:00.</p>
     </section>
 
-    <!-- DOM #4: Transit departures (visually top-right). Self-contained, soonest-first. -->
     <section class="widget" id="w-transit" aria-labelledby="b-transit">
       <h2 id="b-transit">Next departures &mdash; Greenfield Cross</h2>
       <ul class="clean">

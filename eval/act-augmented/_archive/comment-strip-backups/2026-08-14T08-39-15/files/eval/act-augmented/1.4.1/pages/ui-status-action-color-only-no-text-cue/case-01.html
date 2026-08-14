@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Confirm your loan application — Meridian Personal Lending</title>
+<!--
+  SC 1.4.1 Use of Color — FAILING (G14, "indicating an action" limb).
+  The two submit controls below are identically shaped, identically sized, and BOTH
+  carry the same generic accessible text ("Submit"). The ONLY thing distinguishing
+  "proceed / accept the loan terms" from "cancel / reject the loan terms" is the fill
+  colour: green = proceed, red = cancel. The convention is stated only in body prose.
+  Per G14 the action conveyed by the colour must ALSO be conveyed in the control's text;
+  here it is not. In grayscale the two buttons are indistinguishable and a user cannot
+  tell which one accepts an irreversible loan and which cancels.
+
+  Why automated tools miss it: both buttons are real <button> elements with non-empty,
+  programmatically determinable text ("Submit"), so axe/WAVE/Lighthouse see two valid,
+  named, contrast-passing controls. No tool can know that the GREEN one means "proceed"
+  and the RED one means "cancel" purely from CSS background-color, nor that the only
+  textual carrier of that distinction lives 200px away in a paragraph. Mapping fill
+  colour to an action and verifying a redundant text cue is contextual reasoning.
+-->
+<style>
+  :root { font-family: "Segoe UI", system-ui, Arial, sans-serif; }
+  body { margin: 0; background: #eef1f5; color: #1c2733; line-height: 1.5; }
+  .app { max-width: 680px; margin: 0 auto; background: #fff; border: 1px solid #d4dae2; }
+  header { background: #0b3d5c; color: #fff; padding: 18px 28px; }
+  header .brand { font-size: 1.15rem; font-weight: 700; letter-spacing: .3px; }
+  header .step { font-size: .82rem; color: #b9d4e6; margin-top: 2px; }
+  main { padding: 26px 28px 34px; }
+  h1 { font-size: 1.35rem; margin: 0 0 14px; }
+  .terms { background: #f6f8fb; border: 1px solid #dde4ec; border-radius: 6px; padding: 16px 18px; font-size: .92rem; }
+  .terms dl { margin: 0; display: grid; grid-template-columns: 160px 1fr; row-gap: 6px; }
+  .terms dt { font-weight: 600; color: #36475a; }
+  .terms dd { margin: 0; }
+  .helptext { font-size: .9rem; color: #44566a; margin: 18px 0 6px; }
+  .actions { display: flex; gap: 16px; margin-top: 22px; }
+  /* The two buttons are deliberately identical in geometry and label. */
+  .btn {
+    flex: 1 1 0;
+    padding: 14px 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .btn--proceed { background: #1f9d55; }   /* green = "submit / accept" */
+  .btn--cancel  { background: #c8332b; }    /* red  = "cancel / reject" */
+  .btn:focus-visible { outline: 3px solid #0b3d5c; outline-offset: 2px; }
+  footer { padding: 14px 28px 22px; font-size: .78rem; color: #7a8a99; }
+</style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="brand">Meridian Personal Lending</div>
+      <div class="step">Step 4 of 4 — Confirm &amp; sign</div>
+    </header>
+    <main>
+      <h1>Confirm your loan application</h1>
+
+      <section class="terms" aria-label="Loan summary">
+        <dl>
+          <dt>Principal</dt><dd>$14,500.00</dd>
+          <dt>APR</dt><dd>11.74% fixed</dd>
+          <dt>Term</dt><dd>48 months</dd>
+          <dt>Monthly payment</dt><dd>$378.41</dd>
+          <dt>Total repayable</dt><dd>$18,163.68</dd>
+        </dl>
+      </section>
+
+      <p class="helptext">
+        Review the figures above. <strong>Green buttons advance the application; red
+        buttons cancel it.</strong> Pressing the green button submits your application
+        and creates a binding credit agreement. Pressing the red button discards this
+        draft and returns you to your dashboard with nothing saved.
+      </p>
+
+      <form class="actions" onsubmit="return false;">
+        <button type="submit" class="btn btn--proceed">Submit</button>
+        <button type="submit" class="btn btn--cancel">Submit</button>
+      </form>
+    </main>
+    <footer>
+      Meridian Personal Lending is a trading name of Meridian Financial Group. Loans
+      subject to status and affordability checks.
+    </footer>
+  </div>
+</body>
+</html>

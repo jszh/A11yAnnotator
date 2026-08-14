@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Create your workspace — Cadence HR</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (SC 3.3.3 Error Suggestion, Level AA):
+  Post-submit error state for a "Create password" field. The error is identified in
+  text — "Password does not meet requirements." — correctly associated via
+  aria-describedby, aria-invalid="true", high contrast. SC 3.3.1 passes. axe / WAVE /
+  Lighthouse go green.
+
+  THE DEFECT IS SC 3.3.3: the requirements are KNOWABLE and in fact ENCODED IN THIS
+  PAGE'S OWN VALIDATOR (see the RULES array in the inline <script>: >= 12 chars, one
+  uppercase, one digit, one symbol). The password the user chose, "summertime",
+  violates three of those four rules. The system knows exactly which rules failed and
+  could state them — but the visible message surfaces NONE of the requirements. It only
+  restates that the password is wrong.
+
+  This is the canonical 3.3.3 long-tail trap: "Password not strong enough / does not
+  meet requirements" with the rules existing in the validator but never shown. A
+  checker cannot tell "Password does not meet requirements." (restatement) from
+  "Password must be 12+ characters with an uppercase letter, a number, and a symbol."
+  (suggestion) — both are valid non-empty strings. Note: NO password-length/complexity
+  hint is rendered anywhere (no placeholder, no help text), so a human reading the page
+  finds the rule nowhere in the UI even though it sits one scope away in the script.
+-->
+<style>
+  :root{ --ink:#15202b; --muted:#5b6b7b; --line:#cdd6df; --teal:#0f6e6e; --danger:#c0392b; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font:16px/1.55 "Inter","Segoe UI",system-ui,sans-serif; color:var(--ink);
+        background:#eef3f5; }
+  .shell{ max-width:440px; margin:54px auto; padding:0 18px; }
+  .brand{ display:flex; gap:9px; align-items:center; justify-content:center; margin-bottom:22px; }
+  .brand .mark{ width:26px; height:26px; border-radius:7px; background:var(--teal); }
+  .brand b{ font-size:1.05rem; }
+  .card{ background:#fff; border:1px solid var(--line); border-radius:12px; padding:30px 28px;
+        box-shadow:0 6px 22px rgba(21,32,43,.07); }
+  h1{ font-size:1.3rem; margin:0 0 4px; }
+  .lede{ color:var(--muted); margin:0 0 22px; font-size:.92rem; }
+  .field{ margin-bottom:18px; }
+  label{ display:block; font-weight:600; font-size:.9rem; margin-bottom:6px; }
+  input{ width:100%; padding:11px 12px; font-size:1rem; border:2px solid var(--line);
+        border-radius:8px; }
+  input[aria-invalid="true"]{ border-color:var(--danger); background:#fdf4f3; }
+  input:focus{ outline:2px solid var(--teal); outline-offset:1px; }
+  .err{ color:var(--danger); font-size:.86rem; font-weight:600; margin:8px 0 0; }
+  button{ width:100%; margin-top:6px; padding:12px; font-size:1rem; font-weight:600; color:#fff;
+        background:var(--teal); border:0; border-radius:8px; cursor:pointer; }
+  .legal{ color:var(--muted); font-size:.78rem; text-align:center; margin-top:18px; }
+</style>
+</head>
+<body>
+  <div class="shell">
+    <div class="brand"><span class="mark" aria-hidden="true"></span><b>Cadence HR</b></div>
+    <main class="card">
+      <h1>Create your workspace</h1>
+      <p class="lede">Set the password your team's admin account will use.</p>
+
+      <form action="#" method="post" novalidate>
+        <div class="field">
+          <label for="email">Work email</label>
+          <input type="email" id="email" name="email" value="dana.okafor@northgate.example" autocomplete="email">
+        </div>
+
+        <div class="field">
+          <label for="pw">Create password</label>
+          <!--
+            No placeholder, no help text describing the rules is rendered. The only place
+            the rules exist in the page is the RULES array in the script below.
+            Chosen value "summertime" fails minLength, needsUpper, needsDigit, needsSymbol.
+            The visible message names none of them.
+          -->
+          <input type="password" id="pw" name="pw"
+                 aria-describedby="pw-error"
+                 aria-invalid="true"
+                 value="summertime"
+                 autocomplete="new-password">
+          <p class="err" id="pw-error">Password does not meet requirements.</p>
+        </div>
+
+        <button type="submit">Create workspace</button>
+      </form>
+
+      <p class="legal">By continuing you agree to the Cadence HR Acceptable Use Policy.</p>
+    </main>
+  </div>
+
+  <script>
+    // Authoritative client-side validator. The requirements are fully known here,
+    // and the system computes exactly which ones failed — yet the message that gets
+    // shown (#pw-error) surfaces none of them.
+    const RULES = [
+      { id: 'minLength', test: v => v.length >= 12,        label: 'at least 12 characters' },
+      { id: 'needsUpper', test: v => /[A-Z]/.test(v),      label: 'an uppercase letter' },
+      { id: 'needsDigit', test: v => /[0-9]/.test(v),      label: 'a number' },
+      { id: 'needsSymbol', test: v => /[^A-Za-z0-9]/.test(v), label: 'a symbol' }
+    ];
+    function validate(pw) {
+      const failed = RULES.filter(r => !r.test(pw));   // for "summertime": 3 of 4 fail
+      return failed.length === 0;
+    }
+    // On submit the page already re-rendered with the generic string; the failed[] list
+    // (the knowable correction) is discarded rather than written into #pw-error.
+  </script>
+</body>
+</html>

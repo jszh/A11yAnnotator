@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Create your Cadence workspace</title>
+  <style>
+    :root { --ink:#0f172a; --muted:#64748b; --line:#e2e8f0; --indigo:#4f46e5; --red:#dc2626; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Inter", system-ui, Arial, sans-serif; color:var(--ink);
+           background:linear-gradient(160deg,#eef2ff,#f8fafc 60%); min-height:100vh; line-height:1.5; }
+    .panel { max-width:420px; margin:48px auto; background:#fff; border:1px solid var(--line);
+             border-radius:16px; padding:32px 32px 36px; box-shadow:0 10px 30px rgba(15,23,42,.08); }
+    .logo { font-weight:800; font-size:18px; letter-spacing:-.3px; color:var(--indigo); margin:0 0 22px; }
+    h1 { font-size:22px; margin:0 0 4px; }
+    .sub { color:var(--muted); margin:0 0 26px; font-size:14px; }
+    .field { margin:0 0 18px; }
+    label { display:block; font-weight:600; font-size:14px; margin:0 0 6px; }
+    input { width:100%; font-size:16px; padding:11px 12px; border:1px solid var(--line); border-radius:10px; }
+    input:focus { outline:2px solid var(--indigo); outline-offset:1px; }
+    input.err { border-color:var(--red); }
+    .help { color:var(--muted); font-size:12.5px; margin:5px 0 0; }
+    .err-msg { color:var(--red); font-size:13px; margin:6px 0 0; display:none; }
+    button { width:100%; background:var(--indigo); color:#fff; border:0; border-radius:10px;
+             font-size:16px; font-weight:600; padding:12px; cursor:pointer; margin-top:8px; }
+    .note { max-width:420px; margin:0 auto 40px; font-size:12.5px; color:var(--muted); padding:0 32px; }
+  </style>
+</head>
+<body>
+  <main>
+    <form class="panel" id="signup" novalidate>
+      <p class="logo">Cadence</p>
+      <h1>Create your workspace</h1>
+      <p class="sub">Start a 14-day trial. No card required.</p>
+
+      <div class="field">
+        <label for="work-email">Work email</label>
+        <input type="email" id="work-email" name="work-email" autocomplete="email">
+        <p class="help">We'll send a verification link to this address.</p>
+      </div>
+
+      <!-- ISSUE: the label is the correct topic noun "Password" with no statement of the complexity
+           requirements. There IS a help line under it — but it only says "Choose something memorable",
+           which is misleading: the real rules (>= 12 characters AND at least one symbol) are enforced
+           only by the submit handler and surfaced only in the error AFTER a rejected submit. The
+           label+help name the topic and give friendly-but-wrong guidance; the actual data requirements
+           never appear up front. This is "error-as-format", which TT 5.B says is insufficient. -->
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" autocomplete="new-password">
+        <p class="help">Choose something memorable.</p>
+        <p class="err-msg" id="pw-err">Password must be at least 12 characters and include at least one symbol (for example ! ? # $).</p>
+      </div>
+
+      <button type="submit">Create workspace</button>
+    </form>
+
+    <p class="note">Demo note (not shown to users): This page fails WCAG 2.4.6 Test 5.B. The password
+      field's purpose is clear, but its applicable data requirements (minimum 12 characters, at least
+      one symbol) are not communicated by the label or its instruction — the only on-screen guidance,
+      "Choose something memorable", is friendly but does not state the rules, and the rules surface only
+      in the post-submit error. Automated tools pass it: the label is associated and non-empty and the
+      help text is present, so axe-core/WAVE/Lighthouse see a well-labelled field. No tool reads the
+      validator to learn the 12-char/symbol rule, and none can judge that the visible instruction fails
+      to state the requirement while the error does — "error-as-format", which TT 5.B disallows.</p>
+  </main>
+
+  <script>
+    var f = document.getElementById('signup');
+    var pw = document.getElementById('password');
+    var pwErr = document.getElementById('pw-err');
+    f.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var v = pw.value;
+      // Real rules, never stated up front: >= 12 chars AND at least one symbol.
+      var ok = v.length >= 12 && /[^A-Za-z0-9]/.test(v);
+      if (!ok) {
+        pw.classList.add('err');
+        pwErr.style.display = 'block';   // requirements disclosed for the first time, on error
+      } else {
+        pw.classList.remove('err');
+        pwErr.style.display = 'none';
+        alert('Workspace created! Check your email to verify.');
+      }
+    });
+  </script>
+</body>
+</html>

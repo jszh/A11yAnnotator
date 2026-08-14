@@ -23,7 +23,6 @@
   .product .price { font-weight:700; margin:0 0 12px; }
   .add { width:100%; background:var(--espresso); color:#fff; border:0; border-radius:7px; padding:10px; font-size:.92rem; font-weight:600; cursor:pointer; }
   .add:hover { background:#26190f; }
-  /* Snackbar */
   #snackbar { position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(140%); background:#222018; color:#fff; padding:14px 20px; border-radius:8px; box-shadow:0 10px 30px rgba(0,0,0,.35); font-size:.92rem; transition:transform .28s ease; max-width:90vw; }
   #snackbar.show { transform:translateX(-50%) translateY(0); }
   .devnote { margin-top:30px; padding:14px 18px; background:#f3f9f2; border:1px solid #bfe0bb; border-radius:8px; font-size:.82rem; color:#2f5b2c; line-height:1.5; }
@@ -82,14 +81,9 @@
   </div>
 </main>
 
-<!-- CORRECT TIMING: an empty, persistent live region present in the DOM at load. -->
 <div id="snackbar" role="status" aria-live="polite" data-region-preexisting-empty="true"></div>
 
 <script>
-  // Persona: a careful e-commerce developer who read the ARIA live-region guidance ("create an empty element first,
-  // then update its content"). They shipped one persistent empty role=status snackbar in the markup and only ever
-  // write textContent into it. This is the PASS control: it sharpens the aspect by showing that the SAME resting
-  // DOM (a valid role=status with text) is announced when — and only when — the region pre-existed empty at load.
   var count = 0;
   var snack = document.getElementById('snackbar');
   var hideTimer = null;
@@ -98,7 +92,6 @@
     btn.addEventListener('click', function () {
       count += 1;
       document.getElementById('cart-count').textContent = count;
-      // Write ONLY text into the pre-existing, already-registered empty live region. This is the announced path.
       snack.textContent = btn.getAttribute('data-name') + ' added to your cart. ' +
         count + (count === 1 ? ' item.' : ' items.');
       snack.classList.add('show');

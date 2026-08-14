@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>County Benefits Portal — Sign in</title>
+  <style>
+    body { font-family: "Segoe UI", Arial, sans-serif; background:#eef1f4; margin:0; color:#1b1b1b; }
+    .seal { background:#0b3d62; color:#fff; padding:.8rem 1rem; display:flex; align-items:center; gap:.6rem; }
+    .seal strong { font-size:1.05rem; }
+    .card { max-width:440px; margin:2.2rem auto; background:#fff; border:1px solid #d6dbe0;
+            border-radius:6px; padding:1.75rem 1.75rem 2rem; box-shadow:0 1px 4px rgba(0,0,0,.08); }
+    h1 { font-size:1.35rem; margin:.2rem 0 1.2rem; }
+    .field { margin-bottom:1.15rem; }
+    /* House style: form labels are rendered in a wide-tracked all-caps "official" look.
+       Most labels use CSS letter-spacing (correct). One label was instead spaced with &nbsp;. */
+    label { display:block; font-size:.72rem; font-weight:700; text-transform:uppercase;
+            letter-spacing:.18em; color:#33424f; margin-bottom:.35rem; }
+    input { width:100%; padding:.6rem .7rem; font-size:1rem; border:1px solid #9aa6b1; border-radius:4px; }
+    .hint { font-size:.75rem; color:#5a6b78; margin-top:.3rem; }
+    button { width:100%; margin-top:.4rem; padding:.7rem; font-size:1rem; font-weight:600;
+             background:#0b3d62; color:#fff; border:0; border-radius:4px; cursor:pointer; }
+    .note { max-width:440px; margin:0 auto 2.5rem; font-size:.8rem; color:#444; }
+    code { background:#eef1f4; padding:.1em .3em; border-radius:3px; }
+  </style>
+</head>
+<body>
+  <div class="seal"><span aria-hidden="true">🏛️</span><strong>Marion County Benefits Portal</strong></div>
+
+  <form class="card" action="#" method="post" novalidate>
+    <h1>Sign in to your account</h1>
+
+    <div class="field">
+      <!-- Legit initialism in the label, tracked with CSS only. Text node = "SSN". PASS. -->
+      <label for="ssn">SSN (last 4)</label>
+      <input id="ssn" name="ssn" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="0000">
+      <p class="hint" id="ssn-h">Last four digits of your Social Security Number.</p>
+    </div>
+
+    <div class="field">
+      <!-- Another initialism — "PIN" — also only CSS-tracked. PASS. -->
+      <label for="pin">Mailing PIN</label>
+      <input id="pin" name="pin" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="######">
+    </div>
+
+    <div class="field">
+      <!-- F32 FAILURE: the single English word "Password" is spaced with &nbsp; INSIDE the
+           <label>. Because the <label> text is the control's accessible name, the field is
+           named "P A S S W O R D" — read letter-by-letter, not as a word. The visual look is
+           identical to the CSS-tracked labels above, but the mechanism is white space in a word. -->
+      <label for="pw">P&nbsp;A&nbsp;S&nbsp;S&nbsp;W&nbsp;O&nbsp;R&nbsp;D</label>
+      <input id="pw" name="pw" type="password" autocomplete="current-password">
+    </div>
+
+    <button type="submit">Sign in</button>
+  </form>
+
+  <p class="note">
+    <strong>Why automated checkers pass this page:</strong> every input has a programmatically
+    associated, non-empty <code>&lt;label&gt;</code> (correct <code>for</code>/<code>id</code>),
+    so axe/WAVE/Lighthouse report a valid accessible name for all three fields and raise no
+    error. They cannot tell that the third label, <code>P&nbsp;A&nbsp;S&nbsp;S&nbsp;W&nbsp;O&nbsp;R&nbsp;D</code>,
+    is the single word "Password" broken by non-breaking spaces (F32) while
+    <code>SSN</code> and <code>PIN</code> are initialisms the same visual tracking is fine for.
+    Whether a spaced label is a real word being shattered or a legitimate acronym is a human
+    linguistic judgement.
+  </p>
+</body>
+</html>

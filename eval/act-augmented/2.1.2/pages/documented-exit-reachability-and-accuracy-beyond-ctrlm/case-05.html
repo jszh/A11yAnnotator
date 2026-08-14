@@ -34,16 +34,6 @@
   <p>Session: <strong>City Council public hearing</strong> &mdash; English &rarr; Spanish relay.</p>
   <a href="/sessions">&larr; All sessions</a>
 
-  <!-- FAIL (accuracy in the real environment, beyond the corpus's plainly-present/absent Ctrl+M cases):
-       The booth is a focus-looping subset (source select, glossary box, and the live-transcript textarea
-       loop so an interpreter can stay heads-down). A custom exit IS documented, the instruction IS
-       reachable from inside the loop (it is plain in-flow text the screen reader reads), and the page's
-       OWN keydown handler genuinely listens for the documented combo. The defect: the documented combo is
-       Ctrl+W — a combination the BROWSER reserves for "close tab", so the OS/user-agent consumes it before
-       the page handler can run. The advice is accurate "on paper" (matches the handler) but INACCURATE in
-       the real user environment: pressing the documented key never exits the trap (and may close the tab).
-       Whether a documented keystroke is actually deliverable to the page is exactly the hardware/UA/OS
-       judgment the Understanding doc warns auditors to make — a static tool cannot. -->
   <section class="booth" id="booth" aria-label="Interpretation booth">
     <h2>Interpretation booth</h2>
     <div class="row">
@@ -75,18 +65,6 @@
 </div>
 <footer>
   InterpretHub &middot; Sessions auto-archive 30 days after they end.
-  <!--
-    WHY THIS FAILS (and why a checker can't catch it):
-    Focus is trapped in #booth (blur re-focuses the first control). A custom exit is documented, the
-    documentation is keyboard-reachable in-subset (real in-flow text, read by AT), and the page's keydown
-    handler DOES branch on Ctrl+W — so by every static signal the advice "matches" the code. But Ctrl+W is
-    a reserved user-agent shortcut (close current tab): the browser intercepts it, so the page's handler is
-    never reached and focus never leaves. The documented exit is therefore INACCURATE in the actual runtime
-    environment. axe/WAVE/Lighthouse see present, reachable, well-formed instruction text whose key string
-    equals the handler's key string — they do not model that the browser eats Ctrl+W before the page sees
-    it, do not press keys, and cannot judge "is this combo deliverable to the page on this UA/OS." The
-    Understanding doc explicitly makes deliverability a hardware/user-agent/OS judgment for a human auditor.
-  -->
 </footer>
 
 <script>
@@ -103,10 +81,6 @@
     });
   });
 
-  // The page DOES wire an exit on the documented combo (Ctrl+W) — so a static "does the advice match the
-  // code" check would pass. In a real browser this branch is dead code: the user agent consumes Ctrl+W
-  // (close tab) before keydown reaches the page, so focus is never released. The exit is documented and
-  // code-matched yet not deliverable — inaccurate in practice.
   booth.addEventListener('keydown', function (e) {
     if (e.ctrlKey && (e.key === 'w' || e.key === 'W')) {
       e.preventDefault();

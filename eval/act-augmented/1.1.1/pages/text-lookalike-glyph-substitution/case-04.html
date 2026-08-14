@@ -3,32 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!--
-    SC 1.1.1 (Non-text Content), Failure Technique F71 — the CHARACTER-ENTITY
-    variant. F71 explicitly notes: "This failure also applies to the use of
-    character entities. It is the incorrect character used because of its glyph
-    representation that comprises a failure, not the mechanism by which that
-    character is implemented." Here the page word "Login" (the form's heading AND
-    the submit button label) is built ENTIRELY from numeric character entities that
-    decode to look-alike codepoints:
-        &#x004C;  L  U+004C  Latin 'L'
-        &#x03BF;  o  U+03BF  Greek small 'o'        (looks like 'o')
-        &#x0067;  g  U+0067  Latin 'g'
-        &#x0456;  i  U+0456  Cyrillic small 'i'     (looks like 'i')
-        &#x006E;  n  U+006E  Latin 'n'
-    After the browser decodes the entities, the DOM text node contains the Greek
-    'o' and Cyrillic 'i' codepoints — so a screen reader announces a mixed-script
-    string, not "Login". The accessible name of the submit button (computed from
-    its text) is therefore the confusable word, with no aria-label override and no
-    visually-hidden Latin alternative.
-
-    WHY AUTOMATED TOOLS MISS IT: after parsing, the entities ARE characters, so
-    "view source shows entities" is irrelevant to scanners — and they still see a
-    valid, non-empty heading and a valid, non-empty button name, so axe / WAVE /
-    Lighthouse pass. No img/svg/role=img exists, so all ACT 1.1.1 rules are
-    Inapplicable. Catching this needs decoding the entities and comparing the
-    resulting glyphs to the page language — a human reading judgment.
-  -->
   <title>Sign in — Riverbank Credit Union</title>
   <style>
     :root { --ink:#10243a; --teal:#0d6b6b; --rule:#dfe6ec; --bg:#eef3f6; }
@@ -50,7 +24,6 @@
 <body>
   <main class="card">
     <p class="logo">Riverbank <span>Credit Union</span></p>
-    <!-- HEADING: "Login" assembled from confusable entities (Greek o, Cyrillic i). -->
     <h1>&#x004C;&#x03BF;&#x0067;&#x0456;&#x006E;</h1>
 
     <form action="#" method="post" novalidate>
@@ -67,7 +40,6 @@
         <a href="#">Forgot password?</a>
       </div>
 
-      <!-- SUBMIT BUTTON: label is again the confusable "Login" via entities. -->
       <button type="submit">&#x004C;&#x03BF;&#x0067;&#x0456;&#x006E;</button>
     </form>
 

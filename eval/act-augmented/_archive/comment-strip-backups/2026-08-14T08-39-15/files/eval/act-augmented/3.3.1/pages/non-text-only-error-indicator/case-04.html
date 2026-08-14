@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Set a new password — Meridian Banking</title>
+<style>
+  body { font:15px/1.5 system-ui,"Segoe UI",sans-serif; color:#1b1f24;
+         background:#0d2741; margin:0; }
+  .card { max-width:420px; margin:7vh auto; background:#fff; border-radius:14px;
+          padding:34px 34px 40px; box-shadow:0 14px 40px rgba(0,0,0,.35); }
+  .brand { font-weight:800; letter-spacing:.04em; color:#0d2741; margin:0 0 2px; }
+  h1 { font-size:1.25rem; margin:0 0 4px; }
+  .sub { color:#5a646d; margin:0 0 26px; font-size:.9rem; }
+  .field { margin:0 0 18px; }
+  label { display:block; font-weight:600; margin:0 0 6px; font-size:.9rem; }
+  .pw { position:relative; }
+  .pw input {
+    width:100%; box-sizing:border-box; padding:11px 12px 11px 40px; font-size:1rem;
+    border:1.5px solid #c2cad1; border-radius:9px; background:#fff; }
+  /* default grey padlock glyph drawn in CSS (SVG mask, so colour is honoured) in front
+     of every password box */
+  .pw::before {
+    content:""; position:absolute; left:13px; top:50%; transform:translateY(-50%);
+    width:15px; height:18px; background:#9aa4ac;
+    -webkit-mask:var(--lock) center/contain no-repeat; mask:var(--lock) center/contain no-repeat;
+    --lock:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M6 10V7a6 6 0 0 1 12 0v3h1a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h1Zm2 0h8V7a4 4 0 0 0-8 0v3Z'/></svg>");
+    --key:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M14 2a7 7 0 0 0-6.7 9.06L2 16.36V22h5.64l.7-.7v-2.12h2.12l1.41-1.41V15.6l1.07-1.07A7 7 0 1 0 14 2Zm3 5.5a1.5 1.5 0 1 1-1.5-1.5A1.5 1.5 0 0 1 17 7.5Z'/></svg>");
+  }
+  /* flagged state: red outline + the glyph swaps to a RED key (mask honours colour), no words */
+  .pw.flagged input { border-color:#d22; }
+  .pw.flagged::before {
+    background:#d22;
+    -webkit-mask-image:var(--key); mask-image:var(--key);
+  }
+  .submit { width:100%; background:#11518f; color:#fff; border:0; border-radius:9px;
+            padding:13px; font-size:1rem; font-weight:700; cursor:pointer; margin-top:6px; }
+  .help { font-size:.78rem; color:#7a838b; margin-top:24px; text-align:center; }
+</style>
+</head>
+<body>
+  <!-- Reset-password screen redisplayed after a failed submit. The chosen password matched
+       the user's previous password, which the bank forbids. The server marked the field
+       invalid: it added class="flagged" (red outline + red key glyph via ::before) and set
+       aria-invalid="true". But it emitted NO error text, no aria-describedby/aria-errormessage
+       target, no hint — nothing in words says WHY the password was rejected, or even that
+       anything is wrong. -->
+  <main class="card">
+    <p class="brand">MERIDIAN</p>
+    <h1>Choose a new password</h1>
+    <p class="sub">Your link is valid for 15 minutes. Pick something you have not used here before.</p>
+
+    <form action="/account/password" method="post" novalidate>
+      <div class="field">
+        <label for="pw1">New password</label>
+        <div class="pw flagged">
+          <input type="password" id="pw1" name="pw1" value="Spring2026!" aria-invalid="true">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="pw2">Confirm new password</label>
+        <div class="pw">
+          <input type="password" id="pw2" name="pw2" value="Spring2026!">
+        </div>
+      </div>
+
+      <button type="submit" class="submit">Save password</button>
+    </form>
+
+    <p class="help">Trouble signing in? Call us on 0800 109 4400.</p>
+  </main>
+
+<!--
+  WHY AUTOMATED TOOLS MISS THIS
+  This is the deceptive variant. The field even carries aria-invalid="true", so a checker
+  sees a programmatically-exposed invalid state and considers error handling "present" — it
+  will not complain. But aria-invalid only says THAT the field is invalid; SC 3.3.1 requires
+  the error be IDENTIFIED AND DESCRIBED IN TEXT. There is no error message, no
+  aria-errormessage, no aria-describedby, no visible or hidden words explaining that the new
+  password may not match a previous one. The red outline and the red key ::before glyph
+  (CSS generated content, never in the accessibility tree) are the only human-readable cue,
+  and they convey "wrong" purely visually with no text. A screen-reader user hears "New
+  password, invalid entry" with no reason given; many AT/browser pairs announce nothing at
+  all on a static aria-invalid with no message. No automated tool can judge that the
+  REASON for the error is absent from text while a red key visibly screams it.
+-->
+</body>
+</html>

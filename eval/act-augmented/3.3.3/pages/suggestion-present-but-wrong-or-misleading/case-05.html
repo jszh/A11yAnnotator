@@ -4,26 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Book your festival arrival month — Larkfield Open Air</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS:
-  This is the SC's own "Did you mean December?" example — but mis-fired. The arrival-
-  month field accepts a number 1–12 (its visible instruction: "Enter your arrival
-  month as a number, 1–12"). Type 07 (a perfectly valid July) and the page shows a
-  confident correction suggestion in role=status:
-  "We read that as the 7th — did you mean December? Use December instead."
-  with a button that overwrites the field with 12.
-  SC 3.3.3 facets all 'pass' on the surface: a 'did you mean' correction suggestion
-  is present, associated, announced, actionable. axe/WAVE/Lighthouse see a present,
-  associated suggestion.
-  THE DEFECT IS SEMANTIC: 07 is ALREADY VALID and means July — there was no input
-  error to correct. The suggestion fabricates an error, mis-maps 7 → December (7 is
-  not December; December is 12), and pushes the user to overwrite a correct value
-  with a WRONG one. Following the suggestion changes a valid July booking into an
-  unintended December booking. The 'suggestion' is both gratuitous (no error existed)
-  and factually wrong (7 ≠ December). No scanner knows that 7 means July, that the
-  input was already valid, or that the offered 'December' is the wrong month — it just
-  sees suggestion text. Catching it needs a human who knows the months.
--->
 <style>
   :root{
     --ink:#1a1530; --muted:#5f586f; --line:#ddd6e8; --brand:#6b2fb3; --brand-d:#54258d;
@@ -101,11 +81,8 @@
   month.addEventListener('input', function(){
     booked.hidden = true;
     var n = parseInt(month.value, 10);
-    // 07 (July) is a PERFECTLY VALID value. There is NO input error here.
     if (!(n >= 1 && n <= 12)) { clearSug(); return; }
 
-    // GRATUITOUS, WRONG "did you mean": fabricates an error for a valid value and
-    // mis-maps it to December (12), the wrong month. Accepting it corrupts the choice.
     if (month.value === '07' || n === 7){
       sug.className = 'suggest warn';
       sug.innerHTML = 'We read that as the 7th — did you mean December? ';

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Renew your library loans — Brentwood Public Library</title>
+<!--
+  ACCESSIBILITY DEFECT (SC 2.4.7, aspect: drawn-indicator-fails-forced-colors-or-at-tracking)
+  The ONLY focus indicator on the primary action buttons is a box-shadow "glow"
+  applied after `outline: none`. In the single default-mode render that the ACT rule
+  oj04fd snapshots, focus changes pixels (a blue ring appears) so the rule PASSES.
+  But user agents commonly SUPPRESS the box-shadow property in forced-colors /
+  Windows High Contrast mode. In that mode `outline: none` still wins, the box-shadow
+  is dropped, and there is NO remaining focus indicator at all — the exact C40 caveat.
+  This is invisible to a default-render pixel checker; it requires either toggling
+  forced-colors mode or reasoning about the chosen mechanism. axe/WAVE/Lighthouse see
+  legal CSS (outline:none is permitted when a replacement exists) and a real pixel
+  change, so they report nothing.
+-->
+<style>
+  :root { --brand: #155e9c; --ink: #1b1b1b; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--ink);
+    background: #f4f6f8;
+    line-height: 1.5;
+  }
+  header.site {
+    background: var(--brand);
+    color: #fff;
+    padding: 14px 28px;
+  }
+  header.site h1 { margin: 0; font-size: 1.25rem; font-weight: 600; }
+  header.site p { margin: 2px 0 0; font-size: .85rem; opacity: .9; }
+  main { max-width: 720px; margin: 28px auto; padding: 0 20px; }
+  .card {
+    background: #fff;
+    border: 1px solid #d8dde2;
+    border-radius: 10px;
+    padding: 22px 24px;
+    margin-bottom: 18px;
+    box-shadow: 0 1px 2px rgba(0,0,0,.05);
+  }
+  .item { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+  .item + .item { border-top: 1px solid #eef1f4; margin-top: 14px; padding-top: 14px; }
+  .meta strong { display: block; font-size: 1rem; }
+  .meta span { font-size: .85rem; color: #5a6470; }
+  .due { color: #b3261e; font-weight: 600; }
+
+  /* ---- The defect lives here ---- */
+  /* Designer wanted a "modern soft glow" instead of the browser's grey ring. */
+  .btn {
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    border-radius: 6px;
+    padding: 9px 18px;
+    background: var(--brand);
+    color: #fff;
+  }
+  .btn.secondary { background: #fff; color: var(--brand); border: 1px solid var(--brand); }
+
+  /* Native ring removed, replaced ONLY by a box-shadow that forced-colors drops. */
+  .btn:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px #ffffff, 0 0 0 6px #1a73e8;
+  }
+  /* No outline, no border change, no fallback. */
+
+  .nav-links a { color: var(--brand); text-decoration: none; font-weight: 600; }
+  .nav-links a:focus { outline: 2px solid var(--brand); outline-offset: 2px; } /* links are fine — only buttons are at risk */
+  footer { text-align: center; font-size: .8rem; color: #6b7480; padding: 24px; }
+</style>
+</head>
+<body>
+<header class="site">
+  <h1>Brentwood Public Library</h1>
+  <p>My account · Current loans</p>
+</header>
+
+<main>
+  <p class="nav-links"><a href="/account">&larr; Back to account overview</a></p>
+
+  <section class="card" aria-labelledby="loans-h">
+    <h2 id="loans-h">Items on loan (3)</h2>
+
+    <div class="item">
+      <span class="meta">
+        <strong>The Overstory</strong>
+        <span>Richard Powers · Hardback · <span class="due">Due in 2 days</span></span>
+      </span>
+      <button type="button" class="btn" data-id="9781">Renew this item</button>
+    </div>
+
+    <div class="item">
+      <span class="meta">
+        <strong>Atomic Habits</strong>
+        <span>James Clear · Audiobook (CD) · Due in 9 days</span>
+      </span>
+      <button type="button" class="btn" data-id="2240">Renew this item</button>
+    </div>
+
+    <div class="item">
+      <span class="meta">
+        <strong>Piranesi</strong>
+        <span>Susanna Clarke · Paperback · <span class="due">Overdue 1 day</span></span>
+      </span>
+      <button type="button" class="btn" data-id="5512" disabled style="opacity:.5;cursor:not-allowed">Cannot renew (reserved)</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <button type="button" class="btn">Renew all eligible items</button>
+    <button type="button" class="btn secondary">Print loan receipt</button>
+  </section>
+</main>
+
+<footer>Brentwood Public Library · 14 Mill Road · Open Mon–Sat</footer>
+
+<script>
+  // Trivial confirmation so the buttons are real controls.
+  document.querySelectorAll('.btn:not([disabled])').forEach(function (b) {
+    b.addEventListener('click', function () {
+      b.textContent = 'Renewed ✓';
+      b.disabled = true;
+      b.style.opacity = '.6';
+    });
+  });
+</script>
+</body>
+</html>

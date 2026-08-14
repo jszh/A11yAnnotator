@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mixing console — TapeDeck DAW</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+    background: #ECECEC;            /* light grey page — the comparison surface */
+    color: #20242a;
+  }
+  .topbar {
+    background: #d7d9dd; border-bottom: 1px solid #c3c6cc;
+    padding: 10px 20px; display: flex; align-items: center; gap: 10px;
+    font-weight: 700; font-size: 14px;
+  }
+  .topbar .dot { width: 12px; height: 12px; border-radius: 50%; background: #6E6E6E; }
+  main { max-width: 760px; margin: 30px auto; padding: 0 20px; }
+  h1 { font-size: 20px; margin: 0 0 6px; }
+  .sub { color: #555b63; margin: 0 0 26px; font-size: 14px; }
+
+  .transport {
+    display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
+    padding: 22px; background: #ECECEC; border-radius: 10px;
+  }
+
+  /* Skeuomorphic "hardware" buttons.
+     - Filled FACE is #6E6E6E => 4.32:1 vs the #ECECEC page  (identifies the control: PASS)
+     - The 3D bevel is built from a light highlight ring (#F4F4F4, ~1.07:1 vs page) on top
+       and a dark shadow ring (#C4C4C4, ~1.48:1 vs page) on the bottom, plus a soft
+       drop-shadow. These faint edges are the "3D drop-shadow ... subsumed into the color
+       closest in brightness" — decorative, not the identifying cue. */
+  .hw-btn {
+    appearance: none;
+    border: none;
+    background: #6E6E6E;            /* the filled face that identifies the control */
+    color: #ffffff;
+    font-size: 14px; font-weight: 700; letter-spacing: .3px;
+    padding: 14px 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    position: relative;
+    /* the bevel: light highlight on top-left, dark shadow on bottom-right + drop shadow */
+    box-shadow:
+      inset 2px 2px 0 #F4F4F4,     /* faint highlight edge ~1.07:1 vs page */
+      inset -2px -2px 0 #C4C4C4,   /* faint shadow edge ~1.48:1 vs page */
+      0 3px 5px rgba(0,0,0,0.18);  /* drop shadow */
+  }
+  .hw-btn:active {
+    box-shadow:
+      inset -2px -2px 0 #F4F4F4,
+      inset 2px 2px 0 #C4C4C4,
+      0 1px 2px rgba(0,0,0,0.18);
+  }
+  .hw-btn .glyph { display: inline-block; margin-right: 8px; }
+
+  .meta { margin-top: 28px; font-size: 13px; color: #555b63; }
+  .meta code { background: #dfe1e5; padding: 1px 5px; border-radius: 3px; }
+</style>
+</head>
+<body>
+  <div class="topbar"><span class="dot" aria-hidden="true"></span> TapeDeck DAW — Session: <em>moonlight_take7</em></div>
+
+  <main>
+    <h1>Transport controls</h1>
+    <p class="sub">Hardware-style transport panel for the master bus.</p>
+
+    <div class="transport" role="group" aria-label="Transport">
+      <button type="button" class="hw-btn"><span class="glyph" aria-hidden="true">&#9654;</span>Play</button>
+      <button type="button" class="hw-btn"><span class="glyph" aria-hidden="true">&#9209;</span>Pause</button>
+      <button type="button" class="hw-btn"><span class="glyph" aria-hidden="true">&#9632;</span>Stop</button>
+      <button type="button" class="hw-btn"><span class="glyph" aria-hidden="true">&#9210;</span>Record</button>
+      <button type="button" class="hw-btn"><span class="glyph" aria-hidden="true">&#8634;</span>Loop</button>
+    </div>
+
+    <p class="meta">
+      The bevel is purely cosmetic — the embossed look comes from a 1px light
+      <code>inset</code> highlight and a 1px dark <code>inset</code> shadow plus a soft
+      <code>box-shadow</code>. The mid-grey button face is what makes each control
+      perceivable as a button.
+    </p>
+  </main>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS IT (and why this PASSES):
+    A per-edge contrast tool that walks the box-shadow rings would measure the bevel
+    highlight (#F4F4F4 ~1.07:1 vs the #ECECEC page) and the bevel shadow (#C4C4C4 ~1.48:1)
+    and report a 1.4.11 FAILURE on those faint edges. That is the WRONG verdict. Per the
+    "Adjacent colors" rule, "a 3D drop-shadow on an input ... is considered to be subsumed
+    into the color closest in brightness" and "any color which does not interfere with
+    identifying the component can be ignored for the purpose of measuring contrast ratio."
+    The identifying cue is the filled button face (#6E6E6E) against the page, which is
+    4.32:1 = PASS. A tool cannot decide that the bevel does not interfere with identifying
+    the control; only a human reasoning that "the face, not the embossed edge, is what
+    tells me this is a button" reaches the correct PASS.
+  -->
+</body>
+</html>

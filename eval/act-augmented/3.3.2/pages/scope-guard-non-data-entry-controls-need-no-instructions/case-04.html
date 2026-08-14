@@ -4,33 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Residential parking permits — City of Harborview</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS (DISCRIMINATOR case):
-  The page is full of NON-data-entry controls that must NOT be flagged under 3.3.2:
-    - 4 "jump to section" in-page anchor links
-    - 5 expand/collapse policy accordions (aria-expanded, real show/hide)
-    - breadcrumb links, a "language" menu-button, "back to top" links
-  These are links / disclosure widgets, which 3.3.2 explicitly does not apply to.
-
-  There is EXACTLY ONE genuine data-entry control: a free-text feedback <textarea>
-  at the bottom ("Was this page helpful? Tell us how we can improve."). It has a
-  programmatic accessible name supplied by aria-label="Feedback", so it PASSES
-  axe/4.1.2 — but it carries NO VISIBLE label and NO VISIBLE instruction. The only
-  on-screen cue is a faint placeholder ("Type your comments...") that vanishes on
-  input. SC 3.3.2 requires a label OR instruction that is presented to ALL users
-  (not only AT users via aria-label), and a placeholder is not a reliable visible
-  label/instruction (it disappears on entry). So THIS ONE FIELD fails 3.3.2.
-
-  The correct evaluation is surgically precise: FAIL on the feedback textarea ONLY;
-  the dozens of links and accordions are out of scope and must be left untouched.
-
-  THE TRAP runs both ways: (a) an over-eager evaluator over-flags the accordions/
-  links (false positive); (b) a naive automated checker sees the textarea HAS an
-  accessible name (aria-label) and PASSES it, missing that no visible label/
-  instruction is shown to sighted/cognitively-loaded users (false negative). Only a
-  human/model reasoning about "visible to all users, not just AT" + "scope =
-  data-entry only" lands the single correct failure.
--->
 <style>
   :root{ --ink:#1c2530; --muted:#5c6773; --line:#d8dee5; --gov:#13447a; --bg:#f4f6f9; --accent:#0b6e4f; }
   *{ box-sizing:border-box; }
@@ -65,7 +38,6 @@
   .acc .panel{ padding:0 16px 16px; color:#384350; font-size:.96rem; }
   .acc .panel[hidden]{ display:none; }
   .backtop{ font-size:.82rem; display:inline-block; margin:4px 0 18px; }
-  /* The ONE data-entry control: textarea with NO visible label/instruction (placeholder only). */
   .feedback{ background:#fff; border:1px solid var(--line); border-radius:10px; padding:18px 18px 20px; margin:24px 0 10px; }
   .feedback .head{ font-size:1.1rem; font-weight:700; margin:0 0 10px; }
   .feedback textarea{ width:100%; min-height:96px; padding:11px 13px; font:1rem/1.5 inherit; border:2px solid var(--line); border-radius:9px; resize:vertical; }
@@ -145,12 +117,6 @@
 
     <a class="backtop" href="#top">↑ Back to top</a>
 
-    <!--
-      THE ONE DATA-ENTRY CONTROL — and the ONLY 3.3.2 failure on the page.
-      It has an aria-label (so axe/4.1.2 pass: "field has an accessible name") but
-      NO visible <label> and NO visible instruction. The placeholder vanishes on
-      input. Sighted / cognitively-loaded users get no persistent on-screen cue.
-    -->
     <section class="feedback" aria-labelledby="fb-head">
       <p class="head" id="fb-head">Was this page helpful?</p>
       <textarea aria-label="Feedback" placeholder="Type your comments..."></textarea>

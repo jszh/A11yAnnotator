@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Request a Recycling Bin — City of Brookhaven Public Works</title>
+<style>
+  :root { --navy:#0b3d5c; --teal:#127a8f; --ink:#1c2733; --muted:#5a6776; --line:#d7dde4; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:"Segoe UI", system-ui, sans-serif; color:var(--ink); background:#eef2f6; line-height:1.5; }
+  .gov-strip { background:var(--navy); color:#fff; font-size:.8rem; padding:6px 24px; }
+  header { background:#fff; border-bottom:3px solid var(--teal); padding:18px 24px; display:flex; align-items:center; gap:14px; }
+  header .seal { width:42px; height:42px; border-radius:50%; background:var(--teal); color:#fff; display:grid; place-items:center; font-weight:700; }
+  header h1 { font-size:1.1rem; margin:0; }
+  header p { margin:0; font-size:.8rem; color:var(--muted); }
+  main { max-width:680px; margin:24px auto; background:#fff; border:1px solid var(--line); border-radius:8px; padding:28px 32px; }
+  h2 { font-size:1.3rem; margin:0 0 6px; }
+  .lead { color:var(--muted); margin:0 0 22px; }
+  label { display:block; font-weight:600; margin:16px 0 5px; font-size:.92rem; }
+  input, select { width:100%; padding:10px 12px; border:1px solid #b9c2cc; border-radius:6px; font-size:1rem; font-family:inherit; }
+  .row { display:flex; gap:16px; }
+  .row > div { flex:1; }
+  .submit { margin-top:24px; background:var(--teal); color:#fff; border:0; border-radius:6px; padding:12px 26px; font-size:1rem; font-weight:600; cursor:pointer; }
+  .submit:hover { background:#0f6878; }
+  /* The confirmation styling — note: this CSS exists but the matching node is NOT in the DOM at load */
+  .confirm { margin-top:22px; background:#e7f6ec; border:1px solid #9bd6ad; border-radius:6px; padding:14px 16px; color:#14532d; font-weight:600; }
+  footer { max-width:680px; margin:0 auto 48px; padding:0 32px; color:var(--muted); font-size:.78rem; }
+  .devnote { max-width:680px; margin:0 auto 24px; padding:14px 18px; background:#fffaf0; border:1px solid #f0dca8; border-radius:8px; font-size:.82rem; color:#6b5418; }
+</style>
+</head>
+<body>
+<div class="gov-strip">An official service of the City of Brookhaven · Department of Public Works</div>
+<header>
+  <span class="seal" aria-hidden="true">CB</span>
+  <div>
+    <h1>City of Brookhaven</h1>
+    <p>Public Works &amp; Sanitation</p>
+  </div>
+</header>
+
+<main>
+  <h2>Request a Curbside Recycling Bin</h2>
+  <p class="lead">Households within city limits may request one free 65-gallon recycling cart. Allow 7&ndash;10 business days for delivery.</p>
+
+  <!-- IMPORTANT: there is NO status/live-region container anywhere in this markup at page load.
+       The confirmation node (and its role="status") is built and inserted on submit. -->
+  <form id="bin-form" novalidate>
+    <label for="addr">Service address</label>
+    <input id="addr" name="addr" type="text" autocomplete="street-address" value="142 Maple Crescent" required>
+
+    <div class="row">
+      <div>
+        <label for="city">City</label>
+        <input id="city" name="city" type="text" value="Brookhaven" required>
+      </div>
+      <div>
+        <label for="zip">ZIP code</label>
+        <input id="zip" name="zip" type="text" inputmode="numeric" autocomplete="postal-code" value="30319" required>
+      </div>
+    </div>
+
+    <label for="size">Cart size</label>
+    <select id="size" name="size">
+      <option>65 gallon (standard)</option>
+      <option>35 gallon (small)</option>
+      <option>95 gallon (large)</option>
+    </select>
+
+    <label for="email">Email for delivery updates</label>
+    <input id="email" name="email" type="email" autocomplete="email" value="resident@example.com" required>
+
+    <button type="submit" class="submit">Submit request</button>
+  </form>
+
+  <!-- The confirmation will be appended here on submit. This wrapper is an inert plain div. -->
+  <div id="result-area"></div>
+</main>
+
+<div class="devnote">
+  <strong>Why automated tools cannot catch this:</strong> After you press &ldquo;Submit request,&rdquo; the final
+  DOM contains a perfectly valid <code>&lt;div role="status"&gt;Your recycling cart request was received&hellip;&lt;/div&gt;</code>.
+  axe-core, WAVE and Lighthouse inspect that resting DOM, see a syntactically correct live region with text, and report
+  no error. They have no signal that the <code>role="status"</code> attribute did not exist as an empty container before
+  the message text was written &mdash; the region and its content were created in a single <code>innerHTML</code>
+  operation, so most screen readers never register the region in time to announce it. The defect is purely temporal:
+  it requires reasoning about the ORDER of DOM operations, not the end-state markup.
+</div>
+
+<footer>
+  City of Brookhaven · 200 Civic Center Plaza · Customer service: 311 · This form was last updated March 2026.
+</footer>
+
+<script>
+  // Persona: a city contractor's junior dev wired this on a tight deadline. They grabbed the
+  // ubiquitous "inject your success message" pattern from a tutorial: set the container's innerHTML
+  // to a string that ALREADY INCLUDES role="status". The rendered result looks textbook-correct, and
+  // QA (sighted) saw the green banner appear, so it shipped.
+  document.getElementById('bin-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var area = document.getElementById('result-area');
+    // F103 timing failure: the role="status" attribute is born in the SAME operation that supplies
+    // the text. There was never an empty, registered live region at page load. A screen reader that
+    // was not already observing this node sees a fully-formed subtree appear and, in NVDA/JAWS/VoiceOver,
+    // typically announces NOTHING.
+    area.innerHTML =
+      '<div class="confirm" role="status">' +
+        'Your recycling cart request was received. Reference #BR-2026-04817. ' +
+        'A 65-gallon cart will be delivered to 142 Maple Crescent within 7–10 business days.' +
+      '</div>';
+    // Mark the timing so the harness can distinguish the failing temporal pattern from a correct one.
+    area.firstChild.setAttribute('data-region-born-with-content', 'true');
+    document.getElementById('bin-form').style.display = 'none';
+  });
+</script>
+</body>
+</html>

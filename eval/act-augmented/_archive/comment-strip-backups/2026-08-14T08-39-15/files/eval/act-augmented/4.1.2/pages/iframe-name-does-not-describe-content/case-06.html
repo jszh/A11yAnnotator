@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 4: Generics — TypeScript Foundations | Lumen Learn</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font: 16px/1.6 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #1b202a; margin: 0; background: #f5f7fa; }
+    header { background: #1a1f2e; color: #f0f3f8; padding: 14px 22px; display: flex; align-items: center; gap: 10px; }
+    header .dot { width: 22px; height: 22px; border-radius: 6px; background: #4f8cff; }
+    header strong { font-weight: 600; }
+    .crumb { margin-left: auto; color: #9aa6bd; font-size: .85rem; }
+    main { max-width: 900px; margin: 26px auto; padding: 0 18px 56px; }
+    h1 { font-size: 1.5rem; margin: 0 0 4px; }
+    .meta { color: #5c6678; margin: 0 0 22px; font-size: .92rem; }
+    .block { background: #fff; border: 1px solid #e1e6ee; border-radius: 12px; padding: 16px; margin-bottom: 22px; }
+    .block h2 { font-size: 1.05rem; margin: 0 0 12px; }
+    .player { aspect-ratio: 16 / 9; }
+    .player iframe { width: 100%; height: 100%; border: 0; border-radius: 8px; display: block; }
+    .transcript iframe { width: 100%; height: 240px; border: 1px solid #e7ebf2; border-radius: 8px; display: block; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="dot" aria-hidden="true"></span>
+    <strong>Lumen Learn</strong>
+    <span class="crumb">TypeScript Foundations · Lesson 4 of 9</span>
+  </header>
+  <main>
+    <h1>Generics: writing reusable, type-safe functions</h1>
+    <p class="meta">Instructor: Halvard Sten · 11 min · Module 2 (Type System)</p>
+
+    <div class="block player">
+      <h2 class="vh" style="position:absolute;left:-9999px">Video lesson</h2>
+      <!--
+        BOUNDARY (PASS). The video-player iframe is given a title that fully describes
+        its content: the lesson title plus the fact that it is the video. The transcript
+        iframe below has its own distinct, descriptive title. Both are in the tab order.
+      -->
+      <iframe title="Video player: Generics — writing reusable, type-safe functions (Lesson 4)" srcdoc='
+        <!DOCTYPE html><html lang=&quot;en&quot;><head><meta charset=&quot;utf-8&quot;>
+        <style>
+          html,body{height:100%;margin:0;background:#0b0e16}
+          .stage{position:relative;height:100%;display:flex;align-items:center;justify-content:center;
+            background:radial-gradient(circle at 50% 40%,#1d2740,#0b0e16);color:#dce6ff;
+            font:15px/1.4 -apple-system,Segoe UI,Arial,sans-serif}
+          .play{width:64px;height:64px;border-radius:50%;background:#4f8cff;border:0;cursor:pointer;
+            display:flex;align-items:center;justify-content:center}
+          .play::before{content:&quot;&quot;;border-style:solid;border-width:12px 0 12px 20px;border-color:transparent transparent transparent #fff;margin-left:4px}
+          .bar{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;gap:10px;
+            padding:10px 14px;background:rgba(0,0,0,.55)}
+          .track{flex:1;height:5px;background:#3a466a;border-radius:3px;position:relative}
+          .track i{position:absolute;left:0;top:0;bottom:0;width:22%;background:#4f8cff;border-radius:3px}
+          .time{font-size:.8rem;color:#cdd8f2}
+          .cap{position:absolute;top:14px;left:14px;font-size:.8rem;color:#9fb0d6}
+        </style></head>
+        <body>
+          <div class=&quot;stage&quot;>
+            <div class=&quot;cap&quot;>NOW PLAYING &middot; Generics, part 1</div>
+            <button class=&quot;play&quot; type=&quot;button&quot; aria-label=&quot;Play video&quot;></button>
+            <div class=&quot;bar&quot;>
+              <button type=&quot;button&quot; aria-label=&quot;Pause&quot; style=&quot;background:none;border:0;color:#fff;cursor:pointer&quot;>&#10074;&#10074;</button>
+              <div class=&quot;track&quot;><i></i></div>
+              <span class=&quot;time&quot;>2:24 / 11:03</span>
+            </div>
+          </div>
+        </body></html>'></iframe>
+    </div>
+
+    <div class="block transcript">
+      <h2>Transcript</h2>
+      <iframe title="Transcript: Generics — writing reusable, type-safe functions (Lesson 4)" srcdoc='
+        <!DOCTYPE html><html lang=&quot;en&quot;><head><meta charset=&quot;utf-8&quot;>
+        <style>
+          body{margin:0;font:14px/1.7 -apple-system,Segoe UI,Arial,sans-serif;color:#23303f;padding:14px}
+          .t{display:flex;gap:10px;margin:0 0 10px}
+          .ts{color:#8a97a6;font-variant-numeric:tabular-nums;flex:0 0 48px}
+          code{background:#eef2f7;padding:1px 5px;border-radius:4px;font-size:.92em}
+        </style></head>
+        <body>
+          <div class=&quot;t&quot;><span class=&quot;ts&quot;>0:00</span><span>Welcome back. Today we make functions that work for <em>any</em> type without losing type safety.</span></div>
+          <div class=&quot;t&quot;><span class=&quot;ts&quot;>0:38</span><span>A type parameter is a placeholder. We write <code>function first&lt;T&gt;(arr: T[]): T</code> and <code>T</code> is filled in at the call site.</span></div>
+          <div class=&quot;t&quot;><span class=&quot;ts&quot;>1:55</span><span>Compare that to <code>any</code>, which throws the type away. Generics keep it.</span></div>
+          <div class=&quot;t&quot;><span class=&quot;ts&quot;>2:24</span><span>Next we will add a constraint with <code>extends</code> so the function only accepts shapes that have an <code>id</code>.</span></div>
+        </body></html>'></iframe>
+    </div>
+  </main>
+
+  <!--
+    WHY THIS PAGE PASSES (BOUNDARY)
+    Both iframes have non-empty accessible names (cae760 PASSES) and the names are
+    distinct (4b1c6c inapplicable). Critically, each name actually DESCRIBES the frame's
+    content: the first frame contains a video player and is titled "Video player:
+    Generics … (Lesson 4)"; the second contains the transcript and is titled
+    "Transcript: Generics … (Lesson 4)". A human applying Trusted Tester 12.D reads
+    each frame's content against its name and finds the combination sufficiently
+    describes the content, so the page passes. This boundary case sharpens the aspect:
+    the defect under test is name-does-not-describe-content, and here the names DO.
+  -->
+</body>
+</html>

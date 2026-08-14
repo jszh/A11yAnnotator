@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Studio Lumen — Testimonials</title>
+<!--
+  SC 1.4.5 ASPECT: "In addition to" — equivalence is PERFECT but VISIBILITY is broken => FAIL.
+  A testimonial quote card is an image of text. A live <blockquote> with the IDENTICAL wording
+  exists in the DOM "in addition to" the image — so it would satisfy the met-condition... EXCEPT
+  the blockquote is rendered with a classic visually-hidden (sr-only) clip rule, so it is NOT
+  "presented to the user." The Understanding note requires BOTH the image and the text to be
+  "presented to the user." Hidden text is exposed to screen readers but is NOT visibly presented,
+  so the low-vision user who needs to RESTYLE the text (larger, recoloured) has nothing on screen
+  to restyle — the very population 1.4.5 protects. The met-condition does not apply => FAIL.
+
+  WHY AUTOMATED TOOLS MISS THIS: sr-only text is intentional and ubiquitous; axe/WAVE/Lighthouse
+  treat clipped-but-present text as fine (it has zero contrast issues, it is in the a11y tree).
+  They cannot judge that, for 1.4.5, the equivalent text must be VISIBLY presented, not just
+  exposed to AT. Recognising the met-condition is defeated by sr-only requires human reasoning
+  about WHO 1.4.5 protects (low-vision restyle), not just whether a string is reachable.
+-->
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Inter",system-ui,Segoe UI,sans-serif; color:#222; background:#fbfaf8; }
+  header { background:#11161d; color:#fff; padding:16px 24px; }
+  header b { letter-spacing:1px; }
+  main { max-width:720px; margin:34px auto; padding:0 18px; }
+  h1 { font-size:1.4rem; }
+  .testimonial { background:#fff; border:1px solid #e6e2db; border-radius:12px; padding:26px;
+                 box-shadow:0 2px 8px rgba(0,0,0,.05); text-align:center; }
+  .testimonial img { max-width:100%; height:auto; }
+  .attrib { margin-top:14px; font-size:.95rem; color:#5b6470; }
+  /* Classic "visually hidden" / sr-only pattern: the equivalent text is in the DOM and the
+     accessibility tree, but it is clipped to a 1px box offscreen — NOT visibly presented. */
+  .visually-hidden {
+    position:absolute !important;
+    width:1px; height:1px;
+    padding:0; margin:-1px;
+    overflow:hidden;
+    clip:rect(0 0 0 0);
+    clip-path:inset(50%);
+    white-space:nowrap; border:0;
+  }
+  .note { font-size:.82rem; color:#7a828c; margin-top:24px; border-top:1px dashed #e6e2db; padding-top:14px; }
+</style>
+</head>
+<body>
+<header><b>STUDIO LUMEN</b> — interior architecture</header>
+
+<main>
+  <h1>What our clients say</h1>
+
+  <figure class="testimonial">
+    <!--
+      IMAGE OF TEXT: a designed quote card (raster-equivalent SVG). The quotation is pixels,
+      in a script-style face the studio likes; it cannot be resized/recoloured by the user.
+    -->
+    <img width="560" height="240" alt="Client testimonial quote card"
+      src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='560' height='240' viewBox='0 0 560 240'><rect width='560' height='240' fill='%23f3efe8'/><rect x='10' y='10' width='540' height='220' fill='none' stroke='%23c9b890' stroke-width='2'/><text x='44' y='86' fill='%23c9b890' font-family='Georgia, serif' font-size='80'>“</text><text x='280' y='96' fill='%232b2b2b' font-family='Georgia, serif' font-size='22' font-style='italic' text-anchor='middle'>They turned a cramped, dark flat into a</text><text x='280' y='128' fill='%232b2b2b' font-family='Georgia, serif' font-size='22' font-style='italic' text-anchor='middle'>light-filled home we never want to leave.</text><text x='280' y='160' fill='%232b2b2b' font-family='Georgia, serif' font-size='22' font-style='italic' text-anchor='middle'>Every pound was worth it.</text><text x='280' y='206' fill='%237a6f57' font-family='Georgia, serif' font-size='16' text-anchor='middle'>— Priya Menon, Camberwell</text></svg>">
+
+    <!--
+      "IN ADDITION TO" the image: a live <blockquote> with the IDENTICAL wording. Equivalence
+      is perfect. BUT it carries class="visually-hidden" — it is clipped offscreen, so it is NOT
+      presented to the user visibly. The low-vision user who needs bigger/recoloured text has
+      nothing on screen to adjust. The met-condition requires BOTH presented => FAIL.
+    -->
+    <blockquote class="visually-hidden">
+      <p>&ldquo;They turned a cramped, dark flat into a light-filled home we never want to leave.
+        Every pound was worth it.&rdquo;</p>
+      <footer>&mdash; Priya Menon, Camberwell</footer>
+    </blockquote>
+
+    <figcaption class="attrib">A recent Camberwell renovation</figcaption>
+  </figure>
+
+  <p class="note">
+    Built in our page builder: we dropped the designed quote card image in, and added the same
+    quote as text so it would be "accessible." The text block was styled with our reusable
+    "visually-hidden" helper so it would not duplicate the card on screen — leaving only the
+    image visible.
+  </p>
+</main>
+</body>
+</html>

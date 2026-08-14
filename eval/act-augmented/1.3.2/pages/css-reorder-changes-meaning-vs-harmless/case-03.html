@@ -4,30 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The Tidal Marsh Is Coming Back — Coastwatch Dispatch</title>
-<!--
-  WHY THIS IS A PASS (and why a naive "visual != DOM = fail" tool would FALSELY flag it):
-  This page deliberately reorders content with CSS in TWO places:
-    (1) a <nav> that renders fixed at the top but is the LAST element in source order, and
-    (2) a decorative <blockquote> pull-quote that renders BESIDE/ABOVE the article body but
-        sits BEFORE the <article> in the DOM.
-  A DOM-vs-visual diff tool fires on BOTH. But neither reorder changes meaning:
-    - The nav, the article, and the pull-quote are mutually INDEPENDENT blocks; per the SC's
-      own Example 2, repositioning a navigation bar relative to the main story does not affect
-      meaning, and a callout/sidebar's order relative to the article does not affect meaning
-      (Understanding: "a magazine article contains several callout sidebars ... the order of
-      the article and the sidebars does not affect their meaning").
-    - The pull-quote is a verbatim excerpt OF the article; read before or after the body, the
-      article still parses correctly. Nothing in either block depends on the other's position.
-  Catching that this is NOT a failure requires reading the linearized prose and judging that
-  meaning survives — exactly the discrimination an "any reorder = fail" tool gets wrong.
--->
 <style>
   :root { --ink:#1a2229; --sea:#16557a; --paper:#fbfdfe; --line:#dde6ec; }
   * { box-sizing:border-box; }
   body { margin:0; font:17px/1.7 "Iowan Old Style",Georgia,serif; color:var(--ink);
          background:var(--paper); padding-top:60px; }
 
-  /* Nav is LAST in the DOM but pinned to the top visually (Example-2 style reorder). */
   nav.site {
     position:fixed; top:0; left:0; right:0; height:60px;
     background:var(--sea); color:#fff; display:flex; align-items:center;
@@ -43,8 +25,6 @@
   article .byline { font-family:system-ui; font-size:.9rem; color:#6a7884; margin:0 0 18px; }
   article p { margin:0 0 16px; }
 
-  /* The pull-quote is placed FIRST in source but rendered in the right rail (grid col 2),
-     vertically aligned with the body — an independent decorative callout. */
   blockquote.pull {
     grid-column:2; grid-row:1;
     margin:6px 0 0; padding:18px 20px; border-left:4px solid var(--sea);
@@ -59,14 +39,12 @@
 </head>
 <body>
 
-  <!-- (1) pull-quote: FIRST in DOM, rendered in the side rail -->
   <div class="wrap">
     <blockquote class="pull">
       &ldquo;Five winters ago this channel was a parking lot of dead reeds. Now the
       ribbed mud breathes again.&rdquo;
     </blockquote>
 
-    <!-- article body: SECOND in DOM, the main column. Self-contained and complete. -->
     <article>
       <h1>The tidal marsh is coming back</h1>
       <p class="byline">By R. Okafor · Coastwatch Dispatch · Field notes, October</p>
@@ -83,7 +61,6 @@
     </article>
   </div>
 
-  <!-- (2) site nav: LAST in DOM, rendered pinned to the top -->
   <nav class="site" aria-label="Primary">
     <span class="brand">Coastwatch</span>
     <a href="#dispatches">Dispatches</a>

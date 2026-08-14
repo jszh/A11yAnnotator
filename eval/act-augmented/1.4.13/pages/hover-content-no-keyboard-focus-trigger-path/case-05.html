@@ -27,9 +27,6 @@
   fieldset { border: 0; margin: 0 0 18px; padding: 0; }
   legend { font-size: 13px; font-weight: 700; color:#3a463b; margin-bottom: 8px; }
 
-  /* Color swatches. Each swatch shows the color name on hover. The name is ALSO
-     printed as a visible <span> right next to the swatch and announced via the
-     radio's <label>, so the hover bubble is purely redundant. */
   .swatches { display: flex; gap: 14px; flex-wrap: wrap; }
   .swatch-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; }
   .swatch {
@@ -107,23 +104,5 @@
     </div>
   </main>
 
-  <!--
-    WHY THIS PASSES 1.4.13 (the redundancy DECOY):
-    Superficially this looks like the same failure as the other pages: a hover-only bubble
-    (.hover-name) appears via "swatch:hover .hover-name" with no focus equivalent, and a tool
-    that merely detected ":hover with no :focus" would flag it. But 1.4.13 is about being able
-    to PERCEIVE the *additional* content. Here the bubble carries NO additional information:
-    the color name is ALREADY (a) printed as a persistent visible <span class="swatch-name">
-    directly under each swatch, and (b) exposed programmatically as the radio's accessible name
-    (aria-label="Pine" etc.). The hover bubble (aria-hidden) merely repeats the visible label.
-    A keyboard user Tabs to a real, focusable radio (with a visible focus ring) and the name is
-    already on screen and in the accessibility tree — nothing is lost when the redundant bubble
-    does not appear. The two-part judgment is: (a) is the hover content meaningful/unique? NO,
-    it is redundant decoration; therefore (b) the missing focus path does not deprive anyone of
-    perceivable content. Correct verdict: PASS — this is NOT a 1.4.13 perceive failure.
-    An automated tool cannot make judgment (a); it would over-report based on the bare
-    ":hover-without-:focus" pattern. Human meaning-assessment is exactly what distinguishes
-    this PASS from the FAIL pages.
-  -->
 </body>
 </html>

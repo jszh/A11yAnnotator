@@ -4,25 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Regional Revenue — NorthStar Analytics</title>
-<!--
-  SC 4.1.2 (with 1.1.1) stale text alternative on a script-repointed NAMED
-  image region. ASPECT: F20, lifted verbatim from F20's own Failure Example 1
-  ("A Sales chart is updated to October results, but the text alternative still
-  describes September results"). Here a quarter selector repoints the chart's
-  rendered bars from Q1 to Q2 data, but the chart's accessible name — supplied
-  by aria-label on a role="img" figure — stays frozen on the Q1 description.
-
-  WHY AUTOMATED TOOLS MISS IT:
-  - The chart is role="img" with a long, descriptive, NON-EMPTY aria-label —
-    exactly what good practice (a "long" text alternative for a complex image)
-    recommends. axe / Lighthouse see a named graphic and pass.
-  - The aria-label even contains real numbers ("Q1: West $1.20M, East $0.94M
-    ...") so it reads as a careful, correct alt — the failure is that those are
-    LAST quarter's numbers after the swap, not that the alt is missing/garbage.
-  - Detecting it requires reading the bar heights/labels NOW rendered and
-    comparing them to the prose numbers in the frozen aria-label. No scanner
-    extracts data from drawn rects and reconciles it with the name string.
--->
 <style>
   body { margin:0; font-family:"Inter","Segoe UI",Arial,sans-serif;
          background:#0f1620; color:#e7edf5; }
@@ -76,14 +57,11 @@
       </div>
     </div>
 
-    <!-- THE DEFECTIVE NAMED COMPONENT: a role="img" figure whose aria-label is
-         the text alternative for the drawn chart. -->
     <figure class="chartcard" style="margin:0">
       <div id="chart" role="img"
            aria-label="Bar chart, Q1 revenue by region: West $1.20M, East $0.94M, Central $0.71M, South $0.55M. West leads; South trails.">
         <svg viewBox="0 0 560 240" aria-hidden="true">
           <line class="axis" x1="60" y1="200" x2="540" y2="200"/>
-          <!-- Bars; heights are rewritten by script. -->
           <rect id="b0" x="90"  y="40"  width="60" height="160" fill="#5ea0ff"/>
           <rect id="b1" x="210" y="74"  width="60" height="126" fill="#5ea0ff"/>
           <rect id="b2" x="330" y="105" width="60" height="95"  fill="#5ea0ff"/>
@@ -104,16 +82,11 @@
 </div>
 
 <script>
-  // Persona: a data-viz contractor wrote the redraw routine. It updates bar
-  // geometry, value labels, the visible <figcaption>, and the pressed state of
-  // the Q1/Q2 buttons. The contractor thought of aria-label as a one-time
-  // "describe the chart" string set in the template — not as state that must
-  // track the data — so the chart's NAME is permanently the Q1 description.
   var DATA = {
     Q1: { vals:[1.20,0.94,0.71,0.55], cap:"Q1 2026" },
     Q2: { vals:[0.83,1.31,0.78,0.69], cap:"Q2 2026" }
   };
-  var MAXH = 160, BASE = 200, FULL = 1.35; // scale ref
+  var MAXH = 160, BASE = 200, FULL = 1.35; 
   function showQuarter(q) {
     var d = DATA[q];
     document.getElementById('q1').setAttribute('aria-pressed', q==='Q1');
@@ -128,11 +101,6 @@
       vt.setAttribute('y', (BASE - h) - 8);
     }
     document.getElementById('cap').textContent = d.cap + " — figures in USD millions.";
-    // BUG (F20, Failure Example 1): the chart's aria-label still describes Q1
-    // ("West $1.20M ... West leads; South trails"). After switching to Q2 the
-    // drawn bars show East leading at $1.31M, but a screen-reader user is told
-    // West leads at $1.20M. The text alternative is no longer a substitute for
-    // the chart. Correct: regenerate aria-label from DATA[q] on every switch.
   }
 </script>
 </body>

@@ -66,7 +66,6 @@
   <section class="card">
     <div class="card-top">
       <h2>Profile details</h2>
-      <!-- Trigger that opens the multi-step edit wizard. On Done, focus must come back here. -->
       <button class="btn edit" id="edit-profile">Edit profile</button>
     </div>
     <dl>
@@ -86,7 +85,6 @@
   </section>
 </div>
 
-<!-- Multi-step edit wizard (modal) -->
 <div class="scrim" id="scrim">
   <div class="wizard" role="dialog" aria-modal="true" aria-labelledby="wiz-title" id="wizard">
     <header>
@@ -139,7 +137,6 @@
     backBtn.disabled = (n === 1);
     nextBtn.style.display = (n === 3) ? 'none' : '';
     doneBtn.style.display = (n === 3) ? '' : 'none';
-    // move focus to the first field of the newly shown step
     var first = steps[n - 1].querySelector('input, select, textarea');
     if (first) first.focus();
   }
@@ -152,17 +149,13 @@
 
   function escClose(e) { if (e.key === 'Escape') closeWizard(); }
 
-  // CORRECT (PASS): every exit from the wizard — Cancel, Escape, AND the final Done —
-  // returns focus to the originating "Edit profile" button. The wizard is closed by Done
-  // after committing the values; focus goes back to the trigger that opened the flow.
   function closeWizard() {
     scrim.classList.remove('open');
     document.removeEventListener('keydown', escClose);
-    editBtn.focus();                       // <-- focus returns to the trigger
+    editBtn.focus();                       
   }
 
   function commitAndClose() {
-    // write the edited values back into the profile card
     document.getElementById('v-headline').textContent = document.getElementById('f-headline').value;
     document.getElementById('v-location').textContent = document.getElementById('f-location').value;
     document.getElementById('v-open').textContent = document.getElementById('f-open').value;
@@ -177,16 +170,5 @@
   document.getElementById('wiz-cancel').addEventListener('click', closeWizard);
 </script>
 
-<!--
-  WHY THIS IS A PASS (and why automated tools cannot confirm it either way)
-  This multi-step dialog does the right thing on the path that matters: when the final
-  "Done" button closes the wizard, focus is returned to the originating "Edit profile"
-  trigger (same as Cancel and Escape). The "Done" control here is the trigger's dismissal
-  control — F85 step 2 asks exactly whether focus is "put back on the trigger control"
-  after such an activation, and it is. A static scan cannot verify this: the wizard's
-  per-step focus moves and the final focus-return are all runtime behaviors. Confirming
-  the PASS requires opening the wizard, stepping to the end, pressing Done, and observing
-  that focus lands back on #edit-profile.
--->
 </body>
 </html>

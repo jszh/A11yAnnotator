@@ -29,7 +29,6 @@
   .amounts button[aria-pressed=true] { background:var(--leaf); color:#fff; border-color:var(--leaf); }
   .submit { background:var(--leaf); color:#fff; border:0; padding:12px 24px; font:inherit;
         font-weight:bold; border-radius:6px; cursor:pointer; width:100%; }
-  /* The ONLY thing the developer added for the error state: a red label + red box. */
   .field.is-error label { color:#c0392b; }
   .field.is-error input { border-color:#c0392b; border-width:2px; background:#fdecec; }
   footer { margin-top:28px; font-size:.85rem; color:#6a6356; }
@@ -44,13 +43,6 @@
   <p class="lede">Your gift protects 4,000 acres of wetland and the cranes that nest there.
      Thank you for standing with us.</p>
 
-  <!-- POST-SUBMIT STATE: the server re-rendered the page after rejecting the submission.
-       The "Gift amount" field was rejected because the entered value (3) is below the
-       £5 minimum the payment processor enforces. The server marked the field with the
-       .is-error class (red label + red 2px border + pink fill) and re-sent the form.
-       It emitted NO text: no summary, no inline message, no aria-invalid, no hidden
-       text, no title. The red styling is the entire conveyance of BOTH "this is wrong"
-       and (implicitly) "make it bigger". -->
   <form action="/donate" method="post" novalidate>
     <fieldset>
       <legend>Make a one-time gift</legend>
@@ -94,29 +86,5 @@
   </footer>
 </div>
 
-<!--
-  WHY THIS FAILS SC 3.3.3 (Error Suggestion, the "in text" limb):
-  The submission was rejected (an input error WAS automatically detected) and the
-  correction is knowable and trivial ("the minimum gift is £5 — please enter £5 or
-  more"). That suggestion exists nowhere on the page. The red label + red/pink box is
-  the sole carrier, and per G84 an asterisk or red label does NOT satisfy the SC — a
-  text description of the problem and how to fix it is required.
-
-  WHY THIS IS DISTINCT FROM 3.3.1: a 3.3.1-only failure is "no error is identified."
-  Here it is the suggestion limb specifically — even a user who realises "amount is
-  wrong" is given no text telling them WHAT is acceptable (the £5 floor). Knowing the
-  floor is the whole job, and it is invisible.
-
-  WHY AUTOMATED TOOLS MISS IT:
-  - The DOM is valid HTML5; every input has a programmatic <label>; nothing is empty.
-  - The input is plain type="text" with a well-formed value ("3"), so the browser's
-    constraint-validation API reports validity.valid === true and the accessibility
-    tree exposes invalid:false — identical to a passing field. No aria-invalid to flag.
-  - axe/WAVE/Lighthouse have no rule that asserts "a detected input error must carry a
-    TEXT correction suggestion," because they cannot know an error was detected, cannot
-    know the £5 business rule, and cannot judge that the red styling is the only carrier.
-    Determining the missing element is specifically the *correction text* requires
-    submitting the form, reading the rendered page, and reasoning about meaning.
--->
 </body>
 </html>

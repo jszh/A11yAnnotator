@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 4.1.2 FAILURE (ARIA14 name-quality / name-present-but-not-descriptive).
+    This is the formatting toolbar of a lightweight document editor. It holds five
+    icon-only <button>s: cut, copy, paste, undo, redo. Each button renders a clear,
+    distinct inline-SVG glyph, sits in a conventional position, and DOES a distinct
+    thing. But every one of them carries the IDENTICAL accessible name aria-label="button".
+    The name is non-empty, machine-valid, and the role (button) and disabled state are
+    correct — so every ACT 4.1.2 name rule ("Button has non-empty accessible name")
+    PASSES on all five. Yet a screen-reader user tabbing the toolbar hears
+    "button, button, button, button, button" and cannot tell cut from paste from redo.
+    The name communicates nothing about purpose.
+    WHY AUTOMATED TOOLS MISS IT: axe/WAVE/Lighthouse only test that each button has a
+    NON-EMPTY name; "button" satisfies that. No 4.1.2 rule assesses descriptiveness, and
+    the duplicate-name uniqueness rule that does exist is scoped to <iframe> only — never
+    to buttons. Judging that "button" fails to identify a cut control requires reading the
+    rendered scissors icon and inferring purpose: human semantic/visual judgment.
+  -->
+  <title>Untitled document — Quillpad</title>
+  <style>
+    :root { --ink:#202124; --muted:#5f6368; --line:#dadce0; --bar:#f1f3f4; --hover:#e8eaed; --brand:#1a73e8; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: "Segoe UI", Roboto, Arial, sans-serif; color:var(--ink); background:#fff; }
+    header.app { display:flex; align-items:center; gap:12px; padding:10px 16px; border-bottom:1px solid var(--line); }
+    .doc-title { font-size:16px; font-weight:600; }
+    .doc-title small { display:block; font-weight:400; color:var(--muted); font-size:12px; }
+    .toolbar { display:flex; align-items:center; gap:4px; padding:6px 16px; background:var(--bar); border-bottom:1px solid var(--line); }
+    .toolbar .group { display:flex; gap:2px; }
+    .toolbar .sep { width:1px; height:22px; background:var(--line); margin:0 8px; }
+    .tbtn { width:34px; height:34px; border:0; background:transparent; border-radius:6px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; color:var(--ink); }
+    .tbtn:hover { background:var(--hover); }
+    .tbtn:focus-visible { outline:2px solid var(--brand); outline-offset:1px; }
+    .tbtn[disabled] { color:#bdc1c6; cursor:default; }
+    .tbtn svg { width:20px; height:20px; fill:currentColor; }
+    main { max-width:816px; margin:24px auto; padding:56px 72px; min-height:560px; border:1px solid var(--line); box-shadow:0 1px 3px rgba(60,64,67,.15); }
+    main h1 { font-size:24px; margin-top:0; }
+    main p { line-height:1.6; }
+    .hint { max-width:816px; margin:8px auto 0; color:var(--muted); font-size:12px; }
+  </style>
+</head>
+<body>
+  <header class="app">
+    <div class="doc-title">Q3 Marketing Brief<small>All changes saved in Drive</small></div>
+  </header>
+
+  <div class="toolbar" role="toolbar" aria-label="Editing actions">
+    <div class="group">
+      <!-- CUT (scissors) -->
+      <button type="button" class="tbtn" aria-label="button" data-cmd="cut">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.64 7.64a3 3 0 1 0-1.27 1.06L11 11l-2.63 2.3a3 3 0 1 0 1.27 1.06L14 9.5l7-2-1-2-10.36 2.14ZM6 8a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm0 11a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"/><path d="M14 14.5 21 19l-1 2-7-4.5"/></svg>
+      </button>
+      <!-- COPY (overlapping pages) -->
+      <button type="button" class="tbtn" aria-label="button" data-cmd="copy">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 1H4a2 2 0 0 0-2 2v12h2V3h11V1Z"/><path d="M19 5H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 16H8V7h11v14Z"/></svg>
+      </button>
+      <!-- PASTE (clipboard) -->
+      <button type="button" class="tbtn" aria-label="button" data-cmd="paste">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 3h-2.18A3 3 0 0 0 8.18 3H6a2 2 0 0 0-2 2v15a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Zm-5 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm5 17H6V5h2v2h6V5h2v15Z"/></svg>
+      </button>
+    </div>
+
+    <div class="sep" role="separator" aria-orientation="vertical"></div>
+
+    <div class="group">
+      <!-- UNDO (curved arrow left) -->
+      <button type="button" class="tbtn" aria-label="button" data-cmd="undo">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.5 8c-2.65 0-5.05 1-6.9 2.6L2 7v9h9l-3.6-3.6A7.95 7.95 0 0 1 12.5 11c3.54 0 6.55 2.31 7.6 5.5l2.37-.78A10.02 10.02 0 0 0 12.5 8Z"/></svg>
+      </button>
+      <!-- REDO (curved arrow right) — disabled because nothing has been undone yet -->
+      <button type="button" class="tbtn" aria-label="button" data-cmd="redo" disabled>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.4 10.6A9.97 9.97 0 0 0 11.5 8 10.02 10.02 0 0 0 1.53 15.72l2.37.78A7.96 7.96 0 0 1 11.5 11c1.95 0 3.73.7 5.1 1.84L13 16h9V7l-3.6 3.6Z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <main contenteditable="true" aria-label="Document body" spellcheck="false">
+    <h1>Q3 Marketing Brief</h1>
+    <p>Our objective this quarter is to grow qualified pipeline from the developer audience by 18%. The
+       launch hinges on three coordinated motions: the docs refresh, the conference sponsorship, and the
+       partner co-marketing emails.</p>
+    <p>Select any paragraph above and use the toolbar to cut, copy, paste, undo, or redo your edits.</p>
+  </main>
+  <p class="hint">Tip: every toolbar control is reachable with Tab and activates with Enter or Space.</p>
+</body>
+</html>

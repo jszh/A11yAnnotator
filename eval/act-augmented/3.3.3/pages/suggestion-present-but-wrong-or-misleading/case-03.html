@@ -4,24 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Your bag — Loomwell Home checkout</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS:
-  Apply an unrecognised promo code and the cart shows a confident "did you mean…"
-  suggestion: "We couldn't find 'SAVE20'. Did you mean SPRING20? Apply it." with an
-  Apply button that fills the field with SPRING20. This is textbook G177 / G84:
-  an error is detected AND a corrected-input suggestion (a 'did you mean' from a
-  known pool) is provided, associated via aria-describedby and announced in
-  role=status. axe/WAVE/Lighthouse see a present, associated, announced suggestion
-  with a working control.
-  THE DEFECT IS SEMANTIC: the suggested code SPRING20 is ITSELF invalid for this cart —
-  the page's own visible promo list (and the validator) shows SPRING20 EXPIRED on
-  30 Apr, while today is shown as 14 June. Clicking "Apply it" inserts SPRING20 and
-  the validator rejects it with "This code has expired". The suggestion confidently
-  offers a value that the field will still reject. The user is sent in a circle. No
-  scanner cross-checks the suggested code against the list of valid codes / expiry
-  dates to discover the recommended value is dead. Catching it needs a human to read
-  the offered code, look it up against the rules, and notice it is not actually valid.
--->
 <style>
   :root{
     --ink:#23211c; --muted:#6b665c; --line:#e3ded3; --brand:#7a5c3e; --brand-d:#5e4631;
@@ -112,8 +94,6 @@
   var input = document.getElementById('code');
   var fb    = document.getElementById('cp-feedback');
 
-  // REAL ENFORCED RULES: only currently-valid codes are accepted.
-  // SPRING20 is EXPIRED (matches the visible table) and is NOT in this set.
   var VALID = { 'JUNE10':'£10 off applied.', 'FREESHIP':'Free delivery applied.' };
   var EXPIRED = { 'SPRING20': '30 Apr 2026' };
 
@@ -134,11 +114,9 @@
     input.setAttribute('aria-invalid','true');
     fb.className = 'feedback err';
     if (EXPIRED[code]){
-      // The suggested code, when actually applied, lands here: still rejected.
       fb.textContent = 'This code has expired (' + EXPIRED[code] + ') and can no longer be used.';
       return;
     }
-    // Unknown code: offer a confident "did you mean" — BUT the suggested code is the EXPIRED one.
     var msg = document.createElement('span');
     msg.textContent = 'We couldn’t find “' + code + '”. Did you mean SPRING20? ';
     var dy = document.createElement('span');

@@ -34,8 +34,6 @@
     }
     .opt .code { color: #8a929b; font-size: .8rem; font-variant-numeric: tabular-nums; }
 
-    /* The visual "this option is highlighted" treatment. It is applied by the
-       JS below via a .hot class, and the JS toggles .hot on POINTER MOVEMENT. */
     .opt.hot { background: #2563eb; color: #fff; }
     .opt.hot .code { color: #cfe0ff; }
   </style>
@@ -69,9 +67,6 @@
       var list  = document.getElementById('country-list');
       var opts  = Array.prototype.slice.call(list.querySelectorAll('.opt'));
 
-      // --- Pointer highlight: the only thing that ever paints an option blue ---
-      // Ported from the legacy mouse-driven autocomplete. Moving the cursor over
-      // an option marks it .hot; leaving clears it.
       opts.forEach(function (o) {
         o.addEventListener('mousemove', function () {
           opts.forEach(function (x) { x.classList.remove('hot'); });
@@ -80,10 +75,6 @@
         o.addEventListener('mouseleave', function () { o.classList.remove('hot'); });
       });
 
-      // --- Keyboard handling: moves aria-activedescendant correctly for AT,
-      //     but NEVER applies the .hot class, so sighted keyboard users see
-      //     nothing move. The CSS has no [aria-activedescendant] / :focus rule
-      //     that targets the active option, only the pointer-driven .hot class. ---
       var active = 0;
       input.addEventListener('keydown', function (e) {
         if (e.key === 'ArrowDown') { active = Math.min(active + 1, opts.length - 1); }
@@ -92,33 +83,9 @@
         e.preventDefault();
         input.setAttribute('aria-activedescendant', opts[active].id);
         opts[active].scrollIntoView({ block: 'nearest' });
-        // NOTE: no visual class change here.
       });
     })();
   </script>
 
-  <!--
-    WHY THIS FAILS SC 2.4.7 (Focus Visible) AND WHY AUTOMATED TOOLS MISS IT
-    ----------------------------------------------------------------------
-    This is an ARIA combobox using aria-activedescendant: real keyboard focus
-    stays on the <input>, and the "focused option" is conveyed to AT by
-    aria-activedescendant. The criterion requires the keyboard-focused option to
-    be VISIBLY indicated. Here the blue highlight (.hot) is the focus indicator,
-    but it is toggled exclusively by `mousemove` / `mouseleave` — pointer events.
-    The ArrowUp/ArrowDown handler dutifully updates aria-activedescendant (so a
-    screen reader announces the active option) but never paints it, and the CSS
-    has no selector targeting the active descendant. A sighted keyboard user
-    arrowing through the list sees the highlight stay frozen on whatever the mouse
-    last touched — or nothing at all — with no indication of which option is
-    "focused".
-
-    Automated tools miss it because the ARIA wiring is textbook-correct:
-    aria-activedescendant moves, roles are valid, the input has an accessible
-    name. axe even rewards correct activedescendant usage. No scanner correlates
-    "the keyboard moves the active descendant" with "no CSS ever makes that
-    descendant look different", because the highlight lives behind pointer-only JS
-    listeners. Catching it requires a human to arrow through and watch whether the
-    visually-highlighted option follows the keyboard.
-  -->
 </body>
 </html>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Release Pipeline #4821 — Build Status</title>
+  <style>
+    body { font-family: "JetBrains Mono", ui-monospace, Menlo, monospace;
+      margin: 0; background: #fbfbfd; color: #1a1a2e; }
+    .top { background: #20232a; color: #e6e6eb; padding: 14px 22px; }
+    .top h1 { margin: 0; font-size: 1.1rem; }
+    .top .meta { font-size: .78rem; color: #9aa0ad; margin-top: 3px; }
+    main { padding: 26px 22px; max-width: 940px; margin: 0 auto; }
+    .pipeline { display: flex; align-items: center; gap: 0; flex-wrap: wrap; }
+    .stage {
+      width: 150px; min-height: 64px; border: 1px solid #c9cdd6; border-radius: 6px;
+      padding: 10px 12px; font-size: .82rem; line-height: 1.35; color: #15151f;
+      box-sizing: border-box;
+    }
+    /* Pass / fail conveyed ONLY by background color. Identical shape, border, text style. */
+    .pass { background: #d4f4dd; }   /* green-ish */
+    .fail { background: #fbd6d2; }   /* red-ish */
+    .arrow { width: 34px; text-align: center; color: #8a8f9c; font-size: 1.1rem; }
+    .stage .name { font-weight: 700; }
+    .stage .dur { color: #5b6170; font-size: .72rem; margin-top: 4px; }
+    .summary { margin-top: 28px; background: #fff; border: 1px solid #e2e4ea;
+      border-radius: 8px; padding: 16px; font-family: ui-sans-serif, system-ui, sans-serif; }
+    .summary h2 { margin: 0 0 6px; font-size: 1rem; }
+    .summary p { margin: 0; font-size: .88rem; color: #44485a; }
+  </style>
+</head>
+<body>
+  <div class="top">
+    <h1>Release Pipeline #4821</h1>
+    <div class="meta">main @ 7af3c10 · triggered by push · 6 stages</div>
+  </div>
+
+  <main>
+    <div class="pipeline" role="img"
+         aria-label="Release pipeline #4821 with six stages: Checkout, Install, Unit Tests, Integration Tests, Build, Deploy to Staging.">
+      <div class="stage pass"><div class="name">Checkout</div><div class="dur">4s</div></div>
+      <div class="arrow">&rarr;</div>
+      <div class="stage pass"><div class="name">Install</div><div class="dur">38s</div></div>
+      <div class="arrow">&rarr;</div>
+      <div class="stage pass"><div class="name">Unit Tests</div><div class="dur">1m 12s</div></div>
+      <div class="arrow">&rarr;</div>
+      <div class="stage fail"><div class="name">Integration Tests</div><div class="dur">2m 04s</div></div>
+      <div class="arrow">&rarr;</div>
+      <div class="stage fail"><div class="name">Build</div><div class="dur">—</div></div>
+      <div class="arrow">&rarr;</div>
+      <div class="stage fail"><div class="name">Deploy to Staging</div><div class="dur">—</div></div>
+    </div>
+
+    <div class="summary">
+      <h2>Pipeline finished</h2>
+      <p>Green stages completed successfully; red stages did not run or failed. Review the
+         logs for any stage shown in red.</p>
+    </div>
+
+    <!--
+      WHY AUTOMATED TOOLS MISS THIS:
+      Each stage box is a well-formed element with real text (stage name + duration). There
+      are no missing labels and the text contrast against each tinted background is well
+      above 4.5:1, so axe/WAVE/Lighthouse pass it. But the pass/fail STATUS of a stage is
+      conveyed solely by its background color (mint = passed, pink = failed). The boxes are
+      identical in shape, border, size, and text styling, and the stage text ("Integration
+      Tests", "Build") never states whether it passed or failed. No icon (check/cross), no
+      status word, no shape/border difference, no pattern carries the status. The summary
+      paragraph only restates the color key. A grayscale render makes mint and pink nearly
+      identical, and a user with deuteranopia cannot tell which stages broke the build.
+      Detecting "status is encoded by background color alone" needs visual + semantic
+      judgment no static checker performs.
+    -->
+  </main>
+</body>
+</html>

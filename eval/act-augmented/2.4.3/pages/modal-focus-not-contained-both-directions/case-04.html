@@ -4,25 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Renew vehicle registration — State of Calverton DMV</title>
-<!--
-  SC 2.4.3 — modal-focus-not-contained-both-directions — case-04 (FAIL)
-  INERT SET, BUT A SIBLING ESCAPES IT. The developer did the right modern thing: when the
-  "Confirm renewal" modal opens, they set <main>.inert = true and relied on `inert` (no JS
-  Tab trap) to keep focus in the dialog — a legitimate, recommended modern technique. It
-  looks textbook. BUT a separate cookie-consent banner (OneTrust-style) was injected by a
-  tag manager as a DIRECT CHILD OF <body>, OUTSIDE the #page wrapper that gets inerted. So
-  the banner's "Accept all cookies" / "Manage" buttons remain fully focusable. With the page
-  inert, the document's live focusables are exactly the dialog's controls PLUS the two
-  cookie-banner buttons. So Tab from the dialog's last control ("Pay") moves FORWARD onto
-  the cookie buttons (they follow the dialog in DOM order), and Shift+Tab from the dialog's
-  first control ("Card number") moves BACKWARD onto those same buttons. Focus escapes the
-  open modal in BOTH directions onto a body-level sibling the inerting never reached.
-  WHY AUTOMATED TOOLS MISS IT: inert is correctly applied; role=dialog/aria-modal/labels are
-  all present; the cookie banner is valid labelled markup. Every static check passes. Only a
-  human who knows the cookie banner lives OUTSIDE the inerted subtree, and who Tabs off the
-  dialog's edges, sees focus land on "Accept all cookies" behind the backdrop. This is NOT a
-  2.1.2 trap — Esc closes the modal — it is the inverse leak.
--->
 <style>
   :root { font-family: "Public Sans", system-ui, sans-serif; color: #1b1b1b; }
   body { margin: 0; background: #f0f0f0; }
@@ -43,7 +24,6 @@
   .btn { border: none; border-radius: 4px; padding: 11px 20px; font-weight: 600; font-size: .9rem; cursor: pointer; }
   .btn.go { background: #1a7f37; color: #fff; }
   .btn.no { background: #e1e3e6; color: #1b1b1b; }
-  /* Cookie banner: body-level sibling, OUTSIDE #page, very high z-index so it sits over the backdrop */
   .cookie { position: fixed; left: 16px; bottom: 16px; right: 16px; max-width: 520px; background: #1b1b1b; color: #fff; padding: 16px 18px; border-radius: 6px; z-index: 120; font-size: .85rem; }
   .cookie .cbtns { margin-top: 10px; display: flex; gap: 8px; }
   .cookie button { border: none; border-radius: 4px; padding: 8px 14px; font-weight: 600; font-size: .82rem; cursor: pointer; }
@@ -52,10 +32,6 @@
 </style>
 </head>
 <body>
-<!--
-  #page wraps the gov banner, header, and main. The script inerts #page when the modal
-  opens. EVERYTHING the developer authored lives in here — but the cookie banner does not.
--->
 <div id="page">
   <div class="gov-banner">An official website of the State of Calverton</div>
   <header class="dmv">
@@ -77,7 +53,6 @@
   </main>
 </div>
 
-<!-- Confirm-renewal modal. Background #page is inerted; no JS trap (relies on inert alone). -->
 <div class="backdrop" id="backdrop">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="rn-title" id="modal">
     <h2 id="rn-title">Confirm renewal &amp; payment</h2>
@@ -94,11 +69,6 @@
   </div>
 </div>
 
-<!--
-  Cookie-consent banner injected by the tag manager as a DIRECT CHILD OF BODY, a sibling of
-  #page and the modal — NOT inside #page. So inerting #page never touches it; its buttons
-  stay focusable while the modal is open, sitting OUTSIDE the dialog.
--->
 <aside class="cookie" id="cookie" aria-label="Cookie consent">
   This site uses cookies to measure traffic.
   <div class="cbtns">
@@ -110,18 +80,13 @@
 <script>
   const page = document.getElementById('page');
 
-  // Modern, "correct-looking" approach: inert the whole page wrapper while the modal is
-  // open and let `inert` keep focus in the dialog (no manual Tab trap needed — this IS the
-  // recommended technique). The developer assumed #page contained ALL background
-  // focusables. The cookie banner, injected later by the tag manager OUTSIDE #page, is not
-  // covered, so it stays in the tab order alongside the dialog.
   page.inert = true;
 
   window.addEventListener('load', () => document.getElementById('card').focus());
 
   function close() { page.inert = false; document.getElementById('backdrop').remove(); }
   document.getElementById('cancel').addEventListener('click', close);
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); }); // Esc works -> not a 2.1.2 trap
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); }); 
 
   document.getElementById('cookie-accept').addEventListener('click', e => { e.currentTarget.textContent = 'Accepted ✓'; });
 </script>

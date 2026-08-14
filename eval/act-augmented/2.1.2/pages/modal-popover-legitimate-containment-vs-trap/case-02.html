@@ -4,19 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Renew Vehicle Registration — State of Ardennes DMV</title>
-<!--
-  SC 2.1.2 — modal-popover-legitimate-containment-vs-trap — case-02 (PASS)
-  This is the conformant modal the ACT corpus never models. A role="dialog"
-  aria-modal="true" overlay cycles Tab among its controls (focus IS restricted to the
-  dialog), BUT the wrap cycle explicitly includes a focusable "Close" button as the
-  final tab stop, AND a working Esc handler closes the dialog and restores focus to the
-  triggering button. The focus restriction is therefore the *legitimate* carve-out: the
-  user always knows how to untrap and leave (Esc, or Tab to Close and activate it).
-  WHY THIS IS THE INSTRUCTIVE PASS: structurally it looks identical to a trap (same
-  role=dialog, same focus cycle). Only by driving the keyboard — confirming Esc works and
-  Close is reachable AND in the cycle AND actually closes — can a human certify it passes.
-  An automated tool can neither confirm the dismiss works nor distinguish it from case-01.
--->
 <style>
   :root { font-family: "Public Sans", system-ui, sans-serif; color: #15202b; }
   body { margin: 0; background: #f4f6f9; }
@@ -75,7 +62,6 @@
   </p>
 </main>
 
-<!-- Conformant modal: focus IS trapped, but Close is in the cycle and Esc works. -->
 <div class="scrim" id="scrim">
   <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="renew-title" id="dialog">
     <header>
@@ -111,13 +97,11 @@
   function openDialog() {
     lastFocused = document.activeElement;
     scrim.classList.add('show');
-    // Initial focus into the dialog.
     document.getElementById('odo').focus();
   }
 
   function closeDialog() {
     scrim.classList.remove('show');
-    // Restore focus to the control that opened the dialog.
     if (lastFocused) lastFocused.focus();
   }
 
@@ -126,15 +110,14 @@
   document.getElementById('cancel').addEventListener('click', closeDialog);
   document.getElementById('pay').addEventListener('click', closeDialog);
 
-  // Working keyboard exit + a focus cycle that INCLUDES the Close button.
   dialog.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') {             // standard exit method — wired and functional
+    if (e.key === 'Escape') {             
       e.preventDefault();
       closeDialog();
       return;
     }
     if (e.key !== 'Tab') return;
-    const items = focusables();           // includes #close-x, #cancel, #pay (all focusable)
+    const items = focusables();           
     const first = items[0];
     const last  = items[items.length - 1];
     if (e.shiftKey && document.activeElement === first) {

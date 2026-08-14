@@ -21,14 +21,12 @@
   label { display:block; font-weight:600; font-size:.86rem; margin:0 0 6px; }
   input, select { width:100%; font-size:.95rem; padding:10px 12px; border:1px solid var(--line);
         border-radius:7px; }
-  /* The format instruction is present DIRECTLY under the field — but it is rendered tiny and
-     in a near-background grey, so it is not readable as the field's instruction. */
   .microhint {
         display:block;
         margin-top:4px;
-        font-size:9px;          /* far below body text */
+        font-size:9px;          
         line-height:1.1;
-        color:#cdd4da;          /* ~1.3:1 on white — effectively invisible as text */
+        color:#cdd4da;          
         letter-spacing:.1px;
   }
   .normalhint { display:block; margin-top:5px; font-size:.8rem; color:var(--muted); }
@@ -53,9 +51,6 @@
           </select>
         </div>
 
-        <!-- THE GOVERNED FIELD. The member-ID format is non-obvious (carrier prefix + 9 digits,
-             no spaces). The instruction text EXISTS immediately beneath the field — but it is set
-             at 9px in #cdd4da, far too small and low-contrast to read as the field's instruction. -->
         <div class="field">
           <label for="member">Member ID</label>
           <input type="text" id="member" name="member" aria-describedby="member-hint" autocomplete="off">
@@ -79,21 +74,5 @@
     </div>
   </div>
 
-  <!--
-    WHY AUTOMATED TOOLS MISS IT
-    The Member ID format instruction is present in the DOM (#member-hint), is a complete and
-    accurate sentence, and is even wired with aria-describedby — so a screen reader announces it,
-    and every "instruction exists / is associated" check passes. The defect is VISUAL: it is
-    rendered at 9px in #cdd4da on #fff (~1.3:1), far below readable size and contrast, so a typical
-    sighted user does not perceive it as the field's instruction — to them the field has no usable
-    format guidance. Note this is NOT a clean 1.4.3 catch: SC 1.4.3 exempts text below its size
-    thresholds and tools key contrast checks to computed font-size + foreground/background; here
-    the failure that MATTERS is 3.3.2 — the *instruction is not presented perceivably to sighted
-    users*, a meaning-level judgment about whether the text functions as the field's instruction.
-    A contrast scanner may or may not emit a generic low-contrast note, but it cannot conclude
-    "this unreadable text is the field's required-format instruction, so the field effectively
-    lacks an instruction." That requires reading the text, judging legibility, and tying it to the
-    control's need.
-  -->
 </body>
 </html>

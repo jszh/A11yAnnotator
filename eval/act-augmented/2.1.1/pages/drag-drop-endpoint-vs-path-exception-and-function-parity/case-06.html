@@ -12,7 +12,6 @@
   .panel h1 { font-size: 1.05rem; margin: 0 0 4px; }
   .panel .sub { color: #6b6b80; font-size: .9rem; margin: 0 0 18px; }
 
-  /* 2D saturation/brightness square — dragged by pointer; only endpoint (x,y) matters */
   .sv {
     position: relative; width: 100%; height: 200px; border-radius: 10px; cursor: crosshair;
     background:
@@ -26,7 +25,6 @@
     border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 0 1px rgba(0,0,0,.4); pointer-events: none;
   }
 
-  /* Hue slider — a NATIVE range input, fully keyboard-operable, but only controls HUE */
   .huewrap { margin-top: 18px; }
   .huewrap label { display: block; font-weight: 600; font-size: .9rem; margin-bottom: 6px; }
   input[type=range].hue {
@@ -50,7 +48,6 @@
   <h1>Primary brand colour</h1>
   <p class="sub">Pick the saturation and brightness in the square, then fine-tune the hue below.</p>
 
-  <!-- ENDPOINT-dependent picker: only the final (x=saturation, y=brightness) position matters -->
   <div class="sv" id="sv"
        role="application"
        aria-label="Saturation and brightness picker. Drag inside the square to set the colour.">
@@ -73,31 +70,13 @@
 
 <footer>Canvasly · changes apply to your whole workspace</footer>
 
-<!--
-  WHY AUTOMATED TOOLS MISS THIS:
-  This page has a fully keyboard-operable HUE control — a NATIVE <input type="range"> — so a
-  scanner sees a real, focusable, labeled slider and is satisfied that "the colour picker" has
-  keyboard support. It does NOT. The 2D saturation/brightness square is a div with pointer
-  drag handlers only: no role=slider(s), no tabindex, no key handler, so SATURATION and BRIGHTNESS
-  cannot be set by keyboard AT ALL. Two human judgments are required, both invisible to automation:
-  (1) The square is ENDPOINT-dependent, not path-dependent: only the final (x,y) the handle lands on
-      matters — the wandering path of the drag is irrelevant — so it is NOT the free-hand/watercolour
-      exception and DOES require a keyboard equivalent (e.g. arrow keys on a 2D slider, or S/V number
-      inputs). A reviewer who lazily lumps "drag on a colour square" with "free-hand drawing" would
-      wrongly exempt it.
-  (2) The hue slider is NOT the same function: it sets a DIFFERENT dimension (hue), so its keyboard
-      operability does not provide a keyboard route to saturation/brightness. The G202 "keyboard
-      alternative exists elsewhere" allowance does not apply, because no control anywhere on the page
-      lets a keyboard user change S or V. Distinguishing "same function, different control" (would
-      pass) from "different function" (still fails) is a semantic call no linter makes.
--->
 <script>
   const sv = document.getElementById('sv');
   const svh = document.getElementById('svh');
   const hue = document.getElementById('hue');
   const swatch = document.getElementById('swatch');
   const hexEl = document.getElementById('hex');
-  let s = 0.78, v = 0.76; // saturation, value (brightness) from the square's endpoint
+  let s = 0.78, v = 0.76; 
 
   function hsvToHex(h, s, v) {
     const c = v * s, x = c * (1 - Math.abs(((h / 60) % 2) - 1)), m = v - c;
@@ -118,7 +97,6 @@
     swatch.style.background = hex;
     hexEl.textContent = hex;
   }
-  // POINTER-ONLY saturation/brightness. No keydown -> S and V unreachable by keyboard.
   function setFromEvent(e) {
     const r = sv.getBoundingClientRect();
     let x = Math.min(Math.max(e.clientX - r.left, 0), r.width);
@@ -133,7 +111,6 @@
   sv.addEventListener('pointermove', e => { if (down) setFromEvent(e); });
   sv.addEventListener('pointerup', () => { down = false; });
 
-  // Hue IS keyboard-operable, but only changes hue (a different dimension).
   hue.addEventListener('input', () => { hue.setAttribute('aria-valuetext', hue.value + ' degrees'); render(); });
 
   render();

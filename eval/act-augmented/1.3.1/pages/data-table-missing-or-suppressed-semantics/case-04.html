@@ -13,11 +13,6 @@
   h1 { font-size:1.5rem; margin:4px 0 0; }
   .effective { color:#666; font-size:.85rem; margin:6px 0 22px; }
 
-  /* A correctly-structured data table: <caption>, <th scope="col"> across the top
-     for each bus departure, <th scope="row"> down the side for each stop.
-     Then role="presentation" is placed on the <table>, which strips ALL of that
-     semantics from the accessibility tree (table, rows, cells, and the scope
-     associations all disappear; it linearises to a run of text). */
   table.tt { border-collapse: collapse; width:100%; font-size:.9rem; }
   table.tt caption { text-align:left; font-weight:700; padding:6px 0 10px; color:#333; }
   table.tt th, table.tt td { border:1px solid #d4d4d4; padding:8px 10px; text-align:center; }
@@ -74,24 +69,6 @@
 
   <p class="hint">Buses run every 30 minutes after the last listed departure until 9:00 PM. Real-time arrivals at riversidetransit.example.</p>
 
-  <!--
-    WHY AUTOMATED TOOLS MISS THIS (F92):
-    The underlying markup is a textbook-correct data table: a <caption>, a <thead>
-    with <th scope="col"> for each bus, and a <th scope="row"> for each stop, so every
-    time cell is programmatically tied to its stop AND its bus. The author then added
-    role="presentation" to the <table>. Per WAI-ARIA, role="presentation" SUPPRESSES
-    the semantics of the element and its required-owned descendants: the table, its
-    rows, its header cells, and all scope associations are removed from the
-    accessibility tree. A screen-reader user no longer encounters a table at all — the
-    content linearises to "Stop Bus A Bus B Bus C Bus D Maple St & 1st Ave 6:05 6:35
-    7:05 7:35 ..." with no header announced for any time. ACT treats role=presentation
-    only as an INAPPLICABILITY trigger (the element leaves the a11y tree, so structural
-    rules don't apply); it never flags a genuine data table that has been suppressed.
-    axe/WAVE/Lighthouse raise nothing because using role=presentation on a table is
-    perfectly valid for LAYOUT tables. Distinguishing "correctly suppressed layout
-    table" from "wrongly suppressed data table" requires a human to judge that these
-    times are meaningless without their stop/bus headers — i.e. this IS data.
-  -->
 </div>
 </body>
 </html>

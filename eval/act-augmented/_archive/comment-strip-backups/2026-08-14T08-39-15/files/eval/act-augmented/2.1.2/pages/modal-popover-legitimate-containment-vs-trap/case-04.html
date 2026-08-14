@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Create alert rule — Cadence Analytics</title>
+<!--
+  SC 2.1.2 — modal-popover-legitimate-containment-vs-trap — case-04 (FAIL)
+  A SaaS dashboard modal (role="dialog" aria-modal="true") has a fully focusable, real
+  <button> "Close" in its header AND a "Cancel" in its footer. BUT the hand-rolled focus
+  trap was scoped to a hard-coded selector ('.dialog-form :is(input,select,button)') that
+  matches ONLY the form-body controls — it deliberately EXCLUDES the header Close and (by
+  living outside .dialog-form) the footer Cancel. The trap wraps Tab strictly among the
+  three form fields + the "Create rule" button, so the user can SEE the Close/Cancel but
+  Tab can never land on them. There is also no Esc handler.
+  WHY AUTOMATED TOOLS MISS IT: the Close and Cancel are genuine, focusable, named <button>
+  elements — a tool sees a perfectly reachable close control in the DOM and passes. Only by
+  actually tabbing the open modal does it emerge that the trap's cycle SKIPS them, so the
+  visible dismiss is unreachable by keyboard. No attribute is missing or wrong.
+-->
+<style>
+  :root { font-family: "IBM Plex Sans", system-ui, sans-serif; color: #1a1f29; }
+  body { margin: 0; background: #0f1521; }
+  .app { display: grid; grid-template-columns: 200px 1fr; min-height: 100vh; }
+  aside { background: #141c2c; color: #cdd6e4; padding: 18px 14px; }
+  aside .brand { font-weight: 800; color: #fff; margin-bottom: 18px; }
+  aside a { display: block; color: #9fb0c8; text-decoration: none; padding: 7px 8px; border-radius: 6px; font-size: .9rem; }
+  aside a.active { background: #22304a; color: #fff; }
+  .panel { background: #f5f7fb; padding: 26px; }
+  .panel h1 { margin-top: 0; }
+  .panel .new { background: #2b59ff; color: #fff; border: none; border-radius: 7px; padding: 10px 16px; font-weight: 600; cursor: pointer; }
+
+  .scrim { position: fixed; inset: 0; background: rgba(10,16,28,.6); display: none; align-items: center; justify-content: center; }
+  .scrim.show { display: flex; }
+  .dialog { background: #fff; border-radius: 12px; width: min(500px, 92vw); box-shadow: 0 20px 60px rgba(0,0,0,.4); overflow: hidden; }
+  .dialog .head { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #e7ebf3; }
+  .dialog .head h2 { margin: 0; font-size: 1.15rem; }
+  .dialog .head .close { background: #eef1f7; border: 1px solid #d6dce8; border-radius: 6px; padding: 5px 10px; font-size: .95rem; cursor: pointer; }
+  .dialog-form { padding: 20px; }
+  .dialog-form label { display: block; font-weight: 600; margin: 12px 0 5px; font-size: .88rem; }
+  .dialog-form input, .dialog-form select { width: 100%; box-sizing: border-box; padding: 9px 11px; border: 1px solid #aeb8cb; border-radius: 7px; font-size: .95rem; }
+  .dialog-form .create { margin-top: 18px; background: #2b59ff; color: #fff; border: none; border-radius: 8px; padding: 11px 18px; font-weight: 600; cursor: pointer; }
+  .dialog .foot { display: flex; justify-content: flex-end; gap: 10px; padding: 14px 20px; border-top: 1px solid #e7ebf3; }
+  .dialog .foot .cancel { background: #fff; color: #2b59ff; border: 1px solid #2b59ff; border-radius: 8px; padding: 10px 16px; font-weight: 600; cursor: pointer; }
+  button:focus-visible, a:focus-visible { outline: 3px solid #ffb020; outline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <div class="brand">Cadence</div>
+    <a href="#dash">Dashboards</a>
+    <a href="#alerts" class="active">Alert rules</a>
+    <a href="#logs">Logs</a>
+    <a href="#settings">Settings</a>
+  </aside>
+  <section class="panel">
+    <h1>Alert rules</h1>
+    <p>Define thresholds that page your on-call rotation when a metric breaches them.</p>
+    <button class="new" id="open" type="button">Create alert rule</button>
+  </section>
+</div>
+
+<!-- Modal HAS real focusable Close + Cancel buttons, but the trap excludes them. -->
+<div class="scrim" id="scrim">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="rule-title" id="dialog">
+    <div class="head">
+      <h2 id="rule-title">Create alert rule</h2>
+      <button class="close" id="close" type="button">Close</button>
+    </div>
+    <form class="dialog-form" id="ruleform">
+      <label for="metric">Metric</label>
+      <select id="metric">
+        <option>p99 latency (ms)</option>
+        <option>error rate (%)</option>
+        <option>CPU utilisation (%)</option>
+      </select>
+      <label for="threshold">Threshold</label>
+      <input id="threshold" type="number" value="500">
+      <label for="window">Evaluation window (minutes)</label>
+      <input id="window" type="number" value="5">
+      <button class="create" id="create" type="button">Create rule</button>
+    </form>
+    <div class="foot">
+      <button class="cancel" id="cancel" type="button">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const scrim = document.getElementById('scrim');
+  const dialog = document.getElementById('dialog');
+
+  function open() {
+    scrim.classList.add('show');
+    document.getElementById('metric').focus();
+  }
+  function close() { scrim.classList.remove('show'); }
+
+  document.getElementById('open').addEventListener('click', open);
+  document.getElementById('close').addEventListener('click', close);
+  document.getElementById('cancel').addEventListener('click', close);
+
+  // BUG: the focus trap was scoped to the form body only. The maintainer's snippet
+  // hard-coded the container as '.dialog-form' to "keep the inputs together", which
+  // silently drops the header Close (#close) and the footer Cancel (#cancel) — both of
+  // which live OUTSIDE .dialog-form — from the cycle. There is also no Escape branch.
+  dialog.addEventListener('keydown', function (e) {
+    if (e.key !== 'Tab') return;                      // Esc is not handled
+    const items = Array.from(
+      document.querySelectorAll('.dialog-form input, .dialog-form select, .dialog-form button')
+    );                                                // <-- excludes #close and #cancel
+    const first = items[0];
+    const last  = items[items.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  });
+
+  document.getElementById('create').addEventListener('click', function () {
+    this.textContent = 'Rule created ✓';
+  });
+</script>
+</body>
+</html>

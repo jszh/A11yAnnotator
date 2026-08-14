@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Northwind Insurance — Auto quote · Driver details</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (case-03):
+  Every field is correctly labelled with <label for> (e086e5 passes). The REQUIRED
+  status of the mandatory fields is conveyed two ways, both visual-only:
+    (1) a one-time sentence at the top: "Fields shown in red are required."
+    (2) the label text of required fields is colored red via a CSS class.
+  There is NO aria-required, NO required attribute, and NO text token (no "*",
+  no "(required)") in any label — the required-ness is carried purely by red color
+  plus a prose sentence that is not programmatically tied to any field. A screen
+  reader announces "Date of birth, edit text" with no hint that it is required;
+  the red is invisible to AT and to anyone who can't perceive red. axe will NOT
+  flag this: there is no rule that a field the page visually marks required must
+  expose aria-required, and the use-of-color overlap is judged under 1.4.1, not by
+  a static 1.3.1 check. Knowing WHICH fields the red+sentence marks as required —
+  and that the cue never reaches the field programmatically — is human judgment.
+-->
+<style>
+  :root { --ink:#1d2733; --line:#cdd6e0; --brand:#0b5cab; }
+  body { font-family: Verdana, Geneva, sans-serif; color: var(--ink); background: #eef2f6; margin: 0; }
+  .panel { max-width: 600px; margin: 40px auto; background: #fff; border-top: 5px solid var(--brand); box-shadow: 0 1px 8px rgba(20,40,70,.12); padding: 30px 38px 40px; }
+  h1 { font-size: 21px; margin: 0 0 2px; }
+  .crumb { color: var(--brand); font-size: 12px; font-weight: bold; letter-spacing: .05em; }
+  /* The ONLY statement of what "required" means — plain prose, tied to nothing */
+  .req-note { background: #fdf0f0; border: 1px solid #f3c9c9; color: #7a1f1f; font-size: 13px; padding: 9px 12px; border-radius: 4px; margin: 16px 0 24px; }
+  .fld { margin: 0 0 18px; }
+  .fld label { display: block; font-size: 14px; margin-bottom: 5px; }
+  /* Required = red text only. No asterisk, no "(required)" token, no aria-required. */
+  label.required { color: #c0182b; }
+  input, select { width: 100%; box-sizing: border-box; padding: 9px 10px; border: 1px solid var(--line); font-size: 14px; border-radius: 3px; }
+  .pay { background: var(--brand); color: #fff; border: none; padding: 12px 30px; border-radius: 4px; font-size: 15px; cursor: pointer; margin-top: 8px; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+</style>
+</head>
+<body>
+  <div class="panel">
+    <p class="crumb">AUTO QUOTE › DRIVER DETAILS</p>
+    <h1>Tell us about the primary driver</h1>
+
+    <!-- One-time prose note. Not associated with any field via aria-describedby. -->
+    <p class="req-note">Fields shown in <strong>red</strong> are required to generate your quote.</p>
+
+    <form action="#" method="post" novalidate>
+      <div class="two">
+        <div class="fld">
+          <label for="first" class="required">Legal first name</label>
+          <input type="text" id="first" autocomplete="given-name">
+        </div>
+        <div class="fld">
+          <label for="last" class="required">Legal last name</label>
+          <input type="text" id="last" autocomplete="family-name">
+        </div>
+      </div>
+
+      <div class="fld">
+        <label for="dob" class="required">Date of birth</label>
+        <input type="date" id="dob" autocomplete="bday">
+      </div>
+
+      <div class="fld">
+        <!-- Optional field: black label. The ONLY thing distinguishing it from a
+             required field is the absence of red — pure color coding. -->
+        <label for="middle">Middle name</label>
+        <input type="text" id="middle" autocomplete="additional-name">
+      </div>
+
+      <div class="fld">
+        <label for="license" class="required">Driver's license number</label>
+        <input type="text" id="license" inputmode="text">
+      </div>
+
+      <div class="fld">
+        <label for="prior">Years with prior insurer</label>
+        <select id="prior">
+          <option value="">Select…</option>
+          <option>Less than 1 year</option>
+          <option>1–3 years</option>
+          <option>4+ years</option>
+        </select>
+      </div>
+
+      <button type="submit" class="pay">See my quote</button>
+    </form>
+  </div>
+</body>
+</html>

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Review your stay — Harbourline Hotels</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS:
+  Post-submit hotel-booking review in its error state. The check-out date field has a
+  visible, associated error (aria-describedby="out-err"): "Check-out date must be after
+  your check-in date." That names the field and describes a concrete cause, satisfying
+  ACT 36b590. axe/WAVE/Lighthouse pass: both date inputs labelled, fieldset/legend
+  present, describedby resolves, contrast fine.
+  THE DEFECT IS SEMANTIC + RELATIONAL: check-in = 2026-08-01, check-out = 2026-09-25.
+  Check-out IS after check-in (by 55 nights), so the stated cause is FALSE. The booking
+  form's own visible policy states "Maximum stay: 30 nights." The real, undescribed
+  error is that a 55-night stay exceeds the 30-night cap. A user obeying the only error
+  text would (pointlessly) move check-out even LATER or doubt their own dates, never
+  learning the real constraint. Detecting this needs comparing two date values to each
+  other AND to a separately-stated policy — a multi-field semantic judgment no checker
+  performs.
+-->
+<style>
+  :root{ --ink:#13202b; --muted:#5b6b76; --line:#cfd8de; --brand:#0f6e8c; --danger:#bf2a25; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font:16px/1.55 "Inter","Segoe UI",system-ui,sans-serif; color:var(--ink);
+        background:#eef4f6; }
+  .wrap{ max-width:640px; margin:36px auto; padding:0 18px; }
+  .brand{ display:flex; align-items:center; gap:10px; margin-bottom:20px; }
+  .brand .anchor{ width:30px; height:30px; border-radius:8px; background:var(--brand); }
+  .brand strong{ font-size:1.1rem; }
+  .card{ background:#fff; border:1px solid var(--line); border-radius:12px; padding:28px 26px;
+         box-shadow:0 4px 16px rgba(15,40,55,.06); }
+  h1{ font-size:1.3rem; margin:0 0 4px; }
+  .lede{ color:var(--muted); font-size:.92rem; margin:0 0 8px; }
+  .policy{ background:#f1f7f9; border:1px solid #d4e6ec; border-radius:8px; padding:10px 13px;
+           font-size:.85rem; color:#244e5c; margin:0 0 22px; }
+  fieldset{ border:1px solid var(--line); border-radius:10px; padding:16px 16px 6px; margin:0 0 8px; }
+  legend{ font-weight:700; font-size:.95rem; padding:0 6px; }
+  .row{ display:flex; gap:16px; flex-wrap:wrap; }
+  .field{ flex:1 1 200px; margin-bottom:16px; }
+  label{ display:block; font-weight:600; font-size:.86rem; margin-bottom:6px; }
+  input[type=date]{ width:100%; padding:10px 12px; font-size:1rem; border:2px solid var(--line);
+        border-radius:8px; }
+  input[aria-invalid="true"]{ border-color:var(--danger); }
+  input:focus{ outline:2px solid var(--brand); outline-offset:1px; }
+  .err{ color:var(--danger); font-size:.85rem; margin-top:7px; font-weight:600; }
+  button{ margin-top:14px; width:100%; padding:12px; font-size:1rem; font-weight:600; color:#fff;
+          background:var(--brand); border:0; border-radius:8px; cursor:pointer; }
+  .foot{ margin-top:16px; color:var(--muted); font-size:.78rem; text-align:center; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand"><span class="anchor" aria-hidden="true"></span><strong>Harbourline Hotels</strong></div>
+    <main class="card">
+      <h1>Review your stay</h1>
+      <p class="lede">Marina Suite · Lisbon Waterfront</p>
+      <p class="policy" id="stay-policy"><strong>Booking policy:</strong> Minimum stay 2 nights · <strong>Maximum stay: 30 nights</strong> · Free cancellation up to 48h before check-in.</p>
+
+      <form action="#" method="post" novalidate>
+        <fieldset>
+          <legend>Dates</legend>
+          <div class="row">
+            <div class="field">
+              <label for="checkin">Check-in</label>
+              <input id="checkin" name="checkin" type="date" value="2026-08-01">
+            </div>
+            <div class="field">
+              <label for="checkout">Check-out</label>
+              <!--
+                Check-out 2026-09-25 IS after check-in 2026-08-01 (55 nights).
+                The asserted cause ("must be after check-in") is false.
+                The real error: 55 nights > the 30-night maximum stated in the policy.
+              -->
+              <input id="checkout" name="checkout" type="date" value="2026-09-25"
+                     aria-describedby="stay-policy out-err" aria-invalid="true">
+              <p class="err" id="out-err">Check-out date must be after your check-in date.</p>
+            </div>
+          </div>
+        </fieldset>
+
+        <button type="submit">Confirm &amp; pay</button>
+      </form>
+    </main>
+    <p class="foot">Harbourline Hotels · Reservations +351 21 555 0143 · Renders from file://</p>
+  </div>
+</body>
+</html>

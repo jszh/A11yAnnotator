@@ -4,26 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Funnel Overview — Northwind Analytics</title>
-<!--
-  SC 1.4.13 Dismissible — Method 1 (non-obscuring positioning) PASS (boundary case).
-
-  This page also has NO keyboard dismiss (no Esc handler, no close button, popover not
-  hoverable-to-close). So Method 1 is the ONLY available compliance path — same setup as
-  the FAIL cases on purpose.
-
-  The difference: the metric-help popover opens DOWNWARD into the large EMPTY dashboard
-  region below the KPI cards. That area is pure white space — there is no text, no control,
-  and no information-bearing graphic underneath it. Geometric overlap with the page exists
-  (the popover's box hangs below the left card over empty canvas), but it covers ONLY empty
-  space, which the SC explicitly exempts. Therefore Method 1 is satisfied and the page
-  PASSES even with no dismiss mechanism.
-
-  WHY AUTOMATED TOOLS MISS IT (and why it still matters as a test): a naive "any overlap
-  fails" checker would WRONGLY flag this page, because two rendered rectangles do intersect.
-  Only a human can see that the intersected region is an empty gutter, invoke the
-  white-space exception, and rule PASS. This is the exact decorative/white-space carve-out
-  that separates a true positive from a false positive — the inverse error to case-01/02.
--->
 <style>
   * { box-sizing:border-box; }
   body { margin:0; background:#0f1320; color:#e8ebf2;
@@ -37,7 +17,6 @@
   h1 { font-size:20px; margin:0 0 2px; }
   .sub { color:#8b93a8; margin:0 0 22px; }
 
-  /* Two cards with a generous EMPTY gutter between them. */
   .row { display:grid; grid-template-columns:1fr 1fr; gap:64px; align-items:start; }
   .card { background:#171d30; border:1px solid #28324d; border-radius:14px; padding:18px 20px; min-height:190px; }
   .card h2 { font-size:14px; color:#9aa3bb; font-weight:600; margin:0 0 10px; display:flex; align-items:center; gap:8px; }
@@ -46,20 +25,17 @@
   .bars { display:flex; gap:6px; align-items:flex-end; height:70px; margin-top:16px; }
   .bars span { flex:1; background:#3b6ed0; border-radius:3px 3px 0 0; }
 
-  /* metric-help trigger */
   .qmark {
     border:0; width:18px; height:18px; border-radius:50%;
     background:#2c3a5c; color:#cdd6ec; font:700 11px/1 inherit; cursor:help;
   }
   .qmark:focus-visible { outline:2px solid #9fd1ff; outline-offset:2px; }
 
-  /* Popover opens DOWNWARD from the LEFT card into the large empty dashboard region
-     below the cards — that area holds no text, controls, or informational graphics. */
   .metric { position:relative; }
   .metric .pop {
     display:none;
     position:absolute;
-    top:calc(100% + 14px);    /* drops below the card into empty space */
+    top:calc(100% + 14px);    
     left:0;
     width:240px;
     background:#fbfdff; color:#1b2030;
@@ -114,10 +90,6 @@
   </div>
 
   <script>
-    // SCR39-style show/hide on hover AND focus, but with NO Escape handler and no close
-    // control: Method 2 is unavailable by design. Compliance rests entirely on Method 1,
-    // which holds because the popover lands in the empty 64px grid gutter (white space) and
-    // obscures no information-bearing content.
     (function () {
       var trig = document.querySelector('.metric .qmark');
       var pop = document.getElementById('m1-pop');
@@ -127,7 +99,6 @@
       trig.addEventListener('focus', show);
       trig.addEventListener('mouseleave', hide);
       trig.addEventListener('blur', hide);
-      // NOTE: no keydown/Escape handler -> no dismiss path (intentional).
     })();
   </script>
 </body>

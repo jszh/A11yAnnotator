@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.3.1 FAILURE (F43) — two structural elements asserting relationships that don't exist:
+      (A) a <dl> (description list) used to two-column-align unrelated pricing rows that are
+          NOT term/definition pairs; and
+      (B) a <blockquote> wrapping the company's OWN marketing tagline (not a quotation).
+
+    (A) THE DESCRIPTION LIST. A <dl> programmatically asserts: "each <dt> is a TERM and the
+        following <dd> is that term's DESCRIPTION/definition." Here the developer used <dl> as
+        a cheap two-column layout: the left column is a heterogeneous mix of facts (a price, a
+        seat count, a billing cadence, a support tier) and the right column is its value. These
+        are independent spec rows, not term -> definition pairs. Worse, the visual order pairs
+        each label with the value to its RIGHT, but the developer wrote some rows as
+        <dd>value</dd><dt>label</dt> to make the CSS grid align — so the programmatic
+        term/description association is, in places, reversed relative to meaning. AT announces
+        "term: $49 / month, definition: Price" — backwards — fabricating definition
+        relationships that are false.
+
+    (B) THE BLOCKQUOTE. "Ship faster. Sleep better." is Larkfield's own slogan, written by
+        their marketing team. It is not quoted from anyone. <blockquote> asserts a quotation
+        that does not exist.
+
+    WHY AUTOMATED TOOLS MISS IT: a <dl> with matched <dt>/<dd> children is structurally valid;
+    axe checks that <dl> contains only <dt>/<dd> (it does) — never whether the term actually
+    DEFINES the description, nor whether dt/dd order matches meaning. A <blockquote> needs no
+    attributes. Both pass every linter. Only reading the content reveals the relationships are
+    fabricated.
+  -->
+  <title>Pricing — Larkfield CI</title>
+  <style>
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Inter", system-ui, sans-serif; color:#101828;
+           background:#f7f8fa; line-height:1.6; }
+    header { background:#0d1b2a; color:#e7eef6; padding:1rem 1.4rem; display:flex; align-items:center; gap:.6rem; }
+    header .logo { font-weight:800; letter-spacing:.02em; font-size:1.15rem; }
+    header nav { margin-left:auto; font-size:.85rem; opacity:.85; }
+    main { max-width:48rem; margin:1.6rem auto 4rem; padding:0 1.2rem; }
+    h1 { font-size:2rem; margin:.2rem 0 .4rem; }
+    p.lead { color:#475467; margin:0 0 1.2rem; }
+    /* (B) Tagline placed in a blockquote for the centered, oversized style. */
+    blockquote.tagline { margin:1rem 0 1.6rem; padding:0; border:0; text-align:center;
+                         font-size:1.5rem; font-weight:700; color:#1d4ed8; font-style:italic; }
+    .card { background:#fff; border:1px solid #e4e7ec; border-radius:12px; padding:1.4rem 1.5rem;
+            box-shadow:0 1px 2px rgba(16,24,40,.05); }
+    .card h2 { font-size:1.25rem; margin:0 0 .2rem; }
+    .card .price-big { font-size:2.1rem; font-weight:800; margin:.3rem 0 1rem; }
+    /* (A) <dl> abused as a 2-column spec grid. */
+    dl.specs { display:grid; grid-template-columns: 1fr auto; gap:.45rem 1rem; margin:0; }
+    dl.specs dt { color:#475467; font-size:.92rem; }
+    dl.specs dd { margin:0; font-weight:600; text-align:right; }
+    .cta { display:inline-block; margin-top:1.2rem; background:#1d4ed8; color:#fff;
+           padding:.7rem 1.5rem; border-radius:8px; text-decoration:none; font-weight:600; }
+    footer { max-width:48rem; margin:0 auto 3rem; padding:0 1.2rem; font-size:.8rem; color:#667085; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="logo">Larkfield CI</span>
+    <nav>Product · Docs · Pricing · Sign in</nav>
+  </header>
+
+  <main>
+    <h1>Simple, build-minute pricing</h1>
+    <p class="lead">Pay for the build minutes you use. Cancel anytime.</p>
+
+    <!-- (B) Larkfield's OWN slogan, not a quotation. -->
+    <blockquote class="tagline">Ship faster. Sleep better.</blockquote>
+
+    <div class="card">
+      <h2>Team plan</h2>
+      <p class="price-big">$49<span style="font-size:1rem;font-weight:500;color:#667085">/mo</span></p>
+
+      <!--
+        (A) This <dl> is a 2-column layout grid, NOT term/definition pairs. The "terms" are a
+        grab-bag of independent spec rows. Note the deliberately reversed pairs (dd before dt)
+        the dev added so the CSS grid columns aligned — which inverts the programmatic
+        term/description meaning.
+      -->
+      <dl class="specs">
+        <dt>Price</dt>
+        <dd>$49 / month</dd>
+
+        <!-- reversed to make the grid align visually: value first, label second -->
+        <dd>10 seats included</dd>
+        <dt>Seats</dt>
+
+        <dt>Billing</dt>
+        <dd>Monthly or annual</dd>
+
+        <dd>2,000 build-minutes / mo</dd>
+        <dt>Included minutes</dt>
+
+        <dt>Support</dt>
+        <dd>Email, 1-business-day SLA</dd>
+      </dl>
+
+      <a class="cta" href="#signup">Start free trial</a>
+    </div>
+
+    <p style="margin-top:1.4rem;color:#475467;font-size:.9rem">All plans include unlimited
+    repositories, parallel pipelines, and our open-source runner. Annual billing saves 15%.</p>
+  </main>
+
+  <footer>Larkfield CI, Inc. · Continuous integration that gets out of your way.</footer>
+</body>
+</html>

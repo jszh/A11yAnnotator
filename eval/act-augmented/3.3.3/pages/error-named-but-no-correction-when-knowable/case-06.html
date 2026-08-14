@@ -4,29 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Claim your handles — Orbit Developer Hub</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS (SC 3.3.3 Error Suggestion, Level AA):
-  Post-submit error state on a "claim your identifiers" step. TWO sibling fields take a
-  taken/unavailable value and both render an error identified in text, correctly
-  associated via aria-describedby + aria-invalid="true", high contrast. SC 3.3.1 passes
-  on both; axe / WAVE / Lighthouse go green.
-
-  The two fields are a controlled comparison:
-   * "Project slug" (FIX PROVIDED): "Taken. Try one of: orbit-telemetry-2, orbit-telemetry-io, telemetry-by-mira."
-     -> a suggestion of corrected input IS offered. This sibling PROVES the system can
-        and does compute available alternatives.
-   * "Username" (FIX WITHHELD): "Username unavailable." -> a BARE restatement. No
-        alternatives, no hint of the naming rules, even though the very same suggestion
-        engine produced three slug alternatives on the line above.
-
-  THE DEFECT IS SC 3.3.3 on the username field: the correction is provably knowable
-  (the sibling demonstrates the alternative-generator exists and runs on this page),
-  yet the username error provides no suggestion. This is the hardest variant: a checker
-  sees two structurally identical, correctly-wired error messages and cannot tell that
-  one contains actionable suggestions and the other is an empty restatement — nor that
-  the presence of suggestions next door makes "not knowable" indefensible. Only semantic
-  reading, comparing the two messages' CONTENT, catches it.
--->
 <style>
   :root{ --ink:#0e1726; --muted:#5a6b86; --line:#cdd7e6; --orbit:#3b4fd1; --ok:#1f8a4c; --danger:#cc2b3b; }
   *{ box-sizing:border-box; }
@@ -62,15 +39,10 @@
       <p class="lede">Pick a username and a slug for your first project. Both must be unique.</p>
 
       <form action="#" method="post" novalidate>
-        <!-- SIBLING A — username: error WITHHELDS the suggestion (the SC 3.3.3 failure) -->
         <div class="field">
           <label for="username">Username</label>
           <div class="with-prefix" data-invalid="true">
             <span class="pre" aria-hidden="true">orbit.dev/@</span>
-            <!--
-              "mira" is taken. The same alt-generator used for the slug below could offer
-              mira2, mira.dev, mira-codes... but the username error states none.
-            -->
             <input type="text" id="username" name="username"
                    aria-describedby="username-error"
                    aria-invalid="true"
@@ -80,7 +52,6 @@
           <p class="err" id="username-error">Username unavailable.</p>
         </div>
 
-        <!-- SIBLING B — slug: error PROVIDES suggestions (proves the engine exists & runs) -->
         <div class="field">
           <label for="slug">Project slug</label>
           <div class="with-prefix" data-invalid="true">

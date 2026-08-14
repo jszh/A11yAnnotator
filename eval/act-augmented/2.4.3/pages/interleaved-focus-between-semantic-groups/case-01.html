@@ -4,25 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Northwind Outfitters — Checkout</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS (SC 2.4.3 Focus Order):
-  Every field has a real, visible <label for=...>, a correct programmatic name/role,
-  and is fully keyboard-operable. There is NO tabindex anywhere — the tab order is the
-  pure DOM source order. axe/WAVE/Lighthouse therefore find nothing: no empty label,
-  no missing name, no contrast issue, no out-of-range tabindex.
-  The defect is purely SEMANTIC GROUPING. Visually this is two boxed sections under two
-  headings — "Billing address" (left) and "Shipping address" (right) — each box holding
-  Full name / Street / Apt / City / Postal in the correct order (placed with CSS Grid).
-  But the underlying DOM is ONE flat sequence that interleaves the two addresses
-  line-by-line: billing-name, shipping-name, billing-street, shipping-street, ...
-  A keyboard user therefore types the billing recipient, is yanked to the SHIPPING
-  recipient, back to the billing street, over to the shipping street, etc. — focus
-  zig-zags across the billing/shipping boundary on every Tab and the user's mental model
-  ("I'm filling in my billing address") is destroyed on the second keystroke.
-  No tool has a model of which fields "belong together," so none can tell that
-  "shipping street" should NOT come between "billing name" and "billing street." This is
-  the exact human-judgment failure from the Understanding's own marketing-data example.
--->
 <style>
   :root { --ink:#1b2430; --brand:#0a5; --line:#d9e0e6; --muted:#5b6b78; --bg:#f4f7f9; }
   * { box-sizing:border-box; }
@@ -33,9 +14,6 @@
   main { max-width:920px; margin:0 auto; padding:30px 24px 80px; }
   .lede { color:var(--muted); margin:0 0 26px; }
 
-  /* The whole form is ONE CSS grid. Two columns (billing | shipping); rows for the
-     section heading + the five address lines. Each field is pinned to a named cell, so
-     visual placement is independent of DOM source order. */
   form { display:grid;
          grid-template-columns:1fr 1fr;
          grid-template-areas:
@@ -49,7 +27,6 @@
          gap:14px 34px;
          position:relative; }
 
-  /* Two card backgrounds drawn behind the grid cells to read as boxed sections. */
   form::before, form::after {
     content:""; position:absolute; top:0; bottom:54px; width:calc(50% - 17px);
     border:1px solid var(--line); border-radius:12px; background:#fff; z-index:0; }
@@ -87,14 +64,6 @@
   <p class="lede">Enter the address you'd like billed and the address you'd like your
      gear shipped to.</p>
 
-  <!--
-    DOM / TAB ORDER (no tabindex, pure source order) is INTERLEAVED line-by-line:
-      billing-name -> shipping-name -> billing-street -> shipping-street ->
-      billing-apt -> shipping-apt -> billing-city -> shipping-city ->
-      billing-postal -> shipping-postal
-    The CSS grid-areas above re-route each field to its correct visual card, so on
-    screen the two boxes look perfectly grouped. The failure exists ONLY in focus order.
-  -->
   <form action="#" method="post" novalidate aria-label="Billing and shipping addresses">
     <div class="sec b-head"><h2>Billing address</h2><p>The address on file with your card issuer.</p></div>
     <div class="sec s-head"><h2>Shipping address</h2><p>Where we'll send your order.</p></div>

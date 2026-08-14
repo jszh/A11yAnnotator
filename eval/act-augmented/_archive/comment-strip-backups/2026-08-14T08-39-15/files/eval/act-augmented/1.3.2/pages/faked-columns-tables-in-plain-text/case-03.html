@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Email Signature Generator — Copy Your Team Card</title>
+  <style>
+    body {
+      font-family: "Segoe UI", system-ui, sans-serif;
+      margin: 0; color: #20242b; background: #eef1f6;
+    }
+    .app { max-width: 720px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+    h1 { font-size: 1.35rem; }
+    p.lead { color: #4a5260; }
+    .field { margin: 1.25rem 0; }
+    label.fl { display: block; font-weight: 600; margin-bottom: .35rem; }
+    /* The "ready to paste" signature is a read-only textarea. The author aligned
+       a 3-column contact card (Name | Title | Phone) with literal TAB characters
+       plus tab-size so it looks like a tidy directory grid in a monospace font. */
+    textarea#sig {
+      width: 100%;
+      box-sizing: border-box;
+      min-height: 180px;
+      font-family: "Consolas", "Courier New", monospace;
+      font-size: .9rem;
+      line-height: 1.5;
+      padding: .75rem;
+      border: 1px solid #b7c0cf;
+      border-radius: 6px;
+      background: #fff;
+      tab-size: 12;
+      -moz-tab-size: 12;
+      white-space: pre;
+      overflow: auto;
+      resize: vertical;
+    }
+    .actions { margin-top: .75rem; }
+    button {
+      font: inherit; padding: .5rem 1rem; border-radius: 6px; cursor: pointer;
+      border: 1px solid #2f6df0; background: #2f6df0; color: #fff;
+    }
+    .note { background: #fff; border-left: 4px solid #2f6df0; padding: .75rem 1rem; font-size: .85rem; margin-top: 1.5rem; }
+    .hint { font-size: .8rem; color: #6b7280; margin-top: .35rem; }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <h1>Team Email Signature</h1>
+    <p class="lead">Your department's shared signature card is ready. Copy the text below and paste
+       it into your email client's signature settings.</p>
+
+    <div class="field">
+      <label class="fl" for="sig">Signature (plain text — select all and copy)</label>
+      <!-- Tabs below align three columns: Name | Title | Phone.
+           In the rendered monospace textarea they look like a clean directory grid. -->
+      <textarea id="sig" readonly aria-describedby="sigHint">Northgate Pediatrics — Care Team
+Dr. Amara Osei	Medical Director	x4120 / 555-0142
+Dr. Liam Petrov	Attending Pediatrician	x4135 / 555-0188
+Renee Castillo	Practice Manager	x4101 / 555-0110
+Sam Whitfield	Patient Coordinator	x4109 / 555-0177</textarea>
+      <p id="sigHint" class="hint">Tip: paste as plain text to keep the alignment.</p>
+    </div>
+
+    <div class="actions">
+      <button type="button" id="copyBtn">Copy signature</button>
+    </div>
+
+    <p class="note">
+      <strong>Why automated tools miss this:</strong> a read-only <code>&lt;textarea&gt;</code> with
+      a proper <code>&lt;label&gt;</code> and <code>aria-describedby</code> passes every form-label
+      and name check. The tab characters are invisible to a linter and perfectly valid. No checker
+      can perceive that the tabs render three aligned columns (Name / Title / Phone) per person, so
+      none can detect that a screen reader reads each row's three fields as one run-on string with
+      the tab stops collapsed away.
+    </p>
+  </main>
+
+  <script>
+    // UX-only copy handler; orthogonal to the accessibility defect.
+    const ta = document.getElementById('sig');
+    document.getElementById('copyBtn').addEventListener('click', () => {
+      ta.select();
+      try { document.execCommand('copy'); } catch (e) { /* no-op for file:// */ }
+    });
+  </script>
+</body>
+</html>

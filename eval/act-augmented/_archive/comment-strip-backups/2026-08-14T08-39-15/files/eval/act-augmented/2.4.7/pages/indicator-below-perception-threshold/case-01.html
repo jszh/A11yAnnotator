@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Tidewater Review — Longform</title>
+<!--
+  SC 2.4.7 Focus Visible (AA) — the MAGNITUDE / "is the indicator actually
+  visible" limb. The page does NOT remove the focus indicator (that would be
+  F78 / oj04fd-detectable). Instead the author REPLACED the UA default with a
+  real-but-sub-perceptual change: the only focus styling is a text-color shift
+  from #000000 to #0a0a0a, and the default outline is suppressed.
+
+  THE DEFECT (magnitude, not absence):
+    a { color:#000; outline:0; }
+    a:focus { color:#0a0a0a; }          <-- the ONLY focus change
+  #000000 vs #0a0a0a on #ffffff: luminance 0 -> ~0.0028, a contrast CHANGE of
+  about 1.06:1 between the two text states (well under the 3:1 that G195 calls
+  for, and there is no border/outline area at all). A pixel diff is NON-ZERO
+  (the glyph anti-aliasing edges shift by a few values), so oj04fd "ANY pixel
+  changed" PASSES — yet no sighted keyboard user can tell #0a0a0a apart from
+  #000 on white. The focus is effectively invisible.
+
+  WHY AUTOMATED TOOLS MISS IT: there is a focus style present (color changes on
+  :focus), so a "missing :focus rule / outline:none" heuristic does NOT fire —
+  outline:0 is paired with an author-supplied alternative, which is exactly the
+  legal pattern. axe/WAVE/Lighthouse have no rule that measures the CONTRAST
+  DELTA between the focused and unfocused text and judges it imperceptible; a
+  pixel-diff checker only asks "did anything change?" and it did. Deciding that
+  a ~1.06:1 text-color change is below human perception is a visual judgment.
+-->
+<style>
+  :root{
+    --paper:#ffffff; --ink:#000000; --rule:#e7e2d8; --accent:#000000;
+    --serif:Georgia,"Times New Roman",serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--paper); color:var(--ink);
+       font:18px/1.7 var(--serif);}
+  header.masthead{border-bottom:3px double #000; padding:18px 0 12px; text-align:center;}
+  header.masthead .name{font-size:2.1rem; letter-spacing:.04em; font-weight:700;}
+  header.masthead .tag{font-size:.8rem; letter-spacing:.18em; text-transform:uppercase; color:#444;}
+  nav.kicker{display:flex; justify-content:center; gap:22px; padding:10px 0;
+             font:600 .72rem/1 var(--serif); letter-spacing:.16em; text-transform:uppercase;
+             border-bottom:1px solid var(--rule);}
+  main{max-width:680px; margin:0 auto; padding:30px 22px 70px;}
+  h1{font-size:2rem; line-height:1.2; margin:0 0 6px;}
+  .byline{font-size:.85rem; color:#555; margin:0 0 26px; font-style:italic;}
+  p{margin:0 0 18px;}
+
+  /* The article's inline links AND the kicker nav links. The author wanted a
+     "subtle, editorial" focus treatment and chose a 1-shade-off ink color.
+     No underline change, no outline, no weight change — pure near-black shift. */
+  a{ color:var(--ink); text-decoration:underline; text-decoration-thickness:1px;
+     text-underline-offset:2px; outline:0; }
+  a:hover{ text-decoration-thickness:2px; }
+  a:focus{ color:#0a0a0a; }            /* the entire visible focus change */
+
+  footer{max-width:680px; margin:0 auto; padding:20px 22px; border-top:1px solid var(--rule);
+         color:#666; font-size:.8rem;}
+</style>
+</head>
+<body>
+<header class="masthead">
+  <div class="name">The Tidewater Review</div>
+  <div class="tag">Reporting the Chesapeake since 1971</div>
+</header>
+<nav class="kicker" aria-label="Sections">
+  <a href="#politics">Politics</a>
+  <a href="#environment">Environment</a>
+  <a href="#culture">Culture</a>
+  <a href="#opinion">Opinion</a>
+</nav>
+
+<main>
+  <article>
+    <h1>The Oyster Wars Are Back, and This Time the Water Is Warmer</h1>
+    <p class="byline">By Dana Okafor &middot; 21 June 2026</p>
+
+    <p>For three generations the Holloway family has worked the same lease off
+      Tilghman Island, dragging for the bivalve that built half the towns on this
+      shore. This spring, for the first time, they hauled up empty cages. The
+      culprit, scientists at the
+      <a href="#vims">Virginia Institute of Marine Science</a> say, is a
+      warming bay that has pushed a parasitic disease north into waters that were
+      once too cold to sustain it.</p>
+
+    <p>The dispute over who may harvest the remaining beds has revived a conflict
+      that historians thought was settled a century ago. State watermen and their
+      counterparts across the line have filed competing petitions; the
+      <a href="#commission">Potomac River Fisheries Commission</a> meets next
+      month to weigh new catch limits that could shutter dozens of small
+      operations.</p>
+
+    <p>Read our full investigation into the science, the politics, and the
+      families caught between them, beginning with
+      <a href="#part1">Part One: A Bay That Cannot Cool Down</a>. Subsequent
+      installments will appear here through the end of the season; you can also
+      <a href="#subscribe">subscribe to the Tidewater brief</a> to receive each
+      part by email the morning it publishes.</p>
+
+    <p>Tab through the links above to move from section to section. The newsroom
+      styled keyboard focus to be &ldquo;quiet and on-brand&rdquo; rather than
+      using the browser&rsquo;s default ring.</p>
+  </article>
+</main>
+
+<footer>
+  &copy; 2026 The Tidewater Review. Keyboard focus on links is indicated by a
+  shift in the link&rsquo;s ink color (from #000000 to #0a0a0a). The default
+  browser outline has been removed in favor of this treatment.
+</footer>
+</body>
+</html>

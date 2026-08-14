@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meridian Bank — Wire Transfer</title>
+<style>
+  :root { --bank:#0c2a4d; --ink:#152232; --line:#d6dde6; --ok:#1d6feb; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    margin: 0; color: var(--ink); background: #eef2f7;
+  }
+  header { background: var(--bank); color: #fff; padding: 13px 24px;
+           display: flex; align-items: center; gap: 12px; }
+  header h1 { font-size: 16px; margin: 0; font-weight: 600; }
+  header .m { width: 26px; height: 26px; border-radius: 6px; background: #fff; color: var(--bank);
+             display: grid; place-items: center; font-weight: 800; font-size: 14px; }
+  main { max-width: 560px; margin: 30px auto; padding: 0 22px 80px; }
+  .panel { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 26px 28px; }
+  h2 { font-size: 19px; margin: 0 0 6px; }
+  .sub { color: #56657a; font-size: 13px; margin: 0 0 22px; }
+  label { display: block; font-size: 13px; font-weight: 600; margin: 0 0 6px; }
+  .field { margin-bottom: 18px; }
+  input[type=text], input[type=number] {
+    width: 100%; height: 42px; padding: 0 12px; font-size: 15px;
+    border: 1px solid var(--line); border-radius: 7px; background: #fff; color: var(--ink);
+  }
+  .hint { font-size: 12px; color: #6a7888; margin-top: 5px; }
+  .submit { margin-top: 8px; height: 44px; width: 100%; border: 0; border-radius: 8px;
+            background: var(--ok); color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; }
+
+  /* Modal dialog backdrop + box. This dialog is opened when the high-risk amount
+     field RECEIVES FOCUS (a security confirmation). It is modal: it traps focus,
+     dims the page, and must be acknowledged. */
+  .backdrop {
+    position: fixed; inset: 0; background: rgba(8,18,32,.55);
+    display: none; align-items: center; justify-content: center; z-index: 50;
+  }
+  .backdrop[data-open="true"] { display: flex; }
+  .dialog {
+    background: #fff; border-radius: 12px; width: 92%; max-width: 420px;
+    padding: 24px 26px; box-shadow: 0 12px 40px rgba(0,0,0,.35);
+  }
+  .dialog h3 { margin: 0 0 8px; font-size: 17px; }
+  .dialog p { margin: 0 0 18px; font-size: 14px; color: #3a4756; line-height: 1.5; }
+  .dialog .row { display: flex; gap: 10px; justify-content: flex-end; }
+  .dialog button { height: 40px; padding: 0 16px; border-radius: 7px; font-size: 14px; cursor: pointer; }
+  .dialog .cancel { background: #fff; border: 1px solid var(--line); color: var(--ink); }
+  .dialog .confirm { background: var(--ok); border: 0; color: #fff; }
+  .note { margin-top: 24px; font-size: 12px; color: #6a7888; line-height: 1.55; }
+  .note code { background: #e7edf4; padding: 1px 5px; border-radius: 4px; }
+</style>
+</head>
+<body>
+  <header>
+    <span class="m">M</span>
+    <h1>Meridian Bank — Wire Transfer</h1>
+  </header>
+
+  <main>
+    <div class="panel">
+      <h2>Send a domestic wire</h2>
+      <p class="sub">Wires are final and cannot be reversed. Verify all details before sending.</p>
+
+      <div class="field">
+        <label for="payee">Payee name</label>
+        <input id="payee" type="text" autocomplete="off" value="Cascade Roofing LLC">
+      </div>
+
+      <div class="field">
+        <label for="acct">Recipient account number</label>
+        <input id="acct" type="text" autocomplete="off" inputmode="numeric" value="•••• 4471">
+      </div>
+
+      <div class="field">
+        <label for="amount">Amount (USD)</label>
+        <!-- When this high-risk field gains focus, a MODAL security dialog opens,
+             takes keyboard focus, and dims the page. This is NOT hover/focus-
+             transient additional content (a non-modal tooltip/popup); it is a modal
+             that must be acknowledged. => OUT OF SCOPE for 1.4.13 (modal carve-out);
+             relevant instead to 3.2.1 On Focus. -->
+        <input id="amount" type="number" min="0" step="0.01" placeholder="0.00"
+               aria-describedby="amt-hint">
+        <div class="hint" id="amt-hint">Wires over $10,000 require step-up verification.</div>
+      </div>
+
+      <button class="submit" type="button">Review &amp; send</button>
+    </div>
+
+    <p class="note">
+      Security note: focusing the amount field opens a modal step-up confirmation
+      (<code>role="dialog" aria-modal="true"</code>) that captures keyboard focus until
+      you confirm or cancel. It is intentionally NOT a transient hover/focus tooltip.
+    </p>
+  </main>
+
+  <!-- Modal dialog opened on focus of the amount field -->
+  <div class="backdrop" id="backdrop">
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-title" aria-describedby="dlg-desc">
+      <h3 id="dlg-title">Confirm high-risk transfer</h3>
+      <p id="dlg-desc">
+        You&rsquo;re about to enter a wire amount. For your security, confirm that you
+        initiated this transfer and recognize the payee &ldquo;Cascade Roofing LLC&rdquo;.
+      </p>
+      <div class="row">
+        <button class="cancel" type="button" id="dlg-cancel">Cancel</button>
+        <button class="confirm" type="button" id="dlg-confirm">Yes, continue</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Open a MODAL dialog when the amount field receives focus. The dialog takes
+    // keyboard focus (moves focus to its confirm button) and is dismissible via
+    // Escape / Cancel — i.e. it behaves as a modal, not as transient hover content.
+    var amount = document.getElementById('amount');
+    var backdrop = document.getElementById('backdrop');
+    var confirmBtn = document.getElementById('dlg-confirm');
+    var cancelBtn = document.getElementById('dlg-cancel');
+    var lastFocus = null;
+    var opened = false;
+
+    function openDialog() {
+      if (opened) return;
+      opened = true;
+      lastFocus = document.activeElement;
+      backdrop.setAttribute('data-open', 'true');
+      confirmBtn.focus();               // takes keyboard focus => modal
+    }
+    function closeDialog(returnFocus) {
+      backdrop.removeAttribute('data-open');
+      opened = false;
+      if (returnFocus && lastFocus) lastFocus.focus();
+    }
+    amount.addEventListener('focus', openDialog);
+    cancelBtn.addEventListener('click', function () { closeDialog(false); });
+    confirmBtn.addEventListener('click', function () { closeDialog(true); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && opened) { closeDialog(true); }
+      // simple focus trap inside the dialog
+      if (e.key === 'Tab' && opened) {
+        var f = [cancelBtn, confirmBtn];
+        var i = f.indexOf(document.activeElement);
+        if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); }
+        else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); }
+      }
+    });
+  </script>
+
+  <!-- WHY AUTOMATED TOOLS MISS THE JUDGMENT THIS PAGE REQUIRES:
+       This page shows additional content (a dialog) appearing ON FOCUS — superficially
+       the trigger pattern 1.4.13 targets. A naive reviewer (or a heuristic) might apply
+       1.4.13 and start testing hoverable/dismissible/persistent. But 1.4.13 explicitly
+       excludes modal dialogs ("Modal dialogs are out of scope... they must take
+       keyboard focus"). The correct verdict is NOT-APPLICABLE to 1.4.13 (it is governed
+       by 3.2.1 On Focus instead). Deciding that this focus-triggered content is a modal
+       (it takes focus, traps it, dims the page) rather than a non-modal tooltip is a
+       judgment about behavior and intent that no static checker can make — both produce
+       "content appears on focus" in the DOM. -->
+</body>
+</html>

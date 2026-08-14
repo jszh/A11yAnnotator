@@ -58,29 +58,6 @@
         </tr>
       </thead>
       <tbody>
-        <!--
-          THE DEFECT (row 1, invoice INV-2025-0042):
-          Each "Pay" button is given an accessible name by aria-labelledby that concatenates the
-          row's VISIBLE button text ("Pay") with a hidden context node carrying the invoice number,
-          so a screen-reader user hears "Pay invoice <number>" instead of a bare "Pay" repeated
-          three times. Good intent (ARIA16-style concatenation for context).
-
-          BUT the templating loop has an off-by-one referent bug: row 1's button points its
-          aria-labelledby at the HIDDEN context span belonging to row 3 (id="ctx-0051"), not its
-          own (id="ctx-0042"). So:
-            - VISIBLE label on the button .......... "Pay"   (the word the user reads/speaks)
-            - VISIBLE invoice id on this same row .. INV-2025-0042
-            - COMPUTED accessible name ............. "Pay invoice INV-2025-0051"
-
-          The visible label "Pay" IS a leading substring of the accName, so SC 2.5.3
-          label-content-name-mismatch is SATISFIED and does NOT fire; the name is non-empty and the
-          role is button, so the link/button-name rules PASS. Yet the name MISIDENTIFIES the
-          component: it tells AT this button pays invoice 0051 when it visibly belongs to invoice
-          0042 (and row 3's button, conversely, announces 0042). A screen-reader user settling
-          "invoice 0042" by name pays the wrong bill; the name is not programmatically determinable
-          AS this control's actual rendered identity. Catching it requires reading the visible
-          invoice number off the row and comparing it to the spoken name — a human semantic match.
-        -->
         <tr>
           <td>
             <div class="inv-id">INV-2025-0042</div>

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Apply for SNAP benefits — Applicant details</title>
+<style>
+  body { font-family: Georgia, "Times New Roman", serif; color:#21252b; background:#fff;
+         margin:0; padding:0; }
+  .gov-band { background:#112e51; color:#fff; padding:10px 24px; font-size:.8rem;
+              font-family: Arial, sans-serif; }
+  .gov-band strong { letter-spacing:.02em; }
+  main { max-width: 760px; margin:0 auto; padding:28px 24px 48px; }
+  h1 { font-size:1.5rem; margin:0 0 6px; }
+  .lede { font-family: Arial, sans-serif; color:#4a4f57; font-size:.9rem; margin:0 0 28px; }
+  fieldset { border:1px solid #c9ccd2; border-radius:4px; padding:20px 22px 8px; margin:0 0 24px; }
+  legend { font-family: Arial, sans-serif; font-weight:700; font-size:.95rem; padding:0 8px; }
+  /* Two-column grid: each visual row holds a left field and a right field. */
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; column-gap:34px; row-gap:4px; }
+  .cell { display:flex; flex-direction:column; margin-bottom:16px; }
+  label { font-family: Arial, sans-serif; font-weight:600; font-size:.82rem; margin-bottom:5px; }
+  input { padding:9px 10px; font-size:.95rem; border:1px solid #b7bbc2; border-radius:3px;
+          font-family: Arial, sans-serif; }
+  input[aria-invalid="true"] { border:2px solid #b50909; }
+  .inline-error { font-family: Arial, sans-serif; color:#b50909; font-size:.78rem;
+                  margin-top:5px; font-weight:600; }
+  .req { color:#b50909; }
+  .submit { font-family: Arial, sans-serif; background:#205493; color:#fff; border:0;
+            padding:12px 26px; border-radius:4px; font-size:.95rem; cursor:pointer; }
+  .err-summary { font-family: Arial, sans-serif; border:2px solid #b50909; background:#fef2f2;
+                 padding:14px 16px; border-radius:4px; margin-bottom:22px; }
+  .err-summary h2 { font-size:1rem; margin:0 0 4px; color:#b50909; }
+  .err-summary p { margin:0; font-size:.85rem; }
+</style>
+</head>
+<body>
+  <div class="gov-band"><strong>STATE OF OREGON</strong> &middot; Department of Human Services &middot; Benefits Portal</div>
+  <main>
+    <h1>Apply for SNAP benefits</h1>
+    <p class="lede">Section 1 of 6 &mdash; Applicant details. Fields marked <span class="req">*</span> are required.</p>
+
+    <div class="err-summary" role="alert">
+      <h2>We could not submit your application</h2>
+      <p>Please review the highlighted fields below and correct the errors.</p>
+    </div>
+
+    <form action="#" novalidate>
+      <fieldset>
+        <legend>Your legal name</legend>
+        <div class="grid2">
+          <!-- LEFT column, row 1: First name -->
+          <div class="cell">
+            <label for="fname">First (given) name <span class="req">*</span></label>
+            <input id="fname" name="firstName" type="text" value="Maria">
+          </div>
+
+          <!-- RIGHT column, row 1: Last name. The inline error rendered HERE,
+               in the Last-name slot, names the FIRST-name field. -->
+          <div class="cell">
+            <label for="lname">Last (family) name <span class="req">*</span></label>
+            <input id="lname" name="lastName" type="text" value="Delgado-Ruiz"
+                   aria-invalid="true">
+            <span class="inline-error">First name is required.</span>
+          </div>
+
+          <!-- LEFT column, row 2: Middle initial -->
+          <div class="cell">
+            <label for="minit">Middle initial</label>
+            <input id="minit" name="middleInitial" type="text" maxlength="1" value="C">
+          </div>
+
+          <!-- RIGHT column, row 2: Preferred name -->
+          <div class="cell">
+            <label for="pname">Preferred name</label>
+            <input id="pname" name="preferredName" type="text" value="">
+          </div>
+        </div>
+      </fieldset>
+
+      <button type="submit" class="submit">Save and continue</button>
+    </form>
+  </main>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS IT
+    The error message "First name is required." is non-empty, visible, in the
+    accessibility tree, and describes the cause of an error — so it satisfies every
+    programmatic expectation of ACT 36b590. There is no aria-describedby tying the span
+    to ANY control, so no programmatic association exists for a rule to verify; the only
+    available identification cue is presentation (proximity), which the rule accepts.
+    But the span is laid out in the right column of row 1, directly under the Last name
+    input (which is even the one marked aria-invalid), while its text names the First name
+    field in the left column. The First name field actually has a value ("Maria") and is
+    not the field in error. A sighted reader scanning the column reads "First name is
+    required" against the Last name field and is misled. Static scanners have no spatial
+    grid model, so they cannot notice that the message's column position points at a
+    different field than its text names.
+  -->
+</body>
+</html>

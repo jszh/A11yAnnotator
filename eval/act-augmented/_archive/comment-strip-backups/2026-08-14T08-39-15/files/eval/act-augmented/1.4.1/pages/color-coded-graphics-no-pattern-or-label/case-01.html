@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Riverside Metro — Network Map</title>
+  <style>
+    :root { font-family: "Segoe UI", system-ui, sans-serif; }
+    body { margin: 0; background: #f4f5f7; color: #1c1c1e; }
+    header { background: #102a43; color: #fff; padding: 18px 24px; }
+    header h1 { margin: 0; font-size: 1.4rem; letter-spacing: .5px; }
+    header p { margin: 4px 0 0; font-size: .85rem; color: #bcccdc; }
+    main { max-width: 860px; margin: 0 auto; padding: 24px; }
+    .map-card { background: #fff; border: 1px solid #dbe2ea; border-radius: 10px;
+      padding: 16px; box-shadow: 0 1px 3px rgba(16,42,67,.08); }
+    .legend { display: flex; gap: 28px; flex-wrap: wrap; margin: 14px 4px 0; }
+    .legend .item { display: flex; align-items: center; gap: 8px; font-size: .9rem; }
+    .legend .swatch { width: 26px; height: 8px; border-radius: 4px; display: inline-block; }
+    figcaption { font-size: .8rem; color: #627d98; margin-top: 10px; }
+    .planner { margin-top: 24px; background: #fff; border: 1px solid #dbe2ea;
+      border-radius: 10px; padding: 16px; }
+    .planner h2 { margin: 0 0 10px; font-size: 1.05rem; }
+    .planner label { display: block; font-size: .85rem; margin: 10px 0 4px; }
+    .planner select { padding: 6px 8px; font-size: .95rem; min-width: 220px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Riverside Metro</h1>
+    <p>Network map · effective Service Change 26-B</p>
+  </header>
+
+  <main>
+    <div class="map-card">
+      <figure style="margin:0">
+        <svg viewBox="0 0 760 340" role="img"
+             aria-label="Riverside Metro network map showing the Crosstown, Harborline and Parkway routes."
+             width="100%" height="auto">
+          <rect x="0" y="0" width="760" height="340" fill="#ffffff"></rect>
+
+          <!-- Crosstown route -->
+          <polyline points="60,80 200,80 340,80 480,80 620,80 700,80"
+                    fill="none" stroke="#0b8457" stroke-width="7" stroke-linecap="round"></polyline>
+          <!-- Harborline route -->
+          <polyline points="60,180 200,180 340,120 480,180 620,180 700,180"
+                    fill="none" stroke="#c0392b" stroke-width="7" stroke-linecap="round"></polyline>
+          <!-- Parkway route -->
+          <polyline points="60,280 200,280 340,280 480,240 620,280 700,280"
+                    fill="none" stroke="#2e86c1" stroke-width="7" stroke-linecap="round"></polyline>
+
+          <!-- All stations are identical filled dots, regardless of line -->
+          <g fill="#ffffff" stroke="#333" stroke-width="2">
+            <circle cx="60" cy="80" r="7"></circle><circle cx="200" cy="80" r="7"></circle>
+            <circle cx="340" cy="80" r="7"></circle><circle cx="480" cy="80" r="7"></circle>
+            <circle cx="620" cy="80" r="7"></circle><circle cx="700" cy="80" r="7"></circle>
+            <circle cx="60" cy="180" r="7"></circle><circle cx="200" cy="180" r="7"></circle>
+            <circle cx="340" cy="120" r="7"></circle><circle cx="480" cy="180" r="7"></circle>
+            <circle cx="620" cy="180" r="7"></circle><circle cx="700" cy="180" r="7"></circle>
+            <circle cx="60" cy="280" r="7"></circle><circle cx="200" cy="280" r="7"></circle>
+            <circle cx="340" cy="280" r="7"></circle><circle cx="480" cy="240" r="7"></circle>
+            <circle cx="620" cy="280" r="7"></circle><circle cx="700" cy="280" r="7"></circle>
+          </g>
+
+          <!-- Interchange where Crosstown + Harborline meet -->
+          <text x="334" y="108" font-size="13" fill="#102a43" font-family="sans-serif">Union Square</text>
+          <text x="44" y="68" font-size="12" fill="#486581" font-family="sans-serif">West End</text>
+          <text x="676" y="68" font-size="12" fill="#486581" font-family="sans-serif">Airport</text>
+          <text x="44" y="305" font-size="12" fill="#486581" font-family="sans-serif">Vale</text>
+          <text x="668" y="305" font-size="12" fill="#486581" font-family="sans-serif">Fairgrounds</text>
+        </svg>
+
+        <div class="legend" aria-hidden="false">
+          <span class="item"><span class="swatch" style="background:#0b8457"></span>Crosstown</span>
+          <span class="item"><span class="swatch" style="background:#c0392b"></span>Harborline</span>
+          <span class="item"><span class="swatch" style="background:#2e86c1"></span>Parkway</span>
+        </div>
+        <figcaption>Three routes converge at Union Square. Plan transfers using the map above.</figcaption>
+      </figure>
+    </div>
+
+    <section class="planner">
+      <h2>Plan your trip</h2>
+      <p style="font-size:.85rem;color:#486581;margin:0">
+        Pick the line that serves your destination, then board at the nearest station.
+      </p>
+      <label for="line">Which line are you taking?</label>
+      <select id="line" name="line">
+        <option>Crosstown</option>
+        <option>Harborline</option>
+        <option>Parkway</option>
+      </select>
+    </section>
+
+    <!--
+      WHY AUTOMATED TOOLS MISS THIS:
+      Every element is well-formed. The SVG has a descriptive aria-label, the page
+      has a title, the legend text is real text, contrast of each line color vs the
+      white background exceeds 3:1, and there are no missing alt/label attributes.
+      axe-core / WAVE / Lighthouse see valid markup and pass it. They cannot render
+      the map, segment the three polylines, notice that the ONLY thing telling the
+      Crosstown line apart from the Harborline and Parkway line is hue, and that the
+      legend itself is keyed solely by colored swatches. A user with deuteranopia
+      sees three near-identical grey lines and identical station dots and cannot
+      follow a single route or match it to the legend — exactly the G111 failure.
+    -->
+  </main>
+</body>
+</html>

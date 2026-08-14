@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cadence Analytics — Notification settings</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (and why it is the PASS boundary):
+  This page LOOKS like F55 at a glance — script runs on focus of each switch (an
+  onfocus/focusin handler fires). A naive reviewer scanning for "onfocus" + scripted
+  focus handling might flag it as focus theft. But the script here is the SCR31
+  pattern: on focus it ADDS a high-contrast highlight class to the control and
+  REMOVES it on blur — it never calls blur() and never moves focus. Focus genuinely
+  REMAINS on the switch and a strong visible indicator is shown the whole time.
+  Automated tools can neither confirm a 2.4.7 pass (no such rule) NOR distinguish
+  "script that styles the focused element" (valid, SCR31) from "script that removes
+  focus on receipt" (F55) — that judgment requires a human to tab through and watch
+  that focus settles and the indicator persists.
+-->
+<style>
+  :root { --ink: #14181f; --brand: #5a3ec8; --bg: #f5f4fb; --line: #e0def0; }
+  * { box-sizing: border-box; }
+  body { font-family: "Inter", "Segoe UI", Arial, sans-serif; margin: 0; background: var(--bg);
+    color: var(--ink); line-height: 1.55; }
+  .shell { display: flex; min-height: 100vh; }
+  aside { width: 210px; background: #1d1736; color: #cfc8ec; padding: 20px 16px; }
+  aside .brand { font-weight: 800; color: #fff; font-size: 1.05rem; margin: 0 0 22px; }
+  aside nav a { display: block; color: #cfc8ec; text-decoration: none; padding: 8px 10px;
+    border-radius: 7px; font-size: .9rem; }
+  aside nav a[aria-current] { background: #2c2350; color: #fff; }
+  aside nav a:focus { outline: 3px solid #ffd24a; outline-offset: 1px; }
+  main { flex: 1; padding: 30px 36px; max-width: 740px; }
+  h1 { margin: 0 0 4px; font-size: 1.4rem; }
+  p.lede { margin: 0 0 24px; color: #5c5870; font-size: .95rem; }
+  .setting {
+    display: flex; align-items: center; justify-content: space-between;
+    background: #fff; border: 1px solid var(--line); border-radius: 10px;
+    padding: 16px 20px; margin-bottom: 12px;
+  }
+  .setting .label-wrap { padding-right: 18px; }
+  .setting .label-wrap .t { font-weight: 600; }
+  .setting .label-wrap .d { font-size: .85rem; color: #6a6580; margin-top: 2px; }
+
+  /* Switch widget. The default focus ring is here AND a scripted highlight (SCR31). */
+  button.switch {
+    position: relative; width: 52px; height: 30px; border-radius: 999px;
+    border: 2px solid #b9b4d8; background: #ece9f7; cursor: pointer; flex: none; padding: 0;
+  }
+  button.switch::after {
+    content: ""; position: absolute; top: 2px; left: 2px; width: 22px; height: 22px;
+    border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.3); transition: left .12s;
+  }
+  button.switch[aria-checked="true"] { background: var(--brand); border-color: var(--brand); }
+  button.switch[aria-checked="true"]::after { left: 24px; }
+  /* Native focus indicator (always valid). */
+  button.switch:focus { outline: 3px solid #ffd24a; outline-offset: 3px; }
+  /* SCR31 scripted indicator: a persistent ring added on focus, removed on blur.   */
+  /* Focus is NOT removed — this only changes presentation while the element stays   */
+  /* focused, which is the SUFFICIENT technique SCR31, NOT the F55 failure.           */
+  button.switch.kbd-focus {
+    box-shadow: 0 0 0 3px #fff, 0 0 0 6px var(--brand);
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside>
+    <p class="brand">Cadence</p>
+    <nav aria-label="Settings sections">
+      <a href="/settings/profile">Profile</a>
+      <a href="/settings/notifications" aria-current="page">Notifications</a>
+      <a href="/settings/security">Security</a>
+      <a href="/settings/billing">Billing</a>
+    </nav>
+  </aside>
+
+  <main>
+    <h1>Notification settings</h1>
+    <p class="lede">Choose how Cadence reaches you about reports, alerts, and account activity.</p>
+
+    <div class="setting">
+      <span class="label-wrap" id="lbl-weekly">
+        <span class="t">Weekly summary email</span>
+        <span class="d">A digest of your dashboards every Monday at 8am.</span>
+      </span>
+      <button class="switch" type="button" role="switch" aria-checked="true"
+              aria-labelledby="lbl-weekly"></button>
+    </div>
+
+    <div class="setting">
+      <span class="label-wrap" id="lbl-alerts">
+        <span class="t">Real-time anomaly alerts</span>
+        <span class="d">Get notified when a metric crosses a threshold you set.</span>
+      </span>
+      <button class="switch" type="button" role="switch" aria-checked="false"
+              aria-labelledby="lbl-alerts"></button>
+    </div>
+
+    <div class="setting">
+      <span class="label-wrap" id="lbl-login">
+        <span class="t">New-device sign-in notices</span>
+        <span class="d">Email me when my account is accessed from a new device.</span>
+      </span>
+      <button class="switch" type="button" role="switch" aria-checked="true"
+              aria-labelledby="lbl-login"></button>
+    </div>
+  </main>
+</div>
+
+<script>
+  // SCR31-style scripted focus indicator. On focus we ADD a high-contrast ring class;
+  // on blur we remove it. Crucially: we NEVER call blur() and NEVER move focus, so
+  // focus REMAINS on the switch and the indicator persists until the user tabs away.
+  // This is a sufficient technique, not the F55 failure — the boundary this page draws.
+  document.querySelectorAll('button.switch').forEach(function (sw) {
+    sw.addEventListener('focus', function () { sw.classList.add('kbd-focus'); });
+    sw.addEventListener('blur',  function () { sw.classList.remove('kbd-focus'); });
+    sw.addEventListener('click', function () {
+      var on = sw.getAttribute('aria-checked') === 'true';
+      sw.setAttribute('aria-checked', String(!on));
+    });
+    // Space/Enter toggle, keeping focus on the control throughout.
+    sw.addEventListener('keydown', function (e) {
+      if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); sw.click(); }
+    });
+  });
+</script>
+</body>
+</html>

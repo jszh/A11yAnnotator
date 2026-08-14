@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Revenue analytics — Pulsegrid</title>
+<style>
+  :root { --ink:#1d2330; --violet:#5b3fd6; --violet-dk:#43299f; --line:#e2e0ef; --bg:#f6f5fb; --panel:#fff; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"IBM Plex Sans",Segoe UI,Arial,sans-serif; color:var(--ink); background:var(--bg); }
+  .appbar { background:var(--violet); color:#fff; padding:12px 26px; display:flex; align-items:center; gap:14px; }
+  .appbar .brand { font-weight:800; letter-spacing:.3px; }
+  .appbar .right { margin-left:auto; display:flex; gap:16px; align-items:center; }
+  .appbar a { color:#e9e4fb; text-decoration:none; font-size:.9rem; }
+  .appbar a:focus { outline:3px solid #ffd24a; outline-offset:3px; }
+
+  main { max-width:860px; margin:28px auto; padding:0 24px; }
+  h1 { font-size:1.45rem; margin:0 0 4px; color:var(--violet-dk); }
+  p.sub { color:#5f6678; margin:0 0 22px; }
+
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; box-shadow:0 2px 10px rgba(67,41,159,.06); }
+
+  [role="tablist"] { display:flex; gap:4px; border-bottom:1px solid var(--line); padding:6px 8px 0; }
+  [role="tab"] {
+    appearance:none; background:transparent; border:0; padding:11px 16px; font-size:.95rem; font-weight:600;
+    color:#5f6678; cursor:pointer; border-radius:8px 8px 0 0; outline:none;
+  }
+  [role="tab"][aria-selected="true"] { color:var(--violet-dk); background:#f1eefd; box-shadow:inset 0 -3px 0 var(--violet); }
+  [role="tab"]:focus { box-shadow:inset 0 0 0 2px var(--violet); }
+
+  [role="tabpanel"] { padding:20px 22px; }
+  [role="tabpanel"] h2 { margin:0 0 8px; font-size:1.05rem; }
+  .kpis { display:flex; gap:26px; margin:12px 0; }
+  .kpi b { display:block; font-size:1.5rem; color:var(--violet-dk); }
+  .kpi span { color:#5c6376; font-size:.8rem; }
+  .panel-actions { margin-top:14px; }
+  .panel-actions a { color:var(--violet); font-weight:600; text-decoration:none; }
+  .panel-actions a:focus { outline:3px solid #2f80c8; outline-offset:2px; }
+
+  .export {
+    margin:22px 0; padding:12px 22px; border:0; border-radius:8px; background:var(--violet);
+    color:#fff; font-weight:700; font-size:1rem; cursor:pointer;
+  }
+  .export:focus { outline:3px solid #ffd24a; outline-offset:2px; }
+
+  .note { background:#fffbe9; border:1px solid #f0e3a8; border-radius:8px; padding:12px 14px;
+          font-size:.82rem; color:#6b5e23; margin-top:6px; }
+</style>
+</head>
+<body>
+<div class="appbar" role="banner">
+  <span class="brand">Pulsegrid</span>
+  <span class="right">
+    <a href="#docs">Docs</a>
+    <a href="#account">workspace: northstar</a>
+  </span>
+</div>
+
+<main>
+  <h1>Revenue analytics</h1>
+  <p class="sub">Q3 2026 · live data</p>
+
+  <div class="card">
+    <div role="tablist" aria-label="Revenue views">
+      <button role="tab" id="tab-mrr"   aria-selected="true"  aria-controls="p-mrr"   tabindex="0">MRR</button>
+      <button role="tab" id="tab-churn" aria-selected="false" aria-controls="p-churn" tabindex="-1">Churn</button>
+      <button role="tab" id="tab-cohort"aria-selected="false" aria-controls="p-cohort"tabindex="-1">Cohorts</button>
+      <button role="tab" id="tab-fcast" aria-selected="false" aria-controls="p-fcast" tabindex="-1">Forecast</button>
+    </div>
+
+    <div role="tabpanel" id="p-mrr" aria-labelledby="tab-mrr" tabindex="0">
+      <h2>Monthly recurring revenue</h2>
+      <div class="kpis">
+        <div class="kpi"><b>$1.24M</b><span>MRR</span></div>
+        <div class="kpi"><b>+4.1%</b><span>vs last month</span></div>
+        <div class="kpi"><b>312</b><span>net new accounts</span></div>
+      </div>
+      <div class="panel-actions"><a href="#mrr-detail">Open MRR breakdown</a></div>
+    </div>
+
+    <div role="tabpanel" id="p-churn" aria-labelledby="tab-churn" tabindex="0" hidden>
+      <h2>Churn</h2>
+      <div class="panel-actions"><a href="#churn-detail">Open churn cohort report</a></div>
+    </div>
+    <div role="tabpanel" id="p-cohort" aria-labelledby="tab-cohort" tabindex="0" hidden>
+      <h2>Cohorts</h2>
+      <div class="panel-actions"><a href="#cohort-detail">Open cohort grid</a></div>
+    </div>
+    <div role="tabpanel" id="p-fcast" aria-labelledby="tab-fcast" tabindex="0" hidden>
+      <h2>Forecast</h2>
+      <div class="panel-actions"><a href="#fcast-detail">Open forecast model</a></div>
+    </div>
+  </div>
+
+  <button class="export" id="exportBtn">Export current view (.csv)</button>
+
+  <p class="note">
+    <strong>Why automated checkers miss this:</strong> The tablist is valid APG ARIA —
+    <code>role="tablist"</code>/<code>tab</code>/<code>tabpanel</code>, correct
+    <code>aria-selected</code>, <code>aria-controls</code>, and roving tabindex; arrow keys move
+    between tabs as expected. Nothing in the static DOM is wrong. The trap lives in a
+    <code>blur</code> listener: whenever the active tab loses focus it <em>refocuses itself</em>
+    on the next tick (<code>setTimeout(()=>tab.focus())</code>). So pressing <kbd>Tab</kbd> to leave
+    the tablist (toward the panel link or the Export button) instantly snaps focus back to the tab —
+    a self-refocus loop with no documented exit. A scanner sees a clean widget; only pressing Tab
+    and watching focus bounce back reveals there is no way out.
+  </p>
+</main>
+
+<script>
+(function () {
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('[role="tab"]'));
+  var idx = 0;
+  var trapping = true;
+
+  function select(n) {
+    tabs.forEach(function (t, i) {
+      var sel = (i === n);
+      t.setAttribute('aria-selected', sel ? 'true' : 'false');
+      t.tabIndex = sel ? 0 : -1;
+      var panel = document.getElementById(t.getAttribute('aria-controls'));
+      if (panel) { panel.hidden = !sel; }
+    });
+    idx = n;
+  }
+
+  function move(n) {
+    n = (n + tabs.length) % tabs.length;
+    select(n);
+    tabs[n].focus();
+  }
+
+  tabs.forEach(function (tab, i) {
+    tab.addEventListener('click', function () { move(i); });
+    tab.addEventListener('keydown', function (e) {
+      switch (e.key) {
+        case 'ArrowRight': e.preventDefault(); move(idx + 1); break;
+        case 'ArrowLeft':  e.preventDefault(); move(idx - 1); break;
+        case 'Home':       e.preventDefault(); move(0); break;
+        case 'End':        e.preventDefault(); move(tabs.length - 1); break;
+      }
+    });
+    // BUG: the active tab grabs focus back whenever it is about to lose it.
+    // Intent was "keep the selected tab highlighted so the dashboard always shows a current view,"
+    // but the effect is a keyboard trap: Tab/Shift+Tab can never carry focus out of the tablist.
+    tab.addEventListener('blur', function () {
+      if (!trapping) return;
+      if (tab.getAttribute('aria-selected') === 'true') {
+        setTimeout(function () { tab.focus(); }, 0);
+      }
+    });
+  });
+})();
+</script>
+</body>
+</html>

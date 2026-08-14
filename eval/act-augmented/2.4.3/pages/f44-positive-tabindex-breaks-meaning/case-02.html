@@ -3,32 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!--
-    SC 2.4.3 (Focus Order), failure F44 — the EDIT-DRIFT variant called out in the
-    technique itself: "the page is modified to add a new field in the middle of the
-    page, but the author forgets to add a tabindex attribute to the new field. As a
-    result, the new field is at the end of the tab order."
-
-    This is a state employee benefits-enrollment form. ALL the original fields carry
-    explicit positive tabindex (1..7): First name(1), Last name(2), Email(3),
-    Address(4), City(5), ZIP(6), then the Submit button(7). A "Daytime phone" field
-    was added later, between Email and Address, with NO tabindex. Because elements
-    with positive tabindex are visited first (in numeric order) and elements WITHOUT
-    a positive tabindex are visited afterward in DOM order, the new Phone field is
-    tabbed LAST — after the Submit button. Keyboard order becomes:
-    First → Last → Email → Address → City → ZIP → Submit → Phone.
-
-    The visible layout is perfect: Phone sits right under Email where it belongs.
-    The defect only exists in the TAB TRAVERSAL.
-
-    WHY AUTOMATED TOOLS MISS IT: every field has a label, valid markup, and good
-    contrast. axe flags positive tabindex as best-practice only, and crucially has
-    NO concept that one field was "left out" of an otherwise-explicit numbering, nor
-    that the result strands Phone after Submit. Detecting "Submit comes before a data
-    field" as a meaning break requires understanding that a submit button should be
-    last and that an enrollment field reached after submission is unreachable in
-    practice. That is a human operability judgment.
-  -->
   <title>Benefits Enrollment — Step 2 of 4 | State of Marin Employee Portal</title>
   <style>
     :root { --ink:#1b1f23; --muted:#646b73; --rule:#cfd6dd; --brand:#0b4f6c; --bg:#f5f7f9; --req:#b3261e; }
@@ -87,13 +61,6 @@
         <input id="email" name="email" type="email" autocomplete="email" tabindex="3" required>
       </div>
 
-      <!--
-        ===== FIELD ADDED IN A LATER SPRINT (HR asked for a daytime phone) =====
-        It was placed correctly in the DOM/visual order — right under Work email —
-        but the developer pasted the markup WITHOUT a tabindex. Every neighbor has
-        an explicit positive tabindex (3 above, 4 below), so this un-indexed field
-        is shoved to the very END of the tab order, after the Submit button.
-      -->
       <div class="field">
         <label for="phone">Daytime phone <span class="req" aria-hidden="true">*</span></label>
         <input id="phone" name="phone" type="tel" autocomplete="tel" placeholder="(415) 555-0142">

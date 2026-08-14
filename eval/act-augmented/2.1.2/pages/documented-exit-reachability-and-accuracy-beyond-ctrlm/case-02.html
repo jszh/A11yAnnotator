@@ -37,12 +37,6 @@
   <main>
     <h1>New message</h1>
 
-    <!-- The rich-text editor is a focus-trapping region: once the contenteditable body has focus,
-         Tab is captured to insert indentation (a real WYSIWYG behaviour), and a custom Alt+0 returns
-         focus to the toolbar / out of the editor. That custom exit WORKS. Its ONLY documentation is
-         the title= tooltip on the round "?" badge — revealed on mouse hover, and the badge is a
-         non-focusable, non-interactive <span>. A keyboard user inside the editor is never told how
-         to escape, because the advice is hover-only and not in the accessibility tree as instruction. -->
     <form class="compose" id="compose" onsubmit="return false">
       <div class="compose-head">
         <span class="title">Re: Q3 onboarding cohort — schedule</span>
@@ -63,18 +57,6 @@
 </div>
 <footer>
   Larkmail &middot; Keyboard shortcuts &middot; Privacy
-  <!--
-    WHY AUTOMATED TOOLS MISS THIS:
-    The "?" badge has a title attribute, so a static scan sees text associated with the element and
-    raises no flag. The editor has role=textbox and an aria-label; the toolbar buttons all have
-    accessible names. Nothing is empty or malformed. What a checker cannot judge: the escape
-    instruction is delivered ONLY through a title tooltip that appears on POINTER HOVER, on a
-    non-focusable <span> that a keyboard user can neither focus nor hover. The instruction is not a
-    label of any control the trapped user can reach, and screen readers do not reliably announce title
-    on a non-interactive span. So the documented exit is present in markup but unavailable to the
-    keyboard user who is actually trapped. Determining that requires knowing how title is exposed and
-    actually trying to reach the advice from inside the trap.
-  -->
 </footer>
 
 <script>
@@ -84,13 +66,11 @@
 
   editor.addEventListener('focus', function () { trapOn = true; });
 
-  // WYSIWYG indent behaviour: Tab is captured inside the editor (so it cannot leave by Tab).
   editor.addEventListener('keydown', function (e) {
     if (e.key === 'Tab' && trapOn) {
       e.preventDefault();
       document.execCommand && document.execCommand('insertText', false, ' ');
     }
-    // Working custom exit: Alt+0 moves focus back to the toolbar's first button.
     if (e.altKey && e.key === '0') {
       e.preventDefault();
       trapOn = false;

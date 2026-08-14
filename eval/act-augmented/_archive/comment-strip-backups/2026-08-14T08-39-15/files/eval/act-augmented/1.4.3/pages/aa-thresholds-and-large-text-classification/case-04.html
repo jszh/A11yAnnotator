@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Riverside Library — June reading newsletter</title>
+<style>
+  :root { color-scheme: light; }
+  body { margin: 0; background: #ffffff; color: #1b1b1b;
+         font-family: Georgia, "Times New Roman", serif; }
+  .issue { max-width: 600px; margin: 0 auto; padding: 28px 26px 40px; }
+
+  /* This is a CMS / HTML-email style newsletter. The masthead headline was
+     baked into a flat PNG-style banner by the marketing team's image tool and
+     dropped in as a spacer-free <img>. The "text" you see in the banner is NOT
+     live DOM text — it is pixels inside the image. So:
+       - axe-core's color-contrast check only inspects DOM text nodes; it cannot
+         read the foreground/background colours of glyphs INSIDE an image, and it
+         cannot measure the glyph size inside an image. It emits nothing for the
+         banner.
+       - The grey used for the headline glyphs is #888888 on #ffffff = 3.54:1.
+       - The displayed glyph size is ~21px tall (the <img> is shown at its
+         intrinsic size, no CSS scaling), which by the UA metric (1pt = 1.333px)
+         is ~15.75pt. 15.75pt at normal weight is BELOW the 18pt large-scale
+         boundary, so this is NORMAL text and the 4.5:1 threshold applies.
+       - 3.54:1 < 4.5:1  ->  FAIL.
+     The trap: the banner LOOKS like a big display headline, so a reviewer who
+     eyeballs it as "large text" applies the relaxed 3:1, and 3.54:1 "passes".
+     The correct call requires a human to (a) recognise it is an image of text,
+     (b) eyedropper the actual glyph/background pixels, and (c) MEASURE the glyph
+     height to classify it as normal-scale (<18pt) so 4.5:1 governs. Tools do
+     none of these for text inside an image. */
+  .masthead { margin: 0 0 6px; }
+  .masthead img { display: block; width: auto; height: auto; max-width: 100%; }
+
+  .kicker { font-size: 13px; letter-spacing: 0.16em; text-transform: uppercase;
+            color: #1b1b1b; margin: 0 0 18px; }
+  h2 { font-size: 19px; color: #1b1b1b; margin: 26px 0 8px; }
+  p.body { font-size: 16px; line-height: 1.7; color: #1b1b1b; margin: 0 0 14px; }
+  .pick { border-top: 1px solid #1b1b1b; padding: 12px 0 0; margin: 14px 0 0; }
+  .pick .ttl { font-size: 16px; color: #1b1b1b; margin: 0 0 2px; }
+  .pick .by { font-size: 14px; color: #1b1b1b; margin: 0; }
+</style>
+</head>
+<body>
+  <div class="issue">
+    <p class="kicker">Riverside Public Library &middot; Issue 06</p>
+
+    <!--
+      MASTHEAD: an IMAGE OF TEXT. The headline "Summer Reading Begins" is rendered
+      as glyphs inside an inline SVG image (data: URI), NOT as live DOM text. The
+      glyph colour is #888888 on a #ffffff image canvas = 3.54:1. The text is drawn
+      at font-size 28 in an SVG whose pixel grid is shown 1:1, so the cap region is
+      ~21px tall on screen = ~15.75pt by the 1pt=1.333px metric -> NORMAL text (below
+      the 18pt large-scale boundary) -> 4.5:1 required -> 3.54:1 FAILS.
+      axe-core color-contrast never inspects pixels inside an <img>, so it reports
+      no violation and no incomplete for this banner. A human must (1) notice it is
+      an image of text, (2) sample the glyph and canvas pixels with a contrast tool,
+      and (3) measure the glyph height to confirm it is normal-scale, then apply
+      4.5:1. Correct 1.4.3 verdict: FAIL.
+      The alt text below carries the equivalent text so the image is not decorative.
+    -->
+    <p class="masthead">
+      <img width="300" height="56"
+        alt="Summer Reading Begins"
+        src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22300%22%20height%3D%2256%22%20viewBox%3D%220%200%20300%2056%22%3E%3Crect%20width%3D%22300%22%20height%3D%2256%22%20fill%3D%22%23ffffff%22%2F%3E%3Ctext%20x%3D%228%22%20y%3D%2237%22%20font-family%3D%22Georgia%2C%27Times%20New%20Roman%27%2Cserif%22%20font-size%3D%2221%22%20font-weight%3D%22400%22%20fill%3D%22%23888888%22%3ESummer%20Reading%20Begins%3C%2Ftext%3E%3C%2Fsvg%3E">
+    </p>
+
+    <p class="body">Our summer reading programme is open for sign-ups. Borrow six
+      titles before Labor Day and collect a finisher&rsquo;s bookmark at the front
+      desk. Children, teen, and adult tracks all count toward the branch total.</p>
+
+    <h2>This month&rsquo;s staff picks</h2>
+
+    <div class="pick">
+      <p class="ttl">The Salt Path</p>
+      <p class="by">Recommended by Maya, Reference Desk</p>
+    </div>
+    <div class="pick">
+      <p class="ttl">Piranesi</p>
+      <p class="by">Recommended by Dev, Teen Services</p>
+    </div>
+    <div class="pick">
+      <p class="ttl">Braiding Sweetgrass</p>
+      <p class="by">Recommended by the Tuesday book club</p>
+    </div>
+  </div>
+</body>
+</html>

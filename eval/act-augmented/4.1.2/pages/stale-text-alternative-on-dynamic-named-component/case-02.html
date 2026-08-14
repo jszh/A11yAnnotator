@@ -4,25 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Teammates — Lattice Support Desk</title>
-<!--
-  SC 4.1.2 stale text alternative / stale NAME-VALUE on a dynamic named control.
-  ASPECT: F20 over the 4.1.2 Name/Value-over-time limb. A presence/availability
-  toggle button is a NAMED, INTERACTIVE control. Clicking it flips the agent's
-  status between "Online" and "Away": the dot recolors (green -> amber) and the
-  inner icon glyph swaps. But the button's accessible name is supplied by a
-  STATIC aria-label that script never rewrites, so the name stays frozen at
-  "Set status: you are Online" even after the agent is visibly Away.
-
-  WHY AUTOMATED TOOLS MISS IT:
-  - The button ALWAYS has a non-empty aria-label, so axe "button-name" passes
-    on every sample; aria-pressed is even present and valid, so 4e8ab6 / ARIA
-    state-and-property checks pass too.
-  - aria-pressed DOES flip (true/false) — a tool that checks "does state
-    change" sees motion and is satisfied. What it cannot judge is that the NAME
-    text "you are Online" semantically contradicts the new amber "Away" pixels.
-  - The mismatch is between rendered meaning and a human-readable label string;
-    no scanner reads "Online" the word and compares it to amber dot pixels.
--->
 <style>
   :root { --bg:#f4f6fa; --card:#fff; --ink:#1f2733; --muted:#6b7686;
           --line:#e3e8f0; --green:#22a55b; --amber:#e0922b; }
@@ -44,7 +25,6 @@
   .who { flex:1; }
   .who .name { font-weight:600; }
   .who .role { color:var(--muted); font-size:13px; }
-  /* The presence toggle: a real button whose VISUAL state is JS-driven. */
   .presence { display:inline-flex; align-items:center; gap:9px;
               border:1px solid var(--line); background:#fff; cursor:pointer;
               padding:8px 14px; border-radius:999px; font-size:14px;
@@ -75,7 +55,6 @@
         <div class="role">Tier-2 Support</div>
       </div>
 
-      <!-- THE DEFECTIVE NAMED COMPONENT -->
       <button id="presenceBtn" class="presence" type="button"
               aria-pressed="false"
               aria-label="Set status: you are Online"
@@ -95,12 +74,6 @@
 </div>
 
 <script>
-  // Persona: an agency built this widget as a reusable component. The "designer
-  // handoff" spec said: on toggle, recolour the dot, swap the word, and flip
-  // aria-pressed. Everyone treated aria-pressed as "the accessibility bit" and
-  // assumed it was enough. The aria-label was authored once in the template and
-  // nobody wired it into the toggle handler — so the NAME is permanently
-  // "you are Online" while pressed=true now means Away.
   var away = false;
   function togglePresence() {
     away = !away;
@@ -108,20 +81,13 @@
     var dot  = document.getElementById('presenceDot');
     var text = document.getElementById('presenceText');
 
-    // Visual + visible-text content is mutated...
     dot.style.background = away ? "#e0922b" : "#22a55b";
     dot.style.boxShadow  = away ? "0 0 0 3px rgba(224,146,43,.18)"
                                 : "0 0 0 3px rgba(34,165,91,.18)";
     text.textContent = away ? "Away" : "Online";
 
-    // aria-pressed flips (so "is there a state value" checks pass)...
     btn.setAttribute('aria-pressed', away ? "true" : "false");
 
-    // BUG (F20 / 4.1.2 name-value-over-time): aria-label is NOT updated.
-    // The accessible name remains "Set status: you are Online" while the
-    // control is visibly Away. AT users hear "Online" for an Away agent;
-    // voice-control users still must say "Online" to operate an Away toggle.
-    // Correct behaviour: aria-label should become "Set status: you are Away".
   }
 </script>
 </body>

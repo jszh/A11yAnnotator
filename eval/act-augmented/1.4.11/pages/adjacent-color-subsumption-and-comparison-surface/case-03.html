@@ -9,7 +9,7 @@
   body {
     margin: 0;
     font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
-    background: #ECECEC;            /* light grey page — the comparison surface */
+    background: #ECECEC;            
     color: #20242a;
   }
   .topbar {
@@ -27,27 +27,20 @@
     padding: 22px; background: #ECECEC; border-radius: 10px;
   }
 
-  /* Skeuomorphic "hardware" buttons.
-     - Filled FACE is #6E6E6E => 4.32:1 vs the #ECECEC page  (identifies the control: PASS)
-     - The 3D bevel is built from a light highlight ring (#F4F4F4, ~1.07:1 vs page) on top
-       and a dark shadow ring (#C4C4C4, ~1.48:1 vs page) on the bottom, plus a soft
-       drop-shadow. These faint edges are the "3D drop-shadow ... subsumed into the color
-       closest in brightness" — decorative, not the identifying cue. */
   .hw-btn {
     appearance: none;
     border: none;
-    background: #6E6E6E;            /* the filled face that identifies the control */
+    background: #6E6E6E;            
     color: #ffffff;
     font-size: 14px; font-weight: 700; letter-spacing: .3px;
     padding: 14px 20px;
     border-radius: 10px;
     cursor: pointer;
     position: relative;
-    /* the bevel: light highlight on top-left, dark shadow on bottom-right + drop shadow */
     box-shadow:
-      inset 2px 2px 0 #F4F4F4,     /* faint highlight edge ~1.07:1 vs page */
-      inset -2px -2px 0 #C4C4C4,   /* faint shadow edge ~1.48:1 vs page */
-      0 3px 5px rgba(0,0,0,0.18);  /* drop shadow */
+      inset 2px 2px 0 #F4F4F4,     
+      inset -2px -2px 0 #C4C4C4,   
+      0 3px 5px rgba(0,0,0,0.18);  
   }
   .hw-btn:active {
     box-shadow:
@@ -84,18 +77,5 @@
     </p>
   </main>
 
-  <!--
-    WHY AUTOMATED TOOLS MISS IT (and why this PASSES):
-    A per-edge contrast tool that walks the box-shadow rings would measure the bevel
-    highlight (#F4F4F4 ~1.07:1 vs the #ECECEC page) and the bevel shadow (#C4C4C4 ~1.48:1)
-    and report a 1.4.11 FAILURE on those faint edges. That is the WRONG verdict. Per the
-    "Adjacent colors" rule, "a 3D drop-shadow on an input ... is considered to be subsumed
-    into the color closest in brightness" and "any color which does not interfere with
-    identifying the component can be ignored for the purpose of measuring contrast ratio."
-    The identifying cue is the filled button face (#6E6E6E) against the page, which is
-    4.32:1 = PASS. A tool cannot decide that the bevel does not interfere with identifying
-    the control; only a human reasoning that "the face, not the embossed edge, is what
-    tells me this is a button" reaches the correct PASS.
-  -->
 </body>
 </html>

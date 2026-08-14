@@ -21,8 +21,6 @@
   }
   [role="option"]:first-child { border-top:0; }
   [role="option"]:hover { background:#f3f6fc; }
-  /* Selected options: tinted background + a check mark. The check is driven by aria-selected,
-     so the visual highlight and the exposed state are guaranteed to agree. */
   [role="option"][aria-selected="true"] { background:#e7efff; font-weight:600; color:#1d3f8b; }
   [role="option"][aria-selected="true"]::before { content:"\2713"; position:absolute; left:14px; color:#2b59c3; font-weight:700; }
   [role="listbox"]:focus-visible { outline:3px solid #2b59c3; outline-offset:2px; }
@@ -44,11 +42,6 @@
 
   <div class="card">
     <h2 id="lbl">Required skills <span style="font-weight:400;color:#6b7280">(multi-select)</span></h2>
-    <!--
-      PASSED BOUNDARY. This multi-select listbox visually highlights TWO options (Go and PostgreSQL):
-      both have the tinted background and a check mark. Critically, BOTH carry aria-selected="true",
-      so the exposed state matches the rendered state for every option. There is no contradiction.
-    -->
     <ul role="listbox" aria-labelledby="lbl" aria-multiselectable="true" tabindex="0" aria-activedescendant="opt-go">
       <li role="option" id="opt-go"   class="focused" aria-selected="true">Go</li>
       <li role="option" id="opt-py"   aria-selected="false">Python</li>
@@ -90,8 +83,6 @@
 </div>
 
 <script>
-  // Toggling an option flips aria-selected; because the highlight + check are CSS bound to
-  // [aria-selected="true"], the visual can never drift from the exposed state.
   var lb = document.querySelector('[role="listbox"]');
   lb.addEventListener('click', function (e) {
     var opt = e.target.closest('[role="option"]');

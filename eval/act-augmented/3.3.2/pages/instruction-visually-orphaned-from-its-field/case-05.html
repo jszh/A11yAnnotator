@@ -22,18 +22,9 @@
           border-radius:8px; background:#fff; }
   .field { margin:0 0 18px; }
 
-  /* The card number field spans full width; below it sits the expiry + security-code row.
-     A developer wanted the CVC format note ("3 digits on the back; 4 on the front for Amex")
-     to look like a tidy footnote, so they pulled it out of normal flow with position:absolute
-     and nudged it to the LEFT edge of the form. On screen that parks the note directly UNDER
-     the full-width Card number field — visually reading as the Card number's instruction —
-     while the Security code field it actually describes is up and to the right with nothing
-     beneath it. Source order and aria-describedby still tie the note to the CVC input. */
   .pay-row { display:flex; gap:16px; margin:0 0 18px; position:relative; padding-bottom:72px; }
   .pay-row .field { flex:1 1 0; margin:0; }
 
-  /* The note is pulled out of flow and pinned to the lower-LEFT of the row, so it paints in the
-     empty band beneath the inputs, left-aligned under the full-width Card number field above. */
   .cvc-note { position:absolute; left:0; bottom:0; width:55%;
               font-size:.8rem; color:var(--muted); line-height:1.4; margin:0; }
 
@@ -66,10 +57,6 @@
                  aria-describedby="cvc-note">
         </div>
 
-        <!-- The format instruction for the SECURITY CODE. It is the field's only cue about how
-             many digits to enter and where to find them, but it is absolutely positioned to the
-             lower-LEFT of the row, so it renders beneath the full-width Card number field above
-             (not beneath the Security code input it describes). -->
         <p id="cvc-note" class="cvc-note">Enter 3 digits — the small number on the
           <em>back</em> of your card, just past the signature strip. On American Express, enter
           the 4 digits printed on the <em>front</em>, above the card number.</p>
@@ -82,22 +69,5 @@
     </form>
   </main>
 
-  <!--
-    WHY AUTOMATED TOOLS MISS IT
-    Every field has a real visible <label>, the security-code format instruction is present,
-    readable, high-contrast, in source order right after the CVC input, AND programmatically
-    bound to it via aria-describedby="cvc-note" — so "field labelled?", "instruction exists?",
-    and "instruction associated?" all pass cleanly. The defect is purely the RENDERED position:
-    the note is position:absolute pinned to the lower-left of the payment row, so its painted
-    box lands under the full-width "Card number" field, not under the "Security code" field it
-    governs. A sighted user reads "Enter 3 digits — the small number on the back of your card"
-    as guidance for the prominent Card number field directly above it, and the Security code box
-    (up and to the right, with empty space beneath) appears to have no instruction. axe / WAVE /
-    Lighthouse evaluate DOM order and programmatic association — both of which here correctly
-    point the note at the CVC input — not the two-dimensional painted geometry of where the text
-    actually sits relative to competing fields. Deciding that absolute positioning has parked the
-    instruction beneath the wrong control requires seeing the laid-out page and judging visual
-    binding; it is not derivable from the accessibility tree.
-  -->
 </body>
 </html>

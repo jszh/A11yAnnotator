@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Create your workspace — Cadence project tracker</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS:
+  The password field has a correctly associated, VISIBLE requirements list via
+  aria-describedby ("password-rules"). The list is non-empty, names concrete rules, and
+  is in the accessibility tree. axe / WAVE / Lighthouse confirm: <label for> resolves,
+  aria-describedby resolves, contrast fine, role textbox, type=password. The "instruction
+  is present" facet of 3.3.2 (TT 5.A) passes.
+  THE DEFECT IS SEMANTIC + NUMERIC: the visible rule says "At least 8 characters" but the
+  field's ENFORCED rule is TWELVE — minlength="12", the pattern requires 12+, and the
+  live strength meter / submit validator reject anything under 12. A user who creates a
+  perfectly instruction-compliant 8-character password (e.g. "Passw0rd!") is rejected,
+  and the printed minimum is simply lower than the real one. No checker reads "at least 8"
+  from the prose, reads minlength="12"/the pattern, and judges that 8 < 12 contradicts.
+-->
+<style>
+  :root{ --ink:#10151f; --muted:#646e7e; --line:#d3d9e0; --brand:#2b59ff; --ok:#138a4f;
+         --warn:#b8860b; --danger:#cf2440; --paper:#fff; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font:16px/1.55 "Inter",system-ui,Segoe UI,sans-serif; color:var(--ink);
+        background:#f4f6fa; }
+  .wrap{ max-width:480px; margin:0 auto; padding:46px 20px; }
+  .logo{ font-weight:800; font-size:1.25rem; letter-spacing:-.3px; margin-bottom:24px; }
+  .logo span{ color:var(--brand); }
+  .card{ background:var(--paper); border:1px solid var(--line); border-radius:14px;
+        padding:30px 28px; box-shadow:0 6px 22px rgba(20,30,50,.06); }
+  h1{ font-size:1.45rem; margin:0 0 4px; }
+  .sub{ color:var(--muted); margin:0 0 24px; font-size:.94rem; }
+  label{ display:block; font-weight:700; margin:0 0 6px; font-size:.95rem; }
+  .req{ margin:0 0 10px; padding:0 0 0 1.1em; color:var(--muted); font-size:.86rem; }
+  .req li{ margin:2px 0; }
+  .pwwrap{ position:relative; }
+  input[type=email],input[type=password]{ width:100%; padding:11px 12px; font-size:1rem;
+        border:2px solid var(--line); border-radius:9px; background:#fff; color:var(--ink); }
+  input:focus{ outline:3px solid var(--brand); outline-offset:1px; border-color:var(--brand); }
+  input[aria-invalid="true"]{ border-color:var(--danger); }
+  .group{ margin:0 0 22px; }
+  .meter{ height:6px; background:#e7ebf1; border-radius:4px; margin:9px 0 4px; overflow:hidden; }
+  .meter > i{ display:block; height:100%; width:0; background:var(--danger);
+        transition:width .15s, background .15s; }
+  .meterlabel{ font-size:.8rem; color:var(--muted); min-height:1em; }
+  .err{ color:var(--danger); font-weight:600; font-size:.88rem; margin:7px 0 0; min-height:1em; }
+  button{ width:100%; margin-top:8px; padding:13px; font-size:1rem; font-weight:700; color:#fff;
+        background:var(--brand); border:0; border-radius:10px; cursor:pointer; }
+  button:focus{ outline:3px solid #0b1c66; outline-offset:2px; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="logo">Ca<span>dence</span></div>
+    <main class="card">
+      <h1>Create your workspace</h1>
+      <p class="sub">Set up the owner account for your team's project tracker.</p>
+
+      <form action="#" method="post" novalidate id="form" autocomplete="off">
+
+        <!-- ALWAYS-CORRECT CONTROL (contrast): work-email hint matches its enforced rule. -->
+        <div class="group">
+          <label for="email">Work email</label>
+          <p class="req" style="list-style:none;padding-left:0" id="email-hint">Use your company email address.</p>
+          <input type="email" id="email" name="email" aria-describedby="email-hint"
+                 autocomplete="email" required>
+        </div>
+
+        <!-- DEFECTIVE CONTROL: visible rule "At least 8 characters" but the field enforces 12. -->
+        <div class="group">
+          <label for="password">Choose a password</label>
+          <ul class="req" id="password-rules">
+            <li>At least 8 characters</li>
+            <li>Include a number</li>
+            <li>Include an uppercase letter</li>
+          </ul>
+          <div class="pwwrap">
+            <input type="password" id="password" name="password"
+                   aria-describedby="password-rules pw-err"
+                   minlength="12"
+                   pattern="(?=.*[A-Z])(?=.*\d).{12,}"
+                   autocomplete="new-password">
+          </div>
+          <div class="meter" aria-hidden="true"><i id="bar"></i></div>
+          <p class="meterlabel" id="strength">Password strength</p>
+          <p class="err" id="pw-err" role="alert"></p>
+        </div>
+
+        <button type="submit">Create workspace</button>
+      </form>
+    </main>
+    <p style="text-align:center;margin-top:20px;color:#9aa3b0;font-size:.78rem">Cadence demo · renders from file://</p>
+  </div>
+
+<script>
+(function(){
+  var form = document.getElementById('form');
+  var pw   = document.getElementById('password');
+  var bar  = document.getElementById('bar');
+  var str  = document.getElementById('strength');
+  var err  = document.getElementById('pw-err');
+  var MIN  = 12; // ENFORCED minimum — contradicts the printed "At least 8 characters".
+
+  pw.addEventListener('input', function(){
+    var v = pw.value, n = v.length;
+    var hasUp = /[A-Z]/.test(v), hasNum = /\d/.test(v);
+    var pct = Math.min(100, Math.round(n / MIN * 100));
+    bar.style.width = pct + '%';
+    if (n >= MIN && hasUp && hasNum) { bar.style.background = '#138a4f'; str.textContent = 'Strong'; }
+    else if (n >= 8) { bar.style.background = '#b8860b'; str.textContent = 'Too short — needs ' + MIN + ' characters'; }
+    else { bar.style.background = '#cf2440'; str.textContent = 'Weak'; }
+  });
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    var v = pw.value;
+    if (v.length >= MIN && /[A-Z]/.test(v) && /\d/.test(v)) {
+      pw.setAttribute('aria-invalid','false');
+      err.textContent = 'Workspace created.';
+      err.style.color = '#138a4f';
+    } else {
+      pw.setAttribute('aria-invalid','true');
+      // Real rule revealed only on failure; the listed "8" is simply false.
+      err.textContent = 'Your password must be at least 12 characters and include a number and an uppercase letter.';
+      err.style.color = '';
+      pw.focus();
+    }
+  });
+})();
+</script>
+</body>
+</html>

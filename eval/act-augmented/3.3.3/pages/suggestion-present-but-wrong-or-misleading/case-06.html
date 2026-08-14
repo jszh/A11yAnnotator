@@ -4,25 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Update your contact number — Riverside Family Health</title>
-<!--
-  WHY THIS IS THE PASS TWIN (and why it still needs human judgment):
-  This is the CORRECTED counterpart of the "wrong suggestion" failures. A patient-
-  portal mobile-number field requires a 10-digit US number including area code (its
-  visible help text AND its validator: exactly 10 digits). Enter a 7-digit number and
-  an error fires, associated via aria-describedby, announced in role=alert, with a
-  suggestion that is ACCURATE and ACTIONABLE against the field's TRUE rule:
-  "Enter all 10 digits, including your 3-digit area code — for example
-  (415) 555-2671. You entered 7 digits."
-  Following this suggestion exactly (supply the area code → 10 digits) is ACCEPTED.
-  The suggested format matches max-digit rule, the worked example is itself a valid
-  value, and the digit-count feedback is correct.
-  A naive automated tool CANNOT confirm a page PASSES this limb either: it only sees
-  that suggestion text exists; it cannot verify the suggestion is CORRECT for the
-  field. A human is still required to confirm the suggestion matches the field's true
-  rule and that following it resolves the error. Here it does — so the human verdict
-  is PASS. Including this twin sharpens the aspect: presence of suggestion text is
-  identical to the failing cases; only correctness differs.
--->
 <style>
   :root{
     --ink:#14322e; --muted:#52665f; --line:#cfe0da; --brand:#0e7c66; --brand-d:#0a5c4c;
@@ -87,7 +68,6 @@
   var tel  = document.getElementById('tel');
   var err  = document.getElementById('tel-err');
 
-  // REAL ENFORCED RULE: exactly 10 digits (US number incl. area code) — matches the help text.
   form.addEventListener('submit', function(e){
     e.preventDefault();
     var digits = (tel.value.match(/\d/g) || []).length;
@@ -100,9 +80,6 @@
     }
     tel.setAttribute('aria-invalid','true');
     err.className = 'err'; err.setAttribute('role','alert');
-    // ACCURATE, ACTIONABLE suggestion: it matches the field's TRUE 10-digit rule, the
-    // worked example is itself a valid value, and the digit count is correct.
-    // Following it (add the area code to reach 10 digits) is ACCEPTED.
     if (digits < 10){
       err.textContent = 'Enter all 10 digits, including your 3-digit area code — for example (415) 555-2671. You entered ' + digits + ' digit' + (digits===1?'':'s') + '.';
     } else {

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.1.1 (Non-text Content), per Failure Technique F71: "look-alike" glyph
+    substitution. The hero verb in the H1 below renders, in any font with Greek +
+    Cyrillic coverage, as the English word "cook" — but it is NOT the four Latin
+    letters c-o-o-k. It is the exact F71 example string:
+        U+03F2 (Greek lunate sigma 'ϲ'),
+        U+043E (Cyrillic small 'о'),
+        U+03BF (Greek small 'ο'),
+        U+006B (Latin small 'k').
+    Only the final 'k' is Latin. The meaning ("cook") rides entirely on the glyph
+    SHAPES; the encoded codepoints are not the letters they resemble, and there is
+    NO text alternative (no aria-label, no visually-hidden real-text span). Per F71
+    this is effectively non-text content lacking a text alternative.
+
+    WHY AUTOMATED TOOLS MISS IT: there is no img / svg / role="img" / object on the
+    page, so every ACT 1.1.1 rule is Inapplicable and axe-core / WAVE / Lighthouse
+    report nothing — they only inspect name-bearing graphical elements. The H1 is a
+    well-formed, non-empty heading with good contrast; an image-alt linter sees a
+    perfectly valid heading. Deciding that "ϲоοk" is Latin "cook" written in
+    confusables (rather than legitimate Greek/Cyrillic text) requires reading the
+    rendered glyphs against the page language (lang="en") and comparing them to the
+    actual codepoints — a human reading judgment.
+  -->
+  <title>Weeknight Skillet — fast one-pan dinners</title>
+  <style>
+    :root { --ink:#241c14; --paprika:#c0532b; --cream:#fbf6ee; --leaf:#3f6b3a; --rule:#e7ddcd; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Segoe UI", "Helvetica Neue", Arial, sans-serif; color:var(--ink); background:var(--cream); line-height:1.6; }
+    header.site { display:flex; align-items:baseline; gap:.7rem; padding:1rem 1.4rem; border-bottom:1px solid var(--rule); }
+    header.site .logo { font-weight:800; font-size:1.2rem; color:var(--paprika); letter-spacing:.01em; }
+    header.site .tag { font-size:.78rem; color:#7a6a55; text-transform:uppercase; letter-spacing:.14em; }
+    .hero { max-width:760px; margin:0 auto; padding:3rem 1.4rem 1rem; text-align:center; }
+    .hero .eyebrow { font-size:.8rem; text-transform:uppercase; letter-spacing:.18em; color:var(--leaf); font-weight:700; margin:0 0 .6rem; }
+    .hero h1 { font-size:clamp(2.6rem, 8vw, 4.6rem); line-height:1.02; margin:0 0 .8rem; font-weight:800; }
+    .hero h1 .verb { color:var(--paprika); }
+    .hero p.sub { font-size:1.15rem; color:#574a3a; margin:.2rem auto 0; max-width:560px; }
+    main { max-width:760px; margin:0 auto; padding:1.5rem 1.4rem 4rem; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:1.1rem; margin-top:1.6rem; }
+    .card { background:#fff; border:1px solid var(--rule); border-radius:12px; padding:1.1rem 1.1rem 1.2rem; }
+    .card h2 { font-size:1.05rem; margin:.1rem 0 .4rem; }
+    .card p { font-size:.92rem; color:#5d5040; margin:0; }
+    .card .meta { font-size:.78rem; color:#8a7a64; margin-top:.7rem; }
+    a.cta { display:inline-block; margin-top:1.6rem; background:var(--paprika); color:#fff; text-decoration:none; font-weight:700; padding:.7rem 1.4rem; border-radius:999px; }
+    footer { border-top:1px solid var(--rule); padding:1.4rem; text-align:center; font-size:.8rem; color:#8a7a64; }
+  </style>
+</head>
+<body>
+  <header class="site">
+    <span class="logo">Weeknight Skillet</span>
+    <span class="tag">30-minute dinners</span>
+  </header>
+
+  <section class="hero">
+    <p class="eyebrow">No reservations required</p>
+    <!--
+      VISIBLE TEXT reads: "Anyone can cook tonight."
+      The word between "can" and "tonight" is the F71 confusable string ϲоοk.
+      It is plain heading text with NO aria-label and NO visually-hidden Latin
+      equivalent, so a screen reader announces it as garbled / mixed-script noise
+      (or skips it), not the word "cook".
+    -->
+    <h1>Anyone can <span class="verb">&#x03F2;&#x043E;&#x03BF;k</span> tonight.</h1>
+    <p class="sub">Big-flavor, one-pan recipes you can pull together after work — most done before the rice finishes.</p>
+    <a class="cta" href="#recipes">Browse 30-minute recipes</a>
+  </section>
+
+  <main id="recipes">
+    <h2 style="font-size:1.4rem;margin:0 0 .2rem;">This week's skillet picks</h2>
+    <p style="margin:.2rem 0 0;color:#5d5040;">Five dinners, one pan, zero stress.</p>
+    <div class="grid">
+      <article class="card">
+        <h2>Charred lemon chicken</h2>
+        <p>Bone-in thighs seared crisp, finished with blistered lemon and capers.</p>
+        <p class="meta">25 min · serves 4</p>
+      </article>
+      <article class="card">
+        <h2>Smoky white beans &amp; greens</h2>
+        <p>Cannellini, garlic, and a fistful of kale in a quick paprika broth.</p>
+        <p class="meta">20 min · serves 3</p>
+      </article>
+      <article class="card">
+        <h2>Gochujang glazed salmon</h2>
+        <p>Sheet-pan salmon with a sticky-sweet chili glaze and scallions.</p>
+        <p class="meta">18 min · serves 2</p>
+      </article>
+      <article class="card">
+        <h2>Brown-butter mushroom orzo</h2>
+        <p>Toasted orzo simmered risotto-style with thyme and parmesan.</p>
+        <p class="meta">28 min · serves 4</p>
+      </article>
+    </div>
+  </main>
+
+  <footer>
+    <p>© 2026 Weeknight Skillet. Recipes for people who are hungry now.</p>
+  </footer>
+</body>
+</html>

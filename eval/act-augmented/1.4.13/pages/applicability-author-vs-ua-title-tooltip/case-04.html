@@ -25,10 +25,6 @@
   article p { font-size: 17px; margin: 0 0 18px; }
   abbr { text-decoration: underline dotted; cursor: help; }
 
-  /* The SECOND abbreviation is wrapped in an author tooltip span. The expansion is
-     rendered as an author bubble on hover/focus, styled to read like a footnote. It
-     is positioned ABOVE and uses pointer-events:none, so it cannot be hovered and
-     offers no Esc dismissal. */
   .gloss { position: relative; }
   .gloss > .bub {
     position: absolute; bottom: 1.6em; left: 0;
@@ -57,19 +53,12 @@
     <p>
       The board voted to keep the benchmark rate unchanged, citing a softer reading on
       core prices. Analysts had expected the
-      <!-- NATIVE: plain abbr with title=. The expansion bubble on hover is the
-           browser's own rendering of the title attribute. Out of scope for 1.4.13
-           (UA-controlled appearance) => PASS by exclusion. -->
       <abbr title="Federal Open Market Committee">FOMC</abbr>
       to signal a pause, and the statement&rsquo;s language largely matched that view.
     </p>
 
     <p>
       Markets were calm into the afternoon. The
-      <!-- AUTHOR: visually identical dotted-underline abbreviation, but the expansion
-           is rendered by an author <span class="bub"> tooltip shown via JS on hover/
-           focus. Same look as the native one above, different OWNER => 1.4.13 APPLIES,
-           and it fails (bubble is pointer-events:none, no Esc). -->
       <abbr class="gloss" tabindex="0" aria-describedby="gdp-bub">GDP<span class="bub" id="gdp-bub" role="tooltip">Gross Domestic Product — the total market value of goods and services produced in a period.</span></abbr>
       print for the quarter is due Friday, and traders said a downside surprise could
       revive rate-cut bets before the next meeting.
@@ -89,10 +78,6 @@
   </article>
 
   <script>
-    // Author tooltip for the .gloss abbreviation ONLY. The native <abbr title> items
-    // are left to the browser. This script reveals the author bubble on hover/focus
-    // and hides it on leave/blur — with NO Escape handler and a pointer-events:none
-    // bubble, so the author one fails hoverable + dismissible.
     document.querySelectorAll('.gloss').forEach(function (g) {
       var bub = g.querySelector('.bub');
       function show() { bub.style.opacity = '1'; bub.style.visibility = 'visible'; }
@@ -104,13 +89,5 @@
     });
   </script>
 
-  <!-- WHY AUTOMATED TOOLS MISS IT:
-       Both abbreviations look identical on the page (dotted underline, hover reveals an
-       expansion). A scanner sees two <abbr> elements and no rule fires. It cannot
-       reason that FOMC's bubble is the browser's title rendering (out of scope, PASS)
-       while GDP's bubble is an author <span> driven by JS (in scope, and failing
-       hoverable/dismissible). The per-element attribution of WHO renders the bubble —
-       and the interaction-time test of whether the author bubble can be hovered or
-       dismissed — both require human judgment. -->
 </body>
 </html>

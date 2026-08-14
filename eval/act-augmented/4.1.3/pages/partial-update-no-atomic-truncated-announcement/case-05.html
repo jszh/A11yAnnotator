@@ -37,15 +37,6 @@
   <textarea id="post" placeholder="What's happening?" maxlength="280"></textarea>
 
   <div class="bar">
-    <!--
-      A character-budget meter. The full visible text is "280 characters remaining".
-      role="status" makes it a live region, but aria-atomic is unset and JS rewrites ONLY the
-      inner <b id="left"> number node on every keystroke. In a non-atomic environment AT
-      announces just the bare number ("two hundred sixty-seven") with no "characters
-      remaining". Worse: a bare number here is AMBIGUOUS even to someone guessing — is it
-      characters typed, characters remaining, or the limit? The polarity is carried solely by
-      the un-announced trailing words.
-    -->
     <p class="meter" role="status" id="meter">
       <b id="left">280</b> characters remaining
     </p>
@@ -70,9 +61,6 @@
   var LIMIT = 280;
   ta.addEventListener('input', function () {
     var remaining = LIMIT - ta.value.length;
-    // ONLY the inner number node is rewritten on each keystroke. The trailing words
-    // "characters remaining" (which carry the polarity) are never re-announced, and
-    // #meter has no aria-atomic, so AT hears just "267".
     leftEl.textContent = String(remaining);
     meter.classList.toggle('warn', remaining <= 20);
   });

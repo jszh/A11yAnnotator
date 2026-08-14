@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 4.1.2 (Name, Role, Value) — NAME limb at sub-field granularity, a TRUE F86 failure
+    (not the "present-but-undifferentiated" variant). A price-range filter is one logical
+    "from–to" value split into two boxes: a MINIMUM price and a MAXIMUM price, rendered
+    "$ ___ – $ ___". This is F86's Example 3 mechanism ("the label is programmatically
+    associated with the first part"):
+
+      - The visible label "Price range" is a real <label for="price-min"> — so it names ONLY
+        the first (minimum) box. The minimum box's accessible name = "Price range".
+      - The MAXIMUM box has NO label of its own EXCEPT the en-dash separator, which the author
+        wired as <label for="price-max">–</label> (the separator is the maximum box's only
+        associated label). Its computed accessible name is therefore the single character "–".
+
+    Per F86's test procedure ("For each subfield… Check that there is a programmatically
+    determined name for the field. If check #1 is false for any subfield, then the failure
+    condition applies"): the maximum box has NO name that identifies it as a form field — its
+    only name is punctuation. This is exactly F86's documented experience that "some assistive
+    technologies would name the fields '(', ')' and '-', which is not very useful." The page
+    therefore FAILS 4.1.2.
+
+    WHY AUTOMATED TOOLS MISS IT (verified with axe-core 4.10.3, file://):
+    axe reports ZERO name-related findings. Its "label" rule PASSES for BOTH inputs — the
+    minimum box has the "Price range" label, and the maximum box is considered labelled
+    because <label for="price-max"> exists and resolves to a non-empty string ("–"). Because
+    the maximum box's name is the non-empty (but punctuation-only) "–", axe does not fire
+    "label", "aria-input-field-name", or even the "label-title-only" best-practice rule (the
+    name comes from a <label>, not a title). Recognising that "–" is a visual SEPARATOR rather
+    than a name that identifies the maximum-price field — and that the "Price range" label
+    covers only the minimum box — is a human semantic judgment no per-field non-emptiness
+    rule expresses.
+  -->
+  <title>Browse listings — set your budget | Holloway &amp; Pike Lettings</title>
+  <style>
+    :root { --ink:#1c2530; --muted:#5a6675; --line:#d4dbe2; --brand:#7a2f4a; --bg:#f6f4f1; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Inter",system-ui,Segoe UI,Arial,sans-serif; color:var(--ink); background:var(--bg); line-height:1.6; }
+    .topbar { background:var(--brand); color:#fff; padding:.7rem 1.2rem; font-weight:800; letter-spacing:.02em; }
+    .shell { max-width:680px; margin:0 auto; padding:1.8rem 1.2rem 4rem; }
+    h1 { font-size:1.5rem; margin:.4rem 0 .25rem; }
+    .sub { color:var(--muted); margin:0 0 1.7rem; font-size:.95rem; }
+    .panel { background:#fff; border:1px solid var(--line); border-radius:12px; padding:1.4rem 1.4rem 1.6rem; }
+    .panel h2 { font-size:1.05rem; margin:0 0 1.1rem; }
+    .row { margin-bottom:1.4rem; }
+    .row > label, fieldset > legend.g { display:block; font-size:.86rem; font-weight:700; margin-bottom:.45rem; }
+    .hint { font-size:.78rem; color:var(--muted); margin-top:.4rem; }
+    select, input[type=text] { font:inherit; padding:.5rem .6rem; border:1px solid var(--line); border-radius:7px; background:#fff; color:inherit; }
+    select.full { width:100%; max-width:18rem; }
+    fieldset { border:0; margin:0; padding:0; }
+    .range { display:flex; align-items:center; gap:.45rem; }
+    .range .cur { color:var(--muted); font-weight:600; }
+    .range .sep { color:var(--muted); font-size:1.25rem; line-height:1; padding:0 .1rem; cursor:text; }
+    .range input { width:6.5rem; text-align:right; letter-spacing:.02em; }
+    .btn { background:var(--brand); color:#fff; border:0; border-radius:8px; padding:.7rem 1.4rem; font:inherit; font-weight:700; cursor:pointer; }
+    .ghost { background:#fff; color:var(--brand); border:1px solid var(--brand); margin-inline-start:.5rem; }
+    .vh { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+  </style>
+</head>
+<body>
+  <div class="topbar">Holloway &amp; Pike Lettings</div>
+  <main class="shell">
+    <h1>Find a rental</h1>
+    <p class="sub">Filter the listings, then press Search. All prices are monthly rent in USD.</p>
+
+    <form action="#" method="get" class="panel">
+      <h2>Refine your search</h2>
+
+      <div class="row">
+        <label for="area">Neighbourhood</label>
+        <select class="full" id="area" name="area">
+          <option>Riverside</option>
+          <option selected>Old Town</option>
+          <option>Maple Heights</option>
+          <option>Harbourfront</option>
+        </select>
+      </div>
+
+      <!--
+        Price range: ONE "from–to" value in two boxes (minimum rent / maximum rent).
+        F86 Example 3: the "Price range" <label> is associated with the FIRST box only;
+        the MAXIMUM box's only associated label is the en-dash separator, so AT names it "–".
+      -->
+      <fieldset class="row" role="group" aria-labelledby="price-group">
+        <legend class="g" id="price-group">Price range (per month)</legend>
+        <div class="range">
+          <span class="cur" aria-hidden="true">$</span>
+          <!-- This label is wired to the MINIMUM box only -->
+          <label for="price-min" class="vh">Price range</label>
+          <input id="price-min" type="text" inputmode="numeric" maxlength="6" value="1200">
+          <!-- The separator IS the maximum box's only associated label → AT name = "–" -->
+          <label for="price-max" class="sep">&ndash;</label>
+          <span class="cur" aria-hidden="true">$</span>
+          <input id="price-max" type="text" inputmode="numeric" maxlength="6" value="1800">
+        </div>
+        <p class="hint">Leave a box empty for no limit. Example: 1200 – 1800.</p>
+      </fieldset>
+
+      <div class="row">
+        <label for="beds">Bedrooms (minimum)</label>
+        <select class="full" id="beds" name="beds">
+          <option>Studio</option>
+          <option selected>1</option>
+          <option>2</option>
+          <option>3+</option>
+        </select>
+      </div>
+
+      <button class="btn" type="submit">Search rentals</button>
+      <button class="btn ghost" type="reset">Clear filters</button>
+    </form>
+  </main>
+</body>
+</html>

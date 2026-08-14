@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Account security — change password · Lumen Mail</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS:
+  The error appears DURING TYPING (live inline validation), not on submit, and it is a
+  RED OUTLINE that toggles on the "Confirm new password" field whenever its value does
+  not match "New password". The hint text below the field is STATIC ("Must match the
+  new password above.") and never changes wording, color, or content when the mismatch
+  occurs — so the hint is not an error message, it's a permanent instruction. The only
+  signal that the two passwords currently disagree is the field's red box-shadow outline.
+  axe/WAVE/Lighthouse, even if they could drive typing, see a labeled input with a
+  describedby hint and a CSS outline — no rule classifies the live red outline as the
+  sole error indicator, and no rule notices the hint never updates. A sighted color-blind
+  user typing a mismatch sees no change they can perceive. Pre-rendered here in the
+  mismatch state so an evaluator lands directly in it.
+-->
+<style>
+  :root { --ink:#1b2330; --muted:#5e6b7a; --line:#cdd6e0; --violet:#5b3fbf; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.55 "system-ui",sans-serif; color:var(--ink); background:#eef1f6; }
+  .shell { max-width:560px; margin:36px auto 70px; background:#fff; border-radius:12px;
+           box-shadow:0 6px 22px rgba(20,30,50,.1); overflow:hidden; }
+  .top { background:var(--violet); color:#fff; padding:18px 26px; }
+  .top h1 { margin:0; font-size:1.2rem; } .top p { margin:3px 0 0; opacity:.9; font-size:.88rem; }
+  .body { padding:26px 28px 30px; }
+  .field { margin-bottom:18px; }
+  label { display:block; font-weight:600; font-size:.86rem; margin:0 0 6px; }
+  input[type=password] { width:100%; padding:10px 12px; font-size:1rem; border:1px solid var(--line);
+                         border-radius:7px; background:#fff; color:var(--ink); }
+  input:focus { outline:2px solid var(--violet); outline-offset:1px; }
+
+  /* === the defect ===
+     When confirm != new, JS adds .mismatch which paints a red outline ONLY.
+     The hint below is unconditional instruction text — it is not an error message. */
+  input.mismatch { box-shadow:0 0 0 2px #d31f2f; border-color:#d31f2f; }
+  input.mismatch:focus { outline-color:#d31f2f; }
+
+  .hint { font-size:.8rem; color:var(--muted); margin:6px 0 0; }  /* static, never changes */
+
+  button { padding:11px 22px; font-size:1rem; font-weight:600; color:#fff; background:var(--violet);
+           border:0; border-radius:7px; cursor:pointer; }
+  button[disabled] { opacity:.55; cursor:not-allowed; }
+  .foot { padding:16px 28px 24px; color:var(--muted); font-size:.78rem; border-top:1px solid #eef1f6; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="top"><h1>Change password</h1><p>Lumen Mail · Account security</p></div>
+  <div class="body">
+    <form id="pwform" action="#" method="post" novalidate>
+      <div class="field">
+        <label for="cur">Current password</label>
+        <input id="cur" type="password" autocomplete="current-password" value="oldpass-123">
+      </div>
+      <div class="field">
+        <label for="np">New password</label>
+        <input id="np" type="password" autocomplete="new-password" value="Sunflower!2026">
+        <p class="hint">Use at least 12 characters with a number and a symbol.</p>
+      </div>
+      <div class="field">
+        <label for="cp">Confirm new password</label>
+        <!-- pre-rendered in the mismatch state: value differs from #np, so .mismatch is set -->
+        <input id="cp" type="password" autocomplete="new-password" class="mismatch"
+               aria-describedby="cphint" value="Sunflower!2025">
+        <!-- This is a permanent INSTRUCTION, not an error message. It never changes on mismatch. -->
+        <p class="hint" id="cphint">Must match the new password above.</p>
+      </div>
+      <button type="submit">Update password</button>
+    </form>
+  </div>
+  <div class="foot">For your safety we'll sign you out of other devices. · Renders from file://</div>
+</div>
+
+<script>
+  // Live inline validation: toggle a red outline on the confirm field as the user types.
+  // Nothing else changes — the hint text is static; no message is shown/hidden; no icon.
+  var np = document.getElementById('np'), cp = document.getElementById('cp');
+  function sync() {
+    var bad = cp.value.length > 0 && cp.value !== np.value;
+    cp.classList.toggle('mismatch', bad);
+  }
+  np.addEventListener('input', sync);
+  cp.addEventListener('input', sync);
+  // initial state already set in markup (.mismatch present); sync keeps it honest if edited
+  sync();
+</script>
+</body>
+</html>

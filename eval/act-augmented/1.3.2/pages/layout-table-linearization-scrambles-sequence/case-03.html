@@ -11,10 +11,6 @@
   table.coupon { border-collapse: collapse; width: 100%; background: #fff8ef;
      border: 3px dashed #7a5230; }
   table.coupon td { width: 50%; padding: 24px 20px; vertical-align: middle; text-align: center; }
-  /* Two coupon "stamps" side by side; each stamp is a vertical stack the eye reads
-     TOP-TO-BOTTOM. Left stamp = the offer ("Buy one" over "get one free"); right
-     stamp = the redemption ("$10 espresso flight" over "with code SAVE25"). A divider
-     between the columns reinforces "read each stamp down its own column." */
   td.left  { border-right: 3px dashed #7a5230; }
   .big   { font-size: 32px; font-weight: 800; color: #7a5230; line-height: 1.1; }
   .big2  { font-size: 32px; font-weight: 800; color: #b5651d; line-height: 1.1; }
@@ -31,29 +27,6 @@
   <div class="coupon-wrap">
     <h1>Bean &amp; Leaf Rewards</h1>
 
-    <!--
-      LAYOUT TABLE (no <th>, no scope, no data relationships — a 2-column visual grid
-      of two coupon "stamps"). The dashed divider and the stacked typography tell the
-      eye to read DOWN each column (each stamp), not across the rows:
-
-          LEFT STAMP (read down)        RIGHT STAMP (read down)
-          ----------------------        -----------------------
-          Buy one                       $10 espresso flight
-          get one free                  with code SAVE25
-
-      Visual / intended sequence (column-major):
-          "Buy one  ->  get one free  ->  $10 espresso flight  ->  with code SAVE25"
-          = "Buy one, get one free — $10 espresso flight with code SAVE25."  Coherent.
-
-      But the table is encoded ROW-MAJOR, so the linearized cell stream is:
-          (r1c1) Buy one  (r1c2) $10 espresso flight
-          (r2c1) get one free  (r2c2) with code SAVE25
-          ->  "Buy one  $10 espresso flight  get one free  with code SAVE25"
-      The headline offer "Buy one / get one free" is torn apart, the price line
-      "$10 espresso flight" is announced between the two halves of the promise, and
-      "get one free" lands far from "Buy one." The redemption code is severed from
-      its price. Read aloud this is gibberish as an offer.
-    -->
     <table class="coupon" role="presentation">
       <tr>
         <td class="left">
@@ -78,14 +51,5 @@
     <p class="fine">Valid through May 31, 2026 at participating Bean &amp; Leaf cafés. One per member.</p>
   </div>
 
-  <!--
-    WHY AUTOMATED TOOLS MISS THIS:
-    All four cells have plain visible text, the table is role="presentation", nothing
-    is empty or mislabeled, the 2x2 grid is valid HTML. The divider + stacked layout
-    establish a COLUMN-MAJOR intended reading the eye follows, but a screen reader
-    linearizes ROW-MAJOR. No automated tool reconstructs the intended visual reading
-    order, nor judges that "Buy one $10 espresso flight get one free with code SAVE25"
-    has stopped being a coherent offer. That is a human semantic + visual judgment.
-  -->
 </body>
 </html>

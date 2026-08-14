@@ -4,23 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Thread: Best trails near Asheville? — TrailTalk</title>
-  <!--
-    WHY AUTOMATED TOOLS MISS THIS (SC 2.1.2, F10 via Shadow DOM boundary):
-    The reply box is a custom element <comment-composer> that builds its UI inside a
-    Shadow DOM created with attachShadow({mode:'open', delegatesFocus:true}). The light
-    DOM the page author wrote is literally just <comment-composer></comment-composer> —
-    there is NOTHING in the source markup that looks interactive. Inside the shadow root
-    are a <textarea> and a "Post reply" <button>; the component listens for focusout on
-    its shadow root and synchronously re-focuses the textarea, so focus can never leave
-    the shadow tree. Tab (and Shift+Tab) never carries focus across the shadow boundary to
-    the parent document's "Back to all threads" link that follows. No Esc handler, no
-    instruction anywhere about how to escape.
-    A static scan sees a single unknown custom element with no attributes — no role, name,
-    or label to evaluate, nothing flagged. axe/WAVE/Lighthouse do not instantiate the
-    component's focus behavior, do not pierce the shadow root to model its focusout
-    re-grab, and never press Tab to discover the trap. Only a human driving the keyboard
-    into the shadow widget and finding the cursor cannot escape can detect it.
-  -->
   <style>
     :root { --ink:#20242b; --muted:#646b76; --line:#e6e9ee; --brand:#0a7d6b; --bg:#f6f8f9; }
     * { box-sizing: border-box; }
@@ -64,12 +47,6 @@
 
     <h2>Add your reply</h2>
     <div class="reply-wrap">
-      <!--
-        The reply composer is a reusable web component shared across the site. All of its
-        markup, the textarea and the Post button, live inside its Shadow DOM; the light
-        DOM is just the empty custom-element tag below. The component re-grabs focus
-        whenever focus tries to leave its shadow root.
-      -->
       <comment-composer></comment-composer>
     </div>
 
@@ -84,7 +61,6 @@
     class CommentComposer extends HTMLElement {
       constructor() {
         super();
-        // delegatesFocus + open shadow root: a modern, plausible component setup.
         const root = this.attachShadow({ mode: 'open', delegatesFocus: true });
         root.innerHTML = [
           '<style>',
@@ -102,9 +78,6 @@
           '<div class="bar"><button id="post" type="button">Post reply</button></div>'
         ].join('');
         this._ta = root.getElementById('ta');
-        // F10: whenever focus tries to leave the shadow tree, yank it back to the
-        // textarea. focusout fires as focus moves out; re-focusing synchronously keeps
-        // the user trapped inside the component. No Esc, no documented exit.
         root.addEventListener('focusout', (e) => {
           if (!e.relatedTarget || !root.contains(e.relatedTarget)) {
             this._ta.focus();

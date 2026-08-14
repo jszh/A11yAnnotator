@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Set your password — Meridian Credit Union</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS:
+  Submit the form with a short password and an error message appears, correctly
+  associated to the field via aria-describedby, in a role=alert live region, with
+  good contrast and a clear, confident, SPECIFIC suggested fix:
+  "Your password is too short. Use at least 8 characters to continue."
+  Every structural facet of SC 3.3.3 passes: an error is detected, AND a concrete
+  correction suggestion IS provided (TT 5.G "suggestions for corrected input are
+  provided"). axe / WAVE / Lighthouse see present, associated, announced error text.
+  THE DEFECT IS SEMANTIC: the field's REAL, visible rule (stated in the bullet list
+  above the field, AND enforced by minlength="12" + the JS validator) requires at
+  least 12 characters. The suggestion names 8. A user who follows the suggestion
+  exactly — types a fresh 8-to-11 character password — is REJECTED AGAIN with the
+  same message. The suggestion is factually wrong for this field and guarantees a
+  re-failure. No scanner reads the prose "at least 8 characters", reads the
+  minlength="12" / the policy bullets / the validator, and judges that the number
+  in the suggestion contradicts the number the field enforces. Catching it needs a
+  human to compare the suggested fix against the field's true constraint.
+-->
+<style>
+  :root{
+    --ink:#10243e; --muted:#5a6b7e; --line:#cdd7e1; --brand:#0a5f8f; --brand-d:#084b70;
+    --ok:#1a7a3c; --danger:#b3261e; --paper:#fff; --bg:#eef3f7; --focus:#1b6fb3;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font:16px/1.55 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+        color:var(--ink); background:var(--bg); }
+  .topbar{ background:var(--brand-d); color:#fff; padding:12px 0; }
+  .wrap{ max-width:560px; margin:0 auto; padding:0 22px; }
+  .topbar .brand{ font-weight:700; letter-spacing:.3px; display:flex; align-items:center; gap:10px; }
+  .topbar .brand span.mark{ display:inline-block; width:22px; height:22px; border-radius:50%;
+        background:#fff; color:var(--brand-d); font-weight:800; text-align:center; line-height:22px; }
+  main{ padding:40px 0 70px; }
+  .card{ background:var(--paper); border:1px solid var(--line); border-radius:10px;
+         padding:30px 30px 34px; box-shadow:0 1px 3px rgba(16,36,62,.08); }
+  h1{ font-size:1.55rem; margin:0 0 6px; }
+  .step{ color:var(--muted); font-size:.85rem; text-transform:uppercase; letter-spacing:.6px; margin:0 0 22px; }
+  .rules{ background:#f3f7fb; border:1px solid var(--line); border-radius:8px;
+          padding:14px 16px 14px 18px; margin:0 0 24px; }
+  .rules h2{ font-size:.95rem; margin:0 0 8px; }
+  .rules ul{ margin:0; padding-left:20px; }
+  .rules li{ font-size:.9rem; color:var(--muted); margin:3px 0; }
+  label{ display:block; font-weight:600; margin:0 0 6px; }
+  .field{ margin:0 0 6px; position:relative; }
+  input[type=password],input[type=text]{ width:100%; padding:11px 12px; font-size:1rem;
+        border:2px solid var(--line); border-radius:7px; background:#fff; color:var(--ink); }
+  input:focus{ outline:3px solid var(--focus); outline-offset:1px; border-color:var(--focus); }
+  input[aria-invalid="true"]{ border-color:var(--danger); }
+  .toggle{ position:absolute; right:8px; top:8px; border:0; background:none; color:var(--brand);
+        font-size:.82rem; font-weight:600; cursor:pointer; padding:5px 7px; border-radius:5px; }
+  .toggle:focus{ outline:2px solid var(--focus); }
+  .err{ color:var(--danger); font-weight:600; font-size:.9rem; margin:8px 0 0;
+        display:flex; gap:7px; align-items:flex-start; }
+  .err svg{ flex:none; margin-top:2px; }
+  .ok{ color:var(--ok); font-weight:600; font-size:.9rem; margin:8px 0 0; }
+  button.submit{ margin-top:26px; width:100%; background:var(--brand); color:#fff; border:0;
+        border-radius:7px; font-size:1rem; font-weight:700; padding:13px; cursor:pointer; }
+  button.submit:hover{ background:var(--brand-d); }
+  button.submit:focus{ outline:3px solid var(--focus); outline-offset:2px; }
+  .foot{ color:var(--muted); font-size:.74rem; margin:24px 0 0; text-align:center; }
+</style>
+</head>
+<body>
+  <header class="topbar"><div class="wrap"><div class="brand"><span class="mark">M</span>Meridian Credit Union</div></div></header>
+  <main>
+    <div class="wrap">
+      <div class="card">
+        <h1>Create your online banking password</h1>
+        <p class="step">Account setup · step 3 of 4</p>
+
+        <div class="rules">
+          <h2>Your password must:</h2>
+          <ul>
+            <li>be <strong>at least 12 characters</strong> long</li>
+            <li>contain an uppercase and a lowercase letter</li>
+            <li>contain at least one number</li>
+            <li>not reuse any of your last 5 passwords</li>
+          </ul>
+        </div>
+
+        <form id="pwform" action="#" method="post" novalidate autocomplete="off">
+          <label for="pw">New password</label>
+          <div class="field">
+            <input type="password" id="pw" name="pw"
+                   minlength="12"
+                   aria-describedby="pw-err"
+                   autocomplete="new-password">
+            <button type="button" class="toggle" id="toggle" aria-pressed="false">Show</button>
+          </div>
+          <p class="err" id="pw-err" role="alert" hidden></p>
+
+          <button type="submit" class="submit">Set password and continue</button>
+        </form>
+
+        <p class="foot">Meridian Credit Union demo &middot; renders from file:// &middot; nothing is transmitted.</p>
+      </div>
+    </div>
+  </main>
+
+<script>
+(function(){
+  var form = document.getElementById('pwform');
+  var pw   = document.getElementById('pw');
+  var err  = document.getElementById('pw-err');
+  var tgl  = document.getElementById('toggle');
+
+  var ICON = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">' +
+             '<circle cx="8" cy="8" r="7" fill="none" stroke="#b3261e" stroke-width="2"/>' +
+             '<path d="M8 4v5" stroke="#b3261e" stroke-width="2" stroke-linecap="round"/>' +
+             '<circle cx="8" cy="11.5" r="1" fill="#b3261e"/></svg>';
+
+  tgl.addEventListener('click', function(){
+    var showing = pw.type === 'text';
+    pw.type = showing ? 'password' : 'text';
+    tgl.textContent = showing ? 'Show' : 'Hide';
+    tgl.setAttribute('aria-pressed', String(!showing));
+  });
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    var v = pw.value;
+    var hasUpper = /[A-Z]/.test(v), hasLower = /[a-z]/.test(v), hasNum = /[0-9]/.test(v);
+
+    // REAL ENFORCED RULE: minimum length is 12.
+    if (v.length >= 12 && hasUpper && hasLower && hasNum){
+      pw.setAttribute('aria-invalid','false');
+      err.hidden = true; err.className = 'ok'; err.removeAttribute('role');
+      err.textContent = 'Password set. Continuing to step 4…';
+      err.hidden = false;
+      return;
+    }
+
+    pw.setAttribute('aria-invalid','true');
+    err.className = 'err';
+    err.setAttribute('role','alert');
+    // CONFIDENT, SPECIFIC — AND WRONG: the field requires 12, not 8.
+    // A user who follows this and supplies an 8-character password fails again.
+    if (v.length < 12){
+      err.innerHTML = ICON + '<span>Your password is too short. Use at least 8 characters to continue.</span>';
+    } else {
+      err.innerHTML = ICON + '<span>Add an uppercase letter, a lowercase letter and a number.</span>';
+    }
+    err.hidden = false;
+    pw.focus();
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Glyphwright SDK — REST API Reference (v3)</title>
+<!--
+  SC 1.4.11 Non-text Contrast — F78 (focus indicator present but indistinguishable).
+
+  This page renders with the FOURTH link in the sidebar focused (see autofocus
+  on #m-pagination). Tab through the "On this page" rail and you will see the
+  focus indicator IS drawn by the browser — but it is IDENTICAL to the
+  permanent decorative outline every link already carries:
+
+      .toc a        { outline: 1px dotted #1b1b1b; outline-offset: 2px; }
+      .toc a:focus  { outline: 1px dotted #1b1b1b; outline-offset: 2px; }
+
+  Every link in the rail, at rest, wears a 1px dotted near-black outline. The
+  browser's focus indicator (deliberately re-declared to match) is the same
+  1px dotted near-black outline at the same offset. So when focus lands on a
+  link, NOTHING changes: there is no perceptible difference between the focused
+  link and its eight neighbours. A sighted keyboard user cannot tell which entry
+  has focus, or that focus moved at all, as they arrow down the reference index.
+
+  WHY AUTOMATED TOOLS MISS IT: axe / WAVE / Lighthouse have no 2.4.7 / 1.4.11
+  focus-visibility rule. A CSS scraper or "does a :focus style exist?" heuristic
+  reports PASS here because a:focus is explicitly declared with a non-none
+  outline of finite width and visible color — the resting outline contrast is
+  even fine (1px #1b1b1b on #fff is ~17:1). The defect is RELATIONAL: the focus
+  treatment is humanly indistinguishable from the always-on decorative outline.
+  Detecting it requires rendering the resting state AND the focused state of the
+  same element and judging that a human cannot perceive the difference — a
+  comparison no static checker performs.
+-->
+<style>
+  :root{
+    --ink:#1b1b1b; --muted:#5a5f66; --panel:#f6f7f9; --line:#e2e5ea;
+    --code:#0a3b6b; --bg:#ffffff;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  header.top{
+    border-bottom:1px solid var(--line); padding:12px 28px;
+    display:flex; align-items:center; gap:14px;
+  }
+  header.top .brand{font-weight:700; letter-spacing:.01em;}
+  header.top .ver{
+    font:12px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+    color:var(--muted); border:1px solid var(--line); border-radius:10px;
+    padding:4px 8px;
+  }
+  .layout{display:grid; grid-template-columns:1fr 240px; gap:40px; max-width:1080px; margin:0 auto; padding:32px 28px;}
+  main h1{font-size:1.7rem; margin:0 0 4px;}
+  main .lede{color:var(--muted); margin:0 0 24px;}
+  main h2{font-size:1.2rem; margin:30px 0 8px; padding-top:8px;}
+  code, pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  code.inline{background:var(--panel); color:var(--code); padding:1px 5px; border-radius:4px; font-size:.9em;}
+  pre{background:#0d1117; color:#e6edf3; padding:14px 16px; border-radius:8px; overflow:auto; font-size:.85rem;}
+  .endpoint{display:flex; align-items:center; gap:10px; margin:18px 0 6px;}
+  .verb{font:700 12px/1 ui-monospace,monospace; color:#fff; background:#1f7a3d; padding:5px 8px; border-radius:5px;}
+  .verb.post{background:#9a5b00;}
+  .path{font-family:ui-monospace,monospace; font-size:.95rem;}
+  table.params{border-collapse:collapse; width:100%; font-size:.9rem; margin:8px 0 20px;}
+  table.params th, table.params td{border-bottom:1px solid var(--line); text-align:left; padding:7px 8px; vertical-align:top;}
+  table.params th{color:var(--muted); font-weight:600;}
+
+  /* ---- The "On this page" reference rail ---- */
+  aside.toc{position:sticky; top:24px; align-self:start;}
+  aside.toc h2{font-size:.8rem; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:0 0 10px;}
+  .toc ul{list-style:none; margin:0; padding:0;}
+  .toc li{margin:0 0 10px;}
+
+  /* THE DEFECT: every link permanently carries the SAME dotted outline that the
+     focus indicator uses, so focus is visually undetectable. */
+  .toc a{
+    display:block; text-decoration:none; color:var(--ink);
+    font-size:.92rem; padding:4px 6px; border-radius:4px;
+    outline:1px dotted #1b1b1b;       /* always-on decorative outline */
+    outline-offset:2px;
+  }
+  .toc a:focus{
+    outline:1px dotted #1b1b1b;       /* focus ring = identical to resting outline */
+    outline-offset:2px;
+  }
+  .toc a:hover{background:var(--panel);}
+  footer{border-top:1px solid var(--line); color:var(--muted); font-size:.82rem; padding:18px 28px; max-width:1080px; margin:0 auto;}
+</style>
+</head>
+<body>
+<header class="top">
+  <span class="brand">Glyphwright SDK</span>
+  <span class="ver">v3.2.0</span>
+  <span style="color:var(--muted); font-size:.9rem;">REST API Reference</span>
+</header>
+
+<div class="layout">
+  <main>
+    <h1>Typeface Rendering API</h1>
+    <p class="lede">Programmatic access to font shaping, glyph rasterization, and subsetting for the Glyphwright cloud renderer.</p>
+
+    <h2 id="overview">Overview</h2>
+    <p>All requests are authenticated with a bearer token and must target the regional host that matches your project. Responses are JSON unless a binary glyph atlas is requested with <code class="inline">Accept: image/png</code>.</p>
+
+    <h2 id="auth">Authentication</h2>
+    <p>Pass your key in the <code class="inline">Authorization</code> header. Keys are scoped per project and can be rotated from the dashboard.</p>
+    <pre>curl https://eu.glyphwright.dev/v3/fonts \
+  -H "Authorization: Bearer gw_live_8f2c..."</pre>
+
+    <h2 id="list-fonts">List fonts</h2>
+    <div class="endpoint"><span class="verb">GET</span><span class="path">/v3/fonts</span></div>
+    <p>Returns the fonts available to the calling project, including foundry metadata and licensed weights.</p>
+
+    <h2 id="shape">Shape a string</h2>
+    <div class="endpoint"><span class="verb post">POST</span><span class="path">/v3/shape</span></div>
+    <p>Runs the HarfBuzz-compatible shaping pipeline and returns positioned glyph IDs.</p>
+    <table class="params">
+      <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><code class="inline">text</code></td><td>string</td><td>UTF-8 source to shape.</td></tr>
+        <tr><td><code class="inline">features</code></td><td>array</td><td>OpenType feature tags, e.g. <code class="inline">["liga","kern"]</code>.</td></tr>
+        <tr><td><code class="inline">direction</code></td><td>string</td><td><code class="inline">ltr</code>, <code class="inline">rtl</code>, or <code class="inline">auto</code>.</td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="subset">Subset a font</h2>
+    <div class="endpoint"><span class="verb post">POST</span><span class="path">/v3/subset</span></div>
+    <p>Produces a reduced font file containing only the requested code points.</p>
+
+    <h2 id="pagination">Pagination</h2>
+    <p>Collection endpoints return cursor-based pages. Follow the <code class="inline">next</code> cursor until it is null.</p>
+
+    <h2 id="errors">Errors</h2>
+    <p>Errors use standard HTTP status codes with a machine-readable <code class="inline">code</code> and a human <code class="inline">message</code>.</p>
+
+    <h2 id="rate-limits">Rate limits</h2>
+    <p>The shaping endpoint is limited to 600 requests per minute per project on the Pro plan.</p>
+  </main>
+
+  <aside class="toc" aria-label="On this page">
+    <h2>On this page</h2>
+    <ul>
+      <li><a href="#overview">Overview</a></li>
+      <li><a href="#auth">Authentication</a></li>
+      <li><a href="#list-fonts">List fonts</a></li>
+      <!-- This page is captured/loaded with focus ON the Pagination link.
+           Because the resting outline equals the focus outline, you cannot tell. -->
+      <li><a href="#pagination" id="m-pagination" autofocus>Pagination</a></li>
+      <li><a href="#shape">Shape a string</a></li>
+      <li><a href="#subset">Subset a font</a></li>
+      <li><a href="#errors">Errors</a></li>
+      <li><a href="#rate-limits">Rate limits</a></li>
+    </ul>
+  </aside>
+</div>
+
+<footer>
+  &copy; 2026 Glyphwright, Inc. &middot; The "On this page" rail is loaded with the <em>Pagination</em> link focused.
+</footer>
+</body>
+</html>

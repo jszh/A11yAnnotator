@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meterly — Plans &amp; Billing</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: #16202b; background: #f6f8fb; margin: 0; line-height: 1.6;
+  }
+  .nav {
+    display: flex; align-items: center; gap: 22px;
+    padding: 14px 28px; background: #0d1b2a; color: #e7eef6;
+  }
+  .nav .brand { font-weight: 700; letter-spacing: .5px; }
+  .nav a { color: #b9c8da; text-decoration: none; font-size: .9rem; }
+  .wrap { max-width: 680px; margin: 0 auto; padding: 40px 24px 80px; }
+  h1 { font-size: 1.9rem; margin: 0 0 6px; }
+  .sub { color: #5a6b7b; margin: 0 0 30px; }
+  .card {
+    background: #fff; border: 1px solid #e1e7ee; border-radius: 12px;
+    padding: 26px 26px 22px; box-shadow: 0 1px 2px rgba(16,32,48,.05);
+  }
+  .card h2 { font-size: 1.15rem; margin: 0 0 10px; }
+  .card p { margin: 0 0 14px; }
+  .card a {
+    color: #1457c7; text-decoration: underline; text-underline-offset: 2px;
+    font-weight: 600;
+  }
+  .card a:hover, .card a:focus { color: #0d3b8c; }
+  .tier-line { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #e1e7ee; }
+  .tier-line:last-child { border-bottom: 0; }
+  .tier-line .price { font-variant-numeric: tabular-nums; color: #16202b; font-weight: 600; }
+  .foot { margin-top: 26px; font-size: .85rem; color: #6a7888; }
+</style>
+</head>
+<body>
+  <nav class="nav">
+    <span class="brand">Meterly</span>
+    <a href="/product">Product</a>
+    <a href="/docs">Docs</a>
+    <a href="/pricing" aria-current="page">Pricing</a>
+  </nav>
+
+  <div class="wrap">
+    <h1>Plans &amp; Billing</h1>
+    <p class="sub">Usage-based metering for teams of every size.</p>
+
+    <section class="card" aria-labelledby="ovw">
+      <h2 id="ovw">What you get on every plan</h2>
+
+      <div class="tier-line"><span>Free</span><span class="price">$0 / mo</span></div>
+      <div class="tier-line"><span>Starter</span><span class="price">$29 / mo</span></div>
+      <div class="tier-line"><span>Growth</span><span class="price">$89 / mo</span></div>
+      <div class="tier-line"><span>Scale</span><span class="price">Custom</span></div>
+
+      <!-- THE RESCUE: the generic phrase "click here" is generic, BUT the purpose
+           ("pricing details") is named earlier in the SAME sentence, which is the
+           link's programmatically determined context. Per G53 this satisfies 2.4.4. -->
+      <p style="margin-top:18px">
+        The figures above are the base subscription only. For a complete breakdown
+        of overage rates, per-seat add-ons, and annual discounts &mdash; that is,
+        for full pricing details, <a href="/pricing/details">click here</a>.
+      </p>
+
+      <p class="foot">
+        Prices shown in USD. Taxes calculated at checkout based on your billing
+        address.
+      </p>
+    </section>
+
+    <!--
+      WHY THIS PASSES (and why it is the hard boundary case):
+      "click here" is canonical boilerplate and would be flagged by any phrase-blocklist.
+      But the link is part of a sentence, and the sentence — the link's same-sentence
+      programmatic context — names the destination's purpose ("full pricing details")
+      BEFORE the generic phrase. That is precisely WCAG technique G53, whose own example
+      is "To advertise on this page, click here." A blocklist tool that just sees
+      "click here" produces a FALSE POSITIVE; the correct verdict requires reading the
+      enclosing sentence and judging that the purpose is conveyed in context.
+    -->
+  </div>
+</body>
+</html>

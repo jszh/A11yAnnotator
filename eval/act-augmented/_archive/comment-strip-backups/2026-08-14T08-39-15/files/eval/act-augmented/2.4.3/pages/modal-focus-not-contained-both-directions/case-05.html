@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Submit assignment — Brightpath LMS</title>
+<!--
+  SC 2.4.3 — modal-focus-not-contained-both-directions — case-05 (PASS)
+  CONTAINED BUT NON-MIRRORED BACKWARD ORDER. A "Submit assignment" modal is opened with the
+  native dialog.showModal() API, so the user agent itself makes the rest of the page inert
+  and confines focus. INSIDE the dialog the author deliberately gives backward (Shift+Tab) a
+  DIFFERENT order than forward: the toolbar (Bold/Italic) is a single roving-tabindex group,
+  so Shift+Tab visits it as one stop and skips straight to the file field, whereas forward
+  Tab walks through each toolbar button. Both directions stay WITHIN the dialog and every
+  control remains reachable and operable; only the *sequence* differs. Per TT 4.F step 2d,
+  "Backward focus order does not have to mirror the forward focus order" as long as meaning
+  and operability are preserved — so this is a PASS, and a tool/heuristic that flags any
+  forward!=backward asymmetry would WRONGLY fail it.
+  WHY THIS IS A PASS A HUMAN MUST CONFIRM: an over-eager checker (or a naive LLM) might see
+  "Shift+Tab order != Tab order" and assume a containment bug. A human must verify that (a)
+  focus never leaves the dialog in either direction, and (b) the non-mirrored order still
+  lets the user reach and operate every control — which it does.
+-->
+<style>
+  :root { font-family: "Source Sans 3", system-ui, sans-serif; color: #21262e; }
+  body { margin: 0; background: #eef1f5; }
+  header.lms { background: #16324f; color: #fff; padding: 14px 26px; display: flex; align-items: center; gap: 18px; }
+  header.lms .brand { font-weight: 700; }
+  header.lms nav a { color: #bcd2e6; text-decoration: none; font-size: .9rem; }
+  main { max-width: 720px; margin: 0 auto; padding: 26px; }
+  .course { background: #fff; border: 1px solid #d4dbe4; border-radius: 10px; padding: 20px; }
+  dialog { border: none; border-radius: 12px; padding: 0; width: min(520px, 94vw); box-shadow: 0 24px 60px rgba(22,50,79,.4); }
+  dialog::backdrop { background: rgba(22,50,79,.55); }
+  .dh { background: #16324f; color: #fff; padding: 16px 22px; }
+  .dh h2 { margin: 0; font-size: 1.1rem; }
+  .db { padding: 22px; }
+  .toolbar { display: flex; gap: 6px; margin-bottom: 12px; }
+  .toolbar button { border: 1px solid #b7c2cf; background: #f3f6fa; border-radius: 6px; padding: 7px 12px; font-weight: 700; cursor: pointer; }
+  .toolbar button[aria-pressed="true"] { background: #16324f; color: #fff; border-color: #16324f; }
+  .db label { display: block; font-weight: 600; font-size: .85rem; margin: 10px 0 6px; }
+  .db textarea, .db input[type=file] { width: 100%; box-sizing: border-box; }
+  .db textarea { min-height: 90px; padding: 10px 12px; border: 1px solid #9fb0c2; border-radius: 8px; font: inherit; }
+  .df { padding: 0 22px 22px; display: flex; gap: 10px; justify-content: flex-end; }
+  .btn { border: none; border-radius: 8px; padding: 11px 20px; font-weight: 600; cursor: pointer; }
+  .btn.primary { background: #1f7a4d; color: #fff; }
+  .btn.ghost { background: #e6ecf3; color: #21262e; }
+</style>
+</head>
+<body>
+<header class="lms">
+  <span class="brand">Brightpath</span>
+  <nav>
+    <a href="#dashboard">Dashboard</a>
+    <a href="#courses">My Courses</a>
+    <a href="#grades">Grades</a>
+  </nav>
+</header>
+
+<main>
+  <h1>BIO 210 · Cell Biology — Lab Report 3</h1>
+  <div class="course">
+    <p>Due Friday 11:59pm. Accepted formats: PDF, DOCX.</p>
+    <button type="button" id="open-submit" class="btn primary">Submit assignment</button>
+  </div>
+</main>
+
+<dialog id="dlg" aria-labelledby="sub-title">
+  <div class="dh"><h2 id="sub-title">Submit Lab Report 3</h2></div>
+  <div class="db">
+    <!-- Roving-tabindex toolbar: ONE tab stop; arrow keys move between buttons -->
+    <div class="toolbar" role="toolbar" aria-label="Comment formatting" id="toolbar">
+      <button type="button" id="b-bold" aria-pressed="false" tabindex="0">B</button>
+      <button type="button" id="b-ital" aria-pressed="false" tabindex="-1"><em>I</em></button>
+      <button type="button" id="b-list" aria-pressed="false" tabindex="-1">•</button>
+    </div>
+    <label for="comment">Comment to instructor (optional)</label>
+    <textarea id="comment" placeholder="Anything you'd like Dr. Okafor to know..."></textarea>
+    <label for="file">Attach your report</label>
+    <input id="file" type="file" accept=".pdf,.docx">
+  </div>
+  <div class="df">
+    <button type="button" class="btn ghost" id="cancel">Cancel</button>
+    <button type="button" class="btn primary" id="submit">Submit</button>
+  </div>
+</dialog>
+
+<script>
+  const dlg = document.getElementById('dlg');
+  // Native modal: the UA makes the rest of the page inert and confines focus for us.
+  document.getElementById('open-submit').addEventListener('click', () => dlg.showModal());
+  // For this fixture, open on load so the modal state is testable immediately.
+  window.addEventListener('load', () => { dlg.showModal(); document.getElementById('b-bold').focus(); });
+
+  // Roving tabindex toolbar: forward Tab walks INTO it at whichever button is "current",
+  // and arrow keys move among the three buttons (only one is in the tab order at a time).
+  const tb = document.getElementById('toolbar');
+  const btns = Array.from(tb.querySelectorAll('button'));
+  let idx = 0;
+  tb.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+      e.preventDefault();
+      btns[idx].tabIndex = -1;
+      idx = (idx + (e.key === 'ArrowRight' ? 1 : btns.length - 1)) % btns.length;
+      btns[idx].tabIndex = 0;
+      btns[idx].focus();
+    }
+  });
+  btns.forEach(b => b.addEventListener('click', () => b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') === 'true' ? 'false' : 'true')));
+
+  // Cancel / Esc close the dialog (native dialog also closes on Esc). Focus returns to the
+  // trigger, as the native dialog handles. Containment in BOTH directions is the UA's job
+  // here, and the roving toolbar is the only thing that makes backward != forward.
+  document.getElementById('cancel').addEventListener('click', () => dlg.close());
+  document.getElementById('submit').addEventListener('click', () => { document.getElementById('submit').textContent = 'Submitted ✓'; });
+</script>
+</body>
+</html>

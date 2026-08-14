@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Send an international (SEPA) transfer — Meridian Banking</title>
+<!--
+  ASPECT: Error Suggestion (3.3.3) — the correct suggestion exists, but the ONLY copy of it on the
+  page lives inside a title="" attribute on a non-interactive info icon (a hover-only native
+  tooltip). The visible/announced error beside the field is bare and fix-free ("This entry can't be
+  processed"). The actual fix — the full IBAN format and a worked example — is reachable ONLY by
+  hovering a mouse over the ⓘ glyph. It is NOT in any visible text node, NOT in the field's
+  accessible description (no aria-describedby to it), NOT focusable, and NOT available to keyboard
+  or touch users (title tooltips never appear on keyboard focus of a <span>, and there is no tap
+  affordance). So the correct suggestion is on the page but is effectively unreachable — provided
+  only through an interaction channel (mouse hover) that large groups of users do not have.
+
+  WHY AUTOMATED TOOLS MISS IT: a title="" attribute is valid HTML and is even counted by some tools
+  as an accessible name/description source; the field has a real <label> and an associated (if bare)
+  error; there is SOME error text present. No empty attribute, no broken id reference, no missing
+  label. Deciding that the SUGGESTION text being locked in a hover-only title — and absent from all
+  visible/announced/keyboard-reachable content — means it was not "provided to the user" requires a
+  human to (a) read the title to see the real fix is in there, (b) reason that title tooltips are
+  mouse-hover-only and so unreachable by keyboard/touch and unreliable for AT, and (c) confirm the
+  fix appears nowhere else. That is interaction-and-semantics judgment, not a static rule.
+-->
+<style>
+  body { font: 16px/1.55 "Segoe UI", system-ui, Arial, sans-serif; color:#16242e; background:#eef2f5; margin:0; }
+  .appbar { background:#0a3b5c; color:#fff; padding:12px 20px; font-weight:700; letter-spacing:.2px; }
+  .card { max-width: 640px; margin: 26px auto; background:#fff; border:1px solid #d4dde3; border-radius:10px; padding: 22px 26px 30px; box-shadow:0 1px 3px rgba(0,0,0,.06); }
+  h1 { font-size: 22px; margin: 4px 0 2px; }
+  .lede { color:#4a5b66; margin: 0 0 18px; }
+  .step { font-size:13px; color:#6b7a85; text-transform:uppercase; letter-spacing:.6px; margin-bottom:14px; }
+  .field { margin: 18px 0; }
+  label { display:block; font-weight:600; margin-bottom:5px; }
+  input { width:100%; box-sizing:border-box; padding:11px 12px; border:1px solid #8a99a3; border-radius:6px; font:inherit; }
+  input[aria-invalid="true"] { border-color:#c12a2a; border-width:2px; background:#fdf6f6; }
+  .err-row { display:flex; align-items:center; gap:8px; margin-top:6px; }
+  .err { color:#c12a2a; font-size:14px; font-weight:600; margin:0; }
+  /* The info glyph is a plain, non-focusable span; its title is the ONLY place the fix lives. */
+  .info {
+    display:inline-flex; align-items:center; justify-content:center;
+    width:18px; height:18px; border-radius:50%;
+    background:#c12a2a; color:#fff; font-size:12px; font-weight:700;
+    cursor:help; user-select:none;
+  }
+  .hint { color:#6b7a85; font-size:13px; margin-top:5px; }
+  button { background:#0a3b5c; color:#fff; border:0; border-radius:6px; padding:13px 26px; font:600 16px "Segoe UI",Arial; cursor:pointer; margin-top:14px; }
+</style>
+</head>
+<body>
+<div class="appbar">Meridian Banking — Payments</div>
+
+<main class="card">
+  <p class="step">New payment · Step 2 of 3</p>
+  <h1>Send an international (SEPA) transfer</h1>
+  <p class="lede">Your transfer could not be sent. Please correct the highlighted field and try again.</p>
+
+  <form action="#" novalidate>
+    <div class="field">
+      <label for="payee">Payee name</label>
+      <input type="text" id="payee" name="payee" value="Klara Brandt" autocomplete="off">
+    </div>
+
+    <div class="field">
+      <label for="iban">Recipient IBAN</label>
+      <!--
+        Bare, fix-free error is the only TEXT shown/announced. The full correct suggestion
+        (format + worked example) exists ONLY in the title="" of the info glyph below — a
+        mouse-hover-only tooltip. The field is NOT described by that title (aria-describedby
+        points at the bare message), so a screen reader announces only "This entry can't be
+        processed." and keyboard/touch users can never surface the title.
+      -->
+      <input type="text" id="iban" name="iban" value="DE89 3704 0044 0532 0130"
+             aria-invalid="true" aria-describedby="iban-err" inputmode="text" spellcheck="false">
+      <div class="err-row">
+        <p class="err" id="iban-err">This entry can't be processed.</p>
+        <span class="info" title="IBAN for Germany must be 22 characters: country code DE, 2 check digits, then 18 digits, with no spaces — for example DE89370400440532013000. You entered 20 digits; add the 2 missing digits and remove the spaces.">i</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="amount">Amount (EUR)</label>
+      <input type="text" id="amount" name="amount" value="450.00" inputmode="decimal">
+      <p class="hint">Funds usually arrive within one business day.</p>
+    </div>
+
+    <button type="submit">Send transfer</button>
+  </form>
+</main>
+</body>
+</html>

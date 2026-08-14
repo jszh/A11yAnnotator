@@ -4,24 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Meridian Credit Union — Joint loan application</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS (SC 2.4.3 Focus Order) — and why this one PASSES:
-  This is the G59 passing counter-example, deliberately built to look almost identical to
-  the FAILING interleaved cases. There are two side-by-side sections under headings —
-  "Applicant" and "Co-applicant" — each with Full name, Date of birth, Annual income,
-  Employer, in a two-column visual layout. The CRUCIAL difference from a failing page:
-  here the DOM source order keeps each group WHOLE. ALL FOUR applicant fields appear in
-  source order before ANY co-applicant field, so the keyboard tab order is:
-    applicant-name, applicant-dob, applicant-income, applicant-employer,
-    co-name, co-dob, co-income, co-employer.
-  Even though the two groups sit visually side by side (left/right columns), focus
-  completes the whole left/applicant group before moving to the right/co-applicant group.
-  Per the Understanding doc, focus order need not follow the visual left-to-right layout
-  as long as it preserves meaning — and finishing one applicant before the next preserves
-  meaning. So this satisfies SC 2.4.3. It is included so a judge cannot pass the FAILING
-  cases merely by detecting "two groups exist": the structural signature is the same; only
-  the ORDER of focus across the group boundary differs.
--->
 <style>
   :root { --ink:#1a2230; --brand:#0b6b5b; --line:#dce3e4; --muted:#5d6b72; --bg:#f3f7f6; }
   * { box-sizing:border-box; }
@@ -32,9 +14,6 @@
   main { max-width:900px; margin:0 auto; padding:30px 24px 80px; }
   .lede { color:var(--muted); margin:0 0 26px; }
 
-  /* Two real fieldsets, side by side. Because each fieldset contains its OWN four fields
-     in order, the natural DOM source order is applicant-group-complete then
-     co-applicant-group-complete — the passing G59 ordering. No grid re-routing needed. */
   form { display:grid; grid-template-columns:1fr 1fr; gap:24px 30px; align-items:start; }
   fieldset { border:1px solid var(--line); border-radius:12px; background:#fff;
              padding:18px 20px 22px; margin:0; }
@@ -59,14 +38,6 @@
   <p class="lede">Tell us about both applicants. Complete one applicant's details, then the
      co-applicant's.</p>
 
-  <!--
-    DOM / TAB ORDER (no tabindex, pure source order) keeps each group WHOLE:
-      applicant-name -> applicant-dob -> applicant-income -> applicant-employer ->
-      co-name -> co-dob -> co-income -> co-employer -> submit
-    The applicant fieldset is fully tabbed before the co-applicant fieldset. This is the
-    G59 sufficient technique: interactive elements placed in an order that follows the
-    relationships in the content. PASS.
-  -->
   <form action="#" method="post" novalidate aria-label="Joint loan application">
 
     <fieldset>

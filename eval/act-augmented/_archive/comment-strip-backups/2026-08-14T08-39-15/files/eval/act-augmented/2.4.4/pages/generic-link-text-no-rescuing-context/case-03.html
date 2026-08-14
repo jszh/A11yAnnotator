@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Saffron &amp; Sage — Modern Indian Kitchen</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Poppins", "Helvetica Neue", Arial, sans-serif;
+    margin: 0; color: #2b211b; background: #fffaf2; line-height: 1.6;
+  }
+  .hero {
+    background: #2b211b; color: #f6e9d8; text-align: center;
+    padding: 60px 20px 50px;
+  }
+  .hero h1 { font-size: 2.6rem; margin: 0 0 8px; font-weight: 600; letter-spacing: 1px; }
+  .hero p { margin: 0; color: #cbb79c; letter-spacing: 2px; text-transform: uppercase; font-size: .78rem; }
+  .intro { max-width: 640px; margin: 0 auto; padding: 40px 20px; text-align: center; }
+  .intro p { margin: 0; font-size: 1.05rem; color: #4a3c30; }
+  footer {
+    background: #f0e4d3; border-top: 4px solid #c98a3a; margin-top: 30px;
+    padding: 40px 20px 50px;
+  }
+  .cols {
+    max-width: 900px; margin: 0 auto; display: flex; gap: 40px;
+    flex-wrap: wrap; justify-content: space-between;
+  }
+  .col { flex: 1 1 220px; }
+  .col h2 {
+    font-size: .82rem; letter-spacing: 2px; text-transform: uppercase;
+    color: #8a5a1c; border-bottom: 1px solid #d8c4a6; padding-bottom: 6px; margin: 0 0 12px;
+  }
+  .col ul { list-style: none; margin: 0; padding: 0; }
+  .col li { padding: 5px 0; }
+  .col a { color: #2b211b; text-decoration: none; }
+  .col a:hover, .col a:focus { color: #c98a3a; text-decoration: underline; }
+  .col address { font-style: normal; color: #4a3c30; font-size: .92rem; }
+  .legal { text-align: center; margin-top: 36px; font-size: .78rem; color: #7a6a58; }
+</style>
+</head>
+<body>
+  <header class="hero">
+    <h1>Saffron &amp; Sage</h1>
+    <p>Modern Indian Kitchen · Riverside</p>
+  </header>
+
+  <section class="intro">
+    <p>
+      Slow-cooked regional curries, wood-fired breads, and a seasonal tasting menu.
+      Walk-ins welcome at the bar; reservations recommended for dinner service.
+    </p>
+  </section>
+
+  <footer>
+    <div class="cols">
+      <div class="col">
+        <h2>Visit</h2>
+        <address>
+          412 Mill Race Lane<br>
+          Riverside, OR 97000<br>
+          (503) 555-0148
+        </address>
+      </div>
+
+      <div class="col">
+        <h2>Hours</h2>
+        <ul>
+          <li>Tue&ndash;Thu &middot; 5pm&ndash;10pm</li>
+          <li>Fri&ndash;Sat &middot; 5pm&ndash;11pm</li>
+          <li>Sun &middot; 4pm&ndash;9pm</li>
+        </ul>
+      </div>
+
+      <!-- THE ISSUE: three links named only "Details", each alone in its own <li>.
+           Nothing inside any list item distinguishes them. Visually they sit under a
+           "More" heading, but each link's programmatically determined context (its own
+           <li>) contains nothing but the word "Details". The destinations differ
+           (menu, private events, gift cards) but a screen-reader user cannot tell. -->
+      <div class="col">
+        <h2>More</h2>
+        <ul>
+          <li><a href="/menu">Details</a></li>
+          <li><a href="/private-events">Details</a></li>
+          <li><a href="/gift-cards">Details</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <p class="legal">&copy; 2026 Saffron &amp; Sage Hospitality LLC. All rights reserved.</p>
+
+    <!--
+      WHY AUTOMATED TOOLS MISS IT:
+      Each <a> has the non-empty accessible name "Details" (c487ae PASSES). The three links
+      DO go to different URLs, which a few tools can detect ("same text, different href") —
+      but that heuristic does not establish a 2.4.4 failure (links may legitimately share
+      text when context disambiguates, e.g. "PDF"/"PDF"). The actual failure is that the
+      programmatically determined context of each link — its own <li> — contains nothing but
+      "Details", so the purpose (menu vs. private events vs. gift cards) is undeterminable
+      for an AT user. Judging that requires reading each list item's content and concluding
+      no in-context text names the destination — a human meaning judgment.
+    -->
+  </footer>
+</body>
+</html>

@@ -23,7 +23,6 @@
   .seat:focus-visible { outline:3px solid #1a73e8; outline-offset:2px; }
   .seat.taken { background:#cdd6dc; color:#8a98a2; cursor:not-allowed; }
   .seat.held  { background:#fde9b8; border-color:#e0a800; }
-  /* the hold-countdown popup: appears on hover/focus of a seat you are holding */
   .hold-pop {
     position:absolute; top:115%; right:50%; transform:translateX(50%);
     width:230px; background:#1f2933; color:#f4f7fa; padding:11px 13px; border-radius:9px;
@@ -79,8 +78,6 @@
 <footer>صفحة تجريبية افتراضية — لا تتم معالجة أي حجز فعلي. (Fictional demo, no real booking.)</footer>
 
 <script>
-  // The held seat (C2) shows, on hover/focus, a popup with the LIVE remaining hold time.
-  // It is hoverable, Esc-dismissible, and stays visible the whole time the hold is valid.
   var seat   = document.getElementById('heldSeat');
   var pop    = document.getElementById('holdPop');
   var leftEl = document.getElementById('holdLeft');
@@ -97,17 +94,9 @@
   pop.addEventListener('mouseleave', hide);
   document.addEventListener('keydown', function(e){ if(e.key==='Escape') hide(); });
 
-  // Western-to-Arabic-Indic digit rendering for the countdown
   function ar(n){ return String(n).replace(/[0-9]/g, function(d){ return '٠١٢٣٤٥٦٧٨٩'[+d]; }); }
 
-  // ---- the LEGITIMATE exception (info-invalidation), NOT a disallowed timer ----
-  // The popup describes a temporary HOLD. A countdown ticks down the genuinely
-  // remaining time. The popup keeps showing while the hold is valid AND the seat is
-  // hovered/focused. When the timer reaches zero the hold actually EXPIRES: the seat
-  // is released (no longer "held for you"), the conveyed information is now false, so
-  // the popup is dismissed because its information became invalid. (For the demo we
-  // start at 8s remaining so the timeline is observable.)
-  var remaining = 8; // seconds; real product uses minutes
+  var remaining = 8; 
   function render(){
     var m = Math.floor(remaining/60), s = remaining%60;
     leftEl.textContent = ar(String(m).padStart(2,'0')) + ':' + ar(String(s).padStart(2,'0'));
@@ -116,30 +105,15 @@
   var tick = setInterval(function(){
     remaining--;
     if (remaining > 0){ render(); return; }
-    // hold expired => the popup's information is now INVALID => remove it (allowed)
     clearInterval(tick);
-    pop.textContent = '';                 // the "held for you" message is no longer true
+    pop.textContent = '';                 
     pop.classList.remove('show');
-    seat.classList.remove('held');        // seat returns to "available" state
+    seat.classList.remove('held');        
     seat.removeAttribute('aria-describedby');
     payBtn.disabled = true;
     payBtn.textContent = 'انتهت مهلة الحجز';
   }, 1000);
 </script>
 
-<!--
-  WHY THIS IS A PASS (and why automated tools can't decide it):
-  Structurally this looks like an auto-dismiss-on-timer (a setInterval that ends by
-  hiding a popup) — superficially identical to the case-01/case-02 FAIL pattern, and a
-  forced-colors / static check sees only valid role="tooltip" markup with correct
-  RTL/lang and an Esc handler. But the popup conveys a TEMPORARY HOLD whose validity is
-  inherently time-bound: when the countdown hits zero the seat hold truly expires, so
-  the "محجوز مؤقتًا لك / held for you" information becomes FALSE. The Persistent
-  condition permits content to end when "the information conveyed by the additional
-  content becomes invalid." Distinguishing this legitimate info-invalidation from a
-  disallowed auto-timeout requires reading what the content MEANS and whether it is
-  still true — semantic, temporal reasoning that automated tools (and naive timer-
-  presence heuristics) cannot perform.
--->
 </body>
 </html>

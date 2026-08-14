@@ -4,39 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Drug interaction review — MeridianEHR e-prescribe</title>
-  <!--
-    WHY AUTOMATED TOOLS MISS THIS (SC 2.1.2 — documented-custom-keystroke exit; PASS boundary):
-    This is a deliberate PASS that looks like a trap. When the clinician finishes a prescription,
-    a "Severe interaction review" panel opens and HOLDS keyboard focus inside itself: Tab and
-    Shift+Tab cycle within the panel's controls, and — by design, for patient-safety reasons —
-    the standard Esc key does NOT dismiss it (a clinician must not be able to blow past a severe
-    interaction with a reflexive Esc). All of that, in isolation, has the shape of a keyboard
-    trap.
-
-    It is NOT a trap, for two reasons that require human reading:
-      (1) The required interaction is fully keyboard-satisfiable. Each interaction row has a real
-          native checkbox ("I have reviewed this interaction"); the clinician reaches it with Tab
-          and toggles it with Space (the standard control). Once every required box is checked,
-          the "Sign & continue" button enables and forward Tab/activation releases focus back to
-          the prescription, so a section that requires interaction before focus progresses is the
-          input-gate exception, not a failure.
-      (2) For the path where the clinician does NOT want to acknowledge (e.g. to go back and
-          change the drug), focus is still escapable by keyboard via a NON-STANDARD keystroke
-          that is DOCUMENTED ON SCREEN, inside the panel, before they need it: "Press Alt+X to
-          leave without acknowledging and return to the prescription." Alt+X is wired and works,
-          moving focus out of the panel to the "Edit prescription" control. Per the Understanding
-          doc, a non-standard exit method passes "provided that the user is advised how they can
-          untrap focus", and per TT it passes via "custom keystrokes that are documented and
-          available to users in the application."
-
-    axe / WAVE / Lighthouse evaluate the static DOM: role=dialog + aria-modal, labelled native
-    checkboxes, a real <button>, and a visible instruction. Nothing is missing or malformed, so
-    no rule fires. The hold-then-release, the disabled-Esc, and the working documented Alt+X are
-    runtime keyboard facts the scanners never exercise. A human who only taps Esc once and finds
-    it dead could WRONGLY flag a trap; judging PASS requires reading the on-screen instruction,
-    verifying Space satisfies the gate and releases, and confirming the documented Alt+X actually
-    untraps focus.
-  -->
   <style>
     :root { --ink:#16202b; --muted:#5d6b7a; --line:#d4dde7; --brand:#0b5e7a; --warn:#b23a17; --ok:#13794a; --scrim:rgba(16,28,40,.55); }
     * { box-sizing: border-box; }
@@ -122,14 +89,6 @@
 
   <footer>MeridianEHR is a registered EHR module · interaction data © First Databank.</footer>
 
-  <!--
-    Severe-interaction review panel. role=dialog + aria-modal: by design, focus is HELD inside
-    this panel (legitimate modal focus management, per the Understanding "modal dialog" example).
-    Esc is intentionally disabled here for patient safety. Escape is keyboard-possible two ways:
-      - satisfy the gate (check every "reviewed" box, Space) then Sign & continue, OR
-      - the DOCUMENTED non-standard keystroke Alt+X (announced on-screen) to leave without
-        acknowledging and return to the prescription.
-  -->
   <div class="scrim" id="scrim" aria-hidden="true">
     <div class="panel" role="dialog" aria-modal="true" aria-labelledby="p-h" aria-describedby="p-sub">
       <div class="ph">
@@ -165,10 +124,6 @@
   </div>
 
   <script>
-    // ---- Required-interaction gate with a modal focus hold + DOCUMENTED non-standard exit ----
-    // PASS: focus is intentionally held inside the review panel (modal). The gate is satisfied
-    // entirely by keyboard (check each box with Space), then "Sign & continue" releases focus.
-    // Independently, the on-screen-documented Alt+X always untraps focus back to the prescription.
     var scrim   = document.getElementById('scrim');
     var panel   = scrim.querySelector('.panel');
     var review  = document.getElementById('review');
@@ -187,7 +142,6 @@
     function openPanel() {
       scrim.classList.add('open');
       scrim.setAttribute('aria-hidden', 'false');
-      // Move focus INTO the panel (so the user genuinely enters the section).
       var f = focusables();
       if (f.length) f[0].focus();
     }
@@ -206,31 +160,25 @@
     review.addEventListener('click', openPanel);
     boxes.forEach(function (b) { b.addEventListener('change', refreshGate); });
 
-    // Satisfy-then-release path: signing closes the panel and progresses the prescription.
     sign.addEventListener('click', function () {
       if (sign.disabled) return;
       closePanel(drug);
       rxstat.textContent = 'Interactions acknowledged. Prescription signed and ready to transmit.';
     });
 
-    // Documented non-standard exit: Alt+X leaves WITHOUT acknowledging, returning to the Rx.
     editrx.addEventListener('click', function () { closePanel(drug); });
 
-    // Focus management while the modal is open.
     document.addEventListener('keydown', function (e) {
       if (!scrim.classList.contains('open')) return;
 
-      // Documented escape hatch — always available, exactly as advertised on screen.
       if (e.altKey && (e.key === 'x' || e.key === 'X')) {
         e.preventDefault();
         closePanel(drug);
         return;
       }
 
-      // Esc is intentionally inert here (patient-safety design choice; the Alt+X note covers it).
       if (e.key === 'Escape') { e.preventDefault(); return; }
 
-      // Cycle Tab / Shift+Tab within the panel (legitimate modal focus containment).
       if (e.key === 'Tab') {
         var f = focusables();
         if (!f.length) return;

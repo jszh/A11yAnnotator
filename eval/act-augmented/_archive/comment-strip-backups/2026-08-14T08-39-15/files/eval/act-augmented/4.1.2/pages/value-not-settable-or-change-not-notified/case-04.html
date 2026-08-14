@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Campaign Performance — Pulsegrid Analytics</title>
+<style>
+  body { font-family: Inter, system-ui, Arial, sans-serif; margin:0; background:#0f1419; color:#e6edf3; }
+  .shell { max-width:900px; margin:0 auto; padding:26px 20px 60px; }
+  h1 { font-size:1.35rem; margin:0 0 4px; }
+  .muted { color:#8b98a5; margin:0 0 22px; font-size:.9rem; }
+  table { width:100%; border-collapse:collapse; font-size:.92rem; background:#161b22; border-radius:10px; overflow:hidden; }
+  caption { text-align:left; color:#8b98a5; font-size:.82rem; padding:0 0 8px; }
+  thead th {
+    text-align:left; background:#1c232c; font-weight:600; color:#cdd9e5; padding:0;
+    border-bottom:1px solid #2a323c;
+  }
+  thead th button {
+    width:100%; text-align:left; background:transparent; border:0; color:inherit; font:inherit;
+    padding:12px 14px; cursor:pointer; display:flex; align-items:center; gap:6px;
+  }
+  thead th button:focus-visible { outline:2px solid #4493f8; outline-offset:-2px; }
+  .arrow { font-size:.7rem; opacity:0; }
+  th[data-active="true"] .arrow { opacity:1; }
+  td { padding:11px 14px; border-bottom:1px solid #232b35; }
+  tbody tr:last-child td { border-bottom:0; }
+  .num { font-variant-numeric:tabular-nums; }
+  .pos { color:#3fb950; } .neg { color:#f85149; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <h1>Campaign performance</h1>
+  <p class="muted">Last 30 days • click a column heading to sort</p>
+
+  <table id="grid">
+    <caption>Email campaigns ranked by spend, click-through, and conversions.</caption>
+    <thead>
+      <tr>
+        <th aria-sort="none" data-key="name"><button type="button">Campaign <span class="arrow">▲</span></button></th>
+        <th aria-sort="descending" data-key="spend" data-active="true"><button type="button">Spend <span class="arrow">▼</span></button></th>
+        <th aria-sort="none" data-key="ctr"><button type="button">CTR <span class="arrow">▲</span></button></th>
+        <th aria-sort="none" data-key="conv"><button type="button">Conversions <span class="arrow">▲</span></button></th>
+      </tr>
+    </thead>
+    <tbody id="rows">
+      <!-- rows injected by JS so initial sort = descending by Spend (matches aria-sort) -->
+    </tbody>
+  </table>
+</div>
+
+<script>
+/*
+  Persona: a frontend dev on a data-viz team built this sortable grid. They were careful:
+  the INITIAL aria-sort values are correct (Spend is descending and marked
+  aria-sort="descending"; the others are "none"). That snapshot passes every static ARIA
+  check. But the sort() click handler only (a) re-orders the <tr> nodes and (b) moves the
+  data-active flag that drives the visible ▲/▼ arrow via CSS. It NEVER rewrites the
+  aria-sort attribute on any header.
+
+  For an AT user: the table announces "Spend, sorted descending" permanently. After they
+  activate "Conversions", the rows really do re-sort and a sighted user sees the arrow jump
+  to Conversions — but the screen reader still says the active sort column is Spend
+  descending. The user-settable sort STATE cannot be read back via AT and its change is
+  never notified. This is the F15 "do so incompletely" case: role/name/initial value valid,
+  the set+notify limb broken — and only observable by operating the control.
+*/
+var data = [
+  { name:'Spring Sale Blast',     spend:4820, ctr:3.9, conv:212 },
+  { name:'Cart Recovery Drip',    spend:1290, ctr:6.2, conv:341 },
+  { name:'Webinar Invite',        spend:3110, ctr:2.1, conv:88  },
+  { name:'Loyalty Re-engage',     spend:760,  ctr:5.4, conv:154 },
+  { name:'Product Launch Teaser', spend:5290, ctr:4.7, conv:267 }
+];
+
+var tbody = document.getElementById('rows');
+var state = { key:'spend', dir:'desc' };
+
+function render() {
+  var sorted = data.slice().sort(function (a, b) {
+    var av = a[state.key], bv = b[state.key];
+    if (typeof av === 'string') { return state.dir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av); }
+    return state.dir === 'asc' ? av - bv : bv - av;
+  });
+  tbody.innerHTML = sorted.map(function (r) {
+    return '<tr><td>' + r.name + '</td>' +
+           '<td class="num">$' + r.spend.toLocaleString() + '</td>' +
+           '<td class="num">' + r.ctr.toFixed(1) + '%</td>' +
+           '<td class="num">' + r.conv + '</td></tr>';
+  }).join('');
+}
+
+document.querySelectorAll('#grid thead th').forEach(function (th) {
+  var key = th.getAttribute('data-key');
+  th.querySelector('button').addEventListener('click', function () {
+    if (state.key === key) { state.dir = state.dir === 'asc' ? 'desc' : 'asc'; }
+    else { state.key = key; state.dir = 'asc'; }
+    // Move the VISIBLE active marker + arrow direction class only.
+    document.querySelectorAll('#grid thead th').forEach(function (h) { h.removeAttribute('data-active'); });
+    th.setAttribute('data-active', 'true');
+    th.querySelector('.arrow').textContent = state.dir === 'asc' ? '▲' : '▼';
+    // aria-sort is intentionally NEVER updated on any header.
+    render();
+  });
+});
+
+render();
+</script>
+</body>
+</html>

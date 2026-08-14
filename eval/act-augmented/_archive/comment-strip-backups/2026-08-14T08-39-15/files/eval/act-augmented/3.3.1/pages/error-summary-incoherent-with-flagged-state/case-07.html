@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Passenger Details — Flight Booking — Skylark Air</title>
+<style>
+  :root { --ink:#152433; --muted:#5d6b7a; --brand:#0a5ad6; --err:#c62828; --bg:#eef3fb; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Roboto", Arial, sans-serif; color:var(--ink); background:var(--bg); }
+  .top { background:#fff; border-bottom:1px solid #d8e1ee; padding:12px 0; }
+  .wrap { max-width:720px; margin:0 auto; padding:0 20px; }
+  .top .wrap { display:flex; align-items:center; gap:8px; font-weight:800; color:var(--brand); letter-spacing:.02em; }
+  .bird { width:24px; height:24px; border-radius:50%; background:var(--brand); color:#fff; display:grid; place-items:center; font-size:.9rem; }
+  main { padding:26px 0 70px; }
+  .panel { background:#fff; border:1px solid #d8e1ee; border-radius:12px; padding:26px 30px; }
+  h1 { font-size:1.45rem; margin:0 0 4px; }
+  .sub { color:var(--muted); margin:0 0 22px; font-size:.94rem; }
+  .summary { border:2px solid var(--err); border-radius:8px; background:#fdecea; padding:14px 18px; margin:0 0 26px; }
+  .summary h2 { margin:0 0 8px; color:var(--err); font-size:1.1rem; }
+  .summary ol { margin:0; padding-left:22px; }
+  .summary li { margin-bottom:6px; }
+  .summary a { color:var(--err); font-weight:700; }
+  .grp { margin-bottom:20px; }
+  label { display:block; font-weight:600; margin-bottom:4px; }
+  input { width:100%; padding:9px 11px; border:1px solid #c2cdda; border-radius:6px; font-size:1rem; }
+  .grp.bad input { border:2px solid var(--err); background:#fff7f6; }
+  .msg { color:var(--err); font-weight:600; font-size:.85rem; margin:5px 0 0; }
+  .hint { color:var(--muted); font-size:.83rem; margin:3px 0 0; }
+  input:target, input:focus { outline:3px solid var(--brand); outline-offset:2px; }
+  .cta { background:var(--brand); color:#fff; border:0; padding:12px 26px; font-size:1rem; border-radius:8px; cursor:pointer; }
+  .why { background:#eaf1fc; border-left:4px solid var(--brand); padding:12px 16px; margin-top:30px; font-size:.81rem; color:#1f3149; }
+</style>
+</head>
+<body>
+<div class="top"><div class="wrap"><span class="bird">&#9992;</span>Skylark Air</div></div>
+<main>
+<div class="wrap">
+  <div class="panel">
+    <h1>Passenger details</h1>
+    <p class="sub">Enter details exactly as they appear on the traveller&rsquo;s passport.</p>
+
+    <!-- COHERENT CONTROL: summary says "2" and lists exactly the two fields that are flagged below
+         (Email and Date of birth). Each summary line's text, its jump-link target, and the inline
+         message all agree with the actual error state. Passport number and Given names are valid and
+         are correctly NOT mentioned. This page should PASS — it tests that the aspect is about
+         reconciliation, not "summaries are inherently suspect". -->
+    <div class="summary" role="alert" aria-labelledby="s-h">
+      <h2 id="s-h">There are 2 problems with these passenger details</h2>
+      <ol>
+        <li><a href="#email">Email address must be in the format name@example.com</a></li>
+        <li><a href="#dob">Date of birth must be a real date in the past, like 14/03/1990</a></li>
+      </ol>
+    </div>
+
+    <form novalidate>
+      <div class="grp">
+        <label for="given">Given names</label>
+        <input type="text" id="given" value="Wei Lin" autocomplete="given-name">
+        <p class="hint" id="given-hint">As shown on the passport.</p>
+      </div>
+
+      <div class="grp">
+        <label for="passport">Passport number</label>
+        <input type="text" id="passport" value="K1234567" autocomplete="off">
+      </div>
+
+      <!-- Flagged #1: email — matches summary line 1 and its #email anchor -->
+      <div class="grp bad">
+        <label for="email">Email address</label>
+        <input type="email" id="email" value="weilin.example" aria-invalid="true" aria-describedby="email-msg">
+        <p class="msg" id="email-msg">Email address must be in the format name@example.com.</p>
+      </div>
+
+      <!-- Flagged #2: date of birth — matches summary line 2 and its #dob anchor -->
+      <div class="grp bad">
+        <label for="dob">Date of birth</label>
+        <input type="text" id="dob" value="30/02/2001" aria-invalid="true" aria-describedby="dob-msg" placeholder="DD/MM/YYYY">
+        <p class="msg" id="dob-msg">Date of birth must be a real date in the past, like 14/03/1990.</p>
+      </div>
+
+      <button type="submit" class="cta">Continue to seat selection</button>
+    </form>
+
+    <div class="why">
+      <strong>Why this page passes (and why it is the control):</strong> The summary states "2 problems"
+      and the page flags exactly two fields. Each summary line names a field that is genuinely in error
+      (Email, Date of birth), each jump-link <code>href</code> points to the matching control
+      (<code>#email</code>, <code>#dob</code>), and each line's wording matches that field's inline,
+      programmatically-associated, descriptive message. The two valid fields (Given names, Passport
+      number) are correctly absent from the summary. Count, membership, link targets, and message wording
+      all reconcile with the actual flagged state, so a user relying on the summary is led accurately to
+      every item in error and nothing else. This control exists so the aspect tests
+      <em>summary-vs-state reconciliation</em> rather than penalising error summaries as such.
+    </div>
+  </div>
+</div>
+</main>
+</body>
+</html>

@@ -3,37 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!--
-    SC 4.1.2 (Name, Role, Value) — NAME limb at sub-field granularity, a TRUE F86 failure
-    (not the "present-but-undifferentiated" variant). A price-range filter is one logical
-    "from–to" value split into two boxes: a MINIMUM price and a MAXIMUM price, rendered
-    "$ ___ – $ ___". This is F86's Example 3 mechanism ("the label is programmatically
-    associated with the first part"):
-
-      - The visible label "Price range" is a real <label for="price-min"> — so it names ONLY
-        the first (minimum) box. The minimum box's accessible name = "Price range".
-      - The MAXIMUM box has NO label of its own EXCEPT the en-dash separator, which the author
-        wired as <label for="price-max">–</label> (the separator is the maximum box's only
-        associated label). Its computed accessible name is therefore the single character "–".
-
-    Per F86's test procedure ("For each subfield… Check that there is a programmatically
-    determined name for the field. If check #1 is false for any subfield, then the failure
-    condition applies"): the maximum box has NO name that identifies it as a form field — its
-    only name is punctuation. This is exactly F86's documented experience that "some assistive
-    technologies would name the fields '(', ')' and '-', which is not very useful." The page
-    therefore FAILS 4.1.2.
-
-    WHY AUTOMATED TOOLS MISS IT (verified with axe-core 4.10.3, file://):
-    axe reports ZERO name-related findings. Its "label" rule PASSES for BOTH inputs — the
-    minimum box has the "Price range" label, and the maximum box is considered labelled
-    because <label for="price-max"> exists and resolves to a non-empty string ("–"). Because
-    the maximum box's name is the non-empty (but punctuation-only) "–", axe does not fire
-    "label", "aria-input-field-name", or even the "label-title-only" best-practice rule (the
-    name comes from a <label>, not a title). Recognising that "–" is a visual SEPARATOR rather
-    than a name that identifies the maximum-price field — and that the "Price range" label
-    covers only the minimum box — is a human semantic judgment no per-field non-emptiness
-    rule expresses.
-  -->
   <title>Browse listings — set your budget | Holloway &amp; Pike Lettings</title>
   <style>
     :root { --ink:#1c2530; --muted:#5a6675; --line:#d4dbe2; --brand:#7a2f4a; --bg:#f6f4f1; }
@@ -79,19 +48,12 @@
         </select>
       </div>
 
-      <!--
-        Price range: ONE "from–to" value in two boxes (minimum rent / maximum rent).
-        F86 Example 3: the "Price range" <label> is associated with the FIRST box only;
-        the MAXIMUM box's only associated label is the en-dash separator, so AT names it "–".
-      -->
       <fieldset class="row" role="group" aria-labelledby="price-group">
         <legend class="g" id="price-group">Price range (per month)</legend>
         <div class="range">
           <span class="cur" aria-hidden="true">$</span>
-          <!-- This label is wired to the MINIMUM box only -->
           <label for="price-min" class="vh">Price range</label>
           <input id="price-min" type="text" inputmode="numeric" maxlength="6" value="1200">
-          <!-- The separator IS the maximum box's only associated label → AT name = "–" -->
           <label for="price-max" class="sep">&ndash;</label>
           <span class="cur" aria-hidden="true">$</span>
           <input id="price-max" type="text" inputmode="numeric" maxlength="6" value="1800">

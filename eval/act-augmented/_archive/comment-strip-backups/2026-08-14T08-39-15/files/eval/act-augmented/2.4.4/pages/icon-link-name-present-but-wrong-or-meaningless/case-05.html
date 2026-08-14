@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>كبسة الدجاج بالخطوات — مطبخ النخيل</title>
+  <style>
+    :root { --ink:#221a12; --muted:#6d6155; --line:#e6ddd0; --spice:#a85b1c; --sand:#fbf7f0; }
+    * { box-sizing: border-box; }
+    body { font: 17px/1.7 "Segoe UI", Tahoma, "Noto Sans Arabic", Arial, sans-serif; color: var(--ink); margin: 0; background: var(--sand); }
+    header { background: var(--spice); color: #fff; padding: 16px 22px; display: flex; align-items: center; justify-content: space-between; }
+    header .brand { font-weight: 800; font-size: 1.2rem; }
+    header nav a { color: #fff; opacity: .9; text-decoration: none; margin-inline-start: 16px; font-size: .95rem; }
+    main { max-width: 760px; margin: 26px auto; padding: 0 20px; }
+    .recipe-card { background: #fff; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+    .recipe-card .head { padding: 18px 20px; border-bottom: 1px solid var(--line); display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+    .recipe-card h1 { font-size: 1.5rem; margin: 0 0 6px; }
+    .recipe-card .meta { color: var(--muted); font-size: .9rem; margin: 0; }
+    .pdf-link { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 46px; height: 46px; border-radius: 12px; background: #fbeede; color: var(--spice); text-decoration: none; }
+    .pdf-link:hover { background: var(--spice); color: #fff; }
+    .pdf-link:focus-visible { outline: 2px solid var(--spice); outline-offset: 2px; }
+    .pdf-link svg { width: 24px; height: 24px; }
+    .body { padding: 20px; }
+    .body h2 { font-size: 1.05rem; margin: 18px 0 8px; color: var(--spice); }
+    .body ul, .body ol { margin: 0; padding-inline-start: 22px; }
+    .body li { margin-bottom: 6px; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="brand">مطبخ النخيل</span>
+    <nav aria-label="رئيسية">
+      <a href="/recipes">الوصفات</a>
+      <a href="/tips">نصائح</a>
+    </nav>
+  </header>
+
+  <main>
+    <article class="recipe-card">
+      <div class="head">
+        <div>
+          <h1>كبسة الدجاج بالخطوات</h1>
+          <p class="meta">٤٥ دقيقة · يكفي ٦ أشخاص · سهلة</p>
+        </div>
+
+        <!--
+          "Download the recipe as PDF" control. The glyph is a DOWNLOAD icon
+          (a downward arrow into a tray) — its purpose is to save the recipe PDF.
+          But the aria-label was wired by the CMS template to the ARTICLE TITLE
+          variable, so the link is named "كبسة الدجاج بالخطوات" (the recipe's own
+          name) instead of "تحميل الوصفة (PDF)". The name is non-empty (c487ae/F89
+          pass) and even meaningful Arabic — but it describes the article, not the
+          download ACTION the icon performs. RTL + mixed-purpose label.
+        -->
+        <a class="pdf-link" href="/recipes/kabsa.pdf" aria-label="كبسة الدجاج بالخطوات">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3v12"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <path d="M5 19h14"/>
+          </svg>
+        </a>
+      </div>
+
+      <div class="body">
+        <h2>المكونات</h2>
+        <ul>
+          <li>دجاجة كاملة مقطّعة</li>
+          <li>كوبان من الأرز البسمتي</li>
+          <li>بصلتان مفرومتان</li>
+          <li>معجون طماطم وبهارات الكبسة</li>
+        </ul>
+        <h2>طريقة التحضير</h2>
+        <ol>
+          <li>يُحمّر البصل مع البهارات حتى يذبل.</li>
+          <li>يُضاف الدجاج ويُقلّب حتى يتغيّر لونه.</li>
+          <li>يُضاف الماء ويُترك على نار هادئة حتى ينضج الدجاج.</li>
+          <li>يُضاف الأرز ويُطهى حتى يتشرّب المرق.</li>
+        </ol>
+      </div>
+    </article>
+  </main>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS
+    The download link has a non-empty accessible name ("كبسة الدجاج بالخطوات", the
+    recipe title), so c487ae PASSES, F89 never fires, and axe/WAVE/Lighthouse report
+    discernible text — the name is even well-formed, meaningful Arabic with a correct
+    lang/dir, so no i18n or empty-name rule triggers. What a tool cannot do is render
+    the SVG, recognise the downward-arrow-into-tray as a DOWNLOAD action, read that the
+    destination is a .pdf file, and judge that naming the control with the article's
+    own title (rather than "تحميل الوصفة / Download recipe") misdescribes what the link
+    DOES. Comparing the rendered glyph + destination against the name is visual and
+    human-only — and here also requires reading Arabic.
+  -->
+</body>
+</html>

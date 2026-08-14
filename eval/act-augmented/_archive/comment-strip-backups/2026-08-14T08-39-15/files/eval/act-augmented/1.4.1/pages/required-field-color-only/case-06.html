@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Create API Key — Helios Developer Console</title>
+<!--
+  TRUE-NEGATIVE for SC 1.4.1 (Use of Color, Level A) — this page PASSES via the LIGHTNESS
+  ESCAPE HATCH, not via a text cue.
+  Required field labels are GREEN (#2e8b2e). Optional field labels are CHARCOAL (#222222).
+  These differ BOTH in hue (green vs near-neutral) AND in lightness: the contrast ratio
+  between the two label colours is ~3.67:1 (>= 3:1). Per the WCAG 1.4.1 Understanding note,
+  when content is conveyed by colours that differ in lightness by a contrast ratio of 3:1 or
+  greater, that counts as an additional visual distinction — so the required/optional split is
+  NOT colour(hue)-only; it is also a lightness difference perceivable in greyscale and by users
+  with colour-vision deficiency. There is intentionally NO "(required)" text here — the page
+  relies solely on the lightness escape hatch, which is exactly what makes it a good boundary
+  test: an evaluator must apply the 3:1-lightness rule rather than reflexively failing a
+  colour-coded form.
+
+  COLOUR MATH (sRGB, WCAG formula):
+    required green #2e8b2e vs optional charcoal #222222  → 3.67:1  (>= 3:1 → escape hatch met)
+    required green #2e8b2e vs white background #ffffff    → 4.33:1  (meets 1.4.3 text contrast)
+    optional charcoal #222222 vs white #ffffff            → 15.9:1  (meets 1.4.3)
+
+  WHY IT MATTERS: a rule that fails any "colour-coded required field" would wrongly fail this.
+  The correct verdict is PASS because the two label colours also differ in lightness by >= 3:1.
+-->
+<style>
+  body { font:14px/1.5 ui-monospace,"SF Mono",Menlo,Consolas,monospace; color:#222;
+         background:#0f1115; margin:0; }
+  .console { max-width:640px; margin:30px auto; background:#fff; border-radius:8px;
+             border:1px solid #2a2f3a; padding:28px 34px 36px; }
+  .kicker { font-family:system-ui,sans-serif; color:#2e8b2e; font-weight:700;
+            letter-spacing:.08em; font-size:.72rem; margin:0 0 6px; }
+  h1 { font-family:system-ui,sans-serif; font-size:1.4rem; margin:0 0 4px; color:#16181d; }
+  .sub { font-family:system-ui,sans-serif; color:#444; margin:0 0 22px; font-size:.9rem; }
+  .legend { font-family:system-ui,sans-serif; background:#f3f6f3; border:1px solid #d4e2d4;
+            border-radius:6px; padding:10px 14px; margin:0 0 24px; font-size:.86rem; color:#222; }
+  .f { margin-bottom:16px; }
+  .f label { display:block; font-family:system-ui,sans-serif; font-weight:600;
+             font-size:.86rem; margin-bottom:5px; }
+  /* DEFECT-FREE BY DESIGN: required = green (#2e8b2e), optional = charcoal (#222);
+     the two colours differ in hue AND in lightness (>= 3:1), satisfying the escape hatch. */
+  .f.req label { color:#2e8b2e; }       /* required → green, lighter */
+  .f label     { /* optional inherits charcoal #222 from body via .f label below */ }
+  .f:not(.req) label { color:#222222; } /* optional → charcoal, darker */
+  .f input, .f select {
+    width:100%; box-sizing:border-box; padding:8px 11px;
+    font:14px/1.4 ui-monospace,Menlo,Consolas,monospace;
+    border:1px solid #c2c8d0; border-radius:5px; background:#fff; color:#16181d;
+  }
+  .f select { font-family:system-ui,sans-serif; }
+  button { font-family:system-ui,sans-serif; background:#16181d; color:#fff; border:0;
+           padding:11px 26px; font-weight:600; border-radius:6px; cursor:pointer; margin-top:8px; }
+  .docnote { font-family:system-ui,sans-serif; color:#555; font-size:.8rem; margin-top:14px; }
+</style>
+</head>
+<body>
+<main class="console">
+  <p class="kicker">HELIOS DEVELOPER CONSOLE</p>
+  <h1>Create API key</h1>
+  <p class="sub">Generate a scoped key for a service integration. Keys are shown once.</p>
+
+  <p class="legend">Required field labels are a lighter green; optional field labels are dark
+  charcoal. The two are also clearly different in shade, not only in colour.</p>
+
+  <form action="#" novalidate>
+    <div class="f req">
+      <label for="keyname">Key name</label>
+      <input id="keyname" name="keyname" type="text" placeholder="prod-billing-sync">
+    </div>
+
+    <div class="f req">
+      <label for="scope">Scope</label>
+      <select id="scope" name="scope">
+        <option value="">Select a scope…</option>
+        <option>read:invoices</option>
+        <option>read:write invoices</option>
+        <option>admin:all</option>
+      </select>
+    </div>
+
+    <div class="f">
+      <label for="desc">Description</label>
+      <input id="desc" name="desc" type="text" placeholder="What is this key for?">
+    </div>
+
+    <div class="f req">
+      <label for="env">Environment</label>
+      <select id="env" name="env">
+        <option value="">Select…</option>
+        <option>Production</option>
+        <option>Staging</option>
+        <option>Sandbox</option>
+      </select>
+    </div>
+
+    <div class="f">
+      <label for="ip">Allowed IP range (CIDR)</label>
+      <input id="ip" name="ip" type="text" placeholder="203.0.113.0/24">
+    </div>
+
+    <div class="f">
+      <label for="expiry">Auto-expire after</label>
+      <select id="expiry" name="expiry">
+        <option value="">Never</option>
+        <option>30 days</option>
+        <option>90 days</option>
+        <option>1 year</option>
+      </select>
+    </div>
+
+    <button type="submit">Generate key</button>
+    <p class="docnote">Treat keys like passwords. See docs › Authentication for rotation.</p>
+  </form>
+</main>
+</body>
+</html>

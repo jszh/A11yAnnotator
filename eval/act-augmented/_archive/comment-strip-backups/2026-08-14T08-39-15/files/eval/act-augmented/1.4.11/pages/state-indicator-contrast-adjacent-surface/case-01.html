@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Consent preferences — Northgate Patient Portal</title>
+<style>
+  :root { color-scheme: light; }
+  body {
+    font-family: "Segoe UI", system-ui, sans-serif;
+    margin: 0;
+    background: #f4f0fb;
+    color: #1f2430;
+    line-height: 1.55;
+  }
+  main { max-width: 640px; margin: 0 auto; padding: 32px 20px 64px; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  .lede { color: #4a5160; margin: 0 0 28px; }
+  .card {
+    background: #ffffff;
+    border: 1px solid #d7d2e6;
+    border-radius: 12px;
+    padding: 8px 20px;
+    box-shadow: 0 1px 2px rgba(20,10,60,.06);
+  }
+  .pref {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 18px 0;
+    border-bottom: 1px solid #ece8f6;
+  }
+  .pref:last-child { border-bottom: 0; }
+  .pref .text { flex: 1; }
+  .pref .name { font-weight: 600; }
+  .pref .desc { color: #5a6172; font-size: .9rem; margin-top: 2px; }
+
+  /* Custom checkbox. The native input is visually hidden but kept in the DOM,
+     focusable, and labelled, so name/role/value + keyboard are all fine. */
+  .cb {
+    position: absolute;
+    opacity: 0;
+    width: 24px; height: 24px;
+    margin: 0;
+    cursor: pointer;
+  }
+  .box {
+    position: relative;
+    flex: 0 0 auto;
+    width: 24px; height: 24px;
+    border-radius: 6px;
+    border: 2px solid #6221EA;     /* box outline vs white card: ~7:1, fine */
+    background: #ffffff;
+    display: grid;
+    place-items: center;
+    transition: background .12s ease;
+  }
+  /* When checked, the box fills with the brand purple and shows a check glyph. */
+  .cb:checked + .box {
+    background: #6221EA;            /* purple fill vs white card = 7.18:1 (the distractor) */
+    border-color: #6221EA;
+  }
+  .cb:focus-visible + .box {
+    outline: 3px solid #2b1066;
+    outline-offset: 2px;
+  }
+  .box svg { width: 16px; height: 16px; display: none; }
+  .cb:checked + .box svg { display: block; }
+  /* The check stroke is a tint of the brand purple, picked to look "on brand".
+     #9D85DB on #6221EA = 2.33:1 — BELOW 3:1 against its own adjacent surface (the fill). */
+  .check-stroke { stroke: #9D85DB; }
+
+  .legend {
+    margin-top: 32px;
+    font-size: .82rem;
+    color: #6b7180;
+    background: #fbfaff;
+    border: 1px dashed #d7d2e6;
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .legend code { background: #efeafb; padding: 1px 4px; border-radius: 4px; }
+  button.save {
+    margin-top: 28px;
+    background: #6221EA; color: #fff; border: 0;
+    padding: 12px 22px; border-radius: 8px; font-size: 1rem; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Communication &amp; consent preferences</h1>
+  <p class="lede">Choose how Northgate Health may contact you about appointments and results. Your selections are saved to your record.</p>
+
+  <form class="card" aria-label="Consent preferences">
+    <div class="pref">
+      <input type="checkbox" id="p-appt" class="cb" checked>
+      <label for="p-appt" class="box" aria-hidden="true">
+        <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+          <path class="check-stroke" d="M2 8.5 L6.3 13 L14 3.5" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </label>
+      <span class="text">
+        <span class="name"><label for="p-appt">Appointment reminders by SMS</label></span>
+        <span class="desc">A text the day before each visit. Standard rates apply.</span>
+      </span>
+    </div>
+
+    <div class="pref">
+      <input type="checkbox" id="p-results" class="cb" checked>
+      <label for="p-results" class="box" aria-hidden="true">
+        <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+          <path class="check-stroke" d="M2 8.5 L6.3 13 L14 3.5" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </label>
+      <span class="text">
+        <span class="name"><label for="p-results">Lab results when ready</label></span>
+        <span class="desc">We email you when new results are posted to the portal.</span>
+      </span>
+    </div>
+
+    <div class="pref">
+      <input type="checkbox" id="p-news" class="cb">
+      <label for="p-news" class="box" aria-hidden="true">
+        <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+          <path class="check-stroke" d="M2 8.5 L6.3 13 L14 3.5" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </label>
+      <span class="text">
+        <span class="name"><label for="p-news">Health newsletter (monthly)</label></span>
+        <span class="desc">Wellness tips and clinic news. You can opt out anytime.</span>
+      </span>
+    </div>
+
+    <button type="button" class="save">Save preferences</button>
+  </form>
+
+  <p class="legend">
+    Why automated tools pass this page: the native <code>&lt;input type="checkbox"&gt;</code> is present,
+    focusable, and correctly labelled, so role/name/value/keyboard all resolve. The visible
+    <em>box</em> outline (and its filled state) contrast about 7:1 with the white card, so any
+    checker that samples "the control vs the page" sees a comfortable pass. The defect is that the
+    <strong>check mark</strong> — the only mark that distinguishes a ticked box from an empty one —
+    is drawn at 2.33:1 against the purple fill it sits on, its correct adjacent surface.
+  </p>
+</main>
+</body>
+</html>

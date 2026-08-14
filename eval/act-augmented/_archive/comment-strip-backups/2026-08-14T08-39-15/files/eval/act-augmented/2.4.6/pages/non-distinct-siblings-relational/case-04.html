@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Request prescription refills — Lakeview Health patient portal</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (SC 2.4.6, label limb, relational/uniqueness):
+  Each medication block is a <fieldset> with a <legend>, and the refill checkbox
+  and quantity <select> are each correctly associated to a <label> via for/id.
+  axe-core / WAVE / Lighthouse confirm every control HAS a programmatically
+  associated, non-empty label: label PASS, select-name PASS, form-field-multiple-
+  labels PASS, 3.3.2 (labels present) PASS, 4.1.2 (name present) PASS. But the
+  visible/associated labels are the generic words "Refill" and "Quantity",
+  repeated identically across four medications; the drug name lives only in a
+  <p> inside the fieldset, NOT in any label. A screen-reader user tabbing the
+  form, or pulling a form-controls list, hears "Refill checkbox … Quantity …
+  Refill checkbox … Quantity …" four times and cannot tell which control belongs
+  to which prescription. Choosing the wrong refill is a safety risk. No static
+  rule judges whether sibling control labels distinguish their controls.
+-->
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Source Sans 3", system-ui, sans-serif; background:#f4f7f9; color:#1d2b33; }
+  header { background:#0b6a6f; color:#fff; padding:16px 28px; }
+  header .b { font-weight:800; letter-spacing:.4px; } header .s { font-size:.88rem; color:#bfe6e7; }
+  main { max-width:760px; margin:0 auto; padding:24px; }
+  h1 { font-size:1.55rem; margin:.2em 0 6px; }
+  .intro { color:#4b5a62; margin:0 0 20px; max-width:62ch; }
+  fieldset.med { background:#fff; border:1px solid #d4e0e2; border-radius:10px; margin:0 0 16px; padding:14px 18px 18px; }
+  fieldset.med legend { font-weight:700; font-size:1.05rem; color:#0b6a6f; padding:0 6px; }
+  .rx { font-size:1.05rem; font-weight:600; margin:4px 0 2px; }
+  .rxmeta { font-size:.85rem; color:#5c6b73; margin:0 0 12px; }
+  .controls { display:flex; gap:26px; align-items:center; flex-wrap:wrap; }
+  .ctl { display:flex; align-items:center; gap:8px; }
+  .ctl label { font-size:.95rem; }
+  select { padding:6px 8px; border:1px solid #c2cfd2; border-radius:6px; font-size:.95rem; }
+  .submit { margin-top:8px; background:#0b6a6f; color:#fff; border:0; padding:11px 22px; border-radius:8px; font-size:1rem; cursor:pointer; }
+  footer { text-align:center; color:#7a888f; font-size:.82rem; padding:24px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="b">Lakeview Health</div>
+  <div class="s">Patient portal · Pharmacy</div>
+</header>
+
+<main>
+  <h1>Request prescription refills</h1>
+  <p class="intro">Select the prescriptions you would like to refill and choose a quantity, then submit your request. Your pharmacy will confirm by message within one business day.</p>
+
+  <form action="#" method="post">
+    <fieldset class="med">
+      <legend>Medication</legend>
+      <p class="rx">Lisinopril 10&nbsp;mg tablet</p>
+      <p class="rxmeta">Once daily · last filled May 28 · 2 refills remaining</p>
+      <div class="controls">
+        <div class="ctl">
+          <input type="checkbox" id="r1" name="refill_1">
+          <label for="r1">Refill</label>
+        </div>
+        <div class="ctl">
+          <label for="q1">Quantity</label>
+          <select id="q1" name="qty_1"><option>30-day supply</option><option>90-day supply</option></select>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset class="med">
+      <legend>Medication</legend>
+      <p class="rx">Metformin 500&nbsp;mg tablet</p>
+      <p class="rxmeta">Twice daily · last filled Jun 2 · 1 refill remaining</p>
+      <div class="controls">
+        <div class="ctl">
+          <input type="checkbox" id="r2" name="refill_2">
+          <label for="r2">Refill</label>
+        </div>
+        <div class="ctl">
+          <label for="q2">Quantity</label>
+          <select id="q2" name="qty_2"><option>30-day supply</option><option>90-day supply</option></select>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset class="med">
+      <legend>Medication</legend>
+      <p class="rx">Atorvastatin 20&nbsp;mg tablet</p>
+      <p class="rxmeta">Once daily at bedtime · last filled May 15 · 3 refills remaining</p>
+      <div class="controls">
+        <div class="ctl">
+          <input type="checkbox" id="r3" name="refill_3">
+          <label for="r3">Refill</label>
+        </div>
+        <div class="ctl">
+          <label for="q3">Quantity</label>
+          <select id="q3" name="qty_3"><option>30-day supply</option><option>90-day supply</option></select>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset class="med">
+      <legend>Medication</legend>
+      <p class="rx">Levothyroxine 75&nbsp;mcg tablet</p>
+      <p class="rxmeta">Once daily, fasting · last filled Apr 30 · 0 refills remaining</p>
+      <div class="controls">
+        <div class="ctl">
+          <input type="checkbox" id="r4" name="refill_4">
+          <label for="r4">Refill</label>
+        </div>
+        <div class="ctl">
+          <label for="q4">Quantity</label>
+          <select id="q4" name="qty_4"><option>30-day supply</option><option>90-day supply</option></select>
+        </div>
+      </div>
+    </fieldset>
+
+    <button type="submit" class="submit">Submit refill request</button>
+  </form>
+</main>
+
+<footer>Lakeview Health System · Questions? Message your care team through the portal.</footer>
+</body>
+</html>

@@ -3,36 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!--
-    SC 2.4.3 — PASS (multiple-valid-orders limb, RTL + i18n long-tail).
-    A mosque "iqamah time" editor for the coming week. The visual grid: ROWS are
-    the five daily prayers (Fajr, Dhuhr, Asr, Maghrib, Isha); COLUMNS are the
-    seven days. Because dir="rtl", the FIRST visual column is on the RIGHT
-    (Saturday / السبت) and columns proceed leftward through the week. Each cell is
-    a <input type="time"> for that prayer on that day.
-
-    The mosque admin's real workflow is "set one full day's five iqamah times,
-    publish it, move to the next day" — i.e. COLUMN-MAJOR (per day). Tab walks
-    down each day column, and (because this is RTL) starts with the right-most
-    visual column (Saturday) and moves leftward day by day. This is created by
-    column-major DOM source order; no tabindex.
-
-    TWO things make this a hard PASS to judge:
-      (1) It is column-major, not the per-row order — already a valid alternative.
-      (2) It is RTL, so a naive "left-to-right, top-to-bottom" order model is
-          simply wrong for the locale; the correct visual default here is
-          right-to-left. An evaluator anchored to LTR assumptions might wrongly
-          "feel" the order is scrambled when it is in fact a clean per-day column
-          walk that respects the RTL layout.
-    Either day-column or prayer-row order would satisfy the SC; only one is needed
-    => PASS.
-
-    Why automated tools miss it: every <input type=time> has a programmatic label,
-    the table has scope, dir/lang are correct, contrast is fine. axe/WAVE/
-    Lighthouse pass it. They have no concept of "is column-major-by-day, read
-    right-to-left, a logical order for this RTL prayer schedule." Distinguishing a
-    valid RTL per-day column order from a meaning-destroying one is human reasoning.
-  -->
   <title>تعديل أوقات الإقامة — مسجد النور</title>
   <style>
     :root { --ink:#1a241f; --muted:#5f6f66; --line:#cfdcd4; --brand:#0d5c3f; --bg:#f2f8f4; }
@@ -86,17 +56,6 @@
           </tr>
         </thead>
         <tbody>
-          <!--
-            Visual/DOM layout is row-major per <tr> (one prayer per row); RTL means
-            the first visual column = Saturday (right) and the week proceeds
-            leftward. The FOCUS order, however, is set COLUMN-MAJOR by DAY by the
-            script at the bottom of <body>: it assigns a contiguous tabindex run
-            down each day's column (all five Saturday times, then all five Sunday
-            times, ...). So Tab walks one full day at a time, starting from the
-            right-most (Saturday) column and moving leftward — the admin's per-day
-            completion workflow. Grouped strictly by day => follows the day
-            relationship (NOT an F44 scramble).
-          -->
           <tr>
             <th scope="row">الفجر <small>Fajr</small></th>
             <td><input type="time" name="sat_fajr" aria-label="إقامة الفجر السبت / Fajr Saturday" value="05:15"></td>
@@ -155,14 +114,6 @@
     </form>
   </main>
   <script>
-    /*
-      Make the FOCUS order column-major-by-day at runtime, matching the admin's
-      "complete one day, then the next" workflow, while leaving the DOM/visual
-      markup as a clean row-major RTL table. We assign a tabindex sequence that
-      walks each day column top-to-bottom, days ordered Saturday..Friday (which,
-      because dir=rtl, is right-to-left visually). The grouping is contiguous and
-      strictly per-day, so it follows the day relationship (NOT an F44 scramble).
-    */
     (function () {
       var days = ['sat','sun','mon','tue','wed','thu','fri'];
       var prayers = ['fajr','dhuhr','asr','maghrib','isha'];

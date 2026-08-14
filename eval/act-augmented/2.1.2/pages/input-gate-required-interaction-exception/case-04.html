@@ -4,23 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Confirm your registration — Riverside 10K</title>
-  <!--
-    WHY AUTOMATED TOOLS MISS THIS (SC 2.1.2 — conformant required-interaction gate, PASS):
-    The race-registration page holds focus on a consent section: forward Tab past the
-    "I accept the participant waiver" group is suppressed until the user checks the waiver
-    checkbox. This LOOKS like a trap to anyone who tabs to the checkbox and then tries to Tab
-    onward without checking it — Tab is dead.
-    But it is NOT a trap and NOT a failure. The checkbox is a real, focusable
-    <input type="checkbox">: a keyboard user reaches it with Tab and toggles it with the
-    Space key (the standard, documented control). The instant it is checked, the gate
-    releases and Tab advances to the "Complete registration" button and the rest of the page.
-    Shift+Tab is never blocked. The required interaction is fully keyboard-satisfiable, so per
-    the TT Note this is the input-gate exception, not a trap.
-    axe / WAVE / Lighthouse see a correctly-labelled native checkbox — no violation — and
-    never press Space or Tab, so they observe neither the hold nor the release. Judging PASS
-    needs a human to recognise the gate's intent and verify Space satisfies it and releases
-    focus.
-  -->
   <style>
     :root { --ink:#22231f; --muted:#5f6358; --line:#dcdcc9; --brand:#2f6b34; --bg:#f6f7ef; }
     * { box-sizing: border-box; }
@@ -83,11 +66,6 @@
         </div>
 
         <div class="consent">
-          <!--
-            GATE: forward Tab past this group is blocked until the box is checked. The box is
-            a REAL native checkbox: focusable by Tab, toggled by Space (standard control).
-            Once checked, the gate releases; Shift+Tab is always allowed.
-          -->
           <input type="checkbox" id="agree" name="agree" aria-describedby="agree-gate">
           <label for="agree">I have read and accept the participant waiver.</label>
         </div>
@@ -104,11 +82,6 @@
   <footer>Riverside 10K is organised by Riverside Park Runners CIC · Registered charity 1180042.</footer>
 
   <script>
-    // Conformant required-interaction gate. Forward Tab from the consent checkbox is
-    // suppressed only while it is unchecked. The checkbox is a native control: Tab reaches
-    // it and Space toggles it (the standard, documented keyboard control for a checkbox).
-    // The moment it is checked, the gate releases and Tab proceeds. Shift+Tab is never
-    // blocked, so the user can never be stuck.
     var box  = document.getElementById('agree');
     var gate = document.getElementById('agree-gate');
 
@@ -123,8 +96,6 @@
     }
     box.addEventListener('change', refresh);
     box.addEventListener('keydown', function (e) {
-      // Block only a plain forward Tab while unchecked. Space still toggles the box; once
-      // checked this handler does nothing and the native Tab proceeds.
       if (e.key === 'Tab' && !e.shiftKey && !box.checked) {
         e.preventDefault();
         gate.textContent = 'Please accept the waiver (press Space) before continuing.';

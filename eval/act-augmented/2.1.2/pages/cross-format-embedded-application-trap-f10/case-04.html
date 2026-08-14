@@ -4,24 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>New release note — Helm Docs editor</title>
-  <!--
-    WHY AUTOMATED TOOLS MISS THIS (SC 2.1.2 — this one PASSES, and a tool cannot confirm it):
-    This is the boundary/PASS variant. The page hosts a <markdown-editor> web component
-    whose UI lives in an open Shadow DOM. INSIDE the editing surface, Tab is deliberately
-    captured (Tab inserts indentation, the documented WYSIWYG behavior from the WCAG
-    Understanding "rich text editor" example), so plain Tab does NOT move focus out — by
-    itself that would be a trap. BUT the component (a) shows a persistent, visible
-    instruction inside the shadow root: "Press Esc to leave the editor", and (b) wires a
-    WORKING Esc handler that moves focus out of the shadow tree to the next control, so a
-    keyboard user is advised of, and actually has, a standard exit method (Esc). Per the
-    SC, advising the user of a non-Tab exit method that works is a PASS.
-    Automated tools cannot confirm this PASS: they cannot tell that Tab is intentionally
-    captured for indentation rather than accidentally trapping, they cannot verify the
-    Esc handler actually frees focus across the shadow boundary, and they cannot read the
-    in-shadow instruction and judge it accurate. Establishing the PASS requires a human to
-    enter the editor, observe Tab is captured, READ the Esc advice, press Esc, and confirm
-    focus lands on "Publish" outside the boundary.
-  -->
   <style>
     :root { --ink:#1b1f27; --muted:#5e6573; --line:#e4e7ee; --brand:#4338ca; --bg:#f6f7fb; }
     * { box-sizing: border-box; }
@@ -60,10 +42,6 @@
     <input class="title" id="note-title" type="text" value="v3.2 — faster cold starts">
 
     <div class="editor-wrap">
-      <!--
-        The editor captures Tab for indentation (a documented rich-text behavior) and
-        tells the user, inside the editor, to press Esc to leave. The Esc handler works.
-      -->
       <markdown-editor></markdown-editor>
     </div>
 
@@ -96,8 +74,6 @@
           '<textarea id="ta" aria-describedby="tip">## Highlights\n\n- Cold starts down ~40%\n- </textarea>'
         ].join('');
         this._ta = root.getElementById('ta');
-        // Tab is captured to insert indentation (documented WYSIWYG behavior). This alone
-        // would be a trap — so a working, advertised Esc exit is provided.
         this._ta.addEventListener('keydown', (e) => {
           if (e.key === 'Tab') {
             e.preventDefault();
@@ -105,8 +81,6 @@
             this._ta.value = v.slice(0, s) + '  ' + v.slice(en);
             this._ta.selectionStart = this._ta.selectionEnd = s + 2;
           } else if (e.key === 'Escape') {
-            // Working standard-exit method: move focus to the first control AFTER the
-            // editor in the host document, crossing the shadow boundary cleanly.
             e.preventDefault();
             this._ta.blur();
             const next = document.querySelector('[data-after="true"]');

@@ -4,22 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Shipping address — Thornfield Supply Co.</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS:
-  Post-submit checkout shipping step. The ZIP field has a visible, associated, fluent
-  server error (aria-describedby="zip-err"): "ZIP code 90210 not found in our database.
-  Please check the code and try again." It names the field, states a concrete cause, and
-  even quotes a specific ZIP — maximally "descriptive". ACT 36b590 passes; axe/WAVE/
-  Lighthouse pass (labelled field, resolved describedby, contrast fine).
-  THE DEFECT IS SEMANTIC: the value the user actually typed and that is RETAINED in the
-  field is "9021" (four digits). The error quotes "90210" — a FIVE-digit value the user
-  never entered (a stale value echoed from a previous lookup / a server that appended a
-  trailing zero). The real defect (the ZIP is only four digits / too short) is never
-  described, and the quoted value contradicts the field's own retained value. A user
-  reads an authoritative error about a value they did not type and cannot reconcile it
-  with what they see. No checker compares the value quoted in the message against the
-  field's actual value to detect that the message names a phantom value.
--->
 <style>
   :root{ --ink:#1d1a17; --muted:#6b6359; --line:#d8d2c8; --brand:#7a4a1e; --danger:#b62a20; }
   *{ box-sizing:border-box; }
@@ -73,11 +57,6 @@
           </div>
           <div class="field">
             <label for="zip">ZIP code</label>
-            <!--
-              Retained value is "9021" (four digits). The server error quotes "90210"
-              (five digits) — a value the user never typed. The real defect (too short)
-              is never stated.
-            -->
             <input id="zip" name="zip" type="text" inputmode="numeric"
                    value="9021"
                    aria-describedby="zip-err" aria-invalid="true"

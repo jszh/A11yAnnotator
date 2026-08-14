@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pricing — Renderly Cloud GPU</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Plus Jakarta Sans", system-ui, "Segoe UI", Arial, sans-serif;
+    color: #14181f;
+    background: linear-gradient(180deg,#0e1726 0,#0e1726 220px,#f7f8fb 220px);
+    line-height: 1.55;
+  }
+  header { text-align: center; color: #fff; padding: 46px 20px 0; }
+  header h1 { margin: 0 0 8px; font-size: 30px; }
+  header p { margin: 0; color: #aeb9cc; font-size: 15px; }
+  .grid {
+    max-width: 920px;
+    margin: 36px auto 70px;
+    padding: 0 22px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+  .tile {
+    background: #fff;
+    border: 1px solid #e4e8ef;
+    border-radius: 14px;
+    padding: 26px 24px;
+    display: flex;
+    flex-direction: column;
+  }
+  .tile.featured { border-color: #5b6bff; box-shadow: 0 14px 40px rgba(91,107,255,.18); }
+  .tile h2 { margin: 0 0 4px; font-size: 18px; }
+  .tile .blurb { color: #5d6877; font-size: 13px; margin: 0 0 16px; min-height: 34px; }
+  .price { font-size: 32px; font-weight: 800; }
+  .price small { font-size: 14px; font-weight: 500; color: #5d6877; }
+  ul.feat { list-style: none; padding: 0; margin: 18px 0 22px; font-size: 14px; }
+  ul.feat li { padding: 7px 0; border-bottom: 1px solid #f0f2f6; display: flex; align-items: center; gap: 8px; }
+  ul.feat li::before { content: "✓"; color: #2f9e57; font-weight: 700; }
+
+  /* "info dot" trigger — a styled span. JS reveals the tooltip on mouseover only. */
+  .infodot {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 16px; height: 16px; margin-left: 4px;
+    border-radius: 50%; background: #cfd6e2; color: #2a3445;
+    font-size: 11px; font-weight: 700; cursor: help; user-select: none;
+  }
+  .tip {
+    position: absolute; z-index: 40; max-width: 260px;
+    background: #14181f; color: #fff; font-size: 12.5px; line-height: 1.45;
+    padding: 10px 12px; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,.28);
+    display: none;
+  }
+  .cta {
+    margin-top: auto;
+    background: #5b6bff; color: #fff; border: 0;
+    padding: 11px 0; border-radius: 9px; font-size: 15px; font-weight: 600; cursor: pointer;
+  }
+  .tile:not(.featured) .cta { background: #14181f; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Render faster. Pay for what you use.</h1>
+    <p>GPU instances billed per second. No contracts.</p>
+  </header>
+
+  <div class="grid">
+    <section class="tile" aria-labelledby="t-starter">
+      <h2 id="t-starter">Starter</h2>
+      <p class="blurb">For solo artists and quick experiments.</p>
+      <div class="price">$0.40<small>/GPU-hr</small></div>
+      <ul class="feat">
+        <li>1× T4 GPU</li>
+        <li>50 GB scratch disk</li>
+        <li>Community support</li>
+        <li>Spot capacity
+          <span class="infodot" data-tip="spot" tabindex="0" role="button"
+                aria-label="What is spot capacity">i</span>
+        </li>
+      </ul>
+      <button type="button" class="cta">Start free</button>
+    </section>
+
+    <section class="tile featured" aria-labelledby="t-pro">
+      <h2 id="t-pro">Pro</h2>
+      <p class="blurb">For studios shipping on deadlines.</p>
+      <div class="price">$1.90<small>/GPU-hr</small></div>
+      <ul class="feat">
+        <li>1× A100 40 GB</li>
+        <li>500 GB scratch disk</li>
+        <li>Priority queue
+          <span class="infodot" data-tip="queue">i</span>
+        </li>
+        <li>Email support, 1-day SLA</li>
+      </ul>
+      <button type="button" class="cta">Choose Pro</button>
+    </section>
+
+    <section class="tile" aria-labelledby="t-scale">
+      <h2 id="t-scale">Scale</h2>
+      <p class="blurb">For render farms and bursty pipelines.</p>
+      <div class="price">$1.55<small>/GPU-hr</small></div>
+      <ul class="feat">
+        <li>8× A100 80 GB</li>
+        <li>2 TB scratch disk</li>
+        <li>Committed-use discount
+          <span class="infodot" data-tip="commit">i</span>
+        </li>
+        <li>Dedicated support</li>
+      </ul>
+      <button type="button" class="cta">Contact sales</button>
+    </section>
+  </div>
+
+  <!-- Tooltip payloads. The "Spot capacity" tip on the Starter plan carries ESSENTIAL,
+       non-obvious information: the instance can be reclaimed at any time with 30 seconds'
+       notice, and in-progress renders are LOST. This caveat appears nowhere else on the
+       page. The "Scale" committed-use note is the only place the 1-year lock-in is stated. -->
+  <div class="tips" hidden>
+    <div data-for="spot">Spot instances cost less but can be <strong>reclaimed at any time
+      with 30 seconds' notice</strong>. Any render in progress is lost and is not refunded.
+      Save checkpoints frequently.</div>
+    <div data-for="queue">Pro jobs are scheduled ahead of Starter jobs in the shared queue.</div>
+    <div data-for="commit">The Scale price requires a <strong>12-month committed-use
+      agreement</strong>; on-demand Scale capacity is billed at $3.10/GPU-hr.</div>
+  </div>
+
+  <script>
+    // Each infodot reveals its tooltip ON MOUSEOVER (and hides on mouseout). There is NO
+    // focus/keydown handler. Note: the FIRST infodot was given tabindex="0" and
+    // role="button" by the dev (so it tab-stops and looks accessible to a linter), but the
+    // reveal still only fires on mouseover — so even when a keyboard user focuses it, the
+    // tooltip never appears. The other dots are plain spans with no tabindex at all.
+    (function () {
+      var tips = {};
+      document.querySelectorAll('.tips [data-for]').forEach(function (el) {
+        tips[el.getAttribute('data-for')] = el.innerHTML;
+      });
+      var bubble = document.createElement('div');
+      bubble.className = 'tip';
+      document.body.appendChild(bubble);
+
+      document.querySelectorAll('.infodot').forEach(function (dot) {
+        dot.addEventListener('mouseover', function () {
+          var key = dot.getAttribute('data-tip');
+          if (!tips[key]) return;
+          bubble.innerHTML = tips[key];
+          var r = dot.getBoundingClientRect();
+          bubble.style.left = (window.scrollX + r.left - 120) + 'px';
+          bubble.style.top  = (window.scrollY + r.bottom + 8) + 'px';
+          bubble.style.display = 'block';
+        });
+        dot.addEventListener('mouseout', function () { bubble.style.display = 'none'; });
+        // NOTE: intentionally no 'focus'/'keydown' listener.
+      });
+    })();
+  </script>
+
+  <!--
+    WHY THIS FAILS SC 2.1.1 (keyboard, essential-information branch) AND WHY TOOLS MISS IT:
+
+    The "Spot capacity" info dot reveals a tooltip stating that spot instances can be
+    reclaimed with 30 seconds' notice and that in-progress renders are LOST and not refunded.
+    That is information essential to deciding whether the Starter plan is usable — and it is
+    disclosed NOWHERE else on the page. Likewise the Scale dot is the only place the 12-month
+    committed-use lock-in / $3.10 on-demand rate is stated.
+
+    The reveal fires only on `mouseover`. There is deliberately NO focus or keydown handler.
+    The author even put tabindex="0" role="button" aria-label on the FIRST dot — so it tab-
+    stops and a linter/axe sees a named, focusable "button" — but focusing it still shows
+    nothing, because the script only listens for mouseover. A keyboard user tabs onto the dot,
+    waits, and (per the Trusted Tester two-second rule) sees no tooltip; there is no
+    aria-describedby pulling the text into the accessible name either. So the essential caveat
+    is unreachable by keyboard and unavailable elsewhere.
+
+    Automated tools pass this: the trigger has a role, a tabindex, and an aria-label; the
+    payloads are non-empty; nothing is malformed. Static analysis cannot read the tooltip text
+    and judge it ESSENTIAL, cannot tell that mouseover-only means focus reveals nothing, and
+    cannot confirm the text appears nowhere else. Verdict: FAILED.
+  -->
+</body>
+</html>

@@ -4,38 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pipeline overview — Cadence Analytics</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS (scope-guard / mixed PASS case):
-  A SaaS analytics dashboard whose interactive surface is almost entirely
-  NON-data-entry controls that 3.3.2 does not apply to:
-    - a tab strip (role=tablist, 4 tabs)
-    - an "Open settings" button that triggers a settings dialog
-    - a "Refresh data" action button
-    - a "Export" menu-button (CSV / PDF / link)
-    - custom <span role="button"> player-style controls on a chart (play/pause the
-      live ticker, step the date range) -- action controls, not data entry
-    - segmented "Day / Week / Month" toggle buttons (aria-pressed)
-  None of these accept typed/selected DATA; they navigate, open dialogs, trigger
-  actions, or toggle view state. SC 3.3.2 applies only to controls "associated with
-  data entry," so it owes none of them a field instruction.
-
-  The ONE genuine data-entry control is the "Filter deals" combobox/search input,
-  which is correctly given a visible <label> AND a visible instruction
-  ("Type a company or owner; results update as you type. Press Esc to clear.").
-  So the dashboard PASSES 3.3.2.
-
-  THE TRAP: dashboards are control-dense, and several controls are custom
-  span/role=button widgets that an evaluator might reflexively treat as inputs. An
-  over-eager model could flag "the Refresh button has no instruction" or "the chart
-  player controls have no labels for input." That is the false positive this page
-  guards against: action/toggle/tab/dialog-trigger controls are out of scope. Only
-  the filter field is data entry, and it is properly instructed.
-
-  axe/WAVE/Lighthouse flag nothing here (every control has a name; the filter has a
-  label), but they cannot perform the discriminating scope judgment: which of these
-  many controls are "associated with data entry" (one) versus actions/navigation
-  (the rest). That role/purpose reasoning is what this fixture tests.
--->
 <style>
   :root{ --ink:#0f1722; --muted:#5e6b7c; --line:#e1e6ee; --brand:#3b5bdb; --bg:#f3f5f9; --ok:#1f9d57; --panel:#fff; }
   *{ box-sizing:border-box; }
@@ -60,7 +28,6 @@
   .tabs [role=tab]{ border:0; background:none; padding:10px 14px; font:.92rem/1 "Inter",system-ui,sans-serif; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; }
   .tabs [role=tab][aria-selected=true]{ color:var(--brand); border-bottom-color:var(--brand); font-weight:600; }
   .tabs [role=tab]:focus{ outline:2px solid var(--brand); outline-offset:-2px; }
-  /* The ONE data-entry control: filter field, labelled + instructed. */
   .filter{ background:#fff; border:1px solid var(--line); border-radius:11px; padding:14px 16px; margin-bottom:16px; max-width:560px; }
   .filter label{ display:block; font-weight:700; font-size:.85rem; margin-bottom:5px; }
   .filter .hint{ color:var(--muted); font-size:.8rem; margin:0 0 8px; }
@@ -81,7 +48,6 @@
   .kpi .k{ font-size:.74rem; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
   .kpi .v{ font-size:1.5rem; font-weight:700; margin-top:4px; }
   .kpi .d{ font-size:.78rem; color:var(--ok); margin-top:2px; }
-  /* settings dialog */
   .dlg{ position:fixed; inset:0; background:rgba(15,23,34,.42); display:flex; align-items:center; justify-content:center; }
   .dlg[hidden]{ display:none; }
   .dlg .panel{ background:#fff; border-radius:14px; padding:20px; width:340px; }
@@ -124,7 +90,6 @@
         <button role="tab" aria-selected="false" id="t-lost">Lost</button>
       </div>
 
-      <!-- THE ONE data-entry control: filter field, correctly labelled + instructed -->
       <div class="filter">
         <label for="dealFilter">Filter deals</label>
         <p class="hint" id="filter-hint">Type a company or owner name; results update as you type. Press Esc to clear the filter.</p>
@@ -141,7 +106,6 @@
       <section class="chart" aria-label="New deals over time">
         <strong>New deals over time</strong>
         <div class="ph" role="img" aria-label="Line chart trending upward over the selected week."></div>
-        <!-- Custom span role=button "player" controls for the live ticker: ACTION controls, not data entry -->
         <div class="player" aria-label="Live ticker controls">
           <span class="ctl" role="button" tabindex="0" aria-label="Step back one day">‹</span>
           <span class="ctl" role="button" tabindex="0" id="playCtl" aria-label="Play live updates" aria-pressed="false">▶</span>
@@ -160,7 +124,6 @@
     </main>
   </div>
 
-  <!-- settings dialog: contains toggles that are app-preference switches, opened by the trigger button -->
   <div class="dlg" id="settingsDlg" role="dialog" aria-modal="true" aria-label="Dashboard settings" hidden>
     <div class="panel">
       <h2>Dashboard settings</h2>
@@ -172,23 +135,19 @@
   </div>
 
 <script>
-  // tabs
   document.querySelectorAll('[role=tab]').forEach(function(tab){
     tab.addEventListener('click', function(){
       document.querySelectorAll('[role=tab]').forEach(function(t){ t.setAttribute('aria-selected','false'); });
       tab.setAttribute('aria-selected','true');
     });
   });
-  // export menu
   var eb = document.getElementById('exportBtn'), em = document.getElementById('exportMenu');
   eb.addEventListener('click', function(){ var o = eb.getAttribute('aria-expanded')==='true'; eb.setAttribute('aria-expanded',String(!o)); em.hidden=o; });
   document.addEventListener('click', function(e){ if(!eb.contains(e.target)&&!em.contains(e.target)){ eb.setAttribute('aria-expanded','false'); em.hidden=true; } });
-  // settings dialog
   var sb = document.getElementById('settingsBtn'), sd = document.getElementById('settingsDlg'), cs = document.getElementById('closeSettings');
   sb.addEventListener('click', function(){ sd.hidden=false; sb.setAttribute('aria-expanded','true'); cs.focus(); });
   cs.addEventListener('click', function(){ sd.hidden=true; sb.setAttribute('aria-expanded','false'); sb.focus(); });
   document.addEventListener('keydown', function(e){ if(e.key==='Escape'&&!sd.hidden){ sd.hidden=true; sb.setAttribute('aria-expanded','false'); sb.focus(); } });
-  // segmented + player toggles
   document.querySelectorAll('.seg button').forEach(function(b){
     b.addEventListener('click', function(){ document.querySelectorAll('.seg button').forEach(function(x){ x.setAttribute('aria-pressed','false'); }); b.setAttribute('aria-pressed','true'); });
   });
@@ -198,7 +157,6 @@
   document.querySelectorAll('.player .ctl').forEach(function(c){
     c.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); c.click(); } });
   });
-  // filter: Esc clears (matches its stated instruction)
   var df = document.getElementById('dealFilter');
   df.addEventListener('keydown', function(e){ if(e.key==='Escape'){ df.value=''; } });
 </script>

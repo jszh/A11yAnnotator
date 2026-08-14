@@ -4,18 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The Meridian Dispatch — Premium subscriber gate</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS:
-  The "Continue reading" link is a real <a href> with descriptive text and a fully
-  valid :focus-visible style (a yellow underline + ring). There is no 2.4.7 automated
-  rule, and a CSS scan finds a legitimate focus indicator. The failure lives in the
-  legacy template helper buildSubscribeLink(), which attaches an inline-style focus
-  handler — onfocus="if(this.blur)this.blur();" — to every paywall CTA. When the
-  keyboard user Tabs onto the link, focus is removed in the same tick, so the
-  :focus-visible style never paints and the link is mouse-only. A single static
-  snapshot shows the link unfocused; only watching the Tab sequence over time reveals
-  that focus refuses to settle on it.
--->
 <style>
   :root { --serif: Georgia, "Times New Roman", serif; --ink: #15171a; --rule: #ddd6cc; --brand: #7a1f2b; }
   * { box-sizing: border-box; }
@@ -44,7 +32,6 @@
     display: inline-block; font-family: Arial, sans-serif; font-weight: 700; font-size: 1rem;
     color: var(--brand); text-decoration: underline; text-underline-offset: 3px; padding: 4px 2px;
   }
-  /* Real, valid keyboard focus indicator — it simply never gets to paint. */
   .gate .paywall a.cta:focus-visible {
     outline: 3px solid #e0a800; outline-offset: 3px; background: #fff7e0; border-radius: 3px;
   }
@@ -75,11 +62,6 @@
   <div class="gate">
     <div class="paywall">
       <p>You have reached your free article limit for this month.</p>
-      <!--
-        Legacy template helper buildSubscribeLink() attaches the F55 handler:
-        onfocus="if(this.blur)this.blur();" — F55 Example 3 verbatim. Focus is
-        dropped the instant Tab reaches the link, so the :focus-visible never paints.
-      -->
       <a class="cta" href="/subscribe?ref=harbor-rail"
          onfocus="if(this.blur)this.blur();">Continue reading — subscribe for $1</a>
     </div>

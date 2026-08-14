@@ -34,8 +34,6 @@
   }
   .disclosure-controls button:focus-visible, .disclosure-controls select:focus-visible { outline: 3px solid #1d6fb8; }
 
-  /* The legally required disclosure block is delivered as an SVG image of text and is
-     RE-RENDERED at the user's chosen size and colour — but the re-render omits one line. */
   .disclosure-img { border: 1px solid #d3dce4; border-radius: 8px; background: #fff; padding: 6px; overflow:auto; }
   .disclosure-img svg { display: block; }
 
@@ -59,13 +57,6 @@
   <div class="card">
     <h1>Your quote summary</h1>
 
-    <!--
-      The "Important disclosures" block is a legally required statement rendered as an SVG
-      image of text (to lock the typeface/layout the compliance team approved). A real
-      customization control re-renders it at the user's chosen size and colour. The control
-      WORKS — but the re-rendered ("custom") variant silently OMITS the cooling-off /
-      cancellation line that is present in the default image. Functional control, non-equivalent output.
-    -->
     <h2 id="disc-h">Important disclosures</h2>
     <div class="disclosure-controls" role="region" aria-label="Customize disclosure text">
       <fieldset>
@@ -83,7 +74,6 @@
     </div>
 
     <div class="disclosure-img" id="discWrap" aria-labelledby="disc-h">
-      <!-- Initial (default) image of text: contains ALL four disclosure lines. -->
       <svg id="discSvg" width="780" height="150" viewBox="0 0 780 150" role="img"
            aria-label="Important disclosures (see text)">
         <rect width="780" height="150" fill="#ffffff"></rect>
@@ -111,18 +101,12 @@
 </main>
 
 <script>
-  // The customization control genuinely re-renders the disclosure image of text at the
-  // chosen size and colour (sharp SVG <text>, no pixelation). BUT the re-render template
-  // omits the third line — the 14-day cooling-off / cancellation right — so the customized
-  // output is functional yet NOT equivalent to the original. Controls present + working,
-  // customized result drops material content => fail.
   (function () {
     var wrap = document.getElementById('discWrap');
     var sizeIdx = 0;
     var sizes = [14, 16, 19, 23];
     var hc = false;
 
-    // Note: the cooling-off line is intentionally absent from this re-render template.
     var LINES = [
       'This quote is valid for 14 days and assumes the information you provided is accurate.',
       'Premiums shown exclude the $25 policy-issue fee, which is added at purchase.',
@@ -158,8 +142,6 @@
     document.getElementById('contrastSel').addEventListener('change', function (e) {
       hc = (e.target.value === 'hc'); render();
     });
-    // The default markup stays as authored until the user customizes; first interaction
-    // swaps in the (non-equivalent) re-rendered version.
   })();
 </script>
 </body>

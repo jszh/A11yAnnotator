@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RxBridge Pharmacy — Find your medication</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.55 "Segoe UI",Roboto,Helvetica,Arial,sans-serif; color:#102a3a; background:#eef4f7; }
+  header.brand { background:#0b6b5e; color:#fff; padding:14px 24px; display:flex; align-items:center; gap:12px; }
+  header.brand .logo { font-weight:700; font-size:19px; letter-spacing:.2px; }
+  header.brand .logo span { color:#bff3e7; }
+  header.brand nav { margin-left:auto; display:flex; gap:18px; font-size:14px; }
+  header.brand nav a { color:#dff6f0; text-decoration:none; }
+  .wrap { max-width:760px; margin:32px auto; padding:0 20px; }
+  .card { background:#fff; border-radius:14px; box-shadow:0 8px 26px rgba(11,107,94,.10); padding:28px 30px; }
+  h1 { margin:0 0 6px; font-size:24px; }
+  .lede { margin:0 0 22px; color:#4a6473; }
+  .field { margin-bottom:18px; }
+  label.fieldlabel { display:block; font-weight:600; margin-bottom:7px; }
+  .searchrow { display:flex; gap:10px; }
+  input[type=search] { flex:1; padding:13px 14px; font-size:16px; border:1.5px solid #c4d6dd; border-radius:10px; }
+  input[type=search]:focus { outline:3px solid #9fe0d4; border-color:#0b6b5e; }
+  button.go { background:#0b6b5e; color:#fff; border:none; border-radius:10px; padding:0 22px; font-size:16px; font-weight:600; cursor:pointer; }
+  button.go:hover { background:#08564b; }
+  .hint { font-size:13px; color:#5d7682; margin-top:8px; }
+  .visually-hidden { position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden;
+                     clip:rect(0 0 0 0); clip-path:inset(50%); border:0; white-space:nowrap; }
+  .pop { margin-top:26px; border-top:1px solid #e3edf1; padding-top:18px; }
+  .pop h2 { font-size:14px; text-transform:uppercase; letter-spacing:.06em; color:#6a8290; margin:0 0 10px; }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; }
+  .chip { background:#eef6f4; border:1px solid #cfe6e0; border-radius:999px; padding:6px 12px; font-size:14px; color:#0b6b5e; }
+</style>
+</head>
+<body>
+  <header class="brand">
+    <span class="logo">Rx<span>Bridge</span> Pharmacy</span>
+    <nav><a href="#">Refills</a><a href="#">Transfer</a><a href="#">Account</a></nav>
+  </header>
+
+  <main class="wrap">
+    <div class="card">
+      <h1>Find your medication</h1>
+      <p class="lede">Search by brand or generic name to check price, stock, and pickup time at your store.</p>
+
+      <form class="field" onsubmit="return false;">
+        <!-- The sighted user reads this <label> sitting right above the box: "Search medications". -->
+        <label class="fieldlabel" for="med-search">Search medications</label>
+        <div class="searchrow">
+          <!--
+            THE DEFECT: the input does NOT use the visible <label> for its name. Because an explicit
+            aria-labelledby is present, it WINS over the associated <label> in the name computation.
+            It points at a visually-hidden node whose text is the back-end query parameter "rx-query",
+            which shares ZERO words with the visible label. accName = "rx-query" (non-empty -> every
+            ACT form-field rule passes), but a speech user saying "click Search medications" fails,
+            and a screen-reader user hears a meaningless field name that contradicts what is on screen.
+          -->
+          <input type="search" id="med-search" name="q"
+                 aria-labelledby="rx-query-key"
+                 placeholder="e.g. atorvastatin, Lipitor, ibuprofen">
+          <button type="submit" class="go">Search</button>
+        </div>
+        <span id="rx-query-key" class="visually-hidden">rx-query</span>
+        <p class="hint">Need a prescription transferred? Use the Transfer tab above.</p>
+      </form>
+
+      <section class="pop">
+        <h2>Popular right now</h2>
+        <div class="chips">
+          <span class="chip">Atorvastatin 20 mg</span>
+          <span class="chip">Amoxicillin 500 mg</span>
+          <span class="chip">Metformin 1000 mg</span>
+          <span class="chip">Levothyroxine 75 mcg</span>
+        </div>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

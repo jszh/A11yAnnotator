@@ -4,20 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Account security — change password · Lumen Mail</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS:
-  The error appears DURING TYPING (live inline validation), not on submit, and it is a
-  RED OUTLINE that toggles on the "Confirm new password" field whenever its value does
-  not match "New password". The hint text below the field is STATIC ("Must match the
-  new password above.") and never changes wording, color, or content when the mismatch
-  occurs — so the hint is not an error message, it's a permanent instruction. The only
-  signal that the two passwords currently disagree is the field's red box-shadow outline.
-  axe/WAVE/Lighthouse, even if they could drive typing, see a labeled input with a
-  describedby hint and a CSS outline — no rule classifies the live red outline as the
-  sole error indicator, and no rule notices the hint never updates. A sighted color-blind
-  user typing a mismatch sees no change they can perceive. Pre-rendered here in the
-  mismatch state so an evaluator lands directly in it.
--->
 <style>
   :root { --ink:#1b2330; --muted:#5e6b7a; --line:#cdd6e0; --violet:#5b3fbf; }
   * { box-sizing:border-box; }
@@ -33,13 +19,10 @@
                          border-radius:7px; background:#fff; color:var(--ink); }
   input:focus { outline:2px solid var(--violet); outline-offset:1px; }
 
-  /* === the defect ===
-     When confirm != new, JS adds .mismatch which paints a red outline ONLY.
-     The hint below is unconditional instruction text — it is not an error message. */
   input.mismatch { box-shadow:0 0 0 2px #d31f2f; border-color:#d31f2f; }
   input.mismatch:focus { outline-color:#d31f2f; }
 
-  .hint { font-size:.8rem; color:var(--muted); margin:6px 0 0; }  /* static, never changes */
+  .hint { font-size:.8rem; color:var(--muted); margin:6px 0 0; }  
 
   button { padding:11px 22px; font-size:1rem; font-weight:600; color:#fff; background:var(--violet);
            border:0; border-radius:7px; cursor:pointer; }
@@ -63,10 +46,8 @@
       </div>
       <div class="field">
         <label for="cp">Confirm new password</label>
-        <!-- pre-rendered in the mismatch state: value differs from #np, so .mismatch is set -->
         <input id="cp" type="password" autocomplete="new-password" class="mismatch"
                aria-describedby="cphint" value="Sunflower!2025">
-        <!-- This is a permanent INSTRUCTION, not an error message. It never changes on mismatch. -->
         <p class="hint" id="cphint">Must match the new password above.</p>
       </div>
       <button type="submit">Update password</button>
@@ -76,8 +57,6 @@
 </div>
 
 <script>
-  // Live inline validation: toggle a red outline on the confirm field as the user types.
-  // Nothing else changes — the hint text is static; no message is shown/hidden; no icon.
   var np = document.getElementById('np'), cp = document.getElementById('cp');
   function sync() {
     var bad = cp.value.length > 0 && cp.value !== np.value;
@@ -85,7 +64,6 @@
   }
   np.addEventListener('input', sync);
   cp.addEventListener('input', sync);
-  // initial state already set in markup (.mismatch present); sync keeps it honest if edited
   sync();
 </script>
 </body>

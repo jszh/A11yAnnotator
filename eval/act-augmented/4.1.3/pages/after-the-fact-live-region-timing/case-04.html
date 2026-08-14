@@ -19,7 +19,6 @@
   .sym { font-weight:700; }
   .name { color:var(--muted); font-size:.82rem; }
   .price { font-variant-numeric:tabular-nums; font-size:1.15rem; font-weight:700; }
-  /* the alert slot built by the component */
   .alert-line { font-size:.82rem; margin-top:4px; }
   .alert-line.up { color:var(--up); }
   .alert-line.down { color:var(--down); }
@@ -59,7 +58,6 @@
     <div class="price">$248.10</div>
   </div>
 
-  <!-- When a threshold is crossed, the app mounts a <price-alert> custom element here. -->
   <div id="alert-mount" aria-label="Price alerts"></div>
 
   <div class="devnote">
@@ -75,19 +73,12 @@
 </main>
 
 <script>
-  // Persona: a fintech team built a reusable <price-alert> Web Component. The author put ALL the rendering in
-  // connectedCallback (idiomatic for custom elements) — including creating the role="status" node and writing its
-  // text — so the element is "self-contained." They assumed "it has role=status and aria-live, so screen readers
-  // announce it." They did not realize that mounting a custom element whose connectedCallback synchronously builds
-  // a filled live region produces a region that is born with its content: there is no empty registered region to
-  // mutate. Sighted demos showed the alert appearing, so it shipped.
   class PriceAlert extends HTMLElement {
     connectedCallback() {
       var sym = this.getAttribute('symbol') || '';
       var dir = this.getAttribute('direction') || 'up';
       var price = this.getAttribute('price') || '';
 
-      // ---- temporal failure: the live region + its text are built as the element connects ----
       var line = document.createElement('div');
       line.setAttribute('role', 'status');
       line.setAttribute('aria-live', 'assertive');
@@ -96,7 +87,6 @@
       line.textContent = (dir === 'up')
         ? 'Alert: ' + sym + ' rose above your target, now ' + price
         : 'Alert: ' + sym + ' fell below your target, now ' + price;
-      // The region already holds its message at the moment it joins the document.
       this.appendChild(line);
 
       var self = this;
@@ -105,14 +95,12 @@
   }
   customElements.define('price-alert', PriceAlert);
 
-  // Simulate a threshold crossing a couple seconds in.
   function fireAlert(sym, dir, price) {
     var mount = document.getElementById('alert-mount');
     var el = document.createElement('price-alert');
     el.setAttribute('symbol', sym);
     el.setAttribute('direction', dir);
     el.setAttribute('price', price);
-    // Appending triggers connectedCallback, which builds the already-filled live region.
     mount.appendChild(el);
   }
   setTimeout(function () { fireAlert('NVDA', 'up', '$1,205.00'); }, 2500);

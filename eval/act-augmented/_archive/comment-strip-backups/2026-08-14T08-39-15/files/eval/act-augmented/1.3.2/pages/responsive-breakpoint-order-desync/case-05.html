@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.3.2 FAILURE — Responsive-breakpoint order desync (conditional on viewport).
+
+    A podcast episode "chapter" navigator with a labelled transport row. The controls form a
+    DIRECTIONALLY MEANINGFUL sequence read as a sentence by the surrounding caption:
+    "Use the controls below to move through the episode, left to right: previous chapter,
+     play, next chapter." The visible labels also use arrows: "‹ Previous chapter",
+    "Next chapter ›". Left-to-right ordering of Previous/Next is itself a convention that
+    carries meaning (back is left, forward is right).
+
+    Source order: Previous, Play, Next  -> correct.
+    Desktop render: Previous | Play | Next  -> correct, matches the caption "left to right".
+
+    On mobile (max-width:560px) a designer reversed the row with flex `order` to put the
+    most-used "Next chapter" button under the dominant thumb position (right side becomes
+    where Next was, but they over-rotated and produced):
+        Next | Play | Previous
+    Now the visual left-to-right order is Next, Play, Previous, which CONTRADICTS the caption
+    "left to right: previous, play, next" and inverts the back/forward spatial convention.
+    The arrows still say "‹ Previous" and "Next ›", so the left-pointing "‹ Previous" button
+    now sits on the RIGHT and the right-pointing "Next ›" on the LEFT — directional meaning
+    is broken at exactly one viewport. (Tab/DOM order stays Previous, Play, Next.)
+
+    WHY AUTOMATED TOOLS MISS IT: every button is a real <button> with a correct accessible
+    name; DOM order is correct; flex `order` is legal. A single-viewport audit never renders
+    the mobile reversal; even rendered, judging that "the caption says left-to-right previous
+    then next, but the visual order is next then previous, so the directional meaning is
+    wrong" requires reading the caption, knowing the back/forward convention, and comparing
+    rendered states. The desktop and mobile DOM are identical.
+  -->
+  <title>Episode 142 — The Longitude Problem — Cartographers' Almanac</title>
+  <style>
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Inter", system-ui, sans-serif; color:#e8edf2;
+           background:#0f1620; line-height:1.6; }
+    .player { max-width:40rem; margin:2.4rem auto; background:#19222e; border:1px solid #27323f;
+              border-radius:14px; padding:1.4rem 1.5rem 1.6rem; }
+    .show { font-size:.78rem; text-transform:uppercase; letter-spacing:.18em; color:#7fd1c4; }
+    h1 { font-size:1.25rem; margin:.3rem 0 .2rem; }
+    .ch { font-size:.9rem; color:#9fb0c0; margin:0 0 1rem; }
+    .scrub { height:6px; background:#27323f; border-radius:3px; margin:1rem 0 .4rem; }
+    .scrub > i { display:block; width:38%; height:100%; background:#7fd1c4; border-radius:3px; }
+    .times { display:flex; justify-content:space-between; font-size:.75rem; color:#8a9bab; }
+
+    .caption { font-size:.86rem; color:#b7c4d0; margin:1.2rem 0 .5rem; }
+
+    /* The transport controls: a directionally meaningful left-to-right sequence. */
+    .transport { display:flex; gap:.8rem; align-items:center; justify-content:center; }
+    .transport button {
+      flex:1; padding:.7rem .6rem; border-radius:10px; border:1px solid #34414f;
+      background:#222d3a; color:#e8edf2; font-size:.92rem; font-weight:600; cursor:pointer;
+    }
+    .transport button.play {
+      flex:0 0 4.5rem; background:#7fd1c4; color:#10212a; border-color:#7fd1c4;
+    }
+    .btn-prev { order:1; }
+    .btn-play { order:2; }
+    .btn-next { order:3; }
+
+    /* ===== MOBILE BREAKPOINT — the bug lives here ===== */
+    @media (max-width: 560px) {
+      /* "Reverse the transport so the thumb reaches the buttons better on phones."
+         This flips visual order to Next | Play | Previous, contradicting the caption's
+         stated left-to-right: previous, play, next — and inverting back/forward. */
+      .btn-prev { order:3; }
+      .btn-play { order:2; }
+      .btn-next { order:1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="player">
+    <p class="show">Cartographers' Almanac</p>
+    <h1>Episode 142 — The Longitude Problem</h1>
+    <p class="ch">Now playing chapter 3 of 7: “Harrison's Sea Clock”</p>
+
+    <div class="scrub" aria-hidden="true"><i></i></div>
+    <div class="times"><span>18:24</span><span>−29:11</span></div>
+
+    <!-- The caption explicitly fixes the meaning of the LEFT-TO-RIGHT order. -->
+    <p class="caption" id="transport-help">Use the controls below to move through the episode,
+    left to right: previous chapter, play, next chapter.</p>
+
+    <!-- Source/DOM order: Previous, Play, Next (matches the caption). -->
+    <div class="transport" role="group" aria-labelledby="transport-help">
+      <button type="button" class="btn-prev">‹ Previous chapter</button>
+      <button type="button" class="btn-play play" aria-label="Play">▶</button>
+      <button type="button" class="btn-next">Next chapter ›</button>
+    </div>
+  </div>
+</body>
+</html>

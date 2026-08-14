@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deployments — Aperture Cloud Console</title>
+<style>
+  :root { --ac-bg:#0f1320; --ac-panel:#171c2c; --ac-line:#26304a; --ac-ink:#e7ebf3; --ac-mut:#9aa4bd; --ac-accent:#4f8cff; --ac-green:#34d399; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"IBM Plex Sans",system-ui,Arial,sans-serif; background:var(--ac-bg); color:var(--ac-ink); font-size:14px; }
+  .topbar { display:flex; align-items:center; gap:.8rem; padding:.8rem 1.25rem; border-bottom:1px solid var(--ac-line); }
+  .topbar .logo { font-weight:700; color:var(--ac-accent); }
+  .topbar .crumb { color:var(--ac-mut); font-size:.85rem; }
+  main { padding:1.5rem 1.25rem; max-width:980px; margin:0 auto; }
+  h1 { font-size:1.35rem; margin:0 0 1rem; }
+  table { width:100%; border-collapse:collapse; background:var(--ac-panel); border:1px solid var(--ac-line); border-radius:10px; overflow:hidden; }
+  th, td { text-align:left; padding:.7rem .9rem; border-bottom:1px solid var(--ac-line); font-size:.88rem; }
+  th { color:var(--ac-mut); font-weight:600; font-size:.78rem; text-transform:uppercase; letter-spacing:.05em; }
+  tr:last-child td { border-bottom:0; }
+  .pill { display:inline-flex; align-items:center; gap:.35rem; font-size:.78rem; padding:.18rem .5rem; border-radius:999px; }
+  .pill.live { background:rgba(52,211,153,.14); color:var(--ac-green); }
+  .pill.build { background:rgba(79,140,255,.14); color:var(--ac-accent); }
+  .rowactions { position:relative; text-align:right; }
+  /* The "more actions" kebab — a focusable div with role=button and onkeyup wired up */
+  .kebab {
+    display:inline-grid; place-items:center; width:30px; height:30px; border-radius:7px;
+    color:var(--ac-mut); cursor:pointer; user-select:none; font-size:1.1rem; line-height:1;
+  }
+  .kebab:hover { background:#212a40; color:var(--ac-ink); }
+  .kebab:focus { outline:2px solid var(--ac-accent); outline-offset:1px; }
+  .menu {
+    position:absolute; right:.6rem; top:2.4rem; min-width:170px; background:#1c2436;
+    border:1px solid var(--ac-line); border-radius:9px; box-shadow:0 14px 40px rgba(0,0,0,.5);
+    padding:.3rem; display:none; z-index:5; text-align:left;
+  }
+  .menu.open { display:block; }
+  .menu button { display:block; width:100%; text-align:left; background:none; border:0; color:var(--ac-ink);
+    padding:.5rem .6rem; border-radius:6px; font-size:.86rem; cursor:pointer; }
+  .menu button:hover, .menu button:focus { background:#2a3550; outline:none; }
+  .toast { position:fixed; right:1.25rem; bottom:1.25rem; background:#1c2436; border:1px solid var(--ac-line);
+    padding:.6rem .9rem; border-radius:8px; font-size:.85rem; opacity:0; transition:opacity .18s; }
+  .toast.show { opacity:1; }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <span class="logo">◭ Aperture</span>
+  <span class="crumb">Projects / storefront-api / Deployments</span>
+</div>
+
+<main>
+  <h1>Deployments</h1>
+  <table>
+    <thead>
+      <tr><th>Commit</th><th>Environment</th><th>Status</th><th>Deployed</th><th><span class="sr">Actions</span></th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>a3f10c9</code> — tighten rate limiter</td>
+        <td>production</td>
+        <td><span class="pill live">● Live</span></td>
+        <td>4 min ago</td>
+        <td class="rowactions">
+          <!-- Kebab #1. role=button + tabindex + onkeydown => looks fully keyboard-ready.
+               But the handler gates on event.charCode, which is ALWAYS 0 for the keydown
+               event (charCode is only meaningful for keypress), so the Enter/Space branch
+               never runs in any browser. The menu cannot be opened from the keyboard. -->
+          <div class="kebab" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false"
+               aria-label="More actions for commit a3f10c9"
+               onclick="toggleMenu(this)" onkeydown="kebabKey(event, this)">⋮</div>
+          <div class="menu" role="menu" aria-label="Deployment actions">
+            <button role="menuitem" onclick="doAction('Redeploy queued')">Redeploy</button>
+            <button role="menuitem" onclick="doAction('Rollback started')">Roll back</button>
+            <button role="menuitem" onclick="doAction('Logs opened')">View logs</button>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td><code>7be22a1</code> — add staging banner</td>
+        <td>staging</td>
+        <td><span class="pill build">● Building</span></td>
+        <td>22 min ago</td>
+        <td class="rowactions">
+          <div class="kebab" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false"
+               aria-label="More actions for commit 7be22a1"
+               onclick="toggleMenu(this)" onkeydown="kebabKey(event, this)">⋮</div>
+          <div class="menu" role="menu" aria-label="Deployment actions">
+            <button role="menuitem" onclick="doAction('Build cancelled')">Cancel build</button>
+            <button role="menuitem" onclick="doAction('Logs opened')">View logs</button>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+  function toggleMenu(kebab) {
+    var menu = kebab.nextElementSibling;
+    var open = menu.classList.toggle('open');
+    kebab.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  function doAction(msg) {
+    document.querySelectorAll('.menu.open').forEach(function (m) { m.classList.remove('open'); });
+    var t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(function () { t.classList.remove('show'); }, 2000);
+  }
+  // The kebab keyboard handler is bound to keydown but inspects event.charCode. For a
+  // keydown event charCode is ALWAYS 0 (charCode is only populated for the deprecated
+  // keypress event, and even then only for printing characters). So `c` is 0 for every
+  // key, the Enter (13) / Space (32) branch never matches, and toggleMenu() is never
+  // called from the keyboard — in EVERY browser. The handler is present (so the markup
+  // reads as keyboard-ready) but it can never activate. The developer should have read
+  // event.key === 'Enter' || event.key === ' '. There is no other keyboard path to the menu.
+  function kebabKey(event, kebab) {
+    var c = event.charCode;            // BUG: always 0 on keydown
+    if (c === 13 || c === 32) {        // never true → activation silently dead
+      event.preventDefault();
+      toggleMenu(kebab);
+    }
+  }
+</script>
+</body>
+</html>

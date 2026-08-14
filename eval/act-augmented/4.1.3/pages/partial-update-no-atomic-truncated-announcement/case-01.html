@@ -18,7 +18,6 @@
   .rx { border:1px solid var(--line); border-radius:10px; padding:20px 22px; background:#fff; }
   .rx h2 { font-size:18px; margin:0 0 2px; }
   .rx .gen { color:#52606d; font-size:14px; margin:0 0 16px; }
-  /* The refill status line. role=status, aria-live=polite. */
   .refill-status { display:flex; align-items:center; gap:8px;
                    background:#eef6f7; border:1px solid #bfe0e3; border-radius:8px;
                    padding:10px 14px; font-size:16px; color:#0d4f56; margin:0 0 18px; }
@@ -45,14 +44,6 @@
     <h2 id="rx-name">Levothyroxine 50 mcg</h2>
     <p class="gen">Generic for Synthroid · Take 1 tablet by mouth each morning</p>
 
-    <!--
-      The refill counter is a polite live region (role="status").
-      The DEFECT: the developer set aria-atomic="false" EXPLICITLY (copied from a
-      "stop the screen reader being chatty" snippet), overriding the role's default
-      of true. So when the count node alone is rewritten, the AT announces only the
-      changed text-node subtree ("two") — never the static "refills remaining" words
-      that sit in sibling nodes inside the same region.
-    -->
     <p class="refill-status" role="status" aria-atomic="false" id="refill-region">
       <span aria-hidden="true">💊</span>
       <span>You have</span>
@@ -76,17 +67,12 @@
 </footer>
 
 <script>
-  // Refill flow: each request decrements the authorized refill count.
-  // The state lives in one variable bound to ONE text node inside the live region.
   var refills = 3;
   var btn = document.getElementById('use');
   var countEl = document.getElementById('refill-count');
   btn.addEventListener('click', function () {
     if (refills <= 0) return;
     refills -= 1;
-    // ONLY the inner number node is rewritten. The static "You have" / "refills
-    // remaining" words never change, and aria-atomic="false" means the AT speaks
-    // just the mutated subtree — the lone number.
     countEl.textContent = String(refills);
     if (refills === 0) {
       btn.disabled = true;

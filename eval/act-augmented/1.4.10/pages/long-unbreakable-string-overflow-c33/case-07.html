@@ -27,7 +27,7 @@
   code.digest {
     font:13px/1.5 "SF Mono",Menlo,Consolas,monospace;
     background:#f2f1fb; color:#241a4d; padding:3px 8px; border-radius:6px;
-    overflow-wrap:anywhere;            /* the FULL value wraps cleanly — it never overflows 320px */
+    overflow-wrap:anywhere;            
   }
   .copywrap { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:6px; }
   button.copy {
@@ -35,27 +35,14 @@
     background:#fff; border-radius:8px; cursor:pointer; color:var(--ink);
   }
   .copied { color:var(--ok); font-size:.8rem; }
-  /* The full SHA-256 release digest is the value an operator must verify byte-for-byte before
-     trusting an artifact. At the DEFAULT/desktop viewport the FULL 64-hex digest is rendered
-     (`.full`) and a working "Copy full digest" button is shown — the value is genuinely present
-     and reachable. The desktop digest already wraps (overflow-wrap:anywhere), so it never causes
-     any horizontal scroll; the page reflows perfectly at every width (zero overflow at 320px).
-
-     THE FAILURE (F102): a `@media (max-width:600px)` block — which is active in the 320px reflow
-     viewport — SWAPS the full digest out (`.full{display:none}`) for a short, hard-coded
-     middle-ellipsis abbreviation (`.short`), AND hides the Copy button (`.copywrap{display:none}`).
-     So content that WAS available at the wider (1280px) viewport — the complete digest, plus the
-     only mechanism to obtain it — DISAPPEARS after reflow to 320px, with no disclosure, dialog, or
-     link offering it in some other way. That is exactly F102's failure condition. Nothing overflows,
-     so a naive overflow check passes; only a 1280px-vs-320px comparison reveals the lost content. */
   .short { display:none;
     font:13px/1.5 "SF Mono",Menlo,Consolas,monospace;
     background:#f2f1fb; color:#241a4d; padding:3px 8px; border-radius:6px;
   }
   @media (max-width: 600px) {
-    .full { display: none; }              /* full digest gone at the reflow viewport */
-    .copywrap { display: none; }          /* the only way to get it is gone too */
-    .short { display: inline; }           /* replaced by a lossy head…tail abbreviation */
+    .full { display: none; }              
+    .copywrap { display: none; }          
+    .short { display: inline; }           
   }
   .note { background:#fbfbff; border:1px solid #e6e3fb; border-radius:10px; padding:12px 14px; font-size:.88rem; color:var(--muted); margin-top:16px; }
   footer { color:var(--muted); font-size:.8rem; border-top:1px solid var(--line); margin-top:24px; padding-top:14px; }

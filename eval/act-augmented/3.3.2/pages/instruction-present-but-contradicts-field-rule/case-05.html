@@ -4,20 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Make a gift — Riverside Food Bank</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS:
-  The donation-amount field has a correctly associated, VISIBLE instruction with a worked
-  example via aria-describedby ("Enter an amount in US dollars — for example 25.00"). The
-  hint is non-empty, gives a concrete example, and is in the accessibility tree. axe /
-  WAVE / Lighthouse confirm: <label for> resolves, aria-describedby resolves, contrast
-  fine, role textbox. The "instruction present" facet of 3.3.2 (TT 5.A) passes.
-  THE DEFECT IS SEMANTIC: the field's ENFORCED rule rejects decimals — step="1",
-  pattern="\d+" (no dot), inputmode="numeric", and the submit validator accepts WHOLE
-  DOLLARS ONLY. So the very example the instruction provides, "25.00", is itself an
-  INVALID value for this field. A user who types the worked example verbatim is rejected.
-  No checker reads "25.00" from the prose, reads step="1"/pattern="\d+", and judges that
-  the offered example violates the field's own rule.
--->
 <style>
   :root{ --ink:#1c1a17; --muted:#665f54; --line:#e0d8c9; --brand:#b5481b; --accent:#2e7d57;
          --danger:#b1271b; --paper:#fffdf9; }
@@ -67,7 +53,6 @@
           <button type="button" data-amt="50">$50</button>
         </div>
 
-        <!-- DEFECTIVE CONTROL: the worked example "25.00" is itself invalid (no decimals allowed). -->
         <div class="field">
           <label for="amount">Or enter another amount</label>
           <p class="hint" id="amount-hint">Enter an amount in US dollars — for example 25.00.</p>
@@ -99,14 +84,12 @@
   form.addEventListener('submit', function(e){
     e.preventDefault();
     var v = amt.value.trim();
-    // ENFORCED RULE: WHOLE DOLLARS ONLY — no decimal point. So "25.00" (the printed example) FAILS.
     if (/^\d+$/.test(v) && parseInt(v,10) >= 1) {
       amt.setAttribute('aria-invalid','false');
       err.textContent = 'Thank you! Processing your $' + v + ' gift…';
       err.style.color = '#2e7d57';
     } else {
       amt.setAttribute('aria-invalid','true');
-      // Real rule surfaces only on failure: cents are not allowed.
       err.textContent = 'Please enter a whole dollar amount with no cents (for example 25).';
       err.style.color = '';
       amt.focus();

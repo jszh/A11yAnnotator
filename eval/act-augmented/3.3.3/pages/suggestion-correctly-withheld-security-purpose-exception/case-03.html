@@ -4,29 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Payment — Brightleaf Coffee Co. checkout</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS (expected: FAILED — but the failure is on ONE field):
-  This checkout shows TWO fields in the post-submit error state, each with the SAME
-  terse message style:
-    (A) Security code (CVV): error "Invalid security code." — CORRECT to withhold.
-        The CVV is a security-sensitive field; revealing the expected value or how
-        "close" the entry is would defeat the card-verification purpose. For this
-        field the generic, non-suggesting message is the CONFORMANT outcome (PASS limb).
-    (B) ZIP / postal code: error "Invalid." — A REAL 3.3.3 FAILURE.
-        The ZIP is NOT security-sensitive. The correct value IS knowable and a
-        suggestion IS possible ("ZIP codes are 5 digits, e.g. 94107" or "Did you mean
-        94107?"). The page gives only a bare "Invalid" with no description of the
-        problem and no suggestion for correction. The exception does NOT apply here,
-        so the missing suggestion is a genuine failure.
-  The judge must apply the security exception SELECTIVELY: identical-looking generic
-  errors, one conformant (CVV) and one failing (ZIP). An automated tool cannot
-  distinguish a security-sensitive field from a non-sensitive one, so it would treat
-  both messages identically — either passing both (missing the ZIP failure) or
-  flagging both (wrongly faulting the CVV). The page is overall FAILED because of the
-  ZIP field; the CVV is the foil that forces the discriminating judgment.
-  Structurally every error is named, associated via aria-describedby, visible, and
-  high-contrast — axe/WAVE/Lighthouse object to nothing.
--->
 <style>
   :root{ --ink:#1a1410; --muted:#6a5d52; --line:#ddd2c6; --brand:#6f4e2e; --accent:#c0792f;
          --danger:#a4231f; --paper:#fffdf9; }
@@ -82,7 +59,6 @@
               <input id="exp" name="exp" value="04/27" autocomplete="cc-exp">
             </div>
             <div class="field">
-              <!-- (A) SECURITY-SENSITIVE FIELD — generic withheld message is CORRECT (PASS limb) -->
               <label for="cvv">Security code</label>
               <input id="cvv" name="cvv" inputmode="numeric" maxlength="4"
                      value="•••" aria-invalid="true" aria-describedby="cvv-error"
@@ -110,7 +86,6 @@
               <input id="city" name="city" value="San Francisco" autocomplete="address-level2">
             </div>
             <div class="field">
-              <!-- (B) NON-SENSITIVE FIELD — bare "Invalid" with no suggestion is a REAL 3.3.3 FAILURE -->
               <label for="zip">ZIP code</label>
               <input id="zip" name="zip" inputmode="numeric"
                      value="941" aria-invalid="true" aria-describedby="zip-error"

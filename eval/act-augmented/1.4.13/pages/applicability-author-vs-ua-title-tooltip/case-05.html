@@ -27,9 +27,6 @@
   .col svg { width: 100%; display: block; cursor: pointer; }
   .col .mon { margin-top: 8px; font-size: 12px; color: #4c5d54; }
 
-  /* AUTHOR overlay tooltip. Appears on hover of a bar, positioned floating near the
-     cursor anchor. It shows a RICHER, DIFFERENT string than the SVG <title>. It is
-     pointer-events:none and has no Esc handler. */
   .vtip {
     position: absolute; background: #1f2d27; color: #fff; font-size: 12px; line-height: 1.4;
     padding: 7px 10px; border-radius: 6px; pointer-events: none; white-space: nowrap;
@@ -51,9 +48,6 @@
 
     <div class="chart" id="chart">
       <div class="bars">
-        <!-- Each bar's <rect> has an SVG <title> child: the browser renders THAT as a
-             native tooltip (UA-controlled). The author ALSO shows .vtip on hover with
-             a DIFFERENT, richer string. Two bubbles, two owners, two contents. -->
         <div class="col">
           <svg viewBox="0 0 40 130" role="img" aria-label="February: 612 kilowatt hours">
             <rect class="bar" x="6" y="40" width="28" height="90" rx="3" fill="#3aa17e"
@@ -102,9 +96,6 @@
   </main>
 
   <script>
-    // Author overlay tooltip. The SVG <title> tooltip is left entirely to the UA.
-    // This overlay shows the data-rich string near the hovered bar; it never reacts
-    // to Escape and is pointer-events:none, so the AUTHOR content fails 1.4.13.
     var chart = document.getElementById('chart');
     var tip = document.createElement('div');
     tip.className = 'vtip'; tip.setAttribute('role', 'tooltip');
@@ -121,14 +112,5 @@
     });
   </script>
 
-  <!-- WHY AUTOMATED TOOLS MISS IT:
-       On every bar there are TWO sources of on-hover content with two owners: the SVG
-       <title> (browser-rendered, UA-controlled, OUT of scope for 1.4.13) and the
-       author .vtip overlay (in scope). They even carry DIFFERENT text. A scanner sees
-       a valid <title> in the SVG and a JS-built div and cannot reason that only the
-       author overlay is governed by 1.4.13, nor that the overlay (pointer-events:none,
-       no Esc, repositions under the cursor) fails hoverable+dismissible. Separating
-       which content the SC governs, and judging the overlay's interaction behavior,
-       requires human visual + semantic reasoning. -->
 </body>
 </html>

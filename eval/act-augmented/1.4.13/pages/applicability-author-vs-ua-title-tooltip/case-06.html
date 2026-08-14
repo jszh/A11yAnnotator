@@ -30,9 +30,6 @@
   .submit { margin-top: 8px; height: 44px; width: 100%; border: 0; border-radius: 8px;
             background: var(--ok); color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; }
 
-  /* Modal dialog backdrop + box. This dialog is opened when the high-risk amount
-     field RECEIVES FOCUS (a security confirmation). It is modal: it traps focus,
-     dims the page, and must be acknowledged. */
   .backdrop {
     position: fixed; inset: 0; background: rgba(8,18,32,.55);
     display: none; align-items: center; justify-content: center; z-index: 50;
@@ -75,11 +72,6 @@
 
       <div class="field">
         <label for="amount">Amount (USD)</label>
-        <!-- When this high-risk field gains focus, a MODAL security dialog opens,
-             takes keyboard focus, and dims the page. This is NOT hover/focus-
-             transient additional content (a non-modal tooltip/popup); it is a modal
-             that must be acknowledged. => OUT OF SCOPE for 1.4.13 (modal carve-out);
-             relevant instead to 3.2.1 On Focus. -->
         <input id="amount" type="number" min="0" step="0.01" placeholder="0.00"
                aria-describedby="amt-hint">
         <div class="hint" id="amt-hint">Wires over $10,000 require step-up verification.</div>
@@ -95,7 +87,6 @@
     </p>
   </main>
 
-  <!-- Modal dialog opened on focus of the amount field -->
   <div class="backdrop" id="backdrop">
     <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-title" aria-describedby="dlg-desc">
       <h3 id="dlg-title">Confirm high-risk transfer</h3>
@@ -111,9 +102,6 @@
   </div>
 
   <script>
-    // Open a MODAL dialog when the amount field receives focus. The dialog takes
-    // keyboard focus (moves focus to its confirm button) and is dismissible via
-    // Escape / Cancel — i.e. it behaves as a modal, not as transient hover content.
     var amount = document.getElementById('amount');
     var backdrop = document.getElementById('backdrop');
     var confirmBtn = document.getElementById('dlg-confirm');
@@ -126,7 +114,7 @@
       opened = true;
       lastFocus = document.activeElement;
       backdrop.setAttribute('data-open', 'true');
-      confirmBtn.focus();               // takes keyboard focus => modal
+      confirmBtn.focus();               
     }
     function closeDialog(returnFocus) {
       backdrop.removeAttribute('data-open');
@@ -138,7 +126,6 @@
     confirmBtn.addEventListener('click', function () { closeDialog(true); });
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' && opened) { closeDialog(true); }
-      // simple focus trap inside the dialog
       if (e.key === 'Tab' && opened) {
         var f = [cancelBtn, confirmBtn];
         var i = f.indexOf(document.activeElement);
@@ -148,15 +135,5 @@
     });
   </script>
 
-  <!-- WHY AUTOMATED TOOLS MISS THE JUDGMENT THIS PAGE REQUIRES:
-       This page shows additional content (a dialog) appearing ON FOCUS — superficially
-       the trigger pattern 1.4.13 targets. A naive reviewer (or a heuristic) might apply
-       1.4.13 and start testing hoverable/dismissible/persistent. But 1.4.13 explicitly
-       excludes modal dialogs ("Modal dialogs are out of scope... they must take
-       keyboard focus"). The correct verdict is NOT-APPLICABLE to 1.4.13 (it is governed
-       by 3.2.1 On Focus instead). Deciding that this focus-triggered content is a modal
-       (it takes focus, traps it, dims the page) rather than a non-modal tooltip is a
-       judgment about behavior and intent that no static checker can make — both produce
-       "content appears on focus" in the DOM. -->
 </body>
 </html>

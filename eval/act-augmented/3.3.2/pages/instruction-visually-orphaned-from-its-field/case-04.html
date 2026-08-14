@@ -26,7 +26,6 @@
   .actions { margin:26px 0 0; padding-top:20px; border-top:1px solid var(--line); }
   .submit { background:var(--crimson); color:#fff; border:0; border-radius:5px; font-weight:bold;
             font-size:1rem; padding:12px 28px; cursor:pointer; font-family:Arial,sans-serif; }
-  /* The "Notes" block where ALL field instructions were collected — placed AFTER the submit button. */
   .post-notes { margin:22px 0 0; font-family:Arial,sans-serif; font-size:.82rem; color:var(--muted);
                 line-height:1.5; }
   .post-notes h3 { font-size:.82rem; text-transform:uppercase; letter-spacing:.06em; color:var(--ink);
@@ -49,8 +48,6 @@
       </div>
 
       <div class="two">
-        <!-- THE GOVERNED FIELD. The TIN/SSN entry forbids dashes and requires exactly 9 digits.
-             That rule is NOT stated beside the field — it is in the Notes block AFTER the button. -->
         <div class="field">
           <label for="tin">Taxpayer identification number (SSN or ITIN)</label>
           <input type="text" id="tin" name="tin" inputmode="numeric" autocomplete="off">
@@ -75,8 +72,6 @@
         <button type="submit" class="submit">Save and continue to Section 5</button>
       </div>
 
-      <!-- Instruction lives here, AFTER the action. In reading and visual order it follows the
-           button, so it informs nothing at the point of entry. -->
       <div class="post-notes">
         <h3>Notes</h3>
         <ul>
@@ -88,18 +83,5 @@
     </form>
   </main>
 
-  <!--
-    WHY AUTOMATED TOOLS MISS IT
-    The TIN format instruction ("9 digits with no dashes or spaces") is present in the DOM, is a
-    complete and accurate sentence, and is high-contrast and readable — so every "instruction
-    exists?" check passes. The TIN field also has a proper visible <label>, so no missing-label
-    rule fires. The defect is ordering/position: the instruction is collected in a "Notes" block
-    that comes AFTER the submit button, so in both visual order and DOM reading order it FOLLOWS
-    the action rather than informing the field. A user who fills the fields top-to-bottom and
-    presses "Save and continue" never sees it. axe/WAVE/Lighthouse do not model "is this
-    instruction positioned before or after the control/action it governs" and cannot tell that the
-    note explains a field rendered far above it. Detecting that the instruction is positioned where
-    it cannot inform the field is a reading-order / layout judgment on the rendered page.
-  -->
 </body>
 </html>

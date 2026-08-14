@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <!-- Permissive viewport; zoom allowed → b4f0c3 passes. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bus 12 — Weekday Timetable &amp; Service Notes · Metro Transit</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font: 16px/1.6 "Public Sans", system-ui, sans-serif;
+      color: #14202b; background: #eef2f5;
+    }
+    header.metro { background: #0b2f4a; color: #e8f1f9; padding: 14px 18px; }
+    header.metro h1 { margin: 0; font-size: 1.2rem; }
+    header.metro p { margin: 3px 0 0; font-size: .85rem; color: #b9d4e8; }
+
+    /* THE DEFECT — the subtle one this aspect is really about.
+       The timetable IS a genuine data table and genuinely needs a 2-D layout
+       (stop columns × trip rows), so the table itself is EXCEPTED from Reflow.
+       BUT the author let the whole page take the table's width: the content
+       wrapper is plain (no max-width), the table is min-width:760px, and it is
+       NOT in its own scroll container. So the table widens the PAGE, and the
+       non-excepted prose around it — the service-notes paragraphs and the
+       headings — is dragged off the right edge too. Per the Understanding doc
+       ("the exception does not extend"), the table passing does NOT excuse the
+       prose: the surrounding non-excepted text must still reflow, and here it
+       does not. This is a FAIL even though the overflowing element is a real
+       data table. */
+    /* The author sized the content wrapper to match the timetable so it would
+       "line up" with the table — width:760px. The table is excepted, but this
+       also forces the paragraphs and headings to form a 760px line box: their
+       text wraps at 760px, not at the 320px viewport, so each line of ordinary
+       prose runs off the right edge and needs horizontal scrolling to read.
+       That is the non-excepted content failing Reflow. */
+    .page { width: 760px; padding: 20px; }
+    .page h2 { font-size: 1.2rem; margin: 1.4em 0 .4em; }
+    .page p { margin: 0 0 1em; }        /* wraps at 760px, not at 320px → text runs off-canvas */
+
+    table.timetable {
+      border-collapse: collapse;
+      min-width: 760px;                 /* genuinely wide tabular data, NOT contained */
+      margin: 0 0 1.4em;
+    }
+    table.timetable caption { text-align: left; font-weight: 600; padding: 0 0 .5em; }
+    table.timetable th, table.timetable td {
+      border: 1px solid #c7d4de; padding: 7px 11px; text-align: center; white-space: nowrap;
+    }
+    table.timetable th[scope="col"] { background: #dceaf4; }
+    table.timetable th[scope="row"] { background: #f0f5f9; text-align: left; }
+  </style>
+</head>
+<body>
+  <header class="metro">
+    <h1>Metro Transit — Route 12 (Downtown ↔ University)</h1>
+    <p>Weekday timetable, effective June 2026</p>
+  </header>
+
+  <div class="page">
+    <h2>Before you ride</h2>
+    <p>Route 12 runs every twenty minutes on weekdays between Downtown Transit Center and the University Quad, with extra trips added during the morning and afternoon peaks. All buses on this route are low-floor and wheelchair accessible, and bikes are welcome on the front rack on a first-come basis. Service notes that affect today's trips are listed below the timetable, so please read all the way to the bottom before you plan your trip.</p>
+
+    <h2>Weekday timetable</h2>
+    <table class="timetable">
+      <caption>Route 12 weekday departures by stop</caption>
+      <thead>
+        <tr>
+          <th scope="col">Trip</th>
+          <th scope="col">Downtown TC</th>
+          <th scope="col">5th &amp; Oak</th>
+          <th scope="col">Civic Center</th>
+          <th scope="col">Hospital</th>
+          <th scope="col">Maple Ave</th>
+          <th scope="col">University Quad</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><th scope="row">AM 1</th><td>6:05</td><td>6:12</td><td>6:19</td><td>6:27</td><td>6:34</td><td>6:42</td></tr>
+        <tr><th scope="row">AM 2</th><td>6:25</td><td>6:32</td><td>6:39</td><td>6:47</td><td>6:54</td><td>7:02</td></tr>
+        <tr><th scope="row">AM 3</th><td>6:45</td><td>6:52</td><td>6:59</td><td>7:07</td><td>7:14</td><td>7:22</td></tr>
+        <tr><th scope="row">AM 4</th><td>7:05</td><td>7:12</td><td>7:19</td><td>7:27</td><td>7:34</td><td>7:42</td></tr>
+        <tr><th scope="row">Mid 1</th><td>9:05</td><td>9:13</td><td>9:21</td><td>9:30</td><td>9:38</td><td>9:47</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Service notes</h2>
+    <p>Through the end of June, the Civic Center stop is temporarily relocated one block north to 7th &amp; Main because of streetscape construction. Buses will still serve the area at roughly the same times shown above, but please watch for the temporary stop sign rather than the permanent shelter. Real-time arrivals continue to update normally during the relocation.</p>
+    <p>On days when the University holds commencement, Route 12 detours around the Quad and terminates at Maple Avenue. We post these detours by 5 a.m. on the morning they take effect, both here and on the rider alerts page, so check before you head out during graduation week.</p>
+  </div>
+</body>
+</html>

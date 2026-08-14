@@ -25,10 +25,6 @@
   .listing a.view { display:inline-block; font-size:.92rem; }
   footer.site { border-top:1px solid #dde4ec; padding:22px 26px; font-size:.9rem; color:#46566a; }
 
-  /*
-    The filter panel is rendered fixed on the LEFT, visually next to the "Filters" button,
-    but its markup is the LAST thing in the DOM (after the footer). Toggle is class-only.
-  */
   .filter-panel {
     display:none; position:fixed; top:120px; left:26px; width:280px; z-index:40;
     background:#fff; border:1px solid #dde4ec; border-radius:10px;
@@ -58,7 +54,6 @@
 <div class="layout">
   <div class="toolbar">
     <h1>Homes for sale in Maplewood</h1>
-    <!-- Trigger near the top of the results region. Panel markup is at the very end. -->
     <button class="btn" id="filterToggle" aria-haspopup="true" aria-expanded="false"
             aria-controls="filterPanel">Filters</button>
     <button class="btn primary" id="sortBtn">Sort: Newest</button>
@@ -102,16 +97,6 @@
   <p>© 2026 Cedar &amp; Vine Realty. Equal Housing Opportunity.</p>
 </footer>
 
-<!--
-  THE BUG (F85, open branch): the filter panel is positioned (position:fixed; left:26px)
-  to appear VISUALLY just under the "Filters" button on the left, but its markup is the
-  LAST element in the document — after every listing and the footer. The toggle only adds
-  .open and flips aria-expanded; nothing moves focus into the panel. So a keyboard user who
-  opens "Filters" stays on the button, and the next Tab goes to "Sort: Newest" (the next
-  source-order control), then through all eight "View …" listing links and the footer
-  before ever reaching the price/beds/type controls that visually sit right beside the
-  button. The visual adjacency is a lie about the tab order.
--->
 <form class="filter-panel" id="filterPanel" aria-label="Filter listings">
   <h2>Filter</h2>
   <fieldset>
@@ -141,7 +126,6 @@
     btn.addEventListener('click', function () {
       var open = panel.classList.toggle('open');
       btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-      // No panel.querySelector('select,input,button').focus(); no focus management.
     });
     document.getElementById('applyFilters').addEventListener('click', function () {
       panel.classList.remove('open');

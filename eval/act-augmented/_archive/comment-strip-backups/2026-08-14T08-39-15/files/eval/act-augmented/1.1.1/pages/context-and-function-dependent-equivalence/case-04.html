@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.1.1 FAILURE — context/function-dependent equivalence (CONTROL-PURPOSE limb).
+    A boarding-pass detail screen in an airline web app. The action bar holds three icon
+    buttons. The print button shows a printer glyph and its image alt is "inkjet printer" —
+    an oddly SPECIFIC but LITERALLY CORRECT description of the depicted device (it even looks
+    like a desktop inkjet). The control's purpose is "Print boarding pass", but its name
+    describes the appliance in the picture. Because the alt is non-empty the button has a
+    valid accessible name, so axe/WAVE pass it. The other two buttons are correctly
+    purpose-named ("Add to Apple Wallet", "Email boarding pass") so a screen-reader user
+    hears two real actions and one appliance ("inkjet printer, button").
+    WHY AUTOMATED TOOLS MISS IT: the button's accessible name is non-empty, satisfying
+    button-name. No tool knows the button triggers window.print(); recognising that "inkjet
+    printer" names the device rather than the action ("Print boarding pass") needs human
+    understanding of what the control does.
+  -->
+  <title>Boarding Pass — SkyArc Airways</title>
+  <style>
+    :root { --ink:#101826; --muted:#5a667a; --line:#dfe5ee; --bg:#0f2742; --card:#ffffff; --brand:#0f6fc4; --accent:#f2a900; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Segoe UI",Roboto,Arial,sans-serif; color:var(--ink); background:var(--bg); }
+    .topbar { color:#fff; padding:14px 20px; font-weight:700; letter-spacing:.4px; }
+    .pass { max-width:420px; margin:8px auto 0; background:var(--card); border-radius:14px 14px 0 0; overflow:hidden; box-shadow:0 8px 28px rgba(0,0,0,.3); }
+    .pass .hdr { background:linear-gradient(90deg,#0f6fc4,#0a4f8c); color:#fff; padding:16px 20px; display:flex; justify-content:space-between; align-items:center; }
+    .pass .hdr .route { font-size:24px; font-weight:800; }
+    .pass .hdr .flt { font-size:13px; opacity:.9; }
+    .pass .body { padding:18px 20px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px 8px; }
+    .pass .body .k { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; }
+    .pass .body .v { font-size:16px; font-weight:700; }
+    .pass .barcode { padding:6px 20px 20px; }
+    .pass .barcode .bars { height:56px; background:repeating-linear-gradient(90deg,#111 0 2px,#fff 2px 4px,#111 4px 7px,#fff 7px 9px,#111 9px 11px,#fff 11px 16px); border-radius:3px; }
+    .actionbar { max-width:420px; margin:0 auto 40px; background:#fff; border-radius:0 0 14px 14px; border-top:1px dashed var(--line); display:flex; justify-content:space-around; padding:12px 8px; box-shadow:0 8px 28px rgba(0,0,0,.3); }
+    .iconbtn { border:1px solid var(--line); background:#f7f9fc; border-radius:10px; width:64px; height:56px; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; color:var(--ink); }
+    .iconbtn:hover { background:#eef3f9; }
+    .iconbtn:focus-visible { outline:3px solid var(--brand); outline-offset:2px; }
+    .iconbtn img { width:24px; height:24px; }
+    .iconbtn .cap { font-size:10px; color:var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="topbar">SkyArc Airways · Mobile check-in</div>
+
+  <section class="pass" aria-label="Boarding pass">
+    <div class="hdr">
+      <div>
+        <div class="route">AMS → LIS</div>
+        <div class="flt">Flight SK 442 · Gate D7</div>
+      </div>
+      <div style="text-align:right">
+        <div class="flt">Seat</div>
+        <div class="route" style="font-size:20px">14C</div>
+      </div>
+    </div>
+    <div class="body">
+      <div><div class="k">Passenger</div><div class="v">N. OKONKWO</div></div>
+      <div><div class="k">Boarding</div><div class="v">11:05</div></div>
+      <div><div class="k">Group</div><div class="v">2</div></div>
+      <div><div class="k">Date</div><div class="v">24 JUN</div></div>
+      <div><div class="k">Departs</div><div class="v">11:40</div></div>
+      <div><div class="k">Class</div><div class="v">ECON</div></div>
+    </div>
+    <div class="barcode"><div class="bars" role="img" aria-label="Boarding pass barcode"></div></div>
+  </section>
+
+  <div class="actionbar">
+    <!-- DEFECTIVE CONTROL: alt names the DEVICE in the icon, not the action this button performs. -->
+    <button type="button" class="iconbtn" onclick="window.print()">
+      <img alt="inkjet printer"
+           src="data:image/svg+xml;utf8,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23101826' stroke-width='2'&gt;&lt;polyline points='6,9 6,3 18,3 18,9'/&gt;&lt;path d='M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2'/&gt;&lt;rect x='6' y='14' width='12' height='7'/&gt;&lt;/svg&gt;">
+      <span class="cap" aria-hidden="true">Print</span>
+    </button>
+
+    <!-- CONTRAST CONTROLS (correctly purpose-named). -->
+    <button type="button" class="iconbtn">
+      <img alt="Add to Apple Wallet"
+           src="data:image/svg+xml;utf8,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23101826' stroke-width='2'&gt;&lt;rect x='3' y='6' width='18' height='13' rx='2'/&gt;&lt;path d='M3 10h18'/&gt;&lt;circle cx='17' cy='14' r='1.5'/&gt;&lt;/svg&gt;">
+      <span class="cap" aria-hidden="true">Wallet</span>
+    </button>
+    <button type="button" class="iconbtn">
+      <img alt="Email boarding pass"
+           src="data:image/svg+xml;utf8,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23101826' stroke-width='2'&gt;&lt;rect x='3' y='5' width='18' height='14' rx='2'/&gt;&lt;polyline points='3,7 12,13 21,7'/&gt;&lt;/svg&gt;">
+      <span class="cap" aria-hidden="true">Email</span>
+    </button>
+  </div>
+</body>
+</html>

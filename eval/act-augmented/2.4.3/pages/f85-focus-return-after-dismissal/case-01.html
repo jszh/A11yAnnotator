@@ -33,7 +33,6 @@
   .filler { margin-top:40px; color:var(--muted); }
   .filler p { max-width:70ch; }
 
-  /* dialog */
   .scrim { position:fixed; inset:0; background:rgba(20,28,40,.45); display:none; align-items:flex-start; justify-content:center; padding-top:70px; z-index:50; }
   .scrim.open { display:flex; }
   .dialog { background:#fff; width:520px; max-width:92vw; border-radius:14px; box-shadow:0 24px 60px rgba(0,0,0,.3); overflow:hidden; }
@@ -66,7 +65,6 @@
   <div class="toolbar">
     <button class="btn">Refresh</button>
     <button class="btn">Export CSV</button>
-    <!-- The trigger we care about: opens the dashboard-settings dialog -->
     <button class="btn" id="open-settings">Dashboard settings</button>
   </div>
 
@@ -99,7 +97,6 @@
   </div>
 </main>
 
-<!-- Settings dialog -->
 <div class="scrim" id="scrim">
   <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-title" id="settings-dialog">
     <header>
@@ -138,23 +135,16 @@
 
   function openDialog() {
     scrim.classList.add('open');
-    // Correct on-open behaviour: move focus into the dialog.
     document.getElementById('interval').focus();
     document.addEventListener('keydown', escClose);
   }
 
   function escClose(e) { if (e.key === 'Escape') closeDialog(); }
 
-  // THE DEFECT: on close, the dialog is hidden and focus is explicitly dropped to the
-  // document (document.body) instead of being returned to the trigger. This is exactly
-  // F85's "focus is set to the document" failure: the next Tab restarts from the very
-  // top of the page (the sticky header nav), not from the toolbar the user was in.
   function closeDialog() {
-    // blur the in-dialog control and set focus to the document body, then hide.
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
     scrim.classList.remove('open');
     document.removeEventListener('keydown', escClose);
-    // focus is now on document.body — NOT returned to openBtn.
     if (document.body.focus) { document.body.setAttribute('tabindex', '-1'); document.body.focus(); }
   }
 
@@ -164,15 +154,5 @@
   document.getElementById('dlg-save').addEventListener('click', closeDialog);
 </script>
 
-<!--
-  WHY AUTOMATED TOOLS MISS THIS
-  The dialog is technically well-formed: role="dialog", aria-modal="true",
-  aria-labelledby points at a real heading, the close button has an accessible name,
-  every field has a <label>, and focus is correctly moved INTO the dialog on open.
-  axe-core / WAVE / Lighthouse audit a single DOM snapshot; none of them open the
-  dialog, dismiss it, and observe that focus has landed on document.body instead of
-  returning to #open-settings. The failure is a runtime focus-management defect that
-  only a human (or AT) operating the keyboard close-then-Tab sequence experiences.
--->
 </body>
 </html>

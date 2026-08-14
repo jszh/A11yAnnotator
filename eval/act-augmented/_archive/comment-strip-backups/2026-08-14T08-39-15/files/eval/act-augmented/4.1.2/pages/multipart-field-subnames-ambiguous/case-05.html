@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 4.1.2 (Name, Role, Value) — NAME limb at sub-field granularity, multi-part field.
+    A delivery-contact phone is one compound value split into three boxes: COUNTRY CODE,
+    AREA CODE, LOCAL NUMBER. Each box has a VISIBLE caption beside it ("Country code",
+    "Area code", "Local number") — but that caption is a plain <span>, never associated
+    with the input (no <label for>, no aria-label, no aria-labelledby). The only thing the
+    accessible-name computation can find on each input is its PLACEHOLDER, which is a
+    format mask ("+##", "###", "#### ####"). So each control's accessible name ends up
+    being the format mask, not a name that identifies the part.
+
+    WHAT AT EXPERIENCES: a screen-reader user hears "+##, edit"; "###, edit";
+    "#### ####, edit" — three boxes named after their digit masks, none identifying which
+    is the country code, area code, or local number. A speech-input ("Dragon") user who
+    says "click Country code" has nothing to target, because no control's accessible name
+    contains the visible words "Country code". This is F111 (visible label text, but the
+    accessible name does not contain it) combined with F86 (no name for each part of a
+    multi-part field).
+
+    WHY AUTOMATED TOOLS MISS IT: a placeholder is a NON-EMPTY accessible-name source.
+    axe-core's "label" rule treats placeholder text as satisfying the name requirement, so
+    it reports NO violation on these inputs; ACT rule e086e5 ("Form field has non-empty
+    accessible name") returns PASSED because each name ("+##" etc.) is non-empty. (Verified
+    empirically with axe 4.10.3: zero name/label findings on these three inputs; Chrome's
+    computed accessible names are exactly the placeholder masks.) No checker reads the
+    adjacent visible caption, recognizes the three boxes as one phone number, and judges
+    that "+##" fails to name the country-code field — that is human semantic + visual work.
+  -->
+  <title>Add a delivery contact — Posthaven Courier shipping label</title>
+  <style>
+    :root { --ink:#1b2330; --muted:#647084; --line:#d9dee7; --brand:#1f4ed8; --bg:#f4f6fb; --chip:#eef2fb; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Inter",system-ui,Segoe UI,Arial,sans-serif; color:var(--ink); background:var(--bg); }
+    .wrap { max-width:600px; margin:0 auto; padding:2rem 1.2rem 4rem; }
+    .brand { display:flex; align-items:center; gap:.55rem; font-weight:800; color:var(--brand); }
+    .brand .dot { width:1.1rem; height:1.1rem; border-radius:50%; background:var(--brand); display:inline-block; }
+    .step { font-size:.8rem; color:var(--muted); margin:.3rem 0 1.4rem; letter-spacing:.02em; text-transform:uppercase; }
+    h1 { font-size:1.45rem; margin:0 0 .3rem; }
+    .intro { color:var(--muted); margin:0 0 1.7rem; font-size:.95rem; }
+    .card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:1.5rem; box-shadow:0 1px 2px rgba(20,30,50,.04); }
+    .field { margin-bottom:1.4rem; }
+    .field > label { font-size:.86rem; font-weight:600; display:block; margin-bottom:.4rem; }
+    input { font:inherit; padding:.6rem .65rem; border:1px solid var(--line); border-radius:8px; background:#fff; }
+    input:focus { outline:2px solid var(--brand); outline-offset:1px; }
+    .glab { font-size:.86rem; font-weight:600; display:block; margin-bottom:.5rem; }
+    .phone { display:flex; align-items:flex-end; gap:.7rem; }
+    .seg { display:flex; flex-direction:column; }
+    .seg .cap { font-size:.74rem; color:var(--muted); margin-bottom:.25rem; }
+    .seg input { font-variant-numeric:tabular-nums; }
+    .seg.cc input { width:5.2rem; }
+    .seg.ac input { width:5.2rem; }
+    .seg.ln input { width:9.5rem; }
+    .hint { font-size:.78rem; color:var(--muted); margin-top:.55rem; }
+    .save { background:var(--brand); color:#fff; border:0; padding:.75rem 1.5rem; border-radius:9px; font:inherit; font-weight:700; cursor:pointer; }
+    .note { background:var(--chip); border:1px solid #d4ddf6; border-radius:9px; padding:.7rem .9rem; font-size:.82rem; color:#26407e; margin-bottom:1.4rem; }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="brand"><span class="dot"></span> Posthaven Courier</div>
+    <p class="step">New shipment &middot; Step 3 of 5 &middot; Recipient details</p>
+    <h1>Delivery contact phone</h1>
+    <p class="intro">The courier driver calls this number on the day of delivery. Enter the recipient's full international number.</p>
+
+    <div class="note">Enter the number in three parts: country code, then area code, then the local number — exactly as the recipient would write it.</div>
+
+    <div class="card">
+      <form action="#" method="post" novalidate>
+        <div class="field">
+          <label for="recipient">Recipient name</label>
+          <input id="recipient" name="recipient" type="text" value="A. Okonkwo" style="width:100%;">
+        </div>
+
+        <!--
+          Compound phone control: country code, area code, local number.
+          Each visible "cap" caption is a plain <span> with NO programmatic association to
+          its input (no for=, no aria-labelledby, no aria-label). Each input's ONLY
+          accessible-name source is its placeholder format mask, so the computed accessible
+          name is the mask ("+##" / "###" / "#### ####"), never the visible role caption.
+        -->
+        <div class="field" role="group" aria-labelledby="phone-label">
+          <span class="glab" id="phone-label">Delivery contact phone</span>
+          <div class="phone">
+            <span class="seg cc">
+              <span class="cap">Country code</span>
+              <input inputmode="tel" autocomplete="off" placeholder="+##" value="+44">
+            </span>
+            <span class="seg ac">
+              <span class="cap">Area code</span>
+              <input inputmode="tel" autocomplete="off" placeholder="###" value="020">
+            </span>
+            <span class="seg ln">
+              <span class="cap">Local number</span>
+              <input inputmode="tel" autocomplete="off" placeholder="#### ####" value="7946 0991">
+            </span>
+          </div>
+          <p class="hint">Example: +44 &middot; 020 &middot; 7946 0991</p>
+        </div>
+
+        <div class="field">
+          <label for="email">Recipient email (optional)</label>
+          <input id="email" name="email" type="email" value="a.okonkwo@example.org" style="width:100%;">
+        </div>
+
+        <button class="save" type="submit">Save &amp; continue</button>
+      </form>
+    </div>
+  </main>
+</body>
+</html>

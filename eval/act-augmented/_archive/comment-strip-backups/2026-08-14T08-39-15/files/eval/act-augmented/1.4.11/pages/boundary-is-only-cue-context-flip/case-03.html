@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Loom Notes — Document editor</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Inter", system-ui, sans-serif; margin: 0;
+    color: #20242b; background: #fafbfc;
+  }
+  .app { max-width: 920px; margin: 0 auto; }
+  .titlebar { padding: 16px 22px 8px; }
+  .titlebar h1 { font-size: 16px; margin: 0; color: #5a6270; font-weight: 500; }
+  .titlebar .doc { font-size: 20px; font-weight: 600; color: #20242b; margin-top: 2px; }
+
+  /* The toolbar background is a muted slate grey. */
+  .toolbar {
+    display: flex; align-items: center; gap: 6px;
+    background: #5b6675;            /* toolbar fill */
+    padding: 8px 12px; margin: 10px 22px 0; border-radius: 8px;
+  }
+  .divider { width: 1px; height: 22px; background: rgba(255,255,255,.35); margin: 0 6px; }
+
+  /* ICON-ONLY buttons. The glyphs are #788294 on the #5b6675 bar == 1.50:1.
+     There is no text, no visible boundary; the faint icon is the ONLY thing that
+     signals a control is there. Below 3:1 -> FAIL. */
+  .icon-btn {
+    width: 34px; height: 34px; border: 0; background: transparent;
+    border-radius: 6px; cursor: pointer; display: grid; place-items: center;
+    color: #788294;                /* glyph color: 1.50:1 on the bar */
+  }
+  .icon-btn svg { width: 18px; height: 18px; }
+
+  /* TEXT-LABELLED button. It carries the SAME faint #788294 icon at the SAME
+     1.50:1, but the white (5.83:1) text label "Comment" identifies the control,
+     so the low-contrast icon is not required to identify presence -> PASS. */
+  .text-btn {
+    height: 34px; padding: 0 12px 0 8px; border: 0; background: transparent;
+    border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center;
+    gap: 6px; color: #ffffff; font-size: 14px;        /* label: 5.83:1 */
+  }
+  .text-btn svg { width: 18px; height: 18px; color: #788294; } /* same 1.50:1 glyph */
+
+  .page {
+    background: #fff; margin: 18px 22px 60px; border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0,0,0,.06); padding: 34px 40px;
+    min-height: 320px; line-height: 1.7; color: #2a2f37;
+  }
+  .page h2 { font-size: 22px; margin: 0 0 12px; }
+</style>
+</head>
+<body>
+  <div class="app">
+    <div class="titlebar">
+      <h1>Loom Notes</h1>
+      <div class="doc">Q3 Planning — meeting notes</div>
+    </div>
+
+    <div class="toolbar" role="toolbar" aria-label="Formatting">
+      <!-- FAIL group: icon-only controls whose ONLY cue is the 1.50:1 glyph.
+           Each has a correct aria-label, so a name check passes, but a low-vision
+           user cannot perceive that any control is present. -->
+      <button class="icon-btn" type="button" aria-label="Bold">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4h6a4 4 0 0 1 1 7.9A4 4 0 0 1 13 20H7Zm3 3v3h3a1.5 1.5 0 0 0 0-3Zm0 6v4h3.5a2 2 0 0 0 0-4Z"/></svg>
+      </button>
+      <button class="icon-btn" type="button" aria-label="Italic">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10 4h8v3h-2.6l-3 10H15v3H7v-3h2.6l3-10H10Z"/></svg>
+      </button>
+      <button class="icon-btn" type="button" aria-label="Bulleted list">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 6h2v2H4Zm5 0h11v2H9Zm-5 5h2v2H4Zm5 0h11v2H9Zm-5 5h2v2H4Zm5 0h11v2H9Z"/></svg>
+      </button>
+
+      <span class="divider" aria-hidden="true"></span>
+
+      <!-- PASS: same faint 1.50:1 glyph, but the white "Comment" label (5.83:1)
+           is the cue that identifies the control. The icon is supplemental. -->
+      <button class="text-btn" type="button">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 4h16v11H8l-4 4Z"/></svg>
+        Comment
+      </button>
+    </div>
+
+    <article class="page">
+      <h2>Q3 Planning — meeting notes</h2>
+      <p>Attendees agreed to ship the billing migration before the freeze. Owners
+         to confirm staffing by Friday. Select any text above to format it using
+         the toolbar.</p>
+      <p>Open questions: data-retention defaults, and whether the EU region needs a
+         separate rollout window.</p>
+    </article>
+  </div>
+</body>
+</html>

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Departures — Kingsway Interchange | Northline Rail</title>
+<!--
+  SC 1.4.13 Dismissible — Method 1 (non-obscuring positioning) FAILURE: the popup obscures
+  ITS OWN TRIGGER and the live departure data on that row.
+
+  Context: a real-time departures board. A delayed service has a small "?" reason button.
+  Hovering / focusing it shows a tooltip explaining the disruption. There is NO keyboard
+  dismiss (no Esc handler, no close button, the tooltip is not hoverable-to-close), so
+  Method 1 — "position the content so that it does not obscure ANY other content INCLUDING
+  THE TRIGGER" — is the only path to compliance.
+
+  The defect: the developer wanted the tooltip to sit ABOVE the button so it would not cover
+  the rows below, and wrote `bottom: -4px`. With the anchor element (.why-wrap) shrink-
+  wrapped to the tiny 20px button, `bottom:-4px` pins the tooltip's BOTTOM edge ~4px under
+  the button and lets the ~150px-tall box grow UPWARD — straight back over the "?" button
+  itself and across the time, destination and platform of the "10:42 — Coastline Express"
+  departure row. In the open state the user can no longer read which train the explanation
+  is about, nor see the control they are pointing at, and with no dismiss key they cannot
+  clear the popup in place. Method 1 fails (it obscures the trigger AND meaningful service
+  data); Method 2 is absent.
+
+  The covered content is NOT the white-space / decorative exception: it is the live service
+  data and the trigger's own affordance. Direction-independent geometry (no i18n/RTL): an
+  over-tall popup anchored at the button origin grows back over the row.
+
+  WHY AUTOMATED TOOLS MISS IT: markup is valid — a real <button> with an accessible name,
+  role="tooltip", aria-describedby, a visible focus ring, passing contrast, and a proper
+  data <table>. axe/WAVE/Lighthouse never enter the hover/focus state, never compute that
+  the open tooltip's rectangle lands back on top of the trigger and the departure row, and
+  cannot judge that the covered pixels are meaningful service data rather than empty margin.
+  That overlap-vs-meaning call is a visual + semantic human judgment.
+-->
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; background:#0b1f33; color:#eaf2fb;
+    font:16px/1.5 "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif; }
+  header.board { background:#06182a; border-bottom:2px solid #1d4e7a; padding:16px 22px; display:flex; align-items:baseline; gap:14px; }
+  header.board .logo { font-weight:800; letter-spacing:.04em; color:#7ec8ff; font-size:18px; }
+  header.board .stn { font-size:18px; font-weight:600; }
+  header.board .clock { margin-left:auto; font-variant-numeric:tabular-nums; color:#a9c6e2; }
+
+  .wrap { max-width:880px; margin:22px auto; padding:0 18px 80px; }
+  table.dep { width:100%; border-collapse:collapse; background:#0e2742; border:1px solid #1d4e7a; border-radius:10px; overflow:hidden; }
+  table.dep caption { text-align:left; font-size:13px; color:#9fc0e0; padding:10px 14px; }
+  table.dep th, table.dep td { padding:14px 16px; text-align:left; border-bottom:1px solid #173a5c; font-size:16px; }
+  table.dep th { background:#0a2138; color:#9fc0e0; font-size:12px; letter-spacing:.12em; text-transform:uppercase; }
+  table.dep td.time { font-variant-numeric:tabular-nums; font-weight:700; font-size:18px; }
+  table.dep td.dest { font-weight:600; }
+  table.dep td.plat { text-align:center; }
+  .status { font-size:13px; }
+  .status.ontime { color:#5fd08a; }
+  .status.delay { color:#ffb454; }
+
+  /* "Why?" reason trigger sits inside the status cell of the delayed row */
+  .reason-cell { position:relative; }
+  .why {
+    border:1px solid #ffb454; background:transparent; color:#ffb454;
+    width:20px; height:20px; border-radius:50%; font:700 12px/1 inherit; cursor:help;
+    margin-left:8px; vertical-align:middle;
+  }
+  .why:focus-visible { outline:3px solid #7ec8ff; outline-offset:2px; }
+
+  /* The author intended this tooltip ABOVE the button. But the anchor (.why-wrap) is
+     shrink-wrapped to the tiny button, and `bottom:-4px` pins the tooltip's BOTTOM 4px below
+     the button while the ~150px box grows UPWARD — landing the whole popup back over the
+     trigger and across the time/destination/platform of this departure row. */
+  .why-wrap { position:relative; display:inline-block; }
+  .why-wrap .tip {
+    display:none;
+    position:absolute;
+    bottom:-4px;        /* INTENDED "above"; actually pins the bottom under the button so the
+                           tall box grows up over the trigger + this row's data */
+    right:0;
+    width:330px;
+    background:#fffaf2; color:#23303f;
+    border:1px solid #d6b27a; border-left:4px solid #d98a17; border-radius:8px;
+    padding:12px 14px; font:13.5px/1.5 "Segoe UI", system-ui, Arial, sans-serif;
+    box-shadow:0 10px 28px rgba(0,0,0,.5);
+    z-index:30;
+  }
+  .why-wrap .tip.is-open { display:block; }
+</style>
+</head>
+<body>
+  <header class="board">
+    <span class="logo">NORTHLINE&nbsp;RAIL</span>
+    <span class="stn">Kingsway Interchange &mdash; Departures</span>
+    <span class="clock">10:39</span>
+  </header>
+
+  <main class="wrap">
+    <table class="dep">
+      <caption>Live departures &middot; next 60 minutes</caption>
+      <thead>
+        <tr>
+          <th scope="col">Time</th>
+          <th scope="col">Destination</th>
+          <th scope="col">Plat.</th>
+          <th scope="col">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="time">10:41</td>
+          <td class="dest">Harbour Quay</td>
+          <td class="plat">3</td>
+          <td><span class="status ontime">On time</span></td>
+        </tr>
+        <tr>
+          <td class="time">10:42</td>
+          <td class="dest">Coastline Express &mdash; Eastport</td>
+          <td class="plat">7</td>
+          <td class="reason-cell">
+            <span class="status delay">Delayed 9 min</span>
+            <span class="why-wrap">
+              <button type="button" class="why" aria-describedby="why-coast" aria-label="Why is the 10:42 Coastline Express to Eastport delayed?">?</button>
+              <span role="tooltip" id="why-coast" class="tip">
+                <strong>Signalling fault at Eastport Junction.</strong> Crews are on site;
+                trains are holding at red signals between Kingsway and Eastport. Estimated
+                clearance 11:05. Replacement buses are <em>not</em> being arranged for this
+                service &mdash; please wait for the next scheduled departure shown below.
+              </span>
+            </span>
+          </td>
+        </tr>
+        <tr>
+          <td class="time">10:48</td>
+          <td class="dest">Riverside Loop</td>
+          <td class="plat">2</td>
+          <td><span class="status ontime">On time</span></td>
+        </tr>
+        <tr>
+          <td class="time">10:55</td>
+          <td class="dest">Eastport (all stations)</td>
+          <td class="plat">7</td>
+          <td><span class="status ontime">On time</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </main>
+
+  <script>
+    // SCR39-style show/hide on hover AND focus (keyboard + mouse), but DELIBERATELY with NO
+    // Escape-to-dismiss and no close button. Because the tooltip cannot be dismissed while
+    // focus stays on the trigger, Method 2 is unavailable; and because the open tooltip grows
+    // upward over its own "?" trigger and the 10:42 departure row's time/destination/platform,
+    // Method 1 also fails. Hidden on blur/mouseout only.
+    (function () {
+      var trig = document.querySelector('.why');
+      var pop = document.getElementById('why-coast');
+      function show() { pop.classList.add('is-open'); }
+      function hide() { pop.classList.remove('is-open'); }
+      trig.addEventListener('mouseenter', show);
+      trig.addEventListener('focus', show);
+      trig.addEventListener('mouseleave', hide);
+      trig.addEventListener('blur', hide);
+      // NOTE: no keydown/Escape handler -> no dismiss path (intentional).
+    })();
+  </script>
+</body>
+</html>

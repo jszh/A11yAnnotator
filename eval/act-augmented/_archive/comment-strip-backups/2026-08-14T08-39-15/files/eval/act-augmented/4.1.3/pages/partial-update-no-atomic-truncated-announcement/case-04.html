@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>مكتبة الوراق — البحث في الفهرس</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.7 "Segoe UI","Noto Sans Arabic",Tahoma,sans-serif; color:#1f1a17; background:#fcfbf8; }
+  .page { max-width:680px; margin:0 auto; padding:30px 24px; }
+  h1 { font-size:23px; margin:0 0 14px; }
+  .search { display:flex; gap:10px; }
+  .search input { flex:1; font:inherit; padding:10px 12px; border:1px solid #cfc8bd; border-radius:8px; }
+  .search button { font:inherit; cursor:pointer; border:0; border-radius:8px; padding:10px 18px; background:#8a5a2b; color:#fff; }
+  .search button:focus-visible { outline:3px solid #1a73e8; outline-offset:2px; }
+  .count { margin:18px 0; font-size:17px; padding:9px 12px; background:#f1ece3; border-radius:8px; }
+  .count b { color:#8a5a2b; }
+  ul.results { list-style:none; padding:0; margin:0; }
+  ul.results li { border-bottom:1px solid #ece6db; padding:10px 0; }
+  .ttl { font-weight:600; }
+  .au { color:#6a6258; font-size:14px; }
+  footer { margin-top:26px; color:#6a6258; font-size:12.5px; line-height:1.6; direction:ltr; text-align:left; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>مكتبة الوراق — البحث في الفهرس</h1>
+
+  <form class="search" id="f" aria-label="بحث في الفهرس">
+    <input id="q" type="search" aria-label="كلمة البحث" value="الأدب الأندلسي">
+    <button type="submit">بحث</button>
+  </form>
+
+  <!--
+    The result line is a valid role="status" live region. The label "النتائج:" (results:)
+    precedes the value, and the trailing word "نتيجة" (result/results) follows. On each
+    search JS rewrites ONLY the inner <b id="n"> numeral node (in Eastern Arabic numerals).
+    aria-atomic is unset; in non-atomic environments AT announces only the changed numeral —
+    a bare "٢٤" / "twenty-four" — with no "results" framing. In RTL the orphaned number is
+    even more disorienting because the listener has lost both the leading label and the
+    trailing unit.
+  -->
+  <p class="count" role="status" id="result-count">
+    النتائج: <b id="n">٠</b> نتيجة
+  </p>
+
+  <ul class="results" id="list">
+    <li><span class="ttl">طوق الحمامة</span> — <span class="au">ابن حزم الأندلسي</span></li>
+    <li><span class="ttl">نفح الطيب</span> — <span class="au">المقّري التلمساني</span></li>
+    <li><span class="ttl">قلائد العقيان</span> — <span class="au">الفتح بن خاقان</span></li>
+  </ul>
+</div>
+
+<footer>
+  <strong>Why automated tools miss this:</strong> the count line is a valid
+  <code>role="status"</code> region with correct contrast, a labelled search field, and real
+  catalogue results — axe/WAVE/Lighthouse pass it. The defect is that only the inner numeral
+  node updates while the region is non-atomic, so AT speaks a bare "٢٤" without the
+  "النتائج … نتيجة" (results) framing. No automated rule judges whether an orphaned numeral —
+  especially one stripped of both its RTL-leading label and trailing unit — conveys the same
+  meaning as the visible whole.
+</footer>
+
+<script>
+  // Eastern Arabic numeral conversion for display, matching the corpus content.
+  function toArabic(num) {
+    var map = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
+    return String(num).replace(/[0-9]/g, function (d) { return map[+d]; });
+  }
+  document.getElementById('f').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var q = document.getElementById('q').value.trim();
+    // Deterministic pseudo-count from query length so the harness can fire it.
+    var n = q.length ? (q.length * 3) % 40 + 4 : 0;
+    // ONLY the inner numeral node is rewritten; "النتائج:" and "نتيجة" stay put,
+    // and #result-count has no aria-atomic, so AT hears just "٢٤".
+    document.getElementById('n').textContent = toArabic(n);
+  });
+</script>
+</body>
+</html>

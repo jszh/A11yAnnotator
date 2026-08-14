@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tarn Valley Naturalists — Field Notes</title>
+<!--
+  SC 1.3.2 APPLICABILITY GATE — EXPECTED: PASS (not applicable / container has no meaningful sequence)
+
+  This page is a CONFORMANT control. It contains two fully independent, non-interleaved
+  articles. Visually the longer, more "important-looking" feature ("Return of the Curlew")
+  sits in the RIGHT column, while a shorter housekeeping notice ("Subs are due") sits in the
+  LEFT column. A reader skimming the layout might guess the feature should be read first.
+  But in the DOM the housekeeping notice comes FIRST and the feature comes SECOND, and the two
+  columns are produced purely by CSS flex (no reordering inside either article).
+
+  The point: an over-eager evaluator might flag "DOM order does not match the visual reading
+  guess" as a 1.3.2 failure. It is NOT. The relative order of two independent articles does not
+  affect their meaning as long as they are not interleaved, so the CONTAINER has no meaningful
+  sequence. Each article on its own reads in perfect source order. This is exactly the
+  Understanding's "two independent articles" example.
+
+  WHY AUTOMATED TOOLS MISS IT: axe/WAVE/Lighthouse have no rule for 1.3.2 at all, and even a
+  generic DOM-vs-visual-order heuristic would FALSE-POSITIVE here — it cannot know that the two
+  blocks are semantically independent and therefore that EITHER order is correct. Deciding the
+  container is order-irrelevant is a contextual semantic judgement.
+-->
+<style>
+  :root { --ink:#1d2520; --muted:#52605a; --rule:#c9d2cc; --accent:#2f6b4f; }
+  body { font:16px/1.6 Georgia, "Times New Roman", serif; color:var(--ink);
+         margin:0; background:#f6f4ee; }
+  .masthead { background:var(--accent); color:#fff; padding:18px 24px; }
+  .masthead h1 { margin:0; font-size:1.5rem; letter-spacing:.02em; }
+  .masthead p { margin:.25rem 0 0; font-size:.85rem; opacity:.9; }
+  .sheet { max-width:1000px; margin:24px auto; padding:0 16px; }
+  /* Two independent articles laid out as columns. The feature article is in the
+     DOM SECOND but is pushed to the visually dominant right column. */
+  .columns { display:flex; gap:32px; align-items:flex-start; }
+  .col-notice { flex:0 0 280px; }
+  .col-feature { flex:1; }
+  article { background:#fff; border:1px solid var(--rule); border-radius:6px;
+            padding:18px 22px; }
+  article h2 { margin:.1rem 0 .6rem; font-size:1.25rem; color:var(--accent); }
+  .col-feature article h2 { font-size:1.6rem; }
+  .byline { font-style:italic; color:var(--muted); font-size:.85rem; margin:0 0 .8rem; }
+  .notice-tag { display:inline-block; background:#e8efe9; color:var(--accent);
+                font:600 .7rem/1 sans-serif; text-transform:uppercase;
+                letter-spacing:.08em; padding:4px 8px; border-radius:3px; margin-bottom:.6rem; }
+  figure { margin:0 0 1rem; }
+  .photo { height:180px; border-radius:4px;
+           background:linear-gradient(135deg,#7fa890,#3d6b53); }
+  figcaption { font-size:.8rem; color:var(--muted); margin-top:.4rem; font-style:italic; }
+  footer { max-width:1000px; margin:0 auto; padding:18px 16px 40px;
+           color:var(--muted); font-size:.8rem; }
+  @media (max-width:720px){ .columns{ flex-direction:column; } .col-notice{ flex:1; } }
+</style>
+</head>
+<body>
+  <header class="masthead">
+    <h1>Tarn Valley Naturalists</h1>
+    <p>Field Notes &mdash; Spring quarterly bulletin, Issue 47</p>
+  </header>
+
+  <main class="sheet">
+    <div class="columns">
+
+      <!-- ARTICLE A (FIRST in DOM): a self-contained housekeeping notice. -->
+      <article class="col-notice" aria-labelledby="a-notice">
+        <span class="notice-tag">Members&rsquo; notice</span>
+        <h2 id="a-notice">Subscriptions are due by 30 April</h2>
+        <p class="byline">From the Treasurer, R. Akhtar</p>
+        <p>
+          Annual membership stands at &pound;18 (concessions &pound;9) and falls due at the
+          start of the new recording year. You can renew by standing order, by cheque to the
+          society&rsquo;s post box, or in person at the April indoor meeting.
+        </p>
+        <p>
+          Members who renew before the deadline keep their existing recorder number and the
+          early-bird discount on the summer ringing course. Lapsed members are removed from the
+          county distribution list and must re-apply for survey access.
+        </p>
+        <p>
+          Any queries about gift-aid declarations should go to the treasurer directly rather
+          than the general inbox, which is no longer monitored daily.
+        </p>
+      </article>
+
+      <!-- ARTICLE B (SECOND in DOM): the long feature, visually dominant on the right. -->
+      <article class="col-feature" aria-labelledby="a-feature">
+        <h2 id="a-feature">The return of the curlew to Holm Marsh</h2>
+        <p class="byline">By Eleanor Pryce, county wader recorder</p>
+        <figure>
+          <div class="photo" role="img"
+               aria-label="A curlew probing soft mud at the edge of a flooded marsh at dawn."></div>
+          <figcaption>A curlew works the tideline at first light on Holm Marsh.</figcaption>
+        </figure>
+        <p>
+          For the first time since the 2011 floods, breeding curlew have been confirmed on the
+          restored grazing marsh at Holm. Three displaying pairs were logged across the April
+          transects, and at least one nest has now reached the incubation stage under the
+          fenced exclosure on the north compartment.
+        </p>
+        <p>
+          The recovery follows four winters of raised water levels and the removal of two
+          drainage culverts that had been quietly dewatering the southern fields. Wet ground
+          in March is what curlew need: it keeps the soil soft enough for chicks to probe for
+          invertebrates in their first fragile fortnight.
+        </p>
+        <p>
+          Volunteers are asked to keep to the boardwalk between now and July and to report any
+          loose dogs to the warden. A full breeding-season summary, with productivity figures,
+          will appear in the autumn bulletin.
+        </p>
+      </article>
+
+    </div>
+  </main>
+
+  <footer>
+    <p>
+      Tarn Valley Naturalists is a registered charity. The two items above are independent and
+      may be read in either order &mdash; neither depends on the other.
+    </p>
+  </footer>
+</body>
+</html>

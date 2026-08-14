@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lahori Junction — Menu</title>
+<!--
+  SC 1.1.1 FAILURE (informative CSS background-image — F3 example 3 carrier: background set
+  dynamically by client script). Each dish's SPICE LEVEL is conveyed ONLY by chili-pepper
+  glyphs that JavaScript paints as background images onto an empty <span class="heat">.
+  The data lives in a data-heat="1|2|3" attribute that the script turns into a picture; the
+  visible menu text gives only the dish name, description and price — never the words mild,
+  medium or hot, and never any chili character. A diner who relies on a screen reader has no
+  way to learn that the Phaal is the hottest dish on the menu. Disable JS, hide backgrounds,
+  or use forced-colors mode and the heat indicator disappears with no text fallback.
+  WHY AUTOMATED TOOLS MISS IT: the heat carrier is a script-set CSS background on a <span>
+  with no role and no accessible name -> ACT 1.1.1 rules Inapplicable; axe/WAVE/Lighthouse
+  run on the DOM and see only an empty <span>. A data-heat number is present, but no tool
+  knows it encodes safety-relevant information that must also be available as text, nor can
+  it OCR the rendered chili glyphs.
+-->
+<style>
+  body { font-family: "Trebuchet MS", "Segoe UI", sans-serif; margin:0; color:#3a2417; background:#fff8ef; }
+  header { background:#7a1d12; color:#ffe7b3; padding:26px 22px; text-align:center; }
+  header h1 { margin:0; font-size:1.7rem; letter-spacing:1px; }
+  header p { margin:6px 0 0; font-style:italic; color:#f3c97a; }
+  main { max-width:720px; margin:24px auto; padding:0 18px 60px; }
+  h2.section { border-bottom:2px solid #d98f3a; padding-bottom:6px; color:#7a1d12; margin-top:34px; }
+  .dish { display:flex; justify-content:space-between; gap:16px; padding:14px 0; border-bottom:1px dotted #e2c9a3; }
+  .dish .body { flex:1; }
+  .dish .name { font-weight:bold; font-size:1.06rem; display:flex; align-items:center; gap:8px; }
+  .dish .desc { color:#6b513c; font-size:.9rem; margin-top:3px; }
+  .dish .price { font-weight:bold; white-space:nowrap; }
+
+  /* THE DEFECT carrier: width grows with the number of glyphs the script paints; each glyph
+     is a chili-pepper background image. No text equivalent of the heat level exists anywhere. */
+  span.heat {
+    display:inline-block; height:16px;
+    background-repeat: repeat-x; background-position: left center; background-size: 16px 16px;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Lahori Junction</h1>
+  <p>Punjabi street food, made to order</p>
+</header>
+
+<main>
+  <h2 class="section">From the tandoor &amp; karahi</h2>
+
+  <div class="dish">
+    <div class="body">
+      <div class="name">Chicken Tikka <span class="heat" data-heat="1"></span></div>
+      <div class="desc">Charred yoghurt-marinated thigh, mint chutney.</div>
+    </div>
+    <div class="price">&pound;9.50</div>
+  </div>
+
+  <div class="dish">
+    <div class="body">
+      <div class="name">Lamb Karahi <span class="heat" data-heat="2"></span></div>
+      <div class="desc">Slow-cooked on the bone, tomato &amp; green chilli base.</div>
+    </div>
+    <div class="price">&pound;13.95</div>
+  </div>
+
+  <div class="dish">
+    <div class="body">
+      <div class="name">Chicken Phaal <span class="heat" data-heat="3"></span></div>
+      <div class="desc">Our signature inferno &mdash; order with respect.</div>
+    </div>
+    <div class="price">&pound;12.50</div>
+  </div>
+
+  <div class="dish">
+    <div class="body">
+      <div class="name">Daal Makhani <span class="heat" data-heat="1"></span></div>
+      <div class="desc">Black lentils simmered overnight with butter &amp; cream.</div>
+    </div>
+    <div class="price">&pound;8.25</div>
+  </div>
+
+  <div class="dish">
+    <div class="body">
+      <div class="name">Vindaloo Pork <span class="heat" data-heat="3"></span></div>
+      <div class="desc">Goan-Punjabi crossover, vinegar &amp; Kashmiri chilli.</div>
+    </div>
+    <div class="price">&pound;12.95</div>
+  </div>
+</main>
+
+<script>
+  // Junior dev's "nice touch": turn the data-heat number into chili icons at load time.
+  // The number never becomes text — it only becomes a background image.
+  var svg =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16">' +
+    '<path d="M4 3c2 0 3 1 3 3 0 4-1 7-4 8 4 0 8-3 8-8 0-1 1-2 2-2-1-2-3-2-4-1-1-2-3-3-5-3z" fill="#c0271a"/>' +
+    '<path d="M8 3c1-1 2-1 3 0" stroke="#1a7f37" stroke-width="1.4" fill="none"/></svg>';
+  var chili = "url(\"data:image/svg+xml;utf8," + encodeURIComponent(svg) + "\")";
+  document.querySelectorAll('span.heat').forEach(function (el) {
+    var n = parseInt(el.getAttribute('data-heat'), 10) || 0;
+    el.style.backgroundImage = chili;          // single tile, repeated horizontally
+    el.style.width = (n * 16) + 'px';          // 1, 2 or 3 chilis
+  });
+</script>
+</body>
+</html>

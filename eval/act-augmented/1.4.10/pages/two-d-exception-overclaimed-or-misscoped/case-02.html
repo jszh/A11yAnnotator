@@ -5,23 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Transaction Ledger — Meridian Business Banking</title>
 <style>
-  /*
-    PASS COUNTERPART (boundary control):
-    A genuine wide transaction ledger (data table) is correctly excepted AND correctly
-    scoped: it lives inside a div{overflow:auto} so it scrolls in two dimensions on its
-    own, while EVERY surrounding non-excepted region — account header, balance summary,
-    filter form, the "Load more" control, and the disclosure footnote — reflows into a
-    single 320px column. This mirrors the PASSING half of the Understanding
-    reflow-table-pass-fail figure. A naive evaluator might still flag it ("there's a
-    horizontal scrollbar!") — but the page passes because the only 2D scroll is the
-    excepted table's own container.
-  */
   * { box-sizing: border-box; }
   :root { font-family: "Segoe UI", system-ui, sans-serif; color: #18222e; }
-  body { margin: 0; background: #eef1f5; }   /* NO body min-width — page can reflow */
+  body { margin: 0; background: #eef1f5; }   
   .appbar { background: #0b3d2e; color: #fff; padding: 14px 18px; }
   .wrap { max-width: 1200px; margin: 0 auto; padding: 16px 18px 48px; }
-  /* Account summary reflows: flex that wraps below its natural width. */
   .summary { display: flex; flex-wrap: wrap; gap: 16px; margin: 16px 0; }
   .summary .card {
     flex: 1 1 220px; min-width: 0; background: #fff; border: 1px solid #d6dbe2;
@@ -30,13 +18,11 @@
   .summary .card .amt { font-size: 1.5rem; font-weight: 700; }
   h1 { font-size: 1.5rem; margin: 0 0 4px; }
   h2 { font-size: 1.1rem; margin: 24px 0 8px; }
-  /* Filter form reflows: fields wrap and shrink with the viewport. */
   .filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin-bottom: 14px; }
   .filters .field { flex: 1 1 160px; min-width: 0; }
   .filters label { display: block; font-size: 0.78rem; font-weight: 600; margin-bottom: 3px; }
   .filters input, .filters select { width: 100%; padding: 8px; font-size: 0.95rem; }
   .filters button { padding: 9px 18px; background: #0b3d2e; color: #fff; border: 0; border-radius: 6px; cursor: pointer; }
-  /* THE CORRECT SCOPING: only the table's own container scrolls in 2D. */
   .table-scroll { overflow: auto; border: 1px solid #c7cdd6; border-radius: 8px; background: #fff; }
   table { border-collapse: collapse; min-width: 880px; width: 100%; font-size: 0.88rem; }
   caption { text-align: left; font-weight: 600; padding: 8px 10px; }
@@ -109,16 +95,5 @@
     </p>
   </div>
 
-  <!--
-    WHY THIS PASSES (and why automated tools can't confirm it either way):
-    The wide ledger is genuine tabular data (the 1.4.10 exception applies). It is scoped
-    correctly — only `.table-scroll` (the table's own container) scrolls in two directions,
-    and it is keyboard-reachable (tabindex=0, labelled region). The account header, balance
-    summary cards, filter form, "Load more" button, and disclosure note ALL reflow into a
-    single 320px column (no body min-width; flex-wrap; max-width:100% on controls). A scanner
-    sees a horizontal scrollbar on a child element and cannot tell whether the page passes;
-    confirming "the only 2D scroll belongs to the excepted table, everything else reflows" is
-    a human judgment.
-  -->
 </body>
 </html>

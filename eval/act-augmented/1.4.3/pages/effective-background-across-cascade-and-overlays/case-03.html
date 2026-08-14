@@ -11,10 +11,6 @@
   .masthead .name { font-size: 1.6rem; letter-spacing: 2px; font-weight: 700; }
   .masthead .date { font-size: .75rem; color: #555; }
 
-  /* FEATURE: one element, TWO stacked backgrounds.
-     Layer order in CSS = first listed is ON TOP. So the gradient scrim paints OVER the photo.
-     The author copied a "darken the photo" snippet but left the gradient alphas LOW and the
-     stops WHITE-ish at the top, so over a fairly light skyline the composite stays light. */
   .feature {
     min-height: 420px;
     background:
@@ -55,18 +51,5 @@
     <p>Supporters argue the shift would stabilize bus service through the winter; opponents
        counter that builders will simply pass the cost to renters.</p>
   </article>
-  <!--
-    WHY AUTOMATED TOOLS MISS THIS:
-    .feature uses CSS multiple backgrounds: a linear-gradient scrim layered OVER url(photo).
-    A background IS declared (so F24 linting passes) and the headline color (#fbfaf6) is
-    declared too. But the EFFECTIVE backdrop behind the headline is the gradient's TOP stop
-    -- rgba(255,255,255,0.35) -- composited over an already-bright upper-sky region of the
-    skyline photo. That yields a light backdrop where near-white headline text falls under
-    4.5:1. The dev assumed "darken gradient" but the alphas are low and the top stop is
-    white. A CSSOM tool sees a background-image shorthand it cannot reduce to one color and
-    skips contrast; it cannot composite the gradient stops over the correct photo region and
-    pick the worst-case (top) area behind the glyphs. That layered-composite reasoning is the
-    human visual judgment F24/F83 call out for background images.
-  -->
 </body>
 </html>

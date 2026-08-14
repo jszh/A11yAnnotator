@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Transaction Ledger — Meridian Business Banking</title>
+<style>
+  /*
+    PASS COUNTERPART (boundary control):
+    A genuine wide transaction ledger (data table) is correctly excepted AND correctly
+    scoped: it lives inside a div{overflow:auto} so it scrolls in two dimensions on its
+    own, while EVERY surrounding non-excepted region — account header, balance summary,
+    filter form, the "Load more" control, and the disclosure footnote — reflows into a
+    single 320px column. This mirrors the PASSING half of the Understanding
+    reflow-table-pass-fail figure. A naive evaluator might still flag it ("there's a
+    horizontal scrollbar!") — but the page passes because the only 2D scroll is the
+    excepted table's own container.
+  */
+  * { box-sizing: border-box; }
+  :root { font-family: "Segoe UI", system-ui, sans-serif; color: #18222e; }
+  body { margin: 0; background: #eef1f5; }   /* NO body min-width — page can reflow */
+  .appbar { background: #0b3d2e; color: #fff; padding: 14px 18px; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 16px 18px 48px; }
+  /* Account summary reflows: flex that wraps below its natural width. */
+  .summary { display: flex; flex-wrap: wrap; gap: 16px; margin: 16px 0; }
+  .summary .card {
+    flex: 1 1 220px; min-width: 0; background: #fff; border: 1px solid #d6dbe2;
+    border-radius: 8px; padding: 14px;
+  }
+  .summary .card .amt { font-size: 1.5rem; font-weight: 700; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  h2 { font-size: 1.1rem; margin: 24px 0 8px; }
+  /* Filter form reflows: fields wrap and shrink with the viewport. */
+  .filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin-bottom: 14px; }
+  .filters .field { flex: 1 1 160px; min-width: 0; }
+  .filters label { display: block; font-size: 0.78rem; font-weight: 600; margin-bottom: 3px; }
+  .filters input, .filters select { width: 100%; padding: 8px; font-size: 0.95rem; }
+  .filters button { padding: 9px 18px; background: #0b3d2e; color: #fff; border: 0; border-radius: 6px; cursor: pointer; }
+  /* THE CORRECT SCOPING: only the table's own container scrolls in 2D. */
+  .table-scroll { overflow: auto; border: 1px solid #c7cdd6; border-radius: 8px; background: #fff; }
+  table { border-collapse: collapse; min-width: 880px; width: 100%; font-size: 0.88rem; }
+  caption { text-align: left; font-weight: 600; padding: 8px 10px; }
+  th, td { border-bottom: 1px solid #e3e7ec; padding: 8px 12px; white-space: nowrap; text-align: left; }
+  thead th { background: #f0f3f7; }
+  td.debit { color: #a01616; } td.credit { color: #126b2c; }
+  .loadmore { margin-top: 16px; }
+  .loadmore button { width: 100%; max-width: 320px; padding: 11px; font-size: 1rem; cursor: pointer; }
+  .note { font-size: 0.78rem; color: #4a5563; margin-top: 20px; max-width: 60ch; }
+</style>
+</head>
+<body>
+  <header class="appbar"><strong>Meridian</strong> Business Banking</header>
+
+  <div class="wrap">
+    <h1>Account Ledger — Operating Account ••4471</h1>
+    <p>Showing posted and pending transactions for the last 30 days.</p>
+
+    <section class="summary" aria-label="Account balances">
+      <div class="card"><div>Available balance</div><div class="amt">$84,210.55</div></div>
+      <div class="card"><div>Current balance</div><div class="amt">$86,940.12</div></div>
+      <div class="card"><div>Pending debits</div><div class="amt">$2,729.57</div></div>
+    </section>
+
+    <h2>Filter transactions</h2>
+    <form class="filters" aria-label="Transaction filters">
+      <div class="field"><label for="from">From date</label><input id="from" type="date" value="2026-05-21"></div>
+      <div class="field"><label for="to">To date</label><input id="to" type="date" value="2026-06-20"></div>
+      <div class="field"><label for="type">Type</label>
+        <select id="type"><option>All</option><option>Debits</option><option>Credits</option></select></div>
+      <div class="field"><label for="min">Min amount</label><input id="min" type="number" placeholder="0.00"></div>
+      <div class="field"><button type="submit">Apply filters</button></div>
+    </form>
+
+    <h2>Transactions</h2>
+    <div class="table-scroll" tabindex="0" role="region" aria-label="Transaction ledger (scrollable)">
+      <table>
+        <caption>Posted &amp; pending transactions, newest first</caption>
+        <thead>
+          <tr>
+            <th scope="col">Posting Date</th>
+            <th scope="col">Value Date</th>
+            <th scope="col">Description</th>
+            <th scope="col">Reference</th>
+            <th scope="col">Category</th>
+            <th scope="col">Debit</th>
+            <th scope="col">Credit</th>
+            <th scope="col">Running Balance</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>2026-06-20</td><td>2026-06-20</td><td>ACH Payroll — Helios Staffing</td><td>RP-99812</td><td>Payroll</td><td class="debit">$14,200.00</td><td></td><td>$84,210.55</td></tr>
+          <tr><td>2026-06-19</td><td>2026-06-19</td><td>Card purchase — AWS EMEA</td><td>VC-44120</td><td>Cloud Services</td><td class="debit">$3,318.42</td><td></td><td>$98,410.55</td></tr>
+          <tr><td>2026-06-19</td><td>2026-06-18</td><td>Incoming wire — Orbit Logistics</td><td>WT-72003</td><td>Receivables</td><td></td><td class="credit">$22,500.00</td><td>$101,728.97</td></tr>
+          <tr><td>2026-06-17</td><td>2026-06-17</td><td>Direct debit — Brightline Insurance</td><td>DD-30551</td><td>Insurance</td><td class="debit">$1,940.13</td><td></td><td>$79,228.97</td></tr>
+          <tr><td>2026-06-16</td><td>2026-06-16</td><td>Card refund — Office Depot</td><td>VC-44009</td><td>Supplies</td><td></td><td class="credit">$212.40</td><td>$81,169.10</td></tr>
+          <tr><td>2026-06-15</td><td>2026-06-15</td><td>ACH vendor — Maple Print Co.</td><td>RP-99544</td><td>Marketing</td><td class="debit">$6,050.00</td><td></td><td>$80,956.70</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="loadmore">
+      <button type="button">Load 30 more transactions</button>
+    </div>
+
+    <p class="note">
+      Pending items may change before posting. Meridian Business Banking is a division of
+      Meridian Trust, member of the deposit-guarantee scheme. Statement balances are
+      indicative until end-of-day reconciliation.
+    </p>
+  </div>
+
+  <!--
+    WHY THIS PASSES (and why automated tools can't confirm it either way):
+    The wide ledger is genuine tabular data (the 1.4.10 exception applies). It is scoped
+    correctly — only `.table-scroll` (the table's own container) scrolls in two directions,
+    and it is keyboard-reachable (tabindex=0, labelled region). The account header, balance
+    summary cards, filter form, "Load more" button, and disclosure note ALL reflow into a
+    single 320px column (no body min-width; flex-wrap; max-width:100% on controls). A scanner
+    sees a horizontal scrollbar on a child element and cannot tell whether the page passes;
+    confirming "the only 2D scroll belongs to the excepted table, everything else reflows" is
+    a human judgment.
+  -->
+</body>
+</html>

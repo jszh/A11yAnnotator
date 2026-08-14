@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Get a quote — Step 3 — Harbor &amp; Vale Home Insurance</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Source Sans 3", "Segoe UI", Arial, sans-serif;
+    background: #f6f7fb;
+    color: #21242b;
+  }
+  header {
+    background: #2b2f6b; color: #fff; padding: 14px 26px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  header .mark { width: 24px; height: 24px; border-radius: 5px; background: #8a90d6; }
+  header strong { font-size: 16px; }
+  .crumbs { font-size: 12px; color: #6b7280; padding: 10px 26px; }
+  main { max-width: 700px; margin: 24px auto 60px; padding: 0 22px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .intro { color: #565c66; margin: 0 0 24px; }
+
+  /* The lavender quote panel — both inputs sit ON this panel (#DDE3F0). */
+  .quote-panel {
+    background: #DDE3F0;            /* lavender panel — the surround for both inputs */
+    border-radius: 12px;
+    padding: 24px 24px 28px;
+  }
+  .quote-panel h2 { margin: 0 0 16px; font-size: 16px; color: #2b2f6b; }
+  .field { margin-bottom: 20px; }
+  .field label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px; color: #2b2f6b; }
+  .field .hint { font-size: 12px; color: #5b6270; margin: 0 0 6px; }
+  .field input {
+    width: 100%; padding: 11px 12px; font-size: 16px; border-radius: 7px; outline: none;
+  }
+
+  /* INPUT A — "Estimated home value"
+     interior = white (#FFFFFF), border = steel-blue (#6E8FB5)
+       border vs interior : 3.36:1  (passes against the interior)
+       border vs panel    : 2.61:1  (fails against the lavender panel)
+       interior vs panel  : 1.29:1  <-- the MEANINGFUL adjacency: the white field on the
+                                        lavender panel is nearly invisible; the border is
+                                        the only real cue, and it is subsumed toward the
+                                        panel (below 3:1 against the panel). FAIL. */
+  .field.input-a input {
+    background: #FFFFFF;
+    color: #21242b;
+    border: 1px solid #6E8FB5;
+  }
+
+  /* INPUT B — "Annual policy budget"
+     interior = muted violet (#6E5A86), border = grape (#7A4A8A)
+       border vs panel    : 5.14:1  (passes against the panel)
+       border vs interior : 1.09:1  (fails against the interior)
+       interior vs panel  : 4.70:1  <-- the MEANINGFUL adjacency: the violet field fill on
+                                        the lavender panel is 4.70:1, so the control is
+                                        clearly identifiable by its fill regardless of the
+                                        border. PASS. */
+  .field.input-b input {
+    background: #6E5A86;
+    color: #ffffff;
+    border: 1px solid #7A4A8A;
+  }
+  .field.input-b input::placeholder { color: #cfc4dd; }
+
+  .actions { margin-top: 6px; display: flex; gap: 12px; }
+  .btn { font-size: 15px; font-weight: 700; border-radius: 7px; padding: 11px 22px; cursor: pointer; border: 0; }
+  .btn.primary { background: #2b2f6b; color: #fff; }
+  .btn.back { background: #fff; color: #2b2f6b; border: 1px solid #b9c0d6; }
+</style>
+</head>
+<body>
+  <header><span class="mark" aria-hidden="true"></span><strong>Harbor &amp; Vale</strong></header>
+  <p class="crumbs">Get a quote › Property details › <strong>Coverage &amp; budget</strong> › Review</p>
+
+  <main>
+    <h1>Coverage &amp; budget</h1>
+    <p class="intro">Step 3 of 4. These figures help us tailor the right policy for your home.</p>
+
+    <form class="quote-panel" action="#" method="post" novalidate aria-labelledby="qp">
+      <h2 id="qp">Your numbers</h2>
+
+      <div class="field input-a">
+        <label for="value">Estimated home value</label>
+        <p class="hint">Use your most recent appraisal or tax assessment.</p>
+        <input type="text" id="value" name="value" inputmode="numeric" placeholder="$">
+      </div>
+
+      <div class="field input-b">
+        <label for="budget">Annual policy budget</label>
+        <p class="hint">What you'd like to spend per year, before discounts.</p>
+        <input type="text" id="budget" name="budget" inputmode="numeric" placeholder="$">
+      </div>
+
+      <div class="actions">
+        <button type="button" class="btn back">Back</button>
+        <button type="submit" class="btn primary">See my quote</button>
+      </div>
+    </form>
+  </main>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS IT (the verdict requires choosing the meaningful adjacency):
+    Both inputs live on the same lavender panel (#DDE3F0). A per-edge tool measures each
+    declared border against an adjacent color and can be fooled either way:
+
+    INPUT A (white interior, #6E8FB5 border): border-vs-INTERIOR is 3.36:1, so a tool that
+      picks the inner adjacency reports PASS. But the white interior on the lavender panel
+      is 1.29:1 — the field is nearly invisible against the panel, so the BORDER is the only
+      thing identifying the control, and the border-vs-PANEL is only 2.61:1. Correct
+      verdict: FAIL.
+
+    INPUT B (violet #6E5A86 interior, #7A4A8A border): border-vs-INTERIOR is just 1.09:1,
+      so a tool that picks the inner adjacency reports FAIL. But the violet fill on the
+      lavender panel is 4.70:1 — the control is clearly identifiable by its fill, and the
+      border is decorative/subsumed. Correct verdict: PASS.
+
+    No checker performs the interpretive step of deciding WHICH adjacency actually
+    identifies each control (interior-vs-panel here), so it over- or under-reports. Only a
+    human reasoning about which colored pair is the meaningful one gets both right.
+  -->
+</body>
+</html>

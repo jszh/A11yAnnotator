@@ -37,11 +37,6 @@
 
   <a href="/parcels/lookup">Look up my parcel number</a>
 
-  <!-- The estimator below is a focus-trapping "millage worksheet". Once a field inside it gets
-       focus, blur is intercepted and focus is sent back to the first field, so Tab cannot leave
-       the worksheet. A custom Ctrl+M exit is wired up and WORKS — but its only instruction lives
-       in the collapsed <details> at the very bottom of the page, AFTER the trap. A keyboard user
-       who tabs into the worksheet is looped before they can ever reach (or open) that disclosure. -->
   <section class="millage-grid" id="worksheet" aria-label="Millage worksheet">
     <h2>Millage Worksheet</h2>
     <label for="assessed">Assessed value (USD)</label>
@@ -75,19 +70,6 @@
 <footer>
   <p>Maplewood County is committed to digital accessibility. Report a barrier:
      <a href="/a11y">accessibility@maplewood.gov</a></p>
-  <!--
-    WHY AUTOMATED TOOLS MISS THIS:
-    The page is technically clean. The escape keystroke IS documented in plain text, the <details>
-    has a real <summary>, every field has a <label>, and the Ctrl+M handler genuinely works. axe /
-    WAVE / Lighthouse see a present, well-formed instruction and a working exit, so they pass it.
-    What they cannot evaluate is REACHABILITY: the instruction sits in a collapsed disclosure placed
-    in DOM/visual order AFTER the trapping worksheet. A keyboard user who tabs into the worksheet is
-    looped back to the first field and can never tab forward to the <summary> to open it — so the
-    documented exit is, for the trapped user, undiscoverable. Judging that requires actually driving
-    the keyboard and reasoning about WHEN the advice becomes reachable relative to the trap. G21
-    requires the feature be documented "in an accessible manner within the subset"; advice after the
-    trap is not.
-  -->
 </footer>
 
 <script>
@@ -97,18 +79,15 @@
   var fields = worksheet.querySelectorAll('input, select, button');
   var first = fields[0];
 
-  // Engage the trap once focus lands inside the worksheet.
   fields.forEach(function (el) {
     el.addEventListener('focus', function () { trapOn = true; });
     el.addEventListener('blur', function () {
       if (trapOn) {
-        // Send focus back to the first field on the next tick → keyboard cannot leave.
         setTimeout(function () { if (trapOn) first.focus(); }, 0);
       }
     });
   });
 
-  // Working custom exit — released only by Ctrl+M. (Its instruction is hidden after the trap.)
   document.addEventListener('keydown', function (e) {
     if (e.ctrlKey && (e.key === 'm' || e.key === 'M')) {
       trapOn = false;

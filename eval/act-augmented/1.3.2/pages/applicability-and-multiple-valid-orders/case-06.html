@@ -4,25 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Support transcript — Ticket #80421 · Aurora Bank</title>
-<!--
-  SC 1.3.2 — EXPECTED: FAIL (long-tail: a dialogue transcript reordered so answers precede questions)
-
-  A saved customer-support chat transcript. A dialogue is intrinsically order-dependent: a reply
-  only makes sense after the message it answers. Here each message is a grid item, and CSS grid
-  `grid-row` is used to lay the bubbles out in the correct visual top-to-bottom conversation order.
-  BUT in the DOM the messages are stored newest-first (a common "prepend new message" anti-pattern),
-  so the linearized reading order is REVERSED: the agent's closing "Glad I could help!" is read
-  before the customer's opening "Hi, I was charged twice...". Read in DOM order the conversation is
-  back-to-front — answers arrive before their questions and the resolution before the problem.
-
-  Order IS meaningful (a conversation), so the applicability gate is tripped; and the DOM order
-  genuinely breaks meaning, so this is a FAIL — the deliberate contrast to the order-irrelevant
-  PASS cases (01-03). There are no timestamps or "1/2/3" markers a tool could sort by; the reversal
-  is only detectable by reading the dialogue and noticing the replies precede their prompts.
-
-  WHY AUTOMATED TOOLS MISS IT: grid + grid-row are valid; nothing is missing. No 1.3.2 rule exists.
-  Recognising that a transcript read bottom-to-top is incoherent needs reading comprehension.
--->
 <style>
   :root { --ink:#1b2330; --muted:#64748b; --line:#e2e8f0; --bg:#eef2f7;
           --cust:#dbeafe; --agent:#dcfce7; }
@@ -34,21 +15,18 @@
   .panel header h1 { margin:0; font-size:1.05rem; }
   .panel header p { margin:.2rem 0 0; color:var(--muted); font-size:.82rem; }
 
-  /* Messages are grid items. grid-row places them in the correct VISUAL order
-     (top = oldest). But DOM order is newest-first, so the AT reading order is reversed. */
   .thread { display:grid; grid-template-columns:1fr; gap:10px; padding:18px; }
   .msg { max-width:80%; padding:9px 13px; border-radius:14px; }
   .msg .who { display:block; font-size:.72rem; color:var(--muted); margin-bottom:2px; }
   .msg.cust  { background:var(--cust); justify-self:start; border-bottom-left-radius:4px; }
   .msg.agent { background:var(--agent); justify-self:end; text-align:left; border-bottom-right-radius:4px; }
 
-  /* Visual conversation order forced via grid-row (1 = top). */
-  #m1 { grid-row:1; }   /* customer opens */
-  #m2 { grid-row:2; }   /* agent asks */
-  #m3 { grid-row:3; }   /* customer answers */
-  #m4 { grid-row:4; }   /* agent resolves */
-  #m5 { grid-row:5; }   /* customer thanks */
-  #m6 { grid-row:6; }   /* agent closes */
+  #m1 { grid-row:1; }   
+  #m2 { grid-row:2; }   
+  #m3 { grid-row:3; }   
+  #m4 { grid-row:4; }   
+  #m5 { grid-row:5; }   
+  #m6 { grid-row:6; }   
 
   footer { padding:12px 18px; border-top:1px solid var(--line); color:var(--muted); font-size:.78rem; }
 </style>
@@ -62,7 +40,6 @@
 
     <div class="thread" role="log" aria-label="Chat transcript">
 
-      <!-- DOM is NEWEST-FIRST. The closing message is physically first in source. -->
       <div class="msg agent" id="m6">
         <span class="who">Agent &middot; Priya</span>
         Glad I could help! The refund of &pound;42.00 will land in 3&ndash;5 working days. Take care.

@@ -4,21 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Refill Prescription — Meadowbrook Patient Portal</title>
-<!--
-  SC 2.1.2 — modal-popover-legitimate-containment-vs-trap — case-01 (FAIL)
-  Native <dialog open> renders as a modal and a JS focus trap cycles Tab among its
-  three controls. There is NO Close/Cancel button anywhere in the dialog and NO Esc
-  handler. Because the markup was written as <dialog open> (NOT opened via showModal()),
-  the user agent's own Esc-to-cancel behaviour is NOT active, so there is genuinely no
-  keyboard exit. A mouse user clicks the backdrop to leave (a click-outside listener
-  exists); a keyboard user is stranded.
-  WHY AUTOMATED TOOLS MISS IT: the DOM is valid and pristine — a real <dialog> element
-  with role/modal semantics inferred by the UA, accessible names on every field, a
-  <h2> title, labelled inputs. axe/WAVE/Lighthouse never press Tab or Esc, so they never
-  observe that the cycle has no exit; and they cannot judge that the *absence* of a
-  Close control + absence of an Esc handler turns legitimate modal containment into a
-  trap. There is no missing/empty attribute for a linter to flag.
--->
 <style>
   :root { font-family: "Segoe UI", system-ui, sans-serif; color: #1b2733; }
   body { margin: 0; background: #eef3f6; }
@@ -66,10 +51,6 @@
     <a href="#account">Account settings</a>
   </p>
 
-  <!--
-    The dialog is rendered immediately (open attribute). It contains a refill form whose
-    Tab order is cycled by the trap script. Notice: NO close, NO cancel, NO Esc handler.
-  -->
   <dialog id="refill" open aria-labelledby="refill-title">
     <div class="dlg-head">
       <h2 id="refill-title">Request a refill — Lisinopril 10 mg</h2>
@@ -94,10 +75,6 @@
 </main>
 
 <script>
-  // Hand-rolled focus trap copied into the project. It keeps Tab inside the dialog by
-  // wrapping last->first and first->last. It contains NO escape path: there is no Esc
-  // key handler, and the dialog has no Close/Cancel control to tab to. The only way out
-  // is a mouse click on the backdrop (mousedown listener below) — useless to a keyboard user.
   const dlg = document.getElementById('refill');
 
   function focusables() {
@@ -106,7 +83,7 @@
   }
 
   dlg.addEventListener('keydown', function (e) {
-    if (e.key !== 'Tab') return;            // <-- only Tab is handled; Esc is ignored entirely
+    if (e.key !== 'Tab') return;            
     const items = focusables();
     const first = items[0];
     const last = items[items.length - 1];
@@ -117,18 +94,14 @@
     }
   });
 
-  // Mouse-only dismissal: clicking the dark backdrop closes the dialog. Keyboard users
-  // cannot trigger this.
   dlg.addEventListener('mousedown', function (e) {
     if (e.target === dlg) dlg.close();
   });
 
-  // Put initial focus inside the dialog on load.
   window.addEventListener('load', () => focusables()[0].focus());
 
   document.getElementById('submit').addEventListener('click', () => {
     document.getElementById('submit').textContent = 'Refill requested ✓';
-    // NOTE: still does not close or release focus — the trap persists after submit.
   });
 </script>
 </body>

@@ -3,41 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!--
-    SC 1.4.10 FAIL — a nested list that COSPLAYS the G224 conforming pattern but actually fails.
-
-    Context: a legal-research product's regulatory "issue tree" sidebar. The hierarchy is real
-    meaningful indentation (Title > Chapter > Part > Section > Subsection), exactly the kind of nesting
-    where flattening would lose the parent/child relationship — so the indentation legitimately needs to
-    be preserved, and the container is allowed to scroll horizontally to bring a level into view.
-
-    THE TRAP: the author copied the *scaffolding* of G224 (semantic <ul>/<li>, overflow-x:auto on the
-    container, a media query) but got the crucial half WRONG. The list-item LABELS are forced onto a
-    single physical line — white-space:nowrap — and each label is long regulatory prose. So at 320px the
-    failure is NOT "scroll a level into view, then read vertically." It is: even after a level is in view,
-    every single item's TEXT runs off the right edge and the user must scroll left-and-right to read each
-    line. The G224 list procedure's pass arrangement (check 4) requires that once a nested list is visible,
-    "only vertical scrolling will be necessary to read the content of the nested list's items." That is
-    exactly what this page DENIES. G224's own description says "it is important for the individual list
-    item text to reflow" — and here it does not.
-
-    WHY IT IS A FAIL, not the exception: the indentation (which level contains which) is meaningful and
-    may be preserved; but the *wrapping of the prose inside each item* carries no meaning and could wrap
-    with zero loss. Regulatory sentences are not Python and not ascii-art. So the per-item text must
-    reflow, and it doesn't. FAIL.
-
-    WHY AUTOMATED TOOLS MISS IT: byte-for-byte this looks like the conforming case — semantic nested
-    list, overflow-x:auto, indentation media query, even a min-width "safety net" comment. A scanner sees
-    a deep <ul> in a horizontally-scrollable box and cannot tell that white-space:nowrap on the labels
-    means the item TEXT (not just the level indent) is what's forcing two-dimensional reading. Deciding
-    that the indentation is meaningful (keep it) but the prose wrapping is NOT (must reflow) — and that
-    this specific arrangement breaks G224 check 4 rather than satisfying it — is human reading.
-
-    The trap is sharpened against case-01 (prose in <pre>, FAIL) and case-05 (wrappable code in <pre>,
-    FAIL): those fail INSIDE a <pre>. This one fails inside a real semantic <ul> dressed up to imitate
-    the G224 PASS pattern of case-02 — so the only thing separating pass from fail is reading whether the
-    item text can reflow.
-  -->
   <title>Issue Tree — Title 42 CFR navigator — Lexbridge Regulatory Research</title>
   <style>
     :root { --ink:#1c2230; --muted:#5b6577; --line:#dde3ec; --bg:#f6f8fb; --accent:#1f3a5f; --rule:#c9d3e2; }
@@ -53,12 +18,12 @@
     .sidebar h2 { font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:0 0 8px; }
     p.note { font-size:13px; color:var(--muted); margin:0 0 12px; }
 
-    .sidebar { min-width: 0; }                /* let the column shrink to the viewport at narrow widths */
-    /* --- looks like the G224 nested-list pattern; the container scrolls a level into view --- */
+    .sidebar { min-width: 0; }                
+    
     .issuetree {
       border:1px solid var(--line); border-radius:8px; background:#fff; padding:10px 8px;
-      max-width: 100%;                        /* bound the box to the column so overflow-x engages */
-      overflow-x: auto;                       /* "bring a nested level into view" — the G224 scaffolding */
+      max-width: 100%;                        
+      overflow-x: auto;                       
       -webkit-overflow-scrolling: touch;
     }
     .issuetree ul { list-style:none; margin:0; padding-inline-start: 1.5em; border-left:1px dotted var(--rule); }
@@ -66,18 +31,16 @@
     .issuetree li { position:relative; margin:.3em 0; }
     .issuetree li > .node {
       display:block; padding:.32em .5em; border-radius:5px;
-      white-space: nowrap;                    /* THE DEFECT: each item's prose is locked to one line */
+      white-space: nowrap;                    
     }
     .issuetree li > .node:hover { background:#eef3fa; }
     .issuetree .cite { color:var(--accent); font-weight:600; font-variant-numeric:tabular-nums; }
     .issuetree .heading { color:var(--ink); }
     .issuetree .meta { color:var(--muted); font-size:12px; }
 
-    /* Author reduced the per-level indent at the narrow breakpoint (the G224 indentation advice) —
-       but left white-space:nowrap intact, so the item TEXT still cannot reflow. The min-width comment
-       is a red herring: it is never paired with wrapping. */
+    
     @media (max-width: 480px) {
-      .issuetree ul { padding-inline-start: .8em; }   /* indent reduced; prose still one line */
+      .issuetree ul { padding-inline-start: .8em; }   
     }
     .panel { background:#fff; border:1px solid var(--line); border-radius:8px; padding:16px 18px; }
     .panel h2 { margin-top:0; font-size:17px; }

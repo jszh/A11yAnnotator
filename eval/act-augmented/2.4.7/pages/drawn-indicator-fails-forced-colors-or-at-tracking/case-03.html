@@ -4,31 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Choose your seat — Coastliner rail booking</title>
-<!--
-  ACCESSIBILITY DEFECT (SC 2.4.7, aspect: drawn-indicator-fails-forced-colors-or-at-tracking)
-  The seat picker is built from CUSTOM, NON-NATIVE focusable widgets:
-  <div tabindex="0" role="button"> (not <button>, not <input>). Their ONLY focus cue is an
-  author background-COLOR swap (#f3f5f9 -> #ffe08a) applied on :focus, with outline:none.
-
-  In a default render this works: tabbing tints the focused seat amber, pixels change, and a
-  one-render focus checker (ACT oj04fd / screenshot-diff) passes.
-
-  The failure is specific to forced-colors / Windows High Contrast mode AND to the fact that
-  these are CUSTOM widgets, and it survives two things that would otherwise rescue it:
-    1. background-COLOR (unlike background-image) is genuinely overridden by the system Canvas
-       color in forced colors, so the amber tint collapses to the same system color as every
-       other (unfocused) seat -> the cue vanishes.
-    2. Chromium does NOT restore its UA focus outline on NON-NATIVE focusable elements
-       (div[tabindex]); it only re-applies a forced-colors ring to native controls
-       (<input>/<select>/<button>). So unlike a native input, there is NO fallback ring here.
-  Result in forced colors: the focused seat is rendered pixel-identically to the unfocused
-  seats. No focus indicator remains.
-
-  This is NOT the data-URI / background-IMAGE mistake: a url() image (incl. data: SVG) is
-  PRESERVED in forced colors per css-color-adjust. This case relies on background-COLOR being
-  overridden, which it is. Verified empirically (default vs forced-colors screenshots).
-  The markup is well-formed (real role/tabindex/labels), so axe/WAVE/Lighthouse report nothing.
--->
 <style>
   * { box-sizing: border-box; }
   body {
@@ -42,10 +17,6 @@
   .sub { color: #5b6472; margin: 0 0 22px; font-size: .9rem; }
   .coach { font-size: .8rem; color: #6b7280; margin: 0 0 10px; font-weight: 600; letter-spacing: .02em; text-transform: uppercase; }
 
-  /* ---- The defect lives here ---- */
-  /* Each seat is a CUSTOM widget: div[tabindex][role=button], NOT a native control.
-     The sole focus cue is a background-COLOR swap. Native outline removed (divs have
-     none by default anyway). No border-color change, no box-shadow, no outline. */
   .seat {
     display: block;
     width: 100%;
@@ -54,14 +25,14 @@
     margin: 0 0 11px;
     border: 1px solid #cdd3df;
     border-radius: 10px;
-    background-color: #f3f5f9;   /* resting */
+    background-color: #f3f5f9;   
     color: #1a2030;
     font: inherit;
     cursor: pointer;
   }
   .seat:focus {
     outline: none;
-    background-color: #ffe08a;   /* <-- the ENTIRE focus indicator */
+    background-color: #ffe08a;   
   }
   .seat .meta { display: block; font-size: .8rem; color: #5b6472; margin-top: 2px; }
   .seat[aria-pressed="true"] { border-color: #2563c9; }
@@ -71,7 +42,7 @@
     margin-top: 18px; font: inherit; font-weight: 600; color: #fff;
     background: #2563c9; border: none; border-radius: 9px; padding: 11px 20px; cursor: pointer;
   }
-  .cta:focus { outline: 3px solid #1746a0; outline-offset: 2px; } /* native button is fine; not the subject */
+  .cta:focus { outline: 3px solid #1746a0; outline-offset: 2px; } 
 </style>
 </head>
 <body>
@@ -97,7 +68,6 @@
 </div>
 
 <script>
-  // Make the custom widgets actually operable (so they are real keyboard widgets, not decoration).
   document.querySelectorAll('.seat').forEach(function (el) {
     function toggle() {
       var on = el.getAttribute('aria-pressed') === 'true';

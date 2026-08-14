@@ -4,26 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cohort report — Pulse Analytics</title>
-<!--
-  ACCESSIBILITY DEFECT (SC 1.4.11 Non-text Contrast, Level AA) — present-but-wrong.
-  GEOMETRY ASPECT: an OUTER focus ring is measured against the PAGE the component sits on,
-  and the 3:1 threshold is exact (2.999:1 does NOT pass; values are not rounded up).
-
-  An icon-only toolbar of grid actions sits on a white (#fff) toolbar surface. Every button
-  gets the SAME outer grey focus ring style EXCEPT the colour differs by one design token:
-    - Most buttons (.tool):   ring grey #949494  vs white = 3.033:1 -> PASS (the canonical
-                              "#949494 against white = 3:1" focus indicator from the spec).
-    - One button   (#tool-export): ring grey #aaaaaa vs white = 2.323:1 -> FAIL.
-  The two greys are visually almost identical and only ~0.7 contrast apart; the failing one
-  sits just below the exact 3:1 threshold. Same geometry (outer ring on white), so the
-  verdict is decided purely by the page-adjacency contrast number near the threshold.
-
-  WHY AUTOMATED TOOLS MISS IT: a focus ring is present and changes on focus, so focus-visible
-  heuristics pass for ALL buttons. axe/WAVE/Lighthouse do not measure the contrast of an
-  author focus RING against the page surface, and certainly do not police the exact (un-
-  rounded) 3:1 boundary that separates #949494 (pass) from #aaaaaa (fail). The two greys
-  are indistinguishable to a casual eye, so manual spot-checks miss it too.
--->
 <style>
   :root { --ink:#1f2733; }
   body { font:14px/1.5 "Segoe UI",system-ui,sans-serif; color:var(--ink);
@@ -33,7 +13,6 @@
   .panel-head { display:flex; align-items:center; justify-content:space-between;
                 padding:14px 18px; border-bottom:1px solid #eef1f4; }
   .panel-head h1 { font-size:1.05rem; margin:0; }
-  /* The toolbar surface is white (#fff): the focus rings are measured against this. */
   .toolbar { display:flex; gap:6px; background:#fff; padding:4px; border-radius:8px; }
   .tool {
     appearance:none; cursor:pointer; width:34px; height:34px; border:0; border-radius:6px;
@@ -41,9 +20,8 @@
   }
   .tool:hover { background:#f2f4f7; }
   .tool svg { width:18px; height:18px; }
-  /* Shared OUTER focus ring; only the token colour differs between buttons. */
-  .tool:focus       { outline:none; box-shadow:0 0 0 3px #949494; } /* vs #fff = 3.033:1 PASS */
-  #tool-export:focus{ outline:none; box-shadow:0 0 0 3px #aaaaaa; } /* vs #fff = 2.323:1 FAIL */
+  .tool:focus       { outline:none; box-shadow:0 0 0 3px #949494; } 
+  #tool-export:focus{ outline:none; box-shadow:0 0 0 3px #aaaaaa; } 
 
   table { width:100%; border-collapse:collapse; font-size:.9rem; }
   th, td { text-align:left; padding:9px 18px; border-bottom:1px solid #eef1f4; }

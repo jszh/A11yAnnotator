@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brown-Butter Madeleines — Step by Step</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS:
+  The steps are a valid <ol>. Every <li> has text. There is no empty element, no missing
+  label, no contrast failure. The cook visually reads steps 1,2,3,4 top-to-bottom because
+  flex-direction:row-reverse + a wrapping column flips the rendered order. But the <ol> in
+  source order is 4,3,2,1 — and an <ol> is, per WCAG, an inherently meaningful sequence, so
+  a screen reader announces "list item 1 of 4: Bake at 200C..." (the LAST step) first. The
+  recipe linearizes to a dangerous order (bake before you've mixed the batter). No tool can
+  know a recipe's steps must be performed in a specific order; that is human comprehension.
+-->
+<style>
+  :root { --ink:#2b2118; --warm:#a8521b; --cream:#fdf8f1; --line:#ead9c5; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.65 Georgia,"Times New Roman",serif; color:var(--ink);
+         background:var(--cream); }
+  header { padding:34px 24px 10px; max-width:720px; margin:0 auto; }
+  header h1 { margin:0; font-size:1.9rem; color:var(--warm); }
+  header p { margin:.5rem 0 0; font-style:italic; color:#6e5c48; }
+  main { max-width:720px; margin:0 auto; padding:8px 24px 72px; }
+  h2 { font-size:1.25rem; color:var(--warm); border-bottom:2px solid var(--line);
+       padding-bottom:6px; }
+
+  /* The blogger duplicated a "card grid" snippet from another post that used
+     flex-direction:row-reverse to right-align thumbnails. Here it wraps into a single
+     column, and because the main axis is reversed, the LAST DOM child renders at the TOP.
+     So the steps LOOK like 1,2,3,4 but the <ol> source order is 4,3,2,1. */
+  ol.steps {
+    list-style:none; margin:18px 0 0; padding:0;
+    display:flex;
+    flex-direction:row-reverse;   /* main axis reversed */
+    flex-wrap:wrap-reverse;       /* combined with wrap, stacks last child on top */
+    gap:14px;
+  }
+  ol.steps li {
+    flex:1 1 100%;
+    background:#fff; border:1px solid var(--line); border-radius:10px;
+    padding:16px 18px 16px 56px; position:relative;
+  }
+  ol.steps li .n {
+    position:absolute; left:14px; top:16px;
+    width:30px; height:30px; border-radius:50%;
+    background:var(--warm); color:#fff; font-weight:700;
+    display:flex; align-items:center; justify-content:center; font-family:system-ui;
+  }
+  .meta { color:#6e5c48; font-size:.95rem; }
+  footer { border-top:1px solid var(--line); margin-top:48px; padding-top:18px;
+           font-size:.85rem; color:#6e5c48; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Brown-Butter Madeleines</h1>
+  <p>Crisp shell, tender hump, hazelnut aroma. Makes 12.</p>
+</header>
+<main>
+  <p class="meta">Prep 20 min · Chill 1 hr · Bake 9 min</p>
+
+  <h2>Method</h2>
+  <!-- Visual render (flex-reversed) shows, top to bottom:
+         1  Brown the butter ...
+         2  Whisk eggs and sugar ...
+         3  Fold in flour, then the brown butter ...
+         4  Pipe into the mold and bake ...
+       But source/linearized order of this <ol> is the LITERAL reverse: 4,3,2,1.
+       A screen reader reads "1 of 4: Pipe into the mold and bake at 200C ..." first,
+       then the prep steps after — telling the cook to bake before mixing the batter. -->
+  <ol class="steps">
+    <li><span class="n">4</span>Pipe the batter into a buttered madeleine mold and bake at
+        200&nbsp;C for 9 minutes, until the humps spring back. Cool 2 minutes before
+        unmolding.</li>
+    <li><span class="n">3</span>Fold the sifted flour into the egg mixture in three additions,
+        then stream in the cooled brown butter. Rest the batter, covered, for 1 hour.</li>
+    <li><span class="n">2</span>Whisk the eggs and sugar until pale and tripled in volume,
+        about 4 minutes. Add the vanilla and a pinch of salt.</li>
+    <li><span class="n">1</span>Brown the butter in a light-colored pan over medium heat until
+        it smells of hazelnuts and the milk solids turn amber. Let it cool to lukewarm.</li>
+  </ol>
+
+  <footer>
+    The Slow Kitchen · Recipe tested in a home oven · No external assets, renders from file://.
+  </footer>
+</main>
+</body>
+</html>

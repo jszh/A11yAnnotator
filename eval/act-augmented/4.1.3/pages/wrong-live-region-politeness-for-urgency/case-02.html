@@ -60,15 +60,6 @@
   </article>
 
   <aside aria-label="Live market data">
-    <!--
-      THE DEFECT is on #priceboard below.
-      A valid live region IS present at load, so every "no live region" checker passes.
-      But it is wired aria-live="assertive", and a setInterval rewrites three prices
-      every 2 seconds. Each refresh assertively INTERRUPTS the screen reader that is
-      reading the article to the left, every two seconds, indefinitely. A ticking price
-      board is the textbook low-value, high-frequency case that SCR14 says should be
-      polite AND toggleable. The right value here is polite (or off with an opt-in).
-    -->
     <div class="ticker" id="priceboard" aria-live="assertive" aria-atomic="true">
       <h2>Watchlist</h2>
       <div class="row"><span class="sym">NDX</span><span class="px" id="p0">20,114.62</span></div>
@@ -89,8 +80,6 @@
 </div>
 
 <script>
-  // A live tape: three instruments re-priced every 2 seconds, written into the
-  // ASSERTIVE region. Every write interrupts the screen reader mid-article.
   var ids   = ['p0','p1','p2'];
   var bases = [20114.62, 5981.40, 67420];
   function jitter(v, i) {
@@ -108,8 +97,6 @@
       el.textContent = fmt(v, i);
       el.className = 'px ' + (v >= bases[i] ? 'up' : 'down');
     }
-    // Rewriting children of an aria-atomic assertive region => the WHOLE board is
-    // re-announced assertively, interrupting the article reader, every 2 seconds.
   }, 2000);
 </script>
 </body>

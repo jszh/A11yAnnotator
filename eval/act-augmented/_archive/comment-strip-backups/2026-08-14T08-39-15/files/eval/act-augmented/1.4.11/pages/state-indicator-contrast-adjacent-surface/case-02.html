@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Notification settings · Cadence Analytics</title>
+<style>
+  body {
+    font-family: ui-sans-serif, "Inter", system-ui, sans-serif;
+    margin: 0; background: #ffffff; color: #16202c; line-height: 1.5;
+  }
+  header.app {
+    background: #0f2233; color: #e8eef4; padding: 14px 24px; font-weight: 600;
+  }
+  main { max-width: 680px; margin: 0 auto; padding: 28px 24px 72px; }
+  h1 { font-size: 1.4rem; margin: 0 0 6px; }
+  .sub { color: #5a6573; margin: 0 0 26px; }
+  .group h2 { font-size: .82rem; letter-spacing: .04em; text-transform: uppercase; color: #8a94a1; margin: 26px 0 8px; }
+  .row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 4px; border-bottom: 1px solid #eef1f4; gap: 16px;
+  }
+  .row:last-child { border-bottom: 0; }
+  .row .label { font-weight: 500; }
+  .row .hint { color: #6b7480; font-size: .86rem; margin-top: 2px; }
+
+  /* Custom switch built on a native checkbox. Input hidden but present + labelled,
+     so role/name/value are all exposed correctly to assistive tech. */
+  .switch { position: relative; display: inline-block; flex: 0 0 auto; }
+  .switch input {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    margin: 0; opacity: 0; cursor: pointer;
+  }
+  .track {
+    display: block; width: 52px; height: 30px; border-radius: 15px;
+    background: #c2c8cf;                 /* OFF track: grey */
+    transition: background .15s ease; position: relative;
+  }
+  /* ON: the track turns green. #4E9E52 vs the white page = 3.31:1, so the
+     "control vs page" sample PASSES — this is the decoy that exonerates nothing. */
+  .switch input:checked + .track { background: #4E9E52; }
+  .switch input:focus-visible + .track { outline: 3px solid #0f2233; outline-offset: 3px; }
+
+  /* The thumb. On a switch the THUMB'S POSITION is the state indicator: left = OFF,
+     right = ON. So the thumb is the "visual information necessary to indicate state",
+     and its adjacent color is the track it sits on (another part of the component). */
+  .thumb {
+    position: absolute; top: 3px; left: 3px;
+    width: 24px; height: 24px; border-radius: 50%;
+    background: #ffffff;                /* OFF thumb: white on grey track = ample contrast */
+    transition: transform .15s ease, background .15s ease;
+    box-shadow: 0 1px 2px rgba(0,0,0,.25);
+  }
+  /* ON: the thumb slides right AND the designer recolored it a pale "frosted" green so
+     it would feel integrated with the green track. #74B97A thumb sitting ON the
+     #4E9E52 track = 1.32:1, measured around its ENTIRE circumference (the green track
+     fully surrounds the thumb). The thumb's outline — and therefore its position, the
+     only ON/OFF cue — is nearly invisible against the track it rides. */
+  .switch input:checked + .track .thumb {
+    transform: translateX(22px);
+    background: #74B97A;                /* pale "frosted" green thumb */
+    box-shadow: none;                  /* drop-shadow removed, so no edge cue remains */
+  }
+
+  .note {
+    margin-top: 34px; font-size: .82rem; color: #6b7480;
+    background: #f7f9fb; border: 1px dashed #d6dde4; border-radius: 8px; padding: 14px 16px;
+  }
+  .note code { background: #eaeff4; padding: 1px 4px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<header class="app">Cadence Analytics</header>
+<main>
+  <h1>Notification settings</h1>
+  <p class="sub">Control which alerts Cadence sends to your inbox and devices.</p>
+
+  <section class="group" aria-label="Email notifications">
+    <h2>Email</h2>
+    <div class="row">
+      <span class="text"><span class="label">Weekly performance digest</span><div class="hint">A Monday summary of last week's metrics.</div></span>
+      <label class="switch">
+        <input type="checkbox" checked aria-label="Weekly performance digest">
+        <span class="track" aria-hidden="true"><span class="thumb"></span></span>
+      </label>
+    </div>
+    <div class="row">
+      <span class="text"><span class="label">Anomaly alerts</span><div class="hint">Email me when a metric breaks its threshold.</div></span>
+      <label class="switch">
+        <input type="checkbox" checked aria-label="Anomaly alerts">
+        <span class="track" aria-hidden="true"><span class="thumb"></span></span>
+      </label>
+    </div>
+  </section>
+
+  <section class="group" aria-label="Mobile push notifications">
+    <h2>Mobile push</h2>
+    <div class="row">
+      <span class="text"><span class="label">Daily goal reminder</span><div class="hint">A nudge at 9am if you're behind pace.</div></span>
+      <label class="switch">
+        <input type="checkbox" checked aria-label="Daily goal reminder">
+        <span class="track" aria-hidden="true"><span class="thumb"></span></span>
+      </label>
+    </div>
+    <div class="row">
+      <span class="text"><span class="label">Streak milestones</span><div class="hint">Celebrate 7-, 30- and 100-day streaks.</div></span>
+      <label class="switch">
+        <input type="checkbox" aria-label="Streak milestones">
+        <span class="track" aria-hidden="true"><span class="thumb"></span></span>
+      </label>
+    </div>
+  </section>
+
+  <p class="note">
+    Why automated tools pass this page: the switches are real labelled checkboxes (role/name/value
+    fine), and in the ON state the track is green <code>#4E9E52</code> at 3.31:1 against the white
+    page, so any "control vs page" contrast sample passes. But on a switch the on/off state is
+    conveyed by the <strong>thumb's position</strong> (left = off, right = on); in the ON state the
+    thumb (<code>#74B97A</code>) sits inside the green track (<code>#4E9E52</code>) at 1.32:1 around
+    its whole edge, so the part of the component that actually signals ON cannot be located against
+    the surface it rides.
+  </p>
+</main>
+</body>
+</html>

@@ -22,7 +22,6 @@
   .row > div { flex:1; }
   .submit { margin-top:24px; background:var(--teal); color:#fff; border:0; border-radius:6px; padding:12px 26px; font-size:1rem; font-weight:600; cursor:pointer; }
   .submit:hover { background:#0f6878; }
-  /* The confirmation styling — note: this CSS exists but the matching node is NOT in the DOM at load */
   .confirm { margin-top:22px; background:#e7f6ec; border:1px solid #9bd6ad; border-radius:6px; padding:14px 16px; color:#14532d; font-weight:600; }
   footer { max-width:680px; margin:0 auto 48px; padding:0 32px; color:var(--muted); font-size:.78rem; }
   .devnote { max-width:680px; margin:0 auto 24px; padding:14px 18px; background:#fffaf0; border:1px solid #f0dca8; border-radius:8px; font-size:.82rem; color:#6b5418; }
@@ -42,8 +41,6 @@
   <h2>Request a Curbside Recycling Bin</h2>
   <p class="lead">Households within city limits may request one free 65-gallon recycling cart. Allow 7&ndash;10 business days for delivery.</p>
 
-  <!-- IMPORTANT: there is NO status/live-region container anywhere in this markup at page load.
-       The confirmation node (and its role="status") is built and inserted on submit. -->
   <form id="bin-form" novalidate>
     <label for="addr">Service address</label>
     <input id="addr" name="addr" type="text" autocomplete="street-address" value="142 Maple Crescent" required>
@@ -72,7 +69,6 @@
     <button type="submit" class="submit">Submit request</button>
   </form>
 
-  <!-- The confirmation will be appended here on submit. This wrapper is an inert plain div. -->
   <div id="result-area"></div>
 </main>
 
@@ -91,23 +87,14 @@
 </footer>
 
 <script>
-  // Persona: a city contractor's junior dev wired this on a tight deadline. They grabbed the
-  // ubiquitous "inject your success message" pattern from a tutorial: set the container's innerHTML
-  // to a string that ALREADY INCLUDES role="status". The rendered result looks textbook-correct, and
-  // QA (sighted) saw the green banner appear, so it shipped.
   document.getElementById('bin-form').addEventListener('submit', function (e) {
     e.preventDefault();
     var area = document.getElementById('result-area');
-    // F103 timing failure: the role="status" attribute is born in the SAME operation that supplies
-    // the text. There was never an empty, registered live region at page load. A screen reader that
-    // was not already observing this node sees a fully-formed subtree appear and, in NVDA/JAWS/VoiceOver,
-    // typically announces NOTHING.
     area.innerHTML =
       '<div class="confirm" role="status">' +
         'Your recycling cart request was received. Reference #BR-2026-04817. ' +
         'A 65-gallon cart will be delivered to 142 Maple Crescent within 7–10 business days.' +
       '</div>';
-    // Mark the timing so the harness can distinguish the failing temporal pattern from a correct one.
     area.firstChild.setAttribute('data-region-born-with-content', 'true');
     document.getElementById('bin-form').style.display = 'none';
   });

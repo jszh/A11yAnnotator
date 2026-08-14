@@ -16,7 +16,6 @@
   .play { width:62px; height:62px; border-radius:50%; background:#fff !important; color:#2a1b4d !important; font-size:1.6rem !important; }
   .vol-row { display:flex; align-items:center; gap:12px; }
   .vol-row .ic { font-size:1.1rem; width:24px; }
-  /* Custom slider: a track with a filled portion and a draggable thumb. */
   .slider { position:relative; flex:1; height:30px; cursor:pointer; }
   .slider .rail { position:absolute; top:13px; left:0; right:0; height:4px; border-radius:2px; background:rgba(255,255,255,.25); }
   .slider .fill { position:absolute; top:13px; left:0; height:4px; border-radius:2px; background:#ff99ac; }
@@ -40,11 +39,6 @@
 
   <div class="vol-row">
     <span class="ic" aria-hidden="true">&#128264;</span>
-    <!--
-      Custom volume slider rendered at MAXIMUM: the fill spans the full rail and the thumb sits at the far right.
-      But aria-valuenow is hard-coded "0" and there is no aria-valuetext, so AT reads the volume as 0 (silent/min)
-      while the control visibly shows full volume.
-    -->
     <div class="slider" role="slider"
          tabindex="0"
          aria-label="Volume"
@@ -68,8 +62,6 @@
 </div>
 
 <script>
-  // Keyboard handling keeps aria-valuenow and the visual thumb in sync once the user acts.
-  // The bug is the INITIAL state: thumb painted at 100% while aria-valuenow ships as "0".
   var s = document.querySelector('.slider');
   s.addEventListener('keydown', function (e) {
     var v = parseInt(s.getAttribute('aria-valuenow'), 10) || 0;

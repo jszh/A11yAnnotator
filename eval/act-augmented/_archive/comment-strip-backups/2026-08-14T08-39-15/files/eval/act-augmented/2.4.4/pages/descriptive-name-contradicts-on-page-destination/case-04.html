@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cadence Analytics — Pricing</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (SC 2.4.4 Link Purpose In Context):
+  A three-tier pricing table. The Basic card's call-to-action link reads
+  "Basic plan — $0/mo: Get started free". That accessible name is specific, rich, and
+  unambiguous about its purpose (start the free Basic plan). axe / WAVE / Lighthouse pass
+  it — non-empty, descriptive, unique.
+  The href is "#enterprise-checkout", an on-page section that begins the PAID Enterprise
+  purchase flow ("$1,200/mo, annual contract, talk to sales"). The genuine free-signup
+  section is "#basic-signup". So a user who chooses the free Basic CTA is dropped into the
+  Enterprise paid-checkout section — a real, present section that contradicts the link's
+  promise (free vs. $1,200/mo enterprise). The fragment resolves; nothing is broken.
+  Detecting this requires reading the destination section, realising it is the paid
+  Enterprise checkout, and judging that it contradicts a link that promised the free Basic
+  plan — a meaning-level cross-check beyond any automated scan.
+-->
+<style>
+  :root { --ink:#1a1c2b; --accent:#5b34d6; --accent2:#0fb9a6; --line:#e6e3f2; --bg:#f7f6fc; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.6 "Inter",system-ui,Segoe UI,Arial,sans-serif; color:var(--ink);
+         background:var(--bg); }
+  a { color:var(--accent); }
+  header.top { text-align:center; padding:46px 20px 10px; }
+  header.top h1 { margin:0; font-size:1.9rem; }
+  header.top p { color:#5d5a72; max-width:560px; margin:10px auto 0; }
+  .grid { max-width:980px; margin:30px auto; padding:0 20px; display:grid;
+          grid-template-columns:repeat(3,1fr); gap:20px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:16px; padding:26px 22px 28px;
+          display:flex; flex-direction:column; }
+  .card h2 { margin:0 0 2px; font-size:1.15rem; }
+  .price { font-size:2rem; font-weight:800; margin:6px 0 2px; }
+  .price small { font-size:.9rem; font-weight:500; color:#6d6a82; }
+  .card ul { list-style:none; padding:0; margin:16px 0 22px; font-size:.93rem; color:#3c3a4d; }
+  .card li { padding:6px 0; border-bottom:1px dashed var(--line); }
+  .cta { margin-top:auto; display:block; text-align:center; text-decoration:none;
+         font-weight:700; padding:12px 16px; border-radius:10px; }
+  .cta.free { background:#eef0ff; color:var(--accent); }
+  .cta.pro { background:var(--accent); color:#fff; }
+  .cta.ent { background:#0f2230; color:#fff; }
+  .featured { border:2px solid var(--accent); box-shadow:0 8px 30px rgba(91,52,214,.12); }
+  section.flow { max-width:760px; margin:40px auto; padding:0 20px; }
+  section.flow > div { background:#fff; border:1px solid var(--line); border-radius:14px;
+                       padding:8px 24px 22px; margin-top:16px; scroll-margin-top:14px; }
+  section.flow h2 { color:var(--accent); }
+  label { display:block; margin:12px 0 4px; font-weight:600; font-size:.9rem; }
+  input { width:100%; padding:9px 10px; border:1px solid #cfc9e6; border-radius:8px; font:inherit; }
+  .ent-note { background:#0f2230; color:#cfe6ef; border-radius:12px; padding:14px 18px;
+              font-size:.92rem; }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>Cadence Analytics pricing</h1>
+  <p>Pick a plan, then complete sign-up further down this page. Start free, upgrade any time.</p>
+</header>
+
+<div class="grid">
+  <div class="card">
+    <h2>Basic</h2>
+    <div class="price">$0<small>/mo</small></div>
+    <ul>
+      <li>1 dashboard</li>
+      <li>7-day data retention</li>
+      <li>Community support</li>
+    </ul>
+    <!-- DEFECT: name promises the FREE Basic plan, href jumps to #enterprise-checkout
+         (the paid $1,200/mo Enterprise purchase flow). Real free section is #basic-signup. -->
+    <a class="cta free" href="#enterprise-checkout">Basic plan — $0/mo: Get started free</a>
+  </div>
+
+  <div class="card featured">
+    <h2>Pro</h2>
+    <div class="price">$49<small>/mo</small></div>
+    <ul>
+      <li>Unlimited dashboards</li>
+      <li>1-year data retention</li>
+      <li>Email support</li>
+    </ul>
+    <a class="cta pro" href="#pro-signup">Pro plan — $49/mo: Start 14-day trial</a>
+  </div>
+
+  <div class="card">
+    <h2>Enterprise</h2>
+    <div class="price">$1,200<small>/mo</small></div>
+    <ul>
+      <li>SSO &amp; audit logs</li>
+      <li>Unlimited retention</li>
+      <li>Dedicated success manager</li>
+    </ul>
+    <a class="cta ent" href="#enterprise-checkout">Enterprise plan — $1,200/mo: Contact sales</a>
+  </div>
+</div>
+
+<section class="flow" aria-label="Sign-up flows">
+  <div id="basic-signup">
+    <h2>Start your free Basic plan</h2>
+    <p>No card required. Create your account and your free dashboard is ready in seconds.</p>
+    <label for="b-email">Work email</label>
+    <input id="b-email" type="email" autocomplete="email">
+    <label for="b-pass">Choose a password</label>
+    <input id="b-pass" type="password" autocomplete="new-password">
+  </div>
+
+  <div id="pro-signup">
+    <h2>Start your Pro 14-day trial</h2>
+    <p>Card required to start the trial; you won't be charged until day 15.</p>
+    <label for="p-email">Work email</label>
+    <input id="p-email" type="email" autocomplete="email">
+  </div>
+
+  <div id="enterprise-checkout">
+    <h2>Enterprise checkout — $1,200/mo, billed annually</h2>
+    <div class="ent-note">This is the paid Enterprise purchase flow. An annual contract
+    ($14,400/yr) and a signed order form are required. A sales engineer will contact you to
+    finalise SSO and provisioning before billing begins.</div>
+    <label for="e-company">Company legal name</label>
+    <input id="e-company" autocomplete="organization">
+    <label for="e-seats">Number of seats (minimum 25)</label>
+    <input id="e-seats" type="number" value="25">
+  </div>
+</section>
+</body>
+</html>

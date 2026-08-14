@@ -9,7 +9,7 @@
   body {
     margin: 0;
     font-family: "IBM Plex Sans", "Segoe UI", Arial, sans-serif;
-    background: #F4F6F8;            /* page background */
+    background: #F4F6F8;            
     color: #1c1f23;
   }
   .nav {
@@ -22,19 +22,15 @@
   .sub { color: #5a616a; margin: 0 0 20px; font-size: 14px; }
 
   .filterbar {
-    background: #F4F6F8;            /* same as the page — pills sit directly on the page */
+    background: #F4F6F8;            
     padding: 6px 0 18px;
     display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
   }
   .filterbar .lbl { font-size: 13px; color: #5a616a; margin-right: 4px; }
 
-  /* "Pill" filter toggles. They are buttons whose INTERIOR fill is the SAME as the page
-     (#F4F6F8) — there is no text-weight or icon difference between them, and the visible
-     boundary (the outline) is the ONLY cue that a pill control is there. So the outline is
-     "required to identify that a control is present" and must reach 3:1 against the page. */
   .pill {
     appearance: none;
-    background: #F4F6F8;            /* interior == page background (1.00:1) */
+    background: #F4F6F8;            
     color: #2a2f36;
     font-size: 13px; font-weight: 500;
     padding: 7px 14px;
@@ -42,12 +38,8 @@
     cursor: pointer;
   }
 
-  /* PASS pill: outline #7E8B96 vs page = 3.22:1 (>= 3:1) */
   .pill.ok { border: 1.5px solid #7E8B96; }
 
-  /* FAIL pill: outline #8E9BA6 vs page = 2.62:1 (< 3:1).
-     Visually almost identical to the .ok pill, but below threshold — and since the pill's
-     interior matches the page, this outline is the ONLY thing that says "control here." */
   .pill.bad { border: 1.5px solid #8E9BA6; }
 
   .pill[aria-pressed="true"] {
@@ -69,10 +61,8 @@
 
     <div class="filterbar" role="group" aria-label="Filter by tag">
       <span class="lbl">Tags:</span>
-      <!-- PASS: outline 3.22:1 -->
       <button type="button" class="pill ok" aria-pressed="false">Gear reviews</button>
       <button type="button" class="pill ok" aria-pressed="false">Race reports</button>
-      <!-- FAIL: outline 2.62:1 — looks the same, but below 3:1 and it is the only cue -->
       <button type="button" class="pill bad" aria-pressed="false">Nutrition</button>
       <button type="button" class="pill bad" aria-pressed="false">Injuries</button>
       <button type="button" class="pill bad" aria-pressed="false">Beginner</button>
@@ -94,18 +84,5 @@
     </section>
   </main>
 
-  <!--
-    WHY AUTOMATED TOOLS MISS IT (and why the .bad pills FAIL):
-    Every pill's interior fill equals the page (#F4F6F8 == #F4F6F8, 1.00:1) and the labels
-    carry no distinguishing style, so the pill OUTLINE is the only visual information
-    "necessary for a user to identify that a control is present." That makes the outline
-    subject to the 3:1 requirement. The .ok pills' outline is 3.22:1 (PASS); the .bad
-    pills' outline is 2.62:1 (FAIL) — and the two outlines are nearly indistinguishable.
-    An automated checker has no concept of "this border is the sole identifying cue": it
-    treats every <button> border as an ordinary decorative border (not measured), or it
-    measures it but cannot decide whether contrast is even REQUIRED here. Deciding that the
-    outline is required — because the interior gives no other cue — and then judging the
-    2.62:1 vs 3.22:1 difference is a human interpretive call.
-  -->
 </body>
 </html>

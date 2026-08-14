@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>قائمة المتابعة — منصة نَواة للتداول</title>
+<style>
+  :root { --ink:#10212e; --muted:#5d6b78; --line:#e2e8ef; --up:#0a8f4f; --down:#cc2f3a; --brand:#0e5ea8; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Segoe UI", "Tahoma", system-ui, sans-serif; color:var(--ink); background:#f3f6f9; }
+  header { background:#0a2540; color:#fff; padding:12px 22px; display:flex; align-items:center; gap:12px; }
+  header .logo { font-weight:800; }
+  header .sub { color:#9db4cd; font-size:.85rem; }
+  main { max-width:780px; margin:24px auto; padding:0 20px; }
+  h1 { font-size:1.35rem; margin:0 0 4px; }
+  .lead { color:var(--muted); margin:0 0 20px; font-size:.92rem; }
+  table { width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+  th, td { padding:13px 16px; text-align:right; border-top:1px solid var(--line); font-size:.95rem; }
+  thead th { background:#eef3f8; font-size:.78rem; color:var(--muted); border-top:0; }
+  .sym { font-weight:800; letter-spacing:.5px; }
+  .co { color:var(--muted); font-size:.8rem; }
+  .price { font-variant-numeric:tabular-nums; font-weight:600; }
+  .chg { font-variant-numeric:tabular-nums; font-weight:700; min-width:90px; }
+  .chg.up { color:var(--up); }
+  .chg.down { color:var(--down); }
+  .controls { margin:18px 0 0; }
+  button.tick { background:var(--brand); color:#fff; border:0; border-radius:7px; padding:10px 16px; font:inherit; font-weight:600; cursor:pointer; }
+  button.tick:focus-visible { outline:3px solid #ffb020; outline-offset:2px; }
+  .note { background:#fff; border:1px solid var(--line); border-right:4px solid var(--brand); border-radius:8px; padding:16px 18px; margin-top:24px; font-size:.85rem; color:#3a4654; }
+  .note code { background:#eef3f8; padding:1px 4px; border-radius:4px; direction:ltr; display:inline-block; }
+</style>
+</head>
+<body>
+<header>
+  <span class="logo">نَواة</span>
+  <span class="sub">منصة التداول · قائمة المتابعة</span>
+</header>
+
+<main>
+  <h1>قائمة المتابعة</h1>
+  <p class="lead">اضغط «تحديث الأسعار» لمحاكاة تحديث لحظي. يظهر التغيّر في صف كل سهم.</p>
+
+  <table>
+    <caption class="co" style="text-align:right;padding-bottom:8px">أربعة أسهم · السوق الرئيسية</caption>
+    <thead>
+      <tr>
+        <th scope="col">الرمز</th>
+        <th scope="col">السعر</th>
+        <th scope="col">التغيّر</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="sym">أرامكو</span><div class="co">أرامكو السعودية</div></td>
+        <td class="price">31.20</td>
+        <!-- Per-row live region: announces only the volatile % change, never the symbol. -->
+        <td class="chg up" id="c1" role="status" aria-live="polite" aria-atomic="true">+0.0%</td>
+      </tr>
+      <tr>
+        <td><span class="sym">الراجحي</span><div class="co">مصرف الراجحي</div></td>
+        <td class="price">88.50</td>
+        <td class="chg up" id="c2" role="status" aria-live="polite" aria-atomic="true">+0.0%</td>
+      </tr>
+      <tr>
+        <td><span class="sym">سابك</span><div class="co">الشركة السعودية للصناعات الأساسية</div></td>
+        <td class="price">64.10</td>
+        <td class="chg up" id="c3" role="status" aria-live="polite" aria-atomic="true">+0.0%</td>
+      </tr>
+      <tr>
+        <td><span class="sym">stc</span><div class="co">شركة الاتصالات السعودية</div></td>
+        <td class="price">39.95</td>
+        <td class="chg up" id="c4" role="status" aria-live="polite" aria-atomic="true">+0.0%</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="controls">
+    <button type="button" class="tick" onclick="tickAll()">تحديث الأسعار</button>
+  </div>
+
+  <div class="note">
+    <strong>لماذا تمرّ الأدوات الآلية على هذه الصفحة.</strong>
+    كل خلية تغيّر هي منطقة حيّة صحيحة (<code>role="status"</code>، <code>aria-atomic="true"</code>)
+    موجودة قبل التحديث وتُعلَن بكاملها. العيب أنّ النصّ المُعلَن هو النسبة فقط — مثل «+2.3%» —
+    دون رمز السهم الذي يقع في أول عمود من الصف نفسه. المستخدم المبصر يربط النسبة بالرمز بصريًّا،
+    بينما يسمع مستخدم قارئ الشاشة «زائد 2.3 بالمئة» دون أن يعرف أيّ سهم تغيّر. لا تستطيع
+    axe/WAVE/Lighthouse الحكم بأنّ النسبة وحدها غير كافية دون الرمز.
+  </div>
+</main>
+
+<script>
+  var rows = [
+    { id:'c1', vals:[+2.3, -0.8, +1.1] },
+    { id:'c2', vals:[-1.2, +0.5, +2.0] },
+    { id:'c3', vals:[+0.4, +1.9, -0.6] },
+    { id:'c4', vals:[-2.1, +0.9, +0.3] }
+  ];
+  var step = 0;
+  function tickAll() {
+    rows.forEach(function(r){
+      var pct = r.vals[step % r.vals.length];
+      var el = document.getElementById(r.id);
+      var sign = pct >= 0 ? '+' : '−';
+      // Only the volatile percentage is written into the atomic region. No ticker symbol.
+      el.textContent = sign + Math.abs(pct).toFixed(1) + '%';
+      el.classList.toggle('up', pct >= 0);
+      el.classList.toggle('down', pct < 0);
+    });
+    step++;
+  }
+</script>
+</body>
+</html>

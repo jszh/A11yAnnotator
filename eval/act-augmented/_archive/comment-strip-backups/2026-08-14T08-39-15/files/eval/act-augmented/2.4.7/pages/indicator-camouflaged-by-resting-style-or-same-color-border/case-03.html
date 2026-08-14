@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Payments API Reference — Endpoints</title>
+  <style>
+    body {
+      font-family: "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
+      margin: 0;
+      background: #ffffff;
+      color: #14181d;
+      line-height: 1.55;
+    }
+    .doc { max-width: 760px; margin: 0 auto; padding: 36px 24px 80px; }
+    .kicker { font-family: system-ui, sans-serif; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: #6a7480; margin: 0 0 6px; }
+    h1 { font-family: system-ui, sans-serif; font-size: 24px; margin: 0 0 6px; }
+    .lede { font-family: system-ui, sans-serif; font-size: 14px; color: #46505b; margin: 0 0 30px; }
+    h2 { font-family: system-ui, sans-serif; font-size: 15px; margin: 30px 0 12px; }
+    p { font-family: system-ui, sans-serif; font-size: 14px; margin: 0 0 14px; }
+
+    .endpoints {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 12px;
+    }
+
+    /* ---- The defect lives here -------------------------------------------
+       This API-reference "endpoint" list renders each operation as a code
+       chip. To make the chips read as crisp, copyable code boxes the design
+       gives every endpoint link a permanent border: 4px solid #000 (a thick
+       black frame) on the white page.
+
+       The author DID write an explicit focus style — they were told never to
+       rely on the UA default and never to use outline:none — but they styled
+       the focus ring as outline: 2px solid #000: BLACK, the same colour as the
+       resting border, and only 2px thick where the resting border is 4px. On
+       Tab the 2px black ring is drawn just outside the box, so a focused-vs-
+       unfocused pixel diff IS non-zero — but the ring is a thinner black line
+       abutting an already-thicker black border in the identical colour, so it
+       is swallowed by the frame the element already wears at rest. A sighted
+       keyboard user cannot tell which endpoint chip currently has focus: every
+       chip looks like the same heavy black box.
+
+       This is F78 mode 3 (a {border: medium solid black}) made deterministic:
+       the focus ring is FORCED black by the author, so the verdict does not
+       depend on whatever colour a particular browser's default ring happens to
+       be. As both ring and border are black and the border is thicker than the
+       ring, the indicator "no longer meets the definition of visible".        */
+    .endpoints a {
+      display: block;
+      padding: 12px 14px;
+      border: 4px solid #000;          /* thick black resting frame */
+      background: #fff;
+      color: #14181d;
+      text-decoration: none;
+      font-size: 13.5px;
+    }
+    .endpoints a:hover { background: #f6f6f6; }
+    .endpoints a .verb {
+      display: inline-block;
+      min-width: 56px;
+      font-weight: 700;
+      color: #000;
+    }
+    .endpoints a .path { color: #14181d; }
+    .endpoints a .desc { display: block; margin-top: 4px; font-family: system-ui, sans-serif; font-size: 12px; color: #5b6570; }
+
+    /* Author-supplied focus ring — BLACK, same hue as the 4px black border and
+       thinner than it, so it is drawn against / absorbed by the resting frame.
+       (Not outline:none; a real :focus rule exists, so scanners see a style.) */
+    .endpoints a:focus {
+      outline: 2px solid #000;
+      outline-offset: 1px;
+    }
+
+    .note {
+      margin-top: 36px;
+      font-family: system-ui, sans-serif;
+      font-size: 12.5px;
+      color: #2e3a45;
+      background: #f5f6f8;
+      border-left: 4px solid #aab4be;
+      padding: 13px 15px;
+      line-height: 1.55;
+    }
+    code { background: #eceff2; padding: 1px 5px; border-radius: 3px; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="doc">
+    <p class="kicker">Payments API · v3</p>
+    <h1>Charges &amp; Refunds endpoints</h1>
+    <p class="lede">REST operations for creating, retrieving and reversing charges. Select an operation to jump to its full reference.</p>
+
+    <h2>Operations</h2>
+    <ul class="endpoints">
+      <li>
+        <a href="#post-charges">
+          <span class="verb">POST</span><span class="path">/v3/charges</span>
+          <span class="desc">Create a charge against a saved payment method.</span>
+        </a>
+      </li>
+      <li>
+        <a href="#get-charge">
+          <span class="verb">GET</span><span class="path">/v3/charges/{id}</span>
+          <span class="desc">Retrieve a single charge by its identifier.</span>
+        </a>
+      </li>
+      <li>
+        <a href="#post-refund">
+          <span class="verb">POST</span><span class="path">/v3/charges/{id}/refunds</span>
+          <span class="desc">Issue a full or partial refund for a charge.</span>
+        </a>
+      </li>
+      <li>
+        <a href="#get-list">
+          <span class="verb">GET</span><span class="path">/v3/charges</span>
+          <span class="desc">List charges with cursor-based pagination.</span>
+        </a>
+      </li>
+      <li>
+        <a href="#del-charge">
+          <span class="verb">DELETE</span><span class="path">/v3/charges/{id}</span>
+          <span class="desc">Void an uncaptured charge before settlement.</span>
+        </a>
+      </li>
+    </ul>
+
+    <p>All endpoints require a bearer token in the <code>Authorization</code> header and return JSON.</p>
+
+    <div class="note">
+      <strong>Why automated tools miss this.</strong>
+      There is a genuine author-supplied focus style
+      (<code>.endpoints a:focus { outline: 2px solid #000; outline-offset: 1px }</code>),
+      so no scanner can flag a "removed" indicator, <code>outline:none</code>
+      never appears, and a single-chip focused-vs-unfocused pixel diff is
+      non-zero (a 2px line is painted just outside the box). axe-core, WAVE and
+      Lighthouse therefore pass 2.4.7. Yet every endpoint chip already wears a
+      permanent <code>border: 4px solid #000</code>, and the focus ring is the
+      exact same black and thinner than that border — so the ring is absorbed
+      into the chip's own thick black frame and a keyboard user cannot tell
+      which of the five endpoints currently holds focus. Concluding that a 2px
+      black ring against a 4px black border is not distinguishing requires a
+      human to read the colours in context and weigh perceptual contrast, not
+      the edge-pixel count an automated rule performs (F78&nbsp;mode&nbsp;3).
+    </div>
+  </div>
+</body>
+</html>

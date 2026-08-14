@@ -3,28 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!--
-    SC 1.4.10 PASS — wrappable code that PROVIDES a working wrap mechanism (G206 / G224).
-
-    Context: an API reference page for a webhooks endpoint. It shows a long `docker run ...` command
-    and a long single-line JSON example — both WRAPPABLE (a soft-wrap loses no meaning for a shell
-    command or a JSON payload string). By default the block is preformatted (handy for copying), but
-    the page provides a real, keyboard-operable "Wrap lines" toggle (a <button aria-pressed>) that
-    switches the <pre> to `white-space: pre-wrap`. When wrapped, every command/payload fits within
-    320 CSS px and reads in a single column with vertical scrolling only.
-
-    THE JUDGMENT: this is the conforming counterpart to case-05. The code is wrappable, and a mechanism
-    to wrap it is provided (G224 check 4 / the G206 "option to switch to a layout that does not require
-    horizontal scrolling"). So even though the DEFAULT view scrolls horizontally, the page passes
-    1.4.10 because a mechanism is available. A human must verify (a) wrapping these particular lines
-    loses no meaning and (b) the toggle actually works and is reachable by keyboard.
-
-    WHY AUTOMATED TOOLS MISS IT: a tool sees a <pre> overflowing 320px by default (same as case-05's
-    failing default) and a generic <button>. It cannot determine that the button toggles wrapping, that
-    wrapping is an ADEQUATE remedy for THIS content (because the content is wrappable code, not Python),
-    or that the toggle is the G224/G206 mechanism. That chain of judgments — content is wrappable, the
-    control wraps it, wrapping suffices — is human reasoning over meaning + behavior.
-  -->
   <title>Webhooks API — Send a test event — Relay API Reference</title>
   <style>
     :root { --ink:#101826; --muted:#5d6b7d; --line:#dfe6ee; --bg:#ffffff; --accent:#0b5cab; }
@@ -50,11 +28,11 @@
     pre {
       margin:0; padding:14px 16px; background:#0d1626; color:#e3e9f2;
       font-family:"SF Mono",Menlo,Consolas,monospace; font-size:13.5px; line-height:1.6;
-      white-space: pre;     /* default: preformatted (easy to copy) ... */
+      white-space: pre;     
       overflow-x: auto;
     }
     pre.wrap-on {
-      white-space: pre-wrap;   /* ...toggled to wrap — fits 320px, reads in one column */
+      white-space: pre-wrap;   
       overflow-wrap: anywhere;
       overflow-x: hidden;
     }
@@ -105,7 +83,6 @@ docker run --rm -e RELAY_API_KEY=$RELAY_API_KEY relayhq/cli:2.7 events send --en
   </div>
 
   <script>
-    // Wrap-lines toggle: switches the sibling <pre> between preformatted and wrapped.
     document.querySelectorAll('.wrapbtn').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var pre = btn.closest('.codecard').querySelector('pre');

@@ -4,26 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Two-step verification — Orbital ID</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS (expected: FAILED — over-disclosure of a verification oracle):
-  A 2FA / one-time-code step rejected the user's entry. The exception SHOULD apply: a
-  one-time auth code is security-sensitive, and the correct withheld message is simply
-  "That code isn't valid. Request a new code." Instead the author wrote an over-helpful
-  "suggestion" that turns the field into a brute-force ORACLE:
-    "Almost — your first 3 digits (4 1 9) are correct, but the code is 6 digits and
-     you entered 5. Check the last digits and try again."
-  This confirms which leading digits matched AND the exact expected length. An attacker
-  (or anyone who can read the error) can now fix the length and brute-force only the
-  remaining unknown digits — collapsing the code's entropy. That JEOPARDIZES the
-  security/purpose of the content; the exception forbids exactly this kind of partial-
-  match feedback. The defect is NOT a missing suggestion — a specific suggestion is
-  present and well-formed; the defect is that the suggestion's content leaks a
-  verification oracle.
-  Why automated tools miss it: the message is friendly, named, role=alert, associated,
-  high-contrast — a "did the page help the user fix the error?" check would mark it
-  PASS (wrong). Recognising that "first 3 digits correct + length is 6" is a security
-  leak that defeats the 2FA purpose is contextual reasoning no checker performs.
--->
 <style>
   :root{ --ink:#15171c; --muted:#5c636e; --line:#d5d9e0; --brand:#3b2db5; --accent:#6d5cf0;
          --danger:#b42318; --paper:#fff; }
@@ -63,7 +43,6 @@
       <p class="sub">Enter the 6-digit code we sent to your authenticator app.</p>
 
       <form action="#" method="post" novalidate>
-        <!-- Post-submit error state: code rejected. User entered 5 of 6 digits: 4 1 9 0 2 -->
         <div class="codebox" role="group" aria-labelledby="otp-label"
              aria-describedby="otp-error">
           <span id="otp-label" style="position:absolute;left:-9999px">One-time verification code, 6 digits</span>
@@ -75,7 +54,6 @@
           <input id="o6" name="o6" inputmode="numeric" maxlength="1" value="" aria-invalid="true">
         </div>
 
-        <!-- OVER-DISCLOSURE: partial-match oracle — confirms first 3 digits + exact length. -->
         <p class="err" id="otp-error" role="alert">
           <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
             <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/>

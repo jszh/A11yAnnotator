@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Edit Survey · Question Order — PollForge</title>
+<style>
+  :root { font-family: "Inter", system-ui, Arial, sans-serif; }
+  body { margin: 0; background: #eef1f7; color: #16203a; }
+  .topbar { background: #1f2a4d; color: #fff; padding: 16px 28px; display: flex; align-items: center; justify-content: space-between; }
+  .topbar h1 { font-size: 1.15rem; margin: 0; font-weight: 600; }
+  .topbar .save { background: #4f7cff; border: 0; color: #fff; padding: 9px 18px; border-radius: 7px; font: inherit; cursor: pointer; }
+  .shell { max-width: 760px; margin: 26px auto; padding: 0 18px; }
+  .lead { color: #44506e; margin: 0 0 18px; }
+  ol.questions { list-style: none; counter-reset: q; margin: 0; padding: 0; }
+  li.q {
+    counter-increment: q;
+    display: grid; grid-template-columns: 40px 1fr auto; align-items: center; gap: 14px;
+    background: #fff; border: 1px solid #d6ddec; border-radius: 12px;
+    padding: 16px 18px; margin-bottom: 12px; cursor: grab;
+  }
+  li.q.dragging { opacity: .35; }
+  li.q.drop-before { box-shadow: 0 -3px 0 0 #4f7cff inset; }
+  .num { font-weight: 700; color: #4f7cff; font-size: 1.1rem; }
+  .num::before { content: "Q" counter(q); }
+  .qbody .qtext { font-weight: 600; }
+  .qbody .qtype { color: #6a7592; font-size: .85rem; margin-top: 3px; }
+  .movers { display: flex; flex-direction: column; gap: 6px; }
+  .movers button {
+    width: 40px; height: 28px; border: 1px solid #c3cce0; background: #f4f7fd;
+    border-radius: 6px; cursor: pointer; font-size: 1rem; line-height: 1; color: #2a3a66;
+  }
+  .movers button:disabled { opacity: .35; cursor: default; }
+  .movers button:focus-visible { outline: 3px solid #1f2a4d; outline-offset: 2px; }
+  footer { color: #7b86a3; text-align: center; font-size: .85rem; margin: 32px 0; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <h1>PollForge · "Q3 Employee Pulse" — question order</h1>
+  <button class="save" type="button">Save survey</button>
+</div>
+
+<main class="shell">
+  <p class="lead">Arrange the questions in the order respondents will see them. Drag a card to reorder,
+     or use the up/down buttons on each card.</p>
+
+  <ol class="questions" id="qlist" aria-label="Survey questions in presentation order">
+    <li class="q" draggable="true" data-id="q-tenure">
+      <span class="num" aria-hidden="true"></span>
+      <div class="qbody"><div class="qtext">How long have you worked here?</div><div class="qtype">Single choice · 5 options</div></div>
+      <div class="movers">
+        <button type="button" class="up" aria-label="Move “How long have you worked here?” up">▲</button>
+        <button type="button" class="down" aria-label="Move “How long have you worked here?” down">▼</button>
+      </div>
+    </li>
+    <li class="q" draggable="true" data-id="q-wlb">
+      <span class="num" aria-hidden="true"></span>
+      <div class="qbody"><div class="qtext">Rate your work–life balance this quarter</div><div class="qtype">Rating scale · 1–10</div></div>
+      <div class="movers">
+        <button type="button" class="up" aria-label="Move “Rate your work–life balance this quarter” up">▲</button>
+        <button type="button" class="down" aria-label="Move “Rate your work–life balance this quarter” down">▼</button>
+      </div>
+    </li>
+    <li class="q" draggable="true" data-id="q-mgr">
+      <span class="num" aria-hidden="true"></span>
+      <div class="qbody"><div class="qtext">My manager gives me useful feedback</div><div class="qtype">Agree/disagree · 5-point</div></div>
+      <div class="movers">
+        <button type="button" class="up" aria-label="Move “My manager gives me useful feedback” up">▲</button>
+        <button type="button" class="down" aria-label="Move “My manager gives me useful feedback” down">▼</button>
+      </div>
+    </li>
+    <li class="q" draggable="true" data-id="q-open">
+      <span class="num" aria-hidden="true"></span>
+      <div class="qbody"><div class="qtext">What is one thing we could improve?</div><div class="qtype">Long text · optional</div></div>
+      <div class="movers">
+        <button type="button" class="up" aria-label="Move “What is one thing we could improve?” up">▲</button>
+        <button type="button" class="down" aria-label="Move “What is one thing we could improve?” down">▼</button>
+      </div>
+    </li>
+  </ol>
+  <p class="sr-only" id="orderstatus" role="status" aria-live="polite"></p>
+</main>
+
+<footer>PollForge · changes autosave every 30s</footer>
+
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (this page PASSES, and that is the point):
+  The DRAG markup here is essentially IDENTICAL to a failing page — draggable=true on the
+  list items, dragstart/dragover/drop handlers, insertBefore on drop. A scanner that tried to
+  flag "drag-only reorder" would flag this page too. But this page PASSES SC 2.1.1 because the
+  SAME reorder FUNCTION is also fully keyboard-operable: every card carries real <button> Move-up /
+  Move-down controls that reorder the list via keyboard, with first/last buttons disabled at the
+  ends, and the new position announced in a live region. G202 / the Understanding note explicitly
+  allow function-level parity ("multiple methods to perform the same function") rather than making
+  the draggable item itself keyboard-operable. Deciding pass-vs-fail here is a FUNCTION-LEVEL human
+  judgment — does a keyboard equivalent for the reorder function exist somewhere? — which no static
+  rule encodes. Identical drag markup, opposite verdict from case-01.
+-->
+<script>
+  const list = document.getElementById('qlist');
+  const status = document.getElementById('orderstatus');
+
+  function refreshMovers() {
+    const items = [...list.children];
+    items.forEach((li, i) => {
+      li.querySelector('.up').disabled = (i === 0);
+      li.querySelector('.down').disabled = (i === items.length - 1);
+    });
+  }
+  function announce(li) {
+    const items = [...list.children];
+    const pos = items.indexOf(li) + 1;
+    status.textContent = li.querySelector('.qtext').textContent + ' moved to position ' + pos + ' of ' + items.length;
+  }
+
+  // KEYBOARD-OPERABLE reorder (same function as drag): real buttons, focus-managed.
+  list.addEventListener('click', e => {
+    const btn = e.target.closest('button.up, button.down');
+    if (!btn) return;
+    const li = btn.closest('.q');
+    if (btn.classList.contains('up') && li.previousElementSibling) {
+      list.insertBefore(li, li.previousElementSibling);
+    } else if (btn.classList.contains('down') && li.nextElementSibling) {
+      list.insertBefore(li.nextElementSibling, li);
+    }
+    refreshMovers();
+    // keep focus on the same logical control so keyboard users can keep moving
+    li.querySelector(btn.classList.contains('up') ? '.up' : '.down').focus();
+    announce(li);
+  });
+
+  // POINTER reorder (convenience, redundant with the buttons).
+  let dragging = null;
+  list.addEventListener('dragstart', e => { dragging = e.target.closest('.q'); dragging.classList.add('dragging'); });
+  list.addEventListener('dragend', () => {
+    if (dragging) dragging.classList.remove('dragging');
+    list.querySelectorAll('.drop-before').forEach(n => n.classList.remove('drop-before'));
+    dragging = null; refreshMovers();
+  });
+  list.addEventListener('dragover', e => {
+    e.preventDefault();
+    const over = e.target.closest('.q');
+    list.querySelectorAll('.drop-before').forEach(n => n.classList.remove('drop-before'));
+    if (over && over !== dragging) over.classList.add('drop-before');
+  });
+  list.addEventListener('drop', e => {
+    e.preventDefault();
+    const over = e.target.closest('.q');
+    if (over && dragging && over !== dragging) list.insertBefore(dragging, over);
+    list.querySelectorAll('.drop-before').forEach(n => n.classList.remove('drop-before'));
+  });
+
+  refreshMovers();
+</script>
+</body>
+</html>

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Proof Sheet — Issue 47</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (F46 / TT 14.C, HTML-email variant):
+  HTML email is built almost entirely from nested LAYOUT tables (the only reliable
+  cross-client layout primitive), and email best practice is to add role="presentation"
+  to every layout table so AT ignores the table semantics. Here the OUTER wrapper and
+  most inner tables are correctly role="presentation" — so a checker sees a tidy,
+  presentation-marked email. The defect is one leftover artefact: the "header band"
+  table (logo + issue line) was copied from a DATA-table snippet in the ESP's block
+  library and still carries a <th scope="col">The Proof Sheet</th> AND it is the ONE
+  layout table here that is NOT role="presentation". So this single band re-enters the
+  accessibility tree as a data table with a column header, falsely asserting that
+  "The Proof Sheet" is the column header for the masthead/issue cells. axe/WAVE cannot
+  tell that this band is layout (vs. the genuinely-presentational siblings around it) —
+  that is the TT 14.C human judgment.
+-->
+<style>
+  body { margin:0; padding:0; background:#e8e6e1; font-family:Arial, Helvetica, sans-serif; color:#26221d; }
+  .email { width:600px; margin:0 auto; background:#ffffff; }
+  td { padding:0; }
+  .header-band { background:#1d2b2b; }
+  .header-band .logo { color:#f0ede6; font-family:Georgia, serif; font-size:22px; font-weight:bold; padding:20px 26px 4px; }
+  .header-band .issue { color:#9bb0ab; font-size:12px; padding:0 26px 20px; letter-spacing:.08em; text-transform:uppercase; }
+  .hero td { padding:26px; }
+  .hero h1 { margin:0 0 10px; font-size:22px; color:#1d2b2b; }
+  .hero p { margin:0; font-size:15px; line-height:1.6; color:#4a463f; }
+  .story td { padding:0 26px 22px; }
+  .story h2 { font-size:17px; margin:18px 0 6px; color:#1d2b2b; }
+  .story p { font-size:14px; line-height:1.6; margin:0; color:#4a463f; }
+  .story a.read { display:inline-block; margin-top:10px; color:#0a6b5e; text-decoration:none; font-weight:bold; font-size:14px; }
+  .footer td { padding:22px 26px; background:#f3f1ec; color:#7a756c; font-size:12px; line-height:1.6; }
+  .footer a { color:#7a756c; }
+</style>
+</head>
+<body>
+  <!-- OUTER WRAPPER: correctly marked presentational layout table -->
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+    <tr>
+      <td align="center">
+        <table role="presentation" class="email" cellpadding="0" cellspacing="0" border="0">
+
+          <!--
+            HEADER BAND: this layout table is the defect. Copied from a data-table
+            block in the ESP library, it still carries a <th scope="col"> AND, unlike
+            its siblings, it is NOT role="presentation" — so it re-enters the a11y tree
+            as a data table whose column header is "The Proof Sheet".
+          -->
+          <tr>
+            <td>
+              <table class="header-band" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <th scope="col" class="logo">The Proof Sheet</th>
+                </tr>
+                <tr>
+                  <td class="issue">Issue 47 · A weekly letter on typography &amp; print</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- HERO: presentational layout table -->
+          <tr>
+            <td>
+              <table role="presentation" class="hero" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td>
+                    <h1>The slow return of the printed footnote</h1>
+                    <p>
+                      For a decade footnotes migrated to hover tooltips and endnotes. This year,
+                      three new literary journals brought them back to the foot of the page — and
+                      readers, it turns out, missed them.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- STORIES: presentational layout table -->
+          <tr>
+            <td>
+              <table role="presentation" class="story" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td>
+                    <h2>Why marginalia is having a moment</h2>
+                    <p>
+                      Designers are rediscovering the side note as a way to keep digressions out of
+                      the main column without burying them at the back of the document.
+                    </p>
+                    <a class="read" href="#a1">Read the essay →</a>
+
+                    <h2>A type specimen we love this week</h2>
+                    <p>
+                      Klim's Söhne Mono in a print annual — generous counters, a lovely italic, and
+                      figures that finally line up in tables.
+                    </p>
+                    <a class="read" href="#a2">See the specimen →</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- FOOTER: presentational layout table -->
+          <tr>
+            <td>
+              <table role="presentation" class="footer" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td>
+                    You are receiving The Proof Sheet because you subscribed at proofsheet.example.<br>
+                    <a href="#unsub">Unsubscribe</a> · <a href="#prefs">Update preferences</a> · 12 Press Lane, Portland
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

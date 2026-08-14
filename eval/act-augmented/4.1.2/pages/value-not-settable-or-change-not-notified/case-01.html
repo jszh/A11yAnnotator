@@ -15,7 +15,6 @@
   p.lead { color:#566; margin-top:0; }
   .field { margin:34px 0 10px; }
   .field-label { font-weight:600; display:block; margin-bottom:14px; }
-  /* custom slider */
   .slider {
     position:relative; height:34px; width:100%; cursor:pointer;
     outline-offset:4px;
@@ -65,16 +64,6 @@
 <footer>Meridian Wealth Advisors — investing involves risk, including possible loss of principal.</footer>
 
 <script>
-/*
-  Junior dev built this slider from a Codepen mouse-drag demo. The drag math updates
-  the VISIBLE fill/thumb AND the visible readout text, and even recomputes a label
-  ("Conservative"/"Balanced"/"Aggressive"). But every update touches only the DOM
-  geometry + the .readout text node. aria-valuenow / aria-valuetext are written ONCE
-  in the HTML and never reassigned. There is NO keydown handler at all, so an
-  AT/keyboard user who focuses the slider and presses Arrow keys gets nothing: the
-  value cannot be set via AT, and even the mouse-driven change is never notified
-  (aria-valuenow stays frozen at 30).
-*/
 (function () {
   var slider = document.getElementById('riskSlider');
   var fill = document.getElementById('fill');
@@ -91,9 +80,7 @@
     pct = Math.max(0, Math.min(100, Math.round(pct)));
     fill.style.width = pct + '%';
     thumb.style.left = pct + '%';
-    // Visible text IS updated...
     visText.textContent = pct + ' — ' + labelFor(pct);
-    // ...but aria-valuenow / aria-valuetext are deliberately NOT touched here.
   }
 
   function fromEvent(e) {
@@ -106,7 +93,6 @@
   slider.addEventListener('mousedown', function (e) { dragging = true; applyVisual(fromEvent(e)); });
   window.addEventListener('mousemove', function (e) { if (dragging) applyVisual(fromEvent(e)); });
   window.addEventListener('mouseup', function () { dragging = false; });
-  // No keydown handler — arrow keys do nothing, and aria-valuenow never moves.
 })();
 </script>
 </body>

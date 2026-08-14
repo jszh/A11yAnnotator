@@ -16,7 +16,6 @@
   label { display:block; font-weight:600; margin:18px 0 6px; }
   .field { display:flex; align-items:center; gap:8px; }
   input[type=text] { flex:1; padding:11px 12px; border:1px solid var(--line); border-radius:7px; font-size:16px; }
-  /* the help trigger */
   .help {
     position:relative;
     display:inline-flex; align-items:center; justify-content:center;
@@ -72,10 +71,6 @@
 <footer>Meridian Pay is a fictional demo. No real banking data is processed.</footer>
 
 <script>
-  // Help bubble appears on hover AND keyboard focus (good).
-  // BUG: a setTimeout auto-hides it 4 seconds after it appears, EVEN while the
-  // trigger is still hovered or focused — the dev added the timer to "auto-clean
-  // up tooltips" without realizing it breaks the Persistent condition.
   var trigger = document.getElementById('limitHelp');
   var tip = document.getElementById('limitTip');
   var autoHideTimer = null;
@@ -83,9 +78,8 @@
   function showTip() {
     tip.classList.add('show');
     clearTimeout(autoHideTimer);
-    // ---- the defect: time-based auto-dismiss ----
     autoHideTimer = setTimeout(function () {
-      tip.classList.remove('show');   // hides regardless of hover/focus state
+      tip.classList.remove('show');   
     }, 4000);
   }
   function hideTip() {
@@ -97,23 +91,10 @@
   trigger.addEventListener('mouseleave', hideTip);
   trigger.addEventListener('focus', showTip);
   trigger.addEventListener('blur', hideTip);
-  // Tooltip is hoverable (mousing onto it keeps it shown) and Esc-dismissible —
-  // those two conditions PASS. Only Persistent is broken, by the timer above.
   tip.addEventListener('mouseenter', function () { clearTimeout(autoHideTimer); tip.classList.add('show'); });
   tip.addEventListener('mouseleave', hideTip);
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') hideTip(); });
 </script>
 
-<!--
-  WHY AUTOMATED TOOLS MISS IT:
-  axe/WAVE/Lighthouse see a well-formed role="tooltip", a real <button> trigger with
-  an accessible name, aria-describedby wiring, focus + hover handlers, and an Esc
-  dismiss handler. Every static check passes. The failure is purely temporal: the
-  setTimeout(...,4000) removes the tooltip while the user is STILL hovering/focused.
-  A scanner cannot tell whether a 4-second timer is a disallowed auto-dismiss
-  (this case) or a legitimate information-invalidation (case-05/case-06). That is a
-  judgment about the MEANING of the content over time, which only a human reviewer
-  watching the timeline can make.
--->
 </body>
 </html>

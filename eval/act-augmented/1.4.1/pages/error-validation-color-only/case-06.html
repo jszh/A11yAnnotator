@@ -4,20 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Checkout — Riverside Jazz Festival tickets</title>
-<!--
-  WHY THIS IS A TRUE-NEGATIVE (PASSES 1.4.1):
-  This is the same dynamic post-submit error state as the failing cases, but built
-  correctly. Each invalid field gets a red border AND, right below it, a visible inline
-  error MESSAGE in text ("Enter the name on the card.") AND a warning icon (a real text
-  glyph "!" inside an SVG triangle with aria-hidden, plus the word in the message). The
-  error meaning is therefore conveyed by THREE non-color channels — text wording, an
-  icon shape, and position — not by hue alone. Remove all color (grayscale) and a user
-  still sees the "!" triangle and reads the message, so they know exactly which fields
-  failed and why. This is the F81 escape (provide an alternate, non-color identification)
-  and matches G14/G205 (info also available in text). Included to sharpen the boundary:
-  the red border here is decoration ON TOP of a sufficient text+icon cue, so it does NOT
-  fail 1.4.1. Automated tools also pass it — correctly this time.
--->
 <style>
   :root { --ink:#21262b; --muted:#5c6671; --line:#cbd2d9; --plum:#7a2150; --danger:#c4122f; }
   * { box-sizing:border-box; }
@@ -34,7 +20,6 @@
   input:focus { outline:2px solid var(--plum); outline-offset:1px; }
   .two { display:flex; gap:14px; } .two > .field { flex:1; }
 
-  /* invalid field: red border (decoration) + a TEXT message + an ICON below it */
   input.invalid { border-color:var(--danger); }
   .err { display:flex; align-items:center; gap:6px; margin:6px 0 0; color:#9a1024; font-size:.82rem; font-weight:600; }
   .err svg { flex:0 0 auto; }
@@ -55,13 +40,11 @@
   <div class="summary" role="alert">2 fields need your attention. See the messages below each highlighted field.</div>
 
   <form action="#" method="post" novalidate>
-    <!-- VALID field: gray border, no message -->
     <div class="field">
       <label for="num">Card number</label>
       <input id="num" inputmode="numeric" autocomplete="cc-number" value="4111 1111 1111 1111">
     </div>
 
-    <!-- INVALID: red border + visible text message + warning icon glyph -->
     <div class="field">
       <label for="name">Name on card</label>
       <input id="name" class="invalid" autocomplete="cc-name" aria-invalid="true"
@@ -77,7 +60,6 @@
     </div>
 
     <div class="two">
-      <!-- INVALID: red border + visible text message + warning icon -->
       <div class="field">
         <label for="exp">Expiry (MM/YY)</label>
         <input id="exp" class="invalid" autocomplete="cc-exp" aria-invalid="true"
@@ -91,7 +73,6 @@
           Error: this card has expired. Use a valid expiry date.
         </p>
       </div>
-      <!-- VALID -->
       <div class="field">
         <label for="cvc">CVC</label>
         <input id="cvc" inputmode="numeric" autocomplete="cc-csc" value="321">

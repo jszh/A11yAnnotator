@@ -4,19 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cadence Analytics — Notification settings</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS (and why it is the PASS boundary):
-  This page LOOKS like F55 at a glance — script runs on focus of each switch (an
-  onfocus/focusin handler fires). A naive reviewer scanning for "onfocus" + scripted
-  focus handling might flag it as focus theft. But the script here is the SCR31
-  pattern: on focus it ADDS a high-contrast highlight class to the control and
-  REMOVES it on blur — it never calls blur() and never moves focus. Focus genuinely
-  REMAINS on the switch and a strong visible indicator is shown the whole time.
-  Automated tools can neither confirm a 2.4.7 pass (no such rule) NOR distinguish
-  "script that styles the focused element" (valid, SCR31) from "script that removes
-  focus on receipt" (F55) — that judgment requires a human to tab through and watch
-  that focus settles and the indicator persists.
--->
 <style>
   :root { --ink: #14181f; --brand: #5a3ec8; --bg: #f5f4fb; --line: #e0def0; }
   * { box-sizing: border-box; }
@@ -41,7 +28,6 @@
   .setting .label-wrap .t { font-weight: 600; }
   .setting .label-wrap .d { font-size: .85rem; color: #6a6580; margin-top: 2px; }
 
-  /* Switch widget. The default focus ring is here AND a scripted highlight (SCR31). */
   button.switch {
     position: relative; width: 52px; height: 30px; border-radius: 999px;
     border: 2px solid #b9b4d8; background: #ece9f7; cursor: pointer; flex: none; padding: 0;
@@ -52,11 +38,7 @@
   }
   button.switch[aria-checked="true"] { background: var(--brand); border-color: var(--brand); }
   button.switch[aria-checked="true"]::after { left: 24px; }
-  /* Native focus indicator (always valid). */
   button.switch:focus { outline: 3px solid #ffd24a; outline-offset: 3px; }
-  /* SCR31 scripted indicator: a persistent ring added on focus, removed on blur.   */
-  /* Focus is NOT removed — this only changes presentation while the element stays   */
-  /* focused, which is the SUFFICIENT technique SCR31, NOT the F55 failure.           */
   button.switch.kbd-focus {
     box-shadow: 0 0 0 3px #fff, 0 0 0 6px var(--brand);
   }
@@ -108,10 +90,6 @@
 </div>
 
 <script>
-  // SCR31-style scripted focus indicator. On focus we ADD a high-contrast ring class;
-  // on blur we remove it. Crucially: we NEVER call blur() and NEVER move focus, so
-  // focus REMAINS on the switch and the indicator persists until the user tabs away.
-  // This is a sufficient technique, not the F55 failure — the boundary this page draws.
   document.querySelectorAll('button.switch').forEach(function (sw) {
     sw.addEventListener('focus', function () { sw.classList.add('kbd-focus'); });
     sw.addEventListener('blur',  function () { sw.classList.remove('kbd-focus'); });
@@ -119,7 +97,6 @@
       var on = sw.getAttribute('aria-checked') === 'true';
       sw.setAttribute('aria-checked', String(!on));
     });
-    // Space/Enter toggle, keeping focus on the control throughout.
     sw.addEventListener('keydown', function (e) {
       if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); sw.click(); }
     });

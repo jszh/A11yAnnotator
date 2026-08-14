@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.4.5 FAILURE — fake "CAPTCHA": clean stylized text image with no distortion/noise.
+
+    Trusted Tester explicitly EXCLUDES CAPTCHA from images of text: a real CAPTCHA distorts the
+    glyphs and overlays noise/lines precisely so that OCR (and a human substituting live text)
+    cannot trivially reproduce it — the distortion IS the security function, the "significant
+    other visual content." Such an image legitimately cannot be replaced by live text.
+
+    THIS page mimics the security widget but DOES NOT distort anything. The "verification code"
+    image (inline-SVG `data:` URI) renders the word "SUNFLOWER" in a clean decorative display
+    font on a flat tinted panel — no warping, no rotation per-glyph, no overlapping strokes, no
+    noise field, no occluding lines. It is just styled text saved as a picture. There is no
+    security reason it must be an image: a normal text label (or a real, accessible challenge)
+    would serve identically. So the CAPTCHA exclusion does NOT apply — it is an ordinary image of
+    text used RATHER THAN text -> 1.4.5 FAIL. (It also has the classic CAPTCHA accessibility
+    problem, but here the SC-1.4.5 point is the misapplied exclusion.)
+
+    A real distorted CAPTCHA would be INAPPLICABLE for 1.4.5; this clean one is not. The
+    judgment hinges on whether the image carries the distinguishing "significant other visual
+    content" (distortion/noise) that defines a CAPTCHA — it does not.
+
+    WHY AUTOMATED TOOLS MISS IT: the <img> has alt="verification code", so image-alt passes. No
+    scanner measures glyph distortion or noise density to decide "this is a real CAPTCHA (excluded)
+    vs. clean decorative text masquerading as one (image of text, fail)". Distinguishing genuine
+    security distortion from cosmetic styling is a human visual judgment.
+  -->
+  <title>Verify it's you — RiverCity Permits</title>
+  <style>
+    :root { --ink:#13243a; --muted:#54637a; --line:#d8e0ea; --bg:#eef3f8; --brand:#13447a; --ok:#1f7a4d; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Inter","Segoe UI",Roboto,Arial,sans-serif; color:var(--ink); background:var(--bg); }
+    .gov-bar { background:var(--brand); color:#fff; font-size:12.5px; padding:6px 16px; }
+    .wrap { max-width:480px; margin:36px auto; padding:0 18px 56px; }
+    .card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:28px 26px; box-shadow:0 6px 24px rgba(20,40,70,.08); }
+    .card h1 { font-size:20px; margin:0 0 4px; }
+    .card .sub { color:var(--muted); font-size:14px; margin:0 0 22px; line-height:1.55; }
+    label { display:block; font-size:13.5px; font-weight:600; margin:16px 0 6px; }
+    .captcha { display:flex; align-items:center; gap:14px; }
+    .captcha img { display:block; width:200px; height:64px; border:1px solid var(--line); border-radius:8px; }
+    .reload { background:none; border:1px solid var(--line); border-radius:8px; width:40px; height:40px; cursor:pointer; color:var(--muted); font-size:18px; }
+    input[type=text] { width:100%; padding:11px 12px; border:1px solid var(--line); border-radius:8px; font-size:15px; margin-top:10px; }
+    .btn { margin-top:20px; width:100%; background:var(--brand); color:#fff; border:0; border-radius:8px; padding:12px; font-size:15px; font-weight:600; cursor:pointer; }
+    .note { color:var(--muted); font-size:12.5px; margin-top:16px; line-height:1.55; }
+    .alt-link { color:var(--brand); font-size:13px; }
+  </style>
+</head>
+<body>
+  <div class="gov-bar">RiverCity Online Services · Building &amp; Permits</div>
+  <div class="wrap">
+    <form class="card" action="#" method="post" novalidate>
+      <h1>Verify it's you</h1>
+      <p class="sub">
+        For your security, enter the code shown below before continuing to your permit
+        application.
+      </p>
+
+      <label id="codeLabel" for="codeInput">Type the code from the image</label>
+      <div class="captcha">
+        <!-- Looks like a CAPTCHA widget, but the image is CLEAN styled text — no distortion,
+             no noise, no occluding lines. No security distortion = not the CAPTCHA exclusion =
+             an ordinary image of text used rather than text -> 1.4.5 FAIL. -->
+        <img alt="verification code"
+             src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 64'><rect width='200' height='64' fill='%23eef3f8'/><text x='100' y='42' font-family='Georgia, serif' font-size='26' letter-spacing='1.5' fill='%2313243a' text-anchor='middle' font-weight='bold'>SUNFLOWER</text></svg>">
+        <button type="button" class="reload" aria-label="Get a new code">&#10227;</button>
+      </div>
+      <input type="text" id="codeInput" name="code" autocomplete="off"
+             aria-labelledby="codeLabel" placeholder="Enter the code">
+
+      <button type="submit" class="btn">Continue</button>
+
+      <p class="note">
+        Can't read the code? <a class="alt-link" href="#">Try an audio version</a>. Your session
+        will time out after 15 minutes of inactivity.
+      </p>
+    </form>
+  </div>
+</body>
+</html>

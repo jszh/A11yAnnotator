@@ -31,15 +31,6 @@
     <button type="submit">بحث</button>
   </form>
 
-  <!--
-    The result line is a valid role="status" live region. The label "النتائج:" (results:)
-    precedes the value, and the trailing word "نتيجة" (result/results) follows. On each
-    search JS rewrites ONLY the inner <b id="n"> numeral node (in Eastern Arabic numerals).
-    aria-atomic is unset; in non-atomic environments AT announces only the changed numeral —
-    a bare "٢٤" / "twenty-four" — with no "results" framing. In RTL the orphaned number is
-    even more disorienting because the listener has lost both the leading label and the
-    trailing unit.
-  -->
   <p class="count" role="status" id="result-count">
     النتائج: <b id="n">٠</b> نتيجة
   </p>
@@ -62,7 +53,6 @@
 </footer>
 
 <script>
-  // Eastern Arabic numeral conversion for display, matching the corpus content.
   function toArabic(num) {
     var map = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
     return String(num).replace(/[0-9]/g, function (d) { return map[+d]; });
@@ -70,10 +60,7 @@
   document.getElementById('f').addEventListener('submit', function (e) {
     e.preventDefault();
     var q = document.getElementById('q').value.trim();
-    // Deterministic pseudo-count from query length so the harness can fire it.
     var n = q.length ? (q.length * 3) % 40 + 4 : 0;
-    // ONLY the inner numeral node is rewritten; "النتائج:" and "نتيجة" stay put,
-    // and #result-count has no aria-atomic, so AT hears just "٢٤".
     document.getElementById('n').textContent = toArabic(n);
   });
 </script>

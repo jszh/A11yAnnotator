@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Property Risk Survey — Pin the structure — Cascade Mutual</title>
+<style>
+  :root { --ink:#101820; --muted:#5d6770; --line:#cfd6dc; --accent:#7a2e1e; --bg:#f6f4f1; }
+  * { box-sizing: border-box; }
+  body { font-family: "Source Sans 3", -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+         color: var(--ink); background: var(--bg); margin:0; padding:30px 16px 56px; }
+  .wrap { max-width: 700px; margin:0 auto; }
+  .kicker { color:var(--accent); font-weight:700; font-size:.72rem; letter-spacing:.12em; text-transform:uppercase; }
+  h1 { font-size:1.35rem; margin:6px 0 4px; }
+  .lede { color:var(--muted); font-size:.9rem; margin:0 0 24px; }
+  form { background:#fff; border:1px solid var(--line); border-radius:11px;
+         padding:26px 26px 30px; box-shadow:0 1px 3px rgba(16,24,32,.06); }
+  .field { margin-bottom:18px; }
+  label { display:block; font-weight:600; font-size:.82rem; margin:0 0 6px; }
+  input, textarea { width:100%; padding:10px 11px; font-size:.93rem; border:1px solid var(--line); border-radius:7px; }
+  input:focus, textarea:focus { outline:2px solid var(--accent); outline-offset:1px; }
+  .hint { color:var(--muted); font-size:.76rem; margin:5px 0 0; }
+  /* The two coordinate inputs sit in one neat row, monospaced like a readout. */
+  .pair { display:flex; gap:14px; }
+  .pair > div { flex:1 1 0; min-width:0; }
+  .pair input { font-family: "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace; letter-spacing:.3px; }
+  .map-stub { height:120px; border-radius:9px; margin:4px 0 20px;
+    background:
+      repeating-linear-gradient(0deg, #e3eae6 0 1px, transparent 1px 26px),
+      repeating-linear-gradient(90deg, #e3eae6 0 1px, transparent 1px 26px),
+      #eef3f0;
+    border:1px solid var(--line); position:relative; }
+  .map-stub .pin { position:absolute; left:54%; top:46%; width:12px; height:12px; border-radius:50%;
+    background:var(--accent); box-shadow:0 0 0 4px rgba(122,46,30,.18); transform:translate(-50%,-50%); }
+  .actions { margin-top:6px; }
+  button { background:var(--accent); color:#fff; border:0; border-radius:8px;
+           padding:12px 24px; font-size:.95rem; font-weight:600; cursor:pointer; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <p class="kicker">Cascade Mutual &middot; Underwriting</p>
+    <h1>Property Risk Survey</h1>
+    <p class="lede">Step 3 — Confirm the exact location of the insured structure so our wildfire-risk model can score it.</p>
+
+    <form action="#" novalidate aria-label="Structure location">
+      <div class="field">
+        <label for="addr">Mailing address on file</label>
+        <input id="addr" name="addr" type="text" value="3100 Ridgeline Rd, Bend, OR 97703" readonly>
+        <p class="hint">Read-only. The mailing address is often a PO box, so we also need the structure's precise point.</p>
+      </div>
+
+      <div class="map-stub" role="img" aria-label="Map preview centered on the entered point">
+        <span class="pin"></span>
+      </div>
+
+      <!-- THE DEFECT: a latitude/longitude PAIR. Each input is labeled only with its UNIT
+           ("Decimal degrees"), so neither field alone says it is a latitude or a longitude,
+           and nothing labels the pair as a coordinate. -->
+      <div class="field">
+        <div class="pair">
+          <div>
+            <label for="c1">Decimal degrees</label>
+            <input id="c1" name="lat" type="text" inputmode="decimal" value="44.0582">
+          </div>
+          <div>
+            <label for="c2">Decimal degrees</label>
+            <input id="c2" name="lng" type="text" inputmode="decimal" value="-121.3153">
+          </div>
+        </div>
+        <p class="hint">Drag the pin on the map to update, or type the values directly.</p>
+      </div>
+
+      <div class="field">
+        <label for="notes">Access notes for the surveyor (optional)</label>
+        <textarea id="notes" name="notes" rows="2" placeholder="Gate code, driveway, hazards…"></textarea>
+      </div>
+
+      <div class="actions">
+        <button type="submit">Submit location for scoring</button>
+      </div>
+    </form>
+  </div>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS IT
+    Both coordinate inputs have a correctly associated, visible, non-empty <label> reading
+    "Decimal degrees", so axe/WAVE/Lighthouse pass the missing-label check. There is also a
+    proper aria-label on the map preview, so nothing trips a name/role rule.
+
+    The defect: this is a latitude/longitude PAIR, and "Decimal degrees" labels only the
+    UNIT, not the role of each field. The LEFT field is the latitude (name="lat") and the
+    RIGHT is the longitude (name="lng"), but a user is never told that — neither field alone
+    says "latitude" or "longitude", and nothing labels the two together as "Coordinates" or
+    "GPS location". The order and meaning are conveyed purely by left-to-right position and
+    by the programmatic name= attribute (invisible to users). A sighted user sees two
+    identically-labeled "Decimal degrees" boxes and must GUESS which is lat and which is lng;
+    a screen-reader user hears "Decimal degrees, edit … Decimal degrees, edit" — two
+    identical fields, no group meaning. Entering 44.06 / -121.32 in the wrong order silently
+    moves the pin to the South Atlantic. This is F82's rationale generalized: a set of
+    fields whose individual labels are insufficient and whose group purpose (a coordinate)
+    is required but never provided in text. Detecting it needs human knowledge that two
+    "Decimal degrees" fields form an ordered lat/lng pair — no scanner models that.
+  -->
+</body>
+</html>

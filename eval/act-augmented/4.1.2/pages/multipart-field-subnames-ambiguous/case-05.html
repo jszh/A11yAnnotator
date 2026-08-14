@@ -3,33 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!--
-    SC 4.1.2 (Name, Role, Value) — NAME limb at sub-field granularity, multi-part field.
-    A delivery-contact phone is one compound value split into three boxes: COUNTRY CODE,
-    AREA CODE, LOCAL NUMBER. Each box has a VISIBLE caption beside it ("Country code",
-    "Area code", "Local number") — but that caption is a plain <span>, never associated
-    with the input (no <label for>, no aria-label, no aria-labelledby). The only thing the
-    accessible-name computation can find on each input is its PLACEHOLDER, which is a
-    format mask ("+##", "###", "#### ####"). So each control's accessible name ends up
-    being the format mask, not a name that identifies the part.
-
-    WHAT AT EXPERIENCES: a screen-reader user hears "+##, edit"; "###, edit";
-    "#### ####, edit" — three boxes named after their digit masks, none identifying which
-    is the country code, area code, or local number. A speech-input ("Dragon") user who
-    says "click Country code" has nothing to target, because no control's accessible name
-    contains the visible words "Country code". This is F111 (visible label text, but the
-    accessible name does not contain it) combined with F86 (no name for each part of a
-    multi-part field).
-
-    WHY AUTOMATED TOOLS MISS IT: a placeholder is a NON-EMPTY accessible-name source.
-    axe-core's "label" rule treats placeholder text as satisfying the name requirement, so
-    it reports NO violation on these inputs; ACT rule e086e5 ("Form field has non-empty
-    accessible name") returns PASSED because each name ("+##" etc.) is non-empty. (Verified
-    empirically with axe 4.10.3: zero name/label findings on these three inputs; Chrome's
-    computed accessible names are exactly the placeholder masks.) No checker reads the
-    adjacent visible caption, recognizes the three boxes as one phone number, and judges
-    that "+##" fails to name the country-code field — that is human semantic + visual work.
-  -->
   <title>Add a delivery contact — Posthaven Courier shipping label</title>
   <style>
     :root { --ink:#1b2330; --muted:#647084; --line:#d9dee7; --brand:#1f4ed8; --bg:#f4f6fb; --chip:#eef2fb; }
@@ -75,13 +48,6 @@
           <input id="recipient" name="recipient" type="text" value="A. Okonkwo" style="width:100%;">
         </div>
 
-        <!--
-          Compound phone control: country code, area code, local number.
-          Each visible "cap" caption is a plain <span> with NO programmatic association to
-          its input (no for=, no aria-labelledby, no aria-label). Each input's ONLY
-          accessible-name source is its placeholder format mask, so the computed accessible
-          name is the mask ("+##" / "###" / "#### ####"), never the visible role caption.
-        -->
         <div class="field" role="group" aria-labelledby="phone-label">
           <span class="glab" id="phone-label">Delivery contact phone</span>
           <div class="phone">

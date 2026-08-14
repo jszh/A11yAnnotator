@@ -70,12 +70,6 @@
 <footer>Demo only — do not enter real plate or VIN data.</footer>
 
 <script>
-  // Each field shows a contextual help bubble on focus (keyboard-accessible — good).
-  // BUG: a SINGLE global setInterval ticks every 5 seconds and clears ANY visible
-  // bubble — so a keyboard user who tabs into the VIN field and pauses to read /
-  // locate their VIN on the dashboard watches the help vanish at the next tick,
-  // even though the field STILL has focus. This fails the focus checklist item:
-  // "The additional content stays visible and does not automatically close after a time."
   var fields = [
     { input: document.getElementById('plate'), bubble: document.getElementById('plateHelp') },
     { input: document.getElementById('vin'),   bubble: document.getElementById('vinHelp') }
@@ -86,26 +80,14 @@
     f.input.addEventListener('blur',  function () { f.bubble.classList.remove('show'); });
   });
 
-  // ---- the defect: interval-based auto-dismiss, blind to focus state ----
   setInterval(function () {
     fields.forEach(function (f) { f.bubble.classList.remove('show'); });
   }, 5000);
 
-  // Esc dismiss is wired (Dismissible passes); only Persistent (focus #1) is broken.
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') fields.forEach(function (f) { f.bubble.classList.remove('show'); });
   });
 </script>
 
-<!--
-  WHY AUTOMATED TOOLS MISS IT:
-  The bubbles are real role="tooltip" elements, wired to focus/blur (so they are
-  keyboard-triggerable), have an Esc handler, and never obscure the input. axe/WAVE/
-  Lighthouse report nothing. The violation is that a recurring setInterval removes the
-  bubble on a 5-second cadence while the field is still focused — a temporal behavior
-  no static scanner exercises. Distinguishing this disallowed auto-close from a
-  legitimate "info became invalid" disappearance requires a human to keep focus and
-  watch the timeline; the content here stays fully valid, so the disappearance is wrong.
--->
 </body>
 </html>

@@ -18,7 +18,6 @@
   p { font-size: 15.5px; }
   .glossary { border-bottom: 2px dotted #6b58c4; cursor: help; position: relative;
         color: #3a2f6b; font-weight: 600; }
-  /* The tooltip overlaps the example request block that follows the paragraph. */
   .tip { position: absolute; top: 1.6em; inset-inline-start: 0; width: 300px; z-index: 7;
         background: #232323; color: #fff; padding: 11px 13px; border-radius: 7px;
         font-size: 13.5px; line-height: 1.55; box-shadow: 0 7px 20px rgba(0,0,0,.3);
@@ -66,23 +65,11 @@
 </main>
 
 <script>
-  // INTENTIONAL DEFECT: the glossary tooltip appears purely on :hover of a
-  // span that is NOT a focusable control (tabindex="-1", never focused by
-  // keyboard). The author added an Escape handler, but gated it on "an input
-  // is currently focused" — a guard copied from the search box's clear-on-Esc
-  // behavior. When the user is merely HOVERING the glossary term (the only way
-  // this tooltip appears), document.activeElement is <body>, not an input, so
-  // the guard fails and Escape never dismisses the tooltip. The obscuring tip
-  // can therefore only be cleared by physically moving the pointer off the
-  // term — defeating the magnifier pan workaround.
   document.addEventListener('keydown', function (e) {
     if (e.key !== 'Escape' && e.keyCode !== 27) return;
     var active = document.activeElement;
-    // Guard: only act when a text input has focus (intended for clearing the
-    // filter field). On hover of the glossary term, this is false.
     if (active && active.tagName === 'INPUT' && active.type === 'text') {
       active.value = '';
-      // (would also hide a tooltip here, but this branch never runs on hover)
       var tips = document.querySelectorAll('.tip');
       tips.forEach(function (t) { t.style.display = 'none'; });
     }

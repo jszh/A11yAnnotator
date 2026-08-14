@@ -3,46 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!--
-    SC 1.4.1 (and 1.1.1) FAILURE — F13: an embedded STATUS DASHBOARD screenshot conveys each
-    service's up/down state PURELY by a colored tile fill (green = healthy, red = down), and the
-    alt + the long description carefully list every service NAME, every per-service METRIC, the
-    color RULE, and even the COUNT of down services — but never resolve WHICH two services are
-    red/down.
-
-    An SRE pasted a Grafana "service health" panel into an internal incident runbook as a flattened
-    screenshot (inline-SVG data: URI). Eight services are shown as a 4x2 grid of tiles. Every tile
-    is laid out identically: service NAME on top, a "p95" latency reading below. The latency numbers
-    are deliberately NON-diagnostic — the two down services (auth-gateway 118ms, payments-worker
-    131ms) sit in the MIDDLE of the pack, while the SLOWEST tile (cart-service 176ms) is perfectly
-    HEALTHY. So you cannot infer down-ness from the metric, the name, the word on the tile, or the
-    layout. The ONLY thing that separates the two down tiles from the six healthy ones is the fill
-    color: red vs green.
-
-    The alt enumerates all eight service names and states the rule ("tiles shown in red are down;
-    tiles shown in green are healthy"). A <details> long description repeats the rule, lists every
-    service with its p95 latency, and even states the count ("two of the eight services are
-    currently down") — yet it never NAMES the two down services and gives no non-color way to find
-    them (no failure word, no "timeout", no outlier number, no ordering by health). To learn that
-    auth-gateway and payments-worker are the outage, you must look at the screenshot and find the
-    two RED tiles. An on-call engineer using a screen reader, or one with deuteranopia glancing at
-    the page, gets "two are down" plus eight names and eight benign-looking latencies, but cannot
-    bind down-ness to a name — defeating the runbook's entire purpose ("page the owners of the down
-    services").
-
-    WHY THIS IS A REAL, NON-SELF-DEFEATING F13: every NON-color channel (names, numbers, words,
-    order, count) is identical in shape across healthy and down tiles; the down membership is
-    carried by hue alone. The count "two down" tells you HOW MANY but not WHICH — and with eight
-    interchangeable-looking tiles there is no text path from "two" to "auth-gateway and
-    payments-worker."
-
-    WHY AUTOMATED TOOLS MISS IT: the <img> has a rich non-empty alt and an associated long
-    description; axe/WAVE/Lighthouse pass every text-alternative rule and would actually praise this
-    markup. No scanner reads the screenshot pixels to find which two tiles are red, reads their
-    labels, and confirms those names are absent from the prose. Detecting that "which tiles are red"
-    is the load-bearing color fact and that the prose never resolves it is a human read-the-picture /
-    read-the-prose / compare judgment.
-  -->
   <title>Runbook · Checkout latency incident (INC-4821)</title>
   <style>
     :root { --ink:#0d1117; --muted:#57606a; --line:#d0d7de; --bg:#f6f8fa; --accent:#0969da; --crit:#cf222e; }
@@ -76,14 +36,6 @@
         down services first, then follow the runbook steps below.</p>
 
       <figure>
-        <!--
-          Dashboard screenshot: 4x2 grid of service tiles. GREEN fill = healthy, RED fill = down.
-          Every tile is laid out identically: NAME on top, "p95 <n>ms" below. The latency numbers
-          are non-diagnostic of health (down tiles are mid-pack; the slowest tile is healthy).
-          Row 1: web-frontend p95 142ms (green), auth-gateway p95 118ms (RED), search-api p95 98ms (green), cart-service p95 176ms (green)
-          Row 2: payments-worker p95 131ms (RED), inventory-db p95 61ms (green), notify-queue p95 154ms (green), cdn-edge p95 33ms (green)
-          Health state = tile fill color ONLY. alt names all 8 services + states the rule; never names the 2 red ones.
-        -->
         <img
           alt="Service health board for prod-us-east showing eight services as colored tiles, each with its p95 latency: web-frontend, auth-gateway, search-api, cart-service, payments-worker, inventory-db, notify-queue, and cdn-edge. Tiles shown in green are healthy; tiles shown in red are down."
           aria-describedby="boardDesc"

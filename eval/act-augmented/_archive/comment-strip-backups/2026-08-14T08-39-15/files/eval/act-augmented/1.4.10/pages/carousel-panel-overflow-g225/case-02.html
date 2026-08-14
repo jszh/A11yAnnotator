@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Northwind Mail — Choose your plan</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (SC 1.4.10 Reflow, G225)
+  A pricing carousel: a horizontally-scrolling strip of plan panels. The STRIP scroll is the
+  allowed carousel navigation (WCAG explicitly permits it). Every plan panel is sized to a fluid
+  max-width that fits 320px and reads top-to-bottom... EXCEPT one. The "Business" panel embeds a
+  side-by-side TWO-COLUMN feature comparison ("vs Pro") built as a flex row of two fixed 220px
+  text columns. The two columns together are ~460px and have no per-column scroll container and
+  no fluid sizing, so at a 320px viewport that one panel's TEXT does not fit and forces a
+  within-panel horizontal scrollbar to read the comparison.
+
+  This is a HUMAN-JUDGMENT case, not a tool catch:
+   - The two-column comparison is plain TEXT (feature names + check/dash + values). It is NOT a
+     graphic, table, map, or fixed-dimension media, so NO Reflow exception applies to it.
+   - WCAG's "Two column presentation of editing changes" guidance says a side-by-side comparison
+     CAN pass -- but only when "each column fits within a 320 CSS pixel wide container." Here the
+     columns are fixed 220px with no scroll container, so they do NOT fit, and the comparison
+     (a simple feature checklist) does NOT require two-dimensional layout for understanding: it
+     would read perfectly well stacked into one column. Deciding "is this 2-column layout
+     essential (exception) or just decorative (fail)?" is exactly the judgment WCAG assigns to a
+     human evaluator -- it cannot be derived from markup.
+   - axe / WAVE / Lighthouse see clean markup (valid lists, headings nest, alt present) and a
+     horizontal scrollbar at the STRIP (allowed carousel behavior). They never lay the page out
+     at 320px and measure that ONE panel's text overflows, nor can they judge whether the 2-col
+     layout is essential.
+  To reproduce: render at width:320px, advance the strip to the "Business" panel; its two-column
+  "Business vs Pro" comparison (~460px) overflows the panel and the viewport.
+-->
+<style>
+  :root { --teal:#0f5f63; --ink:#1b1f24; --mute:#5a6270; --line:#dce1e8; --tint:#eef5f5; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Segoe UI",Roboto,Arial,sans-serif; color:var(--ink);
+         background:#fff; line-height:1.55; }
+  header.top { background:var(--teal); color:#fff; padding:16px 22px; }
+  header.top .brand { font-weight:800; font-size:18px; letter-spacing:.2px; }
+  main { padding:22px 16px 64px; }
+  h1 { font-size:24px; margin:6px 0 4px; }
+  .sub { color:var(--mute); margin:0 0 22px; max-width:60ch; }
+
+  .plans {
+    display:flex;
+    gap:18px;
+    overflow-x:auto;            /* allowed carousel strip navigation between plans */
+    padding:6px 2px 22px;
+    scroll-snap-type:x mandatory;
+  }
+  section.plan {
+    flex:0 0 auto;
+    width:90vw;                 /* fluid; clamped below so panels fit 320px */
+    max-width:296px;            /* conforming panels stay within 320px */
+    scroll-snap-align:start;
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:18px 18px 20px;
+    display:flex;
+    flex-direction:column;      /* reads top-to-bottom inside the panel */
+  }
+  section.plan h2 { font-size:18px; margin:0 0 2px; }
+  section.plan .price { font-size:28px; font-weight:800; margin:2px 0 2px; }
+  section.plan .price span { font-size:13px; font-weight:600; color:var(--mute); }
+  section.plan .pitch { color:var(--mute); font-size:14px; margin:0 0 14px; }
+  section.plan ul.feat { list-style:none; margin:0 0 14px; padding:0; }
+  section.plan ul.feat li { padding:6px 0; border-top:1px solid var(--line); font-size:14px; }
+  section.plan ul.feat li::before { content:"✓ "; color:var(--teal); font-weight:800; }
+  section.plan .cta {
+    margin-top:auto; display:inline-block; text-align:center;
+    background:var(--teal); color:#fff; text-decoration:none; font-weight:700;
+    padding:10px 14px; border-radius:8px;
+  }
+
+  /* THE ROGUE PANEL.
+     The "Business" plan was given a side-by-side "Business vs Pro" comparison so shoppers can
+     see exactly what the upgrade adds. It is built as a flex row of two FIXED 220px text
+     columns with no per-column scroll container and no fluid sizing -- copied from the desktop
+     marketing layout. The plan's own intro text wraps fine, but the two columns together are
+     ~460px, so at 320px this panel's comparison TEXT overflows and needs within-panel
+     horizontal scrolling. The comparison is plain text that could simply stack; its two-column
+     layout is not essential, so no Reflow exception applies. */
+  section.plan .compare {
+    display:flex;               /* two columns sit side-by-side */
+    gap:14px;
+    margin:0 0 14px;
+  }
+  section.plan .compare .col {
+    width:220px;                /* fixed; two of these (~454px+gap) exceed 320px, NO fluid sizing */
+    flex:0 0 220px;             /* will not shrink */
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:10px 12px;
+  }
+  section.plan .compare .col.pro { background:var(--tint); }
+  section.plan .compare .col h3 { font-size:14px; margin:0 0 8px; }
+  section.plan .compare dl { margin:0; }
+  section.plan .compare dt { font-size:12.5px; color:var(--mute); margin:8px 0 0; }
+  section.plan .compare dd { font-size:13.5px; margin:1px 0 0; font-weight:600; }
+
+  footer.top { background:#13343a; color:#cdd6d8; font-size:13px; padding:18px 22px; }
+</style>
+</head>
+<body>
+<header class="top"><span class="brand">Northwind Mail</span></header>
+
+<main>
+  <h1>Choose your plan</h1>
+  <p class="sub">Secure email and shared calendars for teams of any size. Swipe through the plans
+  to compare what each one includes.</p>
+
+  <div class="plans" role="list" aria-label="Subscription plans">
+
+    <section class="plan" role="listitem" aria-labelledby="p-starter">
+      <h2 id="p-starter">Starter</h2>
+      <p class="price">$4 <span>/ user / mo</span></p>
+      <p class="pitch">Everything a small team needs to get email off the ground.</p>
+      <ul class="feat">
+        <li>10 GB mailbox per user</li>
+        <li>Shared team calendar</li>
+        <li>Spam &amp; phishing filtering</li>
+        <li>Email support</li>
+      </ul>
+      <a class="cta" href="#starter">Start free trial</a>
+    </section>
+
+    <!-- ROGUE PANEL: embeds a two-column "Business vs Pro" comparison of fixed 220px text columns -->
+    <section class="plan" role="listitem" aria-labelledby="p-business">
+      <h2 id="p-business">Business</h2>
+      <p class="price">$9 <span>/ user / mo</span></p>
+      <p class="pitch">For growing teams that need more storage, controls, and room to upgrade.</p>
+
+      <div class="compare" aria-label="Business compared with Pro">
+        <div class="col">
+          <h3>Business</h3>
+          <dl>
+            <dt>Mailbox per user</dt><dd>50 GB</dd>
+            <dt>Shared calendars</dt><dd>Up to 25</dd>
+            <dt>Admin controls</dt><dd>Standard</dd>
+            <dt>Audit log retention</dt><dd>30 days</dd>
+            <dt>Priority support</dt><dd>Business hours</dd>
+            <dt>Data residency choice</dt><dd>—</dd>
+          </dl>
+        </div>
+        <div class="col pro">
+          <h3>Pro (upgrade)</h3>
+          <dl>
+            <dt>Mailbox per user</dt><dd>200 GB</dd>
+            <dt>Shared calendars</dt><dd>Unlimited</dd>
+            <dt>Admin controls</dt><dd>Advanced + SSO</dd>
+            <dt>Audit log retention</dt><dd>1 year</dd>
+            <dt>Priority support</dt><dd>24 / 7</dd>
+            <dt>Data residency choice</dt><dd>Included</dd>
+          </dl>
+        </div>
+      </div>
+
+      <a class="cta" href="#business">Choose Business</a>
+    </section>
+
+    <section class="plan" role="listitem" aria-labelledby="p-pro">
+      <h2 id="p-pro">Pro</h2>
+      <p class="price">$16 <span>/ user / mo</span></p>
+      <p class="pitch">Advanced security, SSO, and the largest mailboxes for established teams.</p>
+      <ul class="feat">
+        <li>200 GB mailbox per user</li>
+        <li>Unlimited shared calendars</li>
+        <li>SSO &amp; advanced admin controls</li>
+        <li>24 / 7 priority support</li>
+      </ul>
+      <a class="cta" href="#pro">Choose Pro</a>
+    </section>
+
+    <section class="plan" role="listitem" aria-labelledby="p-enterprise">
+      <h2 id="p-enterprise">Enterprise</h2>
+      <p class="price">Custom</p>
+      <p class="pitch">Volume pricing, dedicated onboarding, and a named success manager.</p>
+      <ul class="feat">
+        <li>Custom mailbox limits</li>
+        <li>Dedicated success manager</li>
+        <li>Custom data-residency &amp; SLAs</li>
+        <li>Onboarding &amp; migration help</li>
+      </ul>
+      <a class="cta" href="#enterprise">Talk to sales</a>
+    </section>
+
+  </div>
+</main>
+
+<footer class="top">© 2026 Northwind Mail, Inc.</footer>
+</body>
+</html>

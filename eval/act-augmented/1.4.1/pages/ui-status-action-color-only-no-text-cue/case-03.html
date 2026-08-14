@@ -4,22 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Immunization records — Northgate Pediatrics Patient Portal</title>
-<!--
-  SC 1.4.1 Use of Color — FAILING (status limb of G14; the Understanding "database entry
-  has been updated successfully" example). This table lets a parent edit a child's
-  immunization dose dates. When a row is saved, an optimistic-autosave handler flips the
-  row's background to green to signal "saved / updated successfully." The "updated" STATUS
-  is conveyed by the row turning green ALONE — no "Saved" / "Updated" word, no checkmark
-  character, no timestamp text change, no status message. In grayscale (or for a user with
-  red-green or low colour vision) a saved row is visually identical to an unsaved one, so
-  the success of an irreversible medical-record edit cannot be perceived.
-
-  Why automated tools miss it: pressing "Save row" is a runtime interaction; the green
-  class is only added by JS after the click, so a static scan never even sees the changed
-  state. Even with the class present, the row is a valid <tr> with real cell text — there
-  is no missing label or empty element to flag. No tool can determine that a green
-  background is the SOLE carrier of "this update succeeded" and that no text confirms it.
--->
 <style>
   body { font-family: "Helvetica Neue", Arial, sans-serif; margin: 0; background: #f4f6f8; color: #20303d; }
   header { background: #146c5e; color: #fff; padding: 16px 26px; }
@@ -35,7 +19,6 @@
   input[type="date"] { font: inherit; padding: 5px 7px; border: 1px solid #b8c2cb; border-radius: 4px; }
   .save { font: inherit; font-size: .85rem; padding: 6px 12px; border: 1px solid #146c5e; background: #fff; color: #146c5e; border-radius: 5px; cursor: pointer; }
   .save:hover { background: #eaf5f2; }
-  /* "Saved" is signalled ONLY by this green row tint. No text/icon is added. */
   tr.saved { background: #d7f0dd; }
   tr.saved td { border-bottom-color: #bfe3c8; }
 </style>
@@ -83,7 +66,6 @@
   <script>
     function markSaved(btn) {
       var row = btn.closest('tr');
-      // Optimistic UI: the ONLY confirmation of success is the green background tint.
       row.classList.add('saved');
     }
   </script>

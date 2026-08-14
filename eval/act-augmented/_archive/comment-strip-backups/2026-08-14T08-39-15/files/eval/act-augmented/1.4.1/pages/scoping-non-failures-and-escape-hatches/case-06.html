@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Choose a showtime — Rivoli Cinema</title>
+<style>
+  body { margin:0; font:15px/1.5 "Helvetica Neue",Arial,sans-serif; color:#16181d; background:#0e0f12; }
+  .stage { max-width:560px; margin:0 auto; padding:30px 22px 70px; }
+  .film { background:#fff; border-radius:14px; padding:22px 24px; }
+  .film h1 { font-size:21px; margin:0 0 2px; }
+  .film .rating { color:#5b6168; font-size:13px; margin:0 0 18px; }
+  fieldset { border:none; margin:0 0 18px; padding:0; }
+  legend { font-weight:700; font-size:13px; text-transform:uppercase; letter-spacing:.06em;
+           color:#5b6168; margin-bottom:10px; }
+  .times { display:flex; flex-wrap:wrap; gap:10px; }
+  /* Each showtime is a radio whose label is a pill. The CHOSEN showtime is indicated by
+     INVERTING the pill's foreground and background:
+        unselected pill = dark text #1d2330 on white bg #ffffff
+        selected   pill = white text #ffffff on dark bg #1d2330  (foreground/background swapped)
+     The inversion is an additional visual distinction with ample contrast (the selected pill's
+     dark background differs from the white unselected pills by ~15.7:1 in lightness), so it
+     survives greyscale and colour-vision deficiency. Per the Understanding note, distinguishing
+     content by inverting an element's foreground and background colours passes 1.4.1. */
+  .pill { display:inline-block; }
+  .pill input { position:absolute; opacity:0; width:1px; height:1px; }
+  .pill label { display:inline-block; padding:9px 16px; border:2px solid #1d2330;
+                border-radius:999px; color:#1d2330; background:#fff; cursor:pointer;
+                font-variant-numeric:tabular-nums; }
+  .pill input:checked + label { color:#fff; background:#1d2330; }   /* inverted */
+  .pill input:focus-visible + label { outline:3px solid #2f6df6; outline-offset:2px; }
+  .pill.sold label { color:#9aa0a8; border-color:#d7dade; cursor:not-allowed; text-decoration:line-through; }
+  .hall { margin-top:6px; color:#5b6168; font-size:13px; }
+  button { margin-top:14px; padding:12px 22px; font:inherit; font-weight:700; color:#fff;
+           background:#c4122f; border:none; border-radius:10px; cursor:pointer; }
+</style>
+</head>
+<body>
+<main class="stage">
+  <section class="film">
+    <h1>The Cartographer's Dream</h1>
+    <p class="rating">PG-13 &middot; 2h 04m &middot; Dolby Atmos</p>
+
+    <form>
+      <fieldset>
+        <legend>Friday 20 June — choose a showtime</legend>
+        <div class="times">
+          <span class="pill"><input type="radio" id="t1" name="show" value="1010"><label for="t1">10:10</label></span>
+          <span class="pill"><input type="radio" id="t2" name="show" value="1245"><label for="t2">12:45</label></span>
+          <span class="pill"><input type="radio" id="t3" name="show" value="1530" checked><label for="t3">15:30</label></span>
+          <span class="pill sold"><input type="radio" id="t4" name="show" value="1815" disabled><label for="t4">18:15</label></span>
+          <span class="pill"><input type="radio" id="t5" name="show" value="2050"><label for="t5">20:50</label></span>
+        </div>
+        <p class="hall">Screen 3 &middot; recliner seating. Sold-out times are struck through and
+           greyed; the time you have selected is shown reversed (white on dark).</p>
+      </fieldset>
+      <button type="submit">Continue to seats</button>
+    </form>
+  </section>
+</main>
+
+<!--
+  WHY THIS PASSES (1.4.1 inversion escape hatch — note (a), inversion example):
+  The selected showtime (15:30) is distinguished from the others by INVERTING the pill's
+  foreground and background colours: unselected pills are dark text on white; the selected pill
+  is white text on a dark background. This swap is an additional visual distinction with very
+  high contrast — the selected pill's dark fill differs from the white unselected pills by about
+  15.7:1 in lightness, so it remains obvious in greyscale and to users with any colour-vision
+  deficiency. The Understanding note: "if content is distinguished by inverting an element's
+  foreground and background colours, this would pass (again, assuming that the foreground and
+  background colours have a sufficient contrast)." (Selection is also exposed programmatically
+  via the native radio's checked state, and sold-out times carry a strikethrough + grey, but the
+  inversion alone discharges 1.4.1 for the selected-state cue.)
+
+  WHY AUTOMATED TOOLS MISS IT: an over-eager "selected state shown by colour change = use-of-
+  colour failure" heuristic (the classic swatch/chip anti-pattern) would flag this selected pill.
+  Distinguishing a genuine colour-only state cue from an INVERSION that carries an inherent
+  lightness difference requires comparing the selected and unselected backgrounds and reasoning
+  that the swap survives greyscale — a visual judgement no automated checker performs.
+-->
+</body>
+</html>

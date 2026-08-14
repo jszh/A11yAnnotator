@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Meridian Dispatch — Premium subscriber gate</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS:
+  The "Continue reading" link is a real <a href> with descriptive text and a fully
+  valid :focus-visible style (a yellow underline + ring). There is no 2.4.7 automated
+  rule, and a CSS scan finds a legitimate focus indicator. The failure lives in the
+  legacy template helper buildSubscribeLink(), which attaches an inline-style focus
+  handler — onfocus="if(this.blur)this.blur();" — to every paywall CTA. When the
+  keyboard user Tabs onto the link, focus is removed in the same tick, so the
+  :focus-visible style never paints and the link is mouse-only. A single static
+  snapshot shows the link unfocused; only watching the Tab sequence over time reveals
+  that focus refuses to settle on it.
+-->
+<style>
+  :root { --serif: Georgia, "Times New Roman", serif; --ink: #15171a; --rule: #ddd6cc; --brand: #7a1f2b; }
+  * { box-sizing: border-box; }
+  body { font-family: var(--serif); color: var(--ink); background: #fbfaf6; margin: 0; line-height: 1.6; }
+  .masthead { text-align: center; border-bottom: 4px double var(--ink); padding: 16px 12px 10px; }
+  .masthead h1 { margin: 0; font-size: 2.1rem; letter-spacing: 1px; }
+  .masthead .tag { font-size: .72rem; letter-spacing: 3px; text-transform: uppercase; color: #6a6256; }
+  nav.utility { display: flex; justify-content: center; gap: 20px; font-family: Arial, sans-serif;
+    font-size: .78rem; padding: 8px; border-bottom: 1px solid var(--rule); }
+  nav.utility a { color: var(--brand); text-decoration: none; }
+  nav.utility a:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+  article { max-width: 680px; margin: 30px auto; padding: 0 20px; }
+  article h2 { font-size: 1.9rem; line-height: 1.18; margin: 0 0 6px; }
+  article .byline { font-family: Arial, sans-serif; font-size: .8rem; color: #6a6256; margin: 0 0 22px; }
+  article p { margin: 0 0 16px; font-size: 1.06rem; }
+  .gate {
+    position: relative; margin-top: 8px; padding-top: 60px;
+    background: linear-gradient(to bottom, rgba(251,250,246,0), #fbfaf6 70%);
+  }
+  .gate .paywall {
+    border: 1px solid var(--rule); border-top: 3px solid var(--brand);
+    background: #fff; padding: 24px 26px; text-align: center; border-radius: 4px;
+  }
+  .gate .paywall p { font-family: Arial, sans-serif; font-size: .95rem; color: #3a3a3a; margin: 0 0 14px; }
+  .gate .paywall a.cta {
+    display: inline-block; font-family: Arial, sans-serif; font-weight: 700; font-size: 1rem;
+    color: var(--brand); text-decoration: underline; text-underline-offset: 3px; padding: 4px 2px;
+  }
+  /* Real, valid keyboard focus indicator — it simply never gets to paint. */
+  .gate .paywall a.cta:focus-visible {
+    outline: 3px solid #e0a800; outline-offset: 3px; background: #fff7e0; border-radius: 3px;
+  }
+</style>
+</head>
+<body>
+<header class="masthead">
+  <p class="tag">Founded 1908 · Independent Journalism</p>
+  <h1>The Meridian Dispatch</h1>
+</header>
+<nav class="utility" aria-label="Site sections">
+  <a href="/politics">Politics</a>
+  <a href="/business">Business</a>
+  <a href="/culture">Culture</a>
+  <a href="/account">Account</a>
+</nav>
+
+<article>
+  <h2>City council approves the harbor rail extension after a decade of delay</h2>
+  <p class="byline">By Dana Okafor · Transit Desk · 9 min read</p>
+  <p>After ten years of stalled votes and three failed referendums, the city council last
+    night approved funding for the long-promised harbor rail extension, a 6.4-mile line that
+    will connect the eastern districts to the central terminal for the first time.</p>
+  <p>The 7–2 vote followed a marathon public-comment session in which more than forty
+    residents spoke, most in favor of a project that supporters say will cut peak commute
+    times nearly in half for the dockside neighborhoods.</p>
+
+  <div class="gate">
+    <div class="paywall">
+      <p>You have reached your free article limit for this month.</p>
+      <!--
+        Legacy template helper buildSubscribeLink() attaches the F55 handler:
+        onfocus="if(this.blur)this.blur();" — F55 Example 3 verbatim. Focus is
+        dropped the instant Tab reaches the link, so the :focus-visible never paints.
+      -->
+      <a class="cta" href="/subscribe?ref=harbor-rail"
+         onfocus="if(this.blur)this.blur();">Continue reading — subscribe for $1</a>
+    </div>
+  </div>
+</article>
+</body>
+</html>

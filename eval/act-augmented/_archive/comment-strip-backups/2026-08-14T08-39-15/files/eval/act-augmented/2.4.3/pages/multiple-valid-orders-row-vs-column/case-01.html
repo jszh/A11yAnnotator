@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 2.4.3 — PASS (multiple-valid-orders limb).
+    This is a wholesale "order grid": a 3x3 matrix of quantity inputs where the
+    ROWS are pack sizes (6-pack / 12-pack / 24-pack) and the COLUMNS are three
+    distinct coffee blends (Morning, Decaf, Espresso). The visual layout is the
+    usual western row-major table, BUT the tab order moves COLUMN-BY-COLUMN: it
+    walks all three pack-size quantities for the Morning blend first, then all
+    three for Decaf, then all three for Espresso. This is achieved purely by DOM
+    source order — the <td> cells are emitted column-major and laid back into the
+    visual grid with CSS grid-row/grid-column, so NO tabindex is used.
+
+    Column-major IS a logical order here: a buyer decides "how much Morning do I
+    want across all sizes" before moving to the next blend — completing one
+    product's full size-ladder before the next. The SC's Understanding text
+    explicitly blesses BOTH row-at-a-time and column-at-a-time as valid for a
+    table of controls; only ONE valid order need be provided. The correct verdict
+    is therefore PASS, NOT a failure-for-being-non-row-major.
+
+    Why automated tools miss it: every input has a programmatic <label>, the table
+    has proper headers/scope, contrast is fine, nothing is hidden — axe/WAVE/
+    Lighthouse report zero issues. They have NO model of "is this alternative tab
+    order still logical?"; a naive order-checker that flagged any non-source-visual
+    order would FALSE-POSITIVE here. Recognizing column-major as a valid logical
+    order (and not a meaning-destroying one) is a human reasoning judgment.
+  -->
+  <title>Wholesale order grid — Northbank Coffee Roasters</title>
+  <style>
+    :root { --ink:#241c14; --muted:#6b5d4f; --line:#d9cdbd; --brand:#7a4b1e; --bg:#fcf8f2; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: "Iowan Old Style", Georgia, serif; color:var(--ink); background:var(--bg); line-height:1.5; }
+    header { background:var(--brand); color:#fff; padding:18px 28px; }
+    header h1 { margin:0; font-size:20px; letter-spacing:.3px; }
+    header p { margin:4px 0 0; font-size:13px; opacity:.9; }
+    main { max-width:760px; margin:24px auto; padding:0 24px 48px; }
+    .lead { font-size:14px; color:var(--muted); margin:0 0 20px; }
+    form { background:#fff; border:1px solid var(--line); border-radius:10px; padding:22px; }
+    .grid {
+      display:grid;
+      grid-template-columns: 150px repeat(3, 1fr);
+      grid-template-rows: auto repeat(3, auto);
+      gap:10px 14px;
+      align-items:center;
+    }
+    .corner { font-size:12px; color:var(--muted); }
+    .colhead { font-weight:700; font-size:14px; text-align:center; color:var(--brand); }
+    .rowhead { font-weight:600; font-size:14px; }
+    .cell { display:flex; flex-direction:column; align-items:center; }
+    .cell label { font-size:11px; color:var(--muted); margin-bottom:3px; }
+    .cell input {
+      width:72px; padding:8px; text-align:center; font-size:15px;
+      border:1px solid var(--line); border-radius:6px; background:#fffdf9;
+    }
+    .cell input:focus { outline:3px solid #c98a4b; outline-offset:1px; }
+    .actions { margin-top:22px; display:flex; gap:12px; align-items:center; }
+    button { background:var(--brand); color:#fff; border:0; padding:11px 20px; border-radius:7px; font-size:15px; cursor:pointer; font-family:inherit; }
+    .hint { font-size:12px; color:var(--muted); }
+    caption { text-align:left; font-size:13px; color:var(--muted); padding-bottom:12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Northbank Coffee Roasters — Wholesale</h1>
+    <p>Standing order builder · Account #WB-2231 · Net-30</p>
+  </header>
+  <main>
+    <p class="lead">
+      Enter the cases you want for this delivery. Rows are pack sizes; columns are
+      blends. Tab moves down each blend column — set a blend's full size ladder,
+      then continue to the next blend.
+    </p>
+    <form aria-labelledby="order-h">
+      <h2 id="order-h" style="font-size:16px;margin:0 0 16px;">Recurring case order</h2>
+
+      <!--
+        DOM emit order is COLUMN-MAJOR. Visual placement is reconstructed with
+        grid-column / grid-row so the matrix still LOOKS like a normal row-major
+        table. Tab therefore goes: Morning 6 -> Morning 12 -> Morning 24 ->
+        Decaf 6 -> Decaf 12 -> Decaf 24 -> Espresso 6 -> Espresso 12 -> Espresso 24.
+      -->
+      <div class="grid" role="group" aria-label="Case quantities by blend and pack size">
+        <!-- header row -->
+        <span class="corner" style="grid-column:1;grid-row:1;">Pack size \ Blend</span>
+        <span class="colhead" style="grid-column:2;grid-row:1;">Morning</span>
+        <span class="colhead" style="grid-column:3;grid-row:1;">Decaf</span>
+        <span class="colhead" style="grid-column:4;grid-row:1;">Espresso</span>
+
+        <!-- row labels (not focusable) -->
+        <span class="rowhead" style="grid-column:1;grid-row:2;">6-pack case</span>
+        <span class="rowhead" style="grid-column:1;grid-row:3;">12-pack case</span>
+        <span class="rowhead" style="grid-column:1;grid-row:4;">24-pack case</span>
+
+        <!-- COLUMN 1: Morning (emitted first => focused first) -->
+        <div class="cell" style="grid-column:2;grid-row:2;">
+          <label for="m6">Morning 6-pack</label>
+          <input id="m6" name="morning_6" type="number" min="0" max="99" value="0" inputmode="numeric">
+        </div>
+        <div class="cell" style="grid-column:2;grid-row:3;">
+          <label for="m12">Morning 12-pack</label>
+          <input id="m12" name="morning_12" type="number" min="0" max="99" value="0" inputmode="numeric">
+        </div>
+        <div class="cell" style="grid-column:2;grid-row:4;">
+          <label for="m24">Morning 24-pack</label>
+          <input id="m24" name="morning_24" type="number" min="0" max="99" value="0" inputmode="numeric">
+        </div>
+
+        <!-- COLUMN 2: Decaf -->
+        <div class="cell" style="grid-column:3;grid-row:2;">
+          <label for="d6">Decaf 6-pack</label>
+          <input id="d6" name="decaf_6" type="number" min="0" max="99" value="0" inputmode="numeric">
+        </div>
+        <div class="cell" style="grid-column:3;grid-row:3;">
+          <label for="d12">Decaf 12-pack</label>
+          <input id="d12" name="decaf_12" type="number" min="0" max="99" value="0" inputmode="numeric">
+        </div>
+        <div class="cell" style="grid-column:3;grid-row:4;">
+          <label for="d24">Decaf 24-pack</label>
+          <input id="d24" name="decaf_24" type="number" min="0" max="99" value="0" inputmode="numeric">
+        </div>
+
+        <!-- COLUMN 3: Espresso -->
+        <div class="cell" style="grid-column:4;grid-row:2;">
+          <label for="e6">Espresso 6-pack</label>
+          <input id="e6" name="espresso_6" type="number" min="0" max="99" value="0" inputmode="numeric">
+        </div>
+        <div class="cell" style="grid-column:4;grid-row:3;">
+          <label for="e12">Espresso 12-pack</label>
+          <input id="e12" name="espresso_12" type="number" min="0" max="99" value="0" inputmode="numeric">
+        </div>
+        <div class="cell" style="grid-column:4;grid-row:4;">
+          <label for="e24">Espresso 24-pack</label>
+          <input id="e24" name="espresso_24" type="number" min="0" max="99" value="0" inputmode="numeric">
+        </div>
+      </div>
+
+      <div class="actions">
+        <button type="submit">Add to standing order</button>
+        <span class="hint">Quantities are in cases. Leave 0 to skip a size.</span>
+      </div>
+    </form>
+  </main>
+</body>
+</html>

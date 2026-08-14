@@ -4,20 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Patient Intake — Cedar Ridge Family Health</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS:
-  The error state is DYNAMIC: it only appears after you press "Submit intake form".
-  The inline script (no network) marks each missing required field by turning that
-  field's <label> TEXT red (color:#c01818) and leaves valid labels black. There is no
-  inline message, no icon, no "(required)/(error)" word added — only the label's hue
-  changes. A static scan of the page-as-loaded sees ordinary black labels and passes;
-  even after the submit, axe/WAVE/Lighthouse see <label for> correctly associated, all
-  text above contrast minimum, and a visible (generic) summary line — no rule fires.
-  No automated checker decides that a red label "means this field errored." A sighted
-  color-blind user sees a wall of identical-looking labels and cannot tell which two
-  fields failed. That is the F81 'label color only' failure, judgeable only by a human
-  in the post-submit state.
--->
 <style>
   :root { --ink:#222b32; --muted:#5d6770; --line:#c9d1d6; --teal:#0f6e6e; }
   * { box-sizing:border-box; }
@@ -34,9 +20,8 @@
   legend { font-weight:700; font-size:.95rem; padding:0 6px; color:#27323a; }
   .field { margin-bottom:16px; }
 
-  /* Labels are normally black. The validator flips invalid ones to red — color ONLY. */
   label { display:block; font-size:.88rem; font-weight:600; margin:0 0 6px; color:#222b32; }
-  label.err { color:#c01818; }   /* === the defect: red label = errored, nothing else changes === */
+  label.err { color:#c01818; }   
 
   input, select { width:100%; padding:9px 11px; font-size:1rem; border:1px solid var(--line);
                   border-radius:6px; background:#fff; color:var(--ink); }
@@ -63,7 +48,6 @@
   <h2>Patient information</h2>
   <p class="intro">Required fields are needed so we can verify your record and insurance.</p>
 
-  <!-- Generic summary appears on submit; it does NOT name the failing fields. -->
   <div class="summary" id="summary" role="alert">Some required information is still missing. Please review the form and resubmit.</div>
 
   <form id="intake" action="#" method="post" novalidate>
@@ -109,8 +93,6 @@
 <footer>Cedar Ridge Family Health · 100% file:// — no external resources · Patient Services 555-0142</footer>
 
 <script>
-  // Inline validation on submit. Marks each empty required field by turning ITS LABEL red.
-  // No message text, no icon, no aria-invalid is added — color is the only per-field cue.
   document.getElementById('intake').addEventListener('submit', function (e) {
     e.preventDefault();
     var anyError = false;
@@ -121,7 +103,6 @@
     });
     document.getElementById('summary').classList.toggle('show', anyError);
   });
-  // Pre-render the post-submit error state on load so an evaluator lands directly in it.
   window.addEventListener('DOMContentLoaded', function () {
     document.getElementById('intake').dispatchEvent(new Event('submit'));
   });

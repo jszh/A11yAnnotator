@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>تجديد الوصفات الطبية — صيدلية النخيل</title>
+<style>
+  :root { --green:#0e7c5a; --ink:#1f2933; --muted:#62707e; --line:#e2e8ee; --mint:#e6f6ef; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Segoe UI", "Tahoma", "Noto Sans Arabic", sans-serif; color:var(--ink); background:#f3f6f9; line-height:1.6; }
+  header { background:var(--green); color:#fff; padding:16px 26px; display:flex; align-items:center; gap:12px; }
+  header .rx { width:38px; height:38px; border-radius:8px; background:#ffffff22; display:grid; place-items:center; font-weight:700; font-size:1.1rem; }
+  header h1 { font-size:1.15rem; margin:0; }
+  header p { margin:0; font-size:.8rem; opacity:.9; }
+  main { max-width:640px; margin:24px auto; background:#fff; border:1px solid var(--line); border-radius:10px; padding:26px 30px; }
+  h2 { font-size:1.25rem; margin:0 0 6px; }
+  .lead { color:var(--muted); margin:0 0 20px; font-size:.92rem; }
+  .med { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px 0; border-top:1px solid var(--line); }
+  .med:first-of-type { border-top:none; }
+  .med .info h3 { margin:0 0 2px; font-size:1rem; }
+  .med .info p { margin:0; color:var(--muted); font-size:.84rem; }
+  .renew { background:var(--green); color:#fff; border:0; border-radius:6px; padding:9px 18px; font-size:.92rem; cursor:pointer; font-family:inherit; }
+  .renew:hover { background:#0a6247; }
+  .status-area { margin-top:18px; }
+  .status-card { background:var(--mint); border:1px solid #9bd9bf; border-radius:8px; padding:13px 16px; color:#0a4a36; font-weight:600; font-size:.92rem; }
+  .devnote { max-width:640px; margin:0 auto 28px; padding:14px 18px; background:#fffaf0; border:1px solid #f0dca8; border-radius:8px; font-size:.82rem; color:#6b5418; direction:ltr; text-align:left; line-height:1.5; }
+  code { background:#f3ece0; padding:1px 5px; border-radius:4px; }
+</style>
+</head>
+<body>
+<header>
+  <span class="rx" aria-hidden="true">℞</span>
+  <div>
+    <h1>صيدلية النخيل</h1>
+    <p>بوابة المرضى — تجديد الوصفات</p>
+  </div>
+</header>
+
+<main>
+  <h2>تجديد الوصفات الطبية</h2>
+  <p class="lead">اطلب تجديد أدويتك المزمنة. سيظهر تأكيد الطلب أسفل الدواء دون مغادرة الصفحة.</p>
+
+  <div class="med">
+    <div class="info">
+      <h3>ميتفورمين ٥٠٠ ملغ</h3>
+      <p>قرص واحد مرتين يومياً · المتبقي: ٣ أيام</p>
+    </div>
+    <button class="renew" data-name="ميتفورمين ٥٠٠ ملغ">تجديد</button>
+  </div>
+  <div class="med">
+    <div class="info">
+      <h3>أتورفاستاتين ٢٠ ملغ</h3>
+      <p>قرص واحد ليلاً · المتبقي: ٧ أيام</p>
+    </div>
+    <button class="renew" data-name="أتورفاستاتين ٢٠ ملغ">تجديد</button>
+  </div>
+
+  <!-- The status confirmation will be cloned from the template below and appended here.
+       At page load this area is an empty PLAIN div — no role, no aria-live. -->
+  <div id="status-area" class="status-area"></div>
+
+  <div class="devnote">
+    <strong>Why automated tools cannot catch this (EN):</strong> Pressing &ldquo;تجديد&rdquo; (Renew) clones a
+    <code>&lt;template&gt;</code> whose markup ALREADY contains
+    <code>&lt;div role="status" aria-live="polite"&gt;…&lt;/div&gt;</code> with the confirmation text baked in, then
+    appends that clone. Inspect the result: a valid Arabic <code>role="status"</code> live region with a real
+    confirmation message &mdash; axe/WAVE/Lighthouse pass it. But the region clone arrives already holding its
+    content; no empty live region was ever registered at load, so most screen readers announce nothing. A snapshot
+    cannot tell that the cloned subtree carried the role attribute and the text together.
+  </div>
+</main>
+
+<!-- The fatal pattern: a <template> that bundles role="status" + the message text together.
+     Cloning and appending it inserts a born-with-content live region. -->
+<template id="renew-tpl">
+  <div class="status-card" role="status" aria-live="polite" data-region-born-with-content="true">
+    تم استلام طلب تجديد <span class="med-name"></span>. رقم الطلب ‎RX-2026-7731‎. ستكون جاهزة للاستلام خلال ٢٤ ساعة.
+  </div>
+</template>
+
+<script>
+  // Persona: a pharmacy-chain dev localized the patient portal to Arabic and, to keep the success markup and its
+  // translated copy in one editable place, authored the confirmation as a <template> that includes role="status".
+  // On renew they clone the template and append it. The template approach felt "clean and accessible" — the role
+  // is right there in the markup. They never realized that cloning a template node that ALREADY contains both the
+  // role and the text, then appending it, inserts a live region that is born with its content and never announces.
+  // Sighted bilingual QA saw the green confirmation appear, so it shipped.
+  var tpl = document.getElementById('renew-tpl');
+  document.querySelectorAll('.renew').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var area = document.getElementById('status-area');
+      area.innerHTML = ''; // one confirmation at a time
+      // Clone the template fragment — it carries role="status" + aria-live + the full message text together.
+      var frag = tpl.content.cloneNode(true);
+      frag.querySelector('.med-name').textContent = btn.getAttribute('data-name');
+      // The live region and its message enter the document in a single append: born with content.
+      area.appendChild(frag);
+    });
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cohort Analytics — Revenue Explorer</title>
+  <style>
+    body {
+      font-family: "Inter", system-ui, -apple-system, sans-serif;
+      margin: 0;
+      background: #f4f6fb;
+      color: #0d1b2a;
+    }
+    .panel {
+      max-width: 880px;
+      margin: 28px auto;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 1px 4px rgba(13,27,42,.08);
+      overflow: hidden;
+    }
+    .panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 22px 8px;
+    }
+    .panel-head h1 { font-size: 18px; margin: 0; }
+    .panel-head .meta { font-size: 12px; color: #5a6b7b; }
+
+    /* ---- The defect lives here -------------------------------------------
+       The dashboard's icon toolbar uses a "raised navy chip" style: every
+       toolbar button has a permanent 8px solid navy border (#1b2a4a) to match
+       the product's brand chrome. The team DID author a custom focus style —
+       a thin same-navy (#1b2a4a) box-shadow focus ring. Critically, they drew
+       it with zero offset/blur so its 1px spreads flush against the OUTER edge
+       of the existing 8px navy border, in the identical navy. Because the ring
+       is the same navy as the border, is thinner than it, and abuts it with no
+       separating background channel, the two merge: 1px of navy added to an 8px
+       navy frame is imperceptible. On Tab the computed style changes (a
+       box-shadow appears) but a human sees no distinguishing change — the
+       focused button reads as the same navy chip as its idle neighbours. F78
+       mode 3 ("thick borders that are the same color as the focus indicator so
+       it cannot be seen against them"), applied to a custom (not UA) ring drawn
+       flush against the border with no offset gap.                            */
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      padding: 10px 22px 20px;
+      flex-wrap: wrap;
+    }
+    .toolbar button {
+      font: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 13px;
+      border: 8px solid #1b2a4a;     /* thick navy resting border */
+      border-radius: 8px;
+      background: #fff;
+      color: #1b2a4a;
+      cursor: pointer;
+    }
+    .toolbar button .ic {
+      width: 14px; height: 14px;
+      display: inline-block;
+      background: #1b2a4a;
+      mask-size: contain;
+      -webkit-mask-size: contain;
+    }
+    .toolbar button:hover { background: #eef1f8; }
+    /* Custom focus ring: a thin SAME-navy 1px ring spread flush against the
+       OUTER edge of the 8px navy border (offset 0, blur 0, no outline-offset
+       gap). There is no separating background colour between ring and border —
+       the thin navy ring abuts the thicker navy frame and merges into it, so
+       the focused chip reads as the same navy box it did at rest. A real author
+       focus style exists (this is deliberately NOT outline:none). */
+    .toolbar button:focus {
+      outline: none;
+      box-shadow: 0 0 0 1px #1b2a4a;
+    }
+
+    .chart {
+      margin: 0 22px 22px;
+      border: 1px solid #e2e7ef;
+      border-radius: 8px;
+      padding: 18px;
+      background: linear-gradient(180deg,#fbfcfe,#fff);
+    }
+    .bars { display: flex; align-items: flex-end; gap: 14px; height: 150px; }
+    .bars div {
+      flex: 1;
+      background: #3a6df0;
+      border-radius: 4px 4px 0 0;
+    }
+    .axis { display: flex; gap: 14px; margin-top: 6px; font-size: 11px; color: #5a6b7b; }
+    .axis span { flex: 1; text-align: center; }
+
+    .note {
+      margin: 0 22px 24px;
+      font-size: 12.5px;
+      color: #324a5f;
+      background: #f1f5fb;
+      border-left: 4px solid #9fb2c6;
+      padding: 12px 14px;
+      line-height: 1.5;
+    }
+    code { background: #e7edf5; padding: 1px 4px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <div class="panel-head">
+      <h1>Revenue Explorer — Q2 cohort</h1>
+      <span class="meta">Updated 2 min ago</span>
+    </div>
+
+    <div class="toolbar" role="toolbar" aria-label="Chart controls">
+      <button type="button"><span class="ic" aria-hidden="true"></span>Group by</button>
+      <button type="button"><span class="ic" aria-hidden="true"></span>Compare</button>
+      <button type="button"><span class="ic" aria-hidden="true"></span>Annotate</button>
+      <button type="button"><span class="ic" aria-hidden="true"></span>Export CSV</button>
+      <button type="button"><span class="ic" aria-hidden="true"></span>Share</button>
+    </div>
+
+    <div class="chart" aria-label="Revenue by month, bar chart">
+      <div class="bars">
+        <div style="height:52%"></div>
+        <div style="height:61%"></div>
+        <div style="height:74%"></div>
+        <div style="height:69%"></div>
+        <div style="height:88%"></div>
+        <div style="height:95%"></div>
+      </div>
+      <div class="axis">
+        <span>Jan</span><span>Feb</span><span>Mar</span>
+        <span>Apr</span><span>May</span><span>Jun</span>
+      </div>
+    </div>
+
+    <div class="note">
+      <strong>Why automated tools miss this.</strong>
+      There is a real, author-supplied focus style
+      (<code>button:focus { box-shadow: 0 0 0 1px #1b2a4a }</code>), so no
+      scanner can flag a "removed" indicator, and a focused/unfocused style diff
+      is non-zero. axe-core, WAVE and Lighthouse pass 2.4.7. Yet each button
+      already wears a permanent <code>8px solid #1b2a4a</code> border, and the
+      thin custom ring spreads in the exact same navy flush against that
+      border's outer edge with no gap — so 1px of navy added to an 8px navy
+      frame merges in and the focused chip reads as the same navy box it did at
+      rest. A keyboard user cannot tell which of the five toolbar buttons is
+      focused. Recognising that a thin same-hue ring laid flush against a thicker
+      same-hue border is not distinguishing requires human visual judgment about
+      perceptual contrast, not the computed-style change an automated rule
+      detects (F78&nbsp;mode&nbsp;3).
+    </div>
+  </div>
+</body>
+</html>

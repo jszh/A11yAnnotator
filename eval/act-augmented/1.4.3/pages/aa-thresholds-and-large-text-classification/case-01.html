@@ -22,31 +22,12 @@
   .eyebrow { font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase;
              color: #1a1a1a; margin: 0 0 14px; }
 
-  /* PROMO STRAPLINE. The design team set this seasonal cashback line as a
-     "display" headline at font-size:24px / weight 400 — i.e. 18.0pt by the CSS
-     metric (1pt = 1.333px, so 24px = 18.0pt). At 18pt the WCAG large-scale
-     relaxation would grant the 3:1 ratio, and #8a8a8a on #fff = 3.4522:1 clears
-     3:1. BUT to fit the strapline on one line inside the narrow card the team
-     wrapped it in transform: scale(0.6) — so the GLYPHS actually RENDER at
-     24px * 0.6 = 14.4px = 10.8pt. The size that governs the threshold is the
-     rendered one ("obtained from the user agent or calculated on font metrics
-     in the way that user agents do"), and 10.8pt is well below the 18pt
-     large-scale boundary. So this is NORMAL-size text: the 4.5:1 threshold
-     applies, and 3.4522:1 < 4.5:1 -> FAIL.
-
-     The trap: axe-core reads the COMPUTED font-size (24px = 18.0pt), classifies
-     the text as large-scale, applies 3:1, sees 3.45:1, and PASSES it (0
-     violations, 0 incomplete) — it does not fold the CSS transform into the
-     size determination. The human must (a) note the rendered glyph size is the
-     CSS size times the transform scale, (b) compute 24px*0.6 = 14.4px = 10.8pt,
-     (c) conclude it is NOT large-scale, so 4.5:1 (not the relaxed 3:1) is the
-     governing threshold, and (d) fail 3.4522:1 against 4.5:1. */
   .promo {
-    font-size: 24px;            /* computed = 18.0pt; axe -> large-scale -> 3:1 */
+    font-size: 24px;            
     font-weight: 400;
     line-height: 1.2;
-    color: #8a8a8a;             /* #8a8a8a on #fff = 3.4522:1 */
-    transform: scale(0.6);      /* rendered glyphs = 24px*0.6 = 14.4px = 10.8pt -> NOT large-scale */
+    color: #8a8a8a;             
+    transform: scale(0.6);      
     transform-origin: left top;
     display: inline-block;
     white-space: nowrap;
@@ -64,15 +45,6 @@
   <div class="card">
     <p class="eyebrow">Tidewater Rewards · Summer statement</p>
 
-    <!--
-      .promo: color #8a8a8a on #fff = 3.4522:1. CSS font-size 24px == 18.0pt by
-      the UA metric (1pt = 1.333px), which axe treats as large-scale and passes
-      at 3:1. But transform: scale(0.6) makes the GLYPHS render at 24px*0.6 =
-      14.4px = 10.8pt — below the 18pt large-scale boundary. The threshold is set
-      by the rendered size, so this is normal-size text requiring 4.5:1, and
-      3.4522:1 < 4.5:1. Correct 1.4.3 verdict: FAIL. axe reports a clean pass
-      because it never folds the transform into the size determination.
-    -->
     <p class="promo" id="strapline">Earn 2.4% cashback on every purchase this season</p>
 
     <p class="amount">$142.80</p>

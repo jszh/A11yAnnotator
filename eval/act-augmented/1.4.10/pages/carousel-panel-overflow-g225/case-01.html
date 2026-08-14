@@ -4,30 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Highland & Field — Outdoor Gear | Trending This Week</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS (SC 1.4.10 Reflow, G225)
-  This is a REAL horizontally-scrolling product carousel: a flex strip with
-  overflow-x:auto. Strip-level horizontal scrolling is EXPLICITLY ALLOWED by the
-  Understanding doc ("implementations of carousels can allow for horizontal scrolling
-  of their content"). The violation is NOT the strip scroll. It is that ONE panel —
-  the "Trail Pack Bundle" promo card — is hard-coded to width:420px (every other card
-  is width:300px). At a 320 CSS px viewport that single card cannot fit; its own
-  content (a 396px-wide feature image + a no-wrap price row) forces a SECOND, in-panel
-  horizontal scrollbar. A user must scroll horizontally WITHIN the panel to read it,
-  defeating single-direction reading for that section of content.
-
-  axe-core / WAVE / Lighthouse cannot detect this:
-   - There is no markup error: every <img> has alt, headings nest, list semantics
-     are valid, contrast is fine. Naive checks PASS.
-   - Reflow is a RENDERED-LAYOUT property at a specific viewport. Static analyzers
-     do not lay the page out at 320px and measure per-panel overflow.
-   - Even a tool that measured overflow would see overflow on the STRIP (expected,
-     allowed) and could not distinguish "the carousel working" from "one panel too
-     wide". That requires judging the widget's purpose and inspecting EACH panel
-     individually at 320px — human semantic + visual judgment.
-  To reproduce: render at width:320px, scroll the strip to the 4th card
-  ("Trail Pack Bundle"); it overflows 320px and needs its own horizontal scroll.
--->
 <style>
   :root { --pine:#1f4d36; --bark:#5a4632; --sun:#d98324; --paper:#f7f4ee; --ink:#222; }
   * { box-sizing:border-box; }
@@ -42,8 +18,6 @@
   .lede { color:#555; max-width:60ch; margin:0 0 20px; }
   h2.section { font-size:18px; margin:26px 0 10px; }
 
-  /* The carousel: a horizontally-scrolling strip of panels.
-     overflow-x:auto on the strip is the INTENDED, allowed navigation. */
   .carousel {
     display:flex;
     gap:16px;
@@ -55,14 +29,14 @@
   }
   .card {
     flex:0 0 auto;
-    width:300px;                 /* every conforming panel fits well inside 320px */
+    width:300px;                 
     scroll-snap-align:start;
     background:#fff;
     border:1px solid #e3ddd1;
     border-radius:10px;
     overflow:hidden;
     display:flex;
-    flex-direction:column;       /* content reads TOP-TO-BOTTOM within the panel */
+    flex-direction:column;       
   }
   .card img { width:100%; height:170px; object-fit:cover; display:block; }
   .card .body { padding:12px 14px 16px; }
@@ -75,18 +49,13 @@
          border:0; border-radius:6px; padding:9px 12px; font-weight:700; font-size:14px;
          text-decoration:none; }
 
-  /* THE ROGUE PANEL.
-     The agency dropped in a wider "bundle" promo card and a wider hero photo to make
-     it pop. At desktop width it just looks like a featured card. But width:420px means
-     it CANNOT fit in a 320px viewport, and the inner feature image (396px) plus the
-     no-wrap price/save row force horizontal scrolling INSIDE this one panel. */
   .card.promo {
-    width:420px;                 /* <-- over-wide: does not fit 320 CSS px */
+    width:420px;                 
     border:2px solid var(--sun);
     background:linear-gradient(180deg,#fff,#fff7ec);
   }
   .card.promo .feature {
-    width:396px;                 /* fixed-width inner media, wider than 320px */
+    width:396px;                 
     height:180px;
     object-fit:cover;
   }
@@ -94,7 +63,7 @@
     display:flex;
     gap:14px;
     align-items:baseline;
-    white-space:nowrap;          /* "$189.00  •  You save $61 vs. buying separately" can't wrap */
+    white-space:nowrap;          
     font-size:16px;
   }
   .card.promo .pricerow .save { color:#a23; font-weight:700; }
@@ -147,9 +116,6 @@
       </div>
     </article>
 
-    <!-- ROGUE PANEL: 420px wide promo "bundle" card with a 396px inner image and a
-         no-wrap price/save row. It will not fit a 320px viewport and forces a
-         within-panel horizontal scrollbar. -->
     <article class="card promo" role="listitem">
       <img class="feature" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='396' height='180'><rect width='396' height='180' fill='%23d98324'/><text x='198' y='100' font-size='22' fill='%231c1206' text-anchor='middle'>Trail Pack Bundle</text></svg>" alt="Daypack, water filter and trekking poles bundled together on a wooden table">
       <div class="body">

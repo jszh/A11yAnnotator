@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Select your seat — Northwind Air, flight NW 412</title>
+<!--
+  BOUNDARY / PASS CASE (SC 1.4.11 Non-text Contrast, Level AA) — present-and-correct,
+  but ONLY a human reasoning about geometry can confirm it.
+  GEOMETRY ASPECT: a focus indicator that is PARTLY INSIDE and PARTLY OUTSIDE the component
+  passes if EITHER part contrasts with its respective adjacency.
+
+  In a seat map on a light cabin-grey page (#f4f4f4), the focusable seat buttons are blue
+  (#4189B9) "available" seats. The focus indicator is a 4px solid YELLOW (#FFFF00) ring that
+  STRADDLES the visible boundary: it is drawn as TWO stacked box-shadows of the same yellow —
+  a 2px INSET part (inside the seat) and a 2px OUTSET part (outside, on the cabin page).
+    - OUTER half: yellow vs cabin page #f4f4f4 = 1.02:1  -> that half FAILS.
+    - INNER half: yellow vs blue seat  #4189B9 = 3.55:1  -> that half PASSES.
+  Because the indicator is partly inside / partly outside, EITHER part may provide the
+  contrast. The inner half clears the seat fill at 3.55:1, so the focus indicator PASSES.
+  A reviewer who only checks the OUTER half against the page (1.02:1) would WRONGLY fail it.
+
+  WHY AUTOMATED TOOLS MISS IT: deciding this requires segmenting the ring into its inner and
+  outer halves, choosing the correct adjacency for EACH half, and applying the "either part
+  suffices" rule. axe/WAVE/Lighthouse have no notion of a straddling indicator and cannot do
+  this — at best a pixel checker samples the yellow against the dominant nearby surface and
+  could report either a false fail (vs the page) or a coincidental pass for the wrong reason.
+-->
+<style>
+  :root { --cabin:#f4f4f4; --seat:#4189B9; }
+  body { font:15px/1.5 "Segoe UI",system-ui,sans-serif; color:#1b2733;
+         background:var(--cabin); margin:0; }
+  header { background:#0a2540; color:#fff; padding:14px 22px; }
+  header b { font-weight:700; } header span { opacity:.8; font-size:.85rem; }
+  main { max-width:560px; margin:24px auto; padding:0 18px 40px; }
+  h1 { font-size:1.25rem; margin:.2em 0 .4em; }
+  .legend { display:flex; gap:18px; font-size:.82rem; color:#46566a; margin:0 0 18px; }
+  .legend i { display:inline-block; width:16px; height:16px; border-radius:4px;
+              vertical-align:-3px; margin-right:5px; }
+  .cabin { background:#fff; border:1px solid #e3e6ea; border-radius:10px; padding:18px; }
+  .row { display:flex; align-items:center; gap:10px; margin:6px 0; }
+  .rownum { width:22px; text-align:right; color:#7a8696; font-size:.8rem; }
+  .seatgroup { display:flex; gap:8px; }
+  .aisle { width:18px; }
+
+  .seat {
+    appearance:none; cursor:pointer; width:40px; height:40px; border-radius:7px 7px 4px 4px;
+    border:none; background:var(--seat); color:#fff; font:600 .8rem/1 inherit;
+  }
+  .seat.taken { background:#c8ccd2; color:#8a9099; cursor:not-allowed; }
+  .seat.exit { background:#2f6f4f; }
+
+  /* THE FOCUS INDICATOR: a 4px yellow ring STRADDLING the boundary — 2px inside, 2px outside.
+     The two stacked box-shadows render the same #FFFF00 on both sides of the visible edge.
+     Inner half beats the blue seat (3.55:1) so the indicator PASSES even though the outer
+     half does not beat the cabin page. */
+  .seat:focus {
+    outline:none;
+    box-shadow:
+      inset 0 0 0 2px #FFFF00,   /* inner half — vs blue seat 3.55:1 (passes) */
+      0 0 0 2px #FFFF00;         /* outer half — vs cabin page 1.02:1 (fails, but need not) */
+  }
+
+  .help { color:#5a6675; font-size:.82rem; margin-top:20px; }
+</style>
+</head>
+<body>
+<header><b>Northwind Air</b> &nbsp;<span>NW 412 · SEA → DEN · seat selection</span></header>
+<main>
+  <h1>Choose your seat</h1>
+  <div class="legend">
+    <span><i style="background:#4189B9"></i>Available</span>
+    <span><i style="background:#c8ccd2"></i>Taken</span>
+    <span><i style="background:#2f6f4f"></i>Extra legroom</span>
+  </div>
+
+  <div class="cabin">
+    <div class="row">
+      <span class="rownum">14</span>
+      <div class="seatgroup">
+        <button class="seat" type="button">A</button>
+        <button class="seat taken" type="button" disabled>B</button>
+        <button class="seat" type="button">C</button>
+      </div>
+      <span class="aisle"></span>
+      <div class="seatgroup">
+        <button class="seat" type="button">D</button>
+        <button class="seat" type="button">E</button>
+        <button class="seat taken" type="button" disabled>F</button>
+      </div>
+    </div>
+    <div class="row">
+      <span class="rownum">15</span>
+      <div class="seatgroup">
+        <button class="seat exit" type="button">A</button>
+        <button class="seat exit" type="button">B</button>
+        <button class="seat" type="button">C</button>
+      </div>
+      <span class="aisle"></span>
+      <div class="seatgroup">
+        <button class="seat" type="button">D</button>
+        <button class="seat exit" type="button">E</button>
+        <button class="seat exit" type="button">F</button>
+      </div>
+    </div>
+  </div>
+
+  <p class="help">Tab through the seats. The focus ring sits half inside, half outside each seat.</p>
+</main>
+</body>
+</html>

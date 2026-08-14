@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sending requests — Cortex API reference</title>
+  <style>
+    * { box-sizing:border-box; }
+    body { font:15px/1.6 ui-monospace, "SF Mono", Menlo, monospace; color:#cdd6e0;
+           background:#0e1620; margin:0; }
+    .layout { display:grid; grid-template-columns:260px 1fr; min-height:100vh; }
+    nav.side { background:#0a1018; border-right:1px solid #1c2836; padding:18px 0; overflow:auto; }
+    nav.side .group { padding:6px 18px; }
+
+    /* The category labels are focusable section headers. The dev made them tabindex="0"
+       so a keyboard "expand this section" hint shows on focus — but each group here is
+       already fully expanded, so the label does nothing on focus except show a hint.
+       It adds an extra Tab stop per category (tedium) but never duplicates a control and
+       never lands BETWEEN two coupled controls — the links within a group are still
+       reached in order, and the label clearly precedes its own group. */
+    .cat { display:block; font:600 .72rem/1.4 system-ui, sans-serif; letter-spacing:.08em;
+           text-transform:uppercase; color:#5e7187; padding:10px 18px 4px; }
+    .cat:focus-visible { outline:2px solid #2f81f7; outline-offset:-2px; border-radius:4px; }
+    nav.side a { display:block; padding:6px 18px 6px 26px; color:#9fb3c8; text-decoration:none; font-size:.9rem; }
+    nav.side a:hover { color:#fff; background:#13202e; }
+    nav.side a:focus-visible { outline:2px solid #2f81f7; outline-offset:-2px; }
+    nav.side a[aria-current="page"] { color:#fff; background:#15293c; border-left:3px solid #2f81f7; padding-left:23px; }
+
+    main { padding:30px 40px 80px; max-width:760px; }
+    main h1 { font:700 1.5rem/1.2 system-ui, sans-serif; color:#fff; margin:0 0 6px; }
+    main .sub { color:#7d8ea0; margin:0 0 24px; font-family:system-ui, sans-serif; }
+    main h2 { font:600 1.1rem/1.3 system-ui, sans-serif; color:#e6edf3; margin:28px 0 10px; }
+    main p { font-family:system-ui, sans-serif; color:#aebfce; }
+    pre { background:#0a1018; border:1px solid #1c2836; border-radius:8px; padding:14px 16px;
+          overflow:auto; color:#cdd6e0; }
+    code .k { color:#79c0ff; } code .s { color:#a5d6a3; }
+    a.docsbtn { display:inline-block; margin-top:18px; font:600 .9rem/1 system-ui, sans-serif;
+                color:#fff; background:#1f6feb; padding:10px 18px; border-radius:7px; text-decoration:none; }
+    a.docsbtn:focus-visible { outline:3px solid #58a6ff; outline-offset:2px; }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <nav class="side" aria-label="API reference">
+      <!--
+        Each .cat is a focusable static section header (tabindex="0"). They add a Tab stop
+        per category, but:
+          - they never duplicate a link (each label is distinct text, not a control to the
+            same place as the links beneath it),
+          - they always precede their OWN group of links (logical grouping, not a stop wedged
+            between two related controls),
+          - the links within each group are reached in document/visual order.
+        The result is more tab stops than strictly necessary — TEDIOUS — but the order still
+        preserves meaning and operability. Per the note, that is best-practice territory, not
+        a failure.
+      -->
+      <span class="cat" tabindex="0">Getting started</span>
+      <a href="#install">Install the SDK</a>
+      <a href="#auth">Authentication</a>
+
+      <span class="cat" tabindex="0">Core</span>
+      <a href="#requests" aria-current="page">Sending requests</a>
+      <a href="#responses">Handling responses</a>
+      <a href="#errors">Error codes</a>
+
+      <span class="cat" tabindex="0">Advanced</span>
+      <a href="#stream">Streaming</a>
+      <a href="#webhooks">Webhooks</a>
+      <a href="#ratelimits">Rate limits</a>
+    </nav>
+
+    <main id="requests">
+      <h1>Sending requests</h1>
+      <p class="sub">Every Cortex API call is an HTTPS request authenticated with your secret key.</p>
+
+      <h2>Make your first request</h2>
+      <p>Send a POST to the messages endpoint with a JSON body:</p>
+      <pre><code><span class="k">POST</span> https://api.cortex.dev/v1/messages
+<span class="k">Authorization:</span> Bearer <span class="s">sk_live_…</span>
+<span class="k">Content-Type:</span> application/json
+
+{ <span class="s">"model"</span>: <span class="s">"cortex-1"</span>, <span class="s">"input"</span>: <span class="s">"Hello"</span> }</code></pre>
+
+      <h2>Required headers</h2>
+      <p>All requests must include an <code>Authorization</code> header and a JSON content type.</p>
+
+      <a class="docsbtn" href="#responses">Next: Handling responses</a>
+    </main>
+  </div>
+
+  <!--
+    WHY THIS PASSES (the hard "tedious vs impedes" boundary):
+    Each category label in the sidebar is a focusable non-interactive element (tabindex="0"),
+    which a naive checker might flag as "extra focus stops." But these stops do NOT impede
+    meaning or operation: every label sits at the head of its OWN group, no link is reached
+    twice, and no dead stop is wedged between two coupled controls. The order — label, its
+    links, next label, its links — still preserves the meaning and operability of the nav.
+    Extra-but-orderly stops are exactly what the note calls best-practice/tedium, NOT a
+    failure. This is the human line: tedious (allowed) vs meaning-impeding (a failure).
+  -->
+</body>
+</html>

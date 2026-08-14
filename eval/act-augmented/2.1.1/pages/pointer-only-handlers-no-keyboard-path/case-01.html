@@ -4,20 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Write a review — Saffron &amp; Sage</title>
-  <!--
-    WHY AUTOMATED TOOLS MISS THIS (SC 2.1.1, F54):
-    The interactive control is a row of five <span>★</span> glyphs whose only
-    activation path is a pointer event (each span has an inline onclick that sets the
-    rating). The spans carry no tabindex, no role, and no key handler, so they are not
-    in the accessibility tree as controls and not in the tab order. axe-core / WAVE /
-    Lighthouse see plain text spans containing a "★" character — there is no missing
-    attribute, no empty name, no role/value violation to flag, because nothing in the
-    static DOM DECLARES these spans to be interactive. A human must use the mouse to
-    discover that clicking a star sets the rating (the visual hover fill + cursor:pointer
-    reveal it is a real control), then confirm there is no keyboard route to it. The
-    surrounding form (name, comment textarea, native submit button) IS fully keyboard
-    accessible, so the failure is one localized pointer-only affordance, not a broken page.
-  -->
   <style>
     :root { --ink:#26211b; --muted:#6c6358; --line:#e2dcd1; --gold:#d99a16; --brand:#7d3b2e; }
     * { box-sizing: border-box; }
@@ -38,7 +24,6 @@
     }
     textarea { min-height: 110px; resize: vertical; }
     .hint { color: var(--muted); font-size: .85rem; margin: 6px 0 0; }
-    /* The rating widget — styled to read as a normal, operable control */
     .stars { font-size: 2rem; line-height: 1; letter-spacing: 4px; user-select: none; }
     .stars .star { cursor: pointer; color: #d7cbb6; transition: color .12s ease; }
     .stars .star:hover,
@@ -69,10 +54,6 @@
 
       <fieldset>
         <legend>Overall rating</legend>
-        <!--
-          F54: the rating is set ONLY by a pointer click on a <span>. No tabindex,
-          no role, no keydown. A keyboard-only diner cannot set any rating.
-        -->
         <div class="stars" aria-hidden="false" id="starRow">
           <span class="star" onclick="setRating(1)" data-v="1">&#9733;</span><span class="star" onclick="setRating(2)" data-v="2">&#9733;</span><span class="star" onclick="setRating(3)" data-v="3">&#9733;</span><span class="star" onclick="setRating(4)" data-v="4">&#9733;</span><span class="star" onclick="setRating(5)" data-v="5">&#9733;</span>
         </div>
@@ -100,9 +81,6 @@
   <footer>Saffron &amp; Sage · 14 Mill Lane · Reviews are moderated within 24 hours.</footer>
 
   <script>
-    // Pointer-only rating. There is deliberately NO keyboard handler and the spans
-    // are never made focusable, so this function can only ever be reached by a mouse
-    // click / touch tap — the canonical F54 failure.
     function setRating(v) {
       document.getElementById('ratingValue').value = v;
       var stars = document.querySelectorAll('#starRow .star');

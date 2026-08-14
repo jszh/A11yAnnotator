@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Create your account — Cobalt Project Tracker</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS:
+  This SPA-style signup validates the password live: as the user types, an
+  aria-live="polite" region announces the result, the input gets aria-invalid, and the
+  message is tied via aria-describedby. axe / WAVE / Lighthouse confirm: labelled input,
+  associated live message, aria-invalid set, contrast fine, focus order sound. 3.3.1
+  passes (the error is identified and announced) and a "mentions fixing?" heuristic
+  passes — "Improve your password" is imperative, fix-oriented language.
+  THE DEFECT IS SEMANTIC ADEQUACY (3.3.3): the policy this field enforces is concrete and
+  fully knowable — the validator below requires >= 12 characters, at least one digit, and
+  at least one symbol — but the user is told only "Improve your password." with none of
+  those requirements surfaced. "Improve" gives no actionable direction: longer? a number?
+  a capital? The exact, statable rule set exists in code and is simply withheld. (Note:
+  3.3.3's security carve-out is about NOT disclosing why a *login* password is wrong; it
+  does NOT excuse hiding the *creation policy*, which is meant to be stated.) No checker
+  can read the validator, see the policy is determinate, and judge that "Improve your
+  password" fails to convey it — that is a human adequacy call.
+-->
+<style>
+  :root{ --ink:#11161d; --muted:#5d6b7a; --line:#d3dae3; --cobalt:#2b4ee0; --cobalt-d:#1c39ad;
+         --danger:#c92a2a; --ok:#2b8a3e; --bg:#f4f6fb; --paper:#fff; --focus:#1558d6; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font:16px/1.55 "Inter",system-ui,Segoe UI,Roboto,Arial,sans-serif;
+        color:var(--ink); background:var(--bg);
+        display:flex; min-height:100vh; align-items:center; justify-content:center; padding:30px; }
+  .card{ width:100%; max-width:430px; background:var(--paper); border:1px solid var(--line);
+         border-radius:14px; padding:30px 30px 26px; box-shadow:0 6px 24px rgba(20,40,90,.08); }
+  .logo{ display:flex; align-items:center; gap:9px; margin:0 0 18px; }
+  .logo .dot{ width:22px; height:22px; border-radius:6px; background:var(--cobalt); }
+  .logo b{ font-size:1.05rem; letter-spacing:.2px; }
+  h1{ font-size:1.4rem; margin:0 0 4px; }
+  .sub{ color:var(--muted); margin:0 0 22px; font-size:.92rem; }
+  label{ display:block; font-weight:600; margin:0 0 6px; font-size:.95rem; }
+  input{ width:100%; padding:11px 12px; font-size:1rem; border:1px solid var(--line);
+         border-radius:9px; background:#fff; }
+  input:focus{ outline:3px solid var(--focus); outline-offset:1px; border-color:var(--focus); }
+  input[aria-invalid="true"]{ border:2px solid var(--danger); }
+  .field{ margin:0 0 18px; }
+  .meter{ height:6px; border-radius:4px; background:#e6eaf1; margin:9px 0 0; overflow:hidden; }
+  .meter > i{ display:block; height:100%; width:0; background:var(--danger); transition:width .15s; }
+  .msg{ font-size:.88rem; font-weight:600; margin:8px 0 0; min-height:1.1em; color:var(--danger); }
+  .msg.ok{ color:var(--ok); }
+  button{ width:100%; background:var(--cobalt); color:#fff; border:0; border-radius:9px;
+          font-size:1rem; font-weight:700; padding:13px; cursor:pointer; margin-top:6px; }
+  button:hover{ background:var(--cobalt-d); }
+  button:focus{ outline:3px solid var(--focus); outline-offset:2px; }
+  .foot{ color:var(--muted); font-size:.78rem; margin-top:18px; text-align:center; }
+</style>
+</head>
+<body>
+  <main class="card">
+    <div class="logo"><span class="dot" aria-hidden="true"></span><b>Cobalt Project Tracker</b></div>
+    <h1>Create your account</h1>
+    <p class="sub">Free for teams up to 5. No credit card required.</p>
+
+    <form action="#" method="post" novalidate autocomplete="off">
+      <div class="field">
+        <label for="email">Work email</label>
+        <input type="email" id="email" name="email" autocomplete="email" inputmode="email">
+      </div>
+
+      <div class="field">
+        <label for="pw">Choose a password</label>
+        <input type="password" id="pw" name="pw"
+               aria-describedby="pw-msg" autocomplete="new-password">
+        <div class="meter" aria-hidden="true"><i id="pw-bar"></i></div>
+        <!-- DEFECTIVE: live message says only "Improve your password." while the policy
+             (>=12 chars, a digit, a symbol) is concrete and enforced below. -->
+        <p class="msg" id="pw-msg" role="status" aria-live="polite"></p>
+      </div>
+
+      <button type="submit">Create account</button>
+    </form>
+    <p class="foot">Demo · renders from file:// · no data leaves this page.</p>
+  </main>
+
+<script>
+(function(){
+  var pw  = document.getElementById('pw');
+  var msg = document.getElementById('pw-msg');
+  var bar = document.getElementById('pw-bar');
+
+  // CONCRETE, KNOWABLE POLICY — this is what an adequate message would state.
+  function passes(v){
+    return v.length >= 12 && /\d/.test(v) && /[^A-Za-z0-9]/.test(v);
+  }
+  function strength(v){
+    var s = 0;
+    if (v.length >= 12) s++; if (/\d/.test(v)) s++; if (/[^A-Za-z0-9]/.test(v)) s++;
+    if (/[A-Z]/.test(v) && /[a-z]/.test(v)) s++;
+    return s; // 0..4
+  }
+
+  pw.addEventListener('input', function(){
+    var v = pw.value;
+    var ok = passes(v);
+    bar.style.width = (strength(v) * 25) + '%';
+    bar.style.background = ok ? '#2b8a3e' : '#c92a2a';
+    pw.setAttribute('aria-invalid', ok ? 'false' : 'true');
+    if (!v) { msg.textContent = ''; msg.className = 'msg'; return; }
+    if (ok) { msg.textContent = 'Password accepted.'; msg.className = 'msg ok'; }
+    else    { msg.textContent = 'Improve your password.'; msg.className = 'msg'; } // vague filler
+  });
+
+  document.querySelector('form').addEventListener('submit', function(e){
+    e.preventDefault();
+    if (!passes(pw.value)) {
+      pw.setAttribute('aria-invalid','true');
+      msg.textContent = 'Improve your password.';  // still vague at submit
+      msg.className = 'msg';
+      pw.focus();
+    } else {
+      msg.textContent = 'Account created.';
+      msg.className = 'msg ok';
+    }
+  });
+})();
+</script>
+</body>
+</html>

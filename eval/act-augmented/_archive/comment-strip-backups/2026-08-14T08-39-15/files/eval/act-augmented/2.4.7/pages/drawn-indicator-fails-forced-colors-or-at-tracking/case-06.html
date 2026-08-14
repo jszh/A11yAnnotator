@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Volunteer shift sign-up — Riverside Food Bank</title>
+<!--
+  BOUNDARY VARIANT — PASS (SC 2.4.7, aspect: drawn-indicator-fails-forced-colors-or-at-tracking)
+  This page LOOKS like the failing siblings: it uses box-shadow for a soft visual ring.
+  The crucial difference is that it does NOT rely on box-shadow alone. Per the C40 note,
+  the author pairs the box-shadow with `outline: 2px solid transparent` (+ outline-offset).
+  In forced-colors / Windows High Contrast mode the box-shadow is dropped, BUT the
+  transparent outline is forced to a SYSTEM color (the system focus/Highlight color) and
+  becomes a real, visible 2px ring that tracks the focused element. So focus stays visible
+  in BOTH the default render and forced-colors mode — there is a robust mode of operation.
+  This case exists to sharpen the aspect: a default-render checker treats this and case-01
+  identically (both show a ring, both pass oj04fd), yet only THIS one is actually robust
+  under forced colors. Distinguishing them requires the same human/forced-colors reasoning;
+  the correct technique is the only thing that separates pass from fail.
+-->
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Source Sans Pro", "Segoe UI", system-ui, sans-serif; color: #21311f; background: #fbfaf5; }
+  header { background: #3c6e47; color: #fff; padding: 16px 28px; }
+  header h1 { margin: 0; font-size: 1.25rem; }
+  header p { margin: 3px 0 0; font-size: .85rem; opacity: .92; }
+  main { max-width: 700px; margin: 28px auto; padding: 0 20px; }
+  .shift {
+    background: #fff; border: 1px solid #dce2d6; border-radius: 10px;
+    padding: 16px 18px; margin-bottom: 14px;
+    display: flex; justify-content: space-between; align-items: center; gap: 14px;
+  }
+  .shift .when strong { display: block; }
+  .shift .when span { color: #5c6b58; font-size: .85rem; }
+
+  .btn {
+    font: inherit; font-weight: 600; cursor: pointer;
+    border: 1px solid #2f5a39; border-radius: 7px;
+    padding: 9px 18px; background: #3c6e47; color: #fff;
+  }
+
+  /* ---- The ROBUST indicator (C40-compliant) ---- */
+  /* box-shadow for the soft look + a transparent outline that forced-colors turns into a
+     real system-colored ring. The box-shadow may be dropped in forced colors; the outline
+     survives. */
+  .btn:focus-visible {
+    outline: 2px solid transparent;       /* becomes a visible system-color ring in forced colors */
+    outline-offset: 2px;
+    box-shadow: 0 0 0 3px #fff, 0 0 0 6px #1f6feb;  /* the nice default-mode glow */
+  }
+
+  a.text { color: #2f5a39; font-weight: 600; }
+  a.text:focus-visible { outline: 2px solid #2f5a39; outline-offset: 2px; }
+  footer { text-align: center; color: #6b7763; font-size: .8rem; padding: 24px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Riverside Food Bank — volunteer shifts</h1>
+  <p>Thank you for helping. Pick a shift below to sign up.</p>
+</header>
+
+<main>
+  <p><a class="text" href="/volunteer">&larr; Back to volunteer home</a></p>
+
+  <div class="shift">
+    <span class="when"><strong>Sat 22 Jun · Morning sort</strong><span>09:00–12:00 · Warehouse · 3 spots left</span></span>
+    <button type="button" class="btn">Sign up</button>
+  </div>
+  <div class="shift">
+    <span class="when"><strong>Sat 22 Jun · Afternoon packing</strong><span>13:00–16:00 · Warehouse · 1 spot left</span></span>
+    <button type="button" class="btn">Sign up</button>
+  </div>
+  <div class="shift">
+    <span class="when"><strong>Sun 23 Jun · Delivery driver</strong><span>10:00–14:00 · Meet at dock · 5 spots left</span></span>
+    <button type="button" class="btn">Sign up</button>
+  </div>
+</main>
+
+<footer>Riverside Food Bank · Registered charity 1042xxx</footer>
+
+<script>
+  document.querySelectorAll('.btn').forEach(function (b) {
+    b.addEventListener('click', function () { b.textContent = 'Signed up ✓'; b.disabled = true; b.style.opacity = '.65'; });
+  });
+</script>
+</body>
+</html>

@@ -35,7 +35,6 @@
   header.brand h1 { font-size: 19px; margin: 0; }
   header.brand .tag { font-size: 13px; color: #5b6776; }
 
-  /* ----- The primary navigation. Submenus open on hover via CSS only. ----- */
   nav.primary { background: #0b5d8a; }
   nav.primary > ul {
     list-style: none;
@@ -57,9 +56,6 @@
   nav.primary > ul > li > a:hover,
   nav.primary > ul > li > a:focus { background: #084866; }
 
-  /* The submenu panel. It is in the DOM, but only DISPLAYED when the parent
-     <li> is HOVERED. There is no :focus-within rule, so it never opens for a
-     keyboard user tabbing through the top-level links. */
   nav.primary ul.submenu {
     list-style: none;
     margin: 0;
@@ -187,29 +183,5 @@
     Westbrook County · 200 Court Street · Open Mon–Fri 8:30–4:30 · Non-emergency: dial 311
   </footer>
 
-  <!--
-    WHY THIS FAILS SC 2.1.1 (keyboard) AND WHY AUTOMATED TOOLS MISS IT:
-
-    The top-level links (Residents / Services / Courts) are real <a href> elements, so they
-    ARE in the tab order and DO receive focus. But the second-level links — "Pay water bill",
-    "Apply for a marriage license", "Pay a traffic ticket", etc. — live inside ul.submenu,
-    which is display:none until the PARENT <li> is :hover-ed. There is a `:hover` rule but NO
-    `:focus-within` rule and no JS focus/keydown handler. So:
-
-      • A mouse user hovers "Residents" and the submenu appears; they click any service.
-      • A keyboard user Tabs to the "Residents" link, presses Enter, and lands on the
-        /residents landing page — but the four specific service links never become visible
-        and are never tab-stops, because display:none removes them from the tab order.
-
-    The submenu links are real, valid, descriptive anchors — axe-core, WAVE and Lighthouse
-    see well-formed nested <ul> markup with href and visible text and report NO error. A
-    static scanner cannot know that the only trigger to reveal these tab stops is :hover, nor
-    judge that the lost functionality (paying a tax bill, applying for a license) is ESSENTIAL
-    rather than decorative. Only a human operating the menu by keyboard, and reasoning that
-    these are the page's primary service paths, can see the failure. The functionality is not
-    available elsewhere on the page (the announcement cards are unrelated), so the SC 2.1.1
-    test condition "all functionality can be accessed and executed using only the keyboard"
-    is not met. Present-but-unreachable, not absent. Verdict: FAILED.
-  -->
 </body>
 </html>

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>New Patient Registration — Cedar Lane Family Medicine</title>
+<style>
+  :root { --ink:#15232b; --muted:#5e6f78; --teal:#0a6b6b; --err:#c0392b; --bg:#eef3f4; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Helvetica Neue", Arial, sans-serif; color:var(--ink); background:var(--bg); }
+  .masthead { background:#0a6b6b; color:#fff; padding:16px 0; }
+  .container { max-width:720px; margin:0 auto; padding:0 18px; }
+  .masthead .container { display:flex; align-items:center; gap:10px; }
+  .cross { width:26px; height:26px; background:#fff; color:var(--teal); font-weight:900; display:grid; place-items:center; border-radius:5px; }
+  main { padding:26px 0 70px; }
+  .card { background:#fff; border:1px solid #d6e0e2; border-radius:10px; padding:26px 30px; }
+  h1 { font-size:1.5rem; margin:0 0 18px; }
+  .summary { background:#fdecea; border:1px solid var(--err); border-radius:8px; padding:14px 18px; margin:0 0 26px; }
+  .summary strong { color:var(--err); display:block; font-size:1.05rem; margin-bottom:4px; }
+  fieldset { border:1px solid #dce4e6; border-radius:8px; margin:0 0 22px; padding:14px 18px 4px; }
+  legend { font-weight:700; color:var(--teal); padding:0 6px; }
+  .field { margin-bottom:18px; }
+  label { display:block; font-weight:600; margin-bottom:4px; font-size:.95rem; }
+  input, select { width:100%; padding:8px 10px; border:1px solid #bcc9cc; border-radius:5px; font-size:1rem; }
+  .field.invalid input, .field.invalid select { border:2px solid var(--err); background:#fff7f6; }
+  .msg { color:var(--err); font-size:.85rem; font-weight:600; margin:5px 0 0; }
+  .hint { color:var(--muted); font-size:.83rem; margin:3px 0 0; }
+  .submit { background:var(--teal); color:#fff; border:0; padding:12px 22px; font-size:1rem; border-radius:6px; cursor:pointer; }
+  .why { background:#f0f5f6; border-left:4px solid var(--teal); padding:12px 16px; margin-top:30px; font-size:.82rem; color:#243339; }
+</style>
+</head>
+<body>
+<div class="masthead"><div class="container"><span class="cross">+</span><strong>Cedar Lane Family Medicine</strong></div></div>
+<main>
+<div class="container">
+  <div class="card">
+    <h1>New patient registration</h1>
+
+    <!-- Summary states "1 error". But THREE fields below are visibly flagged (red border, inline
+         message, aria-invalid): Date of birth, Mobile number, and Postcode. The count drastically
+         undercounts the real error state, and only the date-of-birth message is enumerated. -->
+    <div class="summary" role="alert">
+      <strong>There is 1 error in this form.</strong>
+      <span>Date of birth must be a valid date in the past (DD/MM/YYYY).</span>
+    </div>
+
+    <form novalidate>
+      <fieldset>
+        <legend>Your details</legend>
+
+        <div class="field">
+          <label for="fname">First name</label>
+          <input type="text" id="fname" value="Marcus" autocomplete="given-name">
+        </div>
+
+        <!-- Flagged #1 -->
+        <div class="field invalid">
+          <label for="dob">Date of birth</label>
+          <input type="text" id="dob" value="31/02/1990" aria-invalid="true" aria-describedby="dob-msg" placeholder="DD/MM/YYYY">
+          <p class="msg" id="dob-msg">Date of birth must be a valid date in the past (DD/MM/YYYY).</p>
+        </div>
+
+        <!-- Flagged #2 — NOT mentioned in the summary, and not counted -->
+        <div class="field invalid">
+          <label for="mobile">Mobile number</label>
+          <input type="tel" id="mobile" value="0712" aria-invalid="true" aria-describedby="mobile-msg">
+          <p class="msg" id="mobile-msg">Enter a full UK mobile number, for example 07123 456789.</p>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Home address</legend>
+        <div class="field">
+          <label for="line1">Address line 1</label>
+          <input type="text" id="line1" value="14 Cedar Lane" autocomplete="address-line1">
+        </div>
+
+        <!-- Flagged #3 — NOT mentioned in the summary, and not counted -->
+        <div class="field invalid">
+          <label for="postcode">Postcode</label>
+          <input type="text" id="postcode" value="ZZ" aria-invalid="true" aria-describedby="postcode-msg" autocomplete="postal-code">
+          <p class="msg" id="postcode-msg">Enter a valid postcode, for example SW1A 1AA.</p>
+        </div>
+      </fieldset>
+
+      <button type="submit" class="submit">Register</button>
+    </form>
+
+    <div class="why">
+      <strong>Why automated checkers pass this page:</strong> All three flagged fields are correctly
+      wired &mdash; each has <code>aria-invalid="true"</code> and a descriptive, programmatically
+      associated inline message, so ACT 36b590 passes every one of them. The summary is a valid, visible
+      <code>role="alert"</code> region with a fluent description. Nothing in the markup is broken. The
+      defect is purely a <em>count and completeness</em> mismatch: the summary says "1 error" and lists
+      one field, while three fields actually bear an error state. A screen-reader user who trusts the
+      summary will fix the date of birth, resubmit, and be surprised the form still fails. No automated
+      tool tallies the number of <code>aria-invalid</code>/inline-flagged fields and compares that count
+      and membership against the summary's stated count &mdash; that reconciliation is a human judgment.
+    </div>
+  </div>
+</div>
+</main>
+</body>
+</html>

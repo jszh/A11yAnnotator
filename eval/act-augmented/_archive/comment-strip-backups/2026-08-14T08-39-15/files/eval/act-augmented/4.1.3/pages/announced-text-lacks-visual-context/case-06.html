@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plans &amp; pricing — Cadence project tracker</title>
+<style>
+  :root { --ink:#181d27; --muted:#667085; --line:#e6e9ef; --brand:#6536d6; --best:#0b8a5b; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Inter", system-ui, sans-serif; color:var(--ink); background:#f7f8fb; }
+  header { background:#fff; border-bottom:1px solid var(--line); padding:14px 26px; display:flex; align-items:center; gap:12px; }
+  header .logo { font-weight:800; color:var(--brand); }
+  main { max-width:940px; margin:30px auto; padding:0 24px; }
+  h1 { font-size:1.7rem; margin:0 0 6px; text-align:center; }
+  .lead { color:var(--muted); text-align:center; margin:0 0 26px; }
+  .sizer { display:flex; gap:8px; justify-content:center; align-items:center; margin-bottom:26px; font-size:.92rem; }
+  .sizer label { color:var(--muted); }
+  .sizer select { padding:8px 10px; border:1px solid #cbd2dd; border-radius:7px; font:inherit; }
+  .plans { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; align-items:start; }
+  .plan { background:#fff; border:1px solid var(--line); border-radius:12px; padding:22px 20px; position:relative; }
+  .plan.best { border-color:var(--best); box-shadow:0 0 0 2px rgba(11,138,91,.18); }
+  .plan h2 { font-size:1.15rem; margin:0 0 2px; }
+  .plan .tag { color:var(--muted); font-size:.82rem; margin:0 0 14px; }
+  .plan .price { font-size:1.9rem; font-weight:800; margin:0; }
+  .plan .price span { font-size:.85rem; font-weight:500; color:var(--muted); }
+  .plan ul { list-style:none; padding:0; margin:16px 0 18px; font-size:.88rem; color:#3a4452; }
+  .plan li { padding:5px 0; border-top:1px solid #f0f2f6; }
+  .plan li:first-child { border-top:0; }
+  .plan button.cta { width:100%; padding:11px; border:0; border-radius:8px; background:var(--brand); color:#fff; font-weight:600; cursor:pointer; }
+  .plan button.cta:focus-visible { outline:3px solid #ffb020; outline-offset:2px; }
+  /* The "Best value" ribbon shown on whichever column wins for the chosen team size */
+  .ribbon { position:absolute; top:-12px; left:50%; transform:translateX(-50%); background:var(--best); color:#fff;
+            font-size:.72rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; padding:5px 12px; border-radius:20px;
+            opacity:0; transition:opacity .15s; }
+  .plan.best .ribbon { opacity:1; }
+  .statuswrap { text-align:center; margin-top:22px; }
+  #bestStatus { display:inline-block; min-height:1.2em; color:var(--best); font-weight:700; font-size:.95rem; }
+  .note { background:#fff; border:1px solid var(--line); border-left:4px solid var(--brand); border-radius:8px; padding:16px 18px; margin-top:26px; font-size:.85rem; color:#3a4654; }
+  .note code { background:#eef0f5; padding:1px 4px; border-radius:4px; }
+</style>
+</head>
+<body>
+<header><span class="logo">Cadence</span><span style="color:#667085;font-size:.9rem">Project tracker</span></header>
+
+<main>
+  <h1>Plans &amp; pricing</h1>
+  <p class="lead">Pick your team size and we'll highlight the best value.</p>
+
+  <div class="sizer">
+    <label for="team">Team size:</label>
+    <select id="team" onchange="recompute()">
+      <option value="3">1–3 people</option>
+      <option value="12" selected>4–15 people</option>
+      <option value="40">16–50 people</option>
+    </select>
+  </div>
+
+  <div class="plans">
+    <div class="plan" id="plan-starter">
+      <div class="ribbon" aria-hidden="true">Best value</div>
+      <h2>Starter</h2>
+      <p class="tag">For individuals</p>
+      <p class="price">$0<span> / month</span></p>
+      <ul><li>1 project</li><li>2 GB storage</li><li>Community support</li></ul>
+      <button class="cta">Choose Starter</button>
+    </div>
+    <div class="plan" id="plan-team">
+      <div class="ribbon" aria-hidden="true">Best value</div>
+      <h2>Team</h2>
+      <p class="tag">For growing squads</p>
+      <p class="price">$12<span> / user / mo</span></p>
+      <ul><li>Unlimited projects</li><li>100 GB storage</li><li>Priority support</li></ul>
+      <button class="cta">Choose Team</button>
+    </div>
+    <div class="plan" id="plan-business">
+      <div class="ribbon" aria-hidden="true">Best value</div>
+      <h2>Business</h2>
+      <p class="tag">For whole companies</p>
+      <p class="price">$20<span> / user / mo</span></p>
+      <ul><li>SSO &amp; SCIM</li><li>1 TB storage</li><li>Dedicated manager</li></ul>
+      <button class="cta">Choose Business</button>
+    </div>
+  </div>
+
+  <div class="statuswrap">
+    <!-- Shared live region announcing the recommendation. -->
+    <span id="bestStatus" role="status" aria-live="polite" aria-atomic="true"></span>
+  </div>
+
+  <div class="note">
+    <strong>Why automated tools pass this page.</strong>
+    The recommendation region is a valid, present <code>role="status"</code> /
+    <code>aria-atomic="true"</code> live region and announces its full contents. When the team-size
+    select changes, the winning column gets a green "Best value" ribbon AND the status region updates —
+    to just <strong>"Best value"</strong>. Which <em>plan</em> is best is conveyed only by which column
+    the ribbon visually sits over (the plan name is the column heading). A screen-reader user changing
+    team size hears "Best value" with no plan name and cannot tell whether Starter, Team, or Business
+    won. The ribbon itself is <code>aria-hidden</code>, so its plan column never reaches AT. Linters see
+    a valid live region announcing non-empty text and a heading per column, and report nothing.
+  </div>
+</main>
+
+<script>
+  // For each team size, which plan id is the best value.
+  var winners = { '3':'plan-starter', '12':'plan-team', '40':'plan-business' };
+  var planNames = { 'plan-starter':'Starter', 'plan-team':'Team', 'plan-business':'Business' };
+  var statusEl = document.getElementById('bestStatus');
+
+  function recompute() {
+    var size = document.getElementById('team').value;
+    var winId = winners[size];
+    ['plan-starter','plan-team','plan-business'].forEach(function(id){
+      document.getElementById(id).classList.toggle('best', id === winId);
+    });
+    // BUG: announces only the generic ribbon text, not which plan won.
+    // The plan name (the column heading the ribbon floats over) is the visual-only context.
+    statusEl.textContent = 'Best value';
+  }
+  recompute();
+</script>
+</body>
+</html>

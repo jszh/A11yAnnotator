@@ -4,23 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Set up your workspace — Cohere Tasks</title>
-  <!--
-    WHY AUTOMATED TOOLS MISS THIS (SC 2.1.2 — gate that cannot be satisfied by keyboard at all):
-    This onboarding wizard's Step 1 holds focus until the user confirms a plan by clicking
-    one of two "plan tiles". The tiles are <div class="tile" onclick="..."> — they are NOT
-    focusable (no tabindex), have NO role, and have NO keydown handler, so a keyboard user can
-    never select a plan. Step 1 will not advance until a plan is selected, and the "Continue"
-    button stays disabled until then; the script also keeps focus inside Step 1 while no plan
-    is chosen. Because the ONLY way to satisfy the required interaction is a pointer click, a
-    keyboard-only user can never complete Step 1 and therefore can never reach Step 2 or the
-    rest of the wizard. The required interaction is not keyboard-performable, so this is a
-    keyboard trap — NOT the conformant input-gate exception.
-    axe / WAVE / Lighthouse see two <div>s with text content and an onclick (no role/name/state
-    that a rule checks) and a disabled <button> (legitimately disabled). They do not click, do
-    not Tab, and cannot tell that the gating interaction has no keyboard path. A human must
-    discover (by mouse) that the tiles ARE the required control, then confirm there is no
-    keyboard way to satisfy the gate.
-  -->
   <style>
     :root { --ink:#1c1f26; --muted:#5c6470; --line:#dce0e6; --brand:#5b3fd6; --bg:#f5f4fb; }
     * { box-sizing: border-box; }
@@ -78,10 +61,6 @@
     <form class="card" id="step1" action="#" method="post" aria-labelledby="s1-h" novalidate>
       <h2 id="s1-h" style="margin:0 0 16px;font-size:1.1rem;">Step 1 — Select your plan (required)</h2>
 
-      <!--
-        REQUIRED GATE that cannot be satisfied by keyboard: choosing a plan is the gating
-        interaction, but the tiles are plain <div onclick> — no tabindex, no role, no keydown.
-      -->
       <div class="tiles" role="group" aria-label="Plans">
         <div class="tile" onclick="pick(this,'starter')" data-plan="starter">
           <h3>Starter</h3>
@@ -111,27 +90,19 @@
   <footer>Cohere Tasks · Onboarding · You can finish setup later from your dashboard.</footer>
 
   <script>
-    // Step 1 requires a plan selection before it will advance. The selection control is the
-    // pair of plan tiles — but they are pointer-only <div>s (onclick, no tabindex/role/keydown),
-    // so a keyboard user cannot select a plan. While no plan is chosen, the Continue button is
-    // disabled AND focus is held inside Step 1: blurring the workspace field without a plan
-    // bounces focus back to it. Therefore the gate can NEVER be satisfied by keyboard, and the
-    // keyboard user can never leave Step 1 to reach Step 2 / the rest of the page. Trap.
     var chosen = null;
     var gate = document.getElementById('gate');
     var cont = document.getElementById('cont');
     var ws   = document.getElementById('ws');
 
-    function pick(el, plan) {           // reachable ONLY via the tile's onclick (pointer)
+    function pick(el, plan) {           
       chosen = plan;
       document.querySelectorAll('.tile').forEach(function (t) { t.classList.remove('selected'); });
       el.classList.add('selected');
       gate.textContent = plan === 'team' ? 'Team plan selected.' : 'Starter plan selected.';
-      cont.disabled = false;           // gate releases only after a pointer pick
+      cont.disabled = false;           
     }
 
-    // Hold focus inside Step 1 until a plan is chosen. With no keyboard way to pick a plan,
-    // this turns the step into a trap for keyboard users.
     ws.addEventListener('blur', function () {
       if (!chosen) { setTimeout(function () { ws.focus(); }, 0); }
     });

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.4.1 (and 1.1.1) FAILURE — F13: an embedded STATUS DASHBOARD screenshot conveys each
+    service's up/down state PURELY by a colored tile fill (green = healthy, red = down), and the
+    alt + the long description carefully list every service NAME, every per-service METRIC, the
+    color RULE, and even the COUNT of down services — but never resolve WHICH two services are
+    red/down.
+
+    An SRE pasted a Grafana "service health" panel into an internal incident runbook as a flattened
+    screenshot (inline-SVG data: URI). Eight services are shown as a 4x2 grid of tiles. Every tile
+    is laid out identically: service NAME on top, a "p95" latency reading below. The latency numbers
+    are deliberately NON-diagnostic — the two down services (auth-gateway 118ms, payments-worker
+    131ms) sit in the MIDDLE of the pack, while the SLOWEST tile (cart-service 176ms) is perfectly
+    HEALTHY. So you cannot infer down-ness from the metric, the name, the word on the tile, or the
+    layout. The ONLY thing that separates the two down tiles from the six healthy ones is the fill
+    color: red vs green.
+
+    The alt enumerates all eight service names and states the rule ("tiles shown in red are down;
+    tiles shown in green are healthy"). A <details> long description repeats the rule, lists every
+    service with its p95 latency, and even states the count ("two of the eight services are
+    currently down") — yet it never NAMES the two down services and gives no non-color way to find
+    them (no failure word, no "timeout", no outlier number, no ordering by health). To learn that
+    auth-gateway and payments-worker are the outage, you must look at the screenshot and find the
+    two RED tiles. An on-call engineer using a screen reader, or one with deuteranopia glancing at
+    the page, gets "two are down" plus eight names and eight benign-looking latencies, but cannot
+    bind down-ness to a name — defeating the runbook's entire purpose ("page the owners of the down
+    services").
+
+    WHY THIS IS A REAL, NON-SELF-DEFEATING F13: every NON-color channel (names, numbers, words,
+    order, count) is identical in shape across healthy and down tiles; the down membership is
+    carried by hue alone. The count "two down" tells you HOW MANY but not WHICH — and with eight
+    interchangeable-looking tiles there is no text path from "two" to "auth-gateway and
+    payments-worker."
+
+    WHY AUTOMATED TOOLS MISS IT: the <img> has a rich non-empty alt and an associated long
+    description; axe/WAVE/Lighthouse pass every text-alternative rule and would actually praise this
+    markup. No scanner reads the screenshot pixels to find which two tiles are red, reads their
+    labels, and confirms those names are absent from the prose. Detecting that "which tiles are red"
+    is the load-bearing color fact and that the prose never resolves it is a human read-the-picture /
+    read-the-prose / compare judgment.
+  -->
+  <title>Runbook · Checkout latency incident (INC-4821)</title>
+  <style>
+    :root { --ink:#0d1117; --muted:#57606a; --line:#d0d7de; --bg:#f6f8fa; --accent:#0969da; --crit:#cf222e; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif; color:var(--ink); background:var(--bg); }
+    .shell { max-width:880px; margin:0 auto; padding:26px 20px 56px; }
+    .repo { display:flex; align-items:center; gap:10px; font-size:14px; color:var(--muted); }
+    .repo b { color:var(--ink); }
+    h1 { font-size:22px; margin:10px 0 2px; }
+    .badge { display:inline-block; background:#ffebe9; color:var(--crit); border:1px solid #ffcecb; border-radius:20px; padding:2px 10px; font-size:12px; font-weight:600; }
+    .md { background:#fff; border:1px solid var(--line); border-radius:10px; padding:22px; margin-top:18px; line-height:1.65; }
+    .md h2 { font-size:16px; margin:22px 0 8px; padding-bottom:6px; border-bottom:1px solid var(--line); }
+    .md h2:first-child { margin-top:0; }
+    .md p { margin:0 0 12px; }
+    figure { margin:14px 0; }
+    figure img { display:block; width:100%; max-width:720px; height:auto; border:1px solid var(--line); border-radius:8px; }
+    details { margin-top:10px; font-size:13.5px; color:var(--muted); }
+    summary { cursor:pointer; color:var(--accent); }
+    code { background:var(--bg); border:1px solid var(--line); border-radius:4px; padding:1px 5px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:13px; }
+    ol { margin:0 0 12px 22px; }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <p class="repo">infra-runbooks / <b>checkout-latency.md</b></p>
+    <h1>Checkout latency incident <span class="badge">SEV-2 · ACTIVE</span></h1>
+
+    <article class="md">
+      <h2>Current service health</h2>
+      <p>Snapshot from the platform health board, captured at the start of the page. Triage the
+        down services first, then follow the runbook steps below.</p>
+
+      <figure>
+        <!--
+          Dashboard screenshot: 4x2 grid of service tiles. GREEN fill = healthy, RED fill = down.
+          Every tile is laid out identically: NAME on top, "p95 <n>ms" below. The latency numbers
+          are non-diagnostic of health (down tiles are mid-pack; the slowest tile is healthy).
+          Row 1: web-frontend p95 142ms (green), auth-gateway p95 118ms (RED), search-api p95 98ms (green), cart-service p95 176ms (green)
+          Row 2: payments-worker p95 131ms (RED), inventory-db p95 61ms (green), notify-queue p95 154ms (green), cdn-edge p95 33ms (green)
+          Health state = tile fill color ONLY. alt names all 8 services + states the rule; never names the 2 red ones.
+        -->
+        <img
+          alt="Service health board for prod-us-east showing eight services as colored tiles, each with its p95 latency: web-frontend, auth-gateway, search-api, cart-service, payments-worker, inventory-db, notify-queue, and cdn-edge. Tiles shown in green are healthy; tiles shown in red are down."
+          aria-describedby="boardDesc"
+          src="data:image/svg+xml;utf8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='720'%20height='320'%20viewBox='0%200%20720%20320'%3E%3Crect%20width='720'%20height='320'%20fill='%230d1117'/%3E%3Ctext%20x='24'%20y='34'%20font-family='Segoe%20UI,Arial,sans-serif'%20font-size='15'%20fill='%23adbac7'%3EService%20Health%20%E2%80%94%20prod-us-east%3C/text%3E%3Cg%20font-family='Segoe%20UI,Arial,sans-serif'%3E%3Crect%20x='24'%20y='56'%20width='156'%20height='110'%20rx='8'%20fill='%231f7a3d'/%3E%3Ctext%20x='38'%20y='92'%20font-size='14'%20fill='%23ffffff'%3Eweb-frontend%3C/text%3E%3Ctext%20x='38'%20y='140'%20font-size='13'%20fill='%23d6f5e0'%3Ep95%20142ms%3C/text%3E%3Crect%20x='190'%20y='56'%20width='156'%20height='110'%20rx='8'%20fill='%23c22b27'/%3E%3Ctext%20x='204'%20y='92'%20font-size='14'%20fill='%23ffffff'%3Eauth-gateway%3C/text%3E%3Ctext%20x='204'%20y='140'%20font-size='13'%20fill='%23ffe1de'%3Ep95%20118ms%3C/text%3E%3Crect%20x='356'%20y='56'%20width='156'%20height='110'%20rx='8'%20fill='%231f7a3d'/%3E%3Ctext%20x='370'%20y='92'%20font-size='14'%20fill='%23ffffff'%3Esearch-api%3C/text%3E%3Ctext%20x='370'%20y='140'%20font-size='13'%20fill='%23d6f5e0'%3Ep95%2098ms%3C/text%3E%3Crect%20x='522'%20y='56'%20width='156'%20height='110'%20rx='8'%20fill='%231f7a3d'/%3E%3Ctext%20x='536'%20y='92'%20font-size='14'%20fill='%23ffffff'%3Ecart-service%3C/text%3E%3Ctext%20x='536'%20y='140'%20font-size='13'%20fill='%23d6f5e0'%3Ep95%20176ms%3C/text%3E%3Crect%20x='24'%20y='176'%20width='156'%20height='110'%20rx='8'%20fill='%23c22b27'/%3E%3Ctext%20x='38'%20y='212'%20font-size='14'%20fill='%23ffffff'%3Epayments-worker%3C/text%3E%3Ctext%20x='38'%20y='260'%20font-size='13'%20fill='%23ffe1de'%3Ep95%20131ms%3C/text%3E%3Crect%20x='190'%20y='176'%20width='156'%20height='110'%20rx='8'%20fill='%231f7a3d'/%3E%3Ctext%20x='204'%20y='212'%20font-size='14'%20fill='%23ffffff'%3Einventory-db%3C/text%3E%3Ctext%20x='204'%20y='260'%20font-size='13'%20fill='%23d6f5e0'%3Ep95%2061ms%3C/text%3E%3Crect%20x='356'%20y='176'%20width='156'%20height='110'%20rx='8'%20fill='%231f7a3d'/%3E%3Ctext%20x='370'%20y='212'%20font-size='14'%20fill='%23ffffff'%3Enotify-queue%3C/text%3E%3Ctext%20x='370'%20y='260'%20font-size='13'%20fill='%23d6f5e0'%3Ep95%20154ms%3C/text%3E%3Crect%20x='522'%20y='176'%20width='156'%20height='110'%20rx='8'%20fill='%231f7a3d'/%3E%3Ctext%20x='536'%20y='212'%20font-size='14'%20fill='%23ffffff'%3Ecdn-edge%3C/text%3E%3Ctext%20x='536'%20y='260'%20font-size='13'%20fill='%23d6f5e0'%3Ep95%2033ms%3C/text%3E%3C/g%3E%3C/svg%3E">
+        <details>
+          <summary>Text description of the health board</summary>
+          <p id="boardDesc">
+            The board shows eight production services in the us-east region as a grid of tiles.
+            Healthy services are shown with a green tile; services that are down are shown with a
+            red tile. Each tile lists the service and its p95 latency. The eight services and their
+            current p95 latencies are: web-frontend (142ms), auth-gateway (118ms), search-api
+            (98ms), cart-service (176ms), payments-worker (131ms), inventory-db (61ms),
+            notify-queue (154ms), and cdn-edge (33ms). Two of the eight services are currently down.
+          </p>
+        </details>
+      </figure>
+
+      <h2>Runbook</h2>
+      <ol>
+        <li>Page the on-call owner of each <em>down</em> service shown above.</li>
+        <li>Confirm the dependency: checkout fails closed if either down service is unavailable.</li>
+        <li>Failover per <code>infra-runbooks/failover.md</code> and post status to #incidents.</li>
+      </ol>
+    </article>
+  </div>
+</body>
+</html>

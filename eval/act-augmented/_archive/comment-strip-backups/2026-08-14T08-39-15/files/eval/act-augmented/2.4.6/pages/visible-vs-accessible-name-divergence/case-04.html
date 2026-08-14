@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Postbox — Inbox</title>
+<style>
+  :root { --ink:#202327; --muted:#6b7178; --line:#e3e6ea; --bar:#fafbfc; --accent:#3b5bdb; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:14px/1.5 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:var(--ink); background:#eceef1; }
+  .client { max-width:820px; margin:24px auto; background:#fff; border:1px solid var(--line); border-radius:12px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,.06); }
+  .toolbar { display:flex; align-items:center; gap:4px; padding:8px 12px; border-bottom:1px solid var(--line); background:var(--bar); }
+  .toolbar .spacer { flex:1; }
+  .tbtn { display:inline-flex; align-items:center; gap:6px; border:1px solid transparent; background:transparent; border-radius:7px; padding:7px 10px; font:inherit; color:var(--ink); cursor:pointer; }
+  .tbtn:hover { background:#eef1f6; }
+  .tbtn:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+  .tbtn .ico { width:16px; height:16px; display:inline-block; }
+  /* The close control is rendered as a bare glyph "X" with no text beside it. */
+  .iconbtn { font-size:18px; line-height:1; width:34px; height:34px; display:inline-flex; align-items:center; justify-content:center; border:1px solid transparent; background:transparent; border-radius:7px; cursor:pointer; color:#3a4047; }
+  .iconbtn:hover { background:#eef1f6; }
+  .iconbtn:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+  .msg { padding:20px 22px; }
+  .msg h1 { font-size:19px; margin:0 0 4px; }
+  .meta { color:var(--muted); font-size:13px; margin:0 0 16px; }
+  .body p { margin:0 0 12px; }
+  svg { display:block; }
+</style>
+</head>
+<body>
+  <main class="client">
+    <div class="toolbar" role="toolbar" aria-label="Message actions">
+      <button type="button" class="tbtn">
+        <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M2 4h12v9H2z M4 6l4 3 4-3" stroke="currentColor" fill="none" stroke-width="1.2"/></svg>
+        Archive
+      </button>
+      <button type="button" class="tbtn">
+        <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 6V4a3 3 0 0 1 6 0v2M3 6h10v8H3z" stroke="currentColor" fill="none" stroke-width="1.2"/></svg>
+        Spam
+      </button>
+      <button type="button" class="tbtn">
+        <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 6h10l-1 8H4z M6 6V3h4v3" stroke="currentColor" fill="none" stroke-width="1.2"/></svg>
+        Delete
+      </button>
+
+      <span class="spacer"></span>
+
+      <!-- THE DEFECT IS ON THIS BUTTON — and it is the REVERSE direction of the other cases.
+           VISIBLE surface: a bare ASCII "X" glyph, no accompanying text. To a sighted user this
+           "X" is a generic, cryptic mark — in a mail toolbar it could mean delete, dismiss,
+           remove a label, or close. It does NOT, on its own, describe its purpose.
+           ACCESSIBLE NAME: aria-label="Close conversation" — fully descriptive. So the AT/braille/
+           screen-reader surface is the GOOD one; the visible surface is the inadequate one.
+           This is the verdict-FLIP test: ACT rule b49b2e / axe judge the ACCESSIBLE NAME (good ->
+           "pass"), whereas Trusted Tester 5.B judges the VISIBLE button label for descriptiveness
+           ("Each visual button label is sufficiently clear and descriptive, so users know its
+           function") — and a lone "X" is not, so TT 5.B FAILS this. A human must decide WHICH
+           surface governs. We mark expected=failed on the WCAG/TT visible-label reading: a sighted
+           user (including sighted cognitive-disability users, the population 2.4.6 most protects)
+           cannot tell what the bare "X" does.
+           4.1.2 passes (name present, role correct); 2.5.3 is N/A (no visible TEXT label to contain).
+           How it arose: a React dev used <IconButton glyph="✕" aria-label="Close conversation"/>
+           assuming the aria-label was "enough", forgetting the glyph alone must also read clearly. -->
+      <button type="button" class="iconbtn" aria-label="Close conversation">&#10005;</button>
+    </div>
+
+    <article class="msg">
+      <h1>Your June statement is ready</h1>
+      <p class="meta">Meridian Bank &middot; to you &middot; 14 June, 09:02</p>
+      <div class="body">
+        <p>Hello Dana,</p>
+        <p>Your account statement for the period ending 13 June is now available to download from
+           online banking. There is nothing you need to do.</p>
+        <p>Thank you for banking with us.</p>
+      </div>
+    </article>
+  </main>
+</body>
+</html>

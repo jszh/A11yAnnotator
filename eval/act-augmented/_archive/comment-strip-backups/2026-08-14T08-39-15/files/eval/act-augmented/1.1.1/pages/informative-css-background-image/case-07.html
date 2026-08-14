@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Order #PK-40912 — Tracking</title>
+<!--
+  SC 1.1.1 PASS control (boundary variant). This page uses the SAME mechanism as the failing
+  pages — a CSS background-image status glyph on a badge — but the meaning conveyed by every
+  glyph is ALSO present as real, adjacent DOM text ("Out for delivery", "Delivered", etc.)
+  AND the glyph element is marked aria-hidden so AT does not double-announce or stumble on it.
+  Per F3 test step 2 and Trusted Tester 7.C, an informative background image is acceptable
+  when "the meaning of the background image is also available without the background image."
+  Hide backgrounds / forced-colors -> the text remains, so no information is lost.
+  This is the intended PASS/Inapplicable boundary: the background images here are effectively
+  decorative reinforcements of text, not the sole carrier of information.
+  WHY IT BELONGS IN THIS SET: it shares the carrier (CSS background-image status glyph) and
+  the structure (status timeline) with the FAILS, so distinguishing it from case-02/case-07
+  failures requires the SAME two-step human judgment (is the image informative? is the info
+  redundant in text?) — only here the answer to step 2 is "yes, redundant", so it passes.
+-->
+<style>
+  body { font-family: system-ui, "Segoe UI", sans-serif; margin:0; background:#f5f6f8; color:#1d2530; }
+  header { background:#2c2f36; color:#fff; padding:16px 24px; }
+  header h1 { margin:0; font-size:1.15rem; }
+  main { max-width:600px; margin:26px auto; padding:0 18px 50px; }
+  .card { background:#fff; border:1px solid #e1e4ea; border-radius:14px; padding:22px 24px; box-shadow:0 1px 4px rgba(0,0,0,.05); }
+  .summary { font-size:.9rem; color:#5a6472; margin:0 0 18px; }
+  ol.timeline { list-style:none; margin:0; padding:0; }
+  ol.timeline li { display:flex; align-items:center; gap:12px; padding:13px 0; border-bottom:1px solid #eef0f3; }
+  ol.timeline li:last-child { border-bottom:0; }
+
+  /* Same carrier as the failing pages: a CSS background-image glyph badge.
+     Here it is aria-hidden and the status word is a real text node beside it. */
+  .badge {
+    width:30px; height:30px; flex:0 0 30px; border-radius:50%;
+    background-repeat:no-repeat; background-position:center; background-size:18px 18px;
+  }
+  .badge.done   { background-color:#e3f4e8; background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"><path d="M3 9l4 4 8-9" stroke="%231a7f37" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>'); }
+  .badge.truck  { background-color:#e6eefb; background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"><path d="M1 5h9v7H1zM10 7h4l3 3v2h-7z" fill="none" stroke="%231f4e9c" stroke-width="1.6"/><circle cx="5" cy="14" r="1.6" fill="%231f4e9c"/><circle cx="14" cy="14" r="1.6" fill="%231f4e9c"/></svg>'); }
+  .badge.wait   { background-color:#f1f1f3; background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"><circle cx="9" cy="9" r="7" fill="none" stroke="%237a8595" stroke-width="1.6"/><path d="M9 5v4l3 2" stroke="%237a8595" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>'); }
+
+  .step .status { font-weight:600; }
+  .step .when { color:#7a8595; font-size:.82rem; margin-top:2px; }
+  .step.current .status { color:#1f4e9c; }
+</style>
+</head>
+<body>
+<header><h1>Parkfield Goods &mdash; Order tracking</h1></header>
+
+<main>
+  <div class="card">
+    <p class="summary">Order <strong>#PK-40912</strong> &middot; 1 parcel &middot; Estimated arrival today by 6 PM.</p>
+
+    <ol class="timeline">
+      <li>
+        <span class="badge done" aria-hidden="true"></span>
+        <div class="step">
+          <div class="status">Order confirmed</div>
+          <div class="when">Mon 16 Jun, 9:04 AM</div>
+        </div>
+      </li>
+      <li>
+        <span class="badge done" aria-hidden="true"></span>
+        <div class="step">
+          <div class="status">Dispatched from warehouse</div>
+          <div class="when">Mon 16 Jun, 7:40 PM</div>
+        </div>
+      </li>
+      <li class="current">
+        <span class="badge truck" aria-hidden="true"></span>
+        <div class="step">
+          <!-- The badge's meaning is ALSO written here as text: this is what makes it a PASS. -->
+          <div class="status">Out for delivery</div>
+          <div class="when">Today, 8:12 AM</div>
+        </div>
+      </li>
+      <li>
+        <span class="badge wait" aria-hidden="true"></span>
+        <div class="step">
+          <div class="status">Delivered</div>
+          <div class="when">Awaiting &mdash; expected by 6 PM</div>
+        </div>
+      </li>
+    </ol>
+  </div>
+</main>
+</body>
+</html>

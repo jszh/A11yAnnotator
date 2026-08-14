@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 4.1.2 (Name, Role, Value) — the "Role" limb, valid-but-INAPPROPRIATE role.
+
+    Aspect: wrong-role-valid-but-inappropriate.
+
+    "Tavola" — a restaurant review form. The "Your rating" field is a row of FIVE STARS.
+    Hovering previews a rating, clicking a star SETS the rating (it and all stars to its
+    left fill gold), and the chosen value drives a hidden input the form submits. Visually
+    and behaviourally these are an INTERACTIVE star-rating control — a single-select set of
+    operable options (or a slider 1..5).
+
+    THE DEFECT: each star is coded
+        <span role="img" aria-label="N stars" tabindex="0" ...>★</span>
+    role="img" is a valid token, so 674b10 PASSES; img has no extra required state, so
+    4e8ab6 has nothing to fail. Each star has a correct accessible name ("3 stars"). But
+    role="img" declares a NON-INTERACTIVE graphic — AT presents an image, something to be
+    described, never operated. These stars respond to clicks and keys and set a form value.
+    The interactive rating behaviour directly contradicts the "img" role. Correct semantics
+    would be a radiogroup of radio options (or a slider) so AT announces an operable rating
+    ("Your rating, 3 stars, radio button, 3 of 5").
+
+    WHAT AT EXPERIENCES: a screen-reader user hears "3 stars, image" five times in a row —
+    a decorative-looking strip of graphics, with no hint that any of them can be activated
+    or that together they capture a rating the form will submit. Voice-control and
+    switch users get no operable control surfaced. The widget is fully interactive on
+    screen yet announced as static imagery.
+
+    WHY AUTOMATED TOOLS MISS IT: axe-core / WAVE / Lighthouse confirm role="img" is valid
+    and each star has an accessible name (img with a name is the CORRECT, lint-passing
+    pattern for an informative image). Putting tabindex on an img is unusual but not an
+    automatic violation. No tool observes that the "images" carry click/key handlers that
+    set a submitted value, and concludes the role should be radio/slider, not img.
+    Recognising "interactive rating mis-coded as images" requires seeing the behaviour —
+    human judgment.
+  -->
+  <title>Leave a review — Tavola</title>
+  <style>
+    :root { --ink:#2b211a; --muted:#7a6c5d; --line:#e7ddd0; --gold:#e0a106; --bg:#faf6ef; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Helvetica Neue",Arial,sans-serif; color:var(--ink); background:var(--bg); line-height:1.55; }
+    .wrap { max-width:560px; margin:2.4rem auto; padding:0 1.2rem; }
+    h1 { font-size:1.5rem; margin:0 0 .2rem; }
+    p.sub { color:var(--muted); margin:0 0 1.6rem; }
+    .card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:1.5rem 1.6rem; }
+    .field { margin-bottom:1.3rem; }
+    .field > label, .field > .flabel { display:block; font-weight:600; margin-bottom:.5rem; }
+    .stars { display:inline-flex; gap:.25rem; }
+    .star { font-size:1.9rem; line-height:1; color:var(--line); cursor:pointer; transition:color .1s ease; user-select:none; }
+    .star.on { color:var(--gold); }
+    .star:focus-visible { outline:2px solid var(--gold); outline-offset:3px; border-radius:4px; }
+    textarea { width:100%; min-height:90px; padding:.6rem .7rem; border:1px solid var(--line); border-radius:8px; font:inherit; resize:vertical; }
+    button { font:inherit; font-weight:600; background:var(--ink); color:#fff; border:0; border-radius:8px; padding:.7rem 1.5rem; cursor:pointer; }
+    .echo { color:var(--muted); font-size:.85rem; margin-top:.4rem; min-height:1.2em; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>How was Tavola?</h1>
+    <p class="sub">Your review helps other diners. It only takes a minute.</p>
+
+    <form class="card" action="#" method="post" novalidate>
+      <div class="field">
+        <span class="flabel" id="rating-lbl">Your rating</span>
+        <!-- DEFECT: an interactive star-rating control whose stars are role="img"
+             (valid token, correct accessible name) but respond to clicks/keys and set a
+             submitted value — should be a radiogroup of role="radio" (or a slider). -->
+        <div class="stars" aria-labelledby="rating-lbl">
+          <span class="star" role="img" tabindex="0" aria-label="1 star"  data-v="1">★</span>
+          <span class="star" role="img" tabindex="0" aria-label="2 stars" data-v="2">★</span>
+          <span class="star" role="img" tabindex="0" aria-label="3 stars" data-v="3">★</span>
+          <span class="star" role="img" tabindex="0" aria-label="4 stars" data-v="4">★</span>
+          <span class="star" role="img" tabindex="0" aria-label="5 stars" data-v="5">★</span>
+        </div>
+        <div class="echo" id="echo" aria-live="polite"></div>
+        <input type="hidden" name="rating" id="rating-input" value="">
+      </div>
+
+      <div class="field">
+        <label for="comment">Your review</label>
+        <textarea id="comment" name="comment" placeholder="What stood out? The pasta, the service, the room…"></textarea>
+      </div>
+
+      <button type="submit">Post review</button>
+    </form>
+  </div>
+
+  <script>
+    var stars = Array.prototype.slice.call(document.querySelectorAll('.star'));
+    var input = document.getElementById('rating-input');
+    var echo = document.getElementById('echo');
+    function paint(v) { stars.forEach(function (s) { s.classList.toggle('on', parseInt(s.getAttribute('data-v'),10) <= v); }); }
+    function setRating(v) { input.value = v; paint(v); echo.textContent = 'You rated ' + v + ' out of 5.'; }
+    stars.forEach(function (s) {
+      var v = parseInt(s.getAttribute('data-v'), 10);
+      s.addEventListener('mouseenter', function () { paint(v); });
+      s.addEventListener('mouseleave', function () { paint(parseInt(input.value || 0, 10)); });
+      s.addEventListener('click', function () { setRating(v); });
+      s.addEventListener('keydown', function (e) {
+        if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); setRating(v); }
+      });
+    });
+  </script>
+</body>
+</html>

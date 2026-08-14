@@ -4,20 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Confirm it's you — Northbank two-step verification</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS:
-  The verification-code field has a correctly associated, VISIBLE helper text via
-  aria-describedby ("Enter the 6-digit code we sent to your phone"). The helper is
-  non-empty, names what to enter, and is in the accessibility tree. axe / WAVE /
-  Lighthouse all confirm: label present, aria-describedby resolves, contrast fine, role
-  textbox. The "instruction is present" facet of 3.3.2 (TT 5.A) is satisfied.
-  THE DEFECT IS SEMANTIC + NUMERIC: the field's ENFORCED rule is FOUR digits — the input
-  has maxlength="4", pattern="\d{4}", and the inline validator requires exactly four.
-  The OTP boxes rendered on screen are FOUR, not six. A user who waits for / types a
-  6-digit code can physically only enter four, and the helper's stated count is simply
-  wrong relative to what the field accepts. No checker reads "6-digit" from the prose,
-  reads maxlength="4" / counts the boxes, and judges the two numbers disagree.
--->
 <style>
   :root{ --ink:#1a1f2b; --muted:#6b7280; --line:#d7dbe2; --brand:#7a1fa2; --danger:#c2243b;
          --paper:#fff; }
@@ -56,10 +42,6 @@
       <p class="sub">For your security, we sent a one-time code to the phone ending in <strong>&middot;&middot;&middot;&middot;71</strong>.</p>
 
       <form action="#" method="post" novalidate id="form" autocomplete="one-time-code">
-        <!--
-          The visible helper claims SIX digits. The field below physically accepts FOUR:
-          four boxes, each maxlength="1", overall pattern \d{4}, validator wants exactly 4.
-        -->
         <p class="helper" id="otp-help">Enter the 6-digit code we sent to your phone.</p>
 
         <div class="otp" role="group" aria-labelledby="otp-help" aria-describedby="otp-err">
@@ -84,7 +66,6 @@
   var boxes = Array.prototype.slice.call(document.querySelectorAll('.otp input'));
   var err  = document.getElementById('otp-err');
 
-  // auto-advance between the FOUR boxes
   boxes.forEach(function(b,i){
     b.addEventListener('input', function(){
       b.value = b.value.replace(/[^0-9]/g,'').slice(0,1);
@@ -98,7 +79,6 @@
   form.addEventListener('submit', function(e){
     e.preventDefault();
     var code = boxes.map(function(b){ return b.value; }).join('');
-    // ENFORCED RULE: exactly FOUR digits. Contradicts the "6-digit" helper.
     if (/^\d{4}$/.test(code)) {
       boxes.forEach(function(b){ b.setAttribute('aria-invalid','false'); });
       err.textContent = 'Code accepted. Signing you in…';

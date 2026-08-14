@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Two-step verification — Orbital ID</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (expected: FAILED — over-disclosure of a verification oracle):
+  A 2FA / one-time-code step rejected the user's entry. The exception SHOULD apply: a
+  one-time auth code is security-sensitive, and the correct withheld message is simply
+  "That code isn't valid. Request a new code." Instead the author wrote an over-helpful
+  "suggestion" that turns the field into a brute-force ORACLE:
+    "Almost — your first 3 digits (4 1 9) are correct, but the code is 6 digits and
+     you entered 5. Check the last digits and try again."
+  This confirms which leading digits matched AND the exact expected length. An attacker
+  (or anyone who can read the error) can now fix the length and brute-force only the
+  remaining unknown digits — collapsing the code's entropy. That JEOPARDIZES the
+  security/purpose of the content; the exception forbids exactly this kind of partial-
+  match feedback. The defect is NOT a missing suggestion — a specific suggestion is
+  present and well-formed; the defect is that the suggestion's content leaks a
+  verification oracle.
+  Why automated tools miss it: the message is friendly, named, role=alert, associated,
+  high-contrast — a "did the page help the user fix the error?" check would mark it
+  PASS (wrong). Recognising that "first 3 digits correct + length is 6" is a security
+  leak that defeats the 2FA purpose is contextual reasoning no checker performs.
+-->
+<style>
+  :root{ --ink:#15171c; --muted:#5c636e; --line:#d5d9e0; --brand:#3b2db5; --accent:#6d5cf0;
+         --danger:#b42318; --paper:#fff; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font:16px/1.55 "Inter","Segoe UI",system-ui,sans-serif; color:var(--ink);
+        background:#edecf6; }
+  .wrap{ max-width:440px; margin:54px auto; padding:0 18px; }
+  .brand{ display:flex; align-items:center; gap:10px; justify-content:center; margin-bottom:22px; }
+  .brand .orb{ width:32px; height:32px; border-radius:50%;
+               background:radial-gradient(circle at 30% 30%,var(--accent),var(--brand)); }
+  .brand strong{ font-size:1.12rem; letter-spacing:.2px; }
+  .card{ background:var(--paper); border:1px solid var(--line); border-radius:14px;
+         padding:32px 28px; box-shadow:0 6px 24px rgba(20,18,50,.08); text-align:center; }
+  h1{ font-size:1.26rem; margin:0 0 6px; }
+  .sub{ color:var(--muted); font-size:.9rem; margin:0 0 24px; }
+  .codebox{ display:flex; gap:9px; justify-content:center; margin-bottom:6px; }
+  .codebox input{ width:46px; height:54px; text-align:center; font-size:1.4rem;
+                  border:2px solid var(--line); border-radius:10px; background:#fff;
+                  color:var(--ink); }
+  .codebox input[aria-invalid="true"]{ border-color:var(--danger); }
+  .codebox input:focus{ outline:2px solid var(--accent); outline-offset:1px; }
+  .err{ display:flex; gap:8px; align-items:flex-start; justify-content:center;
+        margin-top:14px; color:var(--danger); font-size:.86rem; text-align:left; }
+  .err svg{ flex:0 0 auto; margin-top:2px; }
+  button{ margin-top:22px; width:100%; padding:13px; font-size:1rem; font-weight:700;
+          color:#fff; background:var(--brand); border:0; border-radius:10px; cursor:pointer; }
+  .resend{ margin-top:14px; font-size:.84rem; }
+  .resend a{ color:var(--brand); text-decoration:none; }
+  .foot{ margin-top:20px; color:var(--muted); font-size:.78rem; text-align:center; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand"><span class="orb" aria-hidden="true"></span><strong>Orbital ID</strong></div>
+    <main class="card">
+      <h1>Two-step verification</h1>
+      <p class="sub">Enter the 6-digit code we sent to your authenticator app.</p>
+
+      <form action="#" method="post" novalidate>
+        <!-- Post-submit error state: code rejected. User entered 5 of 6 digits: 4 1 9 0 2 -->
+        <div class="codebox" role="group" aria-labelledby="otp-label"
+             aria-describedby="otp-error">
+          <span id="otp-label" style="position:absolute;left:-9999px">One-time verification code, 6 digits</span>
+          <input id="o1" name="o1" inputmode="numeric" maxlength="1" value="4" aria-invalid="true" autocomplete="one-time-code">
+          <input id="o2" name="o2" inputmode="numeric" maxlength="1" value="1" aria-invalid="true">
+          <input id="o3" name="o3" inputmode="numeric" maxlength="1" value="9" aria-invalid="true">
+          <input id="o4" name="o4" inputmode="numeric" maxlength="1" value="0" aria-invalid="true">
+          <input id="o5" name="o5" inputmode="numeric" maxlength="1" value="2" aria-invalid="true">
+          <input id="o6" name="o6" inputmode="numeric" maxlength="1" value="" aria-invalid="true">
+        </div>
+
+        <!-- OVER-DISCLOSURE: partial-match oracle — confirms first 3 digits + exact length. -->
+        <p class="err" id="otp-error" role="alert">
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+            <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M8 4.2v4.4M8 11.0h.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+          <span>Almost! Your first 3 digits (4&nbsp;1&nbsp;9) are correct, but the code has 6 digits and you entered 5. Check the last digits and try again.</span>
+        </p>
+
+        <button type="submit">Verify</button>
+        <p class="resend"><a href="#">Didn't get a code? Send a new one</a></p>
+      </form>
+    </main>
+    <p class="foot">Orbital ID · Two-step verification · Renders from file://</p>
+  </div>
+</body>
+</html>

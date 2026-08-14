@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.3.1 FAILURE (F48: <pre> element used to mark up tabular information).
+    This is a course's "Weekly Schedule" panel inside a university LMS (Canvas-style). The schedule
+    is genuinely tabular: ROWS are time slots, COLUMNS are the five weekdays, and each cell names
+    the session (lecture / lab / office hours). The instructor pasted it into a <pre> block where
+    the columns are aligned with TAB characters and the time-slot labels run down the left edge.
+    The header row (Mon..Fri) and the row labels (the times) are implied PURELY by tab alignment —
+    there is no <table>, <th>, scope, headers, or role anywhere.
+    WHY AUTOMATED TOOLS MISS IT: a <pre> containing text is perfectly valid HTML; no rule fires on
+    "<pre> that happens to contain a schedule." There is no table semantics to check, so axe/WAVE/
+    Lighthouse pass it silently. Tabs render as variable-width gaps, so on a screen reader (which
+    collapses the tabs to single spaces) the columns scramble: a time, then a session from a
+    DIFFERENT day, with no way to know which weekday or time owns which session. Recognizing that
+    the tab-aligned text is a time x weekday table is human visual-semantic reasoning.
+  -->
+  <title>BIOL 204 — Weekly Schedule | Riverside University LMS</title>
+  <style>
+    :root { --navy:#0b2545; --accent:#1b6ca8; --bg:#eef3f7; --ink:#1d2733; --line:#d4dde6; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Segoe UI", system-ui, Arial, sans-serif; color:var(--ink); background:var(--bg); }
+    .lms-top { background:var(--navy); color:#fff; padding:10px 20px; font-size:13px; display:flex; gap:18px; }
+    .lms-top a { color:#cfe2f3; text-decoration:none; }
+    .course-head { background:#fff; border-bottom:1px solid var(--line); padding:18px 24px; }
+    .course-head .code { color:var(--accent); font-weight:700; letter-spacing:.04em; font-size:13px; }
+    .course-head h1 { margin:4px 0 0; font-size:22px; color:var(--navy); }
+    .layout { display:grid; grid-template-columns:200px 1fr; gap:0; }
+    nav.side { background:#fff; border-right:1px solid var(--line); padding:14px 0; }
+    nav.side a { display:block; padding:8px 24px; color:#33475b; text-decoration:none; font-size:14px; }
+    nav.side a[aria-current="page"] { background:#eaf2f9; border-left:3px solid var(--accent); font-weight:600; color:var(--navy); }
+    main { padding:24px; }
+    .panel { background:#fff; border:1px solid var(--line); border-radius:8px; padding:20px 24px; max-width:760px; }
+    .panel h2 { margin:0 0 6px; font-size:18px; color:var(--navy); }
+    .panel p.lead { margin:0 0 16px; color:#56657a; font-size:14px; }
+    /* The schedule "table" is a <pre> with TAB-separated columns. No table semantics at all. */
+    pre.schedule {
+      font-family:"Cascadia Code","Consolas","Liberation Mono",monospace;
+      font-size:14px; line-height:1.7; margin:0; tab-size:14; -moz-tab-size:14;
+      overflow-x:auto; color:#1d2733; background:#fbfcfe; border:1px solid var(--line);
+      border-radius:6px; padding:14px 16px;
+    }
+    .meta { margin-top:16px; font-size:13px; color:#56657a; }
+  </style>
+</head>
+<body>
+  <div class="lms-top"><a href="#">Dashboard</a><a href="#">Courses</a><a href="#">Calendar</a><a href="#">Inbox</a></div>
+  <div class="course-head">
+    <div class="code">BIOL 204 · SUMMER</div>
+    <h1>Cell Biology &amp; Genetics</h1>
+  </div>
+
+  <div class="layout">
+    <nav class="side" aria-label="Course navigation">
+      <a href="#">Home</a>
+      <a href="#">Announcements</a>
+      <a href="#" aria-current="page">Syllabus &amp; Schedule</a>
+      <a href="#">Modules</a>
+      <a href="#">Grades</a>
+    </nav>
+
+    <main>
+      <section class="panel" aria-labelledby="sched">
+        <h2 id="sched">Weekly Schedule</h2>
+        <p class="lead">Sessions meet in Hartman Hall unless noted. Times are local (Central).</p>
+
+<pre class="schedule">		Monday		Tuesday		Wednesday	Thursday	Friday
+9:00–9:50	Lecture		—		Lecture		—		Lecture
+10:00–11:50	Lab A		—		Lab B		—		—
+1:00–1:50	—		Recitation	—		Recitation	—
+3:00–4:00	Office hours	—		Office hours	—		Office hours</pre>
+
+        <p class="meta">Lab sections (A and B) are assigned in Modules. Office hours are drop-in; no appointment needed.</p>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

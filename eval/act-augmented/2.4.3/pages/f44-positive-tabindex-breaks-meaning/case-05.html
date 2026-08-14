@@ -3,35 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!--
-    SC 2.4.3 (Focus Order), failure F44 — i18n / RTL variant.
-
-    This is an Arabic-language (dir="rtl") clinic appointment form. In an RTL layout
-    a horizontal row of three name fields reads RIGHT-TO-LEFT: the visually FIRST
-    (rightmost) box is the given name (الاسم الأول), then the father's name
-    (اسم الأب), then the family name (اسم العائلة) on the left. That right-to-left
-    visual order IS the meaningful order an Arabic reader follows.
-
-    The original form was localized from an English template. The English dev had
-    added positive tabindex 1,2,3 reading LEFT-TO-RIGHT. When the layout was flipped
-    to RTL for Arabic, the *visual* order of the boxes flipped (given name moved to
-    the right) but the tabindex numbers were NOT re-thought. The result: tabindex
-    still goes to the LEFTMOST box first. So Tab visits family name -> father's name
-    -> given name, i.e. the REVERSE of the right-to-left reading order an Arabic
-    keyboard user expects. Same story for the date row (day/month/year).
-
-    The page renders perfectly for a sighted mouse user reading RTL. The break is
-    only in the keyboard traversal, and it is INVISIBLE unless you (a) read Arabic
-    well enough to know the rightmost box is the given name, (b) know RTL reading
-    order, and (c) tab through and notice focus runs left-to-right against it.
-
-    WHY AUTOMATED TOOLS MISS IT: dir/lang are correct, labels are present and in
-    Arabic, contrast is fine. axe notes positive tabindex as best-practice only and
-    has NO model of RTL reading order vs. numeric tab order. Deciding the order is
-    reversed requires understanding that in RTL the rightmost field is first and
-    comparing that to the 1->2->3 traversal. That is human bilingual + directional
-    judgment.
-  -->
   <title>حجز موعد — عيادة النور الطبية</title>
   <style>
     :root { --ink:#1d2630; --muted:#5f6b76; --rule:#d3dae1; --brand:#0a6e6e; --bg:#f1f6f6; }
@@ -64,14 +35,7 @@
     <form class="card" action="/booking" method="post" novalidate>
       <h2>بيانات المريض</h2>
 
-      <!--
-        NAME ROW. In RTL the RIGHTMOST box is visually first and is the GIVEN name
-        (الاسم الأول). Reading order right->left: given name, father's name, family
-        name. But tabindex 1,2,3 follow LEFT->RIGHT, so Tab visits family name (1)
-        first, then father's (2), then given name (3) — reverse of the RTL reading.
-      -->
       <div class="row">
-        <!-- DOM order left-to-right; in RTL the FIRST flex item renders on the RIGHT -->
         <div class="field">
           <label for="given">الاسم الأول</label>
           <input id="given" name="given_name" autocomplete="given-name" tabindex="3">
@@ -86,11 +50,6 @@
         </div>
       </div>
 
-      <!--
-        DATE OF BIRTH ROW. Visually right->left: Day (يوم), Month (شهر), Year (سنة).
-        tabindex 4,5,6 go left->right, so Tab visits Year(4) -> Month(5) -> Day(6),
-        the reverse of the RTL day/month/year reading order.
-      -->
       <label id="dob-label" style="margin-bottom:.5rem">تاريخ الميلاد</label>
       <div class="row" role="group" aria-labelledby="dob-label">
         <div class="field">

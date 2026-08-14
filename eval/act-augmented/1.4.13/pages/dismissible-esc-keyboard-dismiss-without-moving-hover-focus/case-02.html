@@ -20,7 +20,6 @@
         border-radius: 14px; padding: 3px 10px; font-size: 13px; font-weight: 600;
         cursor: help; }
   .warn-trigger:focus { outline: 3px solid #1466d6; outline-offset: 2px; }
-  /* Interaction note pops up OVER the dosage instructions in the row below. */
   .interaction { position: absolute; top: 26px; left: 0; width: 360px; z-index: 9;
         background: #fff; border: 2px solid #b06a00; border-radius: 8px; padding: 12px 14px;
         font-size: 14px; line-height: 1.5; box-shadow: 0 8px 22px rgba(0,0,0,.22);
@@ -76,30 +75,20 @@
   var btn = document.getElementById('warnBtn');
   var pop = document.getElementById('warnPop');
 
-  // Show the interaction note on hover and on focus.
   btn.addEventListener('mouseenter', function () { pop.classList.add('open'); });
   btn.addEventListener('focus',      function () { pop.classList.add('open'); });
   btn.addEventListener('mouseleave', function () { pop.classList.remove('open'); });
 
-  // INTENTIONAL DEFECT: the Esc-to-dismiss handler is attached to the TRIGGER
-  // element, not to document. The dev assumed Esc would fire on the focused
-  // trigger. But on activation the script immediately moves focus to <body>
-  // (see the click handler below, simulating a "scroll the warning into view"
-  // convenience that blurs the button). With the trigger no longer focused,
-  // keydown events go to document.body, never to this listener — so Esc is
-  // inert while the warning box is visible and obscuring the dosage row.
   btn.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' || e.keyCode === 27) {
       pop.classList.remove('open');
     }
   });
 
-  // "Helpful" behavior that strands focus: activating the trigger scrolls the
-  // warning into view and blurs the button so the outline doesn't distract.
   btn.addEventListener('click', function () {
     pop.classList.add('open');
     pop.scrollIntoView({ block: 'nearest' });
-    this.blur();              // <-- focus goes to document.body
+    this.blur();              
     document.body.focus && document.body.focus();
   });
 </script>

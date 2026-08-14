@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.4.10 FAILURE — wrappable code with NO wrap mechanism (the subtler G224 limb).
+
+    Context: a SaaS onboarding "Quick start" page. It shows shell commands and an SQL statement a
+    user is meant to copy-paste. Unlike Python (case-02), these are languages where LINE WRAPPING IS
+    NOT ESSENTIAL: a long `curl ... \` command or a one-line SQL statement keeps its full meaning when
+    wrapped — shells and SQL do not care where a soft-wrap falls. The lines are simply long (a long
+    URL, a long INSERT). Each runs well past 320 CSS px and the block uses `white-space: pre` with NO
+    wrapping and NO "wrap lines" toggle.
+
+    THE JUDGMENT (this is the hard one): a naive reviewer sees "<pre>, it's code, code is exempt" and
+    passes it. WRONG. G224 is explicit: the exception is for code where non-wrapping is ESSENTIAL
+    (Python indentation) or where indentation/linebreaks are meaningful to the language. For code where
+    non-wrapping lines are NOT essential, the code must wrap OR a mechanism must be provided. These
+    shell/SQL lines lose no meaning when wrapped, so leaving them non-wrapping with no toggle forces a
+    low-vision user into horizontal scrolling to read each command -> FAIL. (case-06 fixes exactly this
+    by adding a working "Wrap lines" toggle.)
+
+    WHY AUTOMATED TOOLS MISS IT: structurally this is the same signal as case-02 (a <pre> with
+    white-space:pre overflowing 320px). A tool cannot read the bytes and decide "this is shell/SQL —
+    wrapping loses no meaning, so it MUST wrap" versus "this is Python — wrapping loses meaning, so it
+    is exempt". And the naive heuristic "it's in <pre> so it's exempt code" is itself wrong per G224.
+    Only a human who reads the code and knows the language's wrapping semantics can call it.
+  -->
+  <title>Quick start — Connect your database — Quanta Analytics</title>
+  <style>
+    :root { --ink:#1a1f29; --muted2:#5c6772; --line:#e3e8ef; --bg:#f6f8fb; --accent:#5b35d6; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Inter","Segoe UI",Roboto,Arial,sans-serif; color:var(--ink); background:var(--bg); line-height:1.6; }
+    .wrap { max-width:720px; margin:0 auto; padding:24px 18px 60px; }
+    header.app { display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--line); padding-bottom:12px; }
+    header.app .logo { width:26px; height:26px; border-radius:7px; background:var(--accent); }
+    header.app .name { font-weight:700; }
+    header.app .step { margin-left:auto; color:var(--muted2); font-size:13px; }
+    h1 { font-size:24px; margin:18px 0 6px; }
+    .lede { color:var(--muted2); margin:0 0 18px; }
+    h2 { font-size:16px; margin:24px 0 6px; }
+    p { margin:0 0 12px; }
+    ol.steps { padding-left:20px; }
+    ol.steps li { margin:6px 0; }
+    .codecard { border:1px solid var(--line); border-radius:8px; overflow:hidden; margin:0 0 16px; background:#0f1320; }
+    .codecard .bar { display:flex; align-items:center; gap:8px; padding:8px 12px; background:#161b2b; color:#aeb7c9; font-size:12px; }
+    .codecard .bar .lang { font-family:"SF Mono",Menlo,monospace; }
+    /* NOTE: there is a "Copy" button but NO "Wrap" control. The code does not wrap. */
+    .codecard .bar .copy { margin-left:auto; background:#222a3f; color:#cdd5e6; border:1px solid #2c3550; border-radius:5px; padding:3px 9px; font-size:12px; cursor:pointer; }
+    pre {
+      margin:0; padding:14px 16px; color:#e6ebf4;
+      font-family:"SF Mono",Menlo,Consolas,monospace; font-size:13.5px; line-height:1.6;
+      white-space: pre;     /* <-- wrappable shell/SQL forced non-wrapping */
+      overflow-x: auto;     /* <-- horizontal scroll to read each command */
+    }
+    .tok-c { color:#7e8aa6; font-style:italic; }
+    .tok-flag { color:#ffcaa6; }
+    .tok-kw { color:#8fb6ff; }
+    .tok-str { color:#9be3a6; }
+    footer { margin-top:30px; border-top:1px solid var(--line); padding-top:14px; color:var(--muted2); font-size:12px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="app">
+      <span class="logo" aria-hidden="true"></span>
+      <span class="name">Quanta Analytics</span>
+      <span class="step">Setup &middot; Step 2 of 4</span>
+    </header>
+
+    <main>
+      <h1>Connect your database</h1>
+      <p class="lede">Run these commands from a machine that can reach your database, then paste the
+      seed row so we can confirm the connection. You can copy each block with the Copy button.</p>
+
+      <h2>1. Pull and start the connector</h2>
+      <p>This single command downloads the connector and registers it with your workspace token.</p>
+      <div class="codecard">
+        <div class="bar"><span class="lang">bash</span><button type="button" class="copy">Copy</button></div>
+        <pre><code><span class="tok-c"># run from any host with outbound HTTPS</span>
+curl -fsSL https://downloads.quanta-analytics.example.com/connector/install.sh | sh -s -- --workspace=acme-prod --token=qa_live_8f3c2b91d04e47aa9c6 --region=us-east-1 --telemetry=off</code></pre>
+      </div>
+
+      <h2>2. Insert the verification row</h2>
+      <p>Run this SQL against the database you want to connect. It writes one row our connector reads
+      back to confirm read/write access.</p>
+      <div class="codecard">
+        <div class="bar"><span class="lang">sql</span><button type="button" class="copy">Copy</button></div>
+        <pre><code><span class="tok-kw">INSERT INTO</span> quanta_handshake (workspace, region, issued_at, nonce, note) <span class="tok-kw">VALUES</span> (<span class="tok-str">'acme-prod'</span>, <span class="tok-str">'us-east-1'</span>, now(), <span class="tok-str">'b7Q19zKpL2'</span>, <span class="tok-str">'created by quick-start step 2; safe to delete after verification'</span>);</code></pre>
+      </div>
+
+      <p>Once both commands succeed, return here and we will detect the handshake automatically.</p>
+    </main>
+
+    <footer>Quanta Analytics &middot; Need help? support@quanta-analytics.example.com</footer>
+  </div>
+</body>
+</html>

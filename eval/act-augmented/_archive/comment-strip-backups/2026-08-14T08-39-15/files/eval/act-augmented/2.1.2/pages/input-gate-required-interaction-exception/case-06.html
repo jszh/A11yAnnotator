@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Drug interaction review — MeridianEHR e-prescribe</title>
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS (SC 2.1.2 — documented-custom-keystroke exit; PASS boundary):
+    This is a deliberate PASS that looks like a trap. When the clinician finishes a prescription,
+    a "Severe interaction review" panel opens and HOLDS keyboard focus inside itself: Tab and
+    Shift+Tab cycle within the panel's controls, and — by design, for patient-safety reasons —
+    the standard Esc key does NOT dismiss it (a clinician must not be able to blow past a severe
+    interaction with a reflexive Esc). All of that, in isolation, has the shape of a keyboard
+    trap.
+
+    It is NOT a trap, for two reasons that require human reading:
+      (1) The required interaction is fully keyboard-satisfiable. Each interaction row has a real
+          native checkbox ("I have reviewed this interaction"); the clinician reaches it with Tab
+          and toggles it with Space (the standard control). Once every required box is checked,
+          the "Sign & continue" button enables and forward Tab/activation releases focus back to
+          the prescription, so a section that requires interaction before focus progresses is the
+          input-gate exception, not a failure.
+      (2) For the path where the clinician does NOT want to acknowledge (e.g. to go back and
+          change the drug), focus is still escapable by keyboard via a NON-STANDARD keystroke
+          that is DOCUMENTED ON SCREEN, inside the panel, before they need it: "Press Alt+X to
+          leave without acknowledging and return to the prescription." Alt+X is wired and works,
+          moving focus out of the panel to the "Edit prescription" control. Per the Understanding
+          doc, a non-standard exit method passes "provided that the user is advised how they can
+          untrap focus", and per TT it passes via "custom keystrokes that are documented and
+          available to users in the application."
+
+    axe / WAVE / Lighthouse evaluate the static DOM: role=dialog + aria-modal, labelled native
+    checkboxes, a real <button>, and a visible instruction. Nothing is missing or malformed, so
+    no rule fires. The hold-then-release, the disabled-Esc, and the working documented Alt+X are
+    runtime keyboard facts the scanners never exercise. A human who only taps Esc once and finds
+    it dead could WRONGLY flag a trap; judging PASS requires reading the on-screen instruction,
+    verifying Space satisfies the gate and releases, and confirming the documented Alt+X actually
+    untraps focus.
+  -->
+  <style>
+    :root { --ink:#16202b; --muted:#5d6b7a; --line:#d4dde7; --brand:#0b5e7a; --warn:#b23a17; --ok:#13794a; --scrim:rgba(16,28,40,.55); }
+    * { box-sizing: border-box; }
+    body { font: 16px/1.55 "Segoe UI", system-ui, sans-serif; color: var(--ink); margin: 0; background: #eef3f7; }
+    header { background: var(--brand); color: #eaf6fb; padding: 14px 24px; display: flex; justify-content: space-between; align-items: baseline; }
+    header .brand { font-weight: 800; }
+    header .who { font-size: .85rem; opacity: .9; }
+    main { max-width: 760px; margin: 26px auto; padding: 0 18px; }
+    h1 { font-size: 1.4rem; margin: 0 0 4px; }
+    .lede { color: var(--muted); margin: 0 0 20px; }
+    .rx { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 20px 22px; }
+    .rx h2 { font-size: 1.05rem; margin: 0 0 12px; }
+    .field { margin: 0 0 14px; }
+    .field label { display: block; font-weight: 600; font-size: .9rem; margin: 0 0 4px; }
+    .field input, .field select { font: inherit; width: 100%; padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px; }
+    .row2 { display: flex; gap: 14px; }
+    .row2 .field { flex: 1; }
+    .rx-actions { margin-top: 8px; display: flex; gap: 12px; align-items: center; }
+    button { font: inherit; border-radius: 8px; cursor: pointer; }
+    button.primary { font-weight: 700; color: #fff; background: var(--brand); border: 0; padding: 11px 22px; }
+    button.ghost { color: var(--brand); background: #fff; border: 1px solid var(--brand); padding: 10px 18px; }
+    button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid #1f7fa8; outline-offset: 2px; }
+
+    .scrim { position: fixed; inset: 0; background: var(--scrim); display: none; align-items: center; justify-content: center; padding: 18px; }
+    .scrim.open { display: flex; }
+    .panel { background: #fff; border-radius: 14px; max-width: 620px; width: 100%; box-shadow: 0 18px 50px rgba(0,0,0,.3); overflow: hidden; }
+    .panel .ph { background: #fbe9e3; color: var(--warn); padding: 16px 22px; border-bottom: 1px solid #f1cabb; }
+    .panel .ph h2 { margin: 0; font-size: 1.1rem; }
+    .panel .ph p { margin: 4px 0 0; font-size: .88rem; color: #8a3a1c; }
+    .panel .pb { padding: 18px 22px; }
+    .ix { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin: 0 0 12px; }
+    .ix .sev { font-weight: 700; color: var(--warn); font-size: .8rem; letter-spacing: .03em; text-transform: uppercase; }
+    .ix .pair { font-weight: 700; margin: 2px 0 4px; }
+    .ix .desc { font-size: .9rem; color: var(--muted); margin: 0 0 10px; }
+    .ack { display: flex; gap: 8px; align-items: flex-start; font-size: .92rem; }
+    .ack input { margin-top: 3px; }
+    .escnote { background: #eef6fa; border: 1px solid #cfe5ef; border-radius: 8px; padding: 10px 12px; font-size: .86rem; color: #235; margin: 4px 0 14px; }
+    .escnote kbd { background: #fff; border: 1px solid #b9cdd8; border-bottom-width: 2px; border-radius: 5px; padding: 1px 6px; font: inherit; font-size: .82rem; }
+    .panel .pf { display: flex; gap: 12px; align-items: center; padding: 14px 22px; border-top: 1px solid var(--line); background: #f6f9fb; }
+    .panel .pf .spacer { flex: 1; }
+    button.sign { font-weight: 700; color: #fff; background: var(--ok); border: 0; padding: 11px 22px; }
+    button.sign:disabled { background: #a9cbba; cursor: not-allowed; }
+    .status { font-size: .85rem; color: var(--muted); min-height: 1.1em; margin: 10px 2px 0; }
+    footer { color: var(--muted); font-size: .8rem; text-align: center; margin: 26px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">MeridianEHR · e-Prescribe</div>
+    <div class="who">Dr A. Okafor · Internal Medicine</div>
+  </header>
+
+  <main>
+    <h1>New prescription</h1>
+    <p class="lede">Patient: <strong>R. Castellano</strong> (DOB 1958-02-11) · Allergies: penicillin</p>
+
+    <form class="rx" id="rxform" action="#" method="post" aria-labelledby="rx-h" novalidate>
+      <h2 id="rx-h">Prescription details</h2>
+
+      <div class="field">
+        <label for="drug">Medication</label>
+        <input id="drug" name="drug" type="text" value="Clarithromycin 500 mg" autocomplete="off">
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label for="sig">Directions (sig)</label>
+          <input id="sig" name="sig" type="text" value="1 tablet twice daily" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="days">Days supply</label>
+          <input id="days" name="days" type="text" value="7" autocomplete="off">
+        </div>
+      </div>
+
+      <div class="rx-actions">
+        <button type="button" class="primary" id="review">Check interactions &amp; sign</button>
+        <a href="#cancel" style="color:var(--muted);font-size:.9rem;">Discard</a>
+      </div>
+      <p class="status" id="rxstatus" role="status"></p>
+    </form>
+  </main>
+
+  <footer>MeridianEHR is a registered EHR module · interaction data © First Databank.</footer>
+
+  <!--
+    Severe-interaction review panel. role=dialog + aria-modal: by design, focus is HELD inside
+    this panel (legitimate modal focus management, per the Understanding "modal dialog" example).
+    Esc is intentionally disabled here for patient safety. Escape is keyboard-possible two ways:
+      - satisfy the gate (check every "reviewed" box, Space) then Sign & continue, OR
+      - the DOCUMENTED non-standard keystroke Alt+X (announced on-screen) to leave without
+        acknowledging and return to the prescription.
+  -->
+  <div class="scrim" id="scrim" aria-hidden="true">
+    <div class="panel" role="dialog" aria-modal="true" aria-labelledby="p-h" aria-describedby="p-sub">
+      <div class="ph">
+        <h2 id="p-h">Severe interaction — review required</h2>
+        <p id="p-sub">You must review each interaction below before this prescription can be signed.</p>
+      </div>
+      <div class="pb">
+        <p class="escnote" id="escnote">
+          To leave without acknowledging and return to the prescription, press <kbd>Alt</kbd> + <kbd>X</kbd>.
+          (The <kbd>Esc</kbd> key is disabled here so a severe interaction is not dismissed by accident.)
+        </p>
+
+        <div class="ix">
+          <div class="sev">Severe</div>
+          <div class="pair">Clarithromycin + Simvastatin</div>
+          <p class="desc">Markedly increased simvastatin exposure; risk of rhabdomyolysis. Consider holding the statin or an alternative macrolide.</p>
+          <label class="ack"><input type="checkbox" class="ackbox" id="ack1"> I have reviewed this interaction.</label>
+        </div>
+
+        <div class="ix">
+          <div class="sev">Severe</div>
+          <div class="pair">Clarithromycin + Warfarin</div>
+          <p class="desc">May potentiate anticoagulant effect; monitor INR closely during and after the course.</p>
+          <label class="ack"><input type="checkbox" class="ackbox" id="ack2"> I have reviewed this interaction.</label>
+        </div>
+      </div>
+      <div class="pf">
+        <button type="button" class="ghost" id="editrx">Edit prescription</button>
+        <span class="spacer"></span>
+        <button type="button" class="sign" id="sign" disabled>Sign &amp; continue</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ---- Required-interaction gate with a modal focus hold + DOCUMENTED non-standard exit ----
+    // PASS: focus is intentionally held inside the review panel (modal). The gate is satisfied
+    // entirely by keyboard (check each box with Space), then "Sign & continue" releases focus.
+    // Independently, the on-screen-documented Alt+X always untraps focus back to the prescription.
+    var scrim   = document.getElementById('scrim');
+    var panel   = scrim.querySelector('.panel');
+    var review  = document.getElementById('review');
+    var editrx  = document.getElementById('editrx');
+    var sign    = document.getElementById('sign');
+    var boxes   = Array.prototype.slice.call(document.querySelectorAll('.ackbox'));
+    var drug    = document.getElementById('drug');
+    var rxstat  = document.getElementById('rxstatus');
+
+    function focusables() {
+      return Array.prototype.slice.call(
+        panel.querySelectorAll('input, button, a[href], [tabindex]:not([tabindex="-1"])')
+      ).filter(function (el) { return !el.disabled && el.offsetParent !== null; });
+    }
+
+    function openPanel() {
+      scrim.classList.add('open');
+      scrim.setAttribute('aria-hidden', 'false');
+      // Move focus INTO the panel (so the user genuinely enters the section).
+      var f = focusables();
+      if (f.length) f[0].focus();
+    }
+
+    function closePanel(returnTo) {
+      scrim.classList.remove('open');
+      scrim.setAttribute('aria-hidden', 'true');
+      (returnTo || drug).focus();
+    }
+
+    function refreshGate() {
+      var all = boxes.every(function (b) { return b.checked; });
+      sign.disabled = !all;
+    }
+
+    review.addEventListener('click', openPanel);
+    boxes.forEach(function (b) { b.addEventListener('change', refreshGate); });
+
+    // Satisfy-then-release path: signing closes the panel and progresses the prescription.
+    sign.addEventListener('click', function () {
+      if (sign.disabled) return;
+      closePanel(drug);
+      rxstat.textContent = 'Interactions acknowledged. Prescription signed and ready to transmit.';
+    });
+
+    // Documented non-standard exit: Alt+X leaves WITHOUT acknowledging, returning to the Rx.
+    editrx.addEventListener('click', function () { closePanel(drug); });
+
+    // Focus management while the modal is open.
+    document.addEventListener('keydown', function (e) {
+      if (!scrim.classList.contains('open')) return;
+
+      // Documented escape hatch — always available, exactly as advertised on screen.
+      if (e.altKey && (e.key === 'x' || e.key === 'X')) {
+        e.preventDefault();
+        closePanel(drug);
+        return;
+      }
+
+      // Esc is intentionally inert here (patient-safety design choice; the Alt+X note covers it).
+      if (e.key === 'Escape') { e.preventDefault(); return; }
+
+      // Cycle Tab / Shift+Tab within the panel (legitimate modal focus containment).
+      if (e.key === 'Tab') {
+        var f = focusables();
+        if (!f.length) return;
+        var first = f[0], last = f[f.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    });
+  </script>
+</body>
+</html>

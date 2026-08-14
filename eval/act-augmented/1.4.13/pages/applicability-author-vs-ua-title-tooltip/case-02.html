@@ -33,24 +33,18 @@
   .rx-sub { color: #5b6f66; font-size: 13px; margin-top: 2px; }
   .grow { flex: 1; }
 
-  /* The status pill carries an info icon. On hover it shows a hint that LOOKS like
-     the browser's native title tooltip: same dark gray, same small rounded corners,
-     same font, same ~12px size, positioned just below. But it is an author DIV. */
   .info {
     width: 18px; height: 18px; border-radius: 50%;
     border: 1px solid #b9c8c1; color: #5b6f66; background: #fff;
     font-size: 11px; font-weight: 700; display: inline-grid; place-items: center;
     cursor: help; position: relative;
   }
-  /* Author tooltip styled to imitate the native UA tooltip's chrome. */
   .nwtip {
     position: absolute; top: 24px; left: 50%; transform: translateX(-50%);
     background: #4a4a4a; color: #fff; font-size: 12px; line-height: 1.35;
     font-family: "Segoe UI", system-ui, sans-serif; font-weight: 400;
     padding: 5px 8px; border-radius: 4px; white-space: nowrap;
     box-shadow: 0 1px 3px rgba(0,0,0,.35);
-    /* Crucially: the bubble does NOT accept the pointer, so moving toward it to
-       read it makes mouseleave fire on the trigger and the bubble vanishes. */
     pointer-events: none;
     opacity: 0; visibility: hidden; transition: opacity .12s ease;
     z-index: 5;
@@ -74,10 +68,6 @@
         <div class="rx-sub">Maria Delgado · 30 tablets · Dr. Okafor</div>
       </div>
       <span class="pill ready">Ready</span>
-      <!-- Native title is set on the server template, then a JS init() STRIPS it
-           and re-renders the same text as an author bubble (classic Bootstrap /
-           jQuery-UI tooltip behavior: it reads element.title, blanks it, and shows
-           its own div so the OS tooltip won't double up). -->
       <span class="info" data-tip="Ready for pickup. Held at counter for 14 days."
             title="Ready for pickup. Held at counter for 14 days." tabindex="0"
             role="img" aria-label="Status help">i</span>
@@ -114,16 +104,9 @@
   </main>
 
   <script>
-    // Bootstrap/jQuery-UI-style tooltip plugin (condensed). On init it MOVES the
-    // native title into a data attribute (blanking title=) and shows an AUTHOR div.
-    // => The visible bubble is author-controlled, so 1.4.13 DOES apply. And because
-    //    the bubble is pointer-events:none and only listens to mouseenter/leave on
-    //    the trigger (no Esc handler, no hover-bridge), it is NOT hoverable and NOT
-    //    dismissible-without-moving-the-pointer => FAILS 1.4.13.
     (function () {
       var triggers = document.querySelectorAll('.info[data-tip]');
       triggers.forEach(function (el) {
-        // Suppress the native UA tooltip so it does not appear alongside ours.
         var text = el.getAttribute('title') || el.getAttribute('data-tip');
         el.removeAttribute('title');
         var bubble = document.createElement('span');
@@ -134,23 +117,12 @@
         function show() { bubble.style.opacity = '1'; bubble.style.visibility = 'visible'; }
         function hide() { bubble.style.opacity = '0'; bubble.style.visibility = 'hidden'; }
         el.addEventListener('mouseenter', show);
-        el.addEventListener('mouseleave', hide);   // fires the instant the pointer
-                                                    // leaves the 18px icon — there is
-                                                    // no path onto the bubble.
+        el.addEventListener('mouseleave', hide);   
         el.addEventListener('focus', show);
         el.addEventListener('blur', hide);
-        // NOTE: no keydown/Escape handler anywhere.
       });
     })();
   </script>
 
-  <!-- WHY AUTOMATED TOOLS MISS IT:
-       A static scan sees, at rest, plain <span> icons (the title= has already been
-       stripped by JS at runtime, and even before that, a title= alone is valid). It
-       cannot tell that the visible gray bubble on hover is an AUTHOR div rather than
-       the browser's native title rendering. That attribution is exactly what flips
-       this from "out of scope (UA title)" to "in scope, and failing (author bubble
-       that is not hoverable / not dismissible)." Determining hoverable/dismissible
-       are interaction-time properties no static checker exercises. -->
 </body>
 </html>

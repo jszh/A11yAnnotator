@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 4: Estuaries — Tidewater Field School</title>
+<!--
+  SC 4.1.2 BOUNDARY / PASSED variant for the "stale name after content change"
+  aspect. This is the SAME component class as the failing cases (a named,
+  interactive toggle whose visual content swaps on click) but built CORRECTLY:
+  the script rewrites the accessible NAME in lockstep with the swapped glyph, so
+  the name is never stale.
+
+  Two toggles, both done right:
+   1) A mute/unmute button: glyph swaps AND aria-label is rewritten each click.
+   2) A caption-language refresh control whose <img alt> (a flag) is regenerated
+      together with the src, so the text alternative always matches the picture.
+
+  Why this is the sharpening boundary:
+   - It proves the aspect is about TEMPORAL CORRECTNESS, not about the mere
+     presence of a name. A static one-shot scan cannot tell case-06 (pass) apart
+     from case-02 (fail): both show a non-empty named toggle at every instant.
+     Only by triggering the change and re-reading the name can a human see that
+     HERE the name tracked the content, and THERE it went stale.
+   - Expected ACT outcome: PASSED (no F20 condition — after the change the text
+     alternative still substitutes for the non-text content).
+-->
+<style>
+  body { margin:0; font-family:"Inter","Segoe UI",Arial,sans-serif;
+         background:#0c1a17; color:#e8f1ee; }
+  header { background:#0a2620; padding:12px 22px; font-weight:700;
+           color:#bfe9da; }
+  main { max-width:760px; margin:24px auto; padding:0 18px; }
+  h1 { font-size:21px; margin:4px 0 14px; }
+  .player { background:#08130f; border:1px solid #1d3b33; border-radius:12px;
+            overflow:hidden; }
+  .stage { height:300px; background:
+            radial-gradient(120% 120% at 30% 20%, #2e6f5e 0%, #123c31 55%, #08221b 100%);
+            position:relative; }
+  .stage .cap { position:absolute; left:50%; bottom:18px; transform:translateX(-50%);
+                background:rgba(0,0,0,.6); padding:6px 14px; border-radius:6px;
+                font-size:15px; max-width:90%; text-align:center; }
+  .controls { display:flex; align-items:center; gap:14px; padding:12px 16px;
+              background:#0a1c17; border-top:1px solid #1d3b33; }
+  .ctl { background:#10302a; border:1px solid #245045; color:#dff3ed;
+         border-radius:8px; padding:9px 12px; cursor:pointer; line-height:0; }
+  .ctl:focus-visible { outline:3px solid #ffd166; outline-offset:2px; }
+  .ctl svg { width:22px; height:22px; }
+  .lang { display:flex; align-items:center; gap:8px; margin-inline-start:auto;
+          font-size:13px; color:#9fc4b8; }
+  .lang button { background:#10302a; border:1px solid #245045; border-radius:8px;
+                 padding:6px 9px; cursor:pointer; line-height:0; }
+  .lang button:focus-visible { outline:3px solid #ffd166; outline-offset:2px; }
+  .lang img { width:26px; height:18px; display:block; border-radius:2px; }
+  .note { color:#8fb3a8; font-size:13px; margin-top:14px; }
+</style>
+</head>
+<body>
+<header>Tidewater Field School</header>
+<main>
+  <h1>Lesson 4: How Estuaries Mix Fresh and Salt Water</h1>
+
+  <div class="player">
+    <div class="stage" aria-hidden="true">
+      <div class="cap" id="caption">Where a river meets the sea, brackish water forms&hellip;</div>
+    </div>
+    <div class="controls">
+      <!-- TOGGLE 1: mute/unmute — name is kept in sync with the glyph. -->
+      <button id="muteBtn" class="ctl" type="button"
+              aria-pressed="false"
+              aria-label="Mute audio"
+              onclick="toggleMute()">
+        <svg id="muteIcon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 9v6h4l5 4V5L8 9H4z" fill="#dff3ed"/>
+          <path id="wave" d="M16 8a6 6 0 0 1 0 8M18.5 5.5a9 9 0 0 1 0 13"
+                fill="none" stroke="#dff3ed" stroke-width="1.6"/>
+        </svg>
+      </button>
+
+      <span style="font-size:13px;color:#9fc4b8;">12:04 / 18:30</span>
+
+      <!-- TOGGLE 2: caption-language refresh — alt regenerated with the flag. -->
+      <span class="lang">
+        Captions:
+        <button id="langBtn" type="button" onclick="cycleLang()">
+          <img id="flagImg" alt="Captions: English"
+               src="data:image/svg+xml;utf8,&lt;svg xmlns='http://www.w3.org/2000/svg' width='26' height='18'&gt;&lt;rect width='26' height='18' fill='%23012169'/&gt;&lt;path d='M0 0l26 18M26 0L0 18' stroke='%23fff' stroke-width='3'/&gt;&lt;path d='M13 0v18M0 9h26' stroke='%23fff' stroke-width='5'/&gt;&lt;path d='M13 0v18M0 9h26' stroke='%23C8102E' stroke-width='3'/&gt;&lt;/svg&gt;">
+        </button>
+      </span>
+    </div>
+  </div>
+  <p class="note">Tip: use the controls to mute narration or switch caption language.</p>
+</main>
+
+<script>
+  // Persona: a developer who read the ARIA APG button pattern and treats the
+  // accessible name as STATE, not as a write-once template attribute. Every
+  // handler that changes what the control shows ALSO rewrites its name, so the
+  // name and the rendered content can never disagree. This is the correct
+  // counterpart to the F20 failures.
+
+  // ---- Toggle 1: mute/unmute ----
+  var muted = false;
+  function toggleMute() {
+    muted = !muted;
+    var btn  = document.getElementById('muteBtn');
+    var wave = document.getElementById('wave');
+    // Visual: show/hide the sound waves to read as muted vs. playing.
+    wave.style.display = muted ? "none" : "";
+    btn.setAttribute('aria-pressed', muted ? "true" : "false");
+    // CORRECT: the accessible NAME is rewritten to match the new state, so it
+    // describes the action the control now performs.
+    btn.setAttribute('aria-label', muted ? "Unmute audio" : "Mute audio");
+  }
+
+  // ---- Toggle 2: caption language refresh ----
+  var langs = [
+    { code:"English",  cap:"Where a river meets the sea, brackish water forms…",
+      svg:"<svg xmlns='http://www.w3.org/2000/svg' width='26' height='18'><rect width='26' height='18' fill='#012169'/><path d='M0 0l26 18M26 0L0 18' stroke='#fff' stroke-width='3'/><path d='M13 0v18M0 9h26' stroke='#fff' stroke-width='5'/><path d='M13 0v18M0 9h26' stroke='#C8102E' stroke-width='3'/></svg>" },
+    { code:"Español", cap:"Donde un río se encuentra con el mar, se forma agua salobre…",
+      svg:"<svg xmlns='http://www.w3.org/2000/svg' width='26' height='18'><rect width='26' height='18' fill='#AA151B'/><rect y='4.5' width='26' height='9' fill='#F1BF00'/></svg>" },
+    { code:"Français", cap:"Là où un fleuve rencontre la mer, l'eau saumâtre se forme…",
+      svg:"<svg xmlns='http://www.w3.org/2000/svg' width='26' height='18'><rect width='8.66' height='18' x='0' fill='#0055A4'/><rect width='8.66' height='18' x='8.66' fill='#fff'/><rect width='8.66' height='18' x='17.33' fill='#EF4135'/></svg>" }
+  ];
+  var li = 0;
+  function cycleLang() {
+    li = (li + 1) % langs.length;
+    var L = langs[li];
+    var img = document.getElementById('flagImg');
+    // Visual content (the flag picture + the visible caption) is swapped...
+    img.setAttribute('src', "data:image/svg+xml;utf8," + encodeURIComponent(L.svg));
+    document.getElementById('caption').textContent = L.cap;
+    // CORRECT (no F20): the text alternative is regenerated WITH the picture, so
+    // alt always matches the rendered flag/language. The name never goes stale.
+    img.setAttribute('alt', "Captions: " + L.code);
+  }
+</script>
+</body>
+</html>

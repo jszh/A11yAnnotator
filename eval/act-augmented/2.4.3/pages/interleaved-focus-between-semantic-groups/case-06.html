@@ -4,23 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Talentforge ATS — Application: Background</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS (SC 2.4.3 Focus Order):
-  A job application's "Background" step has two stacked, single-column sections under
-  headings: "Education" (degree, school, graduation year) and "Work experience" (job title,
-  company, years). Visually it reads as one section fully above the other. Every control has
-  a real <label for>, correct name/role, and is keyboard-operable; there is NO tabindex.
-  But the DOM interleaves the two sections row-by-row: education-degree, work-title,
-  education-school, work-company, education-year, work-years. The CSS grid pins each field
-  into the correct section block, so on screen "Education" appears as a complete block above
-  a complete "Work experience" block. A keyboard user, however, is bounced from the
-  Education section down to Work and back on alternate tabs: they enter their degree, get
-  thrown to a job title, back to their school, over to a company name, etc. The two distinct
-  parts of a CV are woven together, destroying the "I'm filling in my education" model.
-  Automated tools see valid labeled inputs and report nothing; they have no concept that
-  "school" and "graduation year" belong with "degree" (Education) and not between Education
-  and Work fields. Only a human reasoning about CV structure can catch the interleave.
--->
 <style>
   :root { --ink:#1c2128; --brand:#c2410c; --line:#e6e1da; --muted:#5f6670; --bg:#fbfaf8; }
   * { box-sizing:border-box; }
@@ -34,9 +17,6 @@
   main { max-width:680px; margin:0 auto; padding:30px 24px 80px; }
   .lede { color:var(--muted); margin:0 0 24px; }
 
-  /* Single-column form, two stacked sections. One CSS grid with named rows; each field is
-     pinned to its section's row so the DOM (interleaved) order is decoupled from the
-     visual (section-blocked) order. */
   form { display:grid;
          grid-template-columns:1fr;
          grid-template-areas:
@@ -75,20 +55,11 @@
 <main>
   <p class="lede">Step 2 of 4 — tell us about your education and work history.</p>
 
-  <!--
-    DOM / TAB ORDER (no tabindex, pure source order) is INTERLEAVED row-by-row:
-      education-degree -> work-title -> education-school -> work-company ->
-      education-year -> work-years -> submit
-    The grid-areas re-route each field into its section block, so on screen "Education"
-    is a complete block above a complete "Work experience" block — but keyboard focus
-    alternates between the two sections on every Tab.
-  -->
   <form action="#" method="post" novalidate aria-label="Education and work history">
 
     <h2 class="sec-head ed-head">Education</h2>
     <h2 class="sec-head wk-head">Work experience</h2>
 
-    <!-- interleaved: education row, then work row -->
     <div class="field ed-degree"><label for="ed-degree">Highest degree</label>
       <input id="ed-degree" name="ed_degree" type="text" placeholder="e.g. B.S. Supply Chain Management"></div>
     <div class="field wk-title"><label for="wk-title">Most recent job title</label>

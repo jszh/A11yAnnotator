@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contents insurance quote — number of items</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS:
+  This quote wizard asks how many high-value items to schedule. Enter 80 and an error
+  fires, associated via aria-describedby, announced in role=alert, with a confident,
+  specific correction suggestion:
+  "Please enter a number between 1 and 100."
+  SC 3.3.3 structural facets all pass: error detected AND a corrected-value range is
+  suggested. axe/WAVE/Lighthouse confirm associated, announced, contrasty text.
+  THE DEFECT IS SEMANTIC: the field's REAL documented rule — printed in the visible
+  help text beside the field AND enforced by max="50" + the JS validator — is a
+  MAXIMUM of 50 ("Online quotes cover up to 50 scheduled items"). The suggested range
+  "1 to 100" overstates the true ceiling: any value from 51–100, which the suggestion
+  explicitly invites, is rejected. A user who follows the suggestion and enters 80
+  (or 100) fails again. The suggested upper bound contradicts the field's own stated
+  and enforced limit. No scanner reads the prose "between 1 and 100", reads max="50"
+  and the help text, and judges that 100 > 50 makes the suggested range wrong.
+  Catching it needs a human to compare the suggested range with the field's true
+  allowed range.
+-->
+<style>
+  :root{
+    --ink:#1c2230; --muted:#5d6675; --line:#d4dae3; --brand:#3b3f8f; --brand-d:#2c2f6e;
+    --ok:#1f7a4d; --danger:#c02d2d; --paper:#fff; --bg:#f4f6fa; --focus:#3b6fe0;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font:16px/1.55 "Inter",-apple-system,"Segoe UI",Arial,sans-serif; color:var(--ink); background:var(--bg); }
+  .wrap{ max-width:600px; margin:0 auto; padding:0 22px; }
+  .bar{ background:var(--brand-d); color:#fff; padding:14px 0; font-weight:700; }
+  .steps{ display:flex; gap:6px; margin:24px 0 8px; font-size:.78rem; color:var(--muted); }
+  .steps b{ color:var(--brand); }
+  main{ padding:18px 0 70px; }
+  .card{ background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:28px 28px 32px; }
+  h1{ font-size:1.4rem; margin:0 0 6px; }
+  .sub{ color:var(--muted); margin:0 0 24px; }
+  label{ display:block; font-weight:700; margin:0 0 6px; }
+  .help{ color:var(--muted); font-size:.9rem; margin:0 0 10px; }
+  .help strong{ color:var(--ink); }
+  input[type=number]{ width:130px; padding:11px 12px; font-size:1.1rem; border:2px solid var(--line);
+        border-radius:8px; background:#fff; }
+  input:focus{ outline:3px solid var(--focus); outline-offset:1px; border-color:var(--focus); }
+  input[aria-invalid="true"]{ border-color:var(--danger); }
+  .err{ color:var(--danger); font-weight:600; font-size:.92rem; margin:10px 0 0; }
+  .ok{ color:var(--ok); font-weight:600; font-size:.92rem; margin:10px 0 0; }
+  .nav{ margin-top:28px; display:flex; justify-content:space-between; }
+  button{ border:0; border-radius:8px; font-size:1rem; font-weight:700; padding:12px 22px; cursor:pointer; }
+  .back{ background:#e7ebf2; color:var(--ink); }
+  .next{ background:var(--brand); color:#fff; }
+  .next:hover{ background:var(--brand-d); }
+  button:focus{ outline:3px solid var(--focus); outline-offset:2px; }
+  .foot{ color:var(--muted); font-size:.74rem; margin-top:26px; text-align:center; }
+</style>
+</head>
+<body>
+  <div class="bar"><div class="wrap">Hartfield Mutual · Contents insurance</div></div>
+  <main>
+    <div class="wrap">
+      <div class="steps"><span>1 Property</span> · <span>2 Cover</span> · <b>3 High-value items</b> · <span>4 Quote</span></div>
+      <div class="card">
+        <h1>How many high-value items do you want to schedule?</h1>
+        <p class="sub">These are individual items worth more than £1,500 — jewellery, watches, art, instruments.</p>
+
+        <form id="qform" action="#" method="post" novalidate>
+          <label for="items">Number of high-value items</label>
+          <p class="help" id="items-help">
+            Online quotes cover <strong>up to 50 scheduled items</strong>. For 51 or more, please call us on 0800 555 0199.
+          </p>
+          <input type="number" id="items" name="items" min="1" max="50" step="1"
+                 aria-describedby="items-help items-err" inputmode="numeric">
+          <p class="err" id="items-err" role="alert" hidden></p>
+
+          <div class="nav">
+            <button type="button" class="back">Back</button>
+            <button type="submit" class="next">Continue to quote</button>
+          </div>
+        </form>
+
+        <p class="foot">Hartfield Mutual demo &middot; renders from file:// &middot; no quote is generated.</p>
+      </div>
+    </div>
+  </main>
+
+<script>
+(function(){
+  var form = document.getElementById('qform');
+  var items = document.getElementById('items');
+  var err  = document.getElementById('items-err');
+
+  // REAL ENFORCED RULE: 1..50 inclusive (matches the visible help text + max="50").
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    var raw = items.value.trim();
+    var n = Number(raw);
+    var valid = raw !== '' && Number.isInteger(n) && n >= 1 && n <= 50;
+    if (valid){
+      items.setAttribute('aria-invalid','false');
+      err.className = 'ok'; err.removeAttribute('role');
+      err.textContent = 'Scheduling ' + n + ' item' + (n===1?'':'s') + '. Generating your quote…';
+      err.hidden = false;
+      return;
+    }
+    items.setAttribute('aria-invalid','true');
+    err.className = 'err'; err.setAttribute('role','alert');
+    if (raw === '' || !Number.isInteger(n)){
+      err.textContent = 'Enter a whole number of items.';
+    } else {
+      // CONFIDENT, SPECIFIC — AND WRONG: the field's ceiling is 50, not 100.
+      // Following this and entering 51–100 fails again.
+      err.textContent = 'That number isn’t valid. Please enter a number between 1 and 100.';
+    }
+    err.hidden = false;
+    items.focus();
+  });
+})();
+</script>
+</body>
+</html>

@@ -18,8 +18,6 @@
         font-family: Arial, sans-serif; }
   nav > ul > li > button:focus { outline: 3px solid #ffd24d; outline-offset: -3px; }
   nav a:hover, nav button:hover { background: #163d61; }
-  /* Submenu opens on hover OR when its toggle button is activated/focused.
-     It is absolutely positioned and overlaps the page banner + intro text. */
   .submenu { position: absolute; top: 100%; inset-inline-start: 0; min-width: 260px;
         background: #fff; border: 1px solid #c9d4e0; box-shadow: 0 10px 26px rgba(0,0,0,.22);
         padding: 8px 0; z-index: 20; display: none; }
@@ -79,20 +77,13 @@
   function openMenu()  { menu.classList.add('open');  toggle.setAttribute('aria-expanded', 'true'); }
   function closeMenu() { menu.classList.remove('open'); toggle.setAttribute('aria-expanded', 'false'); }
 
-  // Open on focus and on click. (Hover handled by CSS.)
   toggle.addEventListener('focus', openMenu);
-  // INTENTIONAL DEFECT: clicking the toggle only OPENS — it does not toggle
-  // closed, so "activating the trigger" never dismisses the panel.
   toggle.addEventListener('click', function (e) { e.preventDefault(); openMenu(); });
 
-  // The ONLY dismissal: a document-level CLICK outside the menu (pointer only).
-  // This requires moving the pointer (and, for keyboard users, there is no
-  // equivalent at all). There is no keydown/Escape handler anywhere.
   document.addEventListener('click', function (e) {
     if (!menu.contains(e.target) && e.target !== toggle) closeMenu();
   });
 
-  // (No 'keydown' listener exists — Esc is completely unhandled.)
 </script>
 </body>
 </html>

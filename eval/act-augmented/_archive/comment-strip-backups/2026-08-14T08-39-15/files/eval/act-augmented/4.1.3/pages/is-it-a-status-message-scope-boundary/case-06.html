@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reserve a Table — Olive &amp; Thyme</title>
+<!--
+  ASPECT: is-it-a-status-message-scope-boundary
+  INTENDED CLASSIFICATION: failed
+  False-negative direction, distinguished from a non-status LIST. On submit the
+  booking is confirmed WITHOUT a page reload and WITHOUT moving focus. Two new
+  things appear:
+    (A) a one-line success message "Your table is booked. Confirmation sent to
+        your email." -> this IS a status message (success/result of an action).
+    (B) a reservation-summary card listing date/time/party/table -> this is just
+        the booking DETAILS being displayed, like a results list, and does NOT
+        meet the status-message definition; it needs no live region.
+  The author wrapped NEITHER in a live region and did NOT move focus. The summary
+  card being silent is fine (it's not a status). The SUCCESS line being silent is
+  the FAILURE: a genuine "Your form was successfully submitted" status (the
+  Understanding's own example) is left programmatically undeterminable. A sighted
+  user sees the green confirmation; a screen-reader user, still focused on the now
+  hidden "Reserve" button, hears nothing and may re-submit, double-booking.
+-->
+<style>
+  :root { --olive:#5b6b35; --terra:#bf6a3a; --green:#2e7d4f; --ink:#2b2a26; --muted:#6c685f; --line:#e7e3da; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Fraunces","Georgia",serif; color:var(--ink); background:#faf8f3; }
+  header { background:var(--olive); color:#fff; padding:18px 28px; text-align:center; }
+  header h1 { margin:0; font-size:1.5rem; letter-spacing:.5px; }
+  header p { margin:4px 0 0; font-size:.85rem; opacity:.9; font-family:"Inter",system-ui,sans-serif; }
+  main { max-width:560px; margin:28px auto; background:#fff; border:1px solid var(--line); border-radius:14px; padding:28px 32px; }
+  .lead { color:var(--muted); margin:0 0 22px; font-family:"Inter",system-ui,sans-serif; }
+  form { font-family:"Inter",system-ui,sans-serif; }
+  label { display:block; font-weight:600; font-size:.88rem; margin:16px 0 6px; }
+  input, select { width:100%; padding:11px 13px; border:1px solid #cfc9bd; border-radius:8px; font:inherit; }
+  .row { display:flex; gap:14px; }
+  .row > div { flex:1; }
+  button { font-family:"Inter",system-ui,sans-serif; cursor:pointer; border:0; border-radius:9px; padding:13px 26px; background:var(--terra); color:#fff; font-weight:600; margin-top:24px; width:100%; font-size:1rem; }
+  button:focus-visible, input:focus-visible, select:focus-visible { outline:3px solid #3a86ff; outline-offset:2px; }
+  /* (A) Success message — a STATUS message, but a plain styled div, no role=status / aria-live. */
+  .confirm { display:none; }
+  .confirm.show { display:block; }
+  .confirm .ok { display:flex; gap:10px; align-items:center; background:#e9f5ee; border:1px solid #bfe3cd; color:#1f5c3a; border-radius:10px; padding:14px 16px; font-family:"Inter",system-ui,sans-serif; font-weight:600; }
+  .confirm .ok .tick { width:24px; height:24px; flex:0 0 auto; border-radius:50%; background:var(--green); color:#fff; display:grid; place-items:center; font-size:.85rem; }
+  /* (B) Reservation summary card — booking DETAILS, NOT a status message; needs no live region. */
+  .summary { margin-top:18px; border:1px solid var(--line); border-radius:12px; padding:18px 20px; font-family:"Inter",system-ui,sans-serif; }
+  .summary h2 { margin:0 0 10px; font-size:1.02rem; }
+  .summary dl { display:grid; grid-template-columns:auto 1fr; gap:6px 18px; margin:0; font-size:.92rem; }
+  .summary dt { color:var(--muted); }
+  .summary dd { margin:0; font-weight:600; }
+  .why { background:#f7f5ef; border:1px solid var(--line); border-radius:8px; padding:14px 16px; margin-top:18px; font-size:.8rem; color:#5d5742; font-family:"Inter",system-ui,sans-serif; }
+  footer { max-width:560px; margin:18px auto 50px; color:var(--muted); font-size:.78rem; text-align:center; font-family:"Inter",system-ui,sans-serif; }
+</style>
+</head>
+<body data-intended-classification="failed" data-sc="4.1.3">
+<header>
+  <h1>Olive &amp; Thyme</h1>
+  <p>Farmhouse Mediterranean · Reservations</p>
+</header>
+
+<main>
+  <p class="lead">Book your table below. We hold reservations for 15 minutes past the booking time.</p>
+
+  <form id="book" novalidate>
+    <label for="name">Name on reservation</label>
+    <input id="name" name="name" value="Marisol Vega">
+
+    <div class="row">
+      <div>
+        <label for="date">Date</label>
+        <input id="date" name="date" type="date" value="2026-07-03">
+      </div>
+      <div>
+        <label for="time">Time</label>
+        <select id="time" name="time">
+          <option>6:30 PM</option>
+          <option selected>7:00 PM</option>
+          <option>7:30 PM</option>
+          <option>8:00 PM</option>
+        </select>
+      </div>
+    </div>
+
+    <label for="party">Party size</label>
+    <select id="party" name="party">
+      <option>2 guests</option>
+      <option selected>4 guests</option>
+      <option>6 guests</option>
+    </select>
+
+    <button type="submit" id="reserveBtn">Reserve table</button>
+  </form>
+
+  <!-- (A) STATUS message (success) — plain div, NO role=status / aria-live, NO focus move. -->
+  <div class="confirm" id="confirm">
+    <div class="ok">
+      <span class="tick" aria-hidden="true">✓</span>
+      <span id="okText">Your table is booked. A confirmation has been emailed to you.</span>
+    </div>
+
+    <!-- (B) Booking DETAILS — not a status message; correctly needs no live region. -->
+    <div class="summary">
+      <h2>Reservation details</h2>
+      <dl>
+        <dt>Name</dt><dd id="sName">Marisol Vega</dd>
+        <dt>Date</dt><dd id="sDate">Friday, July 3, 2026</dd>
+        <dt>Time</dt><dd id="sTime">7:00 PM</dd>
+        <dt>Party</dt><dd id="sParty">4 guests</dd>
+        <dt>Table</dt><dd>Patio · #12</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="why">
+    Why automated tools cannot judge this page: the form, the confirmation block, and the details card are
+    all valid, well-contrasted markup with no missing attributes, so axe/WAVE/Lighthouse pass them, and
+    they never submit the form to see what appears. The judgment is which appeared content is a status:
+    the <strong>"Your table is booked"</strong> line is a success status message (the Understanding's own
+    "Your form was successfully submitted" example) and needs a live region or focus; the
+    <strong>reservation-details card</strong> is just the booking data being shown — like a results list —
+    and is correctly NOT a status message. Telling these two apart, and seeing that only the success line
+    is left silent, is meaning-based human interpretation.
+  </div>
+</main>
+
+<footer>
+  Olive &amp; Thyme · 214 Canal Street · Open Tue–Sun · (000) 555-0142
+</footer>
+
+<script>
+  // On submit, confirm the booking WITHOUT a reload and WITHOUT moving focus. The success line and the
+  // details card are both revealed in a plain container with no role=status / aria-live. Focus stays on
+  // the (now hidden) Reserve button. The SUCCESS message is a genuine status message left
+  // programmatically undeterminable -> 4.1.3 FAIL. The details card is NOT a status message and is fine.
+  document.getElementById('book').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var time = document.getElementById('time').value;
+    var party = document.getElementById('party').value;
+    document.getElementById('sTime').textContent = time;
+    document.getElementById('sParty').textContent = party;
+    document.getElementById('confirm').classList.add('show');
+    document.getElementById('book').style.display = 'none';
+    // No focus move, no aria-live: a sighted user sees the green success; AT users hear nothing.
+  });
+</script>
+</body>
+</html>

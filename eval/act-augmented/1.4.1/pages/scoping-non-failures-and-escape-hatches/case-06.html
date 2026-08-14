@@ -14,20 +14,12 @@
   legend { font-weight:700; font-size:13px; text-transform:uppercase; letter-spacing:.06em;
            color:#5b6168; margin-bottom:10px; }
   .times { display:flex; flex-wrap:wrap; gap:10px; }
-  /* Each showtime is a radio whose label is a pill. The CHOSEN showtime is indicated by
-     INVERTING the pill's foreground and background:
-        unselected pill = dark text #1d2330 on white bg #ffffff
-        selected   pill = white text #ffffff on dark bg #1d2330  (foreground/background swapped)
-     The inversion is an additional visual distinction with ample contrast (the selected pill's
-     dark background differs from the white unselected pills by ~15.7:1 in lightness), so it
-     survives greyscale and colour-vision deficiency. Per the Understanding note, distinguishing
-     content by inverting an element's foreground and background colours passes 1.4.1. */
   .pill { display:inline-block; }
   .pill input { position:absolute; opacity:0; width:1px; height:1px; }
   .pill label { display:inline-block; padding:9px 16px; border:2px solid #1d2330;
                 border-radius:999px; color:#1d2330; background:#fff; cursor:pointer;
                 font-variant-numeric:tabular-nums; }
-  .pill input:checked + label { color:#fff; background:#1d2330; }   /* inverted */
+  .pill input:checked + label { color:#fff; background:#1d2330; }   
   .pill input:focus-visible + label { outline:3px solid #2f6df6; outline-offset:2px; }
   .pill.sold label { color:#9aa0a8; border-color:#d7dade; cursor:not-allowed; text-decoration:line-through; }
   .hall { margin-top:6px; color:#5b6168; font-size:13px; }
@@ -59,24 +51,5 @@
   </section>
 </main>
 
-<!--
-  WHY THIS PASSES (1.4.1 inversion escape hatch — note (a), inversion example):
-  The selected showtime (15:30) is distinguished from the others by INVERTING the pill's
-  foreground and background colours: unselected pills are dark text on white; the selected pill
-  is white text on a dark background. This swap is an additional visual distinction with very
-  high contrast — the selected pill's dark fill differs from the white unselected pills by about
-  15.7:1 in lightness, so it remains obvious in greyscale and to users with any colour-vision
-  deficiency. The Understanding note: "if content is distinguished by inverting an element's
-  foreground and background colours, this would pass (again, assuming that the foreground and
-  background colours have a sufficient contrast)." (Selection is also exposed programmatically
-  via the native radio's checked state, and sold-out times carry a strikethrough + grey, but the
-  inversion alone discharges 1.4.1 for the selected-state cue.)
-
-  WHY AUTOMATED TOOLS MISS IT: an over-eager "selected state shown by colour change = use-of-
-  colour failure" heuristic (the classic swatch/chip anti-pattern) would flag this selected pill.
-  Distinguishing a genuine colour-only state cue from an INVERSION that carries an inherent
-  lightness difference requires comparing the selected and unselected backgrounds and reasoning
-  that the swap survives greyscale — a visual judgement no automated checker performs.
--->
 </body>
 </html>

@@ -21,7 +21,6 @@
   .card .price { color:#7a4d2b; font-weight:700; font-size:.92rem; }
   .card button { margin-top:10px; width:100%; padding:9px; border:0; border-radius:5px; background:#7a4d2b; color:#fff; cursor:pointer; }
 
-  /* Newsletter overlay */
   .overlay {
     position:fixed; inset:0; background:rgba(40,30,20,.55);
     display:flex; align-items:center; justify-content:center; z-index:100;
@@ -65,20 +64,6 @@
   <div class="card"><div class="ph"></div><div class="body"><h3>Ochre Cotton Throw</h3><div class="price">$96</div><button type="button">Add to bag</button></div></div>
 </div>
 
-<!--
-  THE DEFECT (F55 variant: overlay re-grabs focus to its FIRST input on every focusin).
-  A marketing-tools plugin (think a Privy/OptinMonster-style popup) wanted to "keep the
-  signup field front and center." Its focus-management code is a single overlay-scoped
-  focusin listener that re-focuses the email input whenever focus moves INSIDE the modal —
-  meant as a crude focus trap, but it never special-cases the Close (×), the Decline link,
-  or the Submit button. RESULT: a keyboard user can never Tab off the email field — every
-  attempt to reach "Close", "No thanks", or even "Get 10% off" snaps focus straight back to
-  the email box. The control they need (Close) is in the DOM, is a real <button>, is named,
-  is focusable, and is even reachable for a split second — but focus will not REST on it, so
-  the overlay cannot be dismissed or submitted by keyboard, and the page behind is unreachable.
-  (This is NOT 2.1.2: there is no Tab-cycle ring; focus is actively yanked to one element, so
-  the element that should be operable can never hold focus — a 2.1.1 "cannot rest" failure.)
--->
 <div class="overlay" id="nlOverlay" role="dialog" aria-modal="true" aria-labelledby="nlTitle">
   <div class="modal" id="nlModal">
     <button type="button" class="close" id="nlClose" aria-label="Close newsletter signup">&times;</button>
@@ -98,19 +83,12 @@
     var modal  = document.getElementById('nlModal');
     var first  = document.getElementById('nlEmail');
 
-    // Marketing-plugin "focus trap": keep attention on the signup field.
-    // BUG: it re-focuses the first input on ANY focusin inside the modal, with no
-    // exclusion for Close/Decline/Submit. So Tab/Shift+Tab to those controls always
-    // rebounds to the email box — focus can never rest on the dismiss controls.
     modal.addEventListener('focusin', function () {
-      // Defer so it wins the race against the browser's own focus assignment.
       setTimeout(function () {
         if (document.activeElement !== first) first.focus();
       }, 0);
     });
 
-    // The Close/Decline handlers themselves are fine — but you can never keep focus
-    // on them long enough to press Space/Enter, so by keyboard they're unreachable.
     document.getElementById('nlClose').addEventListener('click', closeOverlay);
     document.getElementById('nlDecline').addEventListener('click', closeOverlay);
     function closeOverlay() { document.getElementById('nlOverlay').style.display = 'none'; }

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.4.3 FAILURE — IMAGE OF TEXT done purely for a custom calligraphic look, IN SCOPE, fails.
+
+    This bistro page renders its dinner menu as ONE exported graphic (delivered here as an
+    inline-SVG data: URI, so the dish names and prices are image pixels, not live DOM text).
+    The owner did this to lock in a licensed hand-script face. The graphic is a flat parchment
+    fill plus the menu lettering — there is NO "significant other visual content" (no photo,
+    no scene, no illustration), so it is NOT a "picture that contains significant other visual
+    content." It is an image of text "done to replace text in order to get a particular look"
+    (Understanding 1.4.3) — the exemption does NOT apply, and the rendered text must meet the
+    1.4.3 contrast threshold. The lettering is sepia #9c8e6f on parchment #f3ead7 = 2.70:1.
+
+    SIZE / THRESHOLD (the loophole the previous version tripped on, now closed two ways):
+      The menu text is set NORMAL weight at font-size 22 inside a 760-wide viewBox, displayed at
+      width:min(560px,92%). Effective rendered glyph size: ~16px on a wide desktop, ~10-12px on
+      phones — well BELOW the large-scale threshold (24px normal / 18.5px bold). So the applicable
+      threshold is 4.5:1 for NORMAL text, and 2.70:1 < 4.5:1 → FAIL.
+      Belt-and-suspenders: 2.70:1 is also below the 3:1 large-scale threshold, so even if a
+      reviewer wrongly argued the text were large-scale, it would STILL fail. There is no
+      pass interpretation.
+
+    WHY AUTOMATED TOOLS MISS IT: axe-core / WAVE / Lighthouse compute contrast only for LIVE
+    TEXT NODES (CSS color vs background-color). The menu is image pixels — no text node — so the
+    scanners skip it silently (they cannot OCR/sample text inside a raster/SVG image). They also
+    cannot make the human judgment that THIS image is an image-of-text-for-look (in scope) rather
+    than an exempt picture with significant other visual content. Everything else on the page is
+    live, high-contrast text that passes, so a checker sees a clean page while the actual menu —
+    the whole point of the page — is unreadable for a low-vision diner. A human must (1) classify
+    the graphic as an in-scope image of text (flat fill, no other significant content), (2)
+    confirm from the rendered pixels that the text is normal-size (so 4.5:1 governs), and (3)
+    eyedropper the least-contrast lettering pixel vs the adjacent parchment with a Colour
+    Contrast Analyser and compare to 4.5:1.
+  -->
+  <title>Maison Verde — dinner menu</title>
+  <style>
+    :root{
+      --ink:#2a2620; --muted:#5c5448; --line:#e7ded3; --paper:#fffdf9;
+      --band:#243029; --band-ink:#fffdf9; --brand:#3a5a40;
+    }
+    *{box-sizing:border-box;}
+    body{margin:0;font-family:Georgia,"Times New Roman",serif;color:var(--ink);background:var(--paper);}
+    header.site{display:flex;align-items:center;justify-content:space-between;
+      padding:18px 32px;background:var(--band);color:var(--band-ink);}
+    .brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.06em;font-size:18px;}
+    .brand .mark{width:24px;height:24px;border-radius:50%;background:#c9a14a;}
+    nav a{color:#e9e2d3;text-decoration:none;margin-left:22px;font-size:14px;letter-spacing:.04em;}
+    nav a:hover{color:#fff;text-decoration:underline;}
+    .intro{max-width:680px;margin:0 auto;padding:40px 32px 8px;text-align:center;}
+    .intro h1{font-size:30px;margin:0 0 10px;letter-spacing:.01em;}
+    .intro p{font-size:17px;line-height:1.7;color:var(--muted);margin:0;}
+    .menuwrap{max-width:680px;margin:0 auto;padding:26px 32px 8px;text-align:center;}
+    .menuwrap img.menu{display:block;width:min(560px,92%);height:auto;margin:0 auto;
+      box-shadow:0 1px 0 var(--line);}
+    .menuwrap figcaption{font-size:13px;color:var(--muted);margin-top:10px;font-style:italic;}
+    .hours{max-width:680px;margin:0 auto;padding:30px 32px;line-height:1.8;}
+    .hours h2{font-size:20px;margin:0 0 8px;}
+    .hours dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 18px;font-size:15px;color:#33302a;}
+    .hours dt{font-weight:700;}
+    .book{display:inline-block;margin-top:14px;background:var(--brand);color:#fffdf9;
+      text-decoration:none;padding:12px 26px;border-radius:6px;font-size:15px;letter-spacing:.03em;}
+    .book:hover{filter:brightness(1.07);}
+    footer{border-top:1px solid var(--line);padding:24px 32px;color:var(--muted);font-size:13px;text-align:center;}
+  </style>
+</head>
+<body>
+  <header class="site">
+    <div class="brand"><span class="mark" aria-hidden="true"></span><span>MAISON VERDE</span></div>
+    <nav aria-label="Primary">
+      <a href="#menu">Menu</a><a href="#hours">Hours</a><a href="#book">Reservations</a>
+    </nav>
+  </header>
+
+  <section class="intro">
+    <h1>This evening at Maison Verde</h1>
+    <p>A short seasonal carte, changed daily by the kitchen. Below is tonight's printed
+       menu; please tell your server about any allergies when you order.</p>
+  </section>
+
+  <figure class="menuwrap" id="menu">
+    <!--
+      THE MENU = IMAGE OF TEXT (custom hand-script look). The alt transcribes the menu so 1.1.1
+      passes and a screen reader hears every dish + price. The failure is purely 1.4.3 CONTRAST
+      of the rendered NORMAL-SIZE lettering: sepia #9c8e6f on parchment #f3ead7 = 2.70:1 < 4.5:1.
+      No "significant other visual content" (flat fill + words only), so the exemption is OFF.
+    -->
+    <img class="menu"
+      alt="Maison Verde — Dinner. Starters: Heirloom tomato and burrata, 16. Chilled pea veloute with mint, 14. Mains: Pan-roasted halibut, brown butter, 32. Wild mushroom risotto, aged parmesan, 26. Herb-crusted lamb, ratatouille, 34. Desserts: Dark chocolate pot de creme, 11. Lavender panna cotta, 10."
+      src="data:image/svg+xml;utf8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='760'%20height='560'%20viewBox='0%200%20760%20560'%3E%3Crect%20width='760'%20height='560'%20fill='%23f3ead7'/%3E%3Cg%20fill='%239c8e6f'%20font-family='Palatino,Georgia,serif'%20text-anchor='middle'%3E%3Ctext%20x='380'%20y='64'%20font-size='30'%20letter-spacing='3'%3EDINNER%3C/text%3E%3Ctext%20x='380'%20y='118'%20font-size='22'%20font-style='italic'%3EStarters%3C/text%3E%3Ctext%20x='380'%20y='154'%20font-size='22'%3EHeirloom%20tomato%20%26amp;%20burrata%20%C2%B7%2016%3C/text%3E%3Ctext%20x='380'%20y='188'%20font-size='22'%3EChilled%20pea%20velout%C3%A9%20with%20mint%20%C2%B7%2014%3C/text%3E%3Ctext%20x='380'%20y='246'%20font-size='22'%20font-style='italic'%3EMains%3C/text%3E%3Ctext%20x='380'%20y='282'%20font-size='22'%3EPan-roasted%20halibut,%20brown%20butter%20%C2%B7%2032%3C/text%3E%3Ctext%20x='380'%20y='316'%20font-size='22'%3EWild%20mushroom%20risotto,%20parmesan%20%C2%B7%2026%3C/text%3E%3Ctext%20x='380'%20y='350'%20font-size='22'%3EHerb-crusted%20lamb,%20ratatouille%20%C2%B7%2034%3C/text%3E%3Ctext%20x='380'%20y='408'%20font-size='22'%20font-style='italic'%3EDesserts%3C/text%3E%3Ctext%20x='380'%20y='444'%20font-size='22'%3EDark%20chocolate%20pot%20de%20cr%C3%A8me%20%C2%B7%2011%3C/text%3E%3Ctext%20x='380'%20y='478'%20font-size='22'%3ELavender%20panna%20cotta%20%C2%B7%2010%3C/text%3E%3C/g%3E%3C/svg%3E">
+    <figcaption>Tonight's carte. Menu changes daily; prices in USD.</figcaption>
+  </figure>
+
+  <section class="hours" id="hours">
+    <h2>Hours &amp; reservations</h2>
+    <dl>
+      <dt>Tue–Thu</dt><dd>5:30 pm – 10:00 pm</dd>
+      <dt>Fri–Sat</dt><dd>5:30 pm – 11:00 pm</dd>
+      <dt>Sunday</dt><dd>5:00 pm – 9:00 pm</dd>
+      <dt>Closed</dt><dd>Mondays</dd>
+    </dl>
+    <a class="book" id="book" href="#reserve">Reserve a table</a>
+  </section>
+
+  <footer>© 2026 Maison Verde · 18 Rue des Oliviers · The menu above is set in our house script and posted nightly as an image.</footer>
+</body>
+</html>

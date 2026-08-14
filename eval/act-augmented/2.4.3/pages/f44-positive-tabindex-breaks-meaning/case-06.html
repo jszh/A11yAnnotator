@@ -3,39 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!--
-    SC 2.4.3 (Focus Order) — BOUNDARY counter-example (expected: inapplicable / pass).
-
-    This page USES positive tabindex AND in a SCRAMBLED numeric order — so a judge
-    that fails on "positive tabindex present" OR even on "positive tabindex order
-    != source order" would WRONGLY fail it. The point: 2.4.3 only applies when the
-    navigation sequence AFFECTS MEANING OR OPERATION. Here it does not.
-
-    The widget is a row of social-share icon buttons in a blog post footer: Share on
-    X, Facebook, LinkedIn, by email, and Copy link. These five actions are MUTUALLY
-    INDEPENDENT — there is no sequence, no "do X before Y", no data dependency. A
-    user picks exactly one. The buttons carry positive tabindex 3,1,4,2,5, so Tab
-    visits them Facebook, Email, X, LinkedIn, Copy link — a scrambled order relative
-    to the left-to-right visual order.
-
-    Per the WCAG Understanding doc: "When focus order does not affect meaning or
-    operability, this test Does Not Apply (e.g., a row of icons linking to social
-    media may not need to be navigated in a particular order)." The icons are exactly
-    that canonical example. Because the order of independent share actions does not
-    affect meaning or operability, the scrambled tab order is NOT an F44 failure.
-
-    NOTE on the rest of the page: the post itself has normal DOM-order links (no
-    tabindex) that tab top-to-bottom, so the meaningful content reading flow is
-    unaffected. The ONLY positive tabindex is on the order-irrelevant share row.
-
-    WHY THIS IS A HARD NEGATIVE: it is INDISTINGUISHABLE from a failing page by any
-    static signal — positive tabindex present, numeric order scrambled vs source.
-    The ONLY thing that makes it pass is the SEMANTIC fact that the five actions are
-    independent so their order carries no meaning. axe would emit its best-practice
-    positive-tabindex note here identically to case-01; a judge keyed on tabindex (or
-    even on "order differs from source") would false-positive. Recognising that
-    these particular controls have no meaningful sequence is the human judgment.
-  -->
   <title>How we cut our build time in half — Engineering Blog</title>
   <style>
     :root { --ink:#1b1f24; --muted:#606a73; --rule:#e0e4e8; --brand:#5b21b6; --bg:#fbfbfc; }
@@ -84,13 +51,6 @@
       <p>Put together, these three changes roughly halved our median build. The rollout details — and the one rollback we had to do — are in the <a href="/docs/rollout-notes">rollout notes</a>.</p>
     </article>
 
-    <!--
-      SHARE ROW: five INDEPENDENT actions. Order carries no meaning (you pick one).
-      Positive tabindex is SCRAMBLED (3,1,4,2,5) so Tab order != visual order, but
-      because the actions are order-independent this does NOT affect meaning or
-      operability -> 2.4.3 Does Not Apply / passes. This is the Understanding doc's
-      "row of icons linking to social media" example verbatim.
-    -->
     <div class="post-foot">
       <h2>Share this post</h2>
       <div class="share" role="group" aria-label="Share this post">
@@ -113,7 +73,6 @@
 
       <nav class="related" aria-label="Related posts">
         <h2>Keep reading</h2>
-        <!-- These have NO tabindex -> normal DOM-order traversal, unaffected -->
         <a href="/blog/flaky-tests">Hunting down our flakiest tests</a>
         <a href="/blog/monorepo-graph">Visualizing the monorepo dependency graph</a>
       </nav>

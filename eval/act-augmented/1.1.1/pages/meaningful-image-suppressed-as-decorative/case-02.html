@@ -3,29 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!--
-    SC 1.1.1 FAILURE — informative <canvas> infographic declared decorative.
-
-    The energy "rate plan comparison" is painted entirely onto a <canvas>: the day/night
-    (peak / off-peak) unit prices and the standing charge for each of the three tariffs are
-    drawn as canvas pixels. Canvas pixels are NOT part of the accessibility tree — a <canvas>
-    exposes nothing to AT unless it is given a role/name or carries fallback DOM content. Here
-    the author ALSO put role="presentation" on it and supplied NO fallback content, no <table>,
-    no <dl>, no text duplicate. So a screen-reader shopper gets the heading and the marketing
-    sentence, but ZERO prices, and cannot compare tariffs or pick one.
-
-    WHY THE SUPPRESSION IS REAL (unlike role="presentation" on an inline <svg>, whose <text>
-    descendants stay in the tree): a <canvas> has no DOM descendants that become a11y nodes —
-    the numbers exist only as rasterised pixels. role="presentation" simply confirms the author
-    intends it to be ignored. Accessibility.getFullAXTree shows the canvas as an ignored node
-    with no descendant StaticText for any price.
-
-    WHY AUTOMATED TOOLS MISS IT: a <canvas role="presentation"> with no fallback is valid,
-    decorative-by-construction markup. axe/WAVE/Lighthouse cannot OCR the painted prices, cannot
-    know the tariff data appears nowhere else, and see only a correctly-decorative canvas plus a
-    properly-labelled <select> and button. Only a human who reads the rendered prices and
-    confirms there is no text equivalent can judge the "decorative" declaration wrong.
-  -->
   <title>Compare energy tariffs | Brightwater Energy</title>
   <style>
     * { box-sizing:border-box; }
@@ -57,11 +34,6 @@
     <section class="panel" aria-labelledby="rateh">
       <h2 id="rateh">Tariff comparison (prices include VAT)</h2>
       <div class="chart-wrap">
-        <!--
-          The entire comparison — peak / off-peak unit prices and standing charge for each of
-          the three tariffs — is painted onto this <canvas>. There is NO <table>, NO <dl>, NO
-          text duplicate, and NO fallback content inside <canvas>, so AT users get no prices.
-        -->
         <canvas id="rateChart" role="presentation" width="640" height="280"></canvas>
       </div>
       <p class="blurb">All tariffs are fixed for 12 months with no exit fees. Prices shown are for a typical home in the South East region.</p>
@@ -80,21 +52,17 @@
   </main>
 
   <script>
-    // Paint the tariff comparison onto the canvas. These numbers are the ONLY copy of the
-    // pricing data on the page — they exist only as canvas pixels.
     (function () {
       var c = document.getElementById('rateChart');
       var ctx = c.getContext('2d');
       var W = c.width, H = c.height;
 
-      // background + frame
       ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
       ctx.strokeStyle = '#d9e2ec'; ctx.lineWidth = 1; ctx.strokeRect(0.5, 0.5, W - 1, H - 1);
 
-      var cols = [40, 250, 400, 540];          // label col + 3 tariff cols (left edges)
+      var cols = [40, 250, 400, 540];          
       var headerY = 38, rowH = 44, firstRow = 78;
 
-      // header band
       ctx.fillStyle = '#eef4f5'; ctx.fillRect(1, 1, W - 2, 54);
       ctx.fillStyle = '#0b5a64';
       ctx.font = 'bold 16px Segoe UI, Arial, sans-serif';
@@ -103,7 +71,6 @@
       ctx.fillText('Day & Night', cols[2], headerY);
       ctx.fillText('Green Fixed', cols[3], headerY);
 
-      // column separators
       ctx.strokeStyle = '#e4ebf1';
       [232, 384, 524].forEach(function (x) {
         ctx.beginPath(); ctx.moveTo(x, 56); ctx.lineTo(x, H - 1); ctx.stroke();

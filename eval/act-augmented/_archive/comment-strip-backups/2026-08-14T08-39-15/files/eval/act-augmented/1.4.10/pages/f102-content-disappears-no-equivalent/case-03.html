@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Route 9 — Northgate Loop · Cedar Valley Transit</title>
+<!--
+  SC 1.4.10 Reflow — F102: primary navigation collapses to a hamburger button at
+  320px, but the hamburger is DEAD. The six destination links are reachable at
+  desktop width; at narrow width the <nav> list is display:none and the only thing
+  shown is a hamburger button that has no menu wired to it. Clicking/activating it
+  does nothing — there is no onclick handler, no <details>, no target panel, no
+  links inside it. The six destinations (Plan a trip, Schedules, Fares, Alerts,
+  Accessibility services, Contact) are unreachable below 768px and appear nowhere
+  else (the footer has only legal links).
+
+  THE TRAP: the hamburger LOOKS like the legitimate, SC-blessed responsive pattern
+  (the Understanding doc literally shows nav collapsing to a hamburger as a PASS).
+  A tool sees a real <button> with an accessible name ("Menu") and aria-expanded —
+  it passes name/role checks. Whether that button actually reveals the dropped
+  links is a runtime behaviour a static checker cannot evaluate. Here it reveals
+  nothing.
+
+  WHY AUTOMATED TOOLS MISS IT: the button is well-formed (type=button, aria-label,
+  aria-expanded="false"). The six <a> links exist in the DOM but are display:none
+  at narrow width. No tool activates the button at 320px, checks whether the menu
+  opens, and confirms the dropped links became reachable. Distinguishing a working
+  hamburger (PASS, see case-04) from a decorative dead one (FAIL) is exactly the
+  human judgment F102 demands.
+-->
+<style>
+  :root { --green:#0b6e4f; --dark:#06291d; --line:#cfe0d8; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family: "Public Sans", system-ui, Arial, sans-serif; color:#16241d; background:#fff; }
+  .skip { position:absolute; left:-999px; }
+  .skip:focus { left:8px; top:8px; background:#fff; padding:8px; z-index:10; }
+  header { background:var(--green); color:#fff; }
+  .bar { max-width:1100px; margin:0 auto; display:flex; align-items:center; gap:20px; padding:12px 20px; }
+  .agency { font-weight:800; letter-spacing:.02em; font-size:1.05rem; white-space:nowrap; }
+  nav.primary ul { list-style:none; display:flex; gap:4px; margin:0; padding:0; }
+  nav.primary a {
+    color:#fff; text-decoration:none; padding:10px 14px; border-radius:6px;
+    font-size:.92rem; display:block;
+  }
+  nav.primary a:hover, nav.primary a:focus { background:rgba(255,255,255,.16); }
+
+  /* The hamburger button: present in DOM, shown only at narrow width.
+     It is a real <button> with a name — but NOTHING is wired to it. */
+  .hamburger {
+    display:none; margin-left:auto; background:transparent; border:1px solid rgba(255,255,255,.5);
+    color:#fff; border-radius:6px; padding:9px 12px; font:inherit; cursor:pointer;
+  }
+  .hamburger .bars { display:inline-block; width:18px; height:2px; background:#fff;
+    position:relative; vertical-align:middle; margin-right:8px; }
+  .hamburger .bars::before, .hamburger .bars::after {
+    content:""; position:absolute; left:0; width:18px; height:2px; background:#fff; }
+  .hamburger .bars::before { top:-6px; } .hamburger .bars::after { top:6px; }
+
+  main { max-width:1100px; margin:0 auto; padding:28px 20px 60px; }
+  h1 { font-size:1.8rem; margin:.1em 0 .3em; }
+  .lead { color:#3d5249; max-width:60ch; }
+  .stops { border:1px solid var(--line); border-radius:10px; margin-top:22px; overflow:hidden; }
+  .stops h2 { margin:0; background:#f1f7f4; padding:12px 16px; font-size:1.05rem; border-bottom:1px solid var(--line); }
+  .stops ol { margin:0; padding:0; list-style:none; }
+  .stops li { display:flex; justify-content:space-between; padding:11px 16px; border-bottom:1px solid #eef4f1; }
+  .stops li:last-child { border-bottom:0; }
+  .stops .t { color:var(--green); font-variant-numeric:tabular-nums; font-weight:600; }
+  footer { border-top:4px solid var(--green); margin-top:40px; }
+  .foot { max-width:1100px; margin:0 auto; padding:20px; font-size:.82rem; color:#3d5249; }
+  .foot a { color:#0b6e4f; }
+
+  @media (max-width: 768px) {
+    nav.primary { display:none; }        /* <-- six destination links removed at narrow width */
+    .hamburger { display:inline-block; } /* <-- a button appears, but it opens nothing (F102) */
+  }
+</style>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to main content</a>
+  <header>
+    <div class="bar">
+      <span class="agency">Cedar Valley Transit</span>
+      <nav class="primary" aria-label="Main">
+        <ul>
+          <li><a href="/plan">Plan a trip</a></li>
+          <li><a href="/schedules">Schedules</a></li>
+          <li><a href="/fares">Fares &amp; passes</a></li>
+          <li><a href="/alerts">Service alerts</a></li>
+          <li><a href="/accessibility-services">Accessibility services</a></li>
+          <li><a href="/contact">Contact us</a></li>
+        </ul>
+      </nav>
+      <!-- Real button, real name, real aria-expanded — but no handler, no target, no menu. -->
+      <button class="hamburger" type="button" aria-label="Menu" aria-expanded="false">
+        <span class="bars" aria-hidden="true"></span>Menu
+      </button>
+    </div>
+  </header>
+
+  <main id="main">
+    <h1>Route 9 — Northgate Loop</h1>
+    <p class="lead">The Northgate Loop connects the transit centre with the hospital, the community
+      college, and the Northgate retail district. Buses run every 20 minutes on weekdays and every
+      40 minutes on weekends and public holidays.</p>
+
+    <section class="stops" aria-labelledby="next-h">
+      <h2 id="next-h">Next departures from Transit Centre, Bay 4</h2>
+      <ol>
+        <li><span>Northgate Loop</span><span class="t">10:04</span></li>
+        <li><span>Northgate Loop</span><span class="t">10:24</span></li>
+        <li><span>Northgate Loop</span><span class="t">10:44</span></li>
+        <li><span>Northgate Loop (last before midday)</span><span class="t">11:04</span></li>
+      </ol>
+    </section>
+
+    <p style="margin-top:22px; color:#3d5249;">Planning a trip, checking fares, or looking for
+      accessibility services such as kneeling buses and priority seating? Use the navigation at the
+      top of the page.</p>
+  </main>
+
+  <footer>
+    <div class="foot">
+      <p>&copy; 2026 Cedar Valley Regional Transit Authority.
+        <a href="/privacy">Privacy</a> · <a href="/terms">Terms of use</a> · <a href="/foia">Public records</a></p>
+    </div>
+  </footer>
+</body>
+</html>

@@ -17,8 +17,6 @@
   fieldset { border:1px solid #cdd4da; border-radius:6px; padding:16px 18px 6px;
              margin:0 0 18px; background:#fff; }
   legend { font-weight:600; padding:0 6px; font-size:.92rem; }
-  /* Per the company validator, a section needing attention is "highlighted in yellow".
-     That highlight is the only thing marking this line item as in error. */
   fieldset.attention { background:#fff7d6; border-color:#e6cf63; }
   .line { display:grid; grid-template-columns:150px 1fr; gap:8px 14px;
           align-items:center; margin:0 0 12px; }
@@ -59,10 +57,6 @@
         </div>
       </fieldset>
 
-      <!-- This claim line exceeds the £75 per-meal cap, so the validator flagged it by
-           highlighting the whole fieldset yellow. The descriptive text that should explain
-           the breach ("Meal exceeds the £75 cap") was never rendered. The legend stays the
-           plain "Line 2 — Meals" and no message, hidden text or aria state is present. -->
       <fieldset class="attention">
         <legend>Line 2 — Meals</legend>
         <div class="line">
@@ -101,18 +95,5 @@
   </div>
 </div>
 
-<!--
-  WHY AUTOMATED TOOLS MISS THIS
-  The "highlight in yellow" cue is exactly the multi-cue example WCAG endorses — but ONLY
-  when accompanied by a text description. Here the descriptive text was omitted, so the
-  yellow background of the "Line 2 — Meals" fieldset is the sole indicator that the £139
-  dinner breached the £75 cap. The markup is impeccable (real fieldsets/legends/labels,
-  good contrast), and a background colour on a container is never flagged by axe/WAVE/
-  Lighthouse as an error indicator. A screen-reader user reads Line 2 identically to the
-  valid lines — "Line 2 Meals, Amount GBP, 139.00" — with no spoken difference. Recognising
-  that the yellow fieldset MEANS "this line is in error" and that the explanation exists
-  only as a background colour, not in text, is a rendered-visual + semantic judgment beyond
-  any static checker.
--->
 </body>
 </html>

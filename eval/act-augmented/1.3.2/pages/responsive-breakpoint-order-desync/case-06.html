@@ -3,33 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!--
-    SC 1.3.2 PASS (boundary trap) — Responsive-breakpoint reorder that does NOT change meaning.
-
-    This page deliberately uses the SAME mechanism as the failing cases — a max-width media
-    query that applies CSS `order` to flex items, reordering them on mobile — but here the
-    reorder is HARMLESS, so it must NOT be flagged.
-
-    The dashboard "Overview" row contains three INDEPENDENT KPI summary cards (Visitors,
-    Revenue, Conversion) plus a decorative promotional banner ("Try the new export tool").
-    None of these depends on the others for meaning: each card is a self-contained statistic,
-    and the banner is decorative/marketing. Per WCAG 1.3.2, "the order of content in a
-    sequence is not always meaningful" — independent cards may occur in either order without
-    affecting meaning.
-
-    Desktop source/visual order: Banner, Visitors, Revenue, Conversion.
-    Mobile (max-width:640px) uses `order` to move the decorative banner to the BOTTOM and to
-    stack the three cards (still each self-contained). The reordered sequence still parses:
-    each card is read whole, in some order, and the banner — being decorative — can sit
-    anywhere. No instruction is split, no step sequence is inverted, no cross-reference is
-    broken, no directional convention is violated. The meaning is identical at both viewports.
-
-    WHY THIS IS A PASS / why over-flagging is the risk: an evaluator who flags ANY breakpoint
-    `order` reorder would wrongly fail this page. The correct judgment requires recognizing
-    that THIS particular sequence is NOT order-dependent (independent statistics + decorative
-    banner), per the Understanding doc's "magazine article with callout sidebars" example.
-    This trap penalizes blind flagging of responsive reorders.
-  -->
   <title>Overview — Lattice Analytics</title>
   <style>
     * { box-sizing:border-box; }
@@ -44,7 +17,6 @@
 
     .overview { display:flex; flex-wrap:wrap; gap:1rem; align-items:stretch; }
 
-    /* Each KPI card is a self-contained, independent statistic. */
     .card { flex:1 1 12rem; background:#fff; border:1px solid #dde4ea; border-radius:12px;
             padding:1.1rem 1.2rem; }
     .card .k { font-size:.78rem; text-transform:uppercase; letter-spacing:.1em; color:#7a8794; }
@@ -52,7 +24,6 @@
     .card .d { font-size:.82rem; color:#3a8f5e; }
     .card .d.neg { color:#c0473b; }
 
-    /* Decorative marketing banner — not informational to the dashboard's meaning. */
     .promo { flex:1 1 100%; order:0; background:linear-gradient(100deg,#3b5bdb,#5c7cfa);
              color:#fff; border-radius:12px; padding:1rem 1.2rem; display:flex;
              justify-content:space-between; align-items:center; gap:1rem; }
@@ -65,14 +36,10 @@
 
     .note { font-size:.8rem; color:#7a8794; margin-top:1.4rem; }
 
-    /* ===== MOBILE BREAKPOINT — a reorder that does NOT change meaning ===== */
     @media (max-width: 640px) {
       .overview { flex-direction:column; }
-      /* Push the decorative banner to the bottom on phones so the numbers come first.
-         The three KPI cards are independent statistics; their relative order does not
-         affect meaning. No order-dependent sequence exists here. */
       .promo { order:9; }
-      .card-revenue { order:1; }     /* harmless reshuffle of self-contained cards */
+      .card-revenue { order:1; }     
       .card-visitors { order:2; }
       .card-conversion { order:3; }
     }
@@ -88,13 +55,11 @@
     <h1>Overview</h1>
 
     <div class="overview">
-      <!-- Decorative marketing banner: order is immaterial to meaning. -->
       <aside class="promo" aria-label="Product announcement">
         <span class="msg">New: schedule and email your reports automatically.</span>
         <a href="#export">Try the export tool</a>
       </aside>
 
-      <!-- Three INDEPENDENT KPI cards. Each is self-contained; relative order is not meaningful. -->
       <section class="card card-visitors" aria-label="Visitors">
         <div class="k">Visitors</div>
         <div class="v">48,210</div>

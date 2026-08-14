@@ -10,26 +10,6 @@
          font-family: Georgia, "Times New Roman", serif; }
   .issue { max-width: 600px; margin: 0 auto; padding: 28px 26px 40px; }
 
-  /* This is a CMS / HTML-email style newsletter. The masthead headline was
-     baked into a flat PNG-style banner by the marketing team's image tool and
-     dropped in as a spacer-free <img>. The "text" you see in the banner is NOT
-     live DOM text — it is pixels inside the image. So:
-       - axe-core's color-contrast check only inspects DOM text nodes; it cannot
-         read the foreground/background colours of glyphs INSIDE an image, and it
-         cannot measure the glyph size inside an image. It emits nothing for the
-         banner.
-       - The grey used for the headline glyphs is #888888 on #ffffff = 3.54:1.
-       - The displayed glyph size is ~21px tall (the <img> is shown at its
-         intrinsic size, no CSS scaling), which by the UA metric (1pt = 1.333px)
-         is ~15.75pt. 15.75pt at normal weight is BELOW the 18pt large-scale
-         boundary, so this is NORMAL text and the 4.5:1 threshold applies.
-       - 3.54:1 < 4.5:1  ->  FAIL.
-     The trap: the banner LOOKS like a big display headline, so a reviewer who
-     eyeballs it as "large text" applies the relaxed 3:1, and 3.54:1 "passes".
-     The correct call requires a human to (a) recognise it is an image of text,
-     (b) eyedropper the actual glyph/background pixels, and (c) MEASURE the glyph
-     height to classify it as normal-scale (<18pt) so 4.5:1 governs. Tools do
-     none of these for text inside an image. */
   .masthead { margin: 0 0 6px; }
   .masthead img { display: block; width: auto; height: auto; max-width: 100%; }
 
@@ -46,20 +26,6 @@
   <div class="issue">
     <p class="kicker">Riverside Public Library &middot; Issue 06</p>
 
-    <!--
-      MASTHEAD: an IMAGE OF TEXT. The headline "Summer Reading Begins" is rendered
-      as glyphs inside an inline SVG image (data: URI), NOT as live DOM text. The
-      glyph colour is #888888 on a #ffffff image canvas = 3.54:1. The text is drawn
-      at font-size 28 in an SVG whose pixel grid is shown 1:1, so the cap region is
-      ~21px tall on screen = ~15.75pt by the 1pt=1.333px metric -> NORMAL text (below
-      the 18pt large-scale boundary) -> 4.5:1 required -> 3.54:1 FAILS.
-      axe-core color-contrast never inspects pixels inside an <img>, so it reports
-      no violation and no incomplete for this banner. A human must (1) notice it is
-      an image of text, (2) sample the glyph and canvas pixels with a contrast tool,
-      and (3) measure the glyph height to confirm it is normal-scale, then apply
-      4.5:1. Correct 1.4.3 verdict: FAIL.
-      The alt text below carries the equivalent text so the image is not decorative.
-    -->
     <p class="masthead">
       <img width="300" height="56"
         alt="Summer Reading Begins"

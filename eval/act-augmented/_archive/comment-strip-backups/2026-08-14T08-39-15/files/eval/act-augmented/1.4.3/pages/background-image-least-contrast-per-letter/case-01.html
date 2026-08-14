@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cape Reinga Lodge — Book your sunset escape</title>
+<!--
+  SC 1.4.3 F83 — background-image least-contrast / per-letter.
+  WHY AUTOMATED TOOLS MISS IT: the headline is live HTML text (color:#fff) sitting on a
+  CSS background-image (a real PNG raster, sibling file). axe/Lighthouse cannot read the
+  pixels of a background-image, so they either skip the contrast check entirely or fall back
+  to the section's solid background-color (#101019), against which #fff scores ~18:1 and
+  "passes". The actual sunset raster is mostly dark (white passes across the leading words)
+  but blows out to a bright sky behind the trailing word "Escape", where white-on-sky drops
+  to ~1.07:1. Only a human eyedropping the LEAST-contrast pixel behind that last word — the
+  Trusted Tester / F83 per-letter method — catches it. ACT's best-case pixel algorithm samples
+  the darkest pixel in the band (~20:1) and reports PASS.
+-->
+<style>
+  :root { --ink:#101019; --gold:#c9a24b; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: "Helvetica Neue", Arial, sans-serif; color:#1c1c22; background:#fbfaf7; }
+  header.site { display:flex; align-items:center; justify-content:space-between;
+    padding:14px 28px; background:var(--ink); color:#f3efe6; }
+  header.site .brand { font-weight:700; letter-spacing:.06em; font-size:1.05rem; }
+  header.site nav a { color:#d8d2c4; text-decoration:none; margin-left:22px; font-size:.92rem; }
+  header.site nav a:hover { color:#fff; }
+
+  .hero {
+    position: relative;
+    min-height: 360px;
+    /* solid fallback color is what scanners measure; the PNG is what humans see.
+       background-size:100% 100% makes image-x map linearly to element-x, so the baked
+       bright sky patch lands at a stable x-fraction behind the trailing word regardless
+       of viewport — the failure does not drift with window size. */
+    background-color: #101019;
+    background-image: url("bg-01-sunset.png");
+    background-size: 100% 100%;
+    background-position: center;
+    display: flex;
+    align-items: center;
+  }
+  .hero .copy { padding: 0 40px; width: 100%; }
+  .hero h1 {
+    margin: 0 0 10px;
+    color: #ffffff;            /* live text, no text-shadow — bare white over the photo */
+    font-size: clamp(1.9rem, 4.2vw, 3.2rem);
+    font-weight: 800;
+    letter-spacing: .01em;
+    line-height: 1.05;
+    white-space: nowrap;       /* keep the trailing word out over the bright sky */
+  }
+  .hero p.kicker { margin:0 0 18px; color:#ffffff; font-size:1.05rem; font-weight:500; opacity:.97; }
+  .hero .cta {
+    display:inline-block; background:var(--gold); color:#1a1407; font-weight:700;
+    padding:12px 26px; border-radius:4px; text-decoration:none;
+  }
+  main { max-width: 820px; margin: 0 auto; padding: 36px 24px 60px; }
+  main h2 { font-size:1.4rem; margin:0 0 12px; }
+  main p { line-height:1.6; color:#33333a; }
+  .rooms { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:18px; margin-top:24px; }
+  .rooms article { border:1px solid #e6e1d6; border-radius:8px; padding:16px; background:#fff; }
+  .rooms h3 { margin:0 0 6px; font-size:1.05rem; }
+  .rooms .price { color:#7a5a12; font-weight:700; }
+  footer { background:#101019; color:#b9b3a4; padding:24px 28px; font-size:.85rem; }
+</style>
+</head>
+<body>
+<header class="site">
+  <div class="brand">CAPE REINGA LODGE</div>
+  <nav aria-label="Primary">
+    <a href="#rooms">Rooms</a>
+    <a href="#dining">Dining</a>
+    <a href="#book">Book</a>
+  </nav>
+</header>
+
+<section class="hero" aria-label="Booking promotion">
+  <div class="copy">
+    <p class="kicker">Northland, Aotearoa &middot; March availability open</p>
+    <h1>Book Your Sunset&nbsp;Escape</h1>
+    <a class="cta" href="#book">Check dates &amp; rates</a>
+  </div>
+</section>
+
+<main>
+  <h2 id="rooms">Clifftop suites above the Tasman</h2>
+  <p>
+    Every suite faces due west, so the last light of the day pours straight through the glass.
+    Our restaurant sources kahawai and snapper from the boats that tie up below the lodge each
+    afternoon, and the cellar leans hard into Northland's small-batch growers.
+  </p>
+  <div class="rooms">
+    <article>
+      <h3>Tasman Suite</h3>
+      <p>King bed, private deck, outdoor bath.</p>
+      <p class="price">from NZ$420 / night</p>
+    </article>
+    <article>
+      <h3>Pohutukawa Loft</h3>
+      <p>Mezzanine, sea-view tub, two guests.</p>
+      <p class="price">from NZ$360 / night</p>
+    </article>
+    <article>
+      <h3>Lighthouse Cottage</h3>
+      <p>Self-contained, sleeps four, full kitchen.</p>
+      <p class="price">from NZ$540 / night</p>
+    </article>
+  </div>
+</main>
+
+<footer>
+  &copy; 2026 Cape Reinga Lodge. State Highway 1, Cape Reinga 0484, New Zealand.
+</footer>
+</body>
+</html>

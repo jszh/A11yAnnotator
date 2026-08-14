@@ -88,7 +88,7 @@
 <script>
 (function () {
   var SEQ = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','b','a'];
-  var WINDOW_MS = 600;          // each key must follow the previous within this window
+  var WINDOW_MS = 600;          
   var idx = 0, lastAt = 0;
   var vault = document.getElementById('vault');
   var vaultText = document.getElementById('vaultText');
@@ -101,9 +101,6 @@
 
   function reset(){ idx = 0; }
 
-  // Essential function (revealing the only discount code) is gated behind a fast burst:
-  // the whole 6-key sequence must be entered with <600ms between consecutive keys.
-  // Any slower gap resets progress to the first key. No untimed reveal path exists.
   document.addEventListener('keydown', function (e) {
     if (unlocked) return;
     var now = Date.now();
@@ -112,7 +109,7 @@
     var wanted = (want.length === 1) ? want.toLowerCase() : want;
 
     if (idx > 0 && (now - lastAt) > WINDOW_MS) {
-      reset();                  // too slow → start over (timing gate)
+      reset();                  
     }
 
     if (got === wanted) {
@@ -123,7 +120,6 @@
         vaultText.outerHTML = '<span class="code" id="vaultText">' + REVEALED_CODE + '</span>';
       }
     } else {
-      // wrong key restarts (and re-checks if this key happens to be the first of SEQ)
       reset();
       if (got === ((SEQ[0].length===1)?SEQ[0].toLowerCase():SEQ[0])) { idx = 1; lastAt = now; }
     }

@@ -3,32 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!--
-    SC 1.3.1 (Info and Relationships) — F42 emulated-link failure path (whole-row variant).
-    Aspect: emulated-controls-wrong-or-missing-role.
-
-    "Harbourline Realty" agent dashboard, "Active Listings" table. Each <tr> is a
-    clickable row: hovering highlights the whole row and shows a pointer cursor, and a
-    helper line above the table reads "Click a row to open the listing." Clicking any
-    row navigates to that property's detail page (location.href). Each row visually and
-    behaviourally PRESENTS ITSELF as a single big link to the listing.
-
-    THE DEFECT: the navigation lives on <tr onclick="openListing('PX-...')"> with
-    cursor:pointer. There is NO <a> wrapping the row's content, NO role="link"/"button"
-    on the <tr>, and NO tabindex. The cells contain plain text (and one inert status
-    pill), so there is nothing focusable inside either. Sighted users get an obvious
-    clickable row; AT exposes a generic table row with no interactive semantics — no
-    link is announced, the row never appears in the links list, and keyboard users
-    cannot reach or open any listing.
-
-    WHY AUTOMATED TOOLS MISS IT: the table markup itself is correct (<table>, <thead>,
-    <th scope="col">, <caption>) — a data-table checker is happy. There is no role on
-    the <tr>, so role-validity rules never apply. axe/WAVE/Lighthouse cannot tell that a
-    <tr> with cursor:pointer and an onclick IS PRESENTED AS a link to the listing; that
-    a whole row is "the control" is a visual/behavioural inference. Empty/missing
-    attributes? None — every cell has real text. The defect is present-but-wrong-shaped,
-    not absent.
-  -->
   <title>Active Listings — Harbourline Realty</title>
   <style>
     :root { --ink:#1c2733; --muted:#64727f; --line:#e2e8ef; --hi:#eef5ff; --accent:#1763c7; --bg:#f5f7fa; --card:#fff; }
@@ -42,10 +16,9 @@
     thead th { text-align:left; font-size:.74rem; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); padding:.7rem 1rem; border-bottom:1px solid var(--line); background:#fafcfe; }
     tbody td { padding:.85rem 1rem; border-bottom:1px solid var(--line); font-size:.95rem; }
     tbody tr:last-child td { border-bottom:0; }
-    /* The whole row is presented as one big clickable link */
     tbody tr.listing { cursor:pointer; transition:background .12s; }
     tbody tr.listing:hover { background:var(--hi); }
-    .addr { font-weight:600; color:var(--accent); }   /* looks link-ish */
+    .addr { font-weight:600; color:var(--accent); }   
     .pill { display:inline-block; font-size:.72rem; font-weight:700; padding:.15rem .5rem; border-radius:999px; }
     .pill.active { background:#e3f6ea; color:#1c7a45; }
     .pill.pending { background:#fff2db; color:#9a6a12; }
@@ -69,8 +42,6 @@
         </tr>
       </thead>
       <tbody>
-        <!-- DEFECT: each <tr> is the clickable control (onclick + cursor:pointer),
-             but it is a plain table row — no <a>, no role, no tabindex. -->
         <tr class="listing" onclick="openListing('PX-2291')">
           <td>PX-2291</td>
           <td class="addr">14 Mariner's Walk, Saltcoats</td>
@@ -104,7 +75,6 @@
   </div>
 
   <script>
-    // Real behaviour: clicking the row opens the listing — what an <a> would do.
     function openListing(ref) {
       window.location.href = '/listings/' + encodeURIComponent(ref);
     }

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.3.1 (Info and Relationships) — BOUNDARY / PASS variant of the F42 aspect.
+    Aspect: emulated-controls-wrong-or-missing-role (the line that separates fail from pass).
+
+    "Riverbank Trust" donation page. The amount chooser is a row of pill controls
+    ($25 / $50 / $100 / Other) that look exactly like the styled <div> "buttons" in the
+    failing cases — rounded, filled-when-selected, pointer cursor, hover state. The
+    "Continue" action is also a styled box, not a native <button>.
+
+    WHY THIS PASSES (the contrast that sharpens the aspect): every emulated control here
+    carries the CORRECT programmatic semantics for what it presents:
+      - the amount pills are <div role="radio"> inside a <div role="radiogroup"
+        aria-labelledby>, with aria-checked tracking selection (a radio group is the
+        right model for "pick one amount"); they are focusable and arrow/Space operable;
+      - the "Continue" box is <div role="button" tabindex="0"> with an Enter/Space
+        keydown handler.
+    So a screen-reader user hears "Donation amount, radio group… $50, radio button,
+    selected, 2 of 4" and "Continue, button". The role each control EXPOSES matches the
+    role it PRESENTS. This is NOT F42: F42 fails only when the programmatically
+    determined role is generic/absent/wrong. Here it is correct, so 1.3.1 is satisfied
+    for these controls.
+
+    This case exists so the aspect is judged on the role↔presentation MATCH, not on
+    "is it a <div>?". A <div> control is fine when its role is right; the failing cases
+    fail because the role is generic, not because they use <div>.
+
+    (Note: native <button>/<input type=radio> would still be best practice per ARIA's
+    "use native elements first," but correctly-roled custom controls do convey the
+    relationship programmatically and do not fail SC 1.3.1.)
+  -->
+  <title>Make a gift — Riverbank Trust</title>
+  <style>
+    :root { --ink:#1d2a22; --muted:#5e6b62; --line:#dde6df; --green:#2c7a4b; --green-hi:#216139; --bg:#f4f8f5; --card:#fff; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Helvetica Neue",Arial,sans-serif; color:var(--ink); background:var(--bg); line-height:1.55; }
+    .give { max-width:560px; margin:2.4rem auto; padding:0 1.25rem; }
+    h1 { font-size:1.55rem; margin:0 0 .2rem; }
+    .lead { color:var(--muted); margin:0 0 1.6rem; }
+    .group-label { font-weight:600; margin:0 0 .6rem; }
+
+    .amounts { display:flex; gap:.6rem; flex-wrap:wrap; }
+    .amt {
+      flex:1 1 0; min-width:84px; text-align:center; padding:.8rem .4rem; border:2px solid var(--line);
+      border-radius:12px; cursor:pointer; user-select:none; font-weight:700; background:var(--card);
+      transition:border-color .12s, background .12s;
+    }
+    .amt:hover { border-color:var(--green); }
+    .amt[aria-checked="true"] { background:var(--green); color:#fff; border-color:var(--green); }
+    .amt:focus-visible { outline:2px solid var(--green); outline-offset:2px; }
+
+    .continue {
+      display:block; width:100%; text-align:center; margin-top:1.5rem;
+      background:var(--green); color:#fff; font-weight:700; font-size:1.02rem;
+      padding:.85rem 1rem; border-radius:10px; cursor:pointer; user-select:none;
+      box-shadow:0 1px 2px rgba(0,0,0,.16);
+    }
+    .continue:hover { background:var(--green-hi); }
+    .continue:focus-visible { outline:2px solid #11331f; outline-offset:2px; }
+    .note { color:var(--muted); font-size:.85rem; margin-top:.8rem; text-align:center; }
+  </style>
+</head>
+<body>
+  <main class="give">
+    <h1>Make a gift to Riverbank Trust</h1>
+    <p class="lead">Your support keeps 40 miles of urban riverbank clean and open to the public.</p>
+
+    <p class="group-label" id="amt-label">Choose an amount</p>
+
+    <!--
+      PASS: emulated controls that EXPOSE the role they PRESENT.
+      Amount chooser = radio group (pick one); each pill = role=radio with aria-checked.
+    -->
+    <div class="amounts" role="radiogroup" aria-labelledby="amt-label">
+      <div class="amt" role="radio" tabindex="0"  aria-checked="false" data-v="25">$25</div>
+      <div class="amt" role="radio" tabindex="-1" aria-checked="true"  data-v="50">$50</div>
+      <div class="amt" role="radio" tabindex="-1" aria-checked="false" data-v="100">$100</div>
+      <div class="amt" role="radio" tabindex="-1" aria-checked="false" data-v="other">Other</div>
+    </div>
+
+    <!-- PASS: a styled box that is correctly a role=button, focusable + key-operable. -->
+    <div class="continue" role="button" tabindex="0" onclick="proceed()" onkeydown="keyAct(event)">Continue</div>
+
+    <p class="note" id="note">Selected: $50</p>
+  </main>
+
+  <script>
+    var radios = Array.prototype.slice.call(document.querySelectorAll('.amt'));
+
+    function select(el) {
+      radios.forEach(function (r) {
+        var on = r === el;
+        r.setAttribute('aria-checked', on ? 'true' : 'false');
+        r.tabIndex = on ? 0 : -1;
+      });
+      document.getElementById('note').textContent = 'Selected: ' + el.textContent;
+    }
+
+    radios.forEach(function (r, i) {
+      r.addEventListener('click', function () { select(r); r.focus(); });
+      r.addEventListener('keydown', function (e) {
+        if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); select(r); }
+        else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+          e.preventDefault(); var n = radios[(i + 1) % radios.length]; select(n); n.focus();
+        } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+          e.preventDefault(); var p = radios[(i - 1 + radios.length) % radios.length]; select(p); p.focus();
+        }
+      });
+    });
+
+    function proceed() {
+      var chosen = radios.filter(function (r) { return r.getAttribute('aria-checked') === 'true'; })[0];
+      document.getElementById('note').textContent = 'Continuing with ' + (chosen ? chosen.textContent : 'no amount') + ' …';
+    }
+    function keyAct(e) { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); proceed(); } }
+  </script>
+</body>
+</html>

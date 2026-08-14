@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Riverbend Animal Rescue — Get in touch</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (SC 2.4.3 Focus Order):
+  This is almost verbatim the Understanding document's failing example. There are TWO
+  semantically distinct groups: the contact message (Name, Email, Message) and a separate
+  marketing question ("How did you hear about us?" — a set of checkboxes). Every control
+  has a real label, a correct name/role, and is keyboard-operable. There is NO tabindex.
+  Visually the contact fields form one clear column on the left and the "How did you hear
+  about us?" checkboxes form a tidy boxed group on the right. But in the DOM the checkbox
+  group is SPLICED INTO THE MIDDLE of the contact fields, so the pure source-order tab
+  sequence is: Name -> (checkbox) Instagram -> Email -> (checkbox) From a friend ->
+  Message -> ... The marketing checkboxes are interleaved between the message fields.
+  axe/WAVE/Lighthouse see well-formed labeled controls and report nothing; only a human
+  who understands that "Email" and "Message" belong with "Name" (and that the marketing
+  checkboxes are a different question) can tell the focus order weaves between two
+  unrelated sections and breaks the user's train of thought.
+-->
+<style>
+  :root { --ink:#23201c; --brand:#b4531f; --line:#e4ddd3; --muted:#6c645a; --bg:#fbf7f1; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.6 Georgia,"Iowan Old Style",serif; color:var(--ink); background:var(--bg); }
+  header { background:var(--brand); color:#fff; padding:26px 28px; }
+  header h1 { margin:0; font:700 1.5rem/1.2 system-ui,sans-serif; }
+  header p { margin:.35rem 0 0; opacity:.92; font:0.95rem system-ui,sans-serif; }
+  main { max-width:880px; margin:0 auto; padding:32px 24px 80px; }
+  .intro { color:var(--muted); margin:0 0 28px; }
+
+  /* Two visual columns: contact message (left), "how did you hear" group (right). One
+     flat CSS grid pins each block to a named area, decoupling visual order from DOM order. */
+  form { display:grid;
+         grid-template-columns:1.4fr 1fr;
+         grid-template-areas:
+           "name   hear"
+           "email  hear"
+           "msg    hear"
+           "send   send";
+         gap:18px 32px; align-items:start; }
+  .name { grid-area:name; } .email { grid-area:email; } .msg { grid-area:msg; }
+  .hear { grid-area:hear; } .send { grid-area:send; }
+
+  label { display:block; font:600 .9rem system-ui,sans-serif; margin-bottom:6px; }
+  input[type=text], input[type=email], textarea {
+    width:100%; padding:10px 12px; border:1px solid #c8bfb2; border-radius:8px;
+    font:1rem Georgia,serif; background:#fff; }
+  textarea { min-height:130px; resize:vertical; }
+  :focus-visible { outline:3px solid var(--brand); outline-offset:2px; }
+
+  fieldset { border:1px solid var(--line); border-radius:12px; background:#fff;
+             padding:14px 18px 18px; margin:0; }
+  legend { font:700 .95rem system-ui,sans-serif; color:var(--brand); padding:0 6px; }
+  .check { display:flex; align-items:center; gap:9px; margin:11px 0; font:.95rem system-ui,sans-serif; }
+  .check input { width:18px; height:18px; }
+  .check label { margin:0; font-weight:500; }
+
+  button { background:var(--brand); color:#fff; border:0; border-radius:9px;
+           padding:12px 28px; font:700 1rem system-ui,sans-serif; cursor:pointer; margin-top:6px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Riverbend Animal Rescue</h1>
+  <p>Questions about adopting, fostering, or volunteering? Send us a note.</p>
+</header>
+<main>
+  <p class="intro">We read every message and usually reply within two business days.</p>
+
+  <!--
+    DOM / TAB ORDER (no tabindex, pure source order) is INTERLEAVED:
+      Name  ->  "Instagram" checkbox  ->  Email  ->  "From a friend" checkbox  ->
+      Message  ->  "Web search" checkbox  ->  "Event / flyer" checkbox  ->  Submit
+    Visually the three "how did you hear" checkboxes sit in a tidy box on the right
+    (grid-area:hear) and the contact fields run down the left, but the checkbox <div>s
+    are SPLICED BETWEEN the contact fields in source order, so focus weaves between the
+    "contact message" group and the "marketing question" group on alternate tabs.
+  -->
+  <form action="#" method="post" novalidate aria-label="Contact Riverbend Animal Rescue">
+
+    <div class="name">
+      <label for="c-name">Your name</label>
+      <input id="c-name" name="name" type="text" autocomplete="name">
+    </div>
+
+    <!-- first marketing checkbox spliced in BEFORE the email field -->
+    <div class="check" style="grid-area:hear; align-self:start; margin-top:64px;">
+      <input id="h-ig" name="hear" type="checkbox" value="instagram">
+      <label for="h-ig">Instagram</label>
+    </div>
+
+    <div class="email">
+      <label for="c-email">Email address</label>
+      <input id="c-email" name="email" type="email" autocomplete="email">
+    </div>
+
+    <!-- second marketing checkbox spliced in BEFORE the message field -->
+    <div class="check" style="grid-area:hear; align-self:start; margin-top:104px;">
+      <input id="h-friend" name="hear" type="checkbox" value="friend">
+      <label for="h-friend">From a friend</label>
+    </div>
+
+    <div class="msg">
+      <label for="c-msg">Message</label>
+      <textarea id="c-msg" name="message"></textarea>
+    </div>
+
+    <!-- remaining marketing checkboxes after the message -->
+    <div class="check" style="grid-area:hear; align-self:start; margin-top:144px;">
+      <input id="h-search" name="hear" type="checkbox" value="search">
+      <label for="h-search">Web search</label>
+    </div>
+    <div class="check" style="grid-area:hear; align-self:start; margin-top:184px;">
+      <input id="h-event" name="hear" type="checkbox" value="event">
+      <label for="h-event">Event or flyer</label>
+    </div>
+
+    <!-- The visible group label ("How did you hear about us?") frames the checkbox stack
+         on the right. It is a real, visible, programmatically-present heading (NOT
+         aria-hidden), so the checkbox group is not missing a name for AT — the ONLY
+         defect on this page is the interleaved focus order, nothing else. -->
+    <h2 class="hear"
+        style="font:700 .95rem system-ui,sans-serif; color:var(--brand); margin:0 0 4px;">
+        How did you hear about us?</h2>
+
+    <div class="send">
+      <button type="submit">Send message</button>
+    </div>
+  </form>
+</main>
+</body>
+</html>

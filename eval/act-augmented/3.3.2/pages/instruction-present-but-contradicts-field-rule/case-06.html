@@ -4,24 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Checkout — Lumière Film Festival tickets</title>
-<!--
-  WHY AUTOMATED TOOLS MISS THIS:
-  The discount field has a correctly associated, VISIBLE label AND a visible instruction
-  via aria-describedby. axe / WAVE / Lighthouse confirm: <label for> resolves, the hint
-  is non-empty and in the accessibility tree, contrast fine, role textbox, nothing hidden.
-  The "instruction present" facet of 3.3.2 (TT 5.A) passes.
-  THE DEFECT IS SEMANTIC — WRONG PURPOSE: the field IS a promo / discount-code box (its
-  validator accepts codes like "LUMIERE25"), but the leftover boilerplate instruction
-  names a DIFFERENT purpose entirely — "Enter your member ID (8 digits) to apply your
-  membership benefit." It even states an 8-digit numeric rule, while the field's pattern
-  accepts an alphanumeric promo code (and the placeholder hints "PROMO CODE"). A user who
-  reads the instruction looks for a member ID they may not have, or types 8 digits, and is
-  rejected; the field's real purpose (a promo code) is mis-stated by a confident, well-
-  formed instruction. The membership-tier select below is an always-correct contrast
-  control whose instruction matches its field exactly.
-  No checker reads "member ID (8 digits)" from the prose, reads the alphanumeric promo
-  pattern, and judges the instruction names the wrong purpose AND the wrong rule.
--->
 <style>
   :root{ --ink:#15131c; --muted:#6a6478; --line:#d8d3e4; --brand:#5b2a86; --gold:#c79a3b;
          --danger:#b32044; --ok:#1f8a5b; --paper:#fffdfb; }
@@ -74,7 +56,6 @@
 
       <form action="#" method="post" novalidate id="form" autocomplete="off">
 
-        <!-- DEFECTIVE CONTROL: it's a PROMO-CODE field, but the instruction names "member ID". -->
         <div class="field">
           <label for="promo">Discount code</label>
           <p class="hint" id="promo-hint">Enter your member ID (8 digits) to apply your membership benefit.</p>
@@ -87,7 +68,6 @@
           <p class="msg" id="promo-msg" role="status"></p>
         </div>
 
-        <!-- ALWAYS-CORRECT CONTROL (contrast): instruction matches the field's real purpose & rule. -->
         <div class="field">
           <label for="tier">Membership tier (for member pricing)</label>
           <p class="hint" id="tier-hint">Select the tier printed on your membership card. Choose "Not a member" to pay full price.</p>
@@ -112,15 +92,12 @@
   var msg   = document.getElementById('promo-msg');
   var form  = document.getElementById('form');
 
-  // REAL PURPOSE: this is a PROMO CODE field. Valid promo codes are alphanumeric strings,
-  // NOT an 8-digit member ID. Following the instruction (8 digits) is rejected.
   var VALID = ['LUMIERE25','EARLYBIRD','STUDENT10'];
 
   function check(){
     var v = promo.value.trim().toUpperCase();
     if (!v) { msg.textContent = ''; promo.removeAttribute('aria-invalid'); return; }
     if (/^\d{8}$/.test(v)) {
-      // Exactly what the instruction told them to enter — and it's wrong.
       promo.setAttribute('aria-invalid','true');
       msg.textContent = 'This isn’t a valid discount code. Enter a promo code such as LUMIERE25.';
       msg.style.color = '';

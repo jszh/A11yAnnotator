@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Parts Finder — Northbridge Auto Supply</title>
+<style>
+  :root { --ink:#1d2530; --muted:#5b6b7a; --line:#dde3ea; --brand:#0a4d8c; --brand-dk:#073a6b; }
+  * { box-sizing:border-box; }
+  body { font-family:"Inter","Segoe UI",Roboto,Arial,sans-serif; color:var(--ink); margin:0; background:#eef2f6; }
+  header { background:var(--brand-dk); color:#fff; padding:16px 26px; display:flex; align-items:center; gap:14px; }
+  header .logo { font-weight:800; letter-spacing:.4px; }
+  header .tag { color:#a9c8e6; font-size:.82rem; }
+  main { max-width:820px; margin:30px auto; background:#fff; border:1px solid var(--line); border-radius:10px; padding:28px 32px; }
+  h1 { font-size:1.4rem; margin:0 0 4px; color:var(--brand); }
+  p.lead { margin:0 0 22px; color:var(--muted); }
+  .searchbar { display:flex; gap:10px; }
+  .searchbar input { flex:1; padding:12px 14px; border:1px solid #c3cdd8; border-radius:7px; font-size:1rem; }
+  .searchbar button { background:var(--brand); color:#fff; border:0; padding:0 24px; border-radius:7px; font-size:1rem; font-weight:600; cursor:pointer; }
+  .searchbar button:hover { background:var(--brand-dk); }
+  /* status / spinner */
+  #liveStatus { min-height:0; }
+  .searching { display:flex; align-items:center; gap:12px; margin:22px 0 4px; color:#4a5868; font-size:.96rem; }
+  .spinner {
+    width:20px; height:20px; border:3px solid #cdd9e6; border-top-color:var(--brand);
+    border-radius:50%; animation:spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  /* results */
+  .results { margin-top:18px; }
+  .result-row { display:flex; justify-content:space-between; align-items:center; padding:14px 4px; border-bottom:1px solid var(--line); }
+  .result-row:last-child { border-bottom:0; }
+  .result-row .name { font-weight:600; }
+  .result-row .sku { color:var(--muted); font-size:.82rem; }
+  .result-row .price { font-weight:700; color:var(--brand-dk); }
+  .add { background:#117a44; color:#fff; border:0; padding:8px 14px; border-radius:6px; font-size:.85rem; cursor:pointer; }
+  footer { max-width:820px; margin:14px auto 60px; color:#8a97a4; font-size:.78rem; }
+</style>
+</head>
+<body>
+<header>
+  <span class="logo">NORTHBRIDGE AUTO</span>
+  <span class="tag">Genuine &amp; aftermarket parts</span>
+</header>
+
+<main>
+  <h1>Parts finder</h1>
+  <p class="lead">Search by part name, SKU, or vehicle. Results update below without reloading the page.</p>
+
+  <div class="searchbar">
+    <label for="q" class="visually-hidden" style="position:absolute;left:-9999px;">Search parts catalog</label>
+    <input id="q" type="search" placeholder="e.g. brake pads, 2018 Civic, OEM 45022-..." value="front brake pads 2018 Honda Civic">
+    <button id="go" type="button">Search</button>
+  </div>
+
+  <!-- Live region is correctly present and correctly announces the BUSY message on entry. -->
+  <div id="liveStatus" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Results render here. NOTE: this container is a plain region, NOT a live region. -->
+  <section class="results" id="results" aria-label="Search results"></section>
+</main>
+
+<footer>Northbridge Auto Supply Co. — prices include core charges where applicable.</footer>
+
+<script>
+/*
+  WHAT HAPPENS (two-phase async, button-triggered):
+  Phase 1 (entry): we inject "Searching the catalog…" + spinner INTO the role=status
+  live region. This IS announced by a screen reader — the appearance test passes.
+  Phase 2 (completion): when the fake fetch resolves we EMPTY the live region
+  (status.textContent = '') and render the result rows + an "8 matches" count into
+  #results, which is NOT a live region.
+
+  For a SIGHTED user the spinner DISAPPEARING is the signal "search done, here are
+  your results." For an AT user: the busy text is silently removed (removing a node
+  from a polite region produces no announcement, by design), and the result count
+  "8 matches found" lands in a non-live container, so nothing is spoken. The end of
+  the waiting state — and the result count, itself a status message per the SC's
+  search examples — are never conveyed.
+
+  The author did the additive direction correctly (busy message in a live region) and
+  is one line away from compliance: writing "8 matches found" back into #liveStatus.
+*/
+(function () {
+  var go = document.getElementById('go');
+  var status = document.getElementById('liveStatus');
+  var results = document.getElementById('results');
+
+  var CATALOG = [
+    { name: 'Akebono ProACT Ceramic Front Brake Pads', sku: 'ACT1089', price: '$48.99' },
+    { name: 'Bosch QuietCast Premium Front Pads', sku: 'BC1089', price: '$54.25' },
+    { name: 'Honda OEM Front Brake Pad Set', sku: '45022-TBA-A01', price: '$72.00' },
+    { name: 'Wagner ThermoQuiet Ceramic Front', sku: 'QC1089', price: '$39.49' },
+    { name: 'Power Stop Z23 Evolution Sport Front', sku: 'Z23-1089', price: '$45.10' },
+    { name: 'Raybestos Element3 EHT Front Pads', sku: 'EHT1089H', price: '$58.30' },
+    { name: 'StopTech Street Performance Front', sku: '308.10890', price: '$66.95' },
+    { name: 'EBC Ultimax2 Front Brake Pads', sku: 'UD1089', price: '$41.75' }
+  ];
+
+  function showSearching() {
+    // Phase 1 — announced on entry (correct so far).
+    status.innerHTML = '<div class="searching"><span class="spinner" aria-hidden="true"></span>' +
+                       '<span>Searching the catalog…</span></div>';
+    results.innerHTML = '';
+  }
+
+  function renderResults() {
+    // Phase 2 — the busy text is simply REMOVED. Nothing replaces it in the live region.
+    status.textContent = '';
+
+    var html = '<p style="margin:6px 0 14px;font-weight:700;">8 matches found</p>';
+    CATALOG.forEach(function (p) {
+      html += '<div class="result-row">' +
+                '<div><div class="name">' + p.name + '</div>' +
+                '<div class="sku">SKU ' + p.sku + '</div></div>' +
+                '<div style="display:flex;align-items:center;gap:16px;">' +
+                  '<span class="price">' + p.price + '</span>' +
+                  '<button class="add" type="button">Add to cart</button>' +
+                '</div>' +
+              '</div>';
+    });
+    // Count + rows go into the NON-live results container.
+    results.innerHTML = html;
+  }
+
+  go.addEventListener('click', function () {
+    showSearching();
+    window.setTimeout(renderResults, 1400);
+  });
+})();
+</script>
+</body>
+</html>

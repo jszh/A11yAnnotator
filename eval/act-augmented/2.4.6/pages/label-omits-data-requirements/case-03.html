@@ -38,12 +38,6 @@
         <input type="text" id="name-on-card" name="name-on-card" autocomplete="cc-name">
       </div>
 
-      <!-- ISSUE: the label is the correct topic noun "Card number" with no statement of the
-           accepted format. The handler strips nothing and validates with /^\d{16}$/ — it accepts
-           ONLY 16 bare digits. The near-universal human habit (and what the card itself prints) is
-           grouped digits "4111 1111 1111 1111"; this field rejects the spaces. No "no spaces" or
-           "16 digits" cue appears anywhere until the after-submit error. There is no input masking
-           or auto-formatting to hint at the expected shape. -->
       <div class="field">
         <label for="card-number">Card number</label>
         <input type="text" id="card-number" name="card-number" inputmode="numeric"
@@ -88,11 +82,10 @@
     var cardErr = document.getElementById('card-err');
     form.addEventListener('submit', function (e) {
       e.preventDefault();
-      // Accept ONLY 16 bare digits. Spaces (how the number is printed on the card) are rejected.
       var ok = /^\d{16}$/.test(card.value);
       if (!ok) {
         card.classList.add('err');
-        cardErr.style.display = 'block';   // format disclosed here for the first time
+        cardErr.style.display = 'block';   
       } else {
         card.classList.remove('err');
         cardErr.style.display = 'none';

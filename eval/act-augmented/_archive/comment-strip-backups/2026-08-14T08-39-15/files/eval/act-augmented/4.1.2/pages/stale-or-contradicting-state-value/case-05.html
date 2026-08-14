@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Route Punctuality — Metro Transit Open Data</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Public Sans", Arial, sans-serif; color:#1b1b1b; background:#fff; }
+  .gov { background:#112e51; color:#fff; padding:10px 22px; font-size:.9rem; }
+  .gov strong { letter-spacing:.02em; }
+  main { max-width:880px; margin:26px auto; padding:0 18px; }
+  h1 { font-size:1.5rem; margin:0 0 6px; }
+  .desc { color:#5b616b; margin:0 0 20px; }
+  table { width:100%; border-collapse:collapse; font-size:.92rem; }
+  caption { text-align:left; font-size:.85rem; color:#5b616b; margin-bottom:8px; }
+  th, td { padding:10px 12px; border-bottom:1px solid #dfe1e5; text-align:left; }
+  thead th { background:#f0f3f7; border-bottom:2px solid #aeb6c2; }
+  th button {
+    all:unset; cursor:pointer; font:inherit; font-weight:700; color:#112e51;
+    display:inline-flex; align-items:center; gap:6px; width:100%;
+  }
+  th button:focus-visible { outline:3px solid #2491ff; outline-offset:2px; }
+  .arrow { font-size:.72rem; color:#112e51; }
+  td.num, th.num button { text-align:right; justify-content:flex-end; }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .why { background:#f0f3f7; border-left:4px solid #112e51; padding:13px 16px; font-size:.82rem; color:#3d4551; margin-top:22px; line-height:1.55; }
+  .legend { font-size:.78rem; color:#5b616b; margin-top:8px; }
+</style>
+</head>
+<body>
+<div class="gov"><strong>Metro Transit</strong> · Open Data Portal · Service Performance</div>
+
+<main>
+  <h1>Weekday Route Punctuality</h1>
+  <p class="desc">Share of scheduled trips arriving within five minutes of the timetable, by route, for the week of June 8&ndash;12, 2026.</p>
+
+  <table>
+    <caption id="cap">Routes ranked by on-time percentage. The table is currently sorted by On-time % from <strong>highest to lowest</strong> (descending).</caption>
+    <thead>
+      <tr>
+        <th scope="col">
+          <button type="button">Route</button>
+        </th>
+        <th scope="col">Corridor</th>
+        <!--
+          This column is sorted DESCENDING: the rows below run 96.8 -> 71.2 (high to low) and the
+          header shows a DOWN arrow (▼). But aria-sort is hard-coded "ascending", contradicting both
+          the visible arrow and the actual row order.
+        -->
+        <th scope="col" class="num" aria-sort="ascending">
+          <button type="button">On-time % <span class="arrow" aria-hidden="true">&#9660;</span></button>
+        </th>
+        <th scope="col" class="num">
+          <button type="button">Trips</button>
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>12</td><td>Riverfront Express</td><td class="num">96.8%</td><td class="num">1,420</td></tr>
+      <tr><td>5</td><td>University &ndash; Downtown</td><td class="num">93.1%</td><td class="num">2,090</td></tr>
+      <tr><td>41</td><td>Airport Connector</td><td class="num">90.4%</td><td class="num">980</td></tr>
+      <tr><td>8</td><td>Eastside Loop</td><td class="num">86.7%</td><td class="num">1,655</td></tr>
+      <tr><td>23</td><td>Hillcrest &ndash; Mall</td><td class="num">82.5%</td><td class="num">1,210</td></tr>
+      <tr><td>17</td><td>Industrial Park Shuttle</td><td class="num">78.0%</td><td class="num">540</td></tr>
+      <tr><td>9</td><td>Night Owl Crosstown</td><td class="num">71.2%</td><td class="num">315</td></tr>
+    </tbody>
+  </table>
+  <p class="legend">&#9660; indicates the column the table is sorted by. Select a column header to re-sort.</p>
+
+  <div class="why">
+    <strong>Why automated tools miss this:</strong> the On-time % header carries an aria-sort attribute whose value
+    (&ldquo;ascending&rdquo;) is one of the permitted tokens, so ACT 5c01ea (state permitted on role) and 6a7281
+    (valid token value) both pass, and there is no missing-attribute trigger for 4e8ab6. A scanner has no way to
+    know the rows actually descend 96.8% &rarr; 71.2% and that the header shows a down arrow; determining that
+    aria-sort=&ldquo;ascending&rdquo; lies about a descending sort requires reading the rendered arrow and the
+    data order, then comparing them to the exposed value &mdash; pure human/visual judgment.
+  </div>
+</main>
+</body>
+</html>

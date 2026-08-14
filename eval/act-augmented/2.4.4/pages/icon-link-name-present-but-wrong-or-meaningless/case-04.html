@@ -53,18 +53,6 @@
           <td>2026-03-04</td>
           <td><span class="status">Active</span></td>
           <td>
-            <!--
-              Row action icons come from a custom icon set. The build pipeline that
-              generated that set assigned each glyph a Unicode Private Use Area
-              codepoint, and when it auto-emitted aria-labels it wrote the LITERAL
-              codepoint character instead of a human word. So:
-                - the pencil (edit)   link -> aria-label = U+E801  (a PUA char)
-                - the trash (delete)  link -> aria-label = U+E803  (a PUA char)
-              Each name is NON-EMPTY (one private-use character), so c487ae/F89 pass,
-              but the announced name is a meaningless symbol that conveys nothing. The
-              glyph is drawn with inline SVG so the visual model can read the pencil /
-              trash shapes; the failing name is the PUA character in aria-label.
-            -->
             <div class="actions">
               <a class="iconbtn" href="/keys/k_8842/edit" aria-label="">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -132,19 +120,5 @@
     </table>
   </div>
 
-  <!--
-    WHY AUTOMATED TOOLS MISS THIS
-    Each row-action link's accessible name is a single Unicode Private Use Area
-    character (U+E801 for edit, U+E803 for delete) — the codepoint the icon-font build
-    assigned to the glyph. A PUA character is a NON-EMPTY string, so the accname
-    computation returns a non-empty name, c487ae PASSES, F89 never fires (the links are
-    "named"), and axe/WAVE/Lighthouse report discernible text. The character has no
-    assigned meaning in Unicode, so a screen reader announces nothing useful (silence,
-    "private use area E801", or a fallback symbol name) — yet by the rules the link IS
-    named. No automated tool can map the PUA codepoint to the pencil/trash glyph it was
-    minted for, render that glyph, and judge that the announced name fails to convey
-    "Edit key" / "Revoke key". That mapping lives only in the icon font and in the
-    visible rendering, so catching it is visual + human-only.
-  -->
 </body>
 </html>

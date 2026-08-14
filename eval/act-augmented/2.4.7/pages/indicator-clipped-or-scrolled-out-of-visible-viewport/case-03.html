@@ -19,21 +19,13 @@
     box-shadow: 0 1px 3px rgba(31,39,51,.07);
   }
 
-  /* A horizontal formatting toolbar. There are more tools than fit the bar, so
-     the team hides the overflow behind a fade and a "more tools" affordance:
-     overflow:hidden clips everything past the bar's inline box. To make the
-     first tool hug the inline-start edge for a tidy rail, a negative
-     margin-inline-start pulls the row flush to (and a touch past) the start
-     edge. In RTL the inline-start edge is the RIGHT side, where the first
-     button in tab order lives. */
   .toolbar {
     position: relative;
     display: flex; gap: 8px; align-items: center;
     padding: 8px 10px; border-bottom: 1px solid #eef1f5;
-    overflow: hidden;                 /* hard clip box (no scrolling) */
+    overflow: hidden;                 
   }
   .toolbar__track { display: flex; gap: 8px; margin-inline-start: -52px; }
-  /* fade + "more" affordance over the clipped inline-end (left, in RTL) edge */
   .toolbar__more {
     position: absolute; inset-inline-start: 0; top: 0; bottom: 0;
     width: 54px; border: 0; background:
@@ -51,14 +43,6 @@
   .tool:hover { background:#f3f7fb; }
   .tool .ic { font-size: 15px; }
 
-  /* Author focus style: a 3px brand ring with a positive offset so it floats
-     around the button. The first tool (right-most in RTL, first in tab order)
-     is pulled flush to the inline-start edge by the track's negative margin, so
-     its inline-start (right) ring rail and adjacent corners are painted at /
-     past the overflow:hidden boundary and clipped away. The tools toward the
-     inline-end edge are progressively covered by the fade + "more" overlay, so
-     their rings are occluded too. A faint background tint survives, so SOME
-     pixels change, but the ring a keyboard user looks for is cut at the edge. */
   .tool:focus { outline: none; }
   .tool:focus-visible {
     outline: 3px solid #128a5e; outline-offset: 3px; border-radius: 8px;
@@ -110,17 +94,5 @@
     </p>
   </main>
 
-  <!--
-    WHY AUTOMATED TOOLS MISS IT (English, for graders)
-    Every toolbar button has a valid, high-contrast :focus-visible ring and a
-    background swap, so oj04fd is satisfied (pixels change inside the scrolling
-    track) and axe/WAVE/Lighthouse report nothing. The defect is layout +
-    writing-mode aware: in this RTL toolbar the FIRST button in tab order is the
-    right-most one, pinned against the track's overflow:hidden boundary, so the
-    side ring rail facing the edge is clipped; subsequent buttons that scroll to
-    a snap edge lose a rail too. Whether a keyboard user can actually SEE the
-    ring on the focused control — given the clip box and the RTL inline-start
-    edge — is a human visual judgment a static scanner cannot make.
-  -->
 </body>
 </html>

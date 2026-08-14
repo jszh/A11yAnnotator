@@ -28,9 +28,6 @@
     .tier li { padding: .28rem 0; padding-left: 1.3rem; position: relative; font-size: .92rem; }
     .tier li::before { content: "✓"; position: absolute; left: 0; color: #5b8cff; }
 
-    /* The CTA buttons. Utility-class mindset: kill the default ring
-       (`focus:outline-none`) and add only a press-feedback transform
-       (`active:scale-95`). No focus/focus-visible utility was ever added. */
     .cta {
       display: inline-block; width: 100%; text-align: center;
       padding: .7rem 1rem; border: none; border-radius: 9px;
@@ -40,11 +37,8 @@
     }
     .cta.alt { background: #242936; color: #e7e9ee; }
 
-    /* Pointer-press + keyboard-activate feedback, but only WHILE the button is
-       being pressed — it springs back the instant the key/mouse is released. */
     .cta:active { transform: scale(.97); }
 
-    /* "Get rid of the ugly blue ring." No replacement supplied. */
     .cta:focus { outline: none; }
   </style>
 </head>
@@ -92,26 +86,5 @@
     </div>
   </main>
 
-  <!--
-    WHY THIS FAILS SC 2.4.7 (Focus Visible) AND WHY AUTOMATED TOOLS MISS IT
-    ----------------------------------------------------------------------
-    The CTA buttons define exactly one styled interactive state: `:active`, a
-    97%-scale press animation. `:active` is NOT a focus state — it is the
-    "currently being pressed/activated" state. It fires for a mouse press and for
-    a keyboard Space/Enter activation, but it lasts ONLY while the key/button is
-    held; it springs back immediately on release. A keyboard user who Tabs onto a
-    button and pauses (the entire point of a focus indicator — to know where you
-    are *before* you activate) sees no change whatsoever, because `:focus` was
-    reset to `outline: none` with no replacement. There is no persistent
-    indication of which CTA currently holds focus.
-
-    Automated tools miss it because there IS interactive-state styling present
-    (`:active`), `outline:none` is legal, and a programmatic-focus pixel diff
-    captures the resting focused state — which is unchanged, but tools have no SC
-    2.4.7 oracle to call that a failure versus a design choice. Distinguishing
-    "press feedback" (`:active`, transient, modality-agnostic) from "focus
-    feedback" (`:focus`/`:focus-visible`, persistent, what a keyboard user needs)
-    is a semantic judgment about which state a Tab-and-stop actually produces.
-  -->
 </body>
 </html>

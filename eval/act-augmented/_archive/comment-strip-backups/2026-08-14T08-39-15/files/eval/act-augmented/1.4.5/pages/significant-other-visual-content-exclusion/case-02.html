@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.4.5 FAILURE — "significant other visual content" exclusion, decorative-frame trap.
+
+    A neighbourhood restaurant's daily menu is published as ONE designed image (inline-SVG
+    `data:` URI -> the words are image pixels). The designer wrapped the menu in a hand-drawn
+    laurel border, a fork-and-knife monogram, and an ornamental rule between courses. Those
+    flourishes make it FEEL like "a picture with significant other visual content" — the kind of
+    thing the 1.4.5 note excludes (graphs/screenshots/diagrams).
+
+    But the exclusion is for pictures where the NON-TEXT content "visually conveys important
+    information through more than just text." Here the laurel, monogram and rule are DECORATION:
+    they carry no information. Remove them and you lose nothing but ornament. The actual content
+    — dish names, descriptions, prices, allergen notes, the soup of the day — is ENTIRELY text,
+    merely laid out decoratively. So this is an IMAGE OF TEXT (the menu could and should be live
+    HTML text), and the decorative graphics do NOT earn the exclusion. -> 1.4.5 FAIL.
+
+    The alt is a faithful, non-empty transcription of the whole menu, so 1.1.1 is arguably
+    satisfied and image-alt passes. 1.4.5 is still failed: a low-vision user cannot enlarge the
+    $ prices without pixelation, cannot recolour for contrast, cannot reflow the lines, and
+    cannot select the address to copy. The information was presented AS an image RATHER THAN as
+    text, with no customization control and no live-text equivalent rendered on the page.
+
+    WHY AUTOMATED TOOLS MISS IT: image-alt passes (alt is present and rich). No tool decides
+    whether the laurel/monogram is "significant other visual content" (excluded) or mere
+    decoration around an image of text (in scope). That gestalt — is the non-text content doing
+    informational work, or just dressing up a block of text? — is the human judgment 1.4.5 needs.
+  -->
+  <title>Today's Menu — Olive & Thyme Kitchen</title>
+  <style>
+    :root { --ink:#2a2420; --muted:#7a6f63; --line:#e7ded1; --bg:#f6f1e7; --accent:#5c7a4a; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Georgia","Times New Roman",serif; color:var(--ink); background:var(--bg); }
+    .wrap { max-width:760px; margin:0 auto; padding:28px 20px 56px; }
+    header.site { display:flex; align-items:baseline; gap:14px; border-bottom:2px solid var(--accent); padding-bottom:12px; }
+    header.site h1 { font-size:22px; margin:0; letter-spacing:.02em; }
+    header.site nav { margin-left:auto; font-size:14px; }
+    header.site nav a { color:var(--accent); text-decoration:none; margin-left:16px; }
+    .intro { color:var(--muted); font-size:15px; line-height:1.65; margin:20px 2px 8px; }
+    figure { margin:22px 0 0; text-align:center; }
+    figure img { display:inline-block; width:100%; max-width:560px; height:auto; border-radius:6px; box-shadow:0 4px 18px rgba(60,40,20,.10); }
+    figcaption { color:var(--muted); font-size:13px; margin-top:12px; }
+    .hours { margin-top:26px; font-size:14px; color:var(--muted); line-height:1.7; border-top:1px solid var(--line); padding-top:16px; }
+    .hours strong { color:var(--ink); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="site">
+      <h1>Olive &amp; Thyme Kitchen</h1>
+      <nav aria-label="Primary">
+        <a href="#menu">Menu</a>
+        <a href="#visit">Visit</a>
+        <a href="#book">Reserve</a>
+      </nav>
+    </header>
+
+    <p class="intro">
+      Our menu changes with the market. Here is what the kitchen is cooking today —
+      printed fresh each morning. Call us for the day's off-menu specials.
+    </p>
+
+    <figure id="menu">
+      <!-- One designed image: ornamental laurel + fork/knife monogram + course rule are
+           DECORATION; the menu content is all text laid out decoratively. Image of text. -->
+      <img alt="Olive and Thyme Kitchen — Today's Menu. Starters: Heirloom tomato &amp; burrata, basil oil, sourdough — 14. Charred sweet corn soup, chili crumb (gf) — 11. Mains: Herb-roasted half chicken, lemon potatoes — 26. Wild mushroom tagliatelle, aged pecorino (v) — 23. Pan-seared trout, brown butter, almonds (gf) — 29. Dessert: Olive oil cake, mascarpone — 10. Soup of the day: roasted parsnip. Ask your server about allergens."
+           src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCA1NjAgNzIwJz48cmVjdCB3aWR0aD0nNTYwJyBoZWlnaHQ9JzcyMCcgZmlsbD0nI2ZiZjdlZScvPjxyZWN0IHg9JzE0JyB5PScxNCcgd2lkdGg9JzUzMicgaGVpZ2h0PSc2OTInIGZpbGw9J25vbmUnIHN0cm9rZT0nIzVjN2E0YScgc3Ryb2tlLXdpZHRoPScyJy8+PHJlY3QgeD0nMjInIHk9JzIyJyB3aWR0aD0nNTE2JyBoZWlnaHQ9JzY3NicgZmlsbD0nbm9uZScgc3Ryb2tlPScjYzliOThmJyBzdHJva2Utd2lkdGg9JzEnLz48ZyBzdHJva2U9JyM1YzdhNGEnIHN0cm9rZS13aWR0aD0nMicgZmlsbD0nbm9uZSc+PHBhdGggZD0nTTI1MCA1NiBxMTQgLTEwIDI4IDAnLz48cGF0aCBkPSdNMjgyIDU2IHExNCAtMTAgMjggMCcvPjwvZz48Y2lyY2xlIGN4PScyODAnIGN5PSc2NCcgcj0nMycgZmlsbD0nIzVjN2E0YScvPjx0ZXh0IHg9JzI4MCcgeT0nMTEwJyBmb250LWZhbWlseT0nR2VvcmdpYScgZm9udC1zaXplPSczMCcgZmlsbD0nIzJhMjQyMCcgdGV4dC1hbmNob3I9J21pZGRsZScgZm9udC1zdHlsZT0naXRhbGljJz5Ub2RheSYjODIxNztzIE1lbnU8L3RleHQ+PHRleHQgeD0nMjgwJyB5PScxMzQnIGZvbnQtZmFtaWx5PSdHZW9yZ2lhJyBmb250LXNpemU9JzEzJyBmaWxsPScjN2E2ZjYzJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJyBsZXR0ZXItc3BhY2luZz0nMyc+T0xJVkUgJmFtcDsgVEhZTUUgS0lUQ0hFTjwvdGV4dD48bGluZSB4MT0nMTUwJyB5MT0nMTYwJyB4Mj0nNDEwJyB5Mj0nMTYwJyBzdHJva2U9JyNjOWI5OGYnLz48ZyBmb250LWZhbWlseT0nR2VvcmdpYScgZmlsbD0nIzJhMjQyMCc+PHRleHQgeD0nNjAnIHk9JzE5NicgZm9udC1zaXplPScxNycgZm9udC13ZWlnaHQ9J2JvbGQnPlN0YXJ0ZXJzPC90ZXh0Pjx0ZXh0IHg9JzYwJyB5PScyMjQnIGZvbnQtc2l6ZT0nMTQnPkhlaXJsb29tIHRvbWF0byAmYW1wOyBidXJyYXRhLCBiYXNpbCBvaWwsIHNvdXJkb3VnaDwvdGV4dD48dGV4dCB4PSc1MDAnIHk9JzIyNCcgZm9udC1zaXplPScxNCcgdGV4dC1hbmNob3I9J2VuZCc+MTQ8L3RleHQ+PHRleHQgeD0nNjAnIHk9JzI1MCcgZm9udC1zaXplPScxNCc+Q2hhcnJlZCBzd2VldCBjb3JuIHNvdXAsIGNoaWxpIGNydW1iIChnZik8L3RleHQ+PHRleHQgeD0nNTAwJyB5PScyNTAnIGZvbnQtc2l6ZT0nMTQnIHRleHQtYW5jaG9yPSdlbmQnPjExPC90ZXh0Pjx0ZXh0IHg9JzYwJyB5PSczMDAnIGZvbnQtc2l6ZT0nMTcnIGZvbnQtd2VpZ2h0PSdib2xkJz5NYWluczwvdGV4dD48dGV4dCB4PSc2MCcgeT0nMzI4JyBmb250LXNpemU9JzE0Jz5IZXJiLXJvYXN0ZWQgaGFsZiBjaGlja2VuLCBsZW1vbiBwb3RhdG9lczwvdGV4dD48dGV4dCB4PSc1MDAnIHk9JzMyOCcgZm9udC1zaXplPScxNCcgdGV4dC1hbmNob3I9J2VuZCc+MjY8L3RleHQ+PHRleHQgeD0nNjAnIHk9JzM1NCcgZm9udC1zaXplPScxNCc+V2lsZCBtdXNocm9vbSB0YWdsaWF0ZWxsZSwgYWdlZCBwZWNvcmlubyAodik8L3RleHQ+PHRleHQgeD0nNTAwJyB5PSczNTQnIGZvbnQtc2l6ZT0nMTQnIHRleHQtYW5jaG9yPSdlbmQnPjIzPC90ZXh0Pjx0ZXh0IHg9JzYwJyB5PSczODAnIGZvbnQtc2l6ZT0nMTQnPlBhbi1zZWFyZWQgdHJvdXQsIGJyb3duIGJ1dHRlciwgYWxtb25kcyAoZ2YpPC90ZXh0Pjx0ZXh0IHg9JzUwMCcgeT0nMzgwJyBmb250LXNpemU9JzE0JyB0ZXh0LWFuY2hvcj0nZW5kJz4yOTwvdGV4dD48dGV4dCB4PSc2MCcgeT0nNDMwJyBmb250LXNpemU9JzE3JyBmb250LXdlaWdodD0nYm9sZCc+RGVzc2VydDwvdGV4dD48dGV4dCB4PSc2MCcgeT0nNDU4JyBmb250LXNpemU9JzE0Jz5PbGl2ZSBvaWwgY2FrZSwgbWFzY2FycG9uZTwvdGV4dD48dGV4dCB4PSc1MDAnIHk9JzQ1OCcgZm9udC1zaXplPScxNCcgdGV4dC1hbmNob3I9J2VuZCc+MTA8L3RleHQ+PC9nPjxsaW5lIHgxPScxNTAnIHkxPSc1MDAnIHgyPSc0MTAnIHkyPSc1MDAnIHN0cm9rZT0nI2M5Yjk4ZicvPjx0ZXh0IHg9JzI4MCcgeT0nNTMyJyBmb250LWZhbWlseT0nR2VvcmdpYScgZm9udC1zaXplPScxNCcgZmlsbD0nIzVjN2E0YScgdGV4dC1hbmNob3I9J21pZGRsZScgZm9udC1zdHlsZT0naXRhbGljJz5Tb3VwIG9mIHRoZSBkYXk6IHJvYXN0ZWQgcGFyc25pcDwvdGV4dD48dGV4dCB4PScyODAnIHk9JzU2MCcgZm9udC1mYW1pbHk9J0dlb3JnaWEnIGZvbnQtc2l6ZT0nMTInIGZpbGw9JyM3YTZmNjMnIHRleHQtYW5jaG9yPSdtaWRkbGUnPkFzayB5b3VyIHNlcnZlciBhYm91dCBhbGxlcmdlbnM8L3RleHQ+PGcgc3Ryb2tlPScjNWM3YTRhJyBzdHJva2Utd2lkdGg9JzEuNScgZmlsbD0nbm9uZSc+PHBhdGggZD0nTTI2OCA2NjAgbDAgLTE2IG02IDE2IGwwIC0xNiBtNiAxNiBsMCAtMTYnLz48cGF0aCBkPSdNMjkyIDY0NCBxNSAwIDUgOCBsMCA4IG0tMyAtMTYgbDAgMTYnLz48L2c+PC9zdmc+">
+      <figcaption>Today's menu, updated each morning. Prices in USD; service not included.</figcaption>
+    </figure>
+
+    <div class="hours" id="visit">
+      <p><strong>Hours:</strong> Tue–Sun, 5:00–10:00 PM. Closed Mondays.</p>
+      <p><strong>Find us:</strong> 218 Larkspur Lane, Riverbend. Street parking after 6 PM.</p>
+      <p id="book"><strong>Reservations:</strong> call (555) 0142 or book through your usual app.</p>
+    </div>
+  </div>
+</body>
+</html>

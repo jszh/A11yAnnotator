@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meridian Bank — Transfer Money</title>
+<!--
+  SC 1.4.11 Non-text Contrast — F78 (focus indicator swallowed by a heavy
+  same-color border on a text input).
+
+  Meridian Bank's brand mandates a heavy 3px solid navy (#10243f) border on
+  every form field. The developer added a focus indicator that is only a 1px
+  solid navy (#10243f) outline drawn immediately OUTSIDE the field, at offset 0:
+
+      input        { border: 3px solid #10243f; }
+      input:focus  { outline: 1px solid #10243f; outline-offset: 0; }
+
+  Because the focus outline is a thin navy line flush against a 3px navy border
+  of the SAME color, it is swallowed — the edge just looks like a 4px navy edge
+  instead of a 3px one, which is not a perceivable "this field is now focused"
+  change. The page renders with the "Amount" input focused. Tabbing between
+  fields produces no discernible focus change.
+
+  This differs from case-02 (gov BUTTONS, default UA outline, 4px black border):
+  here it is a TEXT INPUT, an AUTHOR-supplied 1px outline (not the UA default),
+  navy-on-navy, and the caret is suppressed too (caret-color matches), so even
+  the caret does not rescue it.
+
+  WHY AUTOMATED TOOLS MISS IT: an author :focus style is present (outline:none
+  is not used) and each color is individually high-contrast (navy on white
+  ~13:1), so contrast and focus-exists checks pass. axe/WAVE/Lighthouse cannot
+  judge that a 1px navy outline is occluded by an adjacent 3px navy border. Only
+  a human rendering the focused field can see that focus is not perceivable.
+-->
+<style>
+  :root{
+    --navy:#10243f; --muted:#5a6573; --bg:#f3f5f8; --card:#fff; --line:#cfd6df; --gold:#b08400;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--navy); font:16px/1.55 "IBM Plex Sans","Segoe UI",system-ui,sans-serif;}
+  header{background:var(--navy); color:#fff; padding:14px 22px; display:flex; align-items:center; gap:12px;}
+  header .logo{font-weight:800; letter-spacing:.02em;}
+  header .logo b{color:var(--gold);}
+  header nav{margin-left:auto; font-size:.85rem; opacity:.85;}
+  main{max-width:560px; margin:0 auto; padding:28px 22px 60px;}
+  h1{font-size:1.45rem; margin:0 0 4px;}
+  .sub{color:var(--muted); margin:0 0 24px; font-size:.92rem;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:22px 24px;}
+  .field{margin:0 0 18px;}
+  label{display:block; font-weight:600; font-size:.9rem; margin:0 0 6px;}
+
+  /* THE DEFECT: heavy 3px navy border on every input; focus adds only a 1px navy
+     outline flush against it, swallowed by the same-color border. caret-color is
+     also navy so the caret does not provide a rescuing indication on its own
+     against the navy edge dominating the field. */
+  input[type=text], input[type=number], select{
+    width:100%; font:1rem inherit; color:var(--navy);
+    padding:11px 12px; border:3px solid #10243f; border-radius:6px; background:#fff;
+    caret-color:#10243f;
+  }
+  input:focus, select:focus{
+    outline:1px solid #10243f;   /* same color as the 3px border, flush */
+    outline-offset:0;
+  }
+  .help{font-size:.82rem; color:var(--muted); margin-top:6px;}
+  .inline{display:grid; grid-template-columns:1fr 120px; gap:14px;}
+  .actions{display:flex; gap:14px; margin-top:8px;}
+  .btn{font:700 1rem/1 inherit; cursor:pointer; padding:12px 20px; border-radius:7px; border:2px solid var(--navy);}
+  .btn.primary{background:var(--navy); color:#fff;}
+  .btn.ghost{background:#fff; color:var(--navy);}
+  footer{max-width:560px; margin:0 auto; padding:16px 22px; color:var(--muted); font-size:.8rem;}
+</style>
+</head>
+<body>
+<header>
+  <span class="logo">MERIDIAN<b>·</b>BANK</span>
+  <nav>Accounts · Pay &amp; Transfer · Cards</nav>
+</header>
+
+<main>
+  <h1>Transfer money</h1>
+  <p class="sub">Move funds between your Meridian accounts. Transfers post immediately.</p>
+
+  <div class="card">
+    <form>
+      <div class="field">
+        <label for="from">From account</label>
+        <select id="from" name="from">
+          <option>Everyday Checking ···4471 — $4,182.06</option>
+          <option>High-Yield Savings ···9920 — $18,540.11</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="to">To account</label>
+        <select id="to" name="to">
+          <option>High-Yield Savings ···9920</option>
+          <option>Everyday Checking ···4471</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="amount">Amount</label>
+        <div class="inline">
+          <!-- Page loads with this field focused; the 1px navy focus outline is
+               swallowed by the 3px navy border. -->
+          <input type="text" id="amount" name="amount" inputmode="decimal" placeholder="0.00" autofocus>
+          <input type="text" id="cur" name="cur" value="USD" aria-label="Currency" readonly>
+        </div>
+        <p class="help">Available to transfer: $4,182.06</p>
+      </div>
+
+      <div class="field">
+        <label for="memo">Memo (optional)</label>
+        <input type="text" id="memo" name="memo" placeholder="e.g. Rent">
+      </div>
+
+      <div class="actions">
+        <button type="button" class="btn ghost">Cancel</button>
+        <button type="button" class="btn primary">Review transfer</button>
+      </div>
+    </form>
+  </div>
+</main>
+
+<footer>
+  Meridian Bank, N.A. Member FDIC. &middot; This form loads with the <em>Amount</em> field focused.
+</footer>
+</body>
+</html>
