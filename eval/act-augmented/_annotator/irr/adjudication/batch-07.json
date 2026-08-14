@@ -1,0 +1,507 @@
+{
+  "batch": "07",
+  "n": 10,
+  "backupDir": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15",
+  "cases": [
+    {
+      "key": "1.4.1::required-field-color-only::case-06",
+      "sc": "1.4.1",
+      "aspect": "required-field-color-only",
+      "caseId": "case-06",
+      "severity": 5,
+      "signals": [
+        "CONTRADICTED",
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.4.1/pages/required-field-color-only/case-06.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.4.1/pages/required-field-color-only/case-06.html",
+        "caseDoc": "eval/act-augmented/1.4.1/pages/required-field-color-only/case-06.md",
+        "sourceOfTruth": "eval/act-augmented/1.4.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Required form fields indicated by color alone, with self-referential or absent text instruction",
+        "scenario": "TRUE-NEGATIVE via the lightness escape hatch. Developer-console 'Create API key' form. Required labels are green (#2e8b2e), optional labels charcoal (#222). No '(required)' text — but the two colours differ in BOTH hue and lightness: their inter-colour contrast is ~3.67:1 (>=3:1), green-on-white is 4.33:1 and charcoal-on-white 15.9:1. The required/optional distinction survives greyscale as a light-vs-dark difference. Should PASS via the escape hatch.",
+        "mechanism": "The two label colours differ in lightness by a contrast ratio >=3:1, which the 1.4.1 Understanding note counts as an additional visual distinction, so the distinction is not hue-only; passes 1.4.1 even with no text cue (aria-required absence is a separate 1.3.1/3.3.2 matter, not 1.4.1).",
+        "whyAutomatedToolsMiss": "This is the boundary an over-eager rule gets wrong: a heuristic failing any 'colour-coded required field' would wrongly fail it. Automated tools do not compute the luminance difference BETWEEN two label foreground colours and apply the 3:1 escape-hatch from the 1.4.1 Understanding note — they only check foreground-vs-background contrast for 1.4.3. So a tool cannot affirm the pass for the right reason, and a naive judge might fail it. Passing correctly requires computing the inter-label contrast ratio and knowing the escape-hatch rule — a quantitative plus interpretive judgment.",
+        "primarySelector": ".f.req label"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": false,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "No defect: this is an intentional TRUE-NEGATIVE that correctly PASSES 1.4.1 via the lightness escape hatch. errorIsReal=false is the designed state, not a flaw.",
+          "Minor design note (not a defect): the legend paragraph (line 65-66) textually states 'Required field labels are a lighter green; optional field labels are dark charcoal. The two are also clearly different in shade' — this is an extra textual description of the color convention. It does not annotate which individual fields are required, so users still rely on the visual color/lightness per field; the lightness-escape-hatch reasoning remains the operative pass mechanism. Worth noting only because it slightly softens the 'purely color' boundary purity."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "yes",
+          "disposition": "comment",
+          "commentReason": "other",
+          "commentText": "It lacks a true non-color structural fallback, and relying on the 3:1 contrast escape hatch does not meet our requirement for redundant visual cues"
+        }
+      ]
+    },
+    {
+      "key": "2.4.4::duplicate-name-same-context-different-purpose::case-02",
+      "sc": "2.4.4",
+      "aspect": "duplicate-name-same-context-different-purpose",
+      "caseId": "case-02",
+      "severity": 4,
+      "signals": [
+        "CONTRADICTED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/2.4.4/pages/duplicate-name-same-context-different-purpose/case-02.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/2.4.4/pages/duplicate-name-same-context-different-purpose/case-02.html",
+        "caseDoc": "eval/act-augmented/2.4.4/pages/duplicate-name-same-context-different-purpose/case-02.md",
+        "sourceOfTruth": "eval/act-augmented/2.4.4/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Identical accessible name AND identical context, but the links resolve to genuinely different purposes (fd3a94 equivalence judgment)",
+        "scenario": "Charity grant-spending page: one sentence (one <p>) offers the SAME four-row dataset in three takeaway formats, each behind an identical link named 'Download this data' — a PDF, an XLSX and a CSV delivered via self-contained data: URIs. Identical name, identical same-DOM-node context, but the destinations are equivalent (same data, different format). PASS boundary control where the discriminator is purpose-equivalence.",
+        "mechanism": "Three <a download> with identical accessible name 'Download this data' in one paragraph resolve to three encodings (PDF/XLSX/CSV) of one identical dataset (the CSV data: URI literally encodes the same Food/Fuel/Children/Rent figures shown in the table). Per fd3a94's expectation, links sharing name+context PASS when they resolve to equivalent resources; 'same data, different file format' is the canonical equivalence (mirrored by the Understanding's HTML/PDF/mp3 'list of book titles' example). Every user gets the same content from any link, so each link's purpose — obtain this dataset — is determinable.",
+        "whyAutomatedToolsMiss": "A naive duplicate-link heuristic would FALSELY flag three same-named links as a likely ambiguity failure; the tool cannot open the PDF/XLSX/CSV, parse them, and discover identical content. Conversely no name/role/href defect exists, so strict linters say nothing. Either way pass/fail hinges on the human-only judgment 'are these destinations the same data?' — exactly the equivalence call fd3a94 marks not fully automatable.",
+        "primarySelector": "p > a[download$=\".pdf\"], p > a[download$=\".xlsx\"], p > a[download$=\".csv\"]"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": [
+          "SEVERE PROMPT/FILE MISMATCH: The task prompt describes a completely different page than the one on disk. Prompt claims a 'charity grant-spending page' with THREE 'Download this data' links (PDF/XLSX/CSV) of one equivalent dataset, expected outcome PASSED, selector 'p > a[download$=\".pdf\"], p > a[download$=\".xlsx\"], p > a[download$=\".csv\"]'. The ACTUAL file (case-02.html) is a swim-school page with TWO '.txt' links named 'download the form' inside a single <td>, resolving to GENUINELY DIFFERENT documents (parental-consent vs medical-history), expected outcome FAILED. grep confirms '.pdf/.xlsx/.csv/Download this data' appear 0 times in the file; the prompt selector matches nothing. The prompt's 'Claimed expected outcome: passed' is wrong for this file.",
+          "The file itself is internally consistent and correct: HTML, MD, AX tree, and citation all agree it is a 2.4.4 FAIL (two identical-name links in the same cell -> non-equivalent resources, disambiguation only in prose not in name/programmatic context).",
+          "All citations verified verbatim: MD's Description quote matches fd3a94.md line 21 char-for-char; the prompt's Expectation quote matches fd3a94.md lines 43-47 char-for-char; the Understanding 'same sentence/paragraph/list item/table cell' quote is accurate. No citation defect on the file."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "1.1.1::context-and-function-dependent-equivalence::case-01",
+      "sc": "1.1.1",
+      "aspect": "context-and-function-dependent-equivalence",
+      "caseId": "case-01",
+      "severity": 3,
+      "signals": [
+        "SPLIT",
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.1.1/pages/context-and-function-dependent-equivalence/case-01.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.1.1/pages/context-and-function-dependent-equivalence/case-01.html",
+        "caseDoc": "eval/act-augmented/1.1.1/pages/context-and-function-dependent-equivalence/case-01.md",
+        "sourceOfTruth": "eval/act-augmented/1.1.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "Alt literally describes the image but is wrong for the image's purpose-in-context (link target or control function)",
+        "scenario": "News aggregator grid: a newspaper front-page thumbnail is the sole content of a link to the publication's homepage, but its alt accurately describes the cover PHOTO ('Front page photo of a flooded town square under grey skies') instead of naming the publication. A correctly-labelled card (alt='The Harbor Gazette') is included for contrast.",
+        "mechanism": "Because the <img> is the only content of the <a>, the image alt becomes the link's accessible name. The link to The Riverside Courier is therefore named for the cover photograph, not the publication, so the alternative does not serve the link's purpose-in-context (G94/H30 linked-thumbnail rule).",
+        "whyAutomatedToolsMiss": "The img has a non-empty, genuinely descriptive alt so image-alt passes, and the link therefore has a non-empty accessible name so link-name passes. No tool resolves the destination (a newspaper homepage) or knows the convention that a linked front-page thumbnail must be named for the publication it opens; judging that 'a flooded town square' is the wrong name for a link to The Riverside Courier requires understanding the link's purpose — human semantic judgment.",
+        "primarySelector": ".grid .card:first-child a[href*='riversidecourier'] > img[alt^='Front page photo']"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": [
+          "No genuine defect found in the case construction — the issue is real and well-formed; problems listed are minor observations only.",
+          "Minor: the masthead 'THE RIVERSIDE COURIER' lives as SVG <text> inside an img-src data URI, so it is intentionally NOT in the AX tree — this is correct for the scenario (the publication name is invisible to AT), but a reviewer should note the page deliberately relies on this so the alt is the link's only name source."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "no-error",
+          "commentText": ""
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "1.4.1::required-field-color-only::case-04",
+      "sc": "1.4.1",
+      "aspect": "required-field-color-only",
+      "caseId": "case-04",
+      "severity": 3,
+      "signals": [
+        "SPLIT",
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.4.1/pages/required-field-color-only/case-04.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.4.1/pages/required-field-color-only/case-04.html",
+        "caseDoc": "eval/act-augmented/1.4.1/pages/required-field-color-only/case-04.md",
+        "sourceOfTruth": "eval/act-augmented/1.4.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "Required form fields indicated by color alone, with self-referential or absent text instruction",
+        "scenario": "Multi-section auto-insurance quote wizard (Step 2 of 4). The 'Driver details' section is correct — required labels are red AND carry '(required)' text per G205. The 'Vehicle details' section fails — required labels (Make, Model, Model year, VIN) are the SAME red but have no '(required)', no asterisk, no aria-required. A single top instruction 'Required fields are marked in red' is colour-keyed and does not resolve the Vehicle fields. Forces per-field, not global, judgment.",
+        "mechanism": "F81 in one section only: a partially-correct page where the Vehicle section's required cue is colour-only while the Driver section satisfies G205, so a correct verdict requires per-section inspection and the page fails on the Vehicle section.",
+        "whyAutomatedToolsMiss": "Both sections are structurally identical, valid, fully-labelled forms; the only differences are section 2's missing '(required)' text and the label colour. axe/WAVE/Lighthouse do not read label prose to notice one group includes '(required)' while the other's red labels do not, and have no rule inferring the page fails because one section's required indicator is colour-only. A tool would pass the whole page or treat both sections identically — it cannot make the per-section, read-the-words distinction the SC requires.",
+        "primarySelector": ".f.req label"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": []
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "no-error",
+          "commentText": ""
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "1.1.1::context-and-function-dependent-equivalence::case-07",
+      "sc": "1.1.1",
+      "aspect": "context-and-function-dependent-equivalence",
+      "caseId": "case-07",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.1.1/pages/context-and-function-dependent-equivalence/case-07.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.1.1/pages/context-and-function-dependent-equivalence/case-07.html",
+        "caseDoc": "eval/act-augmented/1.1.1/pages/context-and-function-dependent-equivalence/case-07.md",
+        "sourceOfTruth": "eval/act-augmented/1.1.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Alt literally describes the image but is wrong for the image's purpose-in-context (link target or control function)",
+        "scenario": "PASS boundary on a travel site: a globe <img> is the sole content of an <a href='/international'> and its alt is 'International Travel' (serves the link purpose, not the depiction 'globe'); a printer icon <button> is correctly named 'Print this page'. The same class of functional image / image-as-control that fails in the other cases is here labelled by purpose — the canonical WCAG example built correctly.",
+        "mechanism": "The globe img is the only content of its link, so the image alt becomes the link's accessible name 'International Travel' — exactly the link's purpose; the printer button's accessible name is its child image alt 'Print this page' — exactly the action. In both, the alternative serves the same purpose as the non-text content even though it does not describe the depiction (G94/H30 ideal).",
+        "whyAutomatedToolsMiss": "A tool sees the same surface signal as the failing pages — a non-empty alt/accessible name on a linked image and on an icon button — and would report 'no violation' here just as it (incorrectly) does on case-01..06. It cannot distinguish a purpose-correct alternative ('International Travel') from a purpose-wrong one ('globe'/'inkjet printer'); only a human comparing the alternative against the element's purpose-in-context can confirm this page is actually correct.",
+        "primarySelector": "a[href='/international'] > img[alt='International Travel']"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": false,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "No defect — this is a deliberate PASS control and it is built correctly. errorIsReal=false reflects 'no accessibility violation exists', which is the intended state; expectedOutcomeCorrect=true reflects that the documented outcome 'passed' is accurate.",
+          "Minor framing note (not a defect): on a PASS page there is no 'error' to confirm, so errorIsReal=false should be read as 'the page is correct as intended', not as a refutation of the case."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "no-error",
+          "commentText": ""
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "other",
+          "commentText": "The component correctly provides functional text for the link target, confirming it as a valid pass / false positive test case."
+        }
+      ]
+    },
+    {
+      "key": "1.4.1::color-coded-graphics-no-pattern-or-label::case-06",
+      "sc": "1.4.1",
+      "aspect": "color-coded-graphics-no-pattern-or-label",
+      "caseId": "case-06",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.4.1/pages/color-coded-graphics-no-pattern-or-label/case-06.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.4.1/pages/color-coded-graphics-no-pattern-or-label/case-06.html",
+        "caseDoc": "eval/act-augmented/1.4.1/pages/color-coded-graphics-no-pattern-or-label/case-06.md",
+        "sourceOfTruth": "eval/act-augmented/1.4.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Color-coded charts, maps, diagrams and game pieces distinguished by color with no pattern, icon, or in-graphic label (G111)",
+        "scenario": "TRUE NEGATIVE: same inline-SVG transit-map pattern as case-01 (Harbor City Tram) but each route is ALSO distinguished by station SHAPE per G111 — Bay line = diamonds, Hill line = squares, Coast line = circles — and the legend names each route by both its shape and name.",
+        "mechanism": "Route membership is conveyed by two independent visual channels (line color AND station shape); a user who cannot perceive the colors can still follow a single route by its consistent station shape and match it to the shape-labelled legend, so color is not the sole cue and G111 is satisfied — verified to survive grayscale.",
+        "whyAutomatedToolsMiss": "This page passes automated checks, but so would the failing case-01, which differs only in having identical dot stations; axe/WAVE/Lighthouse never evaluate station shape and cannot tell the accessible map from the inaccessible one. Passing it for the RIGHT reason (shape redundantly encodes route, survives grayscale) requires visual-semantic judgment.",
+        "primarySelector": "svg g[stroke=\"#0b8457\"] rect[transform*=\"rotate(45)\"]"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": false,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "No defect found — correctly-labelled true negative."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "no-error",
+          "commentText": ""
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "no",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "2.1.2::modal-popover-legitimate-containment-vs-trap::case-06",
+      "sc": "2.1.2",
+      "aspect": "modal-popover-legitimate-containment-vs-trap",
+      "caseId": "case-06",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/2.1.2/pages/modal-popover-legitimate-containment-vs-trap/case-06.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/2.1.2/pages/modal-popover-legitimate-containment-vs-trap/case-06.html",
+        "caseDoc": "eval/act-augmented/2.1.2/pages/modal-popover-legitimate-containment-vs-trap/case-06.md",
+        "sourceOfTruth": "eval/act-augmented/2.1.2/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "Modal-dialog / popover focus restriction: legitimate containment vs. an undismissable trap (the Understanding carve-out)",
+        "scenario": "Insurance quote wizard with two STACKED modals. The base 'Get a quote' modal is conformant in isolation (Esc closes, Close in cycle, focus restore). From inside it the user opens a top 'Discard this quote?' confirmation modal. The defect is the nested-dismiss handoff: pressing Esc on the top modal closes it but drops focus to <body> (it omits the focus-restore call), and the still-armed base trap re-grabs the next Tab, snapping focus back to the base modal's first field — a re-trap instead of an orderly return.",
+        "mechanism": "Broken focus handoff across stacked layers: closeConfirm() removes the top scrim but omits confirmOpener.focus(), so dismissing the confirm modal collapses focus to <body>; the base-layer focusin guard then yanks focus to #zip on the next Tab (verified: Esc->body, Tab->#zip). The keyboard user cannot return in an orderly way to where they were and is re-trapped in the base modal — the exit from the stack is broken even though each modal is escapable alone.",
+        "whyAutomatedToolsMiss": "Both dialogs are textbook-valid in isolation: real role=dialog aria-modal=true overlays, accessible names, focusable Close buttons, wired Esc handlers — every static check passes, and even a keyboard test of each dialog separately finds Esc and Close working. The failure exists only in the stack transition (open-confirm-from-base -> Esc-confirm -> focus-to-body -> Tab -> base re-trap), requiring multi-step, stateful keyboard reasoning about focus handoff between layers across time, which scanners do not perform. There is no missing attribute; the bug is an omitted focus-restore call whose effect manifests only dynamically.",
+        "primarySelector": "div#confirm[role=\"dialog\"]"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": [
+          "TASK-PROMPT METADATA MISMATCH (does not invalidate the page, but invalidates the prompt's selector/mechanism): the prompt describes a 'two STACKED modals / insurance quote wizard' with closeConfirm(), confirmOpener.focus(), #zip, 'Get a quote'/'Discard this quote', and element-under-test div#confirm[role=\"dialog\"]. None of these exist in case-06.html. inspect.js returned 'selector not found' for div#confirm[role=\"dialog\"]; grep found no #confirm, closeConfirm, #zip, confirmOpener, or quote-wizard strings. The actual page is a Cobalt Bank identity-verification modal whose iframe srcdoc KYC widget traps the keyboard (WCAG F10). The prompt's claimed scenario/selector/mechanism appear copied from a different case.",
+          "The .md doc's cited reference FILES are not present in this repo: it cites wcag-techniques/failures/F10.html and wcag-understanding/no-keyboard-trap.html, neither of which exists under refs/ (only refs/trusted-tester/sc-2.1.2-no-keyboard-trap.md exists). The doc's verbatim F10/Understanding quotes therefore cannot be verified against a local source file. The prompt's OWN citation quote, by contrast, does verbatim-match refs/trusted-tester/sc-2.1.2-no-keyboard-trap.md lines 33-34.",
+          "The element-under-test selector supplied in the prompt is unusable for this page; an accurate selector would be iframe#kyc (the trapping embedded format) inside div#dialog."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "yes",
+          "disposition": "comment",
+          "commentReason": "other-error",
+          "commentText": "It does go back to the button after pressing escape from the Verify your identity modal, and not the body as mentioned in the comment"
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "3.3.1::error-summary-incoherent-with-flagged-state::case-04",
+      "sc": "3.3.1",
+      "aspect": "error-summary-incoherent-with-flagged-state",
+      "caseId": "case-04",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/3.3.1/pages/error-summary-incoherent-with-flagged-state/case-04.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/3.3.1/pages/error-summary-incoherent-with-flagged-state/case-04.html",
+        "caseDoc": "eval/act-augmented/3.3.1/pages/error-summary-incoherent-with-flagged-state/case-04.md",
+        "sourceOfTruth": "eval/act-augmented/3.3.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "Top-of-form error summary lists fields/causes/counts that do not correspond to the page's actually-flagged fields (summary-vs-state incoherence)",
+        "scenario": "University admissions application wizard, step 3 Contact details: red role=alert summary lists two G139-style jump links. Both fields (Email holding 'amara.k(at)mail', empty Telephone) are genuinely flagged, but the link labelled 'Fix your email address' has href=#phone, so activating it lands focus on the Telephone field instead of email; both links in fact point to #phone.",
+        "mechanism": "A summary jump link whose text identifies the email error navigates (via href=#phone) to the Telephone control. The link target does not match the control the link's text describes, so the G139 error-jump mechanism misdirects a keyboard/screen-reader user to the wrong field.",
+        "whyAutomatedToolsMiss": "A fragment/anchor checker confirms #phone resolves to a real element — no broken link to flag; both flagged fields are correctly wired and 36b590 passes; the link text is fluent. The failure is a target-vs-purpose mismatch: a link labelled for the email error navigates to the telephone control. Judging whether each link points to the right control requires matching link text to the field its href reaches.",
+        "primarySelector": ".errsum ol li:first-child a"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": []
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": "The error highlighted, which is in the correct field, is the correct type of issue."
+        }
+      ]
+    },
+    {
+      "key": "4.1.3::is-it-a-status-message-scope-boundary::case-04",
+      "sc": "4.1.3",
+      "aspect": "is-it-a-status-message-scope-boundary",
+      "caseId": "case-04",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/4.1.3/pages/is-it-a-status-message-scope-boundary/case-04.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/4.1.3/pages/is-it-a-status-message-scope-boundary/case-04.html",
+        "caseDoc": "eval/act-augmented/4.1.3/pages/is-it-a-status-message-scope-boundary/case-04.md",
+        "sourceOfTruth": "eval/act-augmented/4.1.3/result.json"
+      },
+      "corpusClaim": {
+        "expected": "inapplicable",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Mis-scoping the status-message boundary: change-of-context exceptions vs. genuine in-scope status",
+        "scenario": "Riverside Folk Festival post-event satisfaction survey. Selecting a LOW overall rating ('Poor'/'Very poor') appends conditional follow-up questions (a select + free-text box) without taking focus and with no role=status/aria-live. The appended questions are new form fields, not a status message (they convey no success/waiting/progress/error), so the SC does not apply.",
+        "mechanism": "A change handler un-hides the follow-up block on a low rating, firing no announcement. A screen-reader user continuing through the form (next-form-field / Tab) encounters the newly-revealed, fully-labeled controls in reading order. The Understanding's third excepted example is exactly this: new survey questions added after an unhappy answer do not provide information on success/results/waiting/progress/errors, so they are not required to meet 4.1.3; announcing them is a best practice, not a requirement.",
+        "whyAutomatedToolsMiss": "A static scan sees valid labeled form controls with no missing attributes; a dynamic 'content appeared without an announcement' heuristic — the only automation that could touch 4.1.3 — would FALSELY flag the reveal as a missing live region. No tool can determine the appeared content is 'more questions' rather than 'a status', because that classification depends on whether the content conveys success/waiting/progress/error — the meaning-based exception that is pure human judgment.",
+        "primarySelector": "#followup"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": false,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "No defect: the documented outcome is 'inapplicable', and there is genuinely no 4.1.3 violation. errorIsReal=false is correct for an N/A case (no real accessibility error is being asserted) and is consistent with expectedOutcomeCorrect=true.",
+          "Minor citation framing: the .md quote merges two adjacent <p> elements (status-messages.html lines 104+105) into one blockquote. Both sentences are verbatim and contiguous within the same <li>, so this is faithful, not a stitched/misattributed quote — noting for transparency only."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "no",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": "there is no issue because there is nothing status related that nessecarily needs to be announced especially when focused on something else?"
+        }
+      ]
+    },
+    {
+      "key": "4.1.3::wrong-live-region-politeness-for-urgency::case-02",
+      "sc": "4.1.3",
+      "aspect": "wrong-live-region-politeness-for-urgency",
+      "caseId": "case-02",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/4.1.3/pages/wrong-live-region-politeness-for-urgency/case-02.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/4.1.3/pages/wrong-live-region-politeness-for-urgency/case-02.html",
+        "caseDoc": "eval/act-augmented/4.1.3/pages/wrong-live-region-politeness-for-urgency/case-02.md",
+        "sourceOfTruth": "eval/act-augmented/4.1.3/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "Live-region politeness is semantically wrong for the message's urgency and update frequency",
+        "scenario": "Financial-news long-form article with a sticky 'Watchlist' price ticker in the right rail. The ticker is a present, valid live region wired aria-live=assertive, and a setInterval re-prices NDX/SPX/BTC every 2 seconds. For a screen-reader user reading the article, the price tape assertively interrupts the narration every two seconds, indefinitely. A ticking price board is the textbook low-value, high-frequency status SCR14 says should be polite and toggleable.",
+        "mechanism": "An aria-atomic=true assertive region re-priced every 2000ms re-announces the entire board on each tick, interrupting current speech each time. The user can never finish reading a paragraph because the AT keeps cutting in to recite fluctuating prices. The markup is valid; the defect is the wrong politeness for the message's value and cadence.",
+        "whyAutomatedToolsMiss": "The ticker is a genuine non-empty live region with a valid aria-live=assertive value and aria-atomic=true; it really announces. Tools confirm announcement is possible and stop — assertive is legal. No static or single-snapshot tool observes the 2-second mutation cadence or judges that a fluctuating price is non-essential content that must not interrupt; that depends on the meaning and frequency of the update.",
+        "primarySelector": "div#priceboard[aria-live=\"assertive\"]"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": [
+          "Citation nuance (not a defect, but worth noting): SCR14's own example markup uses the IDENTICAL configuration as the test page (aria-live=\"assertive\" + aria-atomic=\"true\" + setInterval). The quoted SCR14 *objective* sentence does not by itself convey why this page FAILS; the actual basis for failure is SCR14's Test Procedure — 'Load the web page and verify that no non-emergency alerts are displayed' and 'Verify there is a mechanism to activate and deactivate the non-emergency interruptions' — both of which the page violates (alerts fire by default; no toggle exists). A reviewer relying only on the quoted objective could mistakenly read SCR14 as endorsing the page's assertive markup.",
+          "The page conflates two distinct remedies in its narrative: the .md/HTML comments argue the fix is 'polite' politeness, while the cited SCR14 technique's remedy is a toggle (keep assertive but make it opt-out). Both are valid 4.1.3 cures, but the doc could be clearer that the defect is 'non-essential, interrupting status with neither reduced politeness nor an opt-out mechanism.'"
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": "Giving changes in color for a stock seems correct in terms of a message's urgency"
+        }
+      ]
+    }
+  ]
+}

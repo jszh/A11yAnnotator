@@ -1,0 +1,156 @@
+{
+  "batch": "07",
+  "cases": [
+    {
+      "key": "1.4.1::required-field-color-only::case-06",
+      "verdict": "NO-DEFECT",
+      "annotationClarity": "clear",
+      "complaintCorrect": "refuted",
+      "defectType": "none",
+      "groundTruthDisputed": false,
+      "internallyContradictory": false,
+      "confidence": 0.85,
+      "evidence": "Computed label colours (puppeteer getComputedStyle): required .f.req label = rgb(46,139,46) #2e8b2e (Key name, Scope, Environment); optional .f:not(.req) label = rgb(34,34,34) #222222 (Description, Allowed IP range, Auto-expire after). WCAG relative-luminance math: #2e8b2e vs #222222 = 3.6734:1 (>= 3:1); #2e8b2e on white = 4.331:1. Forced-greyscale full-page screenshot (filter: grayscale(100%)) shows the three required labels rendering visibly mid-grey against near-black optional labels - the required/optional split survives greyscale. Page also states the convention in text at line 41-42: 'Required field labels are a lighter green; optional field labels are dark charcoal. The two are also clearly different in shade, not only in colour.'",
+      "reasoning": "Ajit's objection is a house-policy standard ('our requirement for redundant visual cues'), not the WCAG one. F81's own exception - quoted verbatim in case-06.md - says a colour-only required cue does not fail 'if the color chosen had sufficient luminosity difference (lightness) from the other text ... A minimum contrast ratio of 3:1 is considered sufficient', and the repo's own Trusted Tester reference makes the greyscale view the canonical detection method. I verified both the arithmetic (3.67:1) and the greyscale render, so the escape hatch genuinely applies and the corpus rationale already answers the objection. Mengqi's issueExists=yes is a bare contradiction with no comment text and no specifics.",
+      "proposedFix": null
+    },
+    {
+      "key": "2.4.4::duplicate-name-same-context-different-purpose::case-02",
+      "verdict": "NEEDS-VALIDATION",
+      "annotationClarity": "vague",
+      "complaintCorrect": "confirmed",
+      "defectType": "metadata-wrong",
+      "groundTruthDisputed": true,
+      "internallyContradictory": true,
+      "confidence": 0.95,
+      "evidence": "result.json (2.4.4, aspect duplicate-name-same-context-different-purpose, case-02) says expected='passed' and describes a 'Charity grant-spending page ... three takeaway formats, each behind an identical link named \"Download this data\" - a PDF, an XLSX and a CSV', primarySelector 'p > a[download$=\".pdf\"], p > a[download$=\".xlsx\"], p > a[download$=\".csv\"]'. The shipped page is 'Before your first lesson - Wellspring Swim School': two <a download> links with the identical name 'download the form' inside ONE <td>, resolving to download='parental-consent.txt' and download='medical-history.txt' - genuinely different documents. grep for 'Download this data' across eval/act-augmented/2.4.4/pages/ returns 0 hits (that page does not exist anywhere in the corpus). case-02.md is titled 'Two \"download the form\" links in one table cell: consent form vs medical-history form (different purpose -> FAIL)' and states 'Expected ACT-style outcome: failed'. Same defect pattern hits case-06 of this aspect: result.json says 'Volunteer-run tech conference page (negative control)' / expected='passed' while the shipped page is 'BIOL 204 Genetics - Course Registration' and case-06.md says '(FAIL)'.",
+      "reasoning": "The result.json entry is wholesale stale: scenario, mechanism, primarySelector, whyAutomatedToolsMiss AND expected all describe a charity-dataset page that does not exist, while the shipped HTML and its own .md agree the page is a 2.4.4 FAIL. Mengqi's issueExists=yes is correct for the page actually served. Because the repair changes expected passed->failed this cannot be FIX-OBVIOUS; a human must confirm the direction. Note the collateral consequence a human should weigh: both 'passed' entries in this aspect (case-02 and case-06) are stale in the same way, so if both flip the aspect ships six FAILs and no pass control - the missing charity/conference PASS pages may need to be rebuilt rather than the labels simply flipped.",
+      "proposedFix": null
+    },
+    {
+      "key": "1.1.1::context-and-function-dependent-equivalence::case-01",
+      "verdict": "NO-DEFECT",
+      "annotationClarity": "vague",
+      "complaintCorrect": "refuted",
+      "defectType": "none",
+      "groundTruthDisputed": false,
+      "internallyContradictory": false,
+      "confidence": 0.85,
+      "evidence": "probe-case.js tab walk returns exactly two stops, both <a> whose own text content is empty: stop 1 href='https://www.riversidecourier.example/', stop 2 href='https://www.harborgazette.example/'. The <img> is the sole content of each link, so the alt IS the link's accessible name. Card 1: alt='Front page photo of a flooded town square under grey skies'. Card 2: alt='The Harbor Gazette'. Screenshot confirms the masthead 'THE RIVERSIDE COURIER' is legible on screen but it lives as SVG <text> inside the img's data: URI, so it is not in the accessibility tree. Page lede: 'Tap any front page to open that newspaper's homepage.'",
+      "reasoning": "Mengqi filed no-error with empty comment text - a bare contradiction with no specifics. The page is a genuine 1.1.1 failure: for an image that is the entire content of a link, Understanding 1.1.1 Situation B and G94/H30 require the alternative to serve the link's purpose, and 'Front page photo of a flooded town square under grey skies' names the depiction rather than the publication the link opens. The sighted user gets the publication name from the rendered masthead; the AT user cannot tell which newspaper this card opens, and the sibling card (alt='The Harbor Gazette') shows the correct pattern. Corpus label 'failed' stands.",
+      "proposedFix": null
+    },
+    {
+      "key": "1.4.1::required-field-color-only::case-04",
+      "verdict": "NEEDS-VALIDATION",
+      "annotationClarity": "vague",
+      "complaintCorrect": "indeterminate",
+      "defectType": "label-wrong",
+      "groundTruthDisputed": true,
+      "internallyContradictory": false,
+      "confidence": 0.7,
+      "evidence": "Computed colours: .f.req label = rgb(192,57,43) #c0392b (Make, Model, Model year, VIN in the Vehicle section - no '(required)' text), optional labels inherit rgb(29,29,31) #1d1d1f (Trim / package, Annual mileage). Inter-label contrast #c0392b vs #1d1d1f = 3.0947:1, i.e. >= 3:1. Forced-greyscale full-page screenshot: the four Vehicle required labels render as visibly mid-grey text against near-black optional labels; the required/optional split is perceivable without colour. Sibling case-06 of the SAME aspect is labelled 'passed' on exactly this basis at 3.6734:1, and case-06.md quotes F81: 'It would also not fail if the color chosen had sufficient luminosity difference (lightness) from the other text ... A minimum contrast ratio of 3:1 is considered sufficient.'",
+      "reasoning": "Mengqi's bare no-error carries no specifics, but an independent check finds a substantive problem: by the very rule the corpus uses to PASS case-06, case-04's Vehicle-section cue is not colour-only either - its two label colours differ in lightness by 3.09:1 and the distinction survives greyscale, which is the Trusted Tester detection method the repo cites. The two sibling cases are therefore adjudicated inconsistently, and the 'failed' label is disputable. This is a ground-truth call, so it cannot be FIX-OBVIOUS. Suggested resolution for a human: keep expected='failed' but make the failure robust by darkening the required red so the inter-label contrast drops below 3:1 - e.g. .f.req label { color:#a93226 } gives 2.54:1 vs #1d1d1f while still 6.62:1 on white (the page's own brand crimson #7a1f2b gives 1.65:1) - otherwise flip the label to 'passed' and lose the F81 case.",
+      "proposedFix": null
+    },
+    {
+      "key": "1.1.1::context-and-function-dependent-equivalence::case-07",
+      "verdict": "NO-DEFECT",
+      "annotationClarity": "clear",
+      "complaintCorrect": "indeterminate",
+      "defectType": "none",
+      "groundTruthDisputed": false,
+      "internallyContradictory": false,
+      "confidence": 0.9,
+      "evidence": "Source: <a class='seclink' href='/international'> whose only AT-exposed child is <img alt='International Travel'> (the visible <span class='cap'>International</span> and <span class='desc'>...</span> are aria-hidden='true'), so the link's accessible name is 'International Travel' - the purpose, not the depiction (a globe). The print control is <button type='button' onclick='window.print()'> containing <img alt='Print this page'>, so its accessible name is the action. Siblings follow the same pattern (alt='Domestic Travel' for /domestic, alt='Last-minute Deals' for /deals).",
+      "reasoning": "Neither annotator filed a defect: both recorded issueExists=no, which agrees with the corpus label expected='passed', and Ajit's comment explicitly affirms it is 'a valid pass / false positive test case'. I verified the page is built correctly for 1.1.1 (functional images named by purpose). One incidental observation, not a defect for this SC and not raised by anyone: aria-hidden='true' hides the visible 'Flights, visas & guides for trips abroad' descriptions from AT; accessible names still contain the visible label words ('International Travel' contains 'International'), so 2.5.3 is unaffected.",
+      "proposedFix": null
+    },
+    {
+      "key": "1.4.1::color-coded-graphics-no-pattern-or-label::case-06",
+      "verdict": "NO-DEFECT",
+      "annotationClarity": "vague",
+      "complaintCorrect": "indeterminate",
+      "defectType": "none",
+      "groundTruthDisputed": false,
+      "internallyContradictory": false,
+      "confidence": 0.92,
+      "evidence": "Forced-greyscale full-page screenshot of the inline SVG: all three routes remain fully separable with no colour - Bay line stations render as diamonds (<rect x='-7' y='-7' width='14' height='14' transform='translate(60,80) rotate(45)'>), Hill line as upright squares, Coast line as circles (r=8) - and the legend reads 'Bay line (diamond stations) / Hill line (square stations) / Coast line (circle stations)' with matching shape swatches. figcaption repeats the shape mapping, and the svg role='img' aria-label states it too.",
+      "reasoning": "No defect was reported: Mengqi's no-error comment has empty text and agrees with expected='passed', and Ajit approved. I confirmed the G111 redundant channel actually renders - the shapes are not a prose claim, they are in the SVG and survive greyscale - so the true-negative is correctly built and correctly labelled.",
+      "proposedFix": null
+    },
+    {
+      "key": "2.1.2::modal-popover-legitimate-containment-vs-trap::case-06",
+      "verdict": "FIX-OBVIOUS",
+      "annotationClarity": "clear",
+      "complaintCorrect": "confirmed",
+      "defectType": "metadata-wrong",
+      "groundTruthDisputed": false,
+      "internallyContradictory": false,
+      "confidence": 0.93,
+      "evidence": "Probe (puppeteer, scripted): click #open-modal -> focus on button#dlg-x; press Escape -> scrimShown=false and focus is on button#open-modal ('Verify your identity'). Davin's claim is exactly right: focus returns to the opener button, NOT to <body>. result.json's mechanism for this case claims 'closeConfirm() ... omits confirmOpener.focus(), so dismissing the confirm modal collapses focus to <body>; the base-layer focusin guard then yanks focus to #zip'. grep: no #confirm, closeConfirm, confirmOpener, #zip, 'Get a quote' or 'Discard this quote' anywhere in case-06.html, and primarySelector 'div#confirm[role=\"dialog\"]' matches nothing. The page's real defect (which I also verified, and which case-06.md describes correctly) is an F10 trap in the embedded frame: from inside the widget, 14 consecutive Tabs cycle dl -> dob -> rescan -> submit -> dl ... forever, and Escape there leaves scrimShown=true with focus still on #dob, because the Escape listener is bound on the parent document.",
+      "reasoning": "The complaint is specific and verified: the metadata narrates a two-stacked-modal insurance wizard that does not exist, and its stated Esc->body behaviour is contradicted by the page (Esc -> opener). This is the 'metadata copy-pasted from a different case' pattern, and the repair is mechanical because case-06.md already documents the shipped page correctly and my probe confirms it. expected='failed' is unchanged - the page really is a keyboard trap - so no ground-truth flip is involved. The citation (refs/trusted-tester/sc-2.1.2-no-keyboard-trap.md) is accurate and stays as is.",
+      "proposedFix": {
+        "file": "eval/act-augmented/2.1.2/result.json",
+        "rationale": "Replace the four stale metadata fields on 2.4-style case-06 of aspect modal-popover-legitimate-containment-vs-trap with text that describes the page actually shipped (the Cobalt Bank modal whose <iframe srcdoc> KYC widget traps the keyboard, WCAG F10). Wording is taken from case-06.md, which already documents this page correctly, plus probe-verified behaviour. 'expected' (failed) and the citation are correct and are NOT touched. case-06.md needs no change - it already matches the page - but manifest.json is generated from result.json and must be regenerated after this edit. The stale prose is also quoted inside this file's pipelineSelfReview.problems entries (two copies, which already flag the mismatch); those are review records and are left alone.",
+        "edits": [
+          {
+            "oldString": "\"scenario\": \"Insurance quote wizard with two STACKED modals. The base 'Get a quote' modal is conformant in isolation (Esc closes, Close in cycle, focus restore). From inside it the user opens a top 'Discard this quote?' confirmation modal. The defect is the nested-dismiss handoff: pressing Esc on the top modal closes it but drops focus to <body> (it omits the focus-restore call), and the still-armed base trap re-grabs the next Tab, snapping focus back to the base modal's first field — a re-trap instead of an orderly return.\",",
+            "newString": "\"scenario\": \"Cobalt Bank account-opening flow with ONE modal that is conformant containment in isolation: 'Verify your identity' opens a role=dialog aria-modal=true overlay, initial focus lands on a real focusable Close button, an Escape handler on the parent document closes it, Close/Cancel/Continue sit in the Tab cycle, and focus is restored to the opener. The defect is the embedded third-party format in the modal body: a 'SecureScan' KYC widget delivered as an <iframe srcdoc> second document whose own Tab-wrap and focusin re-grab keep focus circulating inside the frame forever, while the modal's Escape listener - living one document up - never receives keydowns fired inside the frame. A keyboard user can enter the verification step but cannot leave it.\","
+          },
+          {
+            "oldString": "\"mechanism\": \"Broken focus handoff across stacked layers: closeConfirm() removes the top scrim but omits confirmOpener.focus(), so dismissing the confirm modal collapses focus to <body>; the base-layer focusin guard then yanks focus to #zip on the next Tab (verified: Esc->body, Tab->#zip). The keyboard user cannot return in an orderly way to where they were and is re-trapped in the base modal — the exit from the stack is broken even though each modal is escapable alone.\",",
+            "newString": "\"mechanism\": \"Keyboard trap at a format seam (WCAG F10): once Tab moves focus into iframe#kyc, the widget's own keydown handler wraps last->first / first->last and a focusin listener re-grabs any focus that reaches the frame's body, so neither Tab nor Shift+Tab can carry focus back out to the parent modal; the parent document's Escape-to-close listener never fires because the keydown is dispatched in the child document. Verified by probe: from inside the widget, 14 consecutive Tabs cycle dl -> dob -> rescan -> submit -> dl ... indefinitely, and Escape leaves the scrim open (scrimShown: true) with focus still on #dob. Escape pressed while focus is still on a PARENT-document control does close the dialog and restores focus to #open-modal, which is why the outer modal looks conformant when tested alone.\","
+          },
+          {
+            "oldString": "\"primarySelector\": \"div#confirm[role=\\\"dialog\\\"]\",",
+            "newString": "\"primarySelector\": \"div#dialog iframe#kyc\","
+          },
+          {
+            "oldString": "\"whyAutomatedToolsMiss\": \"Both dialogs are textbook-valid in isolation: real role=dialog aria-modal=true overlays, accessible names, focusable Close buttons, wired Esc handlers — every static check passes, and even a keyboard test of each dialog separately finds Esc and Close working. The failure exists only in the stack transition (open-confirm-from-base -> Esc-confirm -> focus-to-body -> Tab -> base re-trap), requiring multi-step, stateful keyboard reasoning about focus handoff between layers across time, which scanners do not perform. There is no missing attribute; the bug is an omitted focus-restore call whose effect manifests only dynamically.\",",
+            "newString": "\"whyAutomatedToolsMiss\": \"Every static signal is clean: a real role=dialog aria-modal=true overlay with an accessible name (aria-labelledby), a focusable Close button, a wired Escape handler, and an <iframe> that carries a title attribute - axe / IBM / WAVE have nothing to report, and even a keyboard test of the outer modal's own controls passes (Esc closes it and restores focus to the opener). The failure appears only when the tester crosses the document boundary into the embedded widget and finds that Tab, Shift+Tab and Esc all fail to bring focus back out. Automated tools do not drive the keyboard across frame boundaries or reason about which document a key listener is bound to, and no attribute is missing for a scanner to flag.\","
+          }
+        ]
+      }
+    },
+    {
+      "key": "3.3.1::error-summary-incoherent-with-flagged-state::case-04",
+      "verdict": "NO-DEFECT",
+      "annotationClarity": "vague",
+      "complaintCorrect": "indeterminate",
+      "defectType": "none",
+      "groundTruthDisputed": false,
+      "internallyContradictory": false,
+      "confidence": 0.8,
+      "evidence": "Source lines 47-48: <li><a href=\"#phone\">Fix your email address - enter an address in the format name@example.com</a></li> and <li><a href=\"#phone\">Enter a daytime telephone number we can reach you on</a></li> - both jump links target #phone. The email control is <input type=\"email\" id=\"email\" value=\"amara.k(at)mail\" aria-invalid=\"true\" aria-describedby=\"email-msg\"> and the telephone control is id=\"phone\" with aria-invalid=\"true\"; both are genuinely flagged and both inline messages are correct. So the summary's first link is labelled for the email error but navigates to the Telephone field, exactly as the corpus claims.",
+      "reasoning": "Davin approved with issueExists=yes; his comment ('The error highlighted, which is in the correct field, is the correct type of issue') reports no defect - it observes that the per-field flagging is correct, which is true and is not what the case fails on. The corpus claim is verified verbatim in source. One scoping nuance for the record, not a dispute and not raised by any annotator: both errors ARE identified and described in text, so a strict reading could place the mis-targeted jump link under 2.4.4/G139 rather than 3.3.1; the case's own rationale (the link misidentifies which control is in error) is a defensible 3.3.1 reading and I am not disputing the label.",
+      "proposedFix": null
+    },
+    {
+      "key": "4.1.3::is-it-a-status-message-scope-boundary::case-04",
+      "verdict": "NO-DEFECT",
+      "annotationClarity": "clear",
+      "complaintCorrect": "indeterminate",
+      "defectType": "none",
+      "groundTruthDisputed": false,
+      "internallyContradictory": false,
+      "confidence": 0.88,
+      "evidence": "probe-case.js with --click 'input[value=\"2\"]' (the 'Poor' radio): liveRegions=[] and announcements=[] - the page has no aria-live/role=status/role=alert anywhere - and focusAfter is the radio itself (ariaLabel 'Poor'), so the reveal takes no focus. The revealed #followup block contains only new labelled form controls (<select id='problem'> 'What was the biggest problem?' and <textarea id='detail'>), i.e. more questions, not success/waiting/progress/error information. SEPARATE FINDING, not part of this complaint: the shipped page still carries an answer leak on line 38 - <body data-intended-classification=\"inapplicable\" data-sc=\"4.1.3\"> - which survived the comment strip. All six pages of this aspect have it (case-01/03/04 'inapplicable', case-02/05/06 'failed').",
+      "reasoning": "Davin recorded issueExists=no and approved; his comment agrees with the corpus and I verified it - appended survey questions fall under the Understanding's excepted example, so 4.1.3 does not apply and 'inapplicable' is right. No defect in the complaint's terms. The data-intended-classification attribute is a real benchmark-contamination defect but a different one from anything the annotators raised, so it does not change this verdict; the mechanical repair is to replace '<body data-intended-classification=\"...\" data-sc=\"4.1.3\">' with '<body>' in all six eval/act-augmented/4.1.3/pages/is-it-a-status-message-scope-boundary/case-0*.html files.",
+      "proposedFix": null
+    },
+    {
+      "key": "4.1.3::wrong-live-region-politeness-for-urgency::case-02",
+      "verdict": "NO-DEFECT",
+      "annotationClarity": "vague",
+      "complaintCorrect": "indeterminate",
+      "defectType": "none",
+      "groundTruthDisputed": false,
+      "internallyContradictory": false,
+      "confidence": 0.85,
+      "evidence": "probe-case.js: liveRegions = [{sel:'div#priceboard', ariaLive:'assertive', ariaAtomic:'true', textAtLoad:'Watchlist NDX20,114.62 SPX5,981.40 BTC$67,420'}], and 22 assertive announcements were captured in a single short session, each re-reciting the whole board ('Watchlist NDX... SPX... BTC...') because aria-atomic='true'. Source line 93: setInterval(..., 2000) rewrites all three prices every 2 seconds indefinitely, with no toggle control anywhere on the page.",
+      "reasoning": "Davin approved with issueExists=yes, so he does not contradict the corpus; his comment ('Giving changes in color for a stock seems correct in terms of a message's urgency') is a side remark about the up/down colour classes and identifies no defect in the case. The corpus claim is confirmed instrumentally: a real atomic assertive region re-announcing every 2s with no opt-out, which is what SCR14's test procedure (no non-emergency alerts by default; a mechanism to deactivate non-emergency interruptions) rules out. expected='failed' stands.",
+      "proposedFix": null
+    }
+  ]
+}

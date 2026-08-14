@@ -1,0 +1,166 @@
+{
+  "batch": "03",
+  "cases": [
+    {
+      "key": "1.3.1::form-label-and-group-relationships-by-context::case-05",
+      "verdict": "NO-DEFECT",
+      "annotationClarity": "vague",
+      "complaintCorrect": "refuted",
+      "defectType": "none",
+      "groundTruthDisputed": false,
+      "internallyContradictory": false,
+      "confidence": 0.88,
+      "evidence": "case-05.html lines 39-47: `<div class=\"group-q\">تاريخ الميلاد</div>` followed by `<div class=\"dob\">` holding three bare inputs `title=\"سنة\"`, `title=\"شهر\"`, `title=\"يوم\"`. The file contains no <fieldset>, no <legend>, no role=\"group\" and no aria-labelledby/aria-describedby anywhere; the only association markup on the page is label[for=name]/label[for=nid] for the two single fields. Pre-strip original (backup, lines 61-64) states the same intent: 'one question, three inputs, NO grouping element'.",
+      "reasoning": "The corpus claim is exactly what the shipped page does: three individually-named inputs jointly answering one question whose label ('تاريخ الميلاد') exists only as a styled div, so the group relationship is conveyed by visual layout only — the standard H71/1.3.1 grouping failure. Mengqi filed 'no-error' with an empty comment and no specifics, which is the weak-evidence pattern the calibration warns about. Nothing in the page contradicts the label or the metadata (the RTL source-order note in the scenario matches the DOM: year, month, day).",
+      "proposedFix": null
+    },
+    {
+      "key": "1.3.1::special-status-text-conveyed-only-by-styling::case-06",
+      "verdict": "NO-DEFECT",
+      "annotationClarity": "vague",
+      "complaintCorrect": "refuted",
+      "defectType": "none",
+      "groundTruthDisputed": false,
+      "internallyContradictory": false,
+      "confidence": 0.9,
+      "evidence": "case-06.html lines 36-37: `<strong class=\"critical\">Important: turn the blue inlet valve fully clockwise to shut off the water supply before continuing.</strong>`; CSS line 16 `strong.critical { font-size:1.12rem; }` is the only visual-emphasis rule. primarySelector `strong.critical` resolves. The safety status is therefore carried by (a) the literal word 'Important:' in text (G117) and (b) <strong> markup (H49), independently of the larger font-size.",
+      "reasoning": "This is a correctly-built PASS/boundary control: the emphasised meaning is present in both text and markup, so the styling is redundant and 1.3.1 is met. Mengqi recorded issueExists=yes against expected=passed with no comment text, so there is nothing specific to check beyond the page itself, and the page plainly carries the two non-presentational equivalents. No metadata/page mismatch found.",
+      "proposedFix": null
+    },
+    {
+      "key": "3.3.1::error-icon-text-alternative-misstates-error::case-07",
+      "verdict": "NO-DEFECT",
+      "annotationClarity": "vague",
+      "complaintCorrect": "refuted",
+      "defectType": "none",
+      "groundTruthDisputed": false,
+      "internallyContradictory": false,
+      "confidence": 0.85,
+      "evidence": "case-07.html lines 55-59: input#email has value=\"carla.mendes#state.gov\", aria-invalid=\"true\", aria-describedby=\"email-ico\"; img#email-ico carries alt=\"Email address must contain an @ symbol — for example, name@example.com\". Lines 42-45: role=alert summary with `<a href=\"#email\">Email address must contain an @ symbol</a>`. The specific error (missing @) is thus stated twice — once in the icon's text alternative, once as plain text in the summary.",
+      "reasoning": "The error is both identified (field named by its label, aria-invalid, linked summary) and described specifically in text/text-alternative, so 3.3.1 is satisfied and expected=passed is right; the alt matches the actual defect in the value rather than genericising it, which is exactly what this control is for. Mengqi's contradiction carries no comment and no specifics. One inaccuracy worth noting but not worth a patch: the mechanism says the icon exposes its name 'via aria-describedby' when the name comes from its own alt (aria-describedby on the input pipes that text into the input's description) — loose attribution, correct net AT experience.",
+      "proposedFix": null
+    },
+    {
+      "key": "1.4.1::image-chart-alt-omits-color-encoded-fact::case-01",
+      "verdict": "NEEDS-VALIDATION",
+      "annotationClarity": "clear",
+      "complaintCorrect": "indeterminate",
+      "defectType": "metadata-wrong",
+      "groundTruthDisputed": true,
+      "internallyContradictory": false,
+      "confidence": 0.72,
+      "evidence": "Rendered screenshot (probe --shot) shows a dashed line labelled 'Quota 3.0M' spanning the plot and a white bold value label inside every bar (3.1M / 2.6M / 2.2M / 3.4M); Fred's and Bob's bar tops sit visibly below the dashed line. SVG source confirms: `<line ... y1='105' y2='105' stroke-dasharray='6 4'/>` + `<text ...>Quota 3.0M</text>` + per-bar value <text> nodes. The alt itself also states 'The yearly quota is 3.0 million dollars and is shown as a dashed line' in addition to all four figures. Corpus mechanism asserts below-quota membership 'exists only as the red fill ... reaching neither AT nor colour-blind sighted users'.",
+      "reasoning": "Ajit's factual premise is verified: position-vs-quota-line plus numeric labels are genuine non-colour visual cues, so the mechanism's claim that colour-blind sighted users cannot resolve who is below quota is false as shipped. Whether that flips the verdict is a real judgment call: the page is otherwise a verbatim reproduction of the F13 example (same four names and figures), and F13 says such an alt fails 1.1.1 AND 1.4.1 because it never names who missed quota — though this alt, unlike F13's, also supplies the 3.0M quota so the fact is derivable arithmetically. Resolving this changes `expected`, so it is not FIX-OBVIOUS; a human must decide between (a) keep failed and rewrite the mechanism to drop the 'colour-blind sighted users' claim, or (b) flip to passed / strip the quota line and value labels to restore the canonical F13 conditions.",
+      "proposedFix": null
+    },
+    {
+      "key": "2.4.3::f85-focus-return-after-dismissal::case-04",
+      "verdict": "FIX-OBVIOUS",
+      "annotationClarity": "clear",
+      "complaintCorrect": "refuted",
+      "defectType": "metadata-wrong",
+      "groundTruthDisputed": false,
+      "internallyContradictory": false,
+      "confidence": 0.86,
+      "evidence": "probe-case.js --click '#open-search' --key Escape: click.focusAfter = input#q ('Search The Meridian'); afterKey.focus = {tag:'body'} — focus is NOT on #q and NOT on #open-search after Escape. Tab walk from load: stop 1 = button#open-search (aria-label 'Open search'), stop 2 = Subscribe, then the nav links — #open-search IS the first focusable control in the page. Source lines 104-108: closeSearch() removes .open and sets aria-hidden=true with no openBtn.focus().",
+      "reasoning": "Ajit's complaint is refuted on both limbs: focus does not return to #open-search (it falls to document.body when the container goes display:none), and #open-search genuinely is the first focusable stop (the masthead 'logo' is a non-focusable <span> and the nav links come later in DOM). The F85 failure is real and expected=failed stands — F85's own example is exactly 'focus is set to the document. The user must tab from the beginning'. However the case's own scenario/mechanism state something the browser plainly contradicts ('focus stranded on the now-hidden input', 'activeElement is #q with a 0x0 box'); that string is mechanically fixable and does not touch `expected`.",
+      "proposedFix": {
+        "file": "eval/act-augmented/2.4.3/result.json",
+        "rationale": "Correct the two prose claims that Chromium contradicts (verified by probe: activeElement is BODY after Escape, not #q). The failure and the label are unchanged — F85 explicitly covers the focus-goes-to-document case, and the 'next Tab restarts at #open-search' claim was verified true. The .md (eval/act-augmented/2.4.3/pages/f85-focus-return-after-dismissal/case-04.md) already says focus 'falls back toward the document/body' but reportedly carries a loose 'focus is left on a hidden node' clause — it should get the same wording sweep.",
+        "edits": [
+          {
+            "oldString": "leaving focus stranded on the now-hidden input so the next Tab restarts from the top of the page.",
+            "newString": "leaving focus unrestored (Chromium blurs the now-hidden input, so focus reverts to the document body) and the next Tab restarts from the top of the page."
+          },
+          {
+            "oldString": "focus lingers on #q inside a hidden subtree. Verified by Puppeteer: after Escape, activeElement is #q with a 0x0 box inside a display:none container, and the next Tab moves to #open-search",
+            "newString": "focus is never returned to the trigger. Verified by Puppeteer: after Escape, activeElement is document.body (Chromium auto-blurs #q when its container becomes display:none), and the next Tab moves to #open-search"
+          }
+        ]
+      }
+    },
+    {
+      "key": "1.4.13::applicability-author-vs-ua-title-tooltip::case-04",
+      "verdict": "NO-DEFECT",
+      "annotationClarity": "clear",
+      "complaintCorrect": "refuted",
+      "defectType": "none",
+      "groundTruthDisputed": false,
+      "internallyContradictory": false,
+      "confidence": 0.85,
+      "evidence": "probe-case.js --hover 'abbr.gloss': the .bub tooltip becomes visible on hover (text 'Gross Domestic Product — ...', rect 208x71), then hoverableAfterPointerTravel=false — moving the pointer into the bubble makes it disappear; visibleTooltipsAfterEscape=0 (it was already gone). Source explains why: `.gloss > .bub { ... pointer-events:none; }` (line 34) and show/hide bound only to mouseenter/mouseleave/focus/blur on the abbr (lines 85-88), with the bubble rendered above the trigger (bottom:1.6em), so leaving the trigger box hides it.",
+      "reasoning": "Davin says 'It is hoverable, but not escapable. Not both.' The probe shows the opposite on the hoverable limb: because the bubble is pointer-events:none and the mouseleave handler sits on the trigger, the pointer cannot travel onto the additional content without it vanishing — an F95-style hoverable failure. Dismissible also fails (no Escape handler at all), so the case fails on two limbs, not one, and expected=failed is unaffected either way since 1.4.13 requires all applicable limbs.",
+      "proposedFix": null
+    },
+    {
+      "key": "1.4.1::scoping-non-failures-and-escape-hatches::case-01",
+      "verdict": "FIX-OBVIOUS",
+      "annotationClarity": "clear",
+      "complaintCorrect": "confirmed",
+      "defectType": "metadata-wrong",
+      "groundTruthDisputed": false,
+      "internallyContradictory": false,
+      "confidence": 0.75,
+      "evidence": "case-01.html lines 47-52 render every amount with an explicit sign ('+$2,410.00' credits, '−$6.75' debits) and the page footer (lines 57-58) says 'Money in is shown in green and includes a leading plus sign; money out is shown in dark red with a leading minus sign.' The result.json scenario/mechanism/whyAutomatedToolsMiss — the fields the annotator UI shows (index.html lines 523-524, 1255) — mention only the 3.15:1 inter-foreground lightness ratio. The .md doc, which annotators do NOT see, already says '(Standard +/- signs are also present.)' and '(The +/- signs are a further non-colour cue, but the escape hatch alone governs the verdict.)'. I recomputed the colours: L(#3a9d4e)=0.2556, L(#7a1414)=0.0469 → 3.155:1; green/white 3.44:1, red/white 10.84:1 — the corpus numbers are accurate.",
+      "reasoning": "Ajit is right about what he was shown: the served rationale omits the page's most obvious non-colour cue and presents the case as if the lightness escape hatch alone carried the PASS. The label is not in play — the page passes 1.4.1 twice over — so the repair is a prose sync that copies the author's own already-written parenthetical from the .md into the served metadata. The alternative repair (deleting the +/- signs to isolate the escape hatch) would change the page and is a corpus-design decision, not a mechanical one; the patch below deliberately only adds true statements.",
+      "proposedFix": {
+        "file": "eval/act-augmented/1.4.1/result.json",
+        "rationale": "Sync the served mechanism prose with the shipped page (and with the case's own .md, which already documents the +/- signs). Only adds a true statement; expected stays 'passed'. No .md change needed — eval/act-augmented/1.4.1/pages/scoping-non-failures-and-escape-hatches/case-01.md lines 4 and 22 already say this. manifest.json must be regenerated from result.json afterwards.",
+        "edits": [
+          {
+            "oldString": "Each colour also meets SC 1.4.3 against white (green 3.44:1 as large-bold text, red 10.84:1), so contrast minimums are not the issue.",
+            "newString": "Each colour also meets SC 1.4.3 against white (green 3.44:1 as large-bold text, red 10.84:1), so contrast minimums are not the issue. The amounts additionally carry leading +/- signs (and the footer states both cues), so the PASS is over-determined — the lightness escape hatch is what this case is about, but it is not the page's only non-colour cue."
+          }
+        ]
+      }
+    },
+    {
+      "key": "2.4.3::nested-and-static-focusable-illogical-stops::case-04",
+      "verdict": "NEEDS-VALIDATION",
+      "annotationClarity": "clear",
+      "complaintCorrect": "confirmed",
+      "defectType": "aspect-mismatch",
+      "groundTruthDisputed": true,
+      "internallyContradictory": true,
+      "confidence": 0.9,
+      "evidence": "The shipped page is a podcast episode list: `<li class=\"episode\">` each containing a stretched `<a class=\"cover\" href=\"#ep-142\" aria-label=\"Episode 142: ...\">` and a SIBLING `<a class=\"listen\" href=\"#ep-142\">Listen now</a>`. grep: zero `tabindex`, zero `role=`, zero `onclick`, no `<article>`, no `.card`, and the string 'Read more' does not occur in the file. So the corpus scenario ('each <article> is focusable (tabindex=0 role=link + onclick) ... contains a real Read more <a>') and primarySelector 'article.card[tabindex=\"0\"][role=\"link\"]' describe a page that does not exist. The stored self-review inside eval/act-augmented/2.4.3/result.json for this pageId says errorIsReal=false, expectedOutcomeCorrect=false, requiresHumanJudgment=false, severity 'none', recommendation 'drop' — while the built entry ships expected='failed'.",
+      "reasoning": "Ajit's complaint ('Read more' should be 'Listen now') is correct but understates the defect: the whole scenario/mechanism/selector describe different markup, and the cited focus-order note ('nested focusable elements') has no referent because the two links are siblings, not nested. Fixing the prose to match the shipped page removes the stated failure mechanism, which puts `expected` in play, so per the hard rule this is NEEDS-VALIDATION rather than a mechanical string fix. The record also contradicts itself — its own self-review recommends dropping the case while the case ships as expected=failed — so a human must choose: drop/recategorise the page, rebuild it with a real nested focusable wrapper (as cases 01/02/03/05/06 in this aspect have), or keep it and re-justify the failure on a different basis.",
+      "proposedFix": null
+    },
+    {
+      "key": "4.1.3::after-the-fact-live-region-timing::case-06",
+      "verdict": "FIX-OBVIOUS",
+      "annotationClarity": "clear",
+      "complaintCorrect": "confirmed",
+      "defectType": "page-implementation",
+      "groundTruthDisputed": false,
+      "internallyContradictory": false,
+      "confidence": 0.88,
+      "evidence": "The serve-time page still renders a visible answer key: `<div class=\"devnote\">` (lines 72-81) headed '<strong>Why this PASSES (and why it is the boundary control):</strong>' and going on to say '... the exact opposite of the born-with-content failures in case-01 through case-05'. It survived the comment-strip pass because it is rendered content, not an HTML comment. The page itself is correct: probe shows liveRegions=[div#snackbar role=status aria-live=polite, textAtLoad=''] and, after clicking .add, one polite announcement 'Yirgacheffe added to your cart. 1 item.' — expected=passed is right. Same leak exists in three sibling pages outside this batch: 4.1.3/partial-update-no-atomic-truncated-announcement/case-06.html:39, 2.4.7/indicator-camouflaged-by-resting-style-or-same-color-border/case-06.html:130, 1.3.2/faked-columns-tables-in-plain-text/case-06.html:53.",
+      "reasoning": "Davin's judgment is right (region pre-exists empty, mutation is announced) and matches my probe, so there is no dispute about the label — but the page hands the annotator the verdict in rendered text, which is precisely what the comment-strip pass was run to prevent, and it means this page's human labels (and any LLM run over it) are contaminated. Deleting the .devnote block is mechanical: it is inert prose with no bearing on the live-region behaviour, the layout, or the primarySelector. The three sibling pages listed above need the same deletion; the pre-strip backup copy under _archive should be left alone.",
+      "proposedFix": {
+        "file": "eval/act-augmented/4.1.3/pages/after-the-fact-live-region-timing/case-06.html",
+        "rationale": "Remove the rendered 'Why this PASSES (and why it is the boundary control)' block, which states the expected verdict and names the sibling failing cases on the page the benchmark serves. Purely additive prose with no effect on the live region, the label, or the primarySelector. Apply the same deletion to the three sibling pages named in the evidence (each has an equivalent visible 'Why this PASSES' block).",
+        "edits": [
+          {
+            "oldString": "\n  <div class=\"devnote\">\n    <strong>Why this PASSES (and why it is the boundary control):</strong> The snackbar\n    <code>&lt;div id=\"snackbar\" role=\"status\" aria-live=\"polite\"&gt;</code> is present in the markup <em>at page\n    load</em> as an empty, registered live region. Adding to cart writes ONLY <code>textContent</code> into that\n    pre-existing region (&ldquo;Yirgacheffe added to your cart. 1 item.&rdquo;) and toggles a CSS class to slide it\n    in. Because the region existed and was empty when the AT registered it, the later text mutation IS announced.\n    This is the correct ARIA19/ARIA22 step-1 pattern and the exact opposite of the born-with-content failures in\n    case-01 through case-05 — same final markup, but the region pre-existed the message. The marker\n    <code>data-region-preexisting-empty=\"true\"</code> records the correct timing.\n  </div>\n",
+            "newString": "\n"
+          }
+        ]
+      }
+    },
+    {
+      "key": "4.1.3::removal-of-status-conveys-meaning-silently::case-03",
+      "verdict": "NO-DEFECT",
+      "annotationClarity": "clear",
+      "complaintCorrect": "confirmed",
+      "defectType": "none",
+      "groundTruthDisputed": false,
+      "internallyContradictory": false,
+      "confidence": 0.92,
+      "evidence": "probe-case.js --click '#send' --key Escape: liveRegions=[p#status role=status aria-live=polite aria-atomic=true, textAtLoad='']; announcements = [{polite,'Sending verification code…',t=420ms},{polite,'✓Code sent to the mobile number ending 47. Enter it below.',t=1923ms}]. Source lines 61-68 confirm the busy text is REPLACED in place (status.innerHTML reassigned after a 1500ms timer), never emptied.",
+      "reasoning": "The page does exactly what the corpus says: the end of the wait is announced by replacing the busy message inside the same polite region rather than silently clearing it, so expected=passed holds. Davin agreed and quoted the replacement string he saw, which matches the probe output verbatim. No defect in the page or the metadata.",
+      "proposedFix": null
+    }
+  ]
+}

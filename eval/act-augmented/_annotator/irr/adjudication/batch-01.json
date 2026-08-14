@@ -1,0 +1,494 @@
+{
+  "batch": "01",
+  "n": 10,
+  "backupDir": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15",
+  "cases": [
+    {
+      "key": "1.3.1::emulated-controls-wrong-or-missing-role::case-06",
+      "sc": "1.3.1",
+      "aspect": "emulated-controls-wrong-or-missing-role",
+      "caseId": "case-06",
+      "severity": 5,
+      "signals": [
+        "CONTRADICTED",
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.3.1/pages/emulated-controls-wrong-or-missing-role/case-06.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.3.1/pages/emulated-controls-wrong-or-missing-role/case-06.html",
+        "caseDoc": "eval/act-augmented/1.3.1/pages/emulated-controls-wrong-or-missing-role/case-06.md",
+        "sourceOfTruth": "eval/act-augmented/1.3.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Scripted elements that look like links/buttons but expose a generic role or none (F42)",
+        "scenario": "BOUNDARY/PASS — Nonprofit donation page (Riverbank Trust) whose amount chooser ($25/$50/$100/Other) and 'Continue' action are built from the SAME styled <div> pill building blocks as the failing cases (rounded, filled-when-selected, pointer cursor), but each emulated control correctly EXPOSES the role it presents: role=radiogroup with role=radio children (aria-checked, roving tabindex, arrow-key nav) and role=button with tabindex+keydown.",
+        "mechanism": "The amount pills are <div role=\"radio\" aria-checked> inside <div role=\"radiogroup\" aria-labelledby> and 'Continue' is <div role=\"button\" tabindex=\"0\">; verified as accessibility role 'radio' with name '$25' (and the strip as a radio group) and focusable=true, so the control and selection relationships conveyed by the styling ARE programmatically determinable — not an F42 failure, since F42 fails only when the exposed role is generic/absent/wrong.",
+        "whyAutomatedToolsMiss": "A scanner can see role=radio/aria-checked/role=button are present and valid and would (correctly) raise nothing here — but it equally raises nothing on the failing cases 01-05 where the same <div>s carry NO role, so the tool cannot distinguish pass from fail. The discriminating judgment — whether the exposed role MATCHES the presented control — requires a human to compare the rendered pill/button to the exposed semantics.",
+        "primarySelector": ".amounts[role=\"radiogroup\"] .amt[role=\"radio\"]"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": false,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "Minor (not a 1.3.1 defect): roving tabindex is mis-seeded in the static markup — line 79 puts tabindex=\"0\" on the UNCHECKED $25 radio while line 80's $50 is the aria-checked=\"true\" one with tabindex=\"-1\". The conventional radio-group pattern keeps tabindex=\"0\" on the checked radio so Tab lands on the current selection; here initial Tab lands on $25 (inspector tabOrder stop 0 = radio $25). The JS select() corrects this on interaction. Does not affect the passed verdict or any relationship exposure.",
+          "Citation scope mismatch (acceptable): the verbatim F42 quote is literally about emulating LINKS, while this case is radios/buttons. F42's title does cover SC 1.3.1 and the cited principle (role attribute can expose semantics for non-native controls; native is best practice) transfers correctly, so the citation still supports the mechanism — but it is not a perfectly on-point quote for radio/button emulation."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "yes",
+          "disposition": "comment",
+          "commentReason": "other-error",
+          "commentText": "Focusable element is not in keyboard tab order"
+        }
+      ]
+    },
+    {
+      "key": "3.3.1::non-text-only-error-indicator::case-04",
+      "sc": "3.3.1",
+      "aspect": "non-text-only-error-indicator",
+      "caseId": "case-04",
+      "severity": 5,
+      "signals": [
+        "CONTRADICTED",
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/3.3.1/pages/non-text-only-error-indicator/case-04.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/3.3.1/pages/non-text-only-error-indicator/case-04.html",
+        "caseDoc": "eval/act-augmented/3.3.1/pages/non-text-only-error-indicator/case-04.md",
+        "sourceOfTruth": "eval/act-augmented/3.3.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "Error is signalled ONLY by visual styling (red border / colour / icon glyph) with no error meaning in text anywhere on the page",
+        "scenario": "Bank reset-password screen redisplayed after rejecting a reused password; the field shows a red outline + a red CSS ::before key glyph and carries aria-invalid='true', but emits NO error text, aria-errormessage, or aria-describedby — nothing in words states what is wrong or why.",
+        "mechanism": "aria-invalid='true' conveys only THAT the field is invalid, not WHAT the error is; SC 3.3.1 requires the error be described in text. There is no message and no aria-errormessage/aria-describedby to read, and the red ::before key is CSS generated content outside the accessibility tree, so a non-visual user learns at most 'invalid' with no reason.",
+        "whyAutomatedToolsMiss": "Because aria-invalid='true' is present, a checker sees a programmatically-exposed error state and considers error handling 'present' — it does not complain that handling is missing. No automated rule verifies a textual DESCRIPTION of the error exists and is tied to the field; that is a semantic judgment of meaning. The red key (::before) is invisible to accessibility-tree scans.",
+        "primarySelector": "div.pw.flagged > input#pw1[aria-invalid=\"true\"]"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": [
+          "Minor citation hygiene (not a defect): the second .md quote (md lines 65-68) stitches 'to identify an error and provide error information to the user' to 'This type of programmatic information is not required for this success criterion' across an elided example sentence (understanding-doc lines 61-62). The elision IS marked with an ellipsis and each fragment is individually verbatim, so it is acceptable, but reviewers should note it is a non-adjacent join."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "no-error",
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "2.4.4::icon-link-name-present-but-wrong-or-meaningless::case-06",
+      "sc": "2.4.4",
+      "aspect": "icon-link-name-present-but-wrong-or-meaningless",
+      "caseId": "case-06",
+      "severity": 4,
+      "signals": [
+        "CONTRADICTED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/2.4.4/pages/icon-link-name-present-but-wrong-or-meaningless/case-06.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/2.4.4/pages/icon-link-name-present-but-wrong-or-meaningless/case-06.html",
+        "caseDoc": "eval/act-augmented/2.4.4/pages/icon-link-name-present-but-wrong-or-meaningless/case-06.md",
+        "sourceOfTruth": "eval/act-augmented/2.4.4/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Image/icon/SVG-only links with a non-empty name that misdescribes or fails to convey the rendered glyph's purpose (F89 semantic-mismatch variant)",
+        "scenario": "Boundary PASS control: a municipal transit (Route 12 schedule) utility bar of three icon-only links — house (aria-label=\"Metro Transit home\"), printer (aria-label=\"Print this schedule\"), telephone (aria-label=\"Call rider services: 311\", a tel: link). Each has a non-empty name AND the name correctly describes the rendered glyph and the link's purpose, so the page satisfies 2.4.4.",
+        "mechanism": "Each <a> is role=link with a non-empty accessible name from aria-label that matches its glyph and destination (confirmed via CDP: \"Metro Transit home\" / \"Print this schedule\" / \"Call rider services: 311\"; SVGs aria-hidden). A screen-reader user can determine each link's purpose from the link text alone. Both the name-presence floor (c487ae/F89) and the descriptive limb of 2.4.4 are met.",
+        "whyAutomatedToolsMiss": "This is a true PASS, so there is no failure to miss — its role is to show the discriminator is glyph-vs-name AGREEMENT, not name presence. Crucially, the SAME automated signal (\"has a non-empty name\") is reported identically here and on failing cases 01-05 (verified: axe link-name = 3 passes, 0 violations, indistinguishable from the FAILs), which is exactly why tools cannot separate this PASS from those FAILs — only a human comparing each rendered glyph to its name can.",
+        "primarySelector": "nav.util a[href=\"/\"]"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "No defects. This is a correctly-built PASS/boundary control for SC 2.4.4 (expected outcome = passed). errorIsReal is set true to mean the documented accessibility situation is genuine and faithfully realized by the page; the documented situation here is a true PASS (no failure to detect).",
+          "Both citations verify verbatim: H30 quote at wcag-techniques/html/H30.html line 21 is character-for-character exact; the Understanding-intent quote at wcag-understanding/link-purpose-in-context.html lines 25-26 matches with only a line-break (whitespace-only) difference and genuinely supports the link-purpose claim."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "1.3.1::structural-markup-misused-for-presentation::case-01",
+      "sc": "1.3.1",
+      "aspect": "structural-markup-misused-for-presentation",
+      "caseId": "case-01",
+      "severity": 3,
+      "signals": [
+        "SPLIT",
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.3.1/pages/structural-markup-misused-for-presentation/case-01.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.3.1/pages/structural-markup-misused-for-presentation/case-01.html",
+        "caseDoc": "eval/act-augmented/1.3.1/pages/structural-markup-misused-for-presentation/case-01.md",
+        "sourceOfTruth": "eval/act-augmented/1.3.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "Valid structural elements asserting relationships that do not exist: heading/blockquote/fieldset used for visual effect (F43)",
+        "scenario": "Long-form news article: the byline (\"By Marguerite Adler and Tomas Vance\") is marked up as <h3> and the dateline as <h4>, between the <h1> title and the real <h2> sections, purely to size them. The byline/date begin no section, fabricating a heading outline (h1 > h3 > h4 > h2) that asserts subsection relationships absent from the content.",
+        "mechanism": "Screen-reader heading navigation (H key / rotor) announces the byline as a level-3 section and the dateline as a level-4 subsection nested under the title; landing on each, the user finds only author names / a date — no section. Headings assert sectioning relationships (F43) that do not exist; the real first section 'Abstract' is announced after a spurious h3/h4, corrupting the outline.",
+        "whyAutomatedToolsMiss": "Every heading is valid and non-empty; the only level transition (h1->h3) is at most an axe/Lighthouse 'heading-order' warning, never a hard failure, and h3->h4 is monotonic. No tool can read 'By Marguerite Adler and Tomas Vance' and infer it is a byline that begins no section — that is a semantic reading of the content F43 requires.",
+        "primarySelector": "main article h3"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": [
+          "Minor doc inaccuracy (not a verdict-changer): the .md and the HTML comment claim h1->h3 is 'a warning at most in axe, never a hard failure'. In fact axe-core's heading-order rule DOES flag a skipped level (h1->h3 skips h2) as a violation in default config. This means an automated tool would surface a related signal here — though it would flag the wrong thing (the level skip), not the actual defect (a byline/dateline carrying heading role and asserting a false sectioning relationship). The substantive failure still requires human judgment, so requiresHumanJudgment remains true, but the 'automated tools miss it' narrative is slightly overstated re: the level skip."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "no-error",
+          "commentText": ""
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "2.1.2::esc-standard-exit-method-no-advice-owed::case-04",
+      "sc": "2.1.2",
+      "aspect": "esc-standard-exit-method-no-advice-owed",
+      "caseId": "case-04",
+      "severity": 3,
+      "signals": [
+        "SPLIT",
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/2.1.2/pages/esc-standard-exit-method-no-advice-owed/case-04.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/2.1.2/pages/esc-standard-exit-method-no-advice-owed/case-04.html",
+        "caseDoc": "eval/act-augmented/2.1.2/pages/esc-standard-exit-method-no-advice-owed/case-04.md",
+        "sourceOfTruth": "eval/act-augmented/2.1.2/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Esc and other platform 'standard exit methods' as the untrap mechanism — and whether they actually fire",
+        "scenario": "Higher-ed LMS assignment WYSIWYG editor (Cresthaven University). Inside the contenteditable area Tab is repurposed to insert indentation (so Tab does not exit), and an instruction shown on focus advises 'press Alt+F10 (Option+F10 on macOS) to move focus out to the toolbar', which actually works. Mirrors the Understanding's WYSIWYG example and exercises the author/auditor judgment of whether Alt+F10 is 'standard'.",
+        "mechanism": "#area keydown intercepts Tab (insert indentation) and Alt+F10 (move focus to the toolbar's first button). The exit is a non-arrow/Tab method, so advice is owed; advice #edInstr is shown on focus and programmatically associated via aria-describedby. Verified by probe: Tab stayed in #area; Alt+F10 moved focus to a toolbar button.",
+        "whyAutomatedToolsMiss": "The contenteditable + role=textbox + aria-describedby are all valid, so linters report no error; conversely a tool flagging 'Tab does not exit this region' would wrongly fail it. A tool cannot judge whether the instruction adequately advises the escape, cannot decide whether Alt+F10 is 'standard' for the platform, and cannot press Alt+F10 to confirm focus leaves.",
+        "primarySelector": "#area"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "Directory name 'esc-standard-exit-method-no-advice-owed' is a misnomer for this case: here advice IS owed (Alt+F10 is a non-standard combo) and IS provided. The .md title/body are internally correct ('WITH advice ... advice is owed'); only the parent folder name contradicts the case. Cosmetic/organizational, not a page defect.",
+          "Note (not a defect): the static tab-order walker in inspect.js gets stuck on #area for all stops 6-24 because the keydown handler preventDefaults Tab. This is the intended trap-by-design that the advised Alt+F10 exit resolves; a naive automated trap-heuristic would mis-FAIL this page, which is exactly why human judgment is required."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "yes",
+          "disposition": "comment",
+          "commentReason": "other-error",
+          "commentText": "When pressing option+F10 it opens the settings sound settings"
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "no",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "1.3.1::form-label-and-group-relationships-by-context::case-06",
+      "sc": "1.3.1",
+      "aspect": "form-label-and-group-relationships-by-context",
+      "caseId": "case-06",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.3.1/pages/form-label-and-group-relationships-by-context/case-06.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.3.1/pages/form-label-and-group-relationships-by-context/case-06.html",
+        "caseDoc": "eval/act-augmented/1.3.1/pages/form-label-and-group-relationships-by-context/case-06.md",
+        "sourceOfTruth": "eval/act-augmented/1.3.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Form field/label and field-group relationships conveyed only by visual layout (programmatic association, grouping, required-cues)",
+        "scenario": "Nonprofit donation form built as the deliberate PASS counterpart: it contains the same relationship-bearing structures cases 01-05 get wrong (a radio group with a question, a required cue, a second radio group, a multi-part field) but conveys each programmatically — <fieldset>/<legend> for 'Gift frequency', role=radiogroup+aria-labelledby for 'Designate your gift', aria-required + in-label '(required)' token + aria-describedby for the required note, and role=group+aria-labelledby tying the three phone sub-inputs to 'Daytime phone'.",
+        "mechanism": "Entering the first radio group, AT announces the legend 'Gift frequency (required)' as the group name; the second group announces 'Designate your gift' via role=radiogroup+aria-labelledby; the required email field announces 'required' via aria-required plus the in-label text token, with its description via aria-describedby; the phone group announces 'Daytime phone (optional), group' with each sub-input tied via aria-describedby. TT 5.C is satisfied: name+description+group associations fully describe each field including the required cue and each group's question.",
+        "whyAutomatedToolsMiss": "Automated tools also return 'pass' here, but that agreement is not guaranteed by markup alone: a scanner cannot confirm the aria-labelledby target text actually IS the visible question, that the legend matches the group's purpose, or that the required cue is in text rather than color. A human applying TT 5.C must read the rendered layout and confirm the programmatic associations match the visual relationships; this is the true-positive PASS boundary that sharpens where the SC line sits.",
+        "primarySelector": "fieldset > legend"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": false,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "No defect exists, by design: this is a deliberate PASS-boundary control case, so errorIsReal=false is the EXPECTED state, not a flaw. The page correctly yields its documented 'passed' outcome.",
+          "Minor selector-vs-doc nuance: the element-under-test selector 'fieldset > legend' resolves to a Legend node whose OWN ax.name is '' (the legend text is exposed as the parent group's name 'Gift frequency (required)', not the legend node's name). This is correct ARIA behavior, not a defect, but a reviewer skimming only ax.role/name of the selected node could be misled; the doc itself lists multiple correct-association selectors, which mitigates this."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "no-error",
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "1.4.1::image-chart-alt-omits-color-encoded-fact::case-06",
+      "sc": "1.4.1",
+      "aspect": "image-chart-alt-omits-color-encoded-fact",
+      "caseId": "case-06",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.4.1/pages/image-chart-alt-omits-color-encoded-fact/case-06.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.4.1/pages/image-chart-alt-omits-color-encoded-fact/case-06.html",
+        "caseDoc": "eval/act-augmented/1.4.1/pages/image-chart-alt-omits-color-encoded-fact/case-06.md",
+        "sourceOfTruth": "eval/act-augmented/1.4.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Informational image/chart HAS a text alternative, but the alt restates the color RULE instead of resolving the color-encoded fact",
+        "scenario": "TRUE NEGATIVE / PASS boundary: the same sales bar chart as case-01 (four reps vs a $3.0M quota, below-quota bars red), but as an inline SVG whose aria-label RESOLVES the fact ('Fred and Bob are the two who fell below the quota; Mary and Andrew met it'). The caption repeats it in bold visible text, a data table repeats it, and the below-quota bars carry non-colour cues (a '▼ below quota' tag and a hatch pattern), making colour redundant.",
+        "mechanism": "Satisfies G14 — the colour-encoded fact (who is below quota) is conveyed in text (accessible name, caption, table) and via non-colour visible cues (▼ tag, hatch), so no user must perceive red. The inverse of F13; colour is a redundant enhancement, exactly what WCAG permits.",
+        "whyAutomatedToolsMiss": "This PASS is statically near-identical to case-01's FAIL — both are inline graphics with role=img and a long accessible name, and both pass every automated check identically. Automation cannot read either alt against the rendered chart to judge whether the colour-encoded fact is resolved in text; only a human can see case-06 names Fred and Bob (pass) while case-01 only restates 'red = below quota' (fail). That indistinguishability is the point of the aspect.",
+        "primarySelector": "svg.bars[role=\"img\"]"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": false,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "No defects found. This is a deliberate TRUE NEGATIVE / PASS boundary case, and it is correctly constructed: there is no accessibility issue and none is claimed.",
+          "Minor: the document's `errorIsReal` framing — for a PASS case the relevant question is whether the documented PASS phenomenon is genuine, which it is. No barrier exists for any user (AT, colour-blind, monochrome)."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "no-error",
+          "commentText": ""
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "no",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "2.4.3::multiple-valid-orders-row-vs-column::case-03",
+      "sc": "2.4.3",
+      "aspect": "multiple-valid-orders-row-vs-column",
+      "caseId": "case-03",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/2.4.3/pages/multiple-valid-orders-row-vs-column/case-03.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/2.4.3/pages/multiple-valid-orders-row-vs-column/case-03.html",
+        "caseDoc": "eval/act-augmented/2.4.3/pages/multiple-valid-orders-row-vs-column/case-03.md",
+        "sourceOfTruth": "eval/act-augmented/2.4.3/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "Multiple valid orders — row-wise vs column-wise grid/table traversal must NOT be flagged",
+        "scenario": "Public-library FY budget worksheet (rows=expense categories, columns=quarters). A 2-D budget grid has two valid orders (row-major = one category's full year; column-major = one quarter across all categories), but this page provides NEITHER: positive tabindex (1-16) snakes diagonally so each Tab jumps to a cell sharing neither a category nor a quarter with the previous one. The meaning-destroying near-twin of the valid column grids.",
+        "mechanism": "Tab order follows tabindex 1->16 along a diagonal (sal_q1 -> trv_q2 -> eqp_q3 -> sft_q4 -> trv_q1 -> ...). Each input is named, but the SEQUENCE conveys no relationship: the user cannot complete one category's year nor one quarter, and to enter 'all of Q1' must hunt non-adjacent stops (positions 1,5,9,13). This impedes both the meaning (two intersecting groupings) and operability (coherent data entry) = F44. Verified in Chromium: real Tab order matches the documented diagonal scatter exactly.",
+        "whyAutomatedToolsMiss": "Every cell has a real accessible name (aria-label), headers/scope correct, contrast passes, and tabindex values are syntactically valid integers — so axe/WAVE/Lighthouse report no 2.4.3 failure (at most the generic positive-tabindex advisory, which fires identically on the VALID case-02 and so cannot distinguish them). No static tool models whether a tab sequence follows a row or column relationship; detecting that this diagonal walk breaks both 2-D relationships is a human reasoning judgment.",
+        "primarySelector": "table tbody td input[type=text]"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": []
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "yes",
+          "disposition": "comment",
+          "commentReason": "other",
+          "commentText": "The engine's script-level analysis and 'Why automated tools miss it' reasoning perfectly diagnose a True Positive (F44 diagonal scatter breaking 2D spatial relationships). However, the classification layer erroneously injected this failure analysis under a True Negative 'must NOT be flagged' template heading. Rejecting the case to signal the label mismatch; the technical reasoning is sound, but the final categorization failed."
+        }
+      ]
+    },
+    {
+      "key": "3.3.1::non-text-only-error-indicator::case-07",
+      "sc": "3.3.1",
+      "aspect": "non-text-only-error-indicator",
+      "caseId": "case-07",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/3.3.1/pages/non-text-only-error-indicator/case-07.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/3.3.1/pages/non-text-only-error-indicator/case-07.html",
+        "caseDoc": "eval/act-augmented/3.3.1/pages/non-text-only-error-indicator/case-07.md",
+        "sourceOfTruth": "eval/act-augmented/3.3.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Error is signalled ONLY by visual styling (red border / colour / icon glyph) with no error meaning in text anywhere on the page",
+        "scenario": "CONTROL (discrimination boundary): auction 'place a bid' form with the IDENTICAL red border + tint on the email field, but the error is also identified and described in text ('Email address is not valid.') tied via aria-describedby, with aria-invalid='true' and the decorative icon aria-hidden. Should pass.",
+        "mechanism": "The aria-describedby association surfaces the message and aria-invalid surfaces the state, so a screen reader hears 'Email address, invalid entry, ..., Email address is not valid.' The error is identified and described IN TEXT; the red styling/icon are now acceptable ADDITIONAL cues (icon aria-hidden so it is not double-announced).",
+        "whyAutomatedToolsMiss": "Tools cannot reliably distinguish this passing page from the failing ones because they never recognised the red styling as an error indicator at all; case-01 and case-07 look structurally similar to a scanner. The discriminating signal — whether a conforming text description tied to the field exists and actually describes the error — is a semantic check requiring human judgment.",
+        "primarySelector": "input#email.flagged[aria-describedby=\"email-err\"]"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "Minor mechanism framing: the doc/scenario leans on aria-invalid='true' as part of 'identifying' the error, but strict 3.3.1 conformance rests on the in-text description ('Email address is not valid.') being programmatically associated via aria-describedby; aria-invalid is a 4.1.2 (Name/Role/Value) state, not what satisfies 3.3.1. Does not change the passed verdict.",
+          "Second citation is a truncated fragment of the source sentence (source: 'For instance, \"Email is not valid\" would pass 3.3.1, but...'); the quoted portion is verbatim and correctly attributed, but it is a partial sentence quote."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "no-error",
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "4.1.3::partial-update-no-atomic-truncated-announcement::case-06",
+      "sc": "4.1.3",
+      "aspect": "partial-update-no-atomic-truncated-announcement",
+      "caseId": "case-06",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/4.1.3/pages/partial-update-no-atomic-truncated-announcement/case-06.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/4.1.3/pages/partial-update-no-atomic-truncated-announcement/case-06.html",
+        "caseDoc": "eval/act-augmented/4.1.3/pages/partial-update-no-atomic-truncated-announcement/case-06.md",
+        "sourceOfTruth": "eval/act-augmented/4.1.3/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Partial update without aria-atomic announces only the changed fragment, losing meaning",
+        "scenario": "PASS boundary: ambient web-radio player 'Now playing: Track 1 — Slow Harbor by Elin Brook' in p[role=status][aria-atomic=true]; Skip rewrites ONLY the inner #track/#title/#artist nodes (same partial-update mechanism as the failing cases) but aria-atomic=true makes AT re-announce the WHOLE region (verified live: 'Now playing: Track 4 — Tidal Glass by Marin Vale').",
+        "mechanism": "aria-atomic=\"true\" instructs AT to present the entire live region whenever any descendant changes, including author-defined labels; mutating only the inner value nodes still triggers a full re-announcement of 'Now playing: Track 4, Tidal Glass by Marin Vale', so the announced whole is equivalent to the visible whole — the correct remediation for the partial-update trap.",
+        "whyAutomatedToolsMiss": "This is the crux: axe/WAVE/Lighthouse treat case-06 IDENTICALLY to the failing cases — all are valid role=status live regions with good contrast and real content — and pass every page the same way. They cannot evaluate that here the announced whole IS semantically equivalent to the visible whole whereas in case-01/03/05 the announced fragment is NOT. Separating this pass from those fails is exactly the human semantic-equivalence judgment no automated rule performs.",
+        "primarySelector": "p#now-playing[role=\"status\"][aria-atomic=\"true\"]"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": false,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "This is a PASS-boundary control, not a defect page. By design there is NO accessibility issue, so errorIsReal=false in the literal 'a defect exists' sense; the corpus-relevant fact is that the documented expected outcome (passed) is CORRECT (expectedOutcomeCorrect=true). Reviewer should interpret this row as a valid positive control, not a missed bug.",
+          "Minor: the inspect AX tree reports the status region name as empty string ('name': '') because role=status computes its accessible name from contents differently than its rendered text concatenation; this is a tooling artifact, not a defect — the region's full text ('Now playing: ... by Elin Brook') is present in the AX subtree as StaticText children, and atomic=true means the whole subtree is announced."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "no",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": "fine because the region is aria-atomic"
+        }
+      ]
+    }
+  ]
+}

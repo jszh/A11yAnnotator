@@ -1,0 +1,157 @@
+{
+  "batch": "06",
+  "cases": [
+    {
+      "key": "1.4.1::inline-links-color-only-no-other-cue::case-06",
+      "verdict": "NO-DEFECT",
+      "annotationClarity": "clear",
+      "complaintCorrect": "refuted",
+      "defectType": "none",
+      "groundTruthDisputed": false,
+      "internallyContradictory": false,
+      "confidence": 0.9,
+      "evidence": "Page source (case-06.html L23-24): `.body-copy a { color: #3366CC; text-decoration: none; }` and `.body-copy a:hover, .body-copy a:focus-visible { text-decoration: underline; }` on `body { background:#fff; color:#000 }`. I recomputed the contrasts from the hex values: relative luminance of #3366CC = 0.1457, so link-vs-black-body-text = (0.1457+0.05)/0.05 = 3.91:1 and link-vs-white-background = 1.05/0.1957 = 5.37:1 — exactly the figures the corpus claims. The page is the literal G183 worked example, and the hover/focus underline required by G183's second Expected Result is present.",
+      "reasoning": "Ajit's comment is specific and intelligible but appeals to a house rule ('our strict 1.4.1 testing parameters') that WCAG itself does not impose: G183 permits colour-only-looking links when the link-vs-text lightness contrast is at least 3:1 AND an additional visual cue appears on hover/focus. Both conditions hold here (3.91:1 plus the hover/focus underline), so the corpus's `passed` label is right and the complaint is a judgment disagreement the rationale already answers. The only quibble worth recording is a framing nuance the pipeline self-review already logged: the mechanism prose says the page 'does not depend on the hover/focus underline', whereas G183's formal procedure requires that cue too — but the page supplies it, so nothing about the label changes.",
+      "proposedFix": null
+    },
+    {
+      "key": "1.4.13::dismissible-position-obscures-meaningful-vs-decorative::case-04",
+      "verdict": "NEEDS-VALIDATION",
+      "annotationClarity": "vague",
+      "complaintCorrect": "confirmed",
+      "defectType": "label-wrong",
+      "groundTruthDisputed": true,
+      "internallyContradictory": true,
+      "confidence": 0.93,
+      "evidence": "result.json (aspectResults[dismissible-position-obscures-meaningful-vs-decorative].built.pages[case-04]) says expected='passed', primarySelector='#al-cacio', scenario='Restaurant menu ... decorative olive-branch SVG flourish (aria-hidden)'. The shipped page is <title>Trail Conditions | Larkspur Ridge Open Space</title>; `grep -rl al-cacio eval/` matches only metadata files, and `flourish` appears nowhere except result.json. The case's own doc (case-04.md, title line and 'Expected ACT-style outcome') states '**failed** — additional content shown on hover/focus obscures an *informational* graphic (the difficulty key) and there is no dismiss mechanism'. Probe: `probe-case.js case-04.html --hover button.help` -> tooltip `.tip.is-open` visible at {x:338,y:159,w:300,h:229}, hoverableAfterPointerTravel=true, visibleTooltipsAfterEscape=1 (Esc does NOT dismiss; the source has no keydown handler). Screenshot confirms the open tooltip covers the 'Difficulty key' heading, the whole `.key` legend row, and the first trail's marker+name.",
+      "reasoning": "The page on disk is not the page the source of truth describes, and the two disagree on the outcome: result.json/manifest say `passed` (decorative carve-out) while the shipped page plus its own .md are a deliberately constructed FAIL (tooltip obscures an informational legend, no Esc). Davin's issueExists=yes matches the page as shipped. Repair therefore requires flipping `expected` from passed to failed and rewriting scenario/mechanism/whyAutomatedToolsMiss/primarySelector to the Larkspur Ridge fixture (primarySelector `#cond`, trigger `button.help`), which is out of bounds for a mechanical fix. Note the corpus's own DRIFT-REPORT.md line 63 already flags this exact case as not-aligned, so a human decision is the only missing step; also note this aspect loses its decorative-carve-out PASS control if the label flips (case-03 remains as the white-space PASS control).",
+      "proposedFix": null
+    },
+    {
+      "key": "1.1.1::complex-image-long-description-incomplete::case-02",
+      "verdict": "NO-DEFECT",
+      "annotationClarity": "vague",
+      "complaintCorrect": "refuted",
+      "defectType": "none",
+      "groundTruthDisputed": false,
+      "internallyContradictory": false,
+      "confidence": 0.85,
+      "evidence": "case-02.html L31-60: `<svg viewBox=\"0 0 560 300\" role=\"img\" aria-describedby=\"chartCap\" aria-label=\"Bar chart of FY2029 freight division revenue by quarter\">` with bars $42M/$48M/$55M and a red (#c0362c) Q4 bar of $19M plus an on-chart `<text ... fill=\"#c0362c\">↓ port strike</text>`. The referenced description (L62-66) reads in full: 'Q1 revenue was $42M, Q2 revenue was $48M, Q3 revenue was $55M, and Q4 revenue was $19M. All four quarters are shown above.' It states no trend, does not identify Q4 as the outlier, and never mentions the 'port strike' annotation. Because the SVG carries role=\"img\", its child <text> nodes are pruned from the accessibility tree, so the annotation is available to sighted users only.",
+      "reasoning": "Mengqi filed issueExists=no with an empty comment body — no specifics to act on. Checking the page myself, information the image conveys ('↓ port strike', and which quarter is the anomaly) is genuinely absent from the programmatic description, which is the F67 pattern the corpus claims; the `failed` label stands and Ajit's approval is the correct read. Separate observation (not the annotator's complaint, and not scored here): the shipped page still contains a visible `aside.note` beginning 'Why automated checkers pass this page:' that spells out the answer in rendered text — the comment strip removed HTML comments but left this leak.",
+      "proposedFix": null
+    },
+    {
+      "key": "1.4.1::required-field-color-only::case-03",
+      "verdict": "NEEDS-VALIDATION",
+      "annotationClarity": "vague",
+      "complaintCorrect": "indeterminate",
+      "defectType": "label-wrong",
+      "groundTruthDisputed": true,
+      "internallyContradictory": false,
+      "confidence": 0.6,
+      "evidence": "case-03.html L23 `.bring li::before { content:\"•\"; color:#c0392b; ... }` and L30 `.f.req label::before { content:\"•\"; color:#c0392b; ... }` — the required marker and the decorative checklist marker are the same glyph in the SAME hex colour. L46 legend: 'Fields marked with a red dot are required. All other fields are optional.' Screenshot (probe --shot) confirms: the five required labels each carry a red dot, the three optional labels (Pronouns / Preferred pharmacy / Relationship to patient) carry none, and the decorative dots live in a separately boxed 'What to bring to your appointment' list above the form, next to prose items that are not form fields.",
+      "reasoning": "The corpus mechanism asserts that 'hue is the sole disambiguator' between the required marker and the decorative bullet — but both bullets are rendered in the identical colour #c0392b, so hue cannot be doing any distinguishing work; what separates them is position/context (form label vs. checklist item), and that cue survives grayscale intact. Independently, required-vs-optional is signalled by presence/absence of the bullet, a non-colour visual means, which is what SC 1.4.1 actually asks for. Mengqi's bare 'no-error' is weak evidence on its own, but my own reading of the page finds the failure argument self-undermining, so the `failed` label is genuinely in question. A defensible counter-argument survives (the legend identifies the marker by colour word, 'a red dot'), so this is a ground-truth call for a human, not a mechanical fix. The pipeline self-review separately recorded that the .md's claim that the ::before bullet is 'invisible to AT entirely' is refuted by the Chromium AX tree.",
+      "proposedFix": null
+    },
+    {
+      "key": "1.1.1::complex-image-long-description-incomplete::case-06",
+      "verdict": "NO-DEFECT",
+      "annotationClarity": "unintelligible",
+      "complaintCorrect": "indeterminate",
+      "defectType": "none",
+      "groundTruthDisputed": false,
+      "internallyContradictory": false,
+      "confidence": 0.9,
+      "evidence": "case-06.html L30-31: `<svg role=\"img\" aria-describedby=\"waterTable waterTrend\" aria-label=\"Bar chart of Marsden residential water use, 2025 to 2029\">`; #waterTable (L61-73) lists 2025 13.8 / 2026 12.9 / 2027 12.1 / 2028 11.0 / 2029 10.2, matching every bar label in the SVG, and #waterTrend (L75-79) states the direction, the 26% total reduction and the largest single-year drop (1.1 bn L, 2027->2028). Substituting table + trend paragraph for the image loses nothing (G92 satisfied).",
+      "reasoning": "There is no complaint to adjudicate: both annotators answered issueExists=no, which agrees with the corpus label `passed`, and Mengqi's 'no-error' comment body is empty. The case only entered the batch because a comment was attached with no text. Verifying the page myself, the description genuinely reconstructs the chart, so the PASS control is sound. Same leak note as case-02: the visible `aside.note` 'Why this page PASSES (control):' remains in the served HTML.",
+      "proposedFix": null
+    },
+    {
+      "key": "1.4.13::persistent-auto-timeout-vs-valid-info-invalidation::case-01",
+      "verdict": "FIX-OBVIOUS",
+      "annotationClarity": "clear",
+      "complaintCorrect": "confirmed",
+      "defectType": "page-implementation",
+      "groundTruthDisputed": false,
+      "internallyContradictory": false,
+      "confidence": 0.85,
+      "evidence": "`probe-case.js case-01.html --hover \"#limitHelp\"` reports the revealed tooltip at rect {x:500, y:1170, w:280, h:150} — roughly 950px BELOW the trigger, which sits at about y=222 on a page whose real content ends near y=560 (see full-page screenshot: nothing appears next to the '?' button; the 1320px page height is itself produced by the stranded tooltip). hoverableAfterPointerTravel=false. Root cause is in the source: `.tip { position:absolute; left:50%; top:130%; ... }` (L28-29) but `#limitTip` (L58) is a child of the static `<form>`; the only `position:relative` in the file is on `.help` (L20), the sibling <button>, so the tooltip resolves its percentages against the initial containing block (left 50% of 1280 -> 640-140=500; top 130% of the 900px viewport -> 1170).",
+      "reasoning": "Davin's 'nothing pops up for the user' is exactly right as an observation of rendered behaviour: the tooltip does get class 'show', but it paints ~1000px away from its trigger, off the visible page. This is a page-implementation bug (a missing positioning context), not a ground-truth question — the documented Persistent defect is in the JS and is untouched by the repair, so `expected` stays 'failed'. I applied the patch below to a scratch copy and re-probed: the tooltip then renders at {x:203, y:260} directly under the '?' button, hoverableAfterPointerTravel=true, Esc dismisses it, and a timed check confirms the documented failure survives (opacity 1 / visible at t=0.5s, opacity 0 / hidden at t=4.7s while the pointer is still on the trigger). The patch also stops the tooltip text and the trigger's aria-label from leaking into the accessible name of #amt, since they no longer sit inside its <label>. Note the corpus's own drift check marked this case 'aligned' because it read the source rather than the rendering, so this defect is new.",
+      "proposedFix": {
+        "file": "eval/act-augmented/1.4.13/pages/persistent-auto-timeout-vs-valid-info-invalidation/case-01.html",
+        "rationale": "Give the tooltip a positioning context adjacent to its trigger. `#limitTip` is absolutely positioned but has no positioned ancestor, so it lands at (500,1170) instead of under the '?' button — the user sees nothing appear. Edit 1 makes the existing `.row` wrapper (which exists solely to hold the trigger) the containing block and shrink-wraps it; edit 2 moves the tooltip inside that wrapper and out of the <label> (a <span> rather than a <div> keeps the phrasing-content nesting valid; the id, role=tooltip and aria-describedby wiring are unchanged). No JS changes: the setTimeout(...,4000) auto-dismiss that the case is about is preserved, so expected stays 'failed'. Verified on a scratch copy by re-running probe-case.js and by a timed computed-style check. The .md needs no change (it does not describe the tooltip's coordinates).",
+        "edits": [
+          {
+            "oldString": "  .row { display:flex; gap:8px; align-items:baseline; }",
+            "newString": "  .row { position:relative; display:inline-flex; gap:8px; align-items:baseline; }"
+          },
+          {
+            "oldString": "    <label for=\"amt\">Amount (USD)\n      <span class=\"row\" style=\"font-weight:400\">\n        <button type=\"button\" id=\"limitHelp\" class=\"help\" aria-describedby=\"limitTip\" aria-label=\"About the daily transfer limit\">?</button>\n      </span>\n    </label>\n    <div class=\"field\">\n      <input type=\"text\" id=\"amt\" inputmode=\"decimal\" placeholder=\"0.00\" autocomplete=\"off\">\n    </div>\n\n    <div id=\"limitTip\" role=\"tooltip\" class=\"tip\">\n      Your verified daily wire limit is <strong>$25,000</strong>. Amounts above this need\n      a one-time call to your relationship manager at the number on the back of your card.\n      Limits reset at 11:59&nbsp;PM in your account time zone.\n    </div>",
+            "newString": "    <label for=\"amt\">Amount (USD)</label>\n    <span class=\"row\" style=\"font-weight:400\">\n      <button type=\"button\" id=\"limitHelp\" class=\"help\" aria-describedby=\"limitTip\" aria-label=\"About the daily transfer limit\">?</button>\n      <span id=\"limitTip\" role=\"tooltip\" class=\"tip\">\n        Your verified daily wire limit is <strong>$25,000</strong>. Amounts above this need\n        a one-time call to your relationship manager at the number on the back of your card.\n        Limits reset at 11:59&nbsp;PM in your account time zone.\n      </span>\n    </span>\n    <div class=\"field\">\n      <input type=\"text\" id=\"amt\" inputmode=\"decimal\" placeholder=\"0.00\" autocomplete=\"off\">\n    </div>"
+          }
+        ]
+      }
+    },
+    {
+      "key": "1.4.1::ui-status-action-color-only-no-text-cue::case-07",
+      "verdict": "NO-DEFECT",
+      "annotationClarity": "unintelligible",
+      "complaintCorrect": "indeterminate",
+      "defectType": "none",
+      "groundTruthDisputed": false,
+      "internallyContradictory": false,
+      "confidence": 0.9,
+      "evidence": "case-07.html L43-50: every departure row carries the track code as text inside the destination cell, e.g. `<td>Harbour Int&rsquo;l Airport <span class=\"code\">&middot; T2</span></td>`, for all eight rows (T1 x3, T2 x2, T3 x3), matching the row background hues set by `tr.t1/.t2/.t3` (L20-22). The legend (L31-35) maps each code to a line name ('T1 — Northbeach Loop', etc.). The corpus's primarySelector `span.code` resolves.",
+      "reasoning": "No complaint was actually filed: Mengqi's issueExists=no agrees with the corpus label `passed` and the comment body is empty; Ajit approved with the same reading. Checking the page, the G14 redundant text cue really is present in every row, so the TRUE-NEGATIVE control is sound and there is nothing to repair.",
+      "proposedFix": null
+    },
+    {
+      "key": "3.3.1::error-summary-incoherent-with-flagged-state::case-03",
+      "verdict": "NO-DEFECT",
+      "annotationClarity": "clear",
+      "complaintCorrect": "confirmed",
+      "defectType": "none",
+      "groundTruthDisputed": false,
+      "internallyContradictory": false,
+      "confidence": 0.92,
+      "evidence": "case-03.html L39-42: `<div class=\"summary\" role=\"alert\"><strong>There is 1 error in this form.</strong><span>Date of birth must be a valid date in the past (DD/MM/YYYY).</span></div>`. Three fields actually carry aria-invalid=\"true\" with `.field.invalid` red borders and inline messages: #dob (L55, value 31/02/1990), #mobile (L61, value 0712) and #postcode (L75, value ZZ). The summary therefore undercounts by two and omits Mobile number and Postcode.",
+      "reasoning": "Davin approved the case and his comment ('The issue highlighted is present and is for the correct field as well') is correct — the summary/state incoherence is real and the flagged field it does name is genuinely in error. Nothing here contradicts the `failed` label, so there is no defect to fix; the case is in the batch only because a comment was attached to an approval. Same corpus-wide leak note as the 1.1.1 cases: the served page keeps a visible `.why` block starting 'Why automated checkers pass this page:'.",
+      "proposedFix": null
+    },
+    {
+      "key": "4.1.3::is-it-a-status-message-scope-boundary::case-03",
+      "verdict": "NO-DEFECT",
+      "annotationClarity": "clear",
+      "complaintCorrect": "confirmed",
+      "defectType": "none",
+      "groundTruthDisputed": false,
+      "internallyContradictory": false,
+      "confidence": 0.9,
+      "evidence": "`probe-case.js case-03.html --click \"#tab-syllabus\"` -> liveRegions: [] (no aria-live/role=status/alert/log anywhere), announcements: [], and focusAfter = {tag:'button', id:'tab-syllabus', role:'tab', tabindex:'0'} — clicking a tab leaves focus on that tab. Source L98-117 implements the APG pattern (roving tabindex, aria-selected toggling, arrow/Home/End keys, panels toggled via the `hidden` attribute).",
+      "reasoning": "Davin's comment ('when focusing on a new tab, the focus shift to the new tab that was chosen') is an accurate observation, and he answered issueExists=no, which agrees with the corpus's `inapplicable` label — he filed no defect. The behaviour he describes is precisely why 4.1.3 does not apply: the content change is announced through the tab widget's role/state under 4.1.2. One incidental corpus-hygiene note, unrelated to the complaint: this page ships `<body data-intended-classification=\"inapplicable\" data-sc=\"4.1.3\">` (L36) plus a visible `.why` block explaining the answer — both leak the expected outcome to anyone (or any model) reading the served HTML.",
+      "proposedFix": null
+    },
+    {
+      "key": "4.1.3::wrong-live-region-politeness-for-urgency::case-01",
+      "verdict": "FIX-OBVIOUS",
+      "annotationClarity": "clear",
+      "complaintCorrect": "confirmed",
+      "defectType": "metadata-wrong",
+      "groundTruthDisputed": false,
+      "internallyContradictory": false,
+      "confidence": 0.9,
+      "evidence": "result.json L280-288 describes an 'E-commerce running-shoe store' per-keystroke counter with primarySelector `p#liveCount[role=\"alert\"]`, cited against the Understanding 'too chatty' passage. The shipped page is <title>Notification preferences — Helmsley Workspace</title>; its live element is L72: `<span class=\"saved\" id=\"savedMsg\" aria-live=\"off\" aria-atomic=\"true\"></span>`, filled with 'Preferences saved.' by the submit handler (L94-101). `grep -c p#liveCount` over the page: 0 matches; there is no search input and no role=alert anywhere. The case's own .md is already rewritten to the Helmsley/F103 scenario and its 'Notes on the dispute this case resolves' (L100-115) records that the old role=alert scenario was rejected by an adversarial reviewer and replaced.",
+      "reasoning": "Davin's comment is right on the substance: the element does not have a wrong urgency, it has no announcing politeness at all (aria-live='off', no role=status/alert/log, not an <output>). The mismatch is purely stale metadata — the .md, the page and the F103 citation all agree with each other, and `expected` remains 'failed' either way, so no ground-truth call is involved. The patch rewrites scenario/mechanism/primarySelector/whyAutomatedToolsMiss/citation in the source of truth to the fixture that actually ships. The corpus's DRIFT-REPORT.md already lists this case as not-aligned for the same reason.",
+      "proposedFix": {
+        "file": "eval/act-augmented/4.1.3/result.json",
+        "rationale": "aspectResults[wrong-live-region-politeness-for-urgency].built.pages[case-01] still carries the pre-rewrite running-shoe scenario, whose primarySelector p#liveCount[role=\"alert\"] matches nothing in the shipped page. Replace scenario/mechanism/primarySelector/whyAutomatedToolsMiss/citation with the Helmsley aria-live=\"off\" / F103 case that the HTML and the .md both describe; `expected` is unchanged at 'failed'. Verified: the oldString occurs exactly once and the file still parses as JSON after the replacement. The .md needs no change — it already documents this scenario. manifest.json is generated from result.json and must be regenerated afterwards (it currently carries the same stale text).",
+        "edits": [
+          {
+            "oldString": "            \"scenario\": \"E-commerce running-shoe store with an instant search filter: a 'N results' counter beneath the search box updates on every keystroke. The counter is a present, valid live region wired role=alert (assertive), so typing 'shoes' fires five assertive announcements in under a second, each interrupting and clobbering the last. A low-value, high-frequency count should be polite (role=status), not assertive.\",\n            \"expected\": \"failed\",\n            \"mechanism\": \"role=alert maps to an assertive live region: each text change interrupts current speech. The region's text is replaced on every 'input' event, so a per-keystroke result count repeatedly preempts whatever the screen reader was reading and cuts off its own prior announcements. The message is announced (absence-checkers pass) but at a politeness inappropriate for its low value and high cadence — the 'too chatty' failure.\",\n            \"primarySelector\": \"p#liveCount[role=\\\"alert\\\"]\",\n            \"whyAutomatedToolsMiss\": \"A non-empty live region is present at load with role=alert + aria-atomic=true and genuinely announces. axe/WAVE/Lighthouse verify only that a status message CAN be announced; both assertive and polite are legal values, so no rule fires. No static or single-snapshot scan can weigh that a count firing on every keystroke is low-value, high-cadence content that should be polite — that needs human understanding of the message's meaning and frequency.\",\n            \"citation\": {\n              \"doc\": \"WCAG 2.2 Understanding SC 4.1.3 Status Messages — 'Other uses of live regions or alerts' (wcag-understanding/status-messages.html)\",\n              \"quote\": \"Live regions and alerts can be usefully applied in many situations where a change of content takes place which does not constitute a status message, as defined in this success criterion. However, there is a risk of making an application too \\\"chatty\\\" for a screen reader user. User testing should be carried out to ensure the appropriate level of feedback is achieved.\"\n            }",
+            "newString": "            \"scenario\": \"Team-workspace SaaS ('Helmsley Workspace') notification-preferences page: pressing 'Save preferences' reveals a green 'Preferences saved.' banner beside the button. The banner is wired aria-live='off' with aria-atomic='true', carries no role=status/alert/log and is not an <output>, so the live-region wiring looks present to a linter while the value 'off' tells assistive technology to ignore the update. Sighted users see the confirmation; screen-reader users hear nothing and cannot tell whether the save succeeded.\",\n            \"expected\": \"failed\",\n            \"mechanism\": \"The post-submit text 'Preferences saved.' meets the status-message definition — it does not take focus and it reports the success of the user's action — but the only live property on the region is aria-live='off', which is neither 'polite' nor 'assertive' and suppresses announcement entirely. With no role=status/alert/log and no <output> element, none of F103's enumerated techniques is present, so the message is never programmatically surfaced. The politeness value is not merely too chatty for the message's urgency; it is silence.\",\n            \"primarySelector\": \"span#savedMsg[aria-live=\\\"off\\\"]\",\n            \"whyAutomatedToolsMiss\": \"The element carries an aria-live attribute and aria-atomic='true', so a static scan sees a live-region-shaped element and nothing malformed — 'off' is a syntactically valid aria-live token, so axe/WAVE/Lighthouse do not flag it. The banner is also empty in the load-time DOM, so no content rule has any text to inspect. Recognising that 'Preferences saved.' is a status message, and that 'off' suppresses its announcement, requires submitting the form and reasoning about the politeness value — a behavioural, human-in-the-loop judgment no point-in-time scan makes.\",\n            \"citation\": {\n              \"doc\": \"WCAG Techniques — F103 'Failure of Success Criterion 4.1.3 due to providing status messages that cannot be programmatically determined through role or properties' (wcag-techniques/failures/F103.html)\",\n              \"quote\": \"The absence of all of these techniques predicts a failure for the status message be announced to the user.\"\n            }"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,479 @@
+{
+  "batch": "05",
+  "n": 10,
+  "backupDir": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15",
+  "cases": [
+    {
+      "key": "1.4.13::applicability-author-vs-ua-title-tooltip::case-06",
+      "sc": "1.4.13",
+      "aspect": "applicability-author-vs-ua-title-tooltip",
+      "caseId": "case-06",
+      "severity": 5,
+      "signals": [
+        "CONTRADICTED",
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.4.13/pages/applicability-author-vs-ua-title-tooltip/case-06.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.4.13/pages/applicability-author-vs-ua-title-tooltip/case-06.html",
+        "caseDoc": "eval/act-augmented/1.4.13/pages/applicability-author-vs-ua-title-tooltip/case-06.md",
+        "sourceOfTruth": "eval/act-augmented/1.4.13/result.json"
+      },
+      "corpusClaim": {
+        "expected": "inapplicable",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Applicability gate — author-controlled tooltip vs. user-agent title= tooltip (and modal-dialog carve-out)",
+        "scenario": "Meridian Bank wire-transfer form: focusing the high-risk Amount field opens a modal security step-up dialog (role='dialog' aria-modal='true') that dims the page, moves keyboard focus to its confirm button, traps Tab, and is dismissed via Escape/Cancel. Superficially this is content appearing on focus (the 1.4.13 trigger pattern), but modal dialogs are explicitly out of scope — the correct disposition is NOT-APPLICABLE to 1.4.13 (evaluate under 3.2.1 On Focus). This is the N/A modal carve-out anchor.",
+        "mechanism": "The focus-triggered content is a modal: it takes keyboard focus (focus moved into the dialog), traps it, dims the page, and must be acknowledged. The 1.4.13 modal exclusion states modals must take keyboard focus and thus should not appear on hover/focus in the transient sense the SC governs, routing such content to 3.2.1 On Focus. So 1.4.13 does not apply. Verified with Puppeteer: dialog has aria-modal='true'; focusing #amount sets backdrop data-open='true' and moves document.activeElement to dlg-confirm (focus enters the dialog) — confirming modal behavior (screenshot showed the dimmed page + modal).",
+        "whyAutomatedToolsMiss": "The DOM shows additional content appearing on focus — the literal 1.4.13 trigger — so a naive rule could apply 1.4.13 and start testing hoverable/dismissible/persistent. Deciding that this focus-triggered content is a modal (takes/traps focus, dims the page, must be acknowledged) rather than a non-modal tooltip is a judgment about behavior and intent; both look like 'content appears on focus' in markup, and only a human can make the N/A call and re-route it to 3.2.1.",
+        "primarySelector": "#backdrop .dialog[role=\"dialog\"][aria-modal=\"true\"]"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "No genuine defect — this is an intentional NOT-APPLICABLE (modal carve-out) anchor; the disposition is correct, not an error to fix.",
+          "Minor (not affecting the 1.4.13 verdict): aria-modal='true' alone does not remove background content from the AX tree, and the page applies no inert/aria-hidden to <main> when the dialog opens, so a real implementation would have a small background-shielding gap. Irrelevant to the inapplicable classification.",
+          "Citation source has a cosmetic double-space before 'and' ('keyboard focus  and') — whitespace-only difference, within allowed tolerance; quote is otherwise verbatim."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": "Different issue, it should be for 3.2.1 which is on focus"
+        }
+      ]
+    },
+    {
+      "key": "1.3.1::visual-lists-without-list-markup::case-06",
+      "sc": "1.3.1",
+      "aspect": "visual-lists-without-list-markup",
+      "caseId": "case-06",
+      "severity": 4,
+      "signals": [
+        "CONTRADICTED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.3.1/pages/visual-lists-without-list-markup/case-06.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.3.1/pages/visual-lists-without-list-markup/case-06.html",
+        "caseDoc": "eval/act-augmented/1.3.1/pages/visual-lists-without-list-markup/case-06.md",
+        "sourceOfTruth": "eval/act-augmented/1.3.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Visually apparent lists not programmatically identified as lists (or as the wrong type / lost nesting)",
+        "scenario": "PASS boundary: a parks 'Trail Conditions' page that does it correctly — three trailheads mentioned as a comma-separated inline run inside a sentence (correctly NOT a list), a genuinely ordered 'Before you hike' procedure coded as <ol>, and a genuinely term/description marker glossary coded as <dl>/<dt>/<dd>.",
+        "mechanism": "Every visually apparent list is programmatically a list of the correct type: the <ol> exposes ordered/positional list semantics matching the visible numbered steps, the <dl> exposes a description-list group pairing each dt term with its dd, and the comma-separated trailheads are normal sentence prose with no visual list to mismatch — so no list markup is owed (TT 10.D note).",
+        "whyAutomatedToolsMiss": "This is the inverse trap: an over-eager heuristic might flag the comma-separated trailheads as a 'list that should be marked up,' a false positive, because tools cannot tell an in-sentence enumeration from a visually stacked list. A correct PASS requires the human judgment that the run is prose and that the two real lists are already the right type — neither decided by any axe/WAVE/Lighthouse rule.",
+        "primarySelector": "p.inline"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": false,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "NOTE (not a defect): This is a deliberate PASS / true-negative case, so there is no accessibility violation to confirm. errorIsReal=false reflects the intended design (no SC violation exists), and the documented expected outcome 'passed' is correct. Reviewer should not read errorIsReal=false as a flaw here.",
+          "Minor doc nuance: the .md 'Element / selector carrying the issue' is 'None', but the harness 'Element under test' is p.inline. p.inline is the most adversarial element (the over-flagging trap), so this is appropriate, not a mismatch."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "1.1.1::alt-not-an-alternative-filename-placeholder::case-07",
+      "sc": "1.1.1",
+      "aspect": "alt-not-an-alternative-filename-placeholder",
+      "caseId": "case-07",
+      "severity": 3,
+      "signals": [
+        "SPLIT",
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.1.1/pages/alt-not-an-alternative-filename-placeholder/case-07.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.1.1/pages/alt-not-an-alternative-filename-placeholder/case-07.html",
+        "caseDoc": "eval/act-augmented/1.1.1/pages/alt-not-an-alternative-filename-placeholder/case-07.md",
+        "sourceOfTruth": "eval/act-augmented/1.1.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Non-empty alt that is not actually an alternative: filename, placeholder, or auto-generated label (F30)",
+        "scenario": "PASS control: a photo-essay 'photo of the day' showing the same kind of protest scene as case-01, but with a genuine descriptive alt='Crowd marching past the domed City Hall building, holding banners reading Fair fares and No hike'.",
+        "mechanism": "The image's accessible name is a full scene description that can substitute for the photo (G94): removing the image and leaving the alt loses no essential information, so the equivalence/descriptiveness facet passes alongside presence.",
+        "whyAutomatedToolsMiss": "Automated tools pass this only because alt is non-empty — the same shallow signal that also wrongly passes the case-01..06 failures; they cannot tell THIS alt is a real alternative while 'DSC_0481.JPG' is not, so only the human-judgment layer confirms the genuine pass and isolates the string as the variable.",
+        "primarySelector": "figure.hero img"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": []
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "yes",
+          "disposition": "comment",
+          "commentReason": "other-error",
+          "commentText": "missing other information"
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "no",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "1.4.1::required-field-color-only::case-02",
+      "sc": "1.4.1",
+      "aspect": "required-field-color-only",
+      "caseId": "case-02",
+      "severity": 3,
+      "signals": [
+        "SPLIT",
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.4.1/pages/required-field-color-only/case-02.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.4.1/pages/required-field-color-only/case-02.html",
+        "caseDoc": "eval/act-augmented/1.4.1/pages/required-field-color-only/case-02.md",
+        "sourceOfTruth": "eval/act-augmented/1.4.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "Required form fields indicated by color alone, with self-referential or absent text instruction",
+        "scenario": "Job-application form (ATS / job board). Required fields are flagged ONLY by a 3px red left-border on the input/select control itself (.field--required → border-left:3px solid #d32f2f); optional fields keep a plain grey border. No asterisk, no '(required)', no icon, no aria-required, and not even an instruction telling the user the red edge means 'required'. The hue of one edge of the box is the entire signal.",
+        "mechanism": "Required fields identified by a colour difference only — a coloured border on the control (F81) — with no non-colour cue and no explanatory legend; in greyscale the red and grey edges collapse to near-identical lines, erasing the only differentiator.",
+        "whyAutomatedToolsMiss": "Each control has an associated label and accessible name and text contrast passes; the markup is well-formed. No automated rule reads a coloured border on a form control, infers it encodes 'required', and checks for a non-colour equivalent. A 3px coloured border-left is an ordinary decorative style — tools cannot know it carries semantic meaning, let alone that the meaning is colour-only and unstated. Detecting it requires perceiving the rendered controls and reasoning about what the red edge signifies.",
+        "primarySelector": ".field--required input"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": [
+          "Minor nuance (not a defect): the required field's left border differs in WIDTH too (3px vs 1px), so it is not STRICTLY a pure-color difference. However this 2px delta on one edge is not a recognizable 'required' indicator on its own — there is no legend/text/instruction explaining it, and the salient, designer-intended cue is the red hue. The page still fails 1.4.1 because there is no ADEQUATE non-color alternative; the doc could be slightly more precise by acknowledging the width delta and arguing it is not perceivable/meaningful as a non-color cue.",
+          "The .md also asserts the page 'would also fail 1.3.1/3.3.2 programmatically' — true and a checker could catch the missing required/aria-required there, but that is a DIFFERENT SC; for 1.4.1's visible-non-color-alternative requirement no automated tool flags it, so the human-judgment claim for THIS SC holds."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "no-error",
+          "commentText": ""
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "2.4.3::interleaved-focus-between-semantic-groups::case-03",
+      "sc": "2.4.3",
+      "aspect": "interleaved-focus-between-semantic-groups",
+      "caseId": "case-03",
+      "severity": 3,
+      "signals": [
+        "SPLIT",
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/2.4.3/pages/interleaved-focus-between-semantic-groups/case-03.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/2.4.3/pages/interleaved-focus-between-semantic-groups/case-03.html",
+        "caseDoc": "eval/act-augmented/2.4.3/pages/interleaved-focus-between-semantic-groups/case-03.md",
+        "sourceOfTruth": "eval/act-augmented/2.4.3/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "Focus order interleaves between two semantically distinct sections/groups (the canonical Understanding form failure)",
+        "scenario": "Round-trip flight search (SkyHop) with two vertically stacked, headed panels — Outbound flight (From, To, Depart date, Passengers) above Return flight (From, To, Return date, Cabin). The DOM emits the eight fields in alternating legs (outbound-From, return-From, outbound-To, return-To, ...) and CSS grid routes each field back into its panel, so with no tabindex keyboard focus bounces between the outbound and return legs on every Tab while a sighted user sees two clean stacked cards.",
+        "mechanism": "Two semantic groups (the outbound and return trip legs) are interleaved by raw source order, so focus alternates between the two stacked panels instead of completing one leg before the other. For a round trip the legs are conceptually sequential (go, then return); interleaving them mid-entry forces the user to specify the return origin before finishing the outbound leg and makes it easy to type a return city into an outbound field, corrupting the model of which leg is being edited.",
+        "whyAutomatedToolsMiss": "No tabindex; every input/select has a correct label-for and is operable; both panels have visible headings; contrast passes — so axe/WAVE/Lighthouse see a valid form. They have no model that 'Depart date and Passengers belong with the outbound From/To' and that the return fields are a separate leg, so they cannot detect that the return fields are woven into the outbound leg. Recognising the two trip legs as distinct groups requires understanding the travel content.",
+        "primarySelector": "#r-from"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": []
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "other",
+          "commentText": "False Positive. The system is applying the CSS Grid interleaving rationale to a standard vertically stacked form. The DOM source order naturally matches the visual top-to-bottom flow here. The return fields are not 'woven into' the outbound leg. This is a compliant WCAG 2.4.3 layout being flagged incorrectly."
+        }
+      ]
+    },
+    {
+      "key": "1.4.13::dismissible-position-obscures-meaningful-vs-decorative::case-03",
+      "sc": "1.4.13",
+      "aspect": "dismissible-position-obscures-meaningful-vs-decorative",
+      "caseId": "case-03",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.4.13/pages/dismissible-position-obscures-meaningful-vs-decorative/case-03.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.4.13/pages/dismissible-position-obscures-meaningful-vs-decorative/case-03.html",
+        "caseDoc": "eval/act-augmented/1.4.13/pages/dismissible-position-obscures-meaningful-vs-decorative/case-03.md",
+        "sourceOfTruth": "eval/act-augmented/1.4.13/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Dismissible Method 1 — pop-up obscures meaningful content (beyond the white-space / decorative exception)",
+        "scenario": "SaaS analytics dashboard: a KPI-card metric-definition popover opens downward into the large empty dashboard canvas below the cards, with no Esc dismiss. Overlap exists but covers only empty space — PASS by the white-space exception (inverse/false-positive anchor).",
+        "mechanism": "The popover (role=tooltip) lands in empty canvas below the cards — verified to overlap no text, control, or informational graphic. Because Method 1's non-obscuring condition is met (overlap is exempt white space), the absence of a dismiss mechanism is acceptable and the page passes.",
+        "whyAutomatedToolsMiss": "A naive 'any overlapping boxes fail' detector would wrongly flag this because the popover's rectangle intersects the page region; only a human can see the intersected area is empty canvas, invoke the white-space exception, and rule PASS. This is the precise false positive an automated overlap heuristic produces — the inverse error to the FAIL cases.",
+        "primarySelector": "#m1-pop"
+      },
+      "pipelineSelfReview": null,
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "no",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": "The content is displayed in a region with empty space, making it not a problem as it is not covering any of the meaningful content in the given page."
+        }
+      ]
+    },
+    {
+      "key": "1.4.1::ui-status-action-color-only-no-text-cue::case-06",
+      "sc": "1.4.1",
+      "aspect": "ui-status-action-color-only-no-text-cue",
+      "caseId": "case-06",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.4.1/pages/ui-status-action-color-only-no-text-cue/case-06.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.4.1/pages/ui-status-action-color-only-no-text-cue/case-06.html",
+        "caseDoc": "eval/act-augmented/1.4.1/pages/ui-status-action-color-only-no-text-cue/case-06.md",
+        "sourceOfTruth": "eval/act-augmented/1.4.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "UI buttons, controls, and color-coded categories signalling action/status by color with no text or character cue (G14)",
+        "scenario": "TRUE NEGATIVE: online-tuition 'Confirm enrolment' step with a green button labelled 'Go' (confirm/charge) and a red button labelled 'Cancel' (discard), with instructions naming the labelled buttons. The canonical G14 sufficient pattern; the passing boundary for case-01's failing 'Submit'/'Submit' pair.",
+        "mechanism": "G14 satisfied: the action conveyed by green/red is redundantly carried by each control's visible programmatic text ('Go' / 'Cancel') and by instructions referencing those labels. In grayscale the actions stay unambiguous from the labels; a screen reader hears 'Go button' / 'Cancel button'. Colour is decorative reinforcement, not the sole carrier.",
+        "whyAutomatedToolsMiss": "A naive tool cannot CERTIFY this pass either — it cannot reason that the colour convention is adequately backed by text. The case exists to verify the evaluator distinguishes a real G14-compliant pattern from the structurally near-identical failing case-01 (two coloured action buttons + prose convention, but both labelled 'Submit').",
+        "primarySelector": "button.btn--go, button.btn--cancel"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": false,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "Citation in case-06.md is a compressed paraphrase rather than a verbatim quote (it stitches the two G14 sentences and normalizes spelling); the underlying G14.html does contain the example verbatim and supports the claim, so this is minor.",
+          "This is an intentional TRUE NEGATIVE/passing boundary case: errorIsReal=false by design; the validated claim is the 'passed' outcome, which reasoning + AX tree confirm is correct."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "no-error",
+          "commentText": ""
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "no",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "3.3.1::error-message-mismatches-actual-error::case-07",
+      "sc": "3.3.1",
+      "aspect": "error-message-mismatches-actual-error",
+      "caseId": "case-07",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/3.3.1/pages/error-message-mismatches-actual-error/case-07.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/3.3.1/pages/error-message-mismatches-actual-error/case-07.html",
+        "caseDoc": "eval/act-augmented/3.3.1/pages/error-message-mismatches-actual-error/case-07.md",
+        "sourceOfTruth": "eval/act-augmented/3.3.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Error text is fluent and field-identifying but factually wrong for the value entered / constraint violated (boilerplate mismatch)",
+        "scenario": "CONTROL / discrimination foil (PASS). Event-ticketing phone field, post-submit error state — near-identical component to case-01. The retained value is '(202) 555-CALL', which genuinely contains parentheses, a space, a dash, and the letters C-A-L-L. The field is digits-only and the visible associated error reads 'Phone number must contain only digits. Remove the letters, spaces, and parentheses (for example, enter 2025550143).' — a cause that DID occur and correctly describes this value's actual defect.",
+        "mechanism": "No defect: the described cause matches the entered value's actual error (non-digit characters in a digits-only field) and gives a concrete corrected example, so the user can determine what is wrong and fix it. SC 3.3.1 satisfied. Included to force value-vs-message discrimination rather than a blanket 'phone-digit error = fail' heuristic.",
+        "whyAutomatedToolsMiss": "Automated tools cannot make the value-vs-message discrimination at all — they never read the value against the message — so they pass case-01 and case-07 identically. Here that absence happens to coincide with the correct human verdict (pass), which is exactly why a foil is needed: only a human reasoning about value-constraint-message agreement can tell that case-01's message is false for its value while case-07's is true for its value.",
+        "primarySelector": "#error-phone"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": false,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "None. This is a CONTROL/PASS discrimination foil, and it is correctly constructed and labeled. There is intentionally no accessibility defect: the entered value genuinely commits the described error and the message correctly identifies it. errorIsReal=false here means 'no error present' which is the INTENDED state for this pass case, not a defect in the page."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "no-error",
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "4.1.3::is-it-a-status-message-scope-boundary::case-01",
+      "sc": "4.1.3",
+      "aspect": "is-it-a-status-message-scope-boundary",
+      "caseId": "case-01",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/4.1.3/pages/is-it-a-status-message-scope-boundary/case-01.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/4.1.3/pages/is-it-a-status-message-scope-boundary/case-01.html",
+        "caseDoc": "eval/act-augmented/4.1.3/pages/is-it-a-status-message-scope-boundary/case-01.md",
+        "sourceOfTruth": "eval/act-augmented/4.1.3/result.json"
+      },
+      "corpusClaim": {
+        "expected": "inapplicable",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Mis-scoping the status-message boundary: change-of-context exceptions vs. genuine in-scope status",
+        "scenario": "Halcyon Credit Union wire-transfer form. On submit failure (routing number belongs to a closed institution) the page opens a real modal dialog (role=dialog, aria-modal=true) that moves focus into itself, traps Tab, and supports Esc. The error text lives entirely inside the dialog; there is deliberately no role=status/aria-live anywhere. Canonical excepted case: error delivered via a focus-taking dialog is a change of context, so it does not meet the status-message definition and 4.1.3 is N/A.",
+        "mechanism": "The submit handler calls focus() into the modal, so the change is announced as a dialog (change of context). Per the Understanding's 'Examples of changes that are not status messages', an error in a focus-taking dialog is excepted from 4.1.3; the absence of a live region is correct, not a defect. The only candidate message is delivered by change of context, so the SC does not apply.",
+        "whyAutomatedToolsMiss": "Markup is fully valid (valid form, valid role=dialog+aria-modal, correct names, fine contrast) so axe/WAVE/Lighthouse report nothing — but they also cannot make the positive N/A determination. A naive 4.1.3 heuristic ('message appeared after an action but no role=status/aria-live') would FALSELY flag the dialog. Distinguishing 'no status message present (N/A)' from 'status present but not programmatically determinable (fail)' requires recognizing that focus moved into a modal — a runtime + semantic judgment no DOM linter performs.",
+        "primarySelector": "#dlg[role=\"dialog\"][aria-modal=\"true\"]"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": false,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "Minor (not a defect): the primary .md citation stitches two adjacent <p> elements inside one <li> (status-messages.html lines 96 'An author displays an error message in a dialog.' + 97 'Since the dialog takes focus...') into a single quoted sentence. Both halves are verbatim and adjacent, forming one logical bullet, so the stitch is faithful — but it is a non-contiguous concatenation worth noting.",
+          "Terminology to keep straight for scorers: this page documents NO accessibility defect. It is a definitional-boundary case whose correct outcome is 'inapplicable'. Therefore errorIsReal=false reflects 'no defect exists', NOT that the case is wrong; the documented inapplicable outcome IS correct."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "no",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": "There is no issue, the pop-up message is focused on and is the only instance of the issue"
+        }
+      ]
+    },
+    {
+      "key": "4.1.3::removal-of-status-conveys-meaning-silently::case-05",
+      "sc": "4.1.3",
+      "aspect": "removal-of-status-conveys-meaning-silently",
+      "caseId": "case-05",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/4.1.3/pages/removal-of-status-conveys-meaning-silently/case-05.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/4.1.3/pages/removal-of-status-conveys-meaning-silently/case-05.html",
+        "caseDoc": "eval/act-augmented/4.1.3/pages/removal-of-status-conveys-meaning-silently/case-05.md",
+        "sourceOfTruth": "eval/act-augmented/4.1.3/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "Removal/absence of status text conveys meaning, but nothing is announced when it disappears",
+        "scenario": "Bilingual pharmacy refill: 'Checking insurance coverage…' plus a spinner is announced in a role=status polite region on entry, then on completion the busy region is emptied and a plain #priceOut block ('Your copay: $12.00 · Covered by BlueShield Select PPO · 88% paid') is revealed with no role=status/aria-live. The copay outcome is itself a status message yet is conveyed visually only, and the end of the wait is silent — a decision-blocking gap on a health-and-cost page.",
+        "mechanism": "cov.textContent='' empties the busy live region (no announcement on removal), and #priceOut is shown via display (role=null/aria-live=null — never announced). The coverage outcome reports the success/result of the check (analogous to '5 results returned' / 'form successfully submitted') so it qualifies as a status message, but it carries no status semantics; combined with the silent removal, an AT user learns neither that the check finished, whether the drug is covered, nor the cost.",
+        "whyAutomatedToolsMiss": "The page is valid at every snapshot: a real live region, a labeled button, correctly used lang=es spans, and a well-formed price block with good contrast. axe/WAVE/Lighthouse never click Check, never see the live region emptied, and read the copay figure as ordinary body copy — they cannot judge that a coverage outcome is a status message owed an announcement, nor that the vanished spinner was the only 'done' cue. Determining that the silent removal plus silent result blocks a coverage/cost decision is a contextual, temporal inference no static rule encodes.",
+        "primarySelector": "#cov"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": []
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": "When the coverage check is done, a message is displayed indicating what is covered after the checking coverage... message is completed"
+        }
+      ]
+    }
+  ]
+}

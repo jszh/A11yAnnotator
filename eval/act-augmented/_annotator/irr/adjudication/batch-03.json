@@ -1,0 +1,499 @@
+{
+  "batch": "03",
+  "n": 10,
+  "backupDir": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15",
+  "cases": [
+    {
+      "key": "1.3.1::form-label-and-group-relationships-by-context::case-05",
+      "sc": "1.3.1",
+      "aspect": "form-label-and-group-relationships-by-context",
+      "caseId": "case-05",
+      "severity": 5,
+      "signals": [
+        "CONTRADICTED",
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.3.1/pages/form-label-and-group-relationships-by-context/case-05.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.3.1/pages/form-label-and-group-relationships-by-context/case-05.html",
+        "caseDoc": "eval/act-augmented/1.3.1/pages/form-label-and-group-relationships-by-context/case-05.md",
+        "sourceOfTruth": "eval/act-augmented/1.3.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "Form field/label and field-group relationships conveyed only by visual layout (programmatic association, grouping, required-cues)",
+        "scenario": "Arabic (lang=ar, dir=rtl) Health-Ministry new-patient form: a split date-of-birth control with three inputs for اليوم/الشهر/السنة (Day/Month/Year) under a single styled <div> heading تاريخ الميلاد (Date of birth). Each input is named via title='يوم'/'شهر'/'سنة', so no input is unnamed, but there is no <fieldset>/<legend> or role=group+aria-labelledby tying the three inputs to the one question they jointly answer; RTL adds a visual-vs-source ordering wrinkle.",
+        "mechanism": "Each date input has a non-empty accessible name from title (e086e5 passes). AT encounters three independent fields ('Year, edit text', 'Month...', 'Day...') with no announcement that they compose a single Date of birth value; the unifying question is an unassociated <div> never spoken on entry. The sub-names are ambiguous out of context ('Year' of what?). TT 5.C requires the controls be programmatically associated with their shared question.",
+        "whyAutomatedToolsMiss": "axe e086e5 sees three named inputs and reports nothing. No static rule recognizes that three adjacent inputs jointly answer a single question shown above them, nor that the styled <div> should be the group's programmatic label via fieldset/legend or role=group+aria-labelledby. Deciding that Day/Month/Year compose the one Date-of-birth question — and that the group label never reaches the accessibility tree, across an RTL layout — requires reading the layout and reasoning about group membership.",
+        "primarySelector": ".dob input"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": []
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "no-error",
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "1.3.1::special-status-text-conveyed-only-by-styling::case-06",
+      "sc": "1.3.1",
+      "aspect": "special-status-text-conveyed-only-by-styling",
+      "caseId": "case-06",
+      "severity": 4,
+      "signals": [
+        "CONTRADICTED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.3.1/pages/special-status-text-conveyed-only-by-styling/case-06.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.3.1/pages/special-status-text-conveyed-only-by-styling/case-06.html",
+        "caseDoc": "eval/act-augmented/1.3.1/pages/special-status-text-conveyed-only-by-styling/case-06.md",
+        "sourceOfTruth": "eval/act-augmented/1.3.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Emphasis or special-status meaning conveyed only by visual text variation, with no markup or text equivalent (G117, H49)",
+        "scenario": "BOUNDARY/PASS variant: a product maintenance guide where the one safety-critical step (shut off water before opening housing) is visually emphasised bold+larger — the same risky pattern — BUT uses <strong> markup (H49) AND begins with the literal word 'Important:' in text (G117), so the special status is both programmatically determinable and available in text.",
+        "mechanism": "The status is conveyed by the word 'Important:' (text equivalent per G117) AND by the <strong> element (programmatically-determinable strong importance per H49), so a screen-reader/braille user gets the warning regardless of styling; the larger font-size is now redundant decoration. Presentation PLUS a text/markup equivalent — 1.3.1 met.",
+        "whyAutomatedToolsMiss": "A checker would treat this page and a failing bold-only page nearly identically: axe/WAVE/Lighthouse largely ignore presentation, do not score the presence of the word 'Important:', and never require <strong>, so its absence is never flagged. The pass/fail verdict turns on reading whether the emphasised meaning is ALSO carried by markup or text — exactly the human judgment this aspect isolates.",
+        "primarySelector": "strong.critical"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": false,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "No defects found. This is a correctly-constructed PASS/BOUNDARY variant. The documented outcome is 'passed' (no real 1.3.1 violation), so errorIsReal=false reflects the intentional absence of an accessibility error, not a labeling mistake; expectedOutcomeCorrect=true.",
+          "Minor note: the H49 quote is genuine but H49's reliability for status conveyance is configuration-dependent (most SR users do not have strong/bold announcement enabled by default). The page does NOT rely on this, though — the word 'Important:' in plain text (G117) carries the status unconditionally, so the PASS holds regardless of <strong> exposure. This strengthens rather than weakens the verdict."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "3.3.1::error-icon-text-alternative-misstates-error::case-07",
+      "sc": "3.3.1",
+      "aspect": "error-icon-text-alternative-misstates-error",
+      "caseId": "case-07",
+      "severity": 4,
+      "signals": [
+        "CONTRADICTED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/3.3.1/pages/error-icon-text-alternative-misstates-error/case-07.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/3.3.1/pages/error-icon-text-alternative-misstates-error/case-07.html",
+        "caseDoc": "eval/act-augmented/3.3.1/pages/error-icon-text-alternative-misstates-error/case-07.md",
+        "sourceOfTruth": "eval/act-augmented/3.3.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Error is conveyed via an icon/image that HAS a text alternative, but the alt/name misstates, genericises, or mislocates the error",
+        "scenario": "CONTROL (passes): government heating-assistance application; the email carla.mendes#state.gov uses # instead of @ and the <img> error icon carries a correct, specific alt=\"Email address must contain an @ symbol — for example, name@example.com\", echoed by a linked error summary.",
+        "mechanism": "The icon exposes role=img with the full descriptive accessible name (CDP-confirmed) via aria-describedby. A screen-reader user hears the field identified and the actual error (missing @) described in a text alternative, with a matching summary — satisfying the SC's \"in text or a text alternative\" limb.",
+        "whyAutomatedToolsMiss": "Automated tools would pass this page — but they would equally have passed the failing siblings, since they only check that the alt is PRESENT, never that it correctly describes the error. This control is statically near-identical to the failures (img + non-empty alt + aria wiring) yet is the only one a human marks conforming, proving the aspect is decided by the alternative's meaning, which checkers do not evaluate.",
+        "primarySelector": "img#email-ico"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": false,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "Minor doc imprecision (not a defect): the .md/scenario says the icon exposes its full name 'via aria-describedby'. Actually the icon's accessible name comes from its own alt (line 72); aria-describedby on input#email (line 69) separately pipes that same text into the input's AX 'description'. Net AT experience the doc describes is correct, but the attribution is slightly loose.",
+          "Cosmetic: doc says role=img; Chromium AX reports role 'image' (semantically equivalent internal naming), not a real discrepancy."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "1.4.1::image-chart-alt-omits-color-encoded-fact::case-01",
+      "sc": "1.4.1",
+      "aspect": "image-chart-alt-omits-color-encoded-fact",
+      "caseId": "case-01",
+      "severity": 3,
+      "signals": [
+        "SPLIT",
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.4.1/pages/image-chart-alt-omits-color-encoded-fact/case-01.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.4.1/pages/image-chart-alt-omits-color-encoded-fact/case-01.html",
+        "caseDoc": "eval/act-augmented/1.4.1/pages/image-chart-alt-omits-color-encoded-fact/case-01.md",
+        "sourceOfTruth": "eval/act-augmented/1.4.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "Informational image/chart HAS a text alternative, but the alt restates the color RULE instead of resolving the color-encoded fact",
+        "scenario": "SaaS sales-analytics board-pack panel: a bar-chart <img> (inline-SVG data: URI) of four reps' annual sales vs a $3.0M quota. Fred ($2.6M) and Bob ($2.2M) are drawn red (below quota), Mary/Andrew green. The alt lists all four figures and states 'the bars shown in red indicate sales below the yearly quota' but never names Fred and Bob. Canonical F13 case.",
+        "mechanism": "F13 — alt restates the colour rule ('red = below quota') and all data values but omits the resolved fact (which reps are below quota); below-quota membership exists only as the red fill of the 2nd and 3rd bars in a raster image, reaching neither AT nor colour-blind sighted users.",
+        "whyAutomatedToolsMiss": "axe/WAVE/Lighthouse only verify alt is present and non-empty (it is, and it reads as a long accurate description). No checker OCRs the chart to find which bars are red, parses the alt to confirm Fred/Bob are never named as below quota, and compares the two meanings — the manual F13 read-pixels/read-prose/compare judgment.",
+        "primarySelector": "figure img[alt^=\"Bar chart of FY24 annual sales\"]"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": [
+          "Minor scope note (not a defect): F13 is officially a failure of BOTH SC 1.1.1 and 1.4.1 (per F13.html title line 4/8), and the omitted resolved fact is arguably read even more directly as a 1.1.1 text-alternative failure. Filing it under 1.4.1 is still correct because the membership distinction is encoded purely as a color difference (red vs green bars) with no non-color visible alternative; the .md itself acknowledges the dual mapping, so this is a legitimately dual-mapped technique, not a misclassification."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "other",
+          "commentText": "This is a false positive because the $3.0M quota line and textual data labels provide sufficient non-color visual cues, rendering the F13 rationale invalid."
+        }
+      ]
+    },
+    {
+      "key": "2.4.3::f85-focus-return-after-dismissal::case-04",
+      "sc": "2.4.3",
+      "aspect": "f85-focus-return-after-dismissal",
+      "caseId": "case-04",
+      "severity": 3,
+      "signals": [
+        "SPLIT",
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/2.4.3/pages/f85-focus-return-after-dismissal/case-04.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/2.4.3/pages/f85-focus-return-after-dismissal/case-04.html",
+        "caseDoc": "eval/act-augmented/2.4.3/pages/f85-focus-return-after-dismissal/case-04.md",
+        "sourceOfTruth": "eval/act-augmented/2.4.3/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "Focus not returned (or returned illogically) after a dialog/menu is dismissed (F85, close branch + modal return)",
+        "scenario": "News/editorial site (The Meridian) full-screen search overlay opened from the masthead. On open it sets aria-hidden=false and moves focus into the search input; on Escape/Close it re-applies aria-hidden=true and hides the overlay but never restores focus to the Search trigger, leaving focus stranded on the now-hidden input so the next Tab restarts from the top of the page.",
+        "mechanism": "closeSearch() toggles aria-hidden=true + the open class (display:none) without openBtn.focus(); focus lingers on #q inside a hidden subtree. Verified by Puppeteer: after Escape, activeElement is #q with a 0x0 box inside a display:none container, and the next Tab moves to #open-search (the first focusable control at the page top), confirming the restart-from-top failure.",
+        "whyAutomatedToolsMiss": "In the overlay's resting (closed) state — the only state a page-load scan sees — aria-hidden=true sits on a display:none container, which is valid, so the axe 'aria-hidden must not contain focusable elements' rule does not fire (display:none removes descendants from the focus order). The defect is purely temporal: focus is only stranded AFTER a keyboard open-then-Escape, a transition static snapshots never exercise.",
+        "primarySelector": "#open-search (trigger that should regain focus); defect in #search-overlay closeSearch() handler"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": [
+          "Mechanism narration is imprecise (not verdict-breaking): the prompt's 'Claimed mechanism' asserts that after Escape 'activeElement is #q with a 0x0 box inside a display:none container.' My Puppeteer probe contradicts this — applying display:none (closeSearch removes the .open class) causes Chromium to auto-blur the hidden #q input and revert activeElement to document.body (afterEsc.activeId = 'BODY', activeIsBody = true, activeInsideHiddenOverlay = false). Focus is NOT stranded on #q; it falls back to the document. The .md doc itself is more accurate on this point (line 36: 'falls back toward the document/body') though it also carries a loose clause ('focus is left on a hidden node'). Recommend tightening the wording so it does not claim focus remains on #q.",
+          "No defect in the verdict: F85 Tests step 2 ('Check whether keyboard focus is put back on the trigger control') is FALSE for both the Escape and Close-button paths (focus = body, not #open-search), and the trigger was not removed, so the second sub-check is inapplicable/false — by F85 Expected Results 'both points under step 2 false' the page fails SC 2.4.3. The body/document fallback exactly matches the cited F85 example ('focus is set to the document. The user must tab from the beginning of the navigation sequence...')."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "other",
+          "commentText": "The engine's temporal analysis is accurate, but it hallucinates the spatial DOM order to force a failure. The Puppeteer trace confirms focus logically returns to #open-search. The engine falsely claims this is 'the first focusable control at the page top' (ignoring the logo and nav links) to inappropriately apply the F85 failure template."
+        }
+      ]
+    },
+    {
+      "key": "1.4.13::applicability-author-vs-ua-title-tooltip::case-04",
+      "sc": "1.4.13",
+      "aspect": "applicability-author-vs-ua-title-tooltip",
+      "caseId": "case-04",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.4.13/pages/applicability-author-vs-ua-title-tooltip/case-04.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.4.13/pages/applicability-author-vs-ua-title-tooltip/case-04.html",
+        "caseDoc": "eval/act-augmented/1.4.13/pages/applicability-author-vs-ua-title-tooltip/case-04.md",
+        "sourceOfTruth": "eval/act-augmented/1.4.13/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "Applicability gate — author-controlled tooltip vs. user-agent title= tooltip (and modal-dialog carve-out)",
+        "scenario": "The Tidewater Review economics article: FOMC and bps are plain abbr title= (native, UA-controlled, out of scope / PASS), while GDP looks identical (same dotted underline) but is an abbr.gloss wrapping a span.bub author tooltip that JS reveals on hover/focus. The author bubble is pointer-events:none with no Escape handler. Two visually identical abbreviations, different owners — only the GDP one is governed by 1.4.13, and it fails; the reviewer must attribute each bubble element-by-element.",
+        "mechanism": "FOMC/bps hover bubbles are the browser's title rendering (UA-controlled -> 1.4.13 does not apply -> PASS by exclusion). GDP's .gloss reveals an author span via JS on mouseenter/focus; it is pointer-events:none and toggles only on the trigger with no Escape, so it is not hoverable (F95) and not dismissible. Author-controlled -> in scope -> FAILS. Verified with Puppeteer: FOMC abbr has title='Federal Open Market Committee'; .gloss has NO title and contains an author .bub that becomes visibility:visible on hover (screenshot showed the author footnote bubble).",
+        "whyAutomatedToolsMiss": "A scanner sees two abbr elements that look the same and no rule fires for either. It cannot reason that FOMC's bubble is the browser's title rendering (out of scope, PASS) while GDP's is an author span driven by JS (in scope, failing hoverable/dismissible). The per-element attribution of who renders each bubble, plus the interaction-time hoverable/dismissible test on the author one, are human judgments static tools cannot make.",
+        "primarySelector": "abbr.gloss"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": [
+          "Minor citation hygiene: the doc's quote 'A prominent example is the common behavior of browsers to display the title attribute in HTML as a small tooltip' is verbatim only modulo the <code>title</code> markup tag that interrupts it in the source (so it is not one contiguous text run). The other two quotes (Intent 'Examples of such interactions...' and F95 #2 'The appearance of the additional content is controlled by the user agent, not the author.') match the reference files character-for-character. Not a defect, just noted.",
+          "The inspect.js tool reported the GDP bubble innerHTML with style 'visibility: visible' — this is an artifact of the tool focusing/hovering during inspection, NOT the default state. An independent puppeteer probe confirmed the bubble is visibility:hidden/opacity:0/pointer-events:none by default."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "yes",
+          "disposition": "comment",
+          "commentReason": "other",
+          "commentText": "It is hoverable, but not escapable. Not both."
+        }
+      ]
+    },
+    {
+      "key": "1.4.1::scoping-non-failures-and-escape-hatches::case-01",
+      "sc": "1.4.1",
+      "aspect": "scoping-non-failures-and-escape-hatches",
+      "caseId": "case-01",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.4.1/pages/scoping-non-failures-and-escape-hatches/case-01.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.4.1/pages/scoping-non-failures-and-escape-hatches/case-01.html",
+        "caseDoc": "eval/act-augmented/1.4.1/pages/scoping-non-failures-and-escape-hatches/case-01.md",
+        "sourceOfTruth": "eval/act-augmented/1.4.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Scoping boundary cases: 3:1-lightness pass, pure-color reliance fails regardless of contrast, non-applicability, and visited-link exemption",
+        "scenario": "Retail-banking transaction list where credits are light-green and debits are dark-red text (large-bold). The two foreground colours differ in hue AND by ~3.15:1 in lightness between each other, so the lightness difference is an additional visual distinction and the page PASSES via the escape hatch (a naive 'colour cue = fail' would wrongly flag it).",
+        "mechanism": "Credit/debit direction is signalled by colour, but the two foregrounds (light green #3a9d4e vs dark red #7a1414) have ~3.15:1 contrast WITH EACH OTHER, at/above the 3:1 threshold, so the lightness difference survives greyscale/colour-blindness and counts as an additional visual distinction. Each colour also meets SC 1.4.3 against white (green 3.44:1 as large-bold text, red 10.84:1), so contrast minimums are not the issue.",
+        "whyAutomatedToolsMiss": "axe/WAVE/Lighthouse compute each foreground's contrast against its BACKGROUND (1.4.3) but never the INTER-element lightness ratio between two foregrounds carrying meaning, so they cannot recognise that the >=3:1 green-vs-red lightness difference discharges 1.4.1. A naive 'colour-coded column = use-of-colour failure' heuristic false-positives; the correct PASS requires computing that ratio and applying the specific escape-hatch rule.",
+        "primarySelector": "td.amount.credit, td.amount.debit"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "Minor (non-blocking): the page satisfies 1.4.1 via TWO independent non-color cues — the lightness escape hatch AND the leading +/- signs (present in DOM and AX tree as '+$2,410.00' / '-$6.75'). The doc states the escape hatch alone governs the verdict, which is correct, but the +/- signs mean the PASS is over-determined rather than a pure isolated escape-hatch test. Verdict is unaffected.",
+          "Borderline-by-design (intentional, not a defect): inter-element contrast is 3.155:1, only 0.155 above the 3:1 floor; this is what makes it a meaningful test, but any rounding or color drift would flip the verdict."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "no-error",
+          "commentText": ""
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "other",
+          "commentText": "Rationale misses the primary non-color cue: the structural + and - typography explicitly indicates credit/debit status. The lightness contrast argument is unnecessary here"
+        }
+      ]
+    },
+    {
+      "key": "2.4.3::nested-and-static-focusable-illogical-stops::case-04",
+      "sc": "2.4.3",
+      "aspect": "nested-and-static-focusable-illogical-stops",
+      "caseId": "case-04",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/2.4.3/pages/nested-and-static-focusable-illogical-stops/case-04.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/2.4.3/pages/nested-and-static-focusable-illogical-stops/case-04.html",
+        "caseDoc": "eval/act-augmented/2.4.3/pages/nested-and-static-focusable-illogical-stops/case-04.md",
+        "sourceOfTruth": "eval/act-augmented/2.4.3/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "Confusing/illogical focus stops from nested focusable wrappers or focusable static content",
+        "scenario": "Municipal news page using the 'whole card is clickable' pattern: each <article> is focusable (tabindex=0 role=link + onclick navigation) AND contains a real 'Read more' <a> to the same story, so every card produces a confusing double focus stop, repeated across a 4-card grid.",
+        "mechanism": "A focusable card wrapping a focusable descendant link to the same destination creates a per-item duplicate stop: AT announces the headline as a link (card aria-label + role=link), then 'Read more, link' to the SAME story, then the next card, then its 'Read more', etc. The grid reads as twice as many links as there are stories, doubling keystrokes and making stops indistinguishable — the note's named 'control appearing to receive focus multiple times due to nested focusable elements.'",
+        "whyAutomatedToolsMiss": "Each card is a valid linkified element (legal tabindex=0, real role=link, aria-label) wrapping a real <a> with href and visible text; nothing is empty, hidden, or mis-roled. No rule exists for 'a focusable wrapper and a focusable descendant resolving to the same destination.' Detecting the doubled stop requires tabbing the grid, noticing each story is reached twice, and judging the nested-focusable duplication confusing. Verified live: tab order alternates card -> 'Read more' -> card -> 'Read more' (8 stops for 4 destinations).",
+        "primarySelector": "article.card[tabindex=\"0\"][role=\"link\"]"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": false,
+        "expectedOutcomeCorrect": false,
+        "requiresHumanJudgment": false,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "drop",
+        "problems": [
+          "MECHANISM ABSENT: The cited 2.4.3 failure is 'a control appearing to receive focus multiple times due to NESTED focusable elements' — the note illustrates this with <div tabindex=0><button>. The actual page has NO nesting: the two links per card (a.cover and a.listen) are SIBLINGS, both direct children of li.episode (AX tree: parent_role=listitem for all 8 links). The page has zero tabindex and zero role attributes (doc admits 'No role attribute is present anywhere'). The nested-focusable structure the citation requires does not exist.",
+          "STOPS ARE DISTINGUISHABLE (doc claim is false): The doc says the two stops are 'indistinguishable', but the AX tree gives them clearly different accessible names: cover link = 'Episode 142: The night the harbor lights went out', second = 'Listen now ▸'. An AT user does NOT perceive 'the same control twice.'",
+          "NOT A 2.4.3 FAILURE: Focus order follows DOM/visual reading order exactly (title-link → its Listen-link → next card). 2.4.3 governs the ORDER of focus, not the COUNT of stops. Nothing impedes meaning or operation; the order is logical. The real (minor) pattern is redundant/duplicate links to one destination, which is a 2.4.4/redundancy concern at most and is generally considered conforming.",
+          "CITATION MISAPPLIED: Both quoted sentences appear VERBATIM in wcag-understanding/focus-order.html (lines 79-80 nested-focusable note; lines 100-101 static/non-interactive list item), but they are misapplied. The note's own canonical example (<div tabindex=0><button>) describes nesting the page lacks. Quote is real but does not support the claimed mechanism.",
+          "SELECTOR NOT FOUND: task element-under-test article.card[tabindex=\"0\"][role=\"link\"] does not exist on the page (inspect.js: 'selector not found'). The prompt's 'Claimed scenario' (article + tabindex=0 + role=link + onclick) describes a different page than the actual stretched-link <li>+<a> HTML.",
+          "AUTO-DETECTABLE SIGNATURE: two <a href=\"#ep-142\"> point to the identical fragment per card; axe-core identical-links-same-purpose and WAVE redundant/adjacent-link alerts partially flag this, undercutting the 'requires human judgment' framing.",
+          "MISCATEGORIZED: case-04 is the ONLY case in the 'nested-and-static-focusable' folder with zero tabindex=0 (cases 01/02/03/05/06 all use focusable wrappers); it is the odd one out and does not belong in this nested-focusable bucket."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "yes",
+          "disposition": "comment",
+          "commentReason": "other",
+          "commentText": "The rationale accurately describes the failure, but the \"Verified live\" string incorrectly references \"'Read more'\" instead of the actual on-screen text, \"'Listen now'\"."
+        }
+      ]
+    },
+    {
+      "key": "4.1.3::after-the-fact-live-region-timing::case-06",
+      "sc": "4.1.3",
+      "aspect": "after-the-fact-live-region-timing",
+      "caseId": "case-06",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/4.1.3/pages/after-the-fact-live-region-timing/case-06.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/4.1.3/pages/after-the-fact-live-region-timing/case-06.html",
+        "caseDoc": "eval/act-augmented/4.1.3/pages/after-the-fact-live-region-timing/case-06.md",
+        "sourceOfTruth": "eval/act-augmented/4.1.3/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Role/aria-live added together with (or after) the content, instead of pre-existing empty",
+        "scenario": "Boundary PASS control: a single-origin coffee storefront ships a persistent empty <div id=\"snackbar\" role=\"status\" aria-live=\"polite\"> in the markup AT PAGE LOAD; add-to-cart writes only textContent into that pre-existing, already-registered region ('Yirgacheffe added to your cart. 1 item.'). Same final markup as the failing cases, but the region pre-existed empty.",
+        "mechanism": "Because the role=status (implicit aria-live=polite) region is in the DOM and empty at load, the browser/AT registers and monitors it up front; a later textContent mutation is observed and announced. Satisfies ARIA19 (empty container at load → content injected) and ARIA22 (role present before the status message occurs) — the exact inverse of the born-with-content failures.",
+        "whyAutomatedToolsMiss": "Automated tools also pass this page, but for the wrong reason: they pass because the end-state markup is a valid live region — the very same end state they pass in the failing cases. They cannot tell genuinely-correct (region pre-existed empty) from genuinely-broken (region born with content) because the distinguishing fact is temporal and absent from any single snapshot. This control shows the PASS/FAIL boundary lives entirely in the ORDER of DOM operations. Verified via puppeteer: liveRegionsAtLoad=1 (empty), then text-only mutation with preexisting-empty marker.",
+        "primarySelector": "#snackbar[role=\"status\"][aria-live=\"polite\"][data-region-preexisting-empty=\"true\"]"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": false,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "No defect — this is intentionally a PASS boundary control, not a failing case. errorIsReal=false reflects that there is genuinely no accessibility issue (which is the documented, correct intent), NOT a refutation of the page. The documented expected outcome 'passed' is accurate.",
+          "Minor note: the page relies on role=status's implicit aria-atomic=true (confirmed atomic:true in the AX tree) rather than an explicit aria-atomic, which ARIA22 note flags as advisable for cross-environment reliability; not a failure, just a robustness caveat."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "no",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": "this is an instance where the div where the message gets place has a aria-live field present, meaning that the screen reader would catch the pop up message when clicking the add to cart buttons"
+        }
+      ]
+    },
+    {
+      "key": "4.1.3::removal-of-status-conveys-meaning-silently::case-03",
+      "sc": "4.1.3",
+      "aspect": "removal-of-status-conveys-meaning-silently",
+      "caseId": "case-03",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/4.1.3/pages/removal-of-status-conveys-meaning-silently/case-03.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/4.1.3/pages/removal-of-status-conveys-meaning-silently/case-03.html",
+        "caseDoc": "eval/act-augmented/4.1.3/pages/removal-of-status-conveys-meaning-silently/case-03.md",
+        "sourceOfTruth": "eval/act-augmented/4.1.3/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Removal/absence of status text conveys meaning, but nothing is announced when it disappears",
+        "scenario": "PASS boundary control. Government 2FA identity step: 'Sending verification code…' is announced in a role=status polite region on entry, then the SAME region is overwritten in-place with '✓ Code sent to the mobile number ending 47. Enter it below.' (announced), and the OTP input is revealed. The end of the wait is announced by REPLACING the busy text, not by silently removing it — the correct 'Removal of status text' remediation.",
+        "mechanism": "The polite region is updated in place (innerHTML set to a fresh completion message), never emptied. A new text mutation inside a polite region is announced, so AT hears both the start AND the explicit end ('Code sent…') of the waiting state. The busy text's disappearance is no longer the only 'done' signal — the replacement string is the 'system available'-equivalent the SC calls for. Same component family as case-01/02 but the opposite outcome (replace vs. empty).",
+        "whyAutomatedToolsMiss": "Tools cannot confirm this PASSES any more than they can confirm the failures: at a static snapshot they see only a valid live region and a labeled input. They never trigger the action, never observe that the busy message is REPLACED rather than CLEARED, and cannot judge that the replacement string conveys the equivalent 'done' status. The pass/fail distinction turns entirely on a runtime, semantic comparison (was the end-of-wait announced?) that no scanner performs — which is why a correct page is indistinguishable from the failing ones to a tool.",
+        "primarySelector": "#status"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "No defect found — this is a correctly-constructed PASS boundary control, exactly as documented.",
+          "Minor (non-affecting): inspect.js tab-order output repeats the #send button and reports several 'body/none' stops; this is a tool tab-walk artifact (at static load the OTP codebox is display:none, so #send is the only focusable control). It does not change the verdict."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "no",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": "Message pops up afterwards indicating the following: \n\n✓\nCode sent to the mobile number ending..."
+        }
+      ]
+    }
+  ]
+}

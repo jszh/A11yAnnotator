@@ -1,0 +1,144 @@
+{
+  "batch": "09",
+  "cases": [
+    {
+      "key": "2.4.4::descriptive-name-contradicts-on-page-destination::case-04",
+      "verdict": "NO-DEFECT",
+      "annotationClarity": "vague",
+      "complaintCorrect": "refuted",
+      "defectType": "none",
+      "groundTruthDisputed": false,
+      "internallyContradictory": false,
+      "confidence": 0.88,
+      "evidence": "case-04.html L56: '<a class=\"cta free\" href=\"#enterprise-checkout\">Basic plan — $0/mo: Get started free</a>'. The honest target exists (L83 '<div id=\"basic-signup\">' / 'Start your free Basic plan'), and the actual destination L99-103 is 'Enterprise checkout — $1,200/mo, billed annually ... An annual contract ($14,400/yr) and a signed order form are required.' The pre-strip original carries the author comment at L71: 'DEFECT: name promises the FREE Basic plan, href jumps to #enterprise-checkout'. Mengqi's comment body is empty (commentReason 'no-error').",
+      "reasoning": "The shipped page matches the corpus claim line for line: a specific, well-formed link name promising a free Basic signup whose in-page href resolves to the paid Enterprise checkout. Under 2.4.4 the purpose a user derives from the name is not the link's real purpose, which is the documented mechanism. The annotator supplied no text at all, so there is nothing beyond a bare label disagreement, and the corpus rationale already covers the judgment.",
+      "proposedFix": null
+    },
+    {
+      "key": "2.4.4::generic-link-text-no-rescuing-context::case-02",
+      "verdict": "NO-DEFECT",
+      "annotationClarity": "vague",
+      "complaintCorrect": "refuted",
+      "defectType": "none",
+      "groundTruthDisputed": false,
+      "internallyContradictory": false,
+      "confidence": 0.8,
+      "evidence": "case-02.html L59-63: 'For a complete breakdown of overage rates, per-seat add-ons, and annual discounts — that is, for full pricing details, <a href=\"/pricing/details\">click here</a>.' The purpose words precede the link inside the SAME sentence, which is exactly G53 ('A web page contains the sentence \"To advertise on this page, click here.\" ... the information needed precedes the link in the same sentence'). Pre-strip comment L59: 'THE RESCUE: the generic phrase \"click here\" is generic, BUT the purpose ...'. Mengqi's comment body is empty.",
+      "reasoning": "The page implements the G53 sufficient technique faithfully, so expected='passed' is defensible and is precisely the boundary the aspect is built to test; a bare issueExists=yes with no text is not evidence against it. Worth noting for the corpus owners, not as a page defect: the aspect title shown alongside the page asserts 'no context that rescues it (G91/H30 substantive failure)', which literally contradicts this deliberate PASS control and is a plausible cause of the flip. Fixing that is a presentation/labelling decision, not a page or ground-truth repair.",
+      "proposedFix": null
+    },
+    {
+      "key": "1.1.1::informative-css-background-image::case-07",
+      "verdict": "NO-DEFECT",
+      "annotationClarity": "clear",
+      "complaintCorrect": "refuted",
+      "defectType": "none",
+      "groundTruthDisputed": false,
+      "internallyContradictory": false,
+      "confidence": 0.85,
+      "evidence": "Every glyph is a CSS background-image on an aria-hidden span (L40, L47, L54, L61: '<span class=\"badge done\" aria-hidden=\"true\"></span>') and each meaning is a real sibling text node in '.step .status' ('Order confirmed', 'Dispatched from warehouse', 'Out for delivery', 'Delivered'). Both result.json and the served _annotator/manifest.json record expected='passed' for this page. Pre-strip comment L7: 'SC 1.1.1 PASS control (boundary variant)'.",
+      "reasoning": "Ajit's substantive judgment (component is compliant) is right and identical to the corpus label, so the 'false positive / failure classification invalid' framing is refuted — nothing classifies this page as a failure. He appears to have read the aspect's failure title ('Information conveyed exclusively by a CSS background-image') as the claim about this page; the same misreading shows up in his comment on 2.4.3 case-04. One cosmetic content oddity remains (the last step pairs the 'wait' clock glyph and the word 'Delivered' with the timestamp 'Awaiting — expected by 6 PM'), but it does not touch the 1.1.1 verdict.",
+      "proposedFix": null
+    },
+    {
+      "key": "2.1.2::documented-exit-reachability-and-accuracy-beyond-ctrlm::case-05",
+      "verdict": "NEEDS-VALIDATION",
+      "annotationClarity": "clear",
+      "complaintCorrect": "confirmed",
+      "defectType": "metadata-wrong",
+      "groundTruthDisputed": true,
+      "internallyContradictory": true,
+      "confidence": 0.95,
+      "evidence": "The shipped page is 'Live Translation Booth — InterpretHub'. L57-61: 'To move focus back out to the rest of the page, press <kbd>Ctrl</kbd>+<kbd>W</kbd>.'; L84-90 the keydown handler branches on \"e.ctrlKey && (e.key === 'w' || e.key === 'W')\". grep for helpToggle / aria-expanded / Ctrl+Q returns nothing. Puppeteer drive: focus #src then 8x Tab keeps focus on select#src every time (real trap); page-level Ctrl+W moves focus to button#leave (in a real tab the UA eats Ctrl+W first). eval/act-augmented/2.1.2/result.json L1485-1488 and _annotator/manifest.json instead carry an 'LMS submission grader' scenario, primarySelector '#helpToggle', a Ctrl+Q exit and expected='passed', while case-05.md is titled '... the combo is a browser-reserved shortcut (Ctrl+W) the page never receives (FAIL)' and states 'Expected ACT-style outcome: failed'; the pre-strip HTML comment L37 likewise opens 'FAIL (accuracy in the real environment ...)'.",
+      "reasoning": "Davin's complaint is exactly right and is the least of the problem: the whole result.json/manifest record for this case describes a different page, and the ground-truth label it serves ('passed') is the opposite of what the page, its .md and its author comment say. Because the repair flips expected, this cannot be FIX-OBVIOUS. Recommended repair for a human validator: in eval/act-augmented/2.1.2/result.json replace the case-05 scenario/mechanism/primarySelector/whyAutomatedToolsMiss/citation (L1485-1494) with the case-05.md text (booth focus loop, in-subset reachable note, undeliverable browser-reserved Ctrl+W; primarySelector '#exitNote' or 'section#booth'), set expected='failed', then regenerate manifest.json — or, if the metadata is the intended artefact, ship the missing LMS/Ctrl+Q page instead.",
+      "proposedFix": null
+    },
+    {
+      "key": "1.1.1::meaningful-image-suppressed-as-decorative::case-07",
+      "verdict": "NO-DEFECT",
+      "annotationClarity": "vague",
+      "complaintCorrect": "confirmed",
+      "defectType": "none",
+      "groundTruthDisputed": false,
+      "internallyContradictory": false,
+      "confidence": 0.9,
+      "evidence": "case-07.html L34-39: the corner flourish is '<svg class=\"flourish\" ... role=\"presentation\" aria-hidden=\"true\" focusable=\"false\">' and carries no information; the informative diagram L59-70 is '<svg ... role=\"img\" aria-label=\"Brew ratio: 22 grams of coffee to 350 grams of water, a 1 to 16 ratio.\">' with the same numbers repeated in the prose (L51-52 '22 grams of coffee to 350 grams of water') and in the figcaption. expected='passed'.",
+      "reasoning": "This is a correct PASS control: no image is both informative and hidden. Mengqi's issueExists='no' agrees with the corpus label, so her 'no-error' comment reports no contradiction at all — it was surfaced only by the comment-reason code, and she left the body empty. Nothing to repair.",
+      "proposedFix": null
+    },
+    {
+      "key": "1.4.1::error-validation-color-only::case-06",
+      "verdict": "NO-DEFECT",
+      "annotationClarity": "vague",
+      "complaintCorrect": "confirmed",
+      "defectType": "none",
+      "groundTruthDisputed": false,
+      "internallyContradictory": false,
+      "confidence": 0.9,
+      "evidence": "Screenshot of the shipped page: each invalid field carries a red border AND a warning-triangle glyph AND the literal text 'Error: enter the name as printed on the card.' / 'Error: this card has expired. Use a valid expiry date.', plus a role=alert summary '2 fields need your attention.' (L40). Valid fields (#num, #cvc) have plain borders and no message. Source L52-59 / L67-74 confirm the triangle SVGs are aria-hidden decoration next to real text.",
+      "reasoning": "Colour is not the only visual means: the word 'Error', the triangle shape and the message position all survive greyscale, so expected='passed' is correct. Mengqi's issueExists='no' agrees with the label and her comment body is empty, so there is no complaint to sustain. (Noted, not outcome-affecting: the .md leans on G205, whose text is about the control's programmatic NAME, while here the message is only in aria-describedby — the pass really rests on G14.)",
+      "proposedFix": null
+    },
+    {
+      "key": "2.4.3::interleaved-focus-between-semantic-groups::case-04",
+      "verdict": "NO-DEFECT",
+      "annotationClarity": "clear",
+      "complaintCorrect": "refuted",
+      "defectType": "none",
+      "groundTruthDisputed": false,
+      "internallyContradictory": false,
+      "confidence": 0.9,
+      "evidence": "probe-case.js tab walk: stops 1-8 = a-name, a-dob, a-income, a-employer, c-name, c-dob, c-income, c-employer, then the submit button — the Applicant fieldset is completed before any Co-applicant field, with no tabindex anywhere in the source. result.json and the served manifest both record expected='passed'.",
+      "reasoning": "The page is the G59 passing counter-example it claims to be, verified by driving Tab. Ajit's substantive reading ('a true negative') is correct, but his premise that 'the system still flagged this as a violation case' is refuted: the corpus label is 'passed'. As with 1.1.1 informative-css case-07, he seems to be reacting to the failure-worded aspect title displayed above a deliberate PASS control.",
+      "proposedFix": null
+    },
+    {
+      "key": "3.3.1::inline-error-adjacent-to-wrong-field::case-03",
+      "verdict": "NEEDS-VALIDATION",
+      "annotationClarity": "vague",
+      "complaintCorrect": "indeterminate",
+      "defectType": "page-implementation",
+      "groundTruthDisputed": false,
+      "internallyContradictory": false,
+      "confidence": 0.7,
+      "evidence": "Screenshot + source: fieldset 'Outbound flight' has input#leg-out value='2026-07-14' with class 'flagged' (red border) and the message '<div class=\"msg\">Travel date is invalid.</div>'; fieldset 'Return flight' has input#leg-ret value='2025-03-02' and an EMPTY .msg slot; no aria-describedby. case-03.md L4-7 states the premise: 'The outbound date 2026-07-14 (next month) is valid; the return date 2025-03-02 (last year) is in the past and is the real error.' Today is 2026-08-14, so the outbound date is now itself a past date. Separately, eval/act-augmented/3.3.1/result.json L725-730 still holds a stale record from a different page (Account 'Contact preferences', CSS grid-template-areas, primarySelector '.a-email-msg' — 0 hits in the HTML); the served manifest.json has already been corrected (descCorrected=true, highlightSelector '#leg-ret').",
+      "reasoning": "The case's authored premise has decayed with the calendar: as of today the flagged Outbound date is also in the past, so an annotator can reasonably read the visible error as sitting on a genuinely-invalid field, which is close to what Davin wrote — though his comment text ('There is no error') contradicts his own 'approve' disposition and issueExists='yes', so it is weak on its own. The failure is still defensible on the date-independent grounds the .md gives (a round trip whose return precedes departure, two legs with the identical visible label 'Travel date', one generic message, no programmatic association), so I am not calling the label wrong — but a human should decide the repair. Cheapest label-preserving repair: bump input#leg-out value from '2026-07-14' to a clearly future date (and refresh the .md's 'next month' wording); independently, result.json L725-730 should be re-synced to the shipped Aerolinks page with primarySelector 'fieldset:first-of-type .msg'.",
+      "proposedFix": null
+    },
+    {
+      "key": "4.1.3::non-textual-status-icon-sound-without-text-alt::case-04",
+      "verdict": "NO-DEFECT",
+      "annotationClarity": "clear",
+      "complaintCorrect": "confirmed",
+      "defectType": "none",
+      "groundTruthDisputed": false,
+      "internallyContradictory": false,
+      "confidence": 0.9,
+      "evidence": "case-04.html L45: '<span class=\"icoCell\" id=\"deployStatus\" role=\"status\" aria-atomic=\"true\">' present and empty at load (probe: liveRegions=[{sel:'span#deployStatus', role:'status', ariaAtomic:'true', textAtLoad:''}]). Script L63 injects '<img class=\"spin\" src=... alt=\"spinner.gif\">' and L66 swaps in '<img src=... alt=\"check_24.png\">', so the only accessible content the region ever gains is the filename alt; the probe records no text announcement at all because no text node is ever added.",
+      "reasoning": "The page matches its metadata exactly and is a genuine 4.1.3 failure: the status region re-announces a filename instead of the build state. Davin approved the label and his comment ('There is alt text given, but it is the file name and not the message for the deployment succeeding') is an accurate corroboration, not a defect report. Nothing to repair.",
+      "proposedFix": null
+    },
+    {
+      "key": "4.1.3::wrong-live-region-politeness-for-urgency::case-05",
+      "verdict": "FIX-OBVIOUS",
+      "annotationClarity": "clear",
+      "complaintCorrect": "confirmed",
+      "defectType": "metadata-wrong",
+      "groundTruthDisputed": false,
+      "internallyContradictory": false,
+      "confidence": 0.9,
+      "evidence": "grep: there is no '#payMsg' and no aria-live attribute anywhere in case-05.html. The only live region is L41 '<p class=\"sr-only\" id=\"payStatus\" role=\"status\" aria-atomic=\"true\"></p>'. probe-case.js --click '#payBtn' records exactly one announcement: {politeness:'polite', text:'Payment update available.'} while the critical text goes to L40 '<p class=\"decline-banner\" id=\"declineBanner\">' (no role, no aria-live): 'Payment declined by your bank. Do NOT refresh or press Pay again — a second attempt may place a duplicate charge.' (script L93-98). case-05.md and the pre-strip author comment both document 'failure-mechanism: announced-but-wrong-content', while result.json L336-344 (and the manifest generated from it) describe a polite-vs-assertive queueing failure on the nonexistent 'p#payMsg[aria-live=\"polite\"]'.",
+      "reasoning": "Davin is right that the described error is not the error on the page: the metadata block is templated from the sibling politeness case, names an element that does not exist, and cites a placeholder quote ('Goal'). The page itself is a sound 4.1.3 failure and the .md is correct and self-consistent, so expected stays 'failed' and the repair is a pure metadata re-sync to the .md — mechanical and label-preserving. Left for a human and NOT included in the patch: case-05 sits in the folder 'wrong-live-region-politeness-for-urgency' although its mechanism is content-routing, so re-foldering/renaming the aspect is still an open call.",
+      "proposedFix": {
+        "file": "eval/act-augmented/4.1.3/result.json",
+        "rationale": "Re-sync the case-05 record (aspectResults[wrong-live-region-politeness-for-urgency].built.pages[case-05]) with the page that actually ships and with case-05.md: the failure is announced-but-wrong-content (critical text in the non-live p#declineBanner, filler in the role=status p#payStatus), not politeness, and the element under test is p#declineBanner, not the nonexistent p#payMsg. 'expected' is unchanged ('failed'). The citation quote 'Goal' is replaced with the verbatim line from wcag-understanding/status-messages.html L16 that case-05.md already uses. case-05.md needs no change (it is already correct); _annotator/manifest.json must be regenerated from result.json after this edit, since it currently serves the stale politeness scenario and selector to annotators.",
+        "edits": [
+          {
+            "oldString": "            \"scenario\": \"Coffee-store checkout. Submitting a declined card injects a critical, action-blocking instruction ('Payment declined — do NOT refresh or press Pay again, a second attempt may place a duplicate charge') into a present, valid live region wired aria-live=polite. On submit the screen reader is narrating a long order summary (line items, discount, shipping, tax, total, address, delivery note), so the polite decline is queued behind all of it; the non-visual user, hearing nothing, may refresh/resubmit and be double-charged before the warning is voiced. A blocking payment error must be assertive.\",\n            \"expected\": \"failed\",\n            \"mechanism\": \"Polite live regions defer until current and queued speech finish. The decline instruction is injected while the verbose order summary is being narrated, so the 'do not refresh' warning is voiced too late to prevent the harmful action. The message IS announced (absence-checkers pass) but the politeness defeats its protective purpose; the correct value is assertive/role=alert.\",\n            \"primarySelector\": \"p#payMsg[aria-live=\\\"polite\\\"]\",\n            \"whyAutomatedToolsMiss\": \"#payMsg is a present live region with valid aria-live=polite + aria-atomic=true; on decline it genuinely announces. Tools verify only that announcement is possible — polite is legal, so no rule fires. No static or single-snapshot tool can know this specific message is a critical, blocking instruction that must interrupt, nor that it is queued behind a long summary; weighing urgency against politeness is a human contextual judgment.\",\n            \"citation\": {\n              \"doc\": \"WCAG 2.2 Understanding SC 4.1.3 Status Messages — In brief (wcag-understanding/status-messages.html)\",\n              \"quote\": \"Goal\"\n            }",
+            "newString": "            \"scenario\": \"Coffee-store checkout. Submitting a declined card splits the status across two elements: the critical, action-blocking instruction ('Payment declined by your bank. Do NOT refresh or press Pay again — a second attempt may place a duplicate charge.') is written into the VISIBLE red banner p#declineBanner, a plain <p> with no role and no aria-live, while the page's present, valid live region p#payStatus[role=\\\"status\\\"] receives only the bland filler 'Payment update available.' The sighted user sees the full blocking warning; the screen-reader user hears only the filler and is never told not to refresh or resubmit.\",\n            \"expected\": \"failed\",\n            \"mechanism\": \"The decline produces a status message (the result of the payment action, added without taking focus), but its actual content is routed to p#declineBanner, which has no role and no aria-live and is therefore never announced; the only string written into the real live region p#payStatus is the generic 'Payment update available.' A live region is present and does announce — so presence/non-empty checks pass — while the substance of the status change is withheld from assistive technology. Failure mechanism: announced-but-wrong-content, not politeness.\",\n            \"primarySelector\": \"p#declineBanner\",\n            \"whyAutomatedToolsMiss\": \"#payStatus is a present, valid role=\\\"status\\\" live region and on decline it is non-empty and genuinely announces, so axe-core / WAVE / Lighthouse see a working status message and no rule fires. They have no way to know that the announced string is meaningless filler while the actual blocking instruction sits in a separate visible <p> with no role and no aria-live. Catching it requires triggering the decline, reading the red banner the sighted user sees, and comparing it against what the live region actually announces — a behavioural, semantic comparison no static scan makes.\",\n            \"citation\": {\n              \"doc\": \"WCAG 2.2 Understanding SC 4.1.3 Status Messages — In brief (wcag-understanding/status-messages.html)\",\n              \"quote\": \"Let assistive technology notify users about status changes that don't take focus.\"\n            }"
+          }
+        ]
+      }
+    }
+  ]
+}

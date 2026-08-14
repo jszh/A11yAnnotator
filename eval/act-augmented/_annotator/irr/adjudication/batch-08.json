@@ -1,0 +1,496 @@
+{
+  "batch": "08",
+  "n": 10,
+  "backupDir": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15",
+  "cases": [
+    {
+      "key": "2.4.3::f44-positive-tabindex-breaks-meaning::case-06",
+      "sc": "2.4.3",
+      "aspect": "f44-positive-tabindex-breaks-meaning",
+      "caseId": "case-06",
+      "severity": 5,
+      "signals": [
+        "CONTRADICTED",
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/2.4.3/pages/f44-positive-tabindex-breaks-meaning/case-06.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/2.4.3/pages/f44-positive-tabindex-breaks-meaning/case-06.html",
+        "caseDoc": "eval/act-augmented/2.4.3/pages/f44-positive-tabindex-breaks-meaning/case-06.md",
+        "sourceOfTruth": "eval/act-augmented/2.4.3/result.json"
+      },
+      "corpusClaim": {
+        "expected": "inapplicable",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Positive tabindex creates a tab order that does not preserve meaning (F44), with the meaning-judgment a human must make",
+        "scenario": "BOUNDARY counter-example: an engineering-blog post footer with a row of five social-share buttons (X, Facebook, LinkedIn, Email, Copy link) carrying SCRAMBLED positive tabindex 3,1,4,2,5. Despite positive tabindex present AND in a scrambled order, the five actions are mutually independent so their order carries no meaning - the canonical 'row of social-media icons' Does-Not-Apply example.",
+        "mechanism": "tabindex scrambles the share-button order (verified traversal: Facebook->Email->X->LinkedIn->Copy link), but each button is a complete independent action with no sequence/dependency, and the rest of the page (article + related links, no tabindex) tabs in normal DOM order. The navigation sequence does not affect meaning or operability, so SC 2.4.3 does not apply.",
+        "whyAutomatedToolsMiss": "Statically indistinguishable from a failing page: positive tabindex present and numeric order differs from source - the same signals as case-01, and axe emits the identical best-practice note (tabindex:5). A tool or judge keyed on 'positive tabindex' or even 'tab order != source order' would FALSE-POSITIVE. The only thing making it pass is the semantic fact that five share actions are independent so order carries no meaning - a judgment about whether sequence affects meaning that no scanner can make.",
+        "primarySelector": ".share button[tabindex]"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "MINOR citation-framing imprecision: the .md (lines 59-64) labels the primary WCAG Understanding quote as 'Examples / Not-applicable case', but that sentence (focus-order.html lines 54-56) is from the SC's GENERAL discussion and actually describes when order DOES affect meaning - it is not a not-applicable example. The verdict's load-bearing support is instead the Trusted Tester DNA note, which IS quoted verbatim and on-point. Recommend relabeling the WCAG quote as general/context rather than a not-applicable example. Does not change the inapplicable verdict.",
+          "Note (not a defect): the .md and HTML comments stress this is 'indistinguishable from a failing page by any static signal'. That is accurate - axe's positive-tabindex note fires identically here and on the failing case-01 - which is exactly what makes it a valid human-judgment hard negative."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "yes",
+          "disposition": "comment",
+          "commentReason": "other",
+          "commentText": "The ordering is a bit inconsistent with the layout of the page. It has an ordering that goes down and up and down the page, which is inconsistent/that does not preserve meaning. Meaning that 2.4.3 is not met."
+        }
+      ]
+    },
+    {
+      "key": "2.4.4::duplicate-name-same-context-different-purpose::case-06",
+      "sc": "2.4.4",
+      "aspect": "duplicate-name-same-context-different-purpose",
+      "caseId": "case-06",
+      "severity": 4,
+      "signals": [
+        "CONTRADICTED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/2.4.4/pages/duplicate-name-same-context-different-purpose/case-06.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/2.4.4/pages/duplicate-name-same-context-different-purpose/case-06.html",
+        "caseDoc": "eval/act-augmented/2.4.4/pages/duplicate-name-same-context-different-purpose/case-06.md",
+        "sourceOfTruth": "eval/act-augmented/2.4.4/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Identical accessible name AND identical context, but the links resolve to genuinely different purposes (fd3a94 equivalence judgment)",
+        "scenario": "Volunteer-run tech conference page (negative control): one paragraph contains two inline links both named 'contact us' in the same sentence-pair, one framed around accessibility needs and one around invoices/VAT receipts. Both point to the SAME #contact section — one shared organiser inbox handling every request (verified: 2 occurrences, 1 unique destination). Looks like the failing duplicate-name pattern but is benign because the destination is one and the same.",
+        "mechanism": "Two <a href=\"#contact\"> with identical accessible name 'contact us' and identical context both resolve to the SAME in-page target (one <h2 id=\"contact\"> shared-inbox section). Per fd3a94 this PASSES because 'both links resolve to the same resource' — the strongest equivalence. The surrounding clauses describe two topics (access vs finance) but both are served by one team at one address, so whichever link the user picks, the purpose (reach the organisers) is satisfied identically and no user is misled.",
+        "whyAutomatedToolsMiss": "A duplicate-link heuristic would see two identical 'contact us' links and might FALSELY flag them as a candidate ambiguity failure; here the shared destination makes them benign. A static check cannot determine that #contact is a single shared inbox serving both stated topics rather than a page that ought to route access vs finance to different teams. Concluding 'same resource, therefore equivalent, therefore pass' requires reading the target section and judging its purpose — the same human equivalence judgment that fails case-01/03/05.",
+        "primarySelector": "p > a[href=\"#contact\"]"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": false,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "fix",
+        "problems": [
+          "see problems array"
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "1.1.1::informative-css-background-image::case-01",
+      "sc": "1.1.1",
+      "aspect": "informative-css-background-image",
+      "caseId": "case-01",
+      "severity": 3,
+      "signals": [
+        "SPLIT",
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.1.1/pages/informative-css-background-image/case-01.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.1.1/pages/informative-css-background-image/case-01.html",
+        "caseDoc": "eval/act-augmented/1.1.1/pages/informative-css-background-image/case-01.md",
+        "sourceOfTruth": "eval/act-augmented/1.1.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "Information conveyed exclusively by a CSS background-image (no img element, no DOM text equivalent)",
+        "scenario": "Building-society loan card whose headline rate '19.3% APR Typical Variable' lives only as pixels in a stylesheet background-image SVG; the visible DOM prose says only 'Where else would you find a better interest rate?' (verbatim F3 example 1).",
+        "mechanism": "The load-bearing price (19.3% APR Typical Variable) is rendered exclusively by `p#bestinterest { background-image: url(svg) }`. A CSS background image generates no accessibility-tree node and cannot carry a text alternative, so a screen-reader user hears the unanswered question and never learns the rate; forced-colors/hide-backgrounds drops it for sighted users too.",
+        "whyAutomatedToolsMiss": "There is no img/svg/role=img/object/input[type=image] — nothing nameable — so every ACT 1.1.1 rule is Inapplicable and axe/WAVE/Lighthouse have no target. They cannot OCR the data-URI SVG to find '19.3% APR', cannot classify the flag as informative vs decorative, and cannot perform the meaning-comparison of whether the rate appears as text elsewhere.",
+        "primarySelector": "p#bestinterest"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": [
+          "Minor doc inconsistency (non-blocking): case-01.md line 13 labels the host-language construct as 'external (in-document <style>) stylesheet rule' — 'external' is the wrong word for an in-document <style> block. Cosmetic only; F3 applies identically to in-<style>, style-attribute, and scripted background-image declarations, so the mechanism and outcome are unaffected."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "no-error",
+          "commentText": ""
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "1.4.1::ui-status-action-color-only-no-text-cue::case-04",
+      "sc": "1.4.1",
+      "aspect": "ui-status-action-color-only-no-text-cue",
+      "caseId": "case-04",
+      "severity": 3,
+      "signals": [
+        "SPLIT",
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.4.1/pages/ui-status-action-color-only-no-text-cue/case-04.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.4.1/pages/ui-status-action-color-only-no-text-cue/case-04.html",
+        "caseDoc": "eval/act-augmented/1.4.1/pages/ui-status-action-color-only-no-text-cue/case-04.md",
+        "sourceOfTruth": "eval/act-augmented/1.4.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "UI buttons, controls, and color-coded categories signalling action/status by color with no text or character cue (G14)",
+        "scenario": "Developer-conference programme grouping sessions into three tracks, where each session card's track is shown ONLY by its background hue (blue/amber/green) with a colour legend but NO per-card 'T1/T2/T3' text code — the canonical G14 colour-coded-schedule example with the text code removed.",
+        "mechanism": "G14 category-distinction failing variant: the track is carried solely by article.t-core/.t-applied/.t-comm background colour; no card contains a track code or icon. In grayscale every card is the same mid-gray and concurrent sessions in a slot become indistinguishable by track; the colour-keyed legend also requires perceiving the hues.",
+        "whyAutomatedToolsMiss": "Each card is a valid <article> with a real heading/speaker/room and all background colours pass 1.4.3. axe/WAVE/Lighthouse have no concept that 'blue background = Track 1' or that the track is information needing a non-colour equivalent. Recognising hue is the sole carrier of the category and that no T-code backs it is human semantic + visual judgment.",
+        "primarySelector": "article.t-core, article.t-applied, article.t-comm"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": [
+          "Minor (not a defect): the color legend swatches at lines 52-54 use inline style= attributes, which the V3_HTML_NOSTYLE ablation strips from HTML evidence; the legend's color-to-track-name binding is inherently visual regardless, so this does not affect case validity but is worth noting for the evidence-lane ablation."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "no-error",
+          "commentText": ""
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "1.1.1::image-of-text-alt-omits-the-text::case-07",
+      "sc": "1.1.1",
+      "aspect": "image-of-text-alt-omits-the-text",
+      "caseId": "case-07",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.1.1/pages/image-of-text-alt-omits-the-text/case-07.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.1.1/pages/image-of-text-alt-omits-the-text/case-07.html",
+        "caseDoc": "eval/act-augmented/1.1.1/pages/image-of-text-alt-omits-the-text/case-07.md",
+        "sourceOfTruth": "eval/act-augmented/1.1.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Image of meaningful text whose alt does not reproduce the same text",
+        "scenario": "PASS control: a yoga-studio promo banner that is itself a flattened image of text (inline-SVG data: URI) with the same offer-copy family as the failing cases — 'NEW STUDENT OFFER / 5 classes for $15 / Use code FLEX15 online / Offer ends Friday, March 6' — but the alt transcribes every displayed word, including the code and deadline.",
+        "mechanism": "The accessible name is the full offer string and the a11y image node name includes 'FLEX15' and 'March 6' (verified: both present in a11y tree = true). Replacing the image with its alt loses no information — the code and deadline both survive. For an image of meaningful text the alternative must contain the same text, and here it does, so 1.1.1 is satisfied. Same component and domain-family as case-01 but opposite outcome, isolating that the defect is transcription-equivalence, not the existence of an image of text.",
+        "whyAutomatedToolsMiss": "The same OCR-and-compare step automation cannot do to FAIL the other cases is the step needed to CONFIRM this one passes. image-alt and qt1vmo pass here exactly as on case-01, so a scanner cannot distinguish this correct page from the failing one — only a human reading the image and the alt can tell THIS alt reproduces the words (pass) while case-01's does not (fail). The pass/fail boundary is invisible to automated tools.",
+        "primarySelector": "img.promo"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": false,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "No defect — this is a correctly-authored PASS control, and the 'passed' label is accurate. (errorIsReal=false reflects that there is intentionally no accessibility error; expectedOutcomeCorrect=true reflects that the documented 'passed' outcome is correct.)"
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "no-error",
+          "commentText": ""
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "no",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "1.4.1::color-coded-graphics-no-pattern-or-label::case-07",
+      "sc": "1.4.1",
+      "aspect": "color-coded-graphics-no-pattern-or-label",
+      "caseId": "case-07",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.4.1/pages/color-coded-graphics-no-pattern-or-label/case-07.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.4.1/pages/color-coded-graphics-no-pattern-or-label/case-07.html",
+        "caseDoc": "eval/act-augmented/1.4.1/pages/color-coded-graphics-no-pattern-or-label/case-07.md",
+        "sourceOfTruth": "eval/act-augmented/1.4.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Color-coded charts, maps, diagrams and game pieces distinguished by color with no pattern, icon, or in-graphic label (G111)",
+        "scenario": "TRUE NEGATIVE: exam-question inline-SVG ball-and-stick model (acetic acid) implementing the canonical WCAG Understanding 'examination' example — each atom carries BOTH a color AND a number drawn inside the sphere (1=Carbon, 2=Oxygen, 3=Hydrogen), the legend gives color AND number per element, and the questions reference atoms by number.",
+        "mechanism": "Element identity is conveyed by two independent visual channels (sphere color AND an in-image number); a CVD student or grayscale printout user can read the number on each atom, match it to the color+number legend, and answer every number-referenced question, so color is not the sole distinguishing cue — verified to survive grayscale.",
+        "whyAutomatedToolsMiss": "Automated checkers pass this page but cannot distinguish it from the failing color-only case-04 (same molecule pattern); they never read the in-sphere number text or evaluate whether identity survives without color, and both pages clear contrast with descriptive aria-labels. Passing it for the right reason requires rendering, reading the numbers, and confirming grayscale solvability.",
+        "primarySelector": "svg g[font-weight=\"700\"] text"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": []
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "no-error",
+          "commentText": ""
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "no",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "2.4.3::f85-focus-return-after-dismissal::case-03",
+      "sc": "2.4.3",
+      "aspect": "f85-focus-return-after-dismissal",
+      "caseId": "case-03",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/2.4.3/pages/f85-focus-return-after-dismissal/case-03.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/2.4.3/pages/f85-focus-return-after-dismissal/case-03.html",
+        "caseDoc": "eval/act-augmented/2.4.3/pages/f85-focus-return-after-dismissal/case-03.md",
+        "sourceOfTruth": "eval/act-augmented/2.4.3/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Focus not returned (or returned illogically) after a dialog/menu is dismissed (F85, close branch + modal return)",
+        "scenario": "Developer issue tracker (Forge) label-chip list. Each chip's × opens an alertdialog confirm; confirming deletes the chip and moves focus to the NEXT chip's × (falling back to the previous chip when the deleted one was last, and to '+ Add label' when none remain). This is the F85 tag-delete exception that must NOT be flagged. Cancel returns to the chip's × (chip survives).",
+        "mechanism": "confirmRemove() resolves a logical neighbor (nextElementSibling.x || previousElementSibling.x || .addlabel) and focuses it after removing li.chip; satisfies F85 step 2's removed-trigger branch. Verified by Puppeteer: deleting the middle 'payments' chip lands focus on 'needs-repro' remove button; deleting the last 'p1' chip lands focus on the now-last chip's remove button.",
+        "whyAutomatedToolsMiss": "This case exposes automation's false-positive mode: any simple rule a tool could encode — 'after a dialog closes, focus must return to the element that opened it' — would WRONGLY flag this correct page because the opening element no longer exists after a delete. Static scans report nothing (ARIA/labelling clean). Judging it a PASS requires reasoning that a deletion legitimately removes the trigger and the chosen neighbor is the meaningful landing point.",
+        "primarySelector": "#rm-confirm handler (confirmRemove) routing to nextElementSibling/previousElementSibling .x"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": []
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "no",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "other",
+          "commentText": "Contradictory Labeling... In the 'Why automated tools miss it' rationale, the RAG engine explicitly states that evaluating this component correctly means 'Judging it a PASS' because it handles focus gracefully after a deletion event. However, the system has presented this as an active violation case. The text correctly identifies this as a false positive, but the platform UI is forcing it through the failure flow."
+        }
+      ]
+    },
+    {
+      "key": "3.3.1::error-summary-incoherent-with-flagged-state::case-07",
+      "sc": "3.3.1",
+      "aspect": "error-summary-incoherent-with-flagged-state",
+      "caseId": "case-07",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/3.3.1/pages/error-summary-incoherent-with-flagged-state/case-07.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/3.3.1/pages/error-summary-incoherent-with-flagged-state/case-07.html",
+        "caseDoc": "eval/act-augmented/3.3.1/pages/error-summary-incoherent-with-flagged-state/case-07.md",
+        "sourceOfTruth": "eval/act-augmented/3.3.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Top-of-form error summary lists fields/causes/counts that do not correspond to the page's actually-flagged fields (summary-vs-state incoherence)",
+        "scenario": "CONTROL (passing): flight-booking Passenger details step. Red role=alert summary states 'There are 2 problems' and lists exactly two G139 jump links — Email (→#email) and Date of birth (→#dob). The page flags exactly those two fields with matching aria-invalid, anchors, and inline message wording; the two valid fields (Given names, Passport number) are correctly not mentioned. Count, membership, link targets, and wording all reconcile.",
+        "mechanism": "Every item the summary names is genuinely in error, every item in error is named, each jump link reaches the control its text describes, and each line's wording matches that field's inline programmatically-associated message. The aggregate description agrees with the page's actual state, so the items in error are identified and described in text.",
+        "whyAutomatedToolsMiss": "Automated tools have no model of summary↔state agreement, so they cannot confirm coherence any more than detect incoherence — they would treat this page identically to the failing cases (no finding). Its correctness is only verifiable by the same human reconciliation: build the flagged set, compare it to what the summary enumerates and links to, and check the wording matches.",
+        "primarySelector": ".summary"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": false,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "None. This is a correctly-constructed PASSING negative control, not a defect case. There is no accessibility issue, which is intentional and correct for a control. errorIsReal=false reflects that there is no error claimed (expected outcome is 'passed'), and expectedOutcomeCorrect=true reflects that the page genuinely passes SC 3.3.1.",
+          "Minor non-blocking note: each summary link's text omits the trailing period present in the corresponding inline .msg (e.g. summary 'name@example.com' vs inline 'name@example.com.'). This is semantically identical and does not affect reconciliation or the outcome."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "no",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": "The flagged fields correctly correspond with the top-of-form error summary lists fields"
+        }
+      ]
+    },
+    {
+      "key": "4.1.3::non-textual-status-icon-sound-without-text-alt::case-03",
+      "sc": "4.1.3",
+      "aspect": "non-textual-status-icon-sound-without-text-alt",
+      "caseId": "case-03",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/4.1.3/pages/non-textual-status-icon-sound-without-text-alt/case-03.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/4.1.3/pages/non-textual-status-icon-sound-without-text-alt/case-03.html",
+        "caseDoc": "eval/act-augmented/4.1.3/pages/non-textual-status-icon-sound-without-text-alt/case-03.md",
+        "sourceOfTruth": "eval/act-augmented/4.1.3/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "Non-textual status (icon/sound) given a status role but no usable text alternative",
+        "scenario": "Municipal CMS rich-text page editor with an autosave indicator. On Save, the aria-live=\"polite\" indicator's DOM text is cleared and the 'Saved' state is conveyed purely by a CSS rule .saved::after { content: \"\\2713\" } that paints a green check via generated content.",
+        "mechanism": "The live region's class flips to .saved and its textContent is emptied; the visible check is produced entirely by CSS ::after generated content, which is not exposed as live-region announced text in the dominant browser/AT combinations (and an empty-text class mutation gives a polite region nothing to speak). The screen-reader user who heard 'Draft'/'Saving' never hears 'Saved'. Headless check confirmed textContent == \"\" while computed ::after content == \" ✓\".",
+        "whyAutomatedToolsMiss": "There is no <img> and thus no missing/empty alt for a linter to catch — the glyph is a pseudo-element. The live region is valid and pre-placed, and class-driven ::after content is an ordinary, well-formed CSS pattern that triggers no rule. Detecting the failure requires knowing CSS generated content is not reliably surfaced as live-region text AND recognizing the green check is the save status — both human/visual judgments.",
+        "primarySelector": "#saveState[aria-live=\"polite\"].savestate.saved"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": [
+          "WHY-AUTOMATED comment (HTML lines 13-16) is technically outdated: it claims CSS ::after generated content is 'NOT part of the DOM text and ... NOT included in the accessible name / live-region text'. My CDP getFullAXTree probe shows current Chromium DOES expose the U+2713 glyph as a StaticText node ('descendantStaticText':['✓']) inside the live region after save. The clause overstates the AX-tree exclusion. This is a rationale imprecision, not an outcome error.",
+          "The .md 'Exact accessibility mechanism' repeats the same 'CSS-generated content is not exposed as the live region's announced text' framing, which is the fragile/outdated part of the argument. The robust argument (which holds) is: (a) live-region ANNOUNCEMENT of a class-driven style recalc + emptied textContent is unreliable/silent across NVDA/JAWS/VoiceOver, and (b) even if surfaced, a bare '✓' conveys 'check mark', not the status 'Saved' (no text alt, no role) per WCAG line 87. Recommend tightening the wording to lead with these two points."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": "in this case the status role is provided and text alternative"
+        }
+      ]
+    },
+    {
+      "key": "4.1.3::wrong-live-region-politeness-for-urgency::case-04",
+      "sc": "4.1.3",
+      "aspect": "wrong-live-region-politeness-for-urgency",
+      "caseId": "case-04",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/4.1.3/pages/wrong-live-region-politeness-for-urgency/case-04.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/4.1.3/pages/wrong-live-region-politeness-for-urgency/case-04.html",
+        "caseDoc": "eval/act-augmented/4.1.3/pages/wrong-live-region-politeness-for-urgency/case-04.md",
+        "sourceOfTruth": "eval/act-augmented/4.1.3/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "Live-region politeness is semantically wrong for the message's urgency and update frequency",
+        "scenario": "Higher-ed LMS essay editor with an autosave indicator in the toolbar. The indicator is a present, valid live region wired role=alert (assertive); a debounced handler flips it 'Saving…' -> 'All changes saved' roughly every two seconds while the student is still typing. Each flip assertively interrupts the screen reader's typing echo, so the student stops hearing their own words. An autosave confirmation is low-value and belongs in a polite region at most.",
+        "mechanism": "role=alert is assertive: each text change interrupts current speech. While the user composes, the AT echoes their typing; every ~2s the debounced autosave flips the assertive region twice ('Saving…' then 'All changes saved'), each flip preempting the typing echo (verified by MutationObserver capturing both transitions during active typing). The information is low-value, high-cadence — it should be polite (role=status). Valid markup, wrong politeness.",
+        "whyAutomatedToolsMiss": "#autosave is a present, non-empty live region with valid role=alert + aria-atomic=true (role=alert is even a sufficient technique). Tools confirm the message can be announced and find nothing wrong — assertive is legal. No static or single-snapshot scan detects that the region is rewritten every two seconds during active typing, nor weighs that an autosave confirmation is low-value content that should be polite; that needs understanding of meaning and cadence relative to the user's task.",
+        "primarySelector": "span#autosave[role=\"alert\"]"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": [
+          "PROMPT/METADATA MISMATCH (critical): The prompt describes a DIFFERENT page than what is on disk. Prompt claims an LMS essay autosave indicator wired role=alert (over-assertive, 'too chatty'), selector span#autosave[role=\"alert\"], with a citation about applications being 'too chatty'. The actual case-04.html is a MercyHealth refill form whose role=status region #refillStatus is muted to aria-live=\"off\" by an on-by-default 'Focus mode' toggle (F103, the OPPOSITE direction: under-announced, not over-assertive). The prompt's selector span#autosave does not exist on the page (no role=alert anywhere; the element is p#refillStatus[role=status]). The prompt's claimed mechanism and citation do not apply to this file.",
+          "I evaluated the ACTUAL on-disk page. It is a genuine, internally-coherent SC 4.1.3 FAILED case (F103): applyFocusMode(true) at line 114 sets aria-live=\"off\" (line 112) at load; the submit handler (lines 121-131) injects a consequential 'Refill request FAILED...' status message into the muted region, so AT announces nothing. Confirmed by runtime probe (region stays aria-live=off through submit in the default state; flips to polite only after manual toggle) and the Chromium AX tree (role:status, aria-live:off).",
+          "The .md doc's two citations are verbatim and on-point (F103 objective sentence in wcag-techniques/failures/F103.html; Understanding-Intent sentence in wcag-understanding/status-messages.html) — but they belong to the on-disk F103 page, NOT to the prompt's assertive-chatty scenario. The prompt's quoted citation ('too chatty... user testing should be carried out') is not what the page is about."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "yes",
+          "disposition": "comment",
+          "commentReason": "other-error",
+          "commentText": "The issue does not match up with what is mentioned in the comment.\nThe issue does not have to do with the alert level and has to moreso do with the fact that there is no polite or asssertive alert provided."
+        }
+      ]
+    }
+  ]
+}

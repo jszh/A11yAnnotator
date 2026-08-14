@@ -1,0 +1,509 @@
+{
+  "batch": "09",
+  "n": 10,
+  "backupDir": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15",
+  "cases": [
+    {
+      "key": "2.4.4::descriptive-name-contradicts-on-page-destination::case-04",
+      "sc": "2.4.4",
+      "aspect": "descriptive-name-contradicts-on-page-destination",
+      "caseId": "case-04",
+      "severity": 5,
+      "signals": [
+        "CONTRADICTED",
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/2.4.4/pages/descriptive-name-contradicts-on-page-destination/case-04.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/2.4.4/pages/descriptive-name-contradicts-on-page-destination/case-04.html",
+        "caseDoc": "eval/act-augmented/2.4.4/pages/descriptive-name-contradicts-on-page-destination/case-04.md",
+        "sourceOfTruth": "eval/act-augmented/2.4.4/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "A specific, well-formed link name that contradicts its actual on-page destination (deceptive but descriptive name)",
+        "scenario": "SaaS pricing page with three tier cards (Basic free, Pro, Enterprise) and three on-page sign-up sections (#basic-signup, #pro-signup, #enterprise-checkout). The Basic card's CTA reads 'Basic plan — $0/mo: Get started free' but its href is '#enterprise-checkout', the paid Enterprise purchase flow ($1,200/mo, annual contract). Honest target is #basic-signup.",
+        "mechanism": "The free-plan CTA's specific name 'Basic plan — $0/mo: Get started free' resolves to '#enterprise-checkout' — the paid Enterprise checkout section — instead of '#basic-signup'; the link's name describes a free signup while its actual destination is a high-commitment paid purchase flow, so the name does not describe the real purpose.",
+        "whyAutomatedToolsMiss": "The name is non-empty, highly specific, and unique (passes c487ae and generic/duplicate heuristics), '#enterprise-checkout' resolves to a real section, and all three sign-up sections are well-formed. The contradiction is only visible by following the link, reading that the destination is the paid Enterprise checkout, and comparing it to the link's 'free Basic' promise — a semantic price/plan judgement no scanner makes.",
+        "primarySelector": ".grid .card:first-child a.cta.free"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": [
+          "None material. Minor: the citation in case-04.md ('The combination of the programmatically determined link context and the ANDI Output provide adequate description of the link's purpose.') is wrapped across lines 29-30 of refs/trusted-tester/sc-2.4.4-link-purpose.md (line 29 ends '...adequate', line 30 '\\n  description of the link's purpose.'), so a naive single-line grep fails; verified verbatim modulo whitespace with a plain ASCII apostrophe. The quote is genuine, from the 'Evaluate Results (PASS if)' section, and correctly states the PASS condition this page violates.",
+          "Minor/non-defect: inspect.js reports the target link box.y = -198 (scroll/layout capture artifact); computed visibility=visible, opacity=1, display=block confirm the link is perceivable and operable, so it does not affect the verdict."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "no-error",
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "2.4.4::generic-link-text-no-rescuing-context::case-02",
+      "sc": "2.4.4",
+      "aspect": "generic-link-text-no-rescuing-context",
+      "caseId": "case-02",
+      "severity": 4,
+      "signals": [
+        "CONTRADICTED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/2.4.4/pages/generic-link-text-no-rescuing-context/case-02.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/2.4.4/pages/generic-link-text-no-rescuing-context/case-02.html",
+        "caseDoc": "eval/act-augmented/2.4.4/pages/generic-link-text-no-rescuing-context/case-02.md",
+        "sourceOfTruth": "eval/act-augmented/2.4.4/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Generic/boilerplate link text with a non-empty name but no purpose, and no context that rescues it (G91/H30 substantive failure)",
+        "scenario": "SaaS pricing page: a paragraph reads '...for full pricing details, click here.' where the generic phrase 'click here' is the link but the purpose words ('full pricing details') precede it in the SAME sentence — the boundary near-PASS that is identical boilerplate to a failing page, rescued only by its enclosing sentence (G53).",
+        "mechanism": "The link's same-sentence programmatically determined context names the destination's purpose ('full pricing details') BEFORE the generic phrase, so a screen-reader user reading the paragraph hears the purpose first and can identify the link without leaving it; 2.4.4 is satisfied by link text combined with programmatic context per technique G53.",
+        "whyAutomatedToolsMiss": "This is a false-positive trap: phrase-blocklist heuristics flag the literal string 'click here' (accessible name confirmed as 'click here' via the AX tree) and report a violation, which is WRONG because the enclosing sentence rescues it under G53. No tool can parse the sentence, locate the purpose words, confirm they precede the link, and judge they describe the destination — that is the human in-context judgment.",
+        "primarySelector": "section.card p a[href=\"/pricing/details\"]"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": false,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "No defect: this is intentionally a PASS boundary case, not a failure. errorIsReal=false is by design (the doc's failure-mechanism field correctly says 'NONE present'). The 'errorIsReal' axis here means 'is there a genuine 2.4.4 violation' — there is not, and the documented outcome (passed) is correct.",
+          "Minor citation completeness note: the load-bearing G53 quote is VERBATIM and supports the mechanism (verified against wcag-techniques/general/G53.html: 'A web page contains the sentence \"To advertise on this page, click here.\"' and 'Although the link phrase \\'click here\\' is not sufficient to understand the link, the information needed precedes the link in the same sentence.'). The second (Understanding 2.4.4) quote was not separately byte-verified against a reference file, but it is not the primary citation and is consistent with G53's own 'precedes the link' note."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "1.1.1::informative-css-background-image::case-07",
+      "sc": "1.1.1",
+      "aspect": "informative-css-background-image",
+      "caseId": "case-07",
+      "severity": 3,
+      "signals": [
+        "SPLIT",
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.1.1/pages/informative-css-background-image/case-07.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.1.1/pages/informative-css-background-image/case-07.html",
+        "caseDoc": "eval/act-augmented/1.1.1/pages/informative-css-background-image/case-07.md",
+        "sourceOfTruth": "eval/act-augmented/1.1.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Information conveyed exclusively by a CSS background-image (no img element, no DOM text equivalent)",
+        "scenario": "PASS control: order-tracking timeline using the SAME CSS background-image status-badge carrier as the failing pages, but the meaning of every badge ('Order confirmed', 'Out for delivery', 'Delivered') is also written as real adjacent text and the badges are aria-hidden, so the image is redundant.",
+        "mechanism": "`.badge.done/.truck/.wait` are aria-hidden background-image glyphs; the equivalent status is a real text node in the sibling `.step .status` in the same logical order. A screen-reader user hears every status as text once, cleanly; hide-backgrounds/forced-colors loses nothing. The background images are decorative reinforcements of text, satisfying F3 step 2 / TT 7.C.",
+        "whyAutomatedToolsMiss": "Automated tools cannot evaluate a background-image for 1.1.1 at all, so they neither flag nor clear it — and crucially cannot tell this PASS apart from the case-02/case-06 failures, which use the identical background-image status-glyph carrier. Only a human doing the two-step 7.C judgment (is the image informative? is the meaning redundant in adjacent text?) can establish that here the answer to step 2 is yes.",
+        "primarySelector": ".badge.truck"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "Minor content quibble (does not affect the 1.1.1 verdict): the last step pairs the .wait (clock) glyph with the literal text 'Delivered' while the timestamp says 'Awaiting — expected by 6 PM'. The visible word 'Delivered' is semantically odd for a still-pending step, but since the text node is the authoritative carrier and is announced by AT (StaticText node 50), the redundancy/1.1.1 PASS still holds.",
+          "This is a PASS control, so 'errorIsReal' is interpreted as 'the documented accessibility characteristic (a redundant, aria-hidden informative background image) genuinely exists' — it does; there is no accessibility defect to find here."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "other",
+          "commentText": "False positive, the rationale itself explicitly proves the component is compliant, rendering the failure classification invalid"
+        }
+      ]
+    },
+    {
+      "key": "2.1.2::documented-exit-reachability-and-accuracy-beyond-ctrlm::case-05",
+      "sc": "2.1.2",
+      "aspect": "documented-exit-reachability-and-accuracy-beyond-ctrlm",
+      "caseId": "case-05",
+      "severity": 3,
+      "signals": [
+        "SPLIT",
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/2.1.2/pages/documented-exit-reachability-and-accuracy-beyond-ctrlm/case-05.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/2.1.2/pages/documented-exit-reachability-and-accuracy-beyond-ctrlm/case-05.html",
+        "caseDoc": "eval/act-augmented/2.1.2/pages/documented-exit-reachability-and-accuracy-beyond-ctrlm/case-05.md",
+        "sourceOfTruth": "eval/act-augmented/2.1.2/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Documented custom-exit advice that is unreachable or inaccurate beyond the corpus's Ctrl+M-before-trap pattern",
+        "scenario": "LMS submission grader: an annotation panel loops focus among rubric buttons and a comment box; a help disclosure button INSIDE the trapped subset (in the tab loop, with aria-expanded/aria-controls) reveals 'press Ctrl+Q', and Ctrl+Q genuinely exits — advice both reachable in-subset by keyboard and matching the working exit.",
+        "mechanism": "The disclosure is part of the focus loop, so a keyboard user reaches it before being stranded; activating it exposes the in-flow instruction read in context; the documented keystroke (Ctrl+Q) is exactly the one the handler releases on. All three G21 conditions hold: exit exists, documented in an accessible manner within the subset, and accurate.",
+        "whyAutomatedToolsMiss": "A clean conditional pass that a static tool also cannot CONFIRM: it cannot tell focus loops here, cannot confirm the disclosure is reachable before the loop strands the user, and cannot check that 'Ctrl+Q' in the revealed text equals the handler's key. Confirming the PASS needs the same human keyboard-driving judgment the FAIL cases need, which sharpens the reachability/accuracy aspect.",
+        "primarySelector": "#helpToggle"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": false,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": [
+          "PROMPT/METADATA MISMATCH (primary defect): The prompt's claimed scenario describes a completely different page than the file. Prompt claims an LMS grader with a help DISCLOSURE button '#helpToggle' (aria-expanded/aria-controls), Ctrl+Q exit, and expected outcome PASSED. The actual case-05.html is a 'Live Translation Booth' interpretation panel, exit key Ctrl+W, NO disclosure button, NO aria-expanded/aria-controls, and is authored as FAILED. The element under test '#helpToggle' does not exist in the file (inspect.js selectorMatch = NOT_PRESENT).",
+          "expectedOutcomeCorrect=false is driven by the prompt's CLAIM of 'passed': the actual page is correctly 'failed' (the only documented exit is undeliverable), so the prompt's claimed outcome label is wrong. The file's OWN .md correctly states 'failed'.",
+          "The prompt's 'Claimed citation' (G21 'The help information available from the content that is not accessibility supported documents how to move focus back...') verifies verbatim in wcag-techniques/general/G21.html but is NOT the citation the file's .md uses and is IRRELEVANT to this page's mechanism (there is no 'not accessibility supported' content here; the failure is an undeliverable reserved key, not missing help info).",
+          "Minor: the focus-loop blur->refocus uses setTimeout(...,0); during that tick focus momentarily lands on body before bouncing back (tab-order stop shows 'focused: body/none'), but it reliably returns to #booth, so the trap holds. Not a defect in the failure claim."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "yes",
+          "disposition": "comment",
+          "commentReason": "other",
+          "commentText": "The actual documented keystroke is Crtl+W and not Ctrl+Q as mentioned in the comments"
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "no",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "1.1.1::meaningful-image-suppressed-as-decorative::case-07",
+      "sc": "1.1.1",
+      "aspect": "meaningful-image-suppressed-as-decorative",
+      "caseId": "case-07",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.1.1/pages/meaningful-image-suppressed-as-decorative/case-07.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.1.1/pages/meaningful-image-suppressed-as-decorative/case-07.html",
+        "caseDoc": "eval/act-augmented/1.1.1/pages/meaningful-image-suppressed-as-decorative/case-07.md",
+        "sourceOfTruth": "eval/act-augmented/1.1.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "A genuinely informative/functional image marked decorative (alt=\"\" / role=presentation) so AT cannot reach it",
+        "scenario": "PASS control: an editorial coffee-brewing article with a purely aesthetic corner flourish correctly hidden via role=presentation + aria-hidden, where all meaning lives in the prose. The page also contains an INFORMATIVE brew-ratio diagram that is correctly exposed with a real aria-label AND duplicated in the text, so judges must distinguish true decoration from the mis-marked-information failures in cases 01-06.",
+        "mechanism": "Correct application of the decoration exception: the flourish conveys no information and has no function, so hiding it loses nothing; the informative ratio diagram is exposed via aria-label and duplicated in prose/caption, so no image is both informative and hidden — SC 1.1.1 is satisfied.",
+        "whyAutomatedToolsMiss": "Tools would also pass this page, but only for the shallow reason that the decorative element has an empty name and the informative one has a non-empty name. The calibration value is human: a judge must verify the hidden image genuinely conveys no information rather than reflexively flagging every role=presentation image as a suppressed-meaning failure.",
+        "primarySelector": ".head-row svg.flourish[role=\"presentation\"][aria-hidden=\"true\"]"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": false,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "No defect — this is a PASS control and it correctly passes SC 1.1.1. 'errorIsReal' is false BY DESIGN (the page documents no accessibility error; its expected outcome is 'passed'), so the false value here is the correct/desired state, not a flaw.",
+          "Minor framing nuance only: for THIS single page an automated checker reaches the same 'pass' verdict trivially (decorative element has empty name, informative element has non-empty name). The human-judgment value is in the discrimination task across the case family (is the hidden swirl genuinely decoration vs. mis-marked information like cases 01-06), which a checker cannot determine — so it still belongs as a calibration control."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "no-error",
+          "commentText": ""
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "no",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "1.4.1::error-validation-color-only::case-06",
+      "sc": "1.4.1",
+      "aspect": "error-validation-color-only",
+      "caseId": "case-06",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.4.1/pages/error-validation-color-only/case-06.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.4.1/pages/error-validation-color-only/case-06.html",
+        "caseDoc": "eval/act-augmented/1.4.1/pages/error-validation-color-only/case-06.md",
+        "sourceOfTruth": "eval/act-augmented/1.4.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Error / validation feedback conveyed by color alone (red border or red text only) in the post-submit state",
+        "scenario": "TRUE-NEGATIVE: festival-ticket payment form in the post-submit state where each invalid field (Name on card empty, Expiry in past) gets a red border PLUS a visible inline text message ('Error: enter the name as printed on the card.' / 'Error: this card has expired...') PLUS a warning-triangle SVG icon. Valid fields (card number, CVC) have plain borders and no message. Error identity is conveyed by text + icon shape + position, so the red border is supplementary decoration.",
+        "mechanism": "G14/G205 sufficient pattern: error information is also available in text and via a non-color icon shape, so the meaning survives grayscale (the triangle and the word 'Error' remain). Color is not the only visual means, so 1.4.1 is satisfied.",
+        "whyAutomatedToolsMiss": "Automated tools also pass this page, but only because they see labeled inputs, describedby links, and contrast-passing text — they cannot affirmatively verify the non-color cue is sufficient for a color-blind user; their pass is coincidentally correct. The genuine judgment (does a non-color visible cue exist?) is human; here it is yes, which a tool can only fail to contradict, not establish.",
+        "primarySelector": "#name.invalid"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": false,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "Minor citation-vs-page mismatch (not outcome-affecting): the prompt/.md leans on G205, whose second sentence (verified verbatim, G205.html line 21) requires the text cue be part of the programmatically determinable NAME of the control. On this page the error text is in the field's DESCRIPTION (aria-describedby='name-err'), not its name (AX name is just 'Name on card'). The pass is really carried by G14 (info also in text) + the visible icon shape, not strict G205. The 'passed' label is still correct because 1.4.1 only requires a non-color VISIBLE means, which the text+triangle satisfy.",
+          "As the .md candidly states, automated tools also pass this page; its value as a corpus item is purely as a true-negative boundary case for human judgment, not as a defect an automated checker would otherwise miss."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "no-error",
+          "commentText": ""
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "no",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "2.4.3::interleaved-focus-between-semantic-groups::case-04",
+      "sc": "2.4.3",
+      "aspect": "interleaved-focus-between-semantic-groups",
+      "caseId": "case-04",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/2.4.3/pages/interleaved-focus-between-semantic-groups/case-04.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/2.4.3/pages/interleaved-focus-between-semantic-groups/case-04.html",
+        "caseDoc": "eval/act-augmented/2.4.3/pages/interleaved-focus-between-semantic-groups/case-04.md",
+        "sourceOfTruth": "eval/act-augmented/2.4.3/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Focus order interleaves between two semantically distinct sections/groups (the canonical Understanding form failure)",
+        "scenario": "Joint loan application (Meridian Credit Union) with two side-by-side boxed sections — Applicant and Co-applicant — each with Full name, Date of birth, Annual income, Employer. Visually near-identical to the failing dual-section cases, but each section is a real fieldset containing its own fields in order, so the natural DOM order keeps each group whole: all four applicant fields are tabbed before any co-applicant field (the G59 passing pattern). PASS counter-example included so a judge cannot pass the failing cases by merely detecting 'two groups exist.'",
+        "mechanism": "Focus order follows the sequences and relationships in the content (G59): each applicant fieldset contains its own four fields in order, so the keyboard sequence completes the entire Applicant group (left column) before entering the entire Co-applicant group (right column). Focus does not follow visual left-then-right field-by-field; it follows the meaningful order (one applicant, then the other), which the Understanding explicitly permits — so meaning is preserved and the SC is satisfied.",
+        "whyAutomatedToolsMiss": "Automated tools also report no violation here, but for the wrong reason: they cannot distinguish this passing page from the failing interleaved pages, because both have valid labels, valid names, no tabindex, and two grouped sections — the same clean markup signature. Only a human (or a model reasoning about content) can confirm that here the focus order keeps each applicant whole, whereas in the failing cases it crosses the group boundary mid-sequence. The discriminator is the focus-order-vs-meaning judgment, not 'two groups exist' detection.",
+        "primarySelector": "#c-name"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": false,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "No defect: this is a deliberate G59 PASS counter-example. There is no claimed accessibility error to confirm — errorIsReal=false reflects 'no issue exists', which is consistent with the documented outcome of 'passed'. The page is correct, not broken.",
+          "Minor labeling note: the .md 'Element / selector carrying the issue' header is slightly misleading since there is no issue; it does clarify in body text that #c-name is inspected to show it receives focus only after the last applicant field. Not a substantive problem."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "no",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "other",
+          "commentText": "False Positive. The 'Why automated tools miss it' rationale perfectly explains why this form is compliant (a true negative) and elegantly distinguishes it from actual interleaved failures. However, the system still flagged this as a violation case."
+        }
+      ]
+    },
+    {
+      "key": "3.3.1::inline-error-adjacent-to-wrong-field::case-03",
+      "sc": "3.3.1",
+      "aspect": "inline-error-adjacent-to-wrong-field",
+      "caseId": "case-03",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/3.3.1/pages/inline-error-adjacent-to-wrong-field/case-03.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/3.3.1/pages/inline-error-adjacent-to-wrong-field/case-03.html",
+        "caseDoc": "eval/act-augmented/3.3.1/pages/inline-error-adjacent-to-wrong-field/case-03.md",
+        "sourceOfTruth": "eval/act-augmented/3.3.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "Inline error message is visually placed next to the WRONG field, with no programmatic association to check",
+        "scenario": "Account 'Contact preferences' panel with stacked Email (value 'ella.brooks@@mailbox.co', invalid double-@) and Mobile phone (valid). Layout uses CSS grid-template-areas; the email error's grid-area is mis-assigned to 'phone-msg'. In the DOM the email error is the email input's immediate next sibling, but CSS grid paints it in the row beneath the phone input. No aria-describedby.",
+        "mechanism": "DOM source-order adjacency is correct (error is next sibling of the email input), so any DOM-order/proximity reasoning concludes correct identification. But the rendered geometry diverges: the error is grid-placed under the valid phone field, so a sighted user perceives the email error as annotating the phone field while the invalid email field shows no message. Presentation, as actually rendered, identifies the wrong field.",
+        "whyAutomatedToolsMiss": "The error is non-empty, visible, accessible-tree-present and descriptive; there is no aria-describedby to flag; and in the DOM the error is correctly adjacent to its field, so source-order checks pass. The fault exists only after CSS grid layout, in pixel geometry. axe/WAVE/Lighthouse do not compute post-layout bounding-box adjacency of grid-placed items against message semantics, so the DOM-vs-visual divergence is invisible.",
+        "primarySelector": ".a-email-msg"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": [
+          "PROMPT/METADATA MISMATCH (not a page defect): the prompt's 'Claimed scenario' describes a DIFFERENT page entirely — an Account 'Contact preferences' panel with Email/Mobile-phone inputs, CSS grid-template-areas, a 'phone-msg' grid-area mis-assignment, double-@ email value. NONE of that exists in case-03.html. grep for a-email-msg, grid-template-areas, grid-area, phone-msg, 'Contact preferences', 'Mobile phone' returns 0 hits. The actual page is an Aerolinks airline round-trip with two 'Travel date' legs (Outbound/Return) using flexbox, where a render-helper bug paints the return-leg error under the valid outbound leg.",
+          "Element-under-test selector '.a-email-msg' given in the prompt does NOT exist in the file; the inspect tool found no such element (dumped the whole AX tree). The real error element is 'fieldset:first-of-type .msg'. Any downstream consumer keying on the prompt's selector would fail.",
+          "The prompt's 'Claimed mechanism' (DOM source-order adjacency correct, grid geometry diverges) is the wrong mechanism for this file. The real file has NO grid; its mechanism is (a) duplicate identical labels 'Travel date' across two fieldsets defeating identification-through-text, plus (b) the lone error + red .flagged border rendered under the VALID leg defeating identification-through-presentation."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": "There is no error. The target element has no issue, and the error message is labeled on another element and is correct."
+        }
+      ]
+    },
+    {
+      "key": "4.1.3::non-textual-status-icon-sound-without-text-alt::case-04",
+      "sc": "4.1.3",
+      "aspect": "non-textual-status-icon-sound-without-text-alt",
+      "caseId": "case-04",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/4.1.3/pages/non-textual-status-icon-sound-without-text-alt/case-04.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/4.1.3/pages/non-textual-status-icon-sound-without-text-alt/case-04.html",
+        "caseDoc": "eval/act-augmented/4.1.3/pages/non-textual-status-icon-sound-without-text-alt/case-04.md",
+        "sourceOfTruth": "eval/act-augmented/4.1.3/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "Non-textual status (icon/sound) given a status role but no usable text alternative",
+        "scenario": "CI/CD pipeline dashboard (ForgeCI, payments-api). The 'Deploy to staging' stage uses a present role=\"status\" cell; on Run deploy a spinner <img> is injected with alt=\"spinner.gif\" (busy) then swapped for a green check with alt=\"check_24.png\" (done). The live region announces the asset filenames instead of the build state.",
+        "mechanism": "role=\"status\" re-announces its atomic contents on change; the image's accessible name is its alt, i.e. the literal 'spinner.gif' / 'check_24.png', so the screen reader speaks the filename instead of 'application busy' / 'Deploy succeeded'. This is the present-but-misleading variant: alt is non-empty and valid but describes the file, not the status. Headless check confirmed announced text == \"spinner.gif\" then \"check_24.png\".",
+        "whyAutomatedToolsMiss": "role=\"status\" is present at load and every <img> has a non-empty alt, so the 'images must have alternate text' rule passes — alt=\"spinner.gif\" is, to a linter, simply 'alt text that exists.' No automated rule evaluates whether the alt is a useful description vs. a filename, nor whether it matches the icon's status meaning; recognizing 'spinner.gif' is a filename standing in for 'busy' requires human semantic judgment.",
+        "primarySelector": "#deployStatus[role=\"status\"] > img[alt=\"spinner.gif\"]"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": [
+          "Minor over-claim in doc: alt ending in '.gif'/'.png' (spinner.gif, check_24.png) is exactly the pattern some heuristic checkers DO flag (e.g. WAVE 'suspicious/filename alt text' alert). So 'No automated rule evaluates...' is slightly too absolute — a filename-like-alt heuristic could partially surface it. The 4.1.3 status-message dimension (that the live region announces a meaningless filename instead of the build state) still genuinely requires human judgment, so requiresHumanJudgment remains true; the failure is not catch-able as a definitive automated 4.1.3 violation.",
+          "Doc phonetic gloss ('spinner dot gif', 'check underscore 24 dot png') is SR-pronunciation flavor, not literally what the AX name is; the actual accessible name strings are 'spinner.gif' / 'check_24.png' (confirmed). Cosmetic, not a defect."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": "There is alt text given, but it is the file name and not the message for the deployment succeeding"
+        }
+      ]
+    },
+    {
+      "key": "4.1.3::wrong-live-region-politeness-for-urgency::case-05",
+      "sc": "4.1.3",
+      "aspect": "wrong-live-region-politeness-for-urgency",
+      "caseId": "case-05",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/4.1.3/pages/wrong-live-region-politeness-for-urgency/case-05.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/4.1.3/pages/wrong-live-region-politeness-for-urgency/case-05.html",
+        "caseDoc": "eval/act-augmented/4.1.3/pages/wrong-live-region-politeness-for-urgency/case-05.md",
+        "sourceOfTruth": "eval/act-augmented/4.1.3/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "Live-region politeness is semantically wrong for the message's urgency and update frequency",
+        "scenario": "Coffee-store checkout. Submitting a declined card injects a critical, action-blocking instruction ('Payment declined — do NOT refresh or press Pay again, a second attempt may place a duplicate charge') into a present, valid live region wired aria-live=polite. On submit the screen reader is narrating a long order summary (line items, discount, shipping, tax, total, address, delivery note), so the polite decline is queued behind all of it; the non-visual user, hearing nothing, may refresh/resubmit and be double-charged before the warning is voiced. A blocking payment error must be assertive.",
+        "mechanism": "Polite live regions defer until current and queued speech finish. The decline instruction is injected while the verbose order summary is being narrated, so the 'do not refresh' warning is voiced too late to prevent the harmful action. The message IS announced (absence-checkers pass) but the politeness defeats its protective purpose; the correct value is assertive/role=alert.",
+        "whyAutomatedToolsMiss": "#payMsg is a present live region with valid aria-live=polite + aria-atomic=true; on decline it genuinely announces. Tools verify only that announcement is possible — polite is legal, so no rule fires. No static or single-snapshot tool can know this specific message is a critical, blocking instruction that must interrupt, nor that it is queued behind a long summary; weighing urgency against politeness is a human contextual judgment.",
+        "primarySelector": "p#payMsg[aria-live=\"polite\"]"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "minor",
+        "recommendation": "keep",
+        "problems": [
+          "PROMPT/ARTIFACT MISMATCH: The prompt header's claimed scenario, mechanism ('polite live region defers behind order summary'), element-under-test ('p#payMsg[aria-live=\"polite\"]'), and citation ('In brief — Goal') describe a DIFFERENT failure than the actual page. There is no #payMsg and no aria-live=\"polite\" attribute anywhere in case-05.html. The prompt header appears templated from sibling case-03 (failure-mechanism 'under-polite'). I judged the ACTUAL artifact (case-05.html + case-05.md), which is internally self-consistent.",
+          "TAXONOMY/FOLDER MISMATCH: case-05 is filed under folder 'wrong-live-region-politeness-for-urgency' but its documented failure-mechanism is 'announced-but-wrong-content' (critical text routed to a non-live <p> while the live region gets bland filler). Politeness is not the issue here. Siblings case-01/02/03/04 implement actual politeness/live-value mechanisms; case-05 is the odd one out. Consider re-foldering or renaming to reflect the content-routing mechanism.",
+          "Minor: the page's own internal citations DO verify verbatim and are relevant (lines 16 and 25/27 of wcag-understanding/status-messages.html), so the artifact's documentation is correct; the citation defect is only in the stale prompt header, not the page."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "yes",
+          "disposition": "comment",
+          "commentReason": "other-error",
+          "commentText": "The main issue here is that the error mentioned in the comment is incorrect. Rather than having something that is polite or assertive, there isn't an alert type present, and having the assertive alert type would be the next step."
+        }
+      ]
+    }
+  ]
+}

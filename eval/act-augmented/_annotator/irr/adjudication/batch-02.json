@@ -1,0 +1,501 @@
+{
+  "batch": "02",
+  "n": 10,
+  "backupDir": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15",
+  "cases": [
+    {
+      "key": "1.3.1::form-label-and-group-relationships-by-context::case-04",
+      "sc": "1.3.1",
+      "aspect": "form-label-and-group-relationships-by-context",
+      "caseId": "case-04",
+      "severity": 5,
+      "signals": [
+        "CONTRADICTED",
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.3.1/pages/form-label-and-group-relationships-by-context/case-04.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.3.1/pages/form-label-and-group-relationships-by-context/case-04.html",
+        "caseDoc": "eval/act-augmented/1.3.1/pages/form-label-and-group-relationships-by-context/case-04.md",
+        "sourceOfTruth": "eval/act-augmented/1.3.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "Form field/label and field-group relationships conveyed only by visual layout (programmatic association, grouping, required-cues)",
+        "scenario": "Municipal building-permit 'Scope' section: two stacked yes/no questions — 'Will the work change the building's footprint?' (name=footprint) and 'Is the property in a flood-hazard zone?' (name=flood). Each question is a styled <p>; each radio pair is labelled Yes/No via <label for> with distinct names, but neither pair is wrapped in a fieldset/legend or role=radiogroup, so which radio answers which question is conveyed only by visual stacking.",
+        "mechanism": "All four radios have valid Yes/No accessible names (e086e5 passes). A screen-reader user navigating by form control lands on 'Yes, radio button, 1 of 2' with no programmatic context about which question it answers; both groups announce the same Yes/No and the questions are unassociated paragraphs. Identical option labels across two ungrouped sets create ambiguous group membership — the disambiguator (the stacked prose question) never reaches the accessibility tree.",
+        "whyAutomatedToolsMiss": "e086e5 confirms each radio is named and stops. No rule asserts that two adjacent radio groups with identical option labels must each carry a distinguishing group label, and a scanner cannot read the two <p> questions and reason that the second 'Yes' belongs to the flood question. Detecting ambiguous group membership requires understanding that the option labels collide and that the only disambiguator is visually-stacked prose — pure contextual/visual judgment.",
+        "primarySelector": "input[name=\"footprint\"]"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": [
+          "Borderline-but-defensible: WCAG/ACT does not strictly mandate a fieldset/legend for every radio group, so a pure 'ungrouped radios' framing could be argued either way. What pushes case-04 firmly into a real 1.3.1 failure is the IDENTICAL 'Yes'/'No' option labels across two adjacent groups (footprint vs flood) — this is precisely the 'significant risk of confusion' that the cited reference's own Note (line 40-41) uses to override the 'form fields not required to associate with section headings' exemption. The doc relies on this collision but does not explicitly cite the 'significant risk of confusion' clause that legitimizes it.",
+          "Unrelated axe noise present (landmark-one-main, region best-practice violations) — not the issue under test and harmless, but a reviewer running axe will see flags that have nothing to do with the documented grouping mechanism."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "no-error",
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "1.3.1::data-table-missing-or-suppressed-semantics::case-06",
+      "sc": "1.3.1",
+      "aspect": "data-table-missing-or-suppressed-semantics",
+      "caseId": "case-06",
+      "severity": 4,
+      "signals": [
+        "CONTRADICTED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.3.1/pages/data-table-missing-or-suppressed-semantics/case-06.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.3.1/pages/data-table-missing-or-suppressed-semantics/case-06.html",
+        "caseDoc": "eval/act-augmented/1.3.1/pages/data-table-missing-or-suppressed-semantics/case-06.md",
+        "sourceOfTruth": "eval/act-augmented/1.3.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Genuine data tables whose header/structure semantics are absent or stripped: all-<td> tables, and real data tables with role=presentation (F91, F92)",
+        "scenario": "An order-confirmation email containing TWO tables: (A) a layout table (greeting + order badge) correctly given role='presentation' with no headers, and (B) a genuine order line-items data table correctly built with <caption>, <th scope='col'>, and <th scope='row'>. Both choices are correct. Boundary PASS variant that sharpens the layout-vs-data distinction.",
+        "mechanism": "Correct retention vs. correct suppression: the layout table's role=presentation correctly removes unneeded table semantics (it reads sensibly in source order), while the data table correctly keeps caption + scope so every cell ('$9.00') announces its column header ('Unit price') and row header ('Reusable filter (size 02)'). No information or relationship is lost (TT 14.A/14.B pass for the data table; 14.C passes for the layout table).",
+        "whyAutomatedToolsMiss": "A scanner cannot ORIGINATE this verdict: it sees one valid role=presentation table and one valid table with <th scope> and reports 'no issues' regardless of whether the choices were appropriate — the identical output would appear if the roles were swapped (the failing case-04 pattern). Confirming the suppressed table really is layout and the semantic table really is the data requires the human to recognise which table is which, the exact judgment that makes case-04 fail and this page pass. Verified via a11y tree: layout table suppressed; data table = table:1, row:5, columnheader:4, rowheader:3, cell:11.",
+        "primarySelector": "table.order"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "No defect in the page or its labeling. This is a PASS-variant case (failure-mechanism: none), so 'errorIsReal' is interpreted as 'the documented accessibility situation/outcome is genuine' — which it is. There is no accessibility error on the page by design.",
+          "Minor scope note (not a defect): the element-under-test selector is table.order (the data table), but the human-judgment value of the case lives in the PAIR (layout table A vs data table B). The data table alone is a clean, valid semantic table that several automated checkers would also pass without error; the irreducible human-judgment requirement rests on distinguishing A=layout-correctly-suppressed from B=data-correctly-retained (the contrast with case-04). The case is still legitimately a human-judgment PASS, but a reviewer scoped only to table.order in isolation would see a trivially-correct table."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "2.4.4::preceding-heading-or-list-grouping-context-sufficiency::case-02",
+      "sc": "2.4.4",
+      "aspect": "preceding-heading-or-list-grouping-context-sufficiency",
+      "caseId": "case-02",
+      "severity": 4,
+      "signals": [
+        "CONTRADICTED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/2.4.4/pages/preceding-heading-or-list-grouping-context-sufficiency/case-02.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/2.4.4/pages/preceding-heading-or-list-grouping-context-sufficiency/case-02.html",
+        "caseDoc": "eval/act-augmented/2.4.4/pages/preceding-heading-or-list-grouping-context-sufficiency/case-02.md",
+        "sourceOfTruth": "eval/act-augmented/2.4.4/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Sufficiency of preceding-heading / list-grouping context as the purpose carrier (H80 judgment, including when the heading is NOT the link's context)",
+        "scenario": "A borough council publications page. Each document (Annual Report 2023-2024, Local Plan Review, Council Tax Booklet) is offered in three formats; a real <h2> names the document and the three short format links (HTML/PDF/RTF) sit in the SAME paragraph directly beneath it (H80 Example 2 done correctly). The deliberate PASS boundary variant.",
+        "mechanism": "For each format link the immediately preceding heading is the document title; link text combined with that heading conveys the purpose ('Annual Report 2023-2024, PDF format'). The heading is genuinely the link's grouping heading and the links + their disambiguating context are within one tightly-scoped <article>, satisfying the H80 test. Identical short format words ('PDF') resolve to different unambiguous purposes because they fall under different headings.",
+        "whyAutomatedToolsMiss": "Automation cannot confirm the pass: a same-text/different-URL heuristic would see three 'PDF' links to three URLs and might raise a false 'ambiguous link text' positive, while no tool can verify that 'PDF' under 'Annual Report 2023-2024' genuinely conveys purpose — that needs reading the heading and judging meaning. The correct verdict (pass) is unreachable by automation in either direction.",
+        "primarySelector": "article.pub:first-of-type > p.formats > a[href=\"/pubs/annual-report-2324.pdf\"]"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "Prompt/doc citation mismatch (non-defect, worth noting): the prompt's 'Claimed citation' field quotes the H80 *hotel* example sentence ('The information for each hotel consists of the hotel name, a description and a series of links...'), which does exist verbatim at wcag-techniques/html/H80.html:33 but is a DIFFERENT example than the one this page implements. The case-02.md doc itself cites the CORRECT and relevant example (the 'Annual Report 2006-2007' HTML/PDF/RTF code block, H80.html:59-64), so the doc's citation is sound; only the harness prompt field points at the wrong H80 example.",
+          "Minor authoring note: the visible/accessible link name is 'PDF (3.2 MB)' (the file-size span is inside the <a>), not bare 'PDF' as the doc prose implies ('the second link says \"PDF\"'). This does not change the verdict — purpose is still conveyed by heading+link, and the size is helpful context — but the accessible name differs slightly from the doc's simplification."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "1.3.1::structural-markup-misused-for-presentation::case-03",
+      "sc": "1.3.1",
+      "aspect": "structural-markup-misused-for-presentation",
+      "caseId": "case-03",
+      "severity": 3,
+      "signals": [
+        "SPLIT",
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.3.1/pages/structural-markup-misused-for-presentation/case-03.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.3.1/pages/structural-markup-misused-for-presentation/case-03.html",
+        "caseDoc": "eval/act-augmented/1.3.1/pages/structural-markup-misused-for-presentation/case-03.md",
+        "sourceOfTruth": "eval/act-augmented/1.3.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "Valid structural elements asserting relationships that do not exist: heading/blockquote/fieldset used for visual effect (F43)",
+        "scenario": "Food-blog recipe: under the real <h2> 'Ingredients', each of six ingredient lines ('2 cups all-purpose flour' …) is marked up as its own <h5> to render in a uniform bold serif. Each ingredient is a list item, not a section heading, so six sibling <h5> elements fabricate subsections that reflect no section structure (and the visually apparent list is also not coded as a list).",
+        "mechanism": "Pulling up the headings list, a screen-reader user hears each ingredient announced as a heading-level-5 section nested under 'Ingredients', asserting that each ingredient introduces a subsection — a relationship that does not exist; the ingredients are peers in one list. Six non-headings between two real sections make the heading rotor useless and misrepresent flat list items as a hierarchy (F43; also TT 10.D list-not-marked-up).",
+        "whyAutomatedToolsMiss": "Each <h5> is valid and non-empty; the h2->h5 jump is an axe/Lighthouse heading-order warning at most, and six repeated h5 siblings violate no rule. No automated check recognises '2 cups all-purpose flour' as an ingredient/list item rather than a section title — that needs understanding of the recipe domain.",
+        "primarySelector": "main h5"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": [
+          "None material. The page is a sound, self-contained F43 1.3.1 failure. Minor: the .md cites a secondary defect (ingredients not coded as <ul>) which is true but the named/primary mechanism (fabricated heading outline, F43) is the dominant and correctly attributed failure."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "no-error",
+          "commentText": ""
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "2.1.2::input-gate-required-interaction-exception::case-06",
+      "sc": "2.1.2",
+      "aspect": "input-gate-required-interaction-exception",
+      "caseId": "case-06",
+      "severity": 3,
+      "signals": [
+        "SPLIT",
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/2.1.2/pages/input-gate-required-interaction-exception/case-06.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/2.1.2/pages/input-gate-required-interaction-exception/case-06.html",
+        "caseDoc": "eval/act-augmented/2.1.2/pages/input-gate-required-interaction-exception/case-06.md",
+        "sourceOfTruth": "eval/act-augmented/2.1.2/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "Required-input / sequential-gate exception: a section that demands interaction before focus progresses is NOT a failure",
+        "scenario": "Online-banking transfer-authorisation screen: before authorising, the page holds focus on a 'Slide to confirm' control and suppresses forward Tab until the thumb is dragged to 100%. The slider is a hand-rolled pointer-drag widget (<div> thumb moved by mousedown/mousemove/mouseup; aria-hidden, no role=slider, no tabindex, no arrow/keydown handling). The required confirmation has no keyboard equivalent, so a keyboard user can never satisfy the gate or reach the Authorise button (FAIL).",
+        "mechanism": "The #thumb is exposed to AT only as decorative content (aria-hidden=true, not focusable, no role) and responds solely to pointer events; there is no arrow-key or other keyboard path to move it to 100%. Forward Tab out of the confirm section is suppressed until confirmed and the Authorise button stays disabled, so the keyboard user is stranded with no route to the rest of the page. A gate whose required interaction has no keyboard equivalent is exactly what the exception does not cover.",
+        "whyAutomatedToolsMiss": "The slider is built from <div>s with inline positioning styles; nothing declares them interactive (no role/tabindex/form element), so no name/role/value rule fires and the aria-hidden thumb reads as decorative. The Authorise button is legitimately disabled, which scanners accept. The trap is a runtime fact (clearable only by a drag, with forward Tab suppressed until then); scanners never drag or press Tab. A human must recognise the slide-to-confirm IS the required control and confirm it has no keyboard equivalent.",
+        "primarySelector": "#thumb"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": false,
+        "expectedOutcomeCorrect": false,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "blocker",
+        "recommendation": "drop",
+        "problems": [
+          "PROMPT-vs-PAGE MISMATCH (blocker): The prompt describes an online-banking 'Slide to confirm' widget with a hand-rolled <div id=\"thumb\"> pointer-drag slider (aria-hidden, no role=slider, no tabindex, no keydown) that FAILS SC 2.1.2. The actual file at this path is a clinical EHR drug-interaction review modal (title: 'Drug interaction review — MeridianEHR e-prescribe'). There is no slider, no banking content, and no #thumb anywhere in the source.",
+          "ELEMENT-UNDER-TEST DOES NOT EXIST: the named selector #thumb is absent. inspect.js confirms raw signal `\"selector\": { \"query\": \"#thumb\", \"error\": \"selector not found\" }`.",
+          "CLAIMED OUTCOME WRONG FOR THIS PAGE: prompt claims expectedOutcome=failed, but the actual page (HTML comment + case-06.md line 53) documents PASS — a conformant input-gate boundary variant (keyboard-satisfiable native checkboxes #ack1/#ack2 via Space, #sign release at lines 210-214, plus documented Alt+X exit at lines 224-228 announced in #escnote lines 140-143).",
+          "CLAIMED MECHANISM FABRICATED relative to this file: no pointer-only drag gate, no aria-hidden thumb, no missing keyboard equivalent. The page's real keyboard behavior (Alt+X untrap, Tab cycle, inert Esc) is the opposite of a trap.",
+          "CITATION MISattribution at the prompt level: prompt cites F10 for a slider trap; that mechanism is not present. (The F10 quote itself IS verbatim in wcag-techniques/failures/F10.html lines 4-5, and the page's own MD citations — Understanding lines 45-47, TT lines 21-22/29-31 — are all verbatim-accurate, so the underlying PASS artifact is well-cited; the defect is the prompt/selector binding to the wrong case.)"
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "other",
+          "commentText": "There is no thumb apparent in the code or website, keyboard interactions seem correct and correct when completing the check boxes for interactions in the pop up"
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "1.4.13::applicability-author-vs-ua-title-tooltip::case-03",
+      "sc": "1.4.13",
+      "aspect": "applicability-author-vs-ua-title-tooltip",
+      "caseId": "case-03",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.4.13/pages/applicability-author-vs-ua-title-tooltip/case-03.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.4.13/pages/applicability-author-vs-ua-title-tooltip/case-03.html",
+        "caseDoc": "eval/act-augmented/1.4.13/pages/applicability-author-vs-ua-title-tooltip/case-03.md",
+        "sourceOfTruth": "eval/act-augmented/1.4.13/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "Applicability gate — author-controlled tooltip vs. user-agent title= tooltip (and modal-dialog carve-out)",
+        "scenario": "Aurora Transit trip planner: each leg has a round service-note icon where the author sets title='' to suppress the native tooltip, then paints an identical gray bubble with a pure-CSS ::after { content: attr(data-hint) } (no JavaScript). The bubble appears only while the 22px icon itself is :hovered; a ::after pseudo-element cannot receive the pointer and there is no Escape affordance. Indistinguishable from a native tooltip, but author CSS owns it, so 1.4.13 applies and it fails.",
+        "mechanism": "title='' yields no UA tooltip; the visible gray bubble is an author CSS ::after, putting the content in scope. A ::after pseudo-element is generated content with no DOM/accessibility-tree node and cannot take the pointer, so moving off the 22px icon ends :hover and the bubble vanishes (not hoverable, F95); there is no dismiss path (not dismissible). Verified with Puppeteer: .feat has title='', getComputedStyle(.feat,'::after').content equals the data-hint text, and on a real mouse hover ::after opacity goes to 1 (screenshot confirmed the bubble).",
+        "whyAutomatedToolsMiss": "The element carries title='' so a scanner reads 'has a native tooltip', but an empty title produces no UA tooltip, so a tool may instead conclude nothing is on hover. Neither view captures that the visible bubble is an author CSS ::after (in scope). Recognizing the bubble is author-painted, that a pseudo-element cannot be hovered into, and that there is no dismiss path are all human visual/semantic judgments.",
+        "primarySelector": ".feat"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": [
+          "Doc/HTML over-claim: the .md (§20-24) and the in-HTML comment (lines 110-119) frame the failure as 'the ::after exposes no role to AT' / 'no accessibility-tree presence,' implying a screen-reader user cannot perceive the note. That is misleading: the author put the FULL note text in aria-label='Service note: ...' with role='img' on the focusable .feat element, so the AX tree DOES expose each note as the element's accessible name (probe + inspect.js confirm backendNodeIds 22/28/34 with names 'Service note: low-floor bus...' etc.). The genuine, narrower 1.4.13 failure is hoverable+dismissible for sighted low-vision/screen-magnification MOUSE users, not AT-perception. Outcome label (failed) is still correct, but the mechanism narration should be corrected to the magnification audience.",
+          "The CSS reveal is :hover-only; the bubble does NOT appear on keyboard focus (probe: focus opacity stays 0 while .feat is the activeElement). This is fine for the 1.4.13 verdict (the visual hover content is neither hoverable nor dismissible regardless), but the doc could note it is a separate 2.1.1/parity concern rather than part of the 1.4.13 mechanism."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "yes",
+          "disposition": "comment",
+          "commentReason": "other",
+          "commentText": "It is hoverable, but not dissmissable/escapable. So it is not both hoverable and dissmissable."
+        }
+      ]
+    },
+    {
+      "key": "1.4.1::required-field-color-only::case-05",
+      "sc": "1.4.1",
+      "aspect": "required-field-color-only",
+      "caseId": "case-05",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.4.1/pages/required-field-color-only/case-05.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.4.1/pages/required-field-color-only/case-05.html",
+        "caseDoc": "eval/act-augmented/1.4.1/pages/required-field-color-only/case-05.md",
+        "sourceOfTruth": "eval/act-augmented/1.4.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Required form fields indicated by color alone, with self-referential or absent text instruction",
+        "scenario": "TRUE-NEGATIVE. University course-registration form. Required fields are red AND every required label contains the explicit text cue '(required)' (e.g. 'Student ID (required)'), backed by an at-top legend 'Required fields are shown in red and marked with (required)', plus aria-required='true'. Colour is redundant, not the sole means — implements G205 correctly. Should PASS.",
+        "mechanism": "G205 satisfied: a visible non-colour textual cue ('(required)') identifies every required field, so use-of-colour is redundant and the required/optional distinction survives greyscale, colour-vision deficiency, and screen-reader announcement; meets 1.4.1.",
+        "whyAutomatedToolsMiss": "This case targets a false positive an over-eager rule would produce: a heuristic that flags 'required labels rendered in red' would wrongly fail it. Automated tools generally do not attempt the use-of-colour judgment at all, so they neither pass nor fail it on 1.4.1 grounds — but a human/LLM evaluator must recognise the '(required)' text is a genuine non-colour alternative and NOT flag it. Its value is confirming the evaluator applies the G205 escape instead of failing any red cue on sight.",
+        "primarySelector": ".f.req label"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": false,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "None material. This is an intentional TRUE-NEGATIVE (a PASS case), so by design there is no accessibility issue on the page — errorIsReal=false is the correct/expected state here, not a defect. The documented 'passed' outcome is correct.",
+          "Minor stylistic note only (not a defect): the .md cites TWO references (G205 + use-of-color Understanding); the prompt's 'named' citation is the second one. Both are accurate."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "no-error",
+          "commentText": ""
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "no",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "2.4.3::nested-and-static-focusable-illogical-stops::case-03",
+      "sc": "2.4.3",
+      "aspect": "nested-and-static-focusable-illogical-stops",
+      "caseId": "case-03",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/2.4.3/pages/nested-and-static-focusable-illogical-stops/case-03.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/2.4.3/pages/nested-and-static-focusable-illogical-stops/case-03.html",
+        "caseDoc": "eval/act-augmented/2.4.3/pages/nested-and-static-focusable-illogical-stops/case-03.md",
+        "sourceOfTruth": "eval/act-augmented/2.4.3/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "Confusing/illogical focus stops from nested focusable wrappers or focusable static content",
+        "scenario": "RTL Arabic (lang=ar dir=rtl) cross-border remittance form where a non-operable 'they receive ≈ 4,340 EGP' conversion read-out was made tabindex=0 (to host a rate-explainer tooltip on focus) and sits in the RTL tab sequence between the 'amount you send' input and the 'delivery method' select.",
+        "mechanism": "A focusable static read-out injected between two dependent steps of a transfer (how much -> how it arrives) interrupts the operable chain: after entering the amount, Tab lands on a non-operable text block (screen reader announces the converted amount/rate with nothing to do) before the delivery-method control. The dead stop mid-flow impedes operation of the transfer sequence.",
+        "whyAutomatedToolsMiss": "The read-out is valid markup (tabindex=0 legal on a div, carries text, lang/dir correctly matched so no i18n rule fires) and is not a form control, so there is no missing-label finding. Tools cannot determine that a focusable non-operable block sits between two sequential transfer steps, nor that the interruption impedes operation. Judging it requires reading the RTL flow, understanding step dependency, and tabbing through. Verified live: tab order is amount (#amount) -> .convert read-out -> delivery method (#method).",
+        "primarySelector": "div.convert[tabindex=\"0\"]"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": [
+          "PROMPT/METADATA MISMATCH (not a page defect): The prompt's claimed scenario, element selector (div.convert[tabindex=\"0\"]), and citation describe an RTL Arabic cross-border remittance form with a 'they receive ~4,340 EGP' conversion read-out. None of that exists in case-03.html. grep for convert/remittance/EGP/dir=rtl/lang=ar returned nothing (exit 1). The actual file is an English (lang=en) recipe 'cook mode' page. I judged the ACTUAL file.",
+          "The actual page's real defect: an interactive button[type=button] ('Start ... timer') is nested inside a focusable static span.badge.focusable[tabindex=0] (lines 71-78, 86-93, 101-108). Browser tab order confirms consecutive double stops per timed step: stop0 span named '2 Sear ... Start 30 min timer', stop1 button 'Start 30 min timer' (and analogously steps 3 & 4). This is the SC's named failure.",
+          "Minor AX-snapshot nuance: inspect.js reports the matched span as role 'generic', name '' (text is exposed via descendant StaticText/button nodes, not a flattened name on the generic). The span IS in the focus order and receives focus (outline applied); the tabOrder 'name' field flattens its descendant text to '2 Sear ... Start 30 min timer', so the perceived AT double-stop is genuine. Does not undermine the failure.",
+          "The prompt's own quoted citation sentence is the wrong half for this page (it belongs to the mismatched remittance scenario), but the MD doc's two citations are correct and verbatim."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "yes",
+          "disposition": "comment",
+          "commentReason": "other",
+          "commentText": "The \"Why automated tools miss it\" section contains a mismatched copy from a completely different component (referencing #amount, #method, and RTL flow)"
+        }
+      ]
+    },
+    {
+      "key": "4.1.3::after-the-fact-live-region-timing::case-04",
+      "sc": "4.1.3",
+      "aspect": "after-the-fact-live-region-timing",
+      "caseId": "case-04",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/4.1.3/pages/after-the-fact-live-region-timing/case-04.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/4.1.3/pages/after-the-fact-live-region-timing/case-04.html",
+        "caseDoc": "eval/act-augmented/4.1.3/pages/after-the-fact-live-region-timing/case-04.md",
+        "sourceOfTruth": "eval/act-augmented/4.1.3/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "Role/aria-live added together with (or after) the content, instead of pre-existing empty",
+        "scenario": "Real-time stock-price watchlist (novel long-tail): when a price-alert threshold is crossed the app mounts a custom element <price-alert>, whose connectedCallback createElement('div'), sets role=status and aria-live=assertive, sets textContent to the alert, and appends it — assembling a filled live region as the element enters the DOM via the custom-element lifecycle.",
+        "mechanism": "connectedCallback runs at insertion; building the role=status child with textContent already set and appending it materializes attribute+text as one connected subtree, with no empty-registered-region → mutation transition. Even aria-live=assertive typically stays silent because the region was never registered while empty, so the screen-reader trader gets no spoken alert.",
+        "whyAutomatedToolsMiss": "After mount the DOM holds a syntactically valid role=status aria-live=assertive region with text, so every rule passes; the element also auto-removes after 8s. The failure lives entirely in the custom-element lifecycle — a tool would have to model that connectedCallback set role and text before the node was ever observable as empty, which no static checker does. Verified via puppeteer: liveRegionsAtLoad=0, born-with-content node appears via connectedCallback.",
+        "primarySelector": "#alert-mount price-alert > div.alert-line[role=\"status\"][aria-live=\"assertive\"][data-region-born-with-content=\"true\"]"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": [
+          "Mechanism depends on AT-implementation-dependent behavior (born-with-content live regions are not announced); this is correct across NVDA/JAWS/VoiceOver per authoritative guidance and the .md correctly hedges with 'typically', so it does not undermine the verdict — but it is inherently not a hard guarantee like a pixel/attribute defect would be.",
+          "The prompt's element-under-test selector includes [data-region-born-with-content=\"true\"] which only exists AFTER the dynamic mount (2500ms+); the inspect.js static snapshot returns 'selector not found' by design — this is expected, not a defect, but a reviewer running only the static tool would see a false 'absent' signal."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "yes",
+          "disposition": "comment",
+          "commentReason": "other-error",
+          "commentText": "the region is not already live, which causes the issue to occur. Without the alert region being live beforehand, attadhed items will not be announced"
+        }
+      ]
+    },
+    {
+      "key": "4.1.3::removal-of-status-conveys-meaning-silently::case-01",
+      "sc": "4.1.3",
+      "aspect": "removal-of-status-conveys-meaning-silently",
+      "caseId": "case-01",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/4.1.3/pages/removal-of-status-conveys-meaning-silently/case-01.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/4.1.3/pages/removal-of-status-conveys-meaning-silently/case-01.html",
+        "caseDoc": "eval/act-augmented/4.1.3/pages/removal-of-status-conveys-meaning-silently/case-01.md",
+        "sourceOfTruth": "eval/act-augmented/4.1.3/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "Removal/absence of status text conveys meaning, but nothing is announced when it disappears",
+        "scenario": "Auto-parts AJAX 'Parts finder': a 'Searching the catalog…' spinner is announced in a role=status polite live region on entry, then the region is emptied on completion and the result rows plus an '8 matches found' count are injected into a separate non-live <section>. The disappearing spinner is the only 'done' cue; AT hears neither the end of the wait nor the count.",
+        "mechanism": "Phase-1 busy text enters a valid role=status/aria-live=polite region (announced). Phase-2 sets status.textContent='' — clearing a polite region produces no announcement, so the end of the waiting state is silent. The 'N matches found' count (itself a status message per the SC's search examples) is placed in #results which has role=null/aria-live=null, so it is never announced either.",
+        "whyAutomatedToolsMiss": "At every snapshot the markup is valid (real live region, labeled search input, well-formed result rows). axe/WAVE/Lighthouse never press Search, never observe the live region being EMPTIED on completion, and have no model that 'the busy text disappeared, therefore a done/count status was owed.' Inferring that the absence of the spinner is itself status, and that the count should have been announced, is a temporal/semantic workflow judgment, not a markup rule.",
+        "primarySelector": "#liveStatus"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": [
+          "Minor (not a defect): the page ships in its pre-search state, so the failure only manifests after the user presses Search and the 1400ms setTimeout fires (showSearching -> renderResults). This is intrinsic to a temporal 4.1.3 case and matches the documented mechanism, but a reviewer/checker that only inspects the static initial DOM will see a correct empty live region and a labeled results region and find nothing wrong. The dynamic transition is where the violation lives."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": "Once the matches are found, a matches found message is provided, and the match entries are also provided as well"
+        }
+      ]
+    }
+  ]
+}

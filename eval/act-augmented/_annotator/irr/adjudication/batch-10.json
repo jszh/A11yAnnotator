@@ -1,0 +1,500 @@
+{
+  "batch": "10",
+  "n": 10,
+  "backupDir": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15",
+  "cases": [
+    {
+      "key": "3.3.1::error-icon-text-alternative-misstates-error::case-02",
+      "sc": "3.3.1",
+      "aspect": "error-icon-text-alternative-misstates-error",
+      "caseId": "case-02",
+      "severity": 5,
+      "signals": [
+        "CONTRADICTED",
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/3.3.1/pages/error-icon-text-alternative-misstates-error/case-02.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/3.3.1/pages/error-icon-text-alternative-misstates-error/case-02.html",
+        "caseDoc": "eval/act-augmented/3.3.1/pages/error-icon-text-alternative-misstates-error/case-02.md",
+        "sourceOfTruth": "eval/act-augmented/3.3.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "Error is conveyed via an icon/image that HAS a text alternative, but the alt/name misstates, genericises, or mislocates the error",
+        "scenario": "Workforce SaaS password reset; the user supplied a 7-char password (policy requires 10) so the field is filled-but-too-short, yet the error icon emitted by a validation-plugin template carries alt=\"This field is required\" — the wrong cause.",
+        "mechanism": "The icon exposes role=img name=\"This field is required\" (CDP-confirmed), tied to the field via aria-errormessage. The field is not empty (value summer7); the announced cause (required/omitted) contradicts the true error (outside required values — too short), so the user re-types content that is already present and never learns the real rule.",
+        "whyAutomatedToolsMiss": "The image has a non-empty alt, aria-errormessage is correctly wired, and contrast is fine — every structural rule passes. Tools cannot read the field value and the 10-char policy to know the password was supplied but too short, nor judge that \"required\" is the wrong cause; identifying a wrong-cause alternative requires reasoning about the field's actual state.",
+        "primarySelector": "img#newpw-icon"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": []
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "no-error",
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "2.4.4::generic-link-text-no-rescuing-context::case-06",
+      "sc": "2.4.4",
+      "aspect": "generic-link-text-no-rescuing-context",
+      "caseId": "case-06",
+      "severity": 4,
+      "signals": [
+        "CONTRADICTED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/2.4.4/pages/generic-link-text-no-rescuing-context/case-06.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/2.4.4/pages/generic-link-text-no-rescuing-context/case-06.html",
+        "caseDoc": "eval/act-augmented/2.4.4/pages/generic-link-text-no-rescuing-context/case-06.md",
+        "sourceOfTruth": "eval/act-augmented/2.4.4/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Generic/boilerplate link text with a non-empty name but no purpose, and no context that rescues it (G91/H30 substantive failure)",
+        "scenario": "Public-health dashboard: a bar chart of childhood MMR coverage with a <figcaption> ending in a 'learn more' link. The caption sentence names the destination subject ('the methodology and clinic-level breakdown behind this 2025 dip in MMR coverage') immediately before the generic phrase, and the link lives INSIDE the figcaption — the hardest borderline PASS.",
+        "mechanism": "The link is a descendant of the <figcaption>, which is the link's containing block (and the figure's accessible name via aria-labelledby); the caption sentence names the subject BEFORE 'learn more', so a screen-reader user reading the caption hears the purpose first and can identify the link in context (2.4.4 same-block rule + G53). Accessible name confirmed as 'learn more' via AX tree.",
+        "whyAutomatedToolsMiss": "False-positive trap: 'learn more' is on phrase blocklists so heuristic tools flag a violation — incorrectly, because the figcaption rescues it. A name-presence tool passes it but for the wrong reason (it never reads context). Reaching the correct PASS requires a human to read the caption, locate the subject words ('2025 dip in MMR coverage'), confirm they sit in the link's containing block and precede the link, and judge they convey purpose; the chart data is an aria-label on role=img, opaque to text analysis.",
+        "primarySelector": "figure figcaption a[href=\"/reports/mmr-2025-methodology\"]"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "Minor citation note (not a defect): the Understanding 2.4.4 quote in case-06.md (lines 56-58) uses an ellipsis to elide the middle clause 'or in the table header cell for a link in a data table'. The head ('This can be achieved by putting the description of the link in the same sentence, paragraph, list item, or table cell as the link') and tail ('because these are directly associated with the link itself') are BOTH verbatim against wcag-understanding/link-purpose-in-context.html lines 57-58, and the elision is faithful (single continuous sentence, not stitched from non-adjacent fragments). G53 quote verifies verbatim against wcag-techniques/general/G53.html lines 32-33. The prompt's own citation string only quotes the head clause, which is also verbatim. No hallucination.",
+          "This is a borderline PASS, not a failing case, so 'errorIsReal' is interpreted as 'the documented accessibility characteristic/scenario is genuine and the page truly exhibits it' — it does. There is no claimed violation to refute; the claim is that the generic phrase is RESCUED by context, and that is true."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "1.1.1::meaningful-image-suppressed-as-decorative::case-01",
+      "sc": "1.1.1",
+      "aspect": "meaningful-image-suppressed-as-decorative",
+      "caseId": "case-01",
+      "severity": 3,
+      "signals": [
+        "SPLIT",
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.1.1/pages/meaningful-image-suppressed-as-decorative/case-01.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.1.1/pages/meaningful-image-suppressed-as-decorative/case-01.html",
+        "caseDoc": "eval/act-augmented/1.1.1/pages/meaningful-image-suppressed-as-decorative/case-01.md",
+        "sourceOfTruth": "eval/act-augmented/1.1.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "A genuinely informative/functional image marked decorative (alt=\"\" / role=presentation) so AT cannot reach it",
+        "scenario": "Marketplace listing whose 'Verified seller' green-check badge — the only per-listing signal that this seller passed identity verification — is an inline SVG suppressed from AT via role=presentation + aria-hidden. Unverified sellers render the same row without the check, so the badge's presence is the data; no text states this seller is verified.",
+        "mechanism": "Informative trust badge declared decorative: the wrapper span carries role=presentation and the SVG aria-hidden=true, so the verification fact is pruned from the accessibility tree though it is the sole per-listing carrier (Trusted Tester 7.B condition 1 fails; F38/F39 inverted).",
+        "whyAutomatedToolsMiss": "An aria-hidden/role=presentation graphic is exactly what ACT 46ca7f and e88epe PASS by construction, and 23a2a8 only applies to named images. axe/WAVE/Lighthouse treat an empty name as a correct decorative declaration and never ask whether the badge SHOULD have been informative; judging the green check is the lone trust signal requires seeing it and reasoning about marketplace context.",
+        "primarySelector": ".seller-row .badge[role=\"presentation\"] > svg[aria-hidden=\"true\"]"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": [
+          "Minor (non-blocking) imprecision in the HTML head comment, line 11: it says the name is forced empty 'via aria-hidden=\"true\" + alt=\"\" semantics' — SVG elements do not take an alt attribute, so the 'alt=\"\"' phrasing is inaccurate. The actual implemented mechanism (aria-hidden=true on the SVG + role=presentation on the wrapper) is correct and is what the AX tree reflects; this is a comment wording slip, not a defect in the test page or its outcome.",
+          "Inspector tabOrder output is noisy (24 stops, all resolving to the single 'Add to cart' button) — an artifact of the tool tabbing repeatedly on a page with one focusable control. It does not affect the verdict; the badge correctly carries focusable=\"false\" and is absent from tab order, satisfying Trusted Tester 7.B condition 2."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "no-error",
+          "commentText": ""
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "2.1.2::esc-standard-exit-method-no-advice-owed::case-02",
+      "sc": "2.1.2",
+      "aspect": "esc-standard-exit-method-no-advice-owed",
+      "caseId": "case-02",
+      "severity": 3,
+      "signals": [
+        "SPLIT",
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/2.1.2/pages/esc-standard-exit-method-no-advice-owed/case-02.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/2.1.2/pages/esc-standard-exit-method-no-advice-owed/case-02.html",
+        "caseDoc": "eval/act-augmented/2.1.2/pages/esc-standard-exit-method-no-advice-owed/case-02.md",
+        "sourceOfTruth": "eval/act-augmented/2.1.2/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "Esc and other platform 'standard exit methods' as the untrap mechanism — and whether they actually fire",
+        "scenario": "E-commerce (Trailhead Outfitters) quick-view product modal. Valid role=dialog/aria-modal markup, Tab trapped. The keydown handler calls preventDefault()+stopPropagation() on Esc so the standard exit does nothing; the only keyboard release is the undocumented Ctrl+M, with no advice text. Directly contrastable with case-01 — distinguishing them requires actually pressing Esc.",
+        "mechanism": "#qv keydown handler returns without closing on Escape (Esc neutralized) and only closes on Ctrl+M, which no instruction reveals. Standard exit is dead and the working method is non-standard AND unadvised, so the conditional-pass clause cannot be satisfied. Verified by probe: after Esc still inDialog=true (on #qvColour); Ctrl+M released to the trigger.",
+        "whyAutomatedToolsMiss": "The markup is a textbook-correct modal, structurally indistinguishable from the passing case-01. The defect is purely runtime: a tool would have to press Esc, observe focus does NOT leave, then discover only an obscure combo escapes. Static scanners never press keys.",
+        "primarySelector": "#qv"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": [
+          "Minor citation imprecision (not a defect): the Trusted Tester quote on .md line 53 recomposes two separate bullets (a. Standard navigation keys / b. Custom keystrokes that are documented and available) into a single OR-sentence. Wording is faithful to the source (refs/trusted-tester/sc-2.1.2-no-keyboard-trap.md lines 29-31) but is a stitch rather than a verbatim contiguous quote. The primary WCAG citation verifies character-for-character.",
+          "Borderline SC-purist nuance (does not change the FAIL verdict): the focusable '×' close button (#qvClose, aria-label='Close quick view') is keyboard-operable once Tab-reached, so a user could Tab to it and press Enter/Space to escape. The corpus framing (Esc is THE standard exit method for a modal; only the undocumented Ctrl+M is a real keyboard 'method') is defensible and the JS comment at lines 150-151 acknowledges this explicitly, so the FAIL stands, but a strict ACT evaluator might argue focus is escapable via the standard close control."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "no-error",
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "1.1.1::text-lookalike-glyph-substitution::case-07",
+      "sc": "1.1.1",
+      "aspect": "text-lookalike-glyph-substitution",
+      "caseId": "case-07",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.1.1/pages/text-lookalike-glyph-substitution/case-07.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.1.1/pages/text-lookalike-glyph-substitution/case-07.html",
+        "caseDoc": "eval/act-augmented/1.1.1/pages/text-lookalike-glyph-substitution/case-07.md",
+        "sourceOfTruth": "eval/act-augmented/1.1.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Text look-alike (homoglyph / Unicode confusable) glyphs representing text with no text alternative (F71)",
+        "scenario": "Boundary/PASS control on a kitchen-knife page: (A) the hero heading visually reads 'Cook' using confusable glyphs (U+03F2 U+043E U+03BF + k) but marks them aria-hidden and supplies a visually-hidden real-Latin 'Cook' text alternative; (B) a recipe quotes legitimate, language-tagged Greek (τζατζίκι and Καλή όρεξη, lang=el); (C) plain-Latin brand and CTA controls.",
+        "mechanism": "The aria-hidden confusable glyphs are skipped by AT and the sr-only span exposes the real word, so the heading is announced as 'Cook well, eat well.'; the Greek spans are tagged lang=el and announced correctly as Greek. No range of text relies on look-alike glyphs without an alternative, so F71's failure condition ('there is not a text alternative for any range of text that uses look-alike glyphs') is not triggered.",
+        "whyAutomatedToolsMiss": "Symmetry point: just as scanners cannot DETECT the F71 failures (no graphical element; valid non-empty text), they equally cannot CONFIRM this page is fine — axe-core/WAVE/Lighthouse have no model that the hidden sr-only 'Cook' rescues the decorative confusable heading, nor that the Greek is legitimate rather than abuse. Both verdicts require the same human reading judgment.",
+        "primarySelector": "section.hero > h1 > span.sr-only"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": false,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "This is a deliberate BOUNDARY/PASS control, not a failure case. 'errorIsReal=false' here means there is correctly NO accessibility violation on the page (the intended state), and 'expectedOutcomeCorrect=true' confirms the documented 'passed' label is accurate. The claimed issue is the absence of an F71 failure, and that absence is genuine.",
+          "Minor doc/selector note: the .md 'Element / selector carrying the issue' lists the sr-only span as 'the text alternative' while the element-under-test selector is also section.hero > h1 > span.sr-only. The actual conformance depends on BOTH the aria-hidden confusable span AND the sr-only span working together; the single selector under test (sr-only only) is the rescue half. Not a defect, just an asymmetry worth noting."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "no-error",
+          "commentText": ""
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "no",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "1.4.1::error-validation-color-only::case-07",
+      "sc": "1.4.1",
+      "aspect": "error-validation-color-only",
+      "caseId": "case-07",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.4.1/pages/error-validation-color-only/case-07.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.4.1/pages/error-validation-color-only/case-07.html",
+        "caseDoc": "eval/act-augmented/1.4.1/pages/error-validation-color-only/case-07.md",
+        "sourceOfTruth": "eval/act-augmented/1.4.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Error / validation feedback conveyed by color alone (red border or red text only) in the post-submit state",
+        "scenario": "TRUE-NEGATIVE (long-tail RTL i18n): Arabic (dir=rtl, lang=ar) mobile-banking transfer form in the post-submit state. The invalid 'amount' field gets a DARK-RED border (#7c0c12) while valid fields keep a LIGHT-GRAY border (#c1c7cd); there is still no text or icon. The two border colors differ in relative luminance by ~6.4:1 (verified), far above 3:1, so in grayscale the invalid border reads as a conspicuously darker, heavier line — a non-hue (lightness) distinction. Passes via the escape hatch.",
+        "mechanism": "Understanding-note lightness escape hatch: the invalid (#7c0c12, very low L*) and valid (#c1c7cd, high L*) borders have a luminance contrast of ~6.4:1, so the distinction is carried by lightness, not hue alone; the dark border stays distinguishable in grayscale, satisfying 1.4.1. (3.3.1/4.1.2 gaps remain but are out of scope.)",
+        "whyAutomatedToolsMiss": "Tools never reach the post-submit state and do not compute border-to-border luminance deltas to evaluate the escape hatch; they would simply pass a labeled input with a CSS border for the wrong reason. The interesting failure mode is a human over-flagging it as F81 like case-01; the correct verdict requires recognizing the lightness delta clears 3:1 (grayscale test), which is exactly the human reasoning probed.",
+        "primarySelector": "#amount.bad"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "No defects affecting the 1.4.1 verdict. (Out-of-scope, correctly noted in the doc: the invalid #amount has no aria-invalid and no per-field error text/programmatic association, which are genuine 3.3.1/4.1.2 gaps — but those are different SCs and do not affect the 1.4.1 'passed' label.)"
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "no-error",
+          "commentText": ""
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "no",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "2.4.3::modal-focus-not-contained-both-directions::case-05",
+      "sc": "2.4.3",
+      "aspect": "modal-focus-not-contained-both-directions",
+      "caseId": "case-05",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/2.4.3/pages/modal-focus-not-contained-both-directions/case-05.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/2.4.3/pages/modal-focus-not-contained-both-directions/case-05.html",
+        "caseDoc": "eval/act-augmented/2.4.3/pages/modal-focus-not-contained-both-directions/case-05.md",
+        "sourceOfTruth": "eval/act-augmented/2.4.3/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Modal dialog focus is not contained — forward Tab or backward Shift+Tab escapes behind the inert backdrop",
+        "scenario": "Brightpath LMS 'Submit Lab Report 3' modal opened with native dialog.showModal() (UA-managed inert + containment). Inside, the formatting toolbar is an APG roving-tabindex group (one Tab stop, arrow-key navigation), so the FORWARD Tab order and the BACKWARD Shift+Tab order are intentionally NOT mirror images — yet focus never leaves the dialog and every control stays reachable and operable. PASS counter-example for the 'backward need not mirror forward' limb (TT 4.F step 2d).",
+        "mechanism": "Native showModal() makes content outside <dialog> inert, so neither Tab nor Shift+Tab can leave the dialog (verified: 0 page-content focus hits over 20 Tabs; the background trigger is non-focusable while open). The roving-tabindex toolbar is a single tab stop, so the forward and backward sequences differ by design, but every control remains reachable (arrows within the toolbar) and operable. TT 4.F step 2d permits a non-mirrored backward order as long as meaning and operability are preserved, so this conforms.",
+        "whyAutomatedToolsMiss": "This case exists to catch FALSE POSITIVES. A naive checker or over-eager heuristic might compute the forward and backward Tab sequences, notice they are not exact reverses (because of the roving toolbar), and wrongly flag a focus-order problem. A correct verdict requires applying TT 4.F step 2d (backward need not mirror forward) and confirming by keyboard that focus never leaves the dialog and every control is reachable — judgments a static tool cannot make, since it cannot drive showModal() containment or arrow-key roving navigation.",
+        "primarySelector": "#dlg"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "Doc/HTML claim '0 page-content focus hits over 20 Tabs' is technically inaccurate: at the native-<dialog> focus-wrap boundary document.activeElement becomes BODY (tabIndex -1), 2 such hits per 20 presses each direction. It is a Chromium wrap artifact (no operable background control is ever reachable), so the PASS is unaffected, but the evidence wording overstates and should read 'no operable page content reached in either direction'."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "no",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "other",
+          "commentText": "This isolates the classification mismatch and prevents this polluted logic loop from reinforcing the model's weights"
+        }
+      ]
+    },
+    {
+      "key": "3.3.1::inline-error-adjacent-to-wrong-field::case-06",
+      "sc": "3.3.1",
+      "aspect": "inline-error-adjacent-to-wrong-field",
+      "caseId": "case-06",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/3.3.1/pages/inline-error-adjacent-to-wrong-field/case-06.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/3.3.1/pages/inline-error-adjacent-to-wrong-field/case-06.html",
+        "caseDoc": "eval/act-augmented/3.3.1/pages/inline-error-adjacent-to-wrong-field/case-06.md",
+        "sourceOfTruth": "eval/act-augmented/3.3.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Inline error message is visually placed next to the WRONG field, with no programmatic association to check",
+        "scenario": "BOUNDARY PASS. Community-garden waitlist form with stacked Full name (valid), Email (value 'priya.nair@', invalid), Phone (valid). The error 'Email address is incomplete — add the part after the @.' is rendered inside the Email field's own block directly under the Email input, which carries the red invalid border. There is NO aria-describedby — identification rests entirely on presentation, done correctly.",
+        "mechanism": "Structurally identical to the failing siblings (distinct stacked fields, inline red error, no aria-describedby), but proximity is correct: the message's rendered position and its text both name the Email field, and Email is the field actually in error. Visual adjacency and message semantics agree and point at the correct field, satisfying identification 'through presentation'. Programmatic association is not required by SC 3.3.1.",
+        "whyAutomatedToolsMiss": "A static scan sees the same thing on every page in this aspect: present, visible, descriptive error text and no aria-describedby to flag. The only thing that flips pass vs fail is whether the message's rendered position points at the field its text names and that is actually in error — a human visual-spatial + semantic judgment. This passing boundary proves the discriminator is the spatial/semantic match, not 'missing ARIA' and not 'inline errors are bad'.",
+        "primarySelector": ".field:nth-of-type(2) .field-msg"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": false,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "This is a PASSED boundary case by design — there is intentionally NO accessibility defect, so errorIsReal=false reflects 'no defect exists' (as intended), NOT a flaw in the case. expectedOutcomeCorrect=true because the documented 'passed' label is correct.",
+          "Minor doc nuance: the .md/.html narrative emphasizes the discriminator vs. failing siblings, which is appropriate; the value here is corpus-discriminator coverage, not a detectable failure."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "no",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": "The email address as mentioned in the error, is incomplete as mentioned and sits by the correct field."
+        }
+      ]
+    },
+    {
+      "key": "4.1.3::non-textual-status-icon-sound-without-text-alt::case-06",
+      "sc": "4.1.3",
+      "aspect": "non-textual-status-icon-sound-without-text-alt",
+      "caseId": "case-06",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/4.1.3/pages/non-textual-status-icon-sound-without-text-alt/case-06.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/4.1.3/pages/non-textual-status-icon-sound-without-text-alt/case-06.html",
+        "caseDoc": "eval/act-augmented/4.1.3/pages/non-textual-status-icon-sound-without-text-alt/case-06.md",
+        "sourceOfTruth": "eval/act-augmented/4.1.3/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Non-textual status (icon/sound) given a status role but no usable text alternative",
+        "scenario": "PASS boundary control: a food-ordering confirmation toast (Saffron Kitchen). On Place order, a present role=\"alert\" plays a success chime and shows a green check icon (aria-hidden), but co-locates a meaningful text node — 'Order placed — Confirmation #SK-4471 · ready ~6:45 PM' — inside the same atomic region, so the present live region announces a real status.",
+        "mechanism": "The role=\"alert\" (assertive, atomic) fires on success and announces its full text content; the decorative check icon is correctly aria-hidden so it injects no stray symbol, and the chime is supplementary (its information is duplicated by the announced text). A blind user receives the same status as a sighted user — the non-text status (icon/sound) is backed by an accurate co-located text alternative. Headless check confirmed announced text == 'Order placed Confirmation #SK-4471 · ready ~6:45 PM' with icon aria-hidden == \"true\".",
+        "whyAutomatedToolsMiss": "Structurally a scanner sees the SAME shape here as in the icon-only failures — a valid live region plus an aria-hidden decorative icon — so it cannot certify this as a genuine pass on its own. Distinguishing this PASS from case-01/02 requires reading the region's text content in context and confirming it conveys the order status (and that the chime has a text/visible equivalent): the exact 'is the non-text status backed by an accurate text alternative?' judgment no rule performs.",
+        "primarySelector": "#toast[role=\"alert\"]"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "Minor citation/role mismatch: the cited technique ARIA22 is titled 'Using role=status to present status messages' (polite live region), but the page-under-test uses role=\"alert\" (assertive). The quoted sentences are verbatim-correct and the underlying principle (a text equivalent to the visual status must reside inside the atomic container) applies to any atomic live region, so the mechanism is supported; but ARIA22 is not the most precise technique for an alert. Harmless for a PASS-control page, worth a note only.",
+          "This is a PASS/boundary control, so there is no 'accessibility issue' to detect; errorIsReal is interpreted as 'the documented passing mechanism genuinely holds' which it does. Reviewers expecting a defect should note the case is intentionally a non-violation."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "no",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": "aria-atomic has content in the toast mentioned and the toast also gives a little chime as well to the user"
+        }
+      ]
+    },
+    {
+      "key": "4.1.3::wrong-live-region-politeness-for-urgency::case-06",
+      "sc": "4.1.3",
+      "aspect": "wrong-live-region-politeness-for-urgency",
+      "caseId": "case-06",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/4.1.3/pages/wrong-live-region-politeness-for-urgency/case-06.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/4.1.3/pages/wrong-live-region-politeness-for-urgency/case-06.html",
+        "caseDoc": "eval/act-augmented/4.1.3/pages/wrong-live-region-politeness-for-urgency/case-06.md",
+        "sourceOfTruth": "eval/act-augmented/4.1.3/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Live-region politeness is semantically wrong for the message's urgency and update frequency",
+        "scenario": "PASS boundary: a bank sign-in verification screen with correct urgency-to-politeness mapping in BOTH directions. (A) A 60-second one-time-code expiry that BLOCKS sign-in is correctly wired role=alert (assertive) so the user hears the deadline in time. (B) A trivial 'Devices currently signed in: N' badge updating every few seconds is correctly wired aria-live=polite so it never interrupts, and carries an on/off toggle exactly as SCR14 prescribes for nonessential alerts. Politeness matches meaning and cadence, so the page passes.",
+        "mechanism": "Assertive on the blocking code-expiry warning is correct: it interrupts to deliver the time-critical deadline immediately. Polite on the low-value device-count badge is correct: updates queue behind speech and never preempt the user, and the SCR14 toggle flips aria-live to off so the user can suppress them. Both messages are announced, each at a politeness appropriate to its meaning and frequency — no defect.",
+        "whyAutomatedToolsMiss": "axe/WAVE/Lighthouse pass this page — but they would EQUALLY pass it if the politeness values were swapped (urgent message polite, trivial badge assertive), because both assertive and polite are legal and a live region is present either way. The tools cannot distinguish a correct urgency mapping from an incorrect one; only a human reviewer weighing each message's meaning and update frequency can confirm the mapping is right. This control proves the aspect is about human judgment, not markup validity.",
+        "primarySelector": "div#securityMsg[role=\"alert\"]"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": false,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "Minor (not a defect): SCR14's own example wires the toggleable region as aria-live=assertive when announcements are on, whereas this page wires the toggleable badge as aria-live=polite. SCR14 is about the existence of an opt-out mechanism, not a specific politeness level, so the page's choice is still supported by the technique (and is the more conservative, correct choice for a trivial badge). Citation remains valid.",
+          "The element-under-test selector (div#securityMsg[role=alert]) points at the CORRECT-assertive region, but the SCR14 citation actually describes the OTHER region (span#activityMsg / button#liveToggle). This is a documentation framing quirk, not an accessibility defect; the .md doc lists both selectors so the intent is clear."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "no",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": "The error message is assertive which makes sense for the messages urgency"
+        }
+      ]
+    }
+  ]
+}

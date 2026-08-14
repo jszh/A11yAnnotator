@@ -1,0 +1,480 @@
+{
+  "batch": "04",
+  "n": 10,
+  "backupDir": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15",
+  "cases": [
+    {
+      "key": "1.3.1::layout-table-fabricating-data-semantics::case-06",
+      "sc": "1.3.1",
+      "aspect": "layout-table-fabricating-data-semantics",
+      "caseId": "case-06",
+      "severity": 5,
+      "signals": [
+        "CONTRADICTED",
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.3.1/pages/layout-table-fabricating-data-semantics/case-06.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.3.1/pages/layout-table-fabricating-data-semantics/case-06.html",
+        "caseDoc": "eval/act-augmented/1.3.1/pages/layout-table-fabricating-data-semantics/case-06.md",
+        "sourceOfTruth": "eval/act-augmented/1.3.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "Layout tables that falsely assert data-table relationships: th, caption, scope, or summary on a positioning-only table (F46)",
+        "scenario": "A weekly typography newsletter (The Proof Sheet, Issue 47) is built from deeply nested HTML-email layout tables. Every layout table is correctly role=\"presentation\" EXCEPT the masthead 'header band', which was copied from a data-table block in the ESP snippet library and still carries a <th scope=\"col\">The Proof Sheet</th> and has no presentation role — so that single band re-enters the accessibility tree as a data table whose column header is 'The Proof Sheet'.",
+        "mechanism": "Because role=\"presentation\" is absent on the header band AND it contains a <th>, AT re-exposes that band as a data table: 'table, 1 column', with 'The Proof Sheet' announced as the column header for the issue-line cell beneath it — a fabricated relationship (it is just a masthead). The surrounding presentational tables read normally, so the experience is one jarring 'table' interruption asserting structure that does not exist. F46 names a <th> in a layout table as a failure; TT 14.C requires layout tables to carry no header structure (or to be role=presentation).",
+        "whyAutomatedToolsMiss": "Scanners see a mostly well-formed email: most layout tables are role=presentation and the one <th> that exists has its assigned cell, so internal-correctness rules (a25f45) pass and nothing is flagged. No rule flags 'a <th> on a layout table' because no rule decides the band is layout — it would have to distinguish this masthead band (layout) from a genuine data band (which SHOULD keep its <th>), and notice that exactly one sibling lost its role=presentation. That is the TT 14.C human judgment (TT even instructs testers to IGNORE header alerts on tables that ARE marked presentation — the inverse case). Verified in Chromium: 6 nested tables, 5 role=presentation, 1 leftover th[scope=col]='The Proof Sheet' on a non-presentation band.",
+        "primarySelector": "table.header-band th[scope=\"col\"]"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": []
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "no-error",
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "1.3.1::visual-headings-without-heading-markup::case-06",
+      "sc": "1.3.1",
+      "aspect": "visual-headings-without-heading-markup",
+      "caseId": "case-06",
+      "severity": 4,
+      "signals": [
+        "CONTRADICTED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.3.1/pages/visual-headings-without-heading-markup/case-06.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.3.1/pages/visual-headings-without-heading-markup/case-06.html",
+        "caseDoc": "eval/act-augmented/1.3.1/pages/visual-headings-without-heading-markup/case-06.md",
+        "sourceOfTruth": "eval/act-augmented/1.3.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Visual-only headings: text styled to look like a heading but marked up as plain p/div/span (F2)",
+        "scenario": "BOUNDARY PASS: coffee-roastery 'Our Story' page where the giant brand tagline 'Slow coffee, made by hand.' and a centered italic pull-quote 'The best cup I've had in this city.' are large/bold but correctly NOT headings (decorative statement + excerpt), while the three genuine section headings ('Where we started', 'How we roast', 'Visit the bar') are exposed via role=heading aria-level=2 (design-system-without-native-h* persona).",
+        "mechanism": "The three role=heading paragraphs expose as heading level 2 and each precedes the section it titles; the tagline exposes as paragraph and the pull-quote as blockquote (read in flow, not announced as headings). Live AX returned exactly the three real section headings and neither the tagline nor the pull-quote — every visual heading is programmatically determinable AND no non-heading is falsely a heading (TT 10.B both directions).",
+        "whyAutomatedToolsMiss": "Just as tools cannot detect the failures in 01-05, they cannot verify this pass: a scanner cannot confirm 'Slow coffee, made by hand.' correctly is NOT a heading while 'Where we started' correctly IS — both are styled prominently, and role=heading with a valid aria-level passes ARIA validity checks (ACT 4e8ab6) regardless of true heading function. Confirming the verdict requires reading each block's meaning and visual role.",
+        "primarySelector": "p.heading[role=\"heading\"]"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": false,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "None material. This is a deliberate BOUNDARY/PASS negative-control case, so there is correctly no accessibility error to find (errorIsReal=false is the intended state, not a defect). Minor note: as a pass case it carries no actual barrier; its value is purely as a sharpening counter-example proving the aspect is about heading FUNCTION not visual prominence."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "3.3.1::silent-redisplay-after-real-error::case-06",
+      "sc": "3.3.1",
+      "aspect": "silent-redisplay-after-real-error",
+      "caseId": "case-06",
+      "severity": 4,
+      "signals": [
+        "CONTRADICTED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/3.3.1/pages/silent-redisplay-after-real-error/case-06.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/3.3.1/pages/silent-redisplay-after-real-error/case-06.html",
+        "caseDoc": "eval/act-augmented/3.3.1/pages/silent-redisplay-after-real-error/case-06.md",
+        "sourceOfTruth": "eval/act-augmented/3.3.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Post-submit page suppresses the error: form silently re-displayed (or shows a neutral/success banner) after a real validation failure — trigger-and-observe failure of NO indicator",
+        "scenario": "CONTROL (discrimination boundary): the same Riverbend Library membership flow as case-01, but the genuine SUCCESS result after VALID input (Age 34, a real email). The server accepted the data and rendered a true confirmation — a read-only summary of the accepted values, a real membership number (RVB-2026-08831), and next steps — with no editable form re-displayed and legitimately no error message. Must be judged passed while case-01..05 are failed.",
+        "mechanism": "3.3.1 applies only when an input error is automatically detected; here none was — the submission succeeded — so the absence of an error message is correct, required behaviour (ACT Passed Example 3). The page-state cues all point to genuine success: valid accepted values, a real reference number, no editable form to re-submit, and honest success copy conveyed in text. This is the legitimate counterpart that separates a benign result page from a suppressed-failure page.",
+        "whyAutomatedToolsMiss": "This case tests discrimination, not detection: it has the same 'no error indicator on a post-submit page' surface that automated tools read as a pass. The risk is the opposite — a context-blind heuristic that flags 'post-submit page + no error' would wrongly fail it. A correct human/LLM judgment uses the page-state cues (valid accepted values, real reference number, no re-displayed editable form, honest success copy) to confirm legitimate success and PASS it, while still failing case-01..05 where the same cue-types point to a hidden failure.",
+        "primarySelector": "dl.saved (read-only accepted values: Age 34) + .refbox .num (RVB-2026-08831)"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": false,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "No defect to report — this is a CONTROL case correctly labeled 'passed'. There is no accessibility error, by design; errorIsReal=false reflects the (correct) absence of any issue, not a defect in the case.",
+          "Minor labeling nuance: 3.3.1 here is arguably INAPPLICABLE (no input error was automatically detected) rather than strictly 'passed'. The ACT rule shape supports treating a no-error-detected success page as a pass/inapplicable; the doc's 'passed' is acceptable but 'inapplicable' would be the more precise ACT verdict. Not a blocker."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "1.4.1::inline-links-color-only-no-other-cue::case-03",
+      "sc": "1.4.1",
+      "aspect": "inline-links-color-only-no-other-cue",
+      "caseId": "case-03",
+      "severity": 3,
+      "signals": [
+        "SPLIT",
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.4.1/pages/inline-links-color-only-no-other-cue/case-03.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.4.1/pages/inline-links-color-only-no-other-cue/case-03.html",
+        "caseDoc": "eval/act-augmented/1.4.1/pages/inline-links-color-only-no-other-cue/case-03.md",
+        "sourceOfTruth": "eval/act-augmented/1.4.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "Inline links distinguished from body text by hue alone (no underline/weight/lightness), incl. hover/focus-only cues that don't rescue",
+        "scenario": "Sourdough-focaccia recipe blog using the literal F73 stylesheet pattern: a:link/a:visited/a:active have text-decoration:none (resting green #1f6f43), and only a:hover (plus a:active) add an underline and red color. No :focus rule, so keyboard users also get color-only at rest.",
+        "mechanism": "In the resting state the only link-vs-text difference is hue (green vs near-black #2b2b2b) at 2.30:1 lightness, below 3:1. The underline/red cue exists in CSS and fires on mouseover but appears only on :hover/:active, and F73/G183 judge conformance before focus or pointing, so the hover-only cue does not rescue the color-only resting state.",
+        "whyAutomatedToolsMiss": "Static scanners parse the resting computed style, see a 1.4.3-passing colored named <a>, and do not simulate :hover/:active or compare resting-vs-hover renders; they have no rule that hover-only cues fail. Catching this needs capturing resting+hover states and applying the F73 still-a-failure rule.",
+        "primarySelector": ".recipe a"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": false,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "fix",
+        "problems": [
+          "DETECTABILITY UNDERCUT: The case authors link-vs-body lightness contrast at 2.30:1 (verified: link #1f6f43 vs body #2b2b2b = 2.30:1, below F73's 3:1 escape-hatch). axe-core's automated link-in-text-block rule evaluates the RESTING computed style and would flag a sub-3:1 link with no resting non-color cue (computed text-decoration:none, font-weight:400 confirmed). The page's stated human-judgment rationale (compare rest-vs-hover; apply F73 'hover-only still fails') is moot for automation because axe never consults :hover and fails on resting contrast alone -> requiresHumanJudgment is effectively false for this corpus.",
+          "DOC IMPRECISION (not outcome-changing): The .md doc and the HTML comment claim 'No :focus rule, so keyboard users also get colour-only at rest.' Dynamic check with mouse parked at 0,0 then Tab shows the keyboard-focused link gets the UA default focus ring (outline: auto 1px) although it correctly gets NO CSS underline. So a keyboard user traversing links DOES receive a non-color cue on the focused link. This does not rescue the F73 failure (focus ring helps neither scanning/reading, grayscale, nor touch users) so outcome stays 'failed', but the keyboard claim is overstated."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "no-error",
+          "commentText": ""
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "2.4.3::f85-focus-return-after-dismissal::case-06",
+      "sc": "2.4.3",
+      "aspect": "f85-focus-return-after-dismissal",
+      "caseId": "case-06",
+      "severity": 3,
+      "signals": [
+        "SPLIT",
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/2.4.3/pages/f85-focus-return-after-dismissal/case-06.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/2.4.3/pages/f85-focus-return-after-dismissal/case-06.html",
+        "caseDoc": "eval/act-augmented/2.4.3/pages/f85-focus-return-after-dismissal/case-06.md",
+        "sourceOfTruth": "eval/act-augmented/2.4.3/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Focus not returned (or returned illogically) after a dialog/menu is dismissed (F85, close branch + modal return)",
+        "scenario": "Job board / ATS profile (Hirelane) with an 'Edit profile' button opening a three-step modal wizard (Basics → Availability → Summary). Each step moves focus to its first field; the final step swaps Next for Done. Pressing Done commits the edited values, closes the wizard, and returns focus to the originating 'Edit profile' trigger — the same return as Cancel and Escape — the affirmative PASS for terminal-confirm dismissal.",
+        "mechanism": "All exits (Cancel, Escape, Done) route through closeWizard() which calls editBtn.focus(); commitAndClose() writes values back then returns focus to the trigger, satisfying F85 step 2 and the Understanding modal example. Verified by Puppeteer: stepping to Done lands focus back on #edit-profile and the committed headline value is written into the profile card.",
+        "whyAutomatedToolsMiss": "This is a PASS automation can neither confirm nor refute from a snapshot: per-step focus moves, the aria-live step announcement, and the final focus-return are all runtime behaviors. A static scan sees a valid role=dialog with labeled fields and reports nothing — it cannot demonstrate the criterion is MET, which depends on operating the wizard to Done and observing focus land on #edit-profile.",
+        "primarySelector": "#wiz-done (commitAndClose -> closeWizard -> #edit-profile.focus())"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": false,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": []
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "yes",
+          "disposition": "comment",
+          "commentReason": "other-error",
+          "commentText": "In this case when exiting the edit profile pop up, it goes all the way back in the tab order to the first element in the tab order"
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "other",
+          "commentText": "The engine's code analysis and Puppeteer trace are perfectly accurate, but it fundamentally contradicts itself. The rationale explicitly states 'This is a PASS' and confirms the criterion is 'MET', yet it incorrectly applies the F85 failure template"
+        }
+      ]
+    },
+    {
+      "key": "1.4.13::applicability-author-vs-ua-title-tooltip::case-05",
+      "sc": "1.4.13",
+      "aspect": "applicability-author-vs-ua-title-tooltip",
+      "caseId": "case-05",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.4.13/pages/applicability-author-vs-ua-title-tooltip/case-05.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.4.13/pages/applicability-author-vs-ua-title-tooltip/case-05.html",
+        "caseDoc": "eval/act-augmented/1.4.13/pages/applicability-author-vs-ua-title-tooltip/case-05.md",
+        "sourceOfTruth": "eval/act-augmented/1.4.13/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "Applicability gate — author-controlled tooltip vs. user-agent title= tooltip (and modal-dialog carve-out)",
+        "scenario": "Helios Energy kWh bar chart: each SVG rect bar has an SVG <title> child (UA-rendered native tooltip, e.g. 'February: 612 kWh', out of scope) AND an author .vtip floating overlay shown on hover with DIFFERENT, richer text ('Feb · 612 kWh · $84.10 · 18% below your 12-mo avg'). The overlay is pointer-events:none, repositions under the cursor via mousemove, and has no Escape handler. Two on-hover sources, two owners, two divergent texts — the reviewer must separate which content the SC governs (only the author overlay) and judge its behavior.",
+        "mechanism": "The SVG <title> tooltip is user-agent-controlled (out of scope). The author .vtip overlay is shown on mousemove, is pointer-events:none and follows the cursor, so moving toward it under magnification chases it or leaves the bar and it disappears (not hoverable, F95); no Escape/dismiss path (not dismissible). Author-controlled -> in scope -> FAILS. Verified with Puppeteer: each rect.bar's SVG <title> ('February: 612 kWh') differs from its data-rich ('Feb · 612 kWh · $84.10 · 18% below your 12-mo avg'); on real hover .vtip shows the rich text at opacity 1 and computes pointer-events:none (screenshot confirmed).",
+        "whyAutomatedToolsMiss": "Each bar has two hover-content sources with two owners. A scanner sees a valid SVG <title> (and may credit it as an accessible name) plus a JS-built div, and cannot reason that only the author overlay is governed by 1.4.13, that the SVG <title> is out of scope (UA-controlled), or that the two carry different text. Nor can it test that the overlay (pointer-events:none, cursor-following, no Esc) fails hoverable + dismissible.",
+        "primarySelector": ".vtip"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": [
+          "Minor doc imprecision (not a verdict defect): the .vtip un-hoverability is driven primarily by mouseleave-on-bar hiding (line 120) plus the overlay being pinned to/following the cursor (left=clientX+12, top=clientY-8, lines 116-117), NOT chiefly by pointer-events:none. pointer-events:none alone would not make a fixed tooltip un-hoverable; the doc/scenario lean on it as the headline cause when the real F95 mechanism is the leave-the-bar-and-it-disappears behavior. Net claimed behavior is still correct."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "yes",
+          "disposition": "comment",
+          "commentReason": "other",
+          "commentText": "The authored version is not having issues wtih hoverability and escape, it is having issues only with escaping."
+        }
+      ]
+    },
+    {
+      "key": "1.4.1::scoping-non-failures-and-escape-hatches::case-04",
+      "sc": "1.4.1",
+      "aspect": "scoping-non-failures-and-escape-hatches",
+      "caseId": "case-04",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.4.1/pages/scoping-non-failures-and-escape-hatches/case-04.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.4.1/pages/scoping-non-failures-and-escape-hatches/case-04.html",
+        "caseDoc": "eval/act-augmented/1.4.1/pages/scoping-non-failures-and-escape-hatches/case-04.md",
+        "sourceOfTruth": "eval/act-augmented/1.4.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "inapplicable",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Scoping boundary cases: 3:1-lightness pass, pure-color reliance fails regardless of contrast, non-applicability, and visited-link exemption",
+        "scenario": "Government council cookie-and-tracking policy whose inline links are styled to look exactly like the surrounding static text (inherited colour, no underline at rest). Because colour is not used to distinguish the link from static text at all, SC 1.4.1 does not apply — there is no use-of-colour failure (NOT-APPLICABLE / pass).",
+        "mechanism": "For 1.4.1 the question is whether colour conveys information. The inline links inherit the body colour (#222) identical to the adjacent static text, so colour is not being used to distinguish the actionable link from the static text. The criterion's scope therefore excludes these links. This is distinct from F73, which fails when a link IS distinguished by colour but lacks a non-colour cue; here the link is not distinguished by colour at all.",
+        "whyAutomatedToolsMiss": "A naive 'inline links should be underlined' or 'any link colour cue needs a backup' heuristic flags these links. Correctly classifying this requires recognising that colour conveys NOTHING here (link and text share one colour), which removes them from 1.4.1's scope — a scoping judgement no linter performs. The hover/focus underline further confuses a static scan, and distinguishing not-applicable from a genuine F73 failure is a human call.",
+        "primarySelector": ".body a"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": false,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "This is an inapplicable/non-failure (escape-hatch) case, so there is no positive accessibility defect to confirm: errorIsReal=false because no use-of-color failure exists on the page (the doc's whole claim is that 1.4.1 does NOT apply). expectedOutcomeCorrect=true because the documented 'inapplicable' label is correct and well-supported. Reviewers comparing to failure cases should not read errorIsReal=false here as a defect in the page.",
+          "Minor scoping nuance (not a defect): the page intentionally co-locates a real but DIFFERENT-criterion problem (poor link discoverability -> 1.3.1/2.4.4). The doc correctly flags this, but a careless labeler could mistake the page for a failure of those other SCs. The 1.4.1 verdict itself is sound."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "no-error",
+          "commentText": ""
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "no",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "2.4.4::descriptive-name-contradicts-on-page-destination::case-06",
+      "sc": "2.4.4",
+      "aspect": "descriptive-name-contradicts-on-page-destination",
+      "caseId": "case-06",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/2.4.4/pages/descriptive-name-contradicts-on-page-destination/case-06.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/2.4.4/pages/descriptive-name-contradicts-on-page-destination/case-06.html",
+        "caseDoc": "eval/act-augmented/2.4.4/pages/descriptive-name-contradicts-on-page-destination/case-06.md",
+        "sourceOfTruth": "eval/act-augmented/2.4.4/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "A specific, well-formed link name that contradicts its actual on-page destination (deceptive but descriptive name)",
+        "scenario": "PASS control: a healthcare patient-portal information hub with the SAME structure as the failing cases (skip link, in-page jump list, footer document links, labelled #fragment sections) but where every descriptive name correctly matches its destination: 'Read our Privacy Policy'→#privacy (the Privacy Policy), 'Skip to your message inbox'→#inbox, 'Jump to: Booking a flu vaccine'→#flu, 'Read our Notice of Patient Rights'→#rights.",
+        "mechanism": "Each link's accessible name resolves to the on-page section whose heading matches that name (e.g. 'Read our Privacy Policy'→#privacy headed 'Privacy Policy'), so the name reliably describes the link's actual purpose/destination — the intent of 2.4.4 is met. Exact same-text contrast with case-01 ('Read our Privacy Policy', href '#terms').",
+        "whyAutomatedToolsMiss": "Automated tools cannot adjudicate this either way: they see non-empty, descriptive, unique names and resolvable fragments and report 'no issue', which here is correct only because a human can confirm the name-to-destination match. The tools never perform that confirmation, so the PASS verdict (like the FAIL verdicts) rests entirely on human semantic cross-checking the scanner is blind to.",
+        "primarySelector": "footer nav[aria-label=\"Documents\"] ul li:first-child a"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "None material. This is a PASS control and the documented 'passed' outcome is correct. (errorIsReal=true is used here to mean the documented outcome — a legitimate pass requiring human name-vs-destination adjudication — is genuine; there is no defect to refute.)",
+          "Minor citation note: the Understanding quote spans a line break with leading indentation in the source (wcag-understanding/link-purpose-in-context.html lines 25-26), so a naive single-line grep misses it; the text is otherwise verbatim and whitespace-only differences are permitted. Both the Understanding quote and the G91 quote ('Check that text of the link describes the purpose of the link') are present verbatim and support the claim."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "no-error",
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "4.1.3::announced-text-lacks-visual-context::case-02",
+      "sc": "4.1.3",
+      "aspect": "announced-text-lacks-visual-context",
+      "caseId": "case-02",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/4.1.3/pages/announced-text-lacks-visual-context/case-02.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/4.1.3/pages/announced-text-lacks-visual-context/case-02.html",
+        "caseDoc": "eval/act-augmented/4.1.3/pages/announced-text-lacks-visual-context/case-02.md",
+        "sourceOfTruth": "eval/act-augmented/4.1.3/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "Announced text lacks the visual context that makes it meaningful (no offscreen text for AT)",
+        "scenario": "SaaS CRM leads pipeline grid. Changing a row's Stage select autosaves and injects 'Saved ✓' into that row's own per-row valid live region. The whole string is announced atomically, but it names only the action — never which lead. The lead identity is conveyed only by which visual row the green checkmark lands in.",
+        "mechanism": "A live region announces only its own atomic contents, not its DOM ancestors; sitting inside the <tr> does not make the row's lead-name cell part of the announcement. AT hears 'Saved' with no subject; across multiple edits the announcements are indistinguishable. Fix: include offscreen row context (lead name/company) inside the per-row status.",
+        "whyAutomatedToolsMiss": "Every per-row live region is valid, present before update, and filled atomically; the form controls have rich accessible names — so it is not an F103 missing-role case and not a naming failure. No automated rule asserts a status string must identify its subject when the subject is established only by table-row position; recognizing the gap requires reasoning about table semantics and visual grouping.",
+        "primarySelector": "#r1"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": []
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": "the issue here is that the status mentioned only says saved, but it does not indicate which lead it is for"
+        }
+      ]
+    },
+    {
+      "key": "4.1.3::removal-of-status-conveys-meaning-silently::case-04",
+      "sc": "4.1.3",
+      "aspect": "removal-of-status-conveys-meaning-silently",
+      "caseId": "case-04",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/4.1.3/pages/removal-of-status-conveys-meaning-silently/case-04.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/4.1.3/pages/removal-of-status-conveys-meaning-silently/case-04.html",
+        "caseDoc": "eval/act-augmented/4.1.3/pages/removal-of-status-conveys-meaning-silently/case-04.md",
+        "sourceOfTruth": "eval/act-augmented/4.1.3/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "Removal/absence of status text conveys meaning, but nothing is announced when it disappears",
+        "scenario": "Candle-shop checkout: 'Processing payment…' plus an indeterminate progress bar is announced in a role=status polite region on entry, then on success the busy region is emptied AND a brand-new confirmation panel ('Thank you — your order is confirmed', Order #LUM-50418) is revealed as an ordinary <div> with no role=status/aria-live. AT hears 'Processing payment…' then silence — neither the end of the wait nor whether the card was charged, risking a duplicate charge if they re-press.",
+        "mechanism": "Double failure: (1) proc.textContent='' empties the busy live region (silent end-of-wait); (2) the confirmation result is rendered in #confirm, a plain div with role=null/aria-live=null, so revealing it via display triggers no announcement. The success/result-of-an-action status ('order is confirmed', order number) is conveyed visually only, and the vanished progress bar is the only 'done' cue.",
+        "whyAutomatedToolsMiss": "Across snapshots the markup is valid: a live region exists, the form is labeled, and the confirmation panel is well-formed HTML with good contrast. axe/WAVE/Lighthouse do not click Pay, never see the busy region emptied, and treat a div of confirmation text as ordinary content — they cannot infer it is a status message that needed announcing, nor that the vanished progress bar was the only 'done' signal. Recognizing that both the removal and the out-of-region result leave the AT user unable to know whether payment succeeded is a contextual, temporal judgment about a money-moving workflow.",
+        "primarySelector": "#proc"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": [
+          "Minor (not disqualifying): element-under-test selector is #proc, but the higher-stakes half of the double failure is at #confirm (the silently-revealed result panel). The #proc-emptying alone is still a defensible 4.1.3 finding per the cited Understanding 'removal of status text' passage, so #proc is legitimately implicated; just noting the selector points at the lesser of the two failure edges.",
+          "Page is two-phase/dynamic: the inspect.js raw signals only capture the static pre-click state (#proc empty live region present, #confirm absent from AX tree due to display:none). The failure mechanism only manifests after click + the 1800ms timeout; verified via a separate Puppeteer click probe."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": "Thank you — your order is confirmed message appears once the processing payment... message is completed"
+        }
+      ]
+    }
+  ]
+}

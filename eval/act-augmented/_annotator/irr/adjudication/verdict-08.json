@@ -1,0 +1,144 @@
+{
+  "batch": "08",
+  "cases": [
+    {
+      "key": "2.4.3::f44-positive-tabindex-breaks-meaning::case-06",
+      "verdict": "NEEDS-VALIDATION",
+      "annotationClarity": "clear",
+      "complaintCorrect": "indeterminate",
+      "defectType": "label-wrong",
+      "groundTruthDisputed": true,
+      "internallyContradictory": false,
+      "confidence": 0.72,
+      "evidence": "Fresh-load Tab walk (puppeteer, no body-tabindex seeding) gives the true document order: stop1 button tabindex=1 'Share on Facebook' y=904, stop2 tabindex=2 'Share by email' y=904, stop3 tabindex=3 'Share on X' y=904, stop4 tabindex=4 LinkedIn y=904, stop5 tabindex=5 'Copy link' y=904, THEN stop6 'CI cache guide' y=408, stop7 'sharding doc' y=563, stop8 'affected-targets walkthrough' y=691, stop9 'rollout notes' y=788, stop10/11 related links y=1003/1040. So the first Tab from page load lands on a footer share button and focus then jumps back up to the article body. (Note: eval/act-augmented/_tools/probe-case.js sets body tabindex=-1 and focuses it before tabbing, which SKIPS the positive-tabindex group entirely - it reported only the 6 natural-order links and never showed the buttons.)",
+      "reasoning": "Davin's observation is factually correct and reproducible: positive tabindex 1-5 hoists the whole share row (page bottom, y=904) ahead of every link in the article (y=408-788), so the traversal really does go down, back up, then down again - not merely scrambled within the row. The corpus rationale only defends the WITHIN-ROW order ('five independent share actions, order carries no meaning') and the .md's claim that 'the scrambled order is confined to the order-irrelevant share row' / 'the meaningful content flow is untouched' is not true of the global document order. Whether that global displacement 'affects meaning or operability' (F44) or still falls under the Trusted Tester social-icons Does-Not-Apply note is a genuine ground-truth judgment, and repairing it would flip expected from inapplicable to failed.",
+      "proposedFix": null
+    },
+    {
+      "key": "2.4.4::duplicate-name-same-context-different-purpose::case-06",
+      "verdict": "NEEDS-VALIDATION",
+      "annotationClarity": "vague",
+      "complaintCorrect": "confirmed",
+      "defectType": "metadata-wrong",
+      "groundTruthDisputed": true,
+      "internallyContradictory": true,
+      "confidence": 0.95,
+      "evidence": "result.json case-06 says expected='passed', scenario 'Volunteer-run tech conference page (negative control) ... two inline links both named contact us ... Both point to the SAME #contact section', primarySelector 'p > a[href=\"#contact\"]'. The shipped page is <title>BIOL 204 Genetics - Course Registration</title> with two <a>open the syllabus</a> in one <li>, hrefs /biol204/syllabus?cohort=in-person-mon-wed and /biol204/syllabus?cohort=online-evening; there is no '#contact' anywhere and no 'contact us' link (grep: 0 hits). The pre-strip original's own comment is headed 'WHY THIS PAGE FAILS 2.4.4', and case-06.md is titled '... two genuinely different course sections (FAIL)' with 'Expected ACT-style outcome: failed'. The annotator UI already carries a selector override for this case: {selector: 'li a[href=\"/biol204/syllabus?cohort=in-person-mon-wed\"]', note: \"... orig p > a[href='#contact'] matched nothing\"}.",
+      "reasoning": "Mengqi's bare issueExists=yes contradicts expected='passed' and is right: the page on disk is a textbook fd3a94/F63 failure (identical accessible name, identical same-DOM-node context, two genuinely different syllabi), and both the case .md and the author's stripped comment say FAIL. result.json's row describes an entirely different page that was never shipped. The same defect exists in case-02 of this aspect (metadata: charity three-format download PASS; shipped: Wellspring Swim School with two 'download the form' links to a parental-consent vs a medical-history document - a FAIL), i.e. both of this aspect's expected='passed' controls are mislabeled. Repair changes expected, so a human must decide whether to relabel case-06 'failed' (and rewrite the metadata from the .md) or restore the never-shipped contact-us control page.",
+      "proposedFix": null
+    },
+    {
+      "key": "1.1.1::informative-css-background-image::case-01",
+      "verdict": "NO-DEFECT",
+      "annotationClarity": "vague",
+      "complaintCorrect": "refuted",
+      "defectType": "none",
+      "groundTruthDisputed": false,
+      "internallyContradictory": false,
+      "confidence": 0.93,
+      "evidence": "p#bestinterest's only DOM text is 'Where else would you find a better interest rate?' (line 66); the rate lives solely in the stylesheet: background: url('data:image/svg+xml...<text ...>19.3%25 APR</text><text ...>Typical Variable</text>') (line 37). Screenshot confirms a green badge reading '19.3% APR / Typical Variable' rendered left of the question, with no equivalent anywhere in the DOM. No img/svg/role=img/object element exists on the page.",
+      "reasoning": "This is WCAG F3 Example 1 reproduced verbatim: load-bearing information (the APR) is carried only by a CSS background-image, which generates no accessibility-tree node and can take no text alternative. Mengqi filed 'no-error' with an empty comment and no specifics; Ajit approved. Verified myself against the source and a rendered screenshot - the failure is real and the expected='failed' label is correct.",
+      "proposedFix": null
+    },
+    {
+      "key": "1.4.1::ui-status-action-color-only-no-text-cue::case-04",
+      "verdict": "NO-DEFECT",
+      "annotationClarity": "vague",
+      "complaintCorrect": "refuted",
+      "defectType": "none",
+      "groundTruthDisputed": false,
+      "internallyContradictory": false,
+      "confidence": 0.9,
+      "evidence": "Every session card is <article class=\"t-core|t-applied|t-comm\"> whose class only sets a background colour (.t-core{background:#7cb6ef} .t-applied{#f2c46b} .t-comm{#88d6a0}); card content is heading + speaker + room only - no T1/T2/T3 code, no icon, no aria text. The legend (lines 35-37) binds track names to bare colour swatches <i style=\"background:...\">. Screenshot confirms: three hues, no per-card track token. Room does not proxy for track (t-core appears in Hall A at 09:30 and Hall B at 13:15).",
+      "reasoning": "Track membership is conveyed by hue alone and the legend itself is colour-keyed, so in greyscale or with CVD the track of any session is unrecoverable - the canonical G14 colour-coded-schedule failure. Mengqi's 'no-error' comment carries no text or specifics; Ajit approved. expected='failed' is correct.",
+      "proposedFix": null
+    },
+    {
+      "key": "1.1.1::image-of-text-alt-omits-the-text::case-07",
+      "verdict": "NO-DEFECT",
+      "annotationClarity": "vague",
+      "complaintCorrect": "confirmed",
+      "defectType": "none",
+      "groundTruthDisputed": false,
+      "internallyContradictory": false,
+      "confidence": 0.95,
+      "evidence": "img.promo alt='New student offer: 5 classes for $15. Use code FLEX15 online. Offer ends Friday, March 6.'; the data:-URI SVG renders exactly 'NEW STUDENT OFFER / 5 classes for $15 / Use code FLEX15 online / Offer ends Friday, March 6' (confirmed on the rendered screenshot). Every displayed word, including the code FLEX15 and the deadline, is reproduced in the alt.",
+      "reasoning": "The alt is a complete transcription of the image of text, so 1.1.1 is satisfied and expected='passed' is correct. Both annotators answered issueExists='no', i.e. they agree with the corpus; Mengqi's comment is a 'no-error' note on a page the corpus already labels passing, so it reports no defect in the case. Only signal here is FLAGGED, not a contradiction.",
+      "proposedFix": null
+    },
+    {
+      "key": "1.4.1::color-coded-graphics-no-pattern-or-label::case-07",
+      "verdict": "NO-DEFECT",
+      "annotationClarity": "vague",
+      "complaintCorrect": "confirmed",
+      "defectType": "none",
+      "groundTruthDisputed": false,
+      "internallyContradictory": false,
+      "confidence": 0.95,
+      "evidence": "Every atom circle is paired with an in-sphere <text> number (1 x2 carbon, 2 x2 oxygen, 3 x4 hydrogen, lines 55-70); the legend gives colour AND number ('1 Carbon (1)', '2 Oxygen (2)', '3 Hydrogen (3)', lines 74-76); the three questions reference atoms by number ('atoms labeled 2 (oxygen)', 'element number of the topmost atom'). Screenshot confirms the numbers are legible inside each sphere; the svg also carries role=img with a descriptive aria-label.",
+      "reasoning": "Element identity travels on two independent channels (hue and printed number), so colour is not the sole visual means and 1.4.1 is met - expected='passed' is correct. Both annotators answered issueExists='no' and therefore agree with the corpus; Mengqi's contentless 'no-error' comment reports no defect in the case itself.",
+      "proposedFix": null
+    },
+    {
+      "key": "2.4.3::f85-focus-return-after-dismissal::case-03",
+      "verdict": "NO-DEFECT",
+      "annotationClarity": "clear",
+      "complaintCorrect": "indeterminate",
+      "defectType": "none",
+      "groundTruthDisputed": false,
+      "internallyContradictory": false,
+      "confidence": 0.85,
+      "evidence": "Puppeteer run of the real dialog flow: open on 'payments' -> focus '#rm-cancel'; confirm -> focus button.x aria-label='Remove label needs-repro' (the next chip) with chips now [bug, needs-repro, p1]; delete the LAST chip p1 -> focus falls back to 'Remove label needs-repro' (the previous, now-last chip); Escape on the 'bug' dialog -> focus returns to 'Remove label bug' (chip survives); after deleting every chip -> focus lands on button.addlabel '+ Add label'. All four branches match confirmRemove() at lines 132-146 and the corpus mechanism exactly.",
+      "reasoning": "The page behaves as documented and expected='passed' is correct; Ajit himself answered issueExists='no', so he does not dispute the label. His complaint is about the annotation platform, not the page - and it is partly grounded: eval/act-augmented/_annotator/index.html renders c.mechanism and c.whyMiss (whyAutomatedToolsMiss) into #mechBox/#whyMissBox on the Decide step, so annotators read rationale prose that literally says 'Judging it a PASS requires...'. That is an IRR-instrument problem (the rationale leaks the expected answer into the judgment task), not a defect in this test case.",
+      "proposedFix": null
+    },
+    {
+      "key": "3.3.1::error-summary-incoherent-with-flagged-state::case-07",
+      "verdict": "NO-DEFECT",
+      "annotationClarity": "clear",
+      "complaintCorrect": "confirmed",
+      "defectType": "none",
+      "groundTruthDisputed": false,
+      "internallyContradictory": false,
+      "confidence": 0.95,
+      "evidence": "Summary (role=alert) says 'There are 2 problems' and lists exactly two links -> #email and #dob; the only two fields carrying aria-invalid=\"true\" + .grp.bad + an aria-describedby inline .msg are input#email (value 'weilin.example') and input#dob (value '30/02/2001'); #given and #passport are clean and unmentioned. Each summary line's wording matches its inline message verbatim apart from a trailing period. Count, membership, link targets and wording all reconcile.",
+      "reasoning": "Davin approved with issueExists='no' and his comment is a confirmation, not a complaint - and it is right: the page is a correctly built passing control for summary-vs-state reconciliation. Separately worth noting (not a complaint, and not the annotator's point): the served page still contains a visible <div class=\"why\">'Why this page passes (and why it is the control)'</div> block that states the answer in rendered body text, which the HTML-comment strip did not remove.",
+      "proposedFix": null
+    },
+    {
+      "key": "4.1.3::non-textual-status-icon-sound-without-text-alt::case-03",
+      "verdict": "NO-DEFECT",
+      "annotationClarity": "clear",
+      "complaintCorrect": "refuted",
+      "defectType": "none",
+      "groundTruthDisputed": false,
+      "internallyContradictory": false,
+      "confidence": 0.84,
+      "evidence": "Probe of the Save flow: mutation sequence in the live region is 'Draft' -> class 'savestate saving' + text 'Saving' -> class 'savestate saved' + text '' (empty). After the save settles, saveState.textContent === \"\" and getComputedStyle(#saveState,'::after').content === '\" \\u2713\"'. The element is <span id=\"saveState\" class=\"savestate\" aria-live=\"polite\" aria-atomic=\"true\"> - it has NO role=\"status\", and after save it holds no text alternative of any kind; the only 'Saved' signal is the CSS-generated green check.",
+      "reasoning": "Davin's comment claims 'the status role is provided and text alternative' - both halves are wrong: there is no role=status (only aria-live=polite), and the saved state carries no text at all after the class flip. His Q1 answer (issueExists='yes') actually agrees with expected='failed', so he is not contradicting the label. One caveat for the record: my CDP AX dump does expose a StaticText '\\u2713' node, so the strongest form of the rationale ('CSS generated content is not exposed') overstates current Chromium behaviour; the outcome still holds on the robust argument (a bare check glyph is not the status 'Saved', and a polite region whose final mutation empties its text announces nothing useful).",
+      "proposedFix": null
+    },
+    {
+      "key": "4.1.3::wrong-live-region-politeness-for-urgency::case-04",
+      "verdict": "FIX-OBVIOUS",
+      "annotationClarity": "clear",
+      "complaintCorrect": "confirmed",
+      "defectType": "metadata-wrong",
+      "groundTruthDisputed": false,
+      "internallyContradictory": false,
+      "confidence": 0.95,
+      "evidence": "result.json case-04 describes a 'Higher-ed LMS essay editor ... wired role=alert (assertive)' with primarySelector 'span#autosave[role=\"alert\"]'. Runtime probe of the shipped page: document.querySelectorAll('[role=alert]').length === 0 and document.getElementById('autosave') === null; the region is <p id=\"refillStatus\" role=\"status\" aria-live=\"off\" aria-atomic=\"true\">. At load aria-live='off' (applyFocusMode(true), line 90, with button#focusToggle aria-pressed='true'); after clicking #submitBtn the region still reads aria-live='off' while holding 'Refill request FAILED: Warfarin 5 mg requires prescriber re-authorization...'. Mutation log shows the aria-live='off' attribute set first, then the failure text injected into the muted region. case-04.md already documents this correctly ('backwards SCR14', F103, p#refillStatus).",
+      "reasoning": "Davin is exactly right: the shipped page's defect is that no politeness is in effect at all (aria-live='off'), not that the politeness level is too assertive. The result.json row's scenario, mechanism, primarySelector, whyAutomatedToolsMiss and citation all belong to a different, never-shipped page, and the selector it names does not exist in the DOM - a mechanical metadata repair, not a ground-truth question: expected='failed' is correct for the page as shipped (F103) and stays unchanged. The annotator UI already carries a selector override ('#refillStatus ... orig ... matched nothing'), independently corroborating the mismatch.",
+      "proposedFix": {
+        "file": "eval/act-augmented/4.1.3/result.json",
+        "rationale": "Replace the case-04 metadata block, which describes an LMS autosave page wired role=alert that was never shipped, with text matching the page actually on disk (MercyHealth refill form, p#refillStatus muted to aria-live='off' by an on-by-default Focus-mode toggle, F103). expected stays 'failed' - the shipped page genuinely fails 4.1.3, so no ground-truth change. The replacement wording and the F103 citation are taken from the case's own case-04.md, which already documents the shipped page correctly, so the .md needs NO change; manifest.json is generated from result.json and should be regenerated afterwards. Separately (not included here, since it touches another file): the served page eval/act-augmented/4.1.3/pages/wrong-live-region-politeness-for-urgency/case-04.html still contains a visible <div class=\"note\"><strong>Why automated checkers pass this page:</strong>...</div> block that spells out the answer in rendered body text.",
+        "edits": [
+          {
+            "oldString": "\"scenario\": \"Higher-ed LMS essay editor with an autosave indicator in the toolbar. The indicator is a present, valid live region wired role=alert (assertive); a debounced handler flips it 'Saving…' -> 'All changes saved' roughly every two seconds while the student is still typing. Each flip assertively interrupts the screen reader's typing echo, so the student stops hearing their own words. An autosave confirmation is low-value and belongs in a polite region at most.\",\n            \"expected\": \"failed\",\n            \"mechanism\": \"role=alert is assertive: each text change interrupts current speech. While the user composes, the AT echoes their typing; every ~2s the debounced autosave flips the assertive region twice ('Saving…' then 'All changes saved'), each flip preempting the typing echo (verified by MutationObserver capturing both transitions during active typing). The information is low-value, high-cadence — it should be polite (role=status). Valid markup, wrong politeness.\",\n            \"primarySelector\": \"span#autosave[role=\\\"alert\\\"]\",\n            \"whyAutomatedToolsMiss\": \"#autosave is a present, non-empty live region with valid role=alert + aria-atomic=true (role=alert is even a sufficient technique). Tools confirm the message can be announced and find nothing wrong — assertive is legal. No static or single-snapshot scan detects that the region is rewritten every two seconds during active typing, nor weighs that an autosave confirmation is low-value content that should be polite; that needs understanding of meaning and cadence relative to the user's task.\",\n            \"citation\": {\n              \"doc\": \"WCAG 2.2 Understanding SC 4.1.3 Status Messages — 'Other uses of live regions or alerts' (wcag-understanding/status-messages.html)\",\n              \"quote\": \"However, there is a risk of making an application too \\\"chatty\\\" for a screen reader user. User testing should be carried out to ensure the appropriate level of feedback is achieved.\"\n            }",
+            "newString": "\"scenario\": \"Hospital patient-portal 'Refill prescription' screen (F103, muted-when-it-matters). The refill-outcome region <p id=\\\"refillStatus\\\" role=\\\"status\\\" aria-atomic=\\\"true\\\"> is set to aria-live=\\\"off\\\" by a backwards, on-by-default 'Focus mode' toggle, so the consequential 'Refill request FAILED - requires prescriber re-authorization' message is written into a silenced region. The politeness value is wrong in the dangerous direction: off at the exact moment the status message must be announced.\",\n            \"expected\": \"failed\",\n            \"mechanism\": \"applyFocusMode(true) runs at load (button#focusToggle starts aria-pressed=\\\"true\\\") and sets p#refillStatus to aria-live=\\\"off\\\". The submit handler then injects the refill-failure text into that still-muted region, so AT announces nothing and the non-visual user believes the refill succeeded. Verified by runtime probe: aria-live is \\\"off\\\" at load and remains \\\"off\\\" through submit in the default state, flipping to \\\"polite\\\" only after the user manually turns Focus mode off. Valid markup, wrong runtime politeness value.\",\n            \"primarySelector\": \"p#refillStatus[role=\\\"status\\\"]\",\n            \"whyAutomatedToolsMiss\": \"#refillStatus is a present, valid live region with role=status and aria-atomic=true, and the failure text is genuinely injected into it, so axe/WAVE/Lighthouse see a correctly-wired status container and report nothing - aria-live=\\\"off\\\" is a legal value. No static or single-snapshot scan models that an on-by-default toggle muted the outcome region before the message was written; catching it requires toggling state, submitting, and judging that a refill outcome is a status message that must be announced.\",\n            \"citation\": {\n              \"doc\": \"WCAG Techniques - F103: Failure of Success Criterion 4.1.3 due to providing status messages that cannot be programmatically determined through role or properties (wcag-techniques/failures/F103.html)\",\n              \"quote\": \"The objective of this technique is to describe a failure where status messages are used in content but are not communicated to the user due to a lack of appropriate roles or properties.\"\n            }"
+          }
+        ]
+      }
+    }
+  ]
+}

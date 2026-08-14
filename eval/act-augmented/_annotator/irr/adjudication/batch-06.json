@@ -1,0 +1,487 @@
+{
+  "batch": "06",
+  "n": 10,
+  "backupDir": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15",
+  "cases": [
+    {
+      "key": "1.4.1::inline-links-color-only-no-other-cue::case-06",
+      "sc": "1.4.1",
+      "aspect": "inline-links-color-only-no-other-cue",
+      "caseId": "case-06",
+      "severity": 5,
+      "signals": [
+        "CONTRADICTED",
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.4.1/pages/inline-links-color-only-no-other-cue/case-06.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.4.1/pages/inline-links-color-only-no-other-cue/case-06.html",
+        "caseDoc": "eval/act-augmented/1.4.1/pages/inline-links-color-only-no-other-cue/case-06.md",
+        "sourceOfTruth": "eval/act-augmented/1.4.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Inline links distinguished from body text by hue alone (no underline/weight/lightness), incl. hover/focus-only cues that don't rescue",
+        "scenario": "TRUE-NEGATIVE (PASS / escape-hatch boundary). Nonprofit 'Where your gift goes' donation/impact page reproducing the literal G183 example: inline links medium-light blue #3366CC, no underline, on black #000000 body over white. A bonus :hover/:focus underline is added but is not what carries conformance.",
+        "mechanism": "Link #3366CC vs black body text is 3.91:1 lightness contrast, at/above the 3:1 escape hatch, so links are distinguishable by lightness (not hue alone) even with no color perception or in grayscale. Link-vs-white-bg is 5.37:1, so 1.4.3 also passes. The page does not depend on the hover/focus underline.",
+        "whyAutomatedToolsMiss": "An over-eager 'underline-free colored link = fail' heuristic would false-positive here, while a 1.4.3-only tool stays silent either way because it never measures link-vs-text contrast. Correctly clearing the page requires computing the 3.91:1 link-vs-text lightness ratio and applying the 3:1 escape hatch — guarding against over-reporting.",
+        "primarySelector": ".body-copy a"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "Minor framing nuance (not a label defect): the .md says the hover/focus underline is merely 'supplementary' and '3:1 lightness is what carries conformance'. That is correct for the 1.4.1 OUTCOME, but G183's formal Expected Results require BOTH check #1 (3:1 luminance) AND check #2 (hover enhancement), and G183 explicitly states 'Hover or focus style changes alone are not sufficient.' The page does provide the hover/focus underline (CSS line 33), so it satisfies the full G183 procedure regardless; the passed label is unaffected.",
+          "The .md's 'failure-mechanism: NONE' and the term 'errorIsReal' are semantically inverted for a TRUE-NEGATIVE control: there is intentionally no accessibility error here. The page correctly represents a PASS scenario, so the documented outcome (passed) is real/correct — but reviewers should note errorIsReal=true here means 'the documented PASS scenario is genuine', not 'an accessibility defect exists'."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "yes",
+          "disposition": "comment",
+          "commentReason": "other",
+          "commentText": "The audit incorrectly applies the 3:1 contrast exception for inline links, failing to enforce the requirement for redundant structural cues (like underlines) as defined by our strict 1.4.1 testing parameters."
+        }
+      ]
+    },
+    {
+      "key": "1.4.13::dismissible-position-obscures-meaningful-vs-decorative::case-04",
+      "sc": "1.4.13",
+      "aspect": "dismissible-position-obscures-meaningful-vs-decorative",
+      "caseId": "case-04",
+      "severity": 4,
+      "signals": [
+        "CONTRADICTED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.4.13/pages/dismissible-position-obscures-meaningful-vs-decorative/case-04.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.4.13/pages/dismissible-position-obscures-meaningful-vs-decorative/case-04.html",
+        "caseDoc": "eval/act-augmented/1.4.13/pages/dismissible-position-obscures-meaningful-vs-decorative/case-04.md",
+        "sourceOfTruth": "eval/act-augmented/1.4.13/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Dismissible Method 1 — pop-up obscures meaningful content (beyond the white-space / decorative exception)",
+        "scenario": "Restaurant menu: a dish allergen tooltip opens into an empty menu band occupied only by a large decorative olive-branch SVG flourish (aria-hidden, no information), with no Esc dismiss. Overlap is with purely decorative content — PASS by the decorative carve-out.",
+        "mechanism": "The tooltip (role=tooltip) overlaps only svg.flourish (aria-hidden, conveys nothing) and is verified clear of every dish name/description/price/heading. Because the only covered thing is 'a background graphic which provides no information,' Method 1's exception applies and the missing dismiss mechanism is acceptable.",
+        "whyAutomatedToolsMiss": "An overlap detector would wrongly flag this because the tooltip box intersects the visually-large flourish — exactly the kind of element a machine cannot tell apart from informational content. Recognizing the covered SVG as decorative-and-exempt requires a human to look at it and judge it; treating the eye-catching flourish as content would over-report.",
+        "primarySelector": "#al-cacio"
+      },
+      "pipelineSelfReview": null,
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "1.1.1::complex-image-long-description-incomplete::case-02",
+      "sc": "1.1.1",
+      "aspect": "complex-image-long-description-incomplete",
+      "caseId": "case-02",
+      "severity": 3,
+      "signals": [
+        "SPLIT",
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.1.1/pages/complex-image-long-description-incomplete/case-02.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.1.1/pages/complex-image-long-description-incomplete/case-02.html",
+        "caseDoc": "eval/act-augmented/1.1.1/pages/complex-image-long-description-incomplete/case-02.md",
+        "sourceOfTruth": "eval/act-augmented/1.1.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "Complex image (chart/diagram/map) has a plausible alt/long description that drops information the image conveys (F67)",
+        "scenario": "Finance dashboard with a four-bar quarterly-revenue chart showing three quarters of growth then a sharp red-highlighted Q4 collapse annotated '↓ port strike'. The aria-describedby caption recites the four dollar figures but never states the trend, which bar is the outlier, or the on-chart cause.",
+        "mechanism": "F67/G92: the chart has aria-label + aria-describedby (both present), but the description gives only isolated data points and drops the trend (rise then collapse), the outlier (Q4, drawn red), and the annotated cause — so substituting the description for the image loses the chart's actual message.",
+        "whyAutomatedToolsMiss": "Name and description presence both pass and qt1vmo passes; no checker reads the bar heights to compute the trend, recognises the red bar + annotation as flagging the outlier, or verifies the caption states either. 'Numbers present but message absent' is a human reasoning step over the rendered pixels.",
+        "primarySelector": "svg[role=\"img\"][aria-label][aria-describedby=\"chartCap\"]"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": []
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "no-error",
+          "commentText": ""
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "1.4.1::required-field-color-only::case-03",
+      "sc": "1.4.1",
+      "aspect": "required-field-color-only",
+      "caseId": "case-03",
+      "severity": 3,
+      "signals": [
+        "SPLIT",
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.4.1/pages/required-field-color-only/case-03.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.4.1/pages/required-field-color-only/case-03.html",
+        "caseDoc": "eval/act-augmented/1.4.1/pages/required-field-color-only/case-03.md",
+        "sourceOfTruth": "eval/act-augmented/1.4.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "Required form fields indicated by color alone, with self-referential or absent text instruction",
+        "scenario": "Healthcare new-patient intake form. Required fields DO get a marker — a red bullet '•' via .f.req label::before — so a naive 'is a marker present?' check passes. The trap: the identical red bullet glyph (content:'•'; color:#c0392b) is reused decoratively as the list marker on the adjacent 'What to bring' checklist. The required-marker bullet and the decorative bullet are the same glyph in the same red; only colour-keyed context plus the legend 'Fields marked with a red dot are required' tells them apart.",
+        "mechanism": "The required marker is differentiated from decorative content by colour only (F81), a layered ambiguity where the 'non-colour cue' (a bullet) is itself reused as decoration, so hue is the sole disambiguator; the CSS ::before content is also absent from the accessibility tree.",
+        "whyAutomatedToolsMiss": "It is engineered to defeat the obvious heuristic: a marker glyph IS present next to required fields, satisfying any 'does a non-colour cue exist?' check. CSS ::before content is invisible to axe/WAVE/Lighthouse (not read into the accessibility tree), and even seeing both bullets a tool could not reason that the required marker is indistinguishable from a decorative one except by colour/position, nor that a legend saying 'a red dot' fails to resolve which dots are required. Two visually identical glyphs carrying different meanings separated only by hue is a visual-semantic judgment no scanner performs.",
+        "primarySelector": ".f.req label::before"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": [
+          "DOC FACTUAL ERROR (does not change outcome): The .md 'Exact accessibility mechanism' section claims the ::before bullet is 'invisible to AT entirely' and the screen reader hears 'Patient full name' with 'no bullet'. The Chromium AX tree REFUTES this: required textboxes are named '•Patient full name', '•Insurance member ID', '•Contact name', '•Contact phone' (the ::before bullet IS folded into the accessible name; optional fields get clean names). The HTML comment lines 24/42-43 making the same 'invisible to the accessibility tree' claim are likewise inaccurate in Chromium.",
+          "The doc's AT-invisibility claim is a secondary (1.3.1/4.1.2-flavored) embellishment that is false; the genuine 1.4.1 failure rests on the sighted color-blind user's perception, not on the screen-reader path, so the verdict is unaffected — but the inaccurate sentence should ideally be corrected or removed."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "no-error",
+          "commentText": ""
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "1.1.1::complex-image-long-description-incomplete::case-06",
+      "sc": "1.1.1",
+      "aspect": "complex-image-long-description-incomplete",
+      "caseId": "case-06",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.1.1/pages/complex-image-long-description-incomplete/case-06.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.1.1/pages/complex-image-long-description-incomplete/case-06.html",
+        "caseDoc": "eval/act-augmented/1.1.1/pages/complex-image-long-description-incomplete/case-06.md",
+        "sourceOfTruth": "eval/act-augmented/1.1.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Complex image (chart/diagram/map) has a plausible alt/long description that drops information the image conveys (F67)",
+        "scenario": "PASS control: a municipal open-data five-year water-use bar chart whose long description fully reconstructs the image — an associated data table giving every exact value plus a sentence stating the trend (steady decline, 26% total, largest drop 2027 to 2028). Boundary case proving presence of a description was never the question; completeness is.",
+        "mechanism": "G92 satisfied: the chart has aria-label + aria-describedby pointing to a <table> (exact values) and a trend paragraph; removing the image and substituting the table + trend sentence loses no information, so the text alternative serves the same purpose and presents the same information. F67 does not apply.",
+        "whyAutomatedToolsMiss": "An automated tool also reports no error here — but for the wrong reason: it passes on the identical name+description-presence signal that wrongly greenlights cases 01-05. This control demonstrates a checker cannot distinguish the complete description (06) from the incomplete ones (01-05); only a human comparing text to image can tell this one actually reconstructs the data.",
+        "primarySelector": "svg[role=\"img\"][aria-label][aria-describedby=\"waterTable waterTrend\"]"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": []
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "no-error",
+          "commentText": ""
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "no",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "1.4.13::persistent-auto-timeout-vs-valid-info-invalidation::case-01",
+      "sc": "1.4.13",
+      "aspect": "persistent-auto-timeout-vs-valid-info-invalidation",
+      "caseId": "case-01",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.4.13/pages/persistent-auto-timeout-vs-valid-info-invalidation/case-01.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.4.13/pages/persistent-auto-timeout-vs-valid-info-invalidation/case-01.html",
+        "caseDoc": "eval/act-augmented/1.4.13/pages/persistent-auto-timeout-vs-valid-info-invalidation/case-01.md",
+        "sourceOfTruth": "eval/act-augmented/1.4.13/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "Persistent — auto-dismiss on timeout / closing for a disallowed reason vs. legitimate info-invalidation",
+        "scenario": "Business-banking wire-transfer form: a daily-limit help tooltip (role=tooltip) appears on hover/focus of a ? button, is hoverable and Esc-dismissible, but a setTimeout(...,4000) removes it 4 seconds after it appears while the trigger is still hovered/focused. Verified: opacity 1 at 0s -> opacity 0 / visibility hidden at 5s while still hovering.",
+        "mechanism": "Persistent condition broken by a time-based auto-dismiss: setTimeout in showTip() removes #limitTip while hover/focus is retained and the $25,000-limit information is still valid (SCR39 hover-check #2 / focus-check #1).",
+        "whyAutomatedToolsMiss": "axe/WAVE/Lighthouse see well-formed role=tooltip, a real button with an accessible name, aria-describedby, hover+focus triggers, a hoverable popup and an Esc handler — all static checks pass. The defect is purely temporal (a 4s timer hides still-valid content), and a scanner cannot tell a disallowed auto-dismiss from a legitimate info-invalidation; that needs a human watching the timeline and judging whether the info is still valid.",
+        "primarySelector": "#limitTip[role=\"tooltip\"]"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": []
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "yes",
+          "disposition": "comment",
+          "commentReason": "other-error",
+          "commentText": "When hovering or clicking on the questionmark/info icon (the tool tip), nothing pops up for the user"
+        }
+      ]
+    },
+    {
+      "key": "1.4.1::ui-status-action-color-only-no-text-cue::case-07",
+      "sc": "1.4.1",
+      "aspect": "ui-status-action-color-only-no-text-cue",
+      "caseId": "case-07",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/1.4.1/pages/ui-status-action-color-only-no-text-cue/case-07.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/1.4.1/pages/ui-status-action-color-only-no-text-cue/case-07.html",
+        "caseDoc": "eval/act-augmented/1.4.1/pages/ui-status-action-color-only-no-text-cue/case-07.md",
+        "sourceOfTruth": "eval/act-augmented/1.4.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "passed",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "UI buttons, controls, and color-coded categories signalling action/status by color with no text or character cue (G14)",
+        "scenario": "TRUE NEGATIVE: light-rail weekend departures TABLE where service tracks are shown by background hue AND every departure carries an in-text '· T1 / · T2 / · T3' code after the destination, with a legend tying each code to its line. The G14 sufficient colour-coded-schedule pattern; the passing boundary for case-04.",
+        "mechanism": "G14 satisfied: the track category conveyed by tr.t1/.t2/.t3 background hue is redundantly conveyed by the span.code text ('· T1' etc.) in every destination cell. In grayscale the codes remain legible so the track stays distinguishable; a screen reader hears e.g. 'Harbour Int'l Airport · T2'. Colour is redundant reinforcement.",
+        "whyAutomatedToolsMiss": "As with the other boundary case, a tool cannot CERTIFY the pass — it cannot reason that the '· T2' text adequately backs the colour. The case exists to verify the evaluator separates a genuinely G14-compliant colour-coded schedule from the failing case-04, which uses the same hue-per-track design but omits the text code.",
+        "primarySelector": "span.code"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": false,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "None material. This is an intentional TRUE NEGATIVE (passing) case, so there is no accessibility issue to confirm — by design. errorIsReal=false reflects that absence, not a defect.",
+          "Minor citation framing nit (not a defect): the .md labels the source 'Understanding 1.4.1 / G14.html', but G14 is a WCAG Technique (wcag-techniques/general/G14.html), not part of the Understanding doc. The technique ID, file, and quoted sentence are all correct, so the claim is fully supported."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Mengqi",
+          "issueExists": "no",
+          "disposition": "comment",
+          "commentReason": "no-error",
+          "commentText": ""
+        },
+        {
+          "annotator": "Ajit",
+          "issueExists": "no",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": ""
+        }
+      ]
+    },
+    {
+      "key": "3.3.1::error-summary-incoherent-with-flagged-state::case-03",
+      "sc": "3.3.1",
+      "aspect": "error-summary-incoherent-with-flagged-state",
+      "caseId": "case-03",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/3.3.1/pages/error-summary-incoherent-with-flagged-state/case-03.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/3.3.1/pages/error-summary-incoherent-with-flagged-state/case-03.html",
+        "caseDoc": "eval/act-augmented/3.3.1/pages/error-summary-incoherent-with-flagged-state/case-03.md",
+        "sourceOfTruth": "eval/act-augmented/3.3.1/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "Top-of-form error summary lists fields/causes/counts that do not correspond to the page's actually-flagged fields (summary-vs-state incoherence)",
+        "scenario": "Healthcare new-patient registration: red role=alert summary declares 'There is 1 error in this form' and lists only Date of birth, but three fields render red with inline messages and aria-invalid=true — Date of birth (invalid date), Mobile number (too short), and Postcode (invalid). The summary undercounts the real error state by two and omits two flagged fields.",
+        "mechanism": "The summary's stated count (1) and single listed field disagree with the actual flagged set of three aria-invalid inputs. A user trusting the count fixes one field and resubmits, blindsided by the two never surfaced; the aggregate description misrepresents the number and identity of items in error.",
+        "whyAutomatedToolsMiss": "Every flagged field passes 36b590 (aria-invalid + associated descriptive message) and the summary is a valid visible live region — no malformed markup. No checker tallies the aria-invalid/inline-flagged fields and compares that count and membership to the summary's asserted count; that cross-tabulation is a human reconciliation.",
+        "primarySelector": ".summary"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": [
+          "G83 citation is a loose semantic fit: G83 (verified verbatim at wcag-techniques/general/G83.html line 11) is about OMITTED mandatory fields, while this case is about invalid-VALUE errors (bad date / short mobile / bad postcode). The quoted principle (top description must identify which fields are in error) transfers, and the .md's secondary Understanding 3.3.1 intent citation (also verbatim, error-identification.html lines 24-25 and the 'identity of the item in error' clause at line 29) supports the mechanism precisely, so this is a minor citation-fit nit, not a hallucination.",
+          "Minor: Chromium's getFullAXTree serialization in inspect.js did not surface the aria-invalid='true' attributes as an 'invalid' AX property on the three textboxes (the 7 'invalid' string matches are the .field-invalid-class StaticText echoes of the page's own prose). This is a CDP property-filter nuance, not a page defect; the HTML source (lines 59,66,81) and the computed red 2px borders on exactly #dob/#mobile/#postcode confirm the real error state."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "yes",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": "The issue highlighted is present and is for the correct field as well"
+        }
+      ]
+    },
+    {
+      "key": "4.1.3::is-it-a-status-message-scope-boundary::case-03",
+      "sc": "4.1.3",
+      "aspect": "is-it-a-status-message-scope-boundary",
+      "caseId": "case-03",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/4.1.3/pages/is-it-a-status-message-scope-boundary/case-03.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/4.1.3/pages/is-it-a-status-message-scope-boundary/case-03.html",
+        "caseDoc": "eval/act-augmented/4.1.3/pages/is-it-a-status-message-scope-boundary/case-03.md",
+        "sourceOfTruth": "eval/act-augmented/4.1.3/result.json"
+      },
+      "corpusClaim": {
+        "expected": "inapplicable",
+        "expectedMeansIssueExists": "no",
+        "aspectTitle": "Mis-scoping the status-message boundary: change-of-context exceptions vs. genuine in-scope status",
+        "scenario": "Tallgrass State University LMS course-materials page with a standard APG tablist (Overview / Syllabus & policies / Readings). Selecting a tab hides one role=tabpanel and shows another — new content appears — with deliberately no role=status/aria-live. The content change is exposing/hiding content by interacting with a UI component, governed by 4.1.2, and is excepted from 4.1.3.",
+        "mechanism": "Tab activation toggles aria-selected, moves roving focus, and wires aria-controls/aria-labelledby, so AT announces 'Syllabus & policies, tab, selected, 2 of 3' through the widget's role/state semantics (4.1.2). Per the Understanding, selecting a different tab in a tablist does not meet the status-message definition and such state changes are already required to be exposed under 4.1.2; adding a live region would be redundant. Therefore 4.1.3 does not apply.",
+        "whyAutomatedToolsMiss": "Tools can verify the tab roles/attributes exist but cannot make the positive N/A call. The risk is the opposite: a heuristic that flags 'new content rendered without an aria-live region' would FALSELY fail this page. Distinguishing a 4.1.2-governed widget state change (excepted) from a genuine in-scope status lacking a live region requires knowing which SC owns the change and that tab selection is announced through role/state — a semantic boundary judgment, not a structural check.",
+        "primarySelector": "[role=\"tablist\"][aria-label=\"Course materials\"]"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": false,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "none",
+        "recommendation": "keep",
+        "problems": [
+          "No defect to find — and that is intentional. This is an INAPPLICABLE (N/A) case for 4.1.3, not a failure case. errorIsReal=false reflects that there is correctly no accessibility error; the page genuinely produces the documented 'inapplicable' outcome, so expectedOutcomeCorrect=true.",
+          "Citation verified VERBATIM at wcag-understanding/status-messages.html lines 100-101, inside 'Examples of changes that are not status messages'. Both quoted sentences appear character-for-character and directly support the N/A claim.",
+          "Realistic, self-contained, distinct from a toy stub: full APG Tabs implementation (roving tabindex, arrow/Home/End keys, automatic activation, aria-controls/aria-labelledby), three content panels, no JS errors, no external resources."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "no",
+          "disposition": "approve",
+          "commentReason": null,
+          "commentText": "when focusing on a new tab, the focus shift to the new tab that was chosen"
+        }
+      ]
+    },
+    {
+      "key": "4.1.3::wrong-live-region-politeness-for-urgency::case-01",
+      "sc": "4.1.3",
+      "aspect": "wrong-live-region-politeness-for-urgency",
+      "caseId": "case-01",
+      "severity": 2,
+      "signals": [
+        "FLAGGED"
+      ],
+      "files": {
+        "page": "eval/act-augmented/4.1.3/pages/wrong-live-region-politeness-for-urgency/case-01.html",
+        "pageWithOriginalAuthorComments": "eval/act-augmented/_archive/comment-strip-backups/2026-08-14T08-39-15/files/eval/act-augmented/4.1.3/pages/wrong-live-region-politeness-for-urgency/case-01.html",
+        "caseDoc": "eval/act-augmented/4.1.3/pages/wrong-live-region-politeness-for-urgency/case-01.md",
+        "sourceOfTruth": "eval/act-augmented/4.1.3/result.json"
+      },
+      "corpusClaim": {
+        "expected": "failed",
+        "expectedMeansIssueExists": "yes",
+        "aspectTitle": "Live-region politeness is semantically wrong for the message's urgency and update frequency",
+        "scenario": "E-commerce running-shoe store with an instant search filter: a 'N results' counter beneath the search box updates on every keystroke. The counter is a present, valid live region wired role=alert (assertive), so typing 'shoes' fires five assertive announcements in under a second, each interrupting and clobbering the last. A low-value, high-frequency count should be polite (role=status), not assertive.",
+        "mechanism": "role=alert maps to an assertive live region: each text change interrupts current speech. The region's text is replaced on every 'input' event, so a per-keystroke result count repeatedly preempts whatever the screen reader was reading and cuts off its own prior announcements. The message is announced (absence-checkers pass) but at a politeness inappropriate for its low value and high cadence — the 'too chatty' failure.",
+        "whyAutomatedToolsMiss": "A non-empty live region is present at load with role=alert + aria-atomic=true and genuinely announces. axe/WAVE/Lighthouse verify only that a status message CAN be announced; both assertive and polite are legal values, so no rule fires. No static or single-snapshot scan can weigh that a count firing on every keystroke is low-value, high-cadence content that should be polite — that needs human understanding of the message's meaning and frequency.",
+        "primarySelector": "p#liveCount[role=\"alert\"]"
+      },
+      "pipelineSelfReview": {
+        "errorIsReal": true,
+        "expectedOutcomeCorrect": true,
+        "requiresHumanJudgment": true,
+        "browserConfirmed": true,
+        "severity": "major",
+        "recommendation": "keep",
+        "problems": [
+          "PROMPT/SCENARIO MISMATCH (metadata defect, not a page defect): the task prompt describes an entirely DIFFERENT case than what is on disk. Prompt claims an 'E-commerce running-shoe store' instant-search counter wired role=alert (assertive 'too chatty'), selector p#liveCount[role=\"alert\"], cited against the Understanding 'too chatty' passage. The ACTUAL files are a 'Helmsley Workspace' notification-preferences page with a save-confirmation banner wired aria-live=\"off\", selector span#savedMsg[aria-live=\"off\"], cited against F103. The .md (lines 100-115) explicitly documents that the old role=alert scenario was REJECTED by a prior adversarial reviewer as advisory/non-normative and rewritten to the aria-live=\"off\" F103 scenario. So the prompt is stale; I reviewed the file that actually exists.",
+          "The selector in the prompt (p#liveCount[role=\"alert\"]) does not exist on the page; the real defect element is span#savedMsg[aria-live=\"off\"] (HTML line 93). The prompt's claimed mechanism (assertive per-keystroke clobbering) and claimed citation (Understanding 'too chatty') do not apply to this page at all.",
+          "Minor/disclosed: the cited Understanding file wcag-understanding/status-messages.html has <h1> 'Status Messages' with draft numbering 3.2.6 (WCAG 2.1 draft id for 4.1.3); the .md discloses this honestly and relies on F103 as the primary normative citation, so it is not a material defect."
+        ]
+      },
+      "humanAnnotations": [
+        {
+          "annotator": "Davin",
+          "issueExists": "yes",
+          "disposition": "comment",
+          "commentReason": "other-error",
+          "commentText": "The issue here is not that the wrong urgency is present but more so that there is no urgency attached to the element such as role=alert, role=status, aria-live=\"off\""
+        }
+      ]
+    }
+  ]
+}

@@ -712,6 +712,56 @@ to pre-empt a barrier.
 Composed-799 effect: FN 2→1 (recall 99.1→99.6), FP 30→31. Evidence `upstream-evidence/qw-{pre,post,post-v2,rest-all-v2}`;
 audit trail `docs/analysis/coverage/TARGETED-MULTI-CHECKER-COUNTERFACTUAL.md` (shipped-outcome addendum).
 
+## Table 1j — Human annotation reliability (IRR) on the act-augmented corpus
+
+**Run 2026-08-14, repo at `a349d5b0`** (analysis only — no harness code changed). Three annotators
+over `eval/act-augmented/`: 426 unique pages, 10 SCs, **213 double-coded** in two disjoint pairs
+(annotator-3 double-codes both halves; there is no 3-way overlap, so Fleiss' κ does not apply). Q1 =
+*"does an accessibility issue exist on this page?"*. Full report:
+`docs/analysis/reports-2026-06/ANNOTATION-RELIABILITY-AND-CORPUS-HYGIENE.md`; regenerate with
+`node eval/act-augmented/_tools/irr-analysis.js`.
+
+| Q1 agreement | n | P₀ | κ (95% CI) | Gwet AC₁ | PABAK | McNemar |
+|---|---|---|---|---|---|---|
+| Davin × Ajit | 106 | 89.6 | **0.743** (0.599–0.887) | 0.827 | 0.792 | p=.070 → symmetric |
+| Mengqi × Ajit | 107 | 82.2 | **0.498** (0.293–0.703) | 0.726 | 0.645 | p=.646 → symmetric |
+| **pooled** | 213 | 85.9 | **0.628** (0.505–0.751) | 0.773 | 0.718 | — |
+| Krippendorff α (nominal) | 426 | — | **0.629** | — | — | — |
+
+Report κ **with** AC₁: "issue exists" holds on ~78% of pages (prevalence index 0.44–0.54), so κ sits
+well under raw agreement while AC₁ does not — the honest phrasing is *substantial agreement on a
+heavily skewed binary*. Both pairs' disagreements are **symmetric** (McNemar n.s.), i.e. noise on hard
+cases, not a leniency offset that a tie-break rule could fix. Per-SC ordering is the interpretable
+result: **2.4.2 Page Titled κ=1.000** (mechanical) → 2.4.3 κ=0.750 → 1.1.1 κ=0.553 → 2.1.2 κ=0.584 →
+**1.4.1 κ=0.551**, **1.3.1 κ=−0.222 (n=11, underpowered)** — the semantic SCs are the least reliable
+for humans, which is the same gradient the harness finds hard.
+
+**Two caveats that must ship with this number.** (1) *It is anchored, not blind*: the annotation UI
+renders the corpus's own `mechanism` prose on wizard page 1, and Q1 is answered on page 1
+(`_annotator/index.html:1303-1348`) — coders were told what the planted defect was before judging
+whether it existed, so κ=0.63 is an upper bound on blind agreement. (2) Q2 (`disposition`) is **not**
+a second judgment: κ≈0.03–0.08 at P₀ 73–88% reflects comment-rate style (25.2% vs 5.6%), not
+disagreement about pages.
+
+Annotator vs the corpus's own label: Davin 96.7% (κ 0.909), Ajit 95.3% (κ 0.876), **Mengqi 81.7%
+(κ 0.382)** with two-sided error (17 vs 22) — a bare Mengqi contradiction is weak evidence and was
+usually refuted on inspection.
+
+**Corpus hygiene found in the same pass.** 861/926 served pages carried an authoring comment stating
+the verdict (`SC 1.1.1 FAILURE (F30 …)`); annotations prove the leak was live ("…as mentioned in the
+comments"). All **1978 HTML + 1236 JS + 1192 CSS** comments are now stripped, verified on all 925
+changed pages by four independent checks (sha256, DOM-equivalence via `DOMParser` with scripts off,
+`esprima` token-stream per inline script, CSS-minus-comments, and byte-compared full-page renders):
+**0 mismatches**. A residual leak class survives and is *not* fixed: **119 pages render the
+explanation as page copy** and **6 carry `body[data-intended-classification]`**. Stratified test
+(`_tools/irr-leak-contrast.js`) shows **no detectable contamination of the human round** (92.8% vs
+91.0% label agreement, z=0.53, n.s.) — the exposure is forward-looking, for any LLM lane that reads
+rendered text. Of 100 flagged cases adjudicated case-by-case against live pages, **7 metadata fixes
+applied (no `expected` label changed), 21 tagged `needs-validation`** (19 ground-truth-disputed, 7
+internally self-contradictory) — dominant failure mode is metadata drift, i.e. the shipped page is
+not the page its metadata describes. **Any scored use of this corpus should exclude the 21 tagged
+cases** (`_annotator/irr/case-reliability-tags.json`).
+
 ## Table 2 — Held-out generalization gate (581-case full corpus)
 
 Each new deterministic detector evaluated over its **entire** ACT rule, not its tuned examples. Over-fire =
