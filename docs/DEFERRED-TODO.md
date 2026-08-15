@@ -621,3 +621,46 @@ so any FP/recall delta is the judge design, NOT collect/vision noise. Results (`
   So path-1 (5c97d7f0) has a validated NON-rubric-tuning elimination — but `V3_FP_BOUNDARY` is a GLOBAL adjudicator
   flag (affects all 22 paper SCs), so shipping it needs the full 581 re-validation, OR fold the specific guardrail
   into the 1.3.3 rubric (rubric-local) and validate on NOVEL probes per path 1. NOT shipped — team-lead decision.
+
+---
+
+## Wire the dead F85 reveal-then-check-focus-order runner (2026-08-15, root-cause campaign)
+
+**Status: NOT shipped — deliberately deferred.** Found during the synthetic-corpus FP/FN root-cause pass
+(`docs/analysis/reports-2026-06/SYNTHETIC-CORPUS-FP-FN-ROOTCAUSE.md`); worth ~3 recovered 2.4.3 cases.
+
+`reveal-state-runner.js:73` implements the exact **F85** verdict — "a dialog/menu opened but focus was NOT
+moved into it" — and `reveal-checklist.js:9` exports `runRevealChecklist` to drive it. **Nothing in
+`scripts/` imports either.** Repo-wide grep finds only the implementation. The three synthetic cases it
+would decide currently reach the LLM with no deterministic signal at all.
+
+**Why it was not wired in this pass.** Unlike the other fixes in that campaign — each of which edited an
+existing live code path — this needs NEW pipeline surface: a `catalog.js` entry declaring the experiment,
+an experiment REQUEST generated for the reveal trigger, obligation binding for the resulting finding, and a
+decision about whether the verdict is authoritative or shadow. That is a feature, and landing it
+immediately before a multi-hour validation run would have confounded the regression signal for the eleven
+fixes that did ship. It should be built and validated on its own.
+
+**Design notes for whoever picks this up.**
+- The trigger set is the same one `status-detector.js` enumerates (`isSafe`/`isPerceivable`), which as of
+  this campaign correctly includes bare `<button>` elements — reuse it rather than re-deriving.
+- Bind the finding to the page-level 2.4.3 obligation (`oracle.PAGE_FOCUSORDER_XPATH`), NOT to the trigger
+  element: F85 is a statement about the page's focus order, and the trigger already owns other claims.
+- Ship it SHADOW first. 2.4.3 is in `TRIAGE_SCS` (`build-v3.js:861`), so its instrument findings do not
+  reach the ledger anyway — which makes it a safe place to calibrate before asking for authority.
+- Regression risk is a false BARRIER on a legitimately non-focus-moving reveal (an inline disclosure that
+  correctly leaves focus on its trigger is CONFORMING). Guard on `aria-modal`/`role=dialog` before treating
+  "focus did not move" as a failure.
+
+## Reconsider TRIAGE_SCS for 1.4.1 / 2.4.3 / 4.1.3 (2026-08-15)
+
+**Status: NOT changed — needs its own controlled experiment.** `build-v3.js:861` routes 1.4.1, 1.3.3,
+1.3.2, 2.4.3 and 4.1.3 into a non-ledger review queue that "never clear/barrier", by design ("the project
+has no sound enumeration story for these families yet"). Measured cost on the synthetic corpus: the three
+of those SCs present there score **24/93 = 25.8% recall vs 61.1% for every other SC**, and all three sit
+in the bottom four.
+
+The decision is defensible and the rationale is written down — this is a note that its cost is now
+QUANTIFIED, not a claim that it is wrong. Promoting any of them to the ledger would create obligations on
+every page in the 581-case ACT corpus and could move the headline Table 1 numbers, so it must be run as a
+pre/post experiment on the full ACT corpus, not bundled with unrelated fixes.

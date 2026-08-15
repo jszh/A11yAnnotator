@@ -762,6 +762,73 @@ internally self-contradictory) — dominant failure mode is metadata drift, i.e.
 not the page its metadata describes. **Any scored use of this corpus should exclude the 21 tagged
 cases** (`_annotator/irr/case-reliability-tags.json`).
 
+## Table 1k — Harness on the act-augmented synthetic corpus + full FP/FN root-cause
+
+**Run 2026-08-15, repo at `4ae7a60e`** (`results/aug-annot-tools-on/`). Claude Sonnet 4.6,
+**tools ON**, 405 pages (the 384 cleared + fixed strata plus unflagged; the 21
+`needs-validation` cases from Table 1j are excluded), **0 errors**. Reproduce with
+`node eval/act-augmented/_tools/run-annotated-suite.js --tools --out <name>`; slice with
+`score-annotated-run.js <name> --by-sc`.
+
+| slice | n | GT-fail | recall | FP | precision | F1 |
+|---|---|---|---|---|---|---|
+| **ALL** | 405 | 322 | **164/322 = 50.9%** | 14/83 = 16.9% | 92.1% | 0.656 |
+| unflagged | 326 | 288 | 149/288 = 51.7% | 4/38 = 10.5% | 97.4% | 0.676 |
+| clear (human-flagged, adjudicator-cleared) | 72 | 28 | 13/28 = 46.4% | 10/44 = 22.7% | 56.5% | 0.510 |
+| fixed | 7 | 6 | 2/6 = 33.3% | 0/1 | 100% | 0.500 |
+
+**This is a different measurement from Table 1, not a regression.** The corpus was generated to
+hold defects automated checkers miss, and it succeeds: **all 164 catches carry `llmFlag`, only 30
+also carry a deterministic barrier, and none is deterministic-only** — six of ten SCs (1.1.1,
+1.3.1, 2.4.2, 2.4.3, 2.4.4, 4.1.3) have *zero* deterministic catches. 50.9% therefore measures the
+judge lane alone, against 97.0% on the official ACT subset where the deterministic lanes carry most
+of the load. Labels remain **unvalidated** (Table 1j) — but of 172 hand-adjudicated failures only
+**13 (7.6%) are corpus defects**, so the gap is overwhelmingly real.
+
+**Root cause of all 172 failures** (158 FN + 14 FP), each case read and most probed live; full
+report `docs/analysis/reports-2026-06/SYNTHETIC-CORPUS-FP-FN-ROOTCAUSE.md`:
+
+| class | cases | share |
+|---|---:|---:|
+| **plumbing** (evidence computed but undelivered, narrow gates, blind collector) | **97** | **56.4%** |
+| **rubric** (question never asked, or asked too leniently) | 56 | 32.6% |
+| corpus (label or page wrong; harness right) | 13 | 7.6% |
+| **tooling** (missing or unrouted instrument) | **6** | **3.5%** |
+
+The headline claim this supports: **the residual is not a tool-support gap.** Only 2 of 172 cases
+need an instrument that does not exist. Two structural findings dominate instead.
+
+*(1) 17.7% of GT-fail cases were never asked* — 57/322 produced zero in-scope obligations, so no
+rubric change can reach them; **conditional recall is 61.9%** (164/265).
+
+*(2) `TRIAGE_SCS` membership predicts the collapse.* `build-v3.js:861` routes 1.4.1, 1.3.3, 1.3.2,
+2.4.3 and 4.1.3 to a non-ledger review queue that "never clear/barrier" by design:
+
+| lane | recall |
+|---|---|
+| TRIAGE_SCS members in this corpus (1.4.1, 2.4.3, 4.1.3) | **24/93 = 25.8%** |
+| all other SCs | **140/229 = 61.1%** |
+
+All three sit in the bottom four; the only non-triage SC there is 2.1.2 (27.6%), separately
+explained by the `focusRisk` and `visible()` gates.
+
+**Three defects found here are live bugs affecting every corpus, not just this one.**
+(a) `coverage-registry.js:37` demands `text-contrast` for any text-bearing element while
+`applicability-oracle.js:223` exempts `inactiveText` — the drift raises a fail-closed Rule-16 error
+and `build-v3.js:86` **aborts the whole build**, yielding zero obligations for every SC on
+**8/405 pages**, which `score-lib.js:46` then records indistinguishably from `noObligation`.
+(b) `run-instruments.js:62` discards `tab.order` immediately after computing it, and `tabOrder`
+appears nowhere in the judge-side modules — 2.4.3's 20.0% is a dropped variable, not a judgment
+failure. (c) `exp-runners.js:1401` reads `hasTrigger: hasTitle || hasDesc || true`, whose trailing
+`|| true` makes proven 1.4.13 barriers fail Rule-15 binding. Three finished instruments
+(`runInteractionChecklist`/`use-of-color-adequacy`, `runRevealChecklist`, `REQUIRED_TOOL_ROUTING`)
+are wired to **nothing**.
+
+**Instrumentation caveat for the next run:** `agentVerdicts` is empty on all 405 records, so the
+run-level fact that ~74% of tool-capable runs made zero tool calls (`agentBuilt` 397,
+`multiTurnResults` 104, 371 calls) **cannot be joined to per-case outcomes**. Add per-subject tool
+traces before drawing any tool-use conclusion.
+
 ## Table 2 — Held-out generalization gate (581-case full corpus)
 
 Each new deterministic detector evaluated over its **entire** ACT rule, not its tuned examples. Over-fire =
