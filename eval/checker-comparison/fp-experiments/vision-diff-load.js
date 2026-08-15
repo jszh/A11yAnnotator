@@ -13,6 +13,7 @@ const vc = require('../../../scripts/v3/lib/vision-capture.js');
 const { createTabAllocator } = require('../../../scripts/v3/lib/tab-allocator.js');
 const LIMITS = require('../../../scripts/v3/lib/limits.js');
 const puppeteer = require('puppeteer');
+const { BROWSER_ARGS } = require('../../../scripts/v3/lib/browser-args.js');
 function arg(n, d) { const p = process.argv.find((x) => x === `--${n}` || x.startsWith(`--${n}=`)); if (!p) return d; if (p === `--${n}`) return true; return p.slice(n.length + 3); }
 const CHROME = process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const PACKS = path.join(REPO_ROOT, 'results/fp-experiments/packs');
@@ -34,7 +35,7 @@ function allPacks() { return fs.readdirSync(PACKS).filter((x) => x.endsWith('.js
   const fillers = allPacks().filter((x) => x !== ID).slice(0, WORKERS);
   console.log(`vision-diff-load: target ${ID} (${pack.tc.sc}) | ${xps.length} xpaths | K=${K} target-captures | ${WORKERS} workers | settle=${process.env.V3_SETTLE_WAIT === '1' ? 'ON' : 'off'}`);
 
-  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: BROWSER_ARGS });
   const alloc = createTabAllocator({ browser, maxTabs: LIMITS.concurrency.maxTabs });
   const targetCaps = [];
   let stop = false;

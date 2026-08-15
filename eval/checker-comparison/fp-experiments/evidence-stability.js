@@ -39,6 +39,7 @@ const sha = (s) => crypto.createHash('sha256').update(s).digest('hex').slice(0, 
 // GPU rasterization LSB noise that raw-SHA over-counts as "drift"); `visionRaw` = the exact-byte SHA (shows the
 // FOUT/reflow drift the settle removes). Comparing the two attributes the settle effect vs the perceptual-metric effect.
 const { perceptualHash } = require('./perceptual-hash.js');
+const { BROWSER_ARGS } = require('../../../scripts/v3/lib/browser-args.js');
 
 function loadCases() {
   const RAW = path.join(REPO_ROOT, 'eval/checker-comparison/upstream-evidence/v3-act-subset-proposed/raw.json');
@@ -82,7 +83,7 @@ async function main() {
   const byCase = {}; for (const c of cases) byCase[c.testcaseId] = { sc: (c.sc || [])[0], expected: c.expected, runs: [] };
   for (let run = 0; run < RUNS; run++) {
     const t0 = Date.now();
-    const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+    const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: BROWSER_ARGS });
     const alloc = createTabAllocator({ browser, maxTabs: MAX_TABS });
     const instGate = makeSemaphore(Math.max(1, Math.min(PAGE_CONC, 4)));
     let cursor = 0, done = 0;

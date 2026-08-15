@@ -39,6 +39,7 @@ const fs = require('fs');
 const path = require('path');
 const http = require('http');
 const puppeteer = require('puppeteer');
+const { BROWSER_ARGS } = require('../../scripts/v3/lib/browser-args.js');
 
 // QualWeb's reused cluster adds one taskerror listener per evaluate(); with QW_RESTART_EVERY capping real
 // growth (~50 before a fresh instance resets it), lift the warn threshold above that so the cosmetic
@@ -508,7 +509,7 @@ async function main() {
   };
   if (TOOLS.includes('qualweb')) await startQw();
 
-  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: BROWSER_ARGS });
   try {
     for (const [i, tc] of selected.entries()) {
       if (qw && QW_RESTART_EVERY > 0 && i - qwStartedAt >= QW_RESTART_EVERY) {

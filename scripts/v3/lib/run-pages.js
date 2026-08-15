@@ -19,13 +19,14 @@ const puppeteer = require('puppeteer');
 const { createTabAllocator } = require('./tab-allocator.js');
 const { orchestrate } = require('./orchestrator.js');
 const { CHROME } = require('./run-experiments.js');
+const { BROWSER_ARGS } = require('./browser-args.js');
 
 async function runPagesParallel(pageSpecs, opts = {}) {
   const specs = Array.isArray(pageSpecs) ? pageSpecs : [];
   const executablePath = opts.executablePath || CHROME;
   const maxTabs = opts.maxTabs;
   const pageConcurrency = Math.max(1, Number(opts.pageConcurrency) || Math.min(specs.length || 1, 8));
-  const browser = await puppeteer.launch({ executablePath, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  const browser = await puppeteer.launch({ executablePath, headless: 'new', args: BROWSER_ARGS });
   const alloc = createTabAllocator({ browser, maxTabs });
   const results = new Array(specs.length).fill(null);
   try {

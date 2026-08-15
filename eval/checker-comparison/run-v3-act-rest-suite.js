@@ -51,6 +51,7 @@ const CHROME = process.env.CHROME_PATH || process.env.PUPPETEER_EXECUTABLE_PATH
   || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const REST_DIR = path.join(__dirname, 'act-rest');
 const SCOPE = require('./expansion-scope.json');
+const { BROWSER_ARGS } = require('../../scripts/v3/lib/browser-args.js');
 
 function arg(name, def = null) {
   const p = process.argv.find((x) => x === `--${name}` || x.startsWith(`--${name}=`));
@@ -440,7 +441,7 @@ async function main() {
     try { const prior = JSON.parse(fs.readFileSync(path.join(OUT, 'raw.json'), 'utf8')); const done = new Set(prior.map((r) => r.testcaseId)); raw.push(...prior); selected = selected.filter((tc) => !done.has(tc.testcaseId)); } catch (e) {}
   }
 
-  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage', '--allow-file-access-from-files'] });
+  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: BROWSER_ARGS });
 
   // C2 QualWeb: localhost static server (root=act-rest/) + one reused instance restarted every N cases.
   let qwServer = null; let qwHttpBase = null; let qw = null; let qwStartedAt = 0;

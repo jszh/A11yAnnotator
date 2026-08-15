@@ -18,6 +18,7 @@
 const fs = require('fs');
 const path = require('path');
 const puppeteer = require('puppeteer');
+const { BROWSER_ARGS } = require('../../scripts/v3/lib/browser-args.js');
 
 const CHROME = process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const ROOT = path.resolve(__dirname, '..', '..');
@@ -310,7 +311,7 @@ async function main() {
   if (STRATIFIED) selected = stratifiedPick(selected, LIMIT);
   if (Number.isFinite(LIMIT) && LIMIT > 0) selected = selected.slice(0, LIMIT);
 
-  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: BROWSER_ARGS });
   const raw = [];
   for (const [i, tc] of selected.entries()) {
     const rec = {

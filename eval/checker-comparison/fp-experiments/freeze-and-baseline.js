@@ -30,6 +30,7 @@ const { makeSemaphore } = require('../../../scripts/v3/lib/run-telemetry.js');
 const LIMITS = require('../../../scripts/v3/lib/limits.js');
 const { scoreCase, printSummary, summarize } = require('./score-lib.js');
 const puppeteer = require('puppeteer');
+const { BROWSER_ARGS } = require('../../../scripts/v3/lib/browser-args.js');
 
 function arg(name, def = null) {
   const p = process.argv.find((x) => x === `--${name}` || x.startsWith(`--${name}=`));
@@ -102,7 +103,7 @@ async function main() {
   if (!process.env.CLAUDE_CODE_OAUTH_TOKEN) { console.error('FATAL: CLAUDE_CODE_OAUTH_TOKEN not set (.env)'); process.exit(1); }
   console.log(`FREEZE+baseline: ${cases.length} cases | model=${MODEL} effort=${TRANSPORT.effort} tools=OFF | packs→${PACKS_DIR} results→${OUT}`);
 
-  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: BROWSER_ARGS });
   const alloc = createTabAllocator({ browser, maxTabs: MAX_TABS });
   const results = [];
   let cursor = 0, done = 0, frozen = 0;

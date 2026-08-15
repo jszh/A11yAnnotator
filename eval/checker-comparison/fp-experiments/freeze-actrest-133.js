@@ -26,6 +26,7 @@ const { makeSemaphore } = require('../../../scripts/v3/lib/run-telemetry.js');
 const LIMITS = require('../../../scripts/v3/lib/limits.js');
 const { scoreCase, printSummary, summarize } = require('./score-lib.js');
 const suite = require('../run-v3-act-rest-suite.js'); // exports collectForV3, normalizeCollectRoles, urlFor, REST_DIR
+const { BROWSER_ARGS } = require('../../../scripts/v3/lib/browser-args.js');
 
 function arg(name, def = null) {
   const p = process.argv.find((x) => x === `--${name}` || x.startsWith(`--${name}=`));
@@ -78,7 +79,7 @@ async function main() {
   if (LIMIT > 0) cases = cases.slice(0, LIMIT);
   console.log(`FREEZE actrest ${RULE}/${SC}: ${cases.length} cases | model=${MODEL} effort=${TRANSPORT.effort} tools=OFF | packs→${PACKS_DIR}`);
 
-  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage', '--allow-file-access-from-files'] });
+  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: BROWSER_ARGS });
   const results = [];
   let cursor = 0, frozen = 0;
   const t0 = Date.now();

@@ -18,6 +18,7 @@ const PAGES = path.join(OUT, 'pages');
 const ASSETS = path.join(PAGES, '_assets');
 const SHOT_DIR = '/private/tmp/claude-501/-Users-jason-Developer-A11yAnnotator/3fca4a66-a344-4a3e-9756-da31e33ce842/scratchpad';
 const subset = require(path.join(OUT, 'subset.json'));
+const { BROWSER_ARGS } = require('../../scripts/v3/lib/browser-args.js');
 const report = fs.existsSync(path.join(OUT, 'download-report.json')) ? require(path.join(OUT, 'download-report.json')) : { intentionallyMissingAssets: [], skippedLargeMedia: [] };
 const arg = (n, d) => { const p = process.argv.find((x) => x === `--${n}` || x.startsWith(`--${n}=`)); return p == null ? d : (p === `--${n}` ? true : p.slice(n.length + 3)); };
 const SHOTS = Number(arg('shots', 3));
@@ -62,7 +63,7 @@ function classify(html) {
   const unfound = wanted.filter((w) => !picks[w]);
   if (unfound.length) console.log(`  (not present in act-rest corpus: ${unfound.join(', ')} — e.g. no testcase carries a ?query on an _assets ref; that path lives in act-subset's fd3a94)`);
 
-  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--allow-file-access-from-files'] });
+  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: BROWSER_ARGS });
   let anyFail = false; let shotN = 0;
   for (const s of selected) {
     const page = await browser.newPage();

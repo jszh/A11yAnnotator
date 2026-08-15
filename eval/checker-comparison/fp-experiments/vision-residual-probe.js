@@ -15,6 +15,7 @@ const { collectActPage, normalizeCollectRoles } = require('../../../scripts/v3/l
 const { makeSemaphore } = require('../../../scripts/v3/lib/run-telemetry.js');
 const LIMITS = require('../../../scripts/v3/lib/limits.js');
 const puppeteer = require('puppeteer');
+const { BROWSER_ARGS } = require('../../../scripts/v3/lib/browser-args.js');
 function arg(n, d) { const p = process.argv.find((x) => x === `--${n}` || x.startsWith(`--${n}=`)); if (!p) return d; if (p === `--${n}`) return true; return p.slice(n.length + 3); }
 const CHROME = process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const SUBSET_DIR = path.join(__dirname, '..', 'act-subset');
@@ -55,7 +56,7 @@ async function main() {
   console.log(`vision-residual: ${cases.length} cases × ${RUNS} runs | pages=${PAGE_CONC} | settle=${process.env.V3_SETTLE_WAIT === '1' ? 'ON' : 'off'} | save-target=${SAVE}`);
   for (let run = 0; run < RUNS; run++) {
     const t0 = Date.now();
-    const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+    const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: BROWSER_ARGS });
     const alloc = createTabAllocator({ browser, maxTabs: MAX_TABS });
     const instGate = makeSemaphore(Math.max(1, Math.min(PAGE_CONC, 4)));
     let cursor = 0;

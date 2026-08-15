@@ -28,6 +28,7 @@ const MAX_TAB = 60; // legacy constant (kept for export stability); reach no lon
 // below is ONLY a guard against a pathologically growing / never-wrapping focus order — never the normal
 // stop condition, which is a WRAP (focus revisiting an already-seen node ⇒ the whole ring was walked).
 const REACH_SAFETY_CAP = require('./limits.js').experiment.reachSafetyCap;
+const { BROWSER_ARGS } = require('./browser-args.js');
 const CLIP_PAD = 10; // include an outline-offset ring that renders outside the border box
 
 // In-page: resolve an element by xpath and tag it so we can recognise focus landing on it.
@@ -373,7 +374,7 @@ async function runPlan(plan, { resolveUrl, executablePath = CHROME, attestationK
   // pages (so the cap bounds tabs GLOBALLY, not per-page). When injected we DON'T own them — the driver closes
   // them. Default (no injection) = own a browser + allocator and close both, byte-identical to the prior lifecycle.
   const ownsBrowser = !injectedBrowser;
-  const browser = injectedBrowser || await puppeteer.launch({ executablePath, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  const browser = injectedBrowser || await puppeteer.launch({ executablePath, headless: 'new', args: BROWSER_ARGS });
   // EVERY tab for this plan flows through ONE allocator (the single chokepoint: cap + FIFO + timer-pause).
   const ownsAlloc = !injectedAlloc;
   const alloc = injectedAlloc || createTabAllocator({ browser, maxTabs });

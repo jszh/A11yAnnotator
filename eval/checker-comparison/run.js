@@ -11,6 +11,7 @@ const fs = require('fs');
 const path = require('path');
 const http = require('http');
 const puppeteer = require('puppeteer');
+const { BROWSER_ARGS } = require('../../scripts/v3/lib/browser-args.js');
 
 const CHROME = process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const REPO = path.resolve(__dirname, '..', '..');         // repo root (this folder is eval/checker-comparison/)
@@ -156,7 +157,7 @@ async function runAlfa(page) {
 (async () => {
   const srv = await startServer();
   PORT = srv.address().port;
-  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: BROWSER_ARGS });
   const combined = {};
   for (const fx of FIXTURES) {
     const url = httpUrl(fx);

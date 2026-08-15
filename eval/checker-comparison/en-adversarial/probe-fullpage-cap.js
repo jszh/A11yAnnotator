@@ -12,6 +12,7 @@
 // Usage: CHROME_PATH=".../Google Chrome" node probe-fullpage-cap.js [--cap=80]
 const path = require('path');
 const puppeteer = require('puppeteer');
+const { BROWSER_ARGS } = require('../../../scripts/v3/lib/browser-args.js');
 const CHROME = process.env.CHROME_PATH || process.env.PUPPETEER_EXECUTABLE_PATH
   || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const capArg = (process.argv.find((a) => a.startsWith('--cap=')) || '').split('=')[1];
@@ -19,7 +20,7 @@ const CAP = Number(capArg || process.env.V3_ACT_ELEMENT_CAP || 80);
 const FIXTURE = 'file://' + path.join(__dirname, 'fixtures', 'fullpage-cap.html');
 
 (async () => {
-  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox'] });
+  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: BROWSER_ARGS });
   try {
     const page = await browser.newPage();
     await page.goto(FIXTURE, { waitUntil: 'load' });

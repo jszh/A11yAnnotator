@@ -21,7 +21,7 @@ async function withLanePage(opts, fn) {
     try { return await fn(page); } finally { await page.close().catch(() => {}); }
   }
   const puppeteer = require('puppeteer');
-  const browser = await puppeteer.launch({ executablePath: o.executablePath || DEFAULT_CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  const browser = await puppeteer.launch({ executablePath: o.executablePath || DEFAULT_CHROME, headless: 'new', args: require('./browser-args.js').BROWSER_ARGS });
   try {
     const page = await browser.newPage();
     try { return await fn(page); } finally { await page.close().catch(() => {}); }

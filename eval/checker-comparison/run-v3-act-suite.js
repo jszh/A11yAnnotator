@@ -31,6 +31,7 @@ const { makeRunAgent, makeClaudeSdkTransport } = require('../../scripts/v3/lib/l
 const LIMITS = require('../../scripts/v3/lib/limits.js'); // budget/concurrency/ACT DEFAULTS (tiers C/D)
 const qwLib = require('../../scripts/v3/lib/checker-qualweb.js'); // C2 QualWeb two-lane checker
 const qwMap = require('../../scripts/v3/lib/data/qualweb-act-map.json'); // code→{actId,sc} for the rule-level eval flag
+const { BROWSER_ARGS } = require('../../scripts/v3/lib/browser-args.js');
 require('events').defaultMaxListeners = 200; // QualWeb's reused cluster adds a taskerror listener per evaluate()
 
 // SINGLE LLM ACTIVATION GATE (shared with run-evaluation.js): V3_LLM=1 turns the judge ON via the Claude
@@ -483,7 +484,7 @@ async function main() {
     } catch (e) { console.log(`resume: could not read prior raw.json (${e.message}); running full set`); }
   }
 
-  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: BROWSER_ARGS });
 
   // C2 QualWeb: a shared localhost static server (QualWeb renders file:// blank — it launches its OWN
   // browser) + a single reused QualWeb instance restarted every QW_RESTART_EVERY cases. Only stood up when

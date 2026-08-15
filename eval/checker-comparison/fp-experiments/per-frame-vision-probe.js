@@ -10,6 +10,7 @@ require('../../../scripts/v3/lib/load-env.js').loadEnv(REPO_ROOT);
 const vc = require('../../../scripts/v3/lib/vision-capture.js');
 const { createTabAllocator } = require('../../../scripts/v3/lib/tab-allocator.js');
 const puppeteer = require('puppeteer');
+const { BROWSER_ARGS } = require('../../../scripts/v3/lib/browser-args.js');
 function arg(n, d) { const p = process.argv.find((x) => x === `--${n}` || x.startsWith(`--${n}=`)); if (!p) return d; if (p === `--${n}`) return true; return p.slice(n.length + 3); }
 const CHROME = process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const PACKS = path.join(REPO_ROOT, 'results/fp-experiments/packs');
@@ -27,7 +28,7 @@ const sha = (s) => crypto.createHash('sha256').update(String(s || '')).digest('h
   console.log(`per-frame vision probe: ${pack.tc.testcaseId.slice(0, 12)} (${pack.tc.sc}) | ${xps.length} xpaths | ${N} captures (pages=1)`);
   const extra = (process.env.CHROME_EXTRA_FLAGS || '').split(/\s+/).filter(Boolean);
   if (extra.length) console.log(`  +extra chrome flags: ${extra.join(' ')}`);
-  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage', ...extra] });
+  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: [...BROWSER_ARGS, ...extra] });
   const alloc = createTabAllocator({ browser, maxTabs: 4 });
   const caps = [];
   for (let i = 0; i < N; i++) {

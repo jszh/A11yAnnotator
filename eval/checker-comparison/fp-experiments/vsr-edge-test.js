@@ -14,6 +14,7 @@ const REPO_ROOT = path.join(__dirname, '..', '..', '..');
 require('../../../scripts/v3/lib/load-env.js').loadEnv(REPO_ROOT);
 const { probeScreenReaderAfterAction, setStateAndCapture } = require('../../../scripts/v3/lib/cdp-tools.js');
 const puppeteer = require('puppeteer');
+const { BROWSER_ARGS } = require('../../../scripts/v3/lib/browser-args.js');
 function arg(n, d) { const p = process.argv.find((x) => x === `--${n}` || x.startsWith(`--${n}=`)); if (!p) return d; if (p === `--${n}`) return true; return p.slice(n.length + 3); }
 const CHROME = process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const FX = 'file://' + path.join(__dirname, 'fixtures', 'vsr-edge.html');
@@ -22,7 +23,7 @@ const N = Number(arg('n', 4));
 const XP = { sync: '/html/body/button[1]', noop: '/html/body/button[2]', notify: '/html/body/button[3]', newreg: '/html/body/button[4]', off: '/html/body/button[5]' };
 
 async function main() {
-  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: BROWSER_ARGS });
   const base = await browser.newPage(); await base.goto(FX, { waitUntil: 'load' });
   const ctx = { freshClone: async () => { const c = await browser.createBrowserContext(); const p = await c.newPage(); p.__c = c; await p.goto(FX, { waitUntil: 'load' }); return p; } };
   const stop = { v: false };

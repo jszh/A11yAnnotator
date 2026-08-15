@@ -14,6 +14,7 @@ const REPO_ROOT = path.join(__dirname, '..', '..', '..');
 require('../../../scripts/v3/lib/load-env.js').loadEnv(REPO_ROOT);
 const tools = require('../../../scripts/v3/lib/cdp-tools.js');
 const puppeteer = require('puppeteer');
+const { BROWSER_ARGS } = require('../../../scripts/v3/lib/browser-args.js');
 function arg(n, d) { const p = process.argv.find((x) => x === `--${n}` || x.startsWith(`--${n}=`)); if (!p) return d; if (p === `--${n}`) return true; return p.slice(n.length + 3); }
 const CHROME = process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const FIX = 'file://' + path.join(__dirname, 'fixtures', 'tool-stress.html');
@@ -42,7 +43,7 @@ function sig(r) {
 const hasShot = (r) => { if (!r || typeof r !== 'object') return false; for (const v of Object.values(r)) { if (typeof v === 'string' && v.length > 500) return true; if (v && typeof v === 'object' && hasShot(v)) return true; } return false; };
 
 async function main() {
-  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: BROWSER_ARGS });
   const base = await browser.newPage();
   await base.goto(FIX, { waitUntil: 'load' });
   // fresh ISOLATED clone (incognito context) at the fixture — matches the harness's per-lease isolation.
