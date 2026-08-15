@@ -75,6 +75,18 @@ Three failure modes:
   unrelated pages. If the `surrounding-region` (or the handed sibling-link list) shows a same-named link
   pointing elsewhere, the shared name fails to distinguish them ⇒ barrier. (Same name to the SAME destination
   is fine — not a failure.)
+- **Name CONTRADICTS the destination:** a name can be perfectly specific and still fail 2.4.4 if it names a
+  destination the link does not go to — `<a href="#terms">Read our Privacy Policy</a>`, "Download the 2024
+  report" pointing at the 2023 file, "Contact us" pointing at the careers page. 2.4.4 asks whether the user
+  can tell where the link GOES; a confidently wrong name is worse than a vague one, because nothing signals
+  to the user that they should check. **A specific-sounding name is NOT an automatic clear.** You are handed
+  the link's markup — compare the name against `href` (and against the `resolve_destination` result when the
+  destination is remote and tools are enabled). Where the target is a same-page fragment, compare the name to
+  what that fragment's own heading/section says it is. If they disagree ⇒ barrier.
+  Be careful in both directions: a shortened-but-consistent name ("Privacy" → `#privacy-policy`), a tracking
+  or redirect URL, and an opaque slug (`/p/48213`) are NOT contradictions — flag only when the name asserts a
+  subject the destination demonstrably is not. If you cannot resolve the destination at all, say so and
+  return PARTIAL rather than assuming either way.
 
 **LINK INSIDE A TABLE CELL — the row/column HEADER is programmatic enclosing context.** Per WCAG (H79), a link in a
 `<td>`/`role=cell` is contextualised by its cell's associated row/column header (the same association 1.3.1 governs).

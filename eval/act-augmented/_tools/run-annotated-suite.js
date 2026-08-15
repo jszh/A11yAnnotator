@@ -34,7 +34,7 @@ const path = require('path');
 const REPO_ROOT = path.join(__dirname, '..', '..', '..');
 require('../../../scripts/v3/lib/load-env.js').loadEnv(REPO_ROOT);
 
-const { orchestrate } = require('../../../scripts/v3/lib/orchestrator.js');
+const { orchestrate, BROWSER_ARGS } = require('../../../scripts/v3/lib/orchestrator.js');
 const { createTabAllocator } = require('../../../scripts/v3/lib/tab-allocator.js');
 const { makeRunAgent, makeClaudeSdkTransport } = require('../../../scripts/v3/lib/llm-agent-adapter.js');
 const { collectActPage, normalizeCollectRoles } = require('../../../scripts/v3/lib/act-page-collect.js');
@@ -61,12 +61,18 @@ const AXE_PATH = process.env.AXE_PATH || path.join(REPO_ROOT, 'axe.min.js');
 const RUN_NAME = String(arg('out', 'aug-annotated-sonnet46'));
 const OUT = path.join(REPO_ROOT, 'results', RUN_NAME);
 const LIMIT = Number(arg('limit', 0));
-const PAGE_CONC = Number(arg('pages', 8));
-const MAX_TABS = Math.min(LIMITS.concurrency.maxTabs, Number(arg('max-tabs', LIMITS.concurrency.maxTabs)));
+// Concurrency is deliberately below the shared limits: one browser serving 405
+// pages peaked at 40 live contexts at PAGE_CONC 8 and started failing to open
+// more. Tabs are the scarce resource here, not the LLM.
+const PAGE_CONC = Number(arg('pages', 6));
+const MAX_TABS = Math.min(LIMITS.concurrency.maxTabs, Number(arg('max-tabs', 24)));
 const GLOBAL_LLM = Math.min(LIMITS.concurrency.llm, Number(arg('global-llm', LIMITS.concurrency.llm)));
 const MODEL = process.env.V3_LLM_MODEL || 'claude-sonnet-4-6';
 const INCLUDE = String(arg('include', 'unflagged,clear,fixed'));
 const SC_FILTER = arg('sc', null);
+// --tools: live in-process CDP tools (multi-turn judge). The deployed harness
+// baselines all run tools=ON, so a tools-OFF run here is NOT comparable to them.
+const TOOLS = !!arg('tools', false);
 
 // CLAUDE.md: do NOT override LLM_EVAL_STATUS_PATH unless running >1 experiment at once.
 const FIXED_STATUS_PATH = process.env.LLM_EVAL_STATUS_PATH || '/tmp/llm-eval-status.json';
@@ -150,9 +156,13 @@ function loadCases() {
 const startedAt = Date.now();
 const tel = {
   startedAt, runName: RUN_NAME, phase: 'init', done: 0, total: 0,
-  config: { model: MODEL, include: INCLUDE, pageConc: PAGE_CONC, globalLlm: GLOBAL_LLM, maxTabs: MAX_TABS, vision: true, tools: false },
+  config: { model: MODEL, include: INCLUDE, pageConc: PAGE_CONC, globalLlm: GLOBAL_LLM, maxTabs: MAX_TABS, vision: true, tools: TOOLS },
   workers: {}, inflight: {},
   llm: { calls: 0, done: 0, results: 0, peakInFlight: 0, inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheCreateTokens: 0, costUsd: 0 },
+  // A tools-ON run that makes zero tool calls has happened before (prompting gap
+  // + a built-in-tool leak). Count them so the failure is visible in the first
+  // minutes rather than discovered after the run.
+  tools: { calls: 0, byName: {}, multiTurnResults: 0, maxTurns: 0 },
   tabs: {}, mem: {},
   tally: { caught: 0, missedAgree: 0, uncertain: 0, noVerdict: 0, noObligation: 0, error: 0 },
   byStratum: {},
@@ -175,30 +185,64 @@ const instGate = makeSemaphore(Math.max(1, Math.min(PAGE_CONC, 4)));
 
 // Token usage arrives on the transport's trace sink, not on the agent's return
 // value — the same sink run-fn-llm.js uses, so the counters stay comparable.
-function recordTrace(e) {
-  if (!e || e.type !== 'result') return;
-  const u = e.usage || {};
-  tel.llm.inputTokens += (+u.input_tokens || 0);
-  tel.llm.outputTokens += (+u.output_tokens || 0);
-  tel.llm.cacheReadTokens += (+u.cache_read_input_tokens || 0);
-  tel.llm.cacheCreateTokens += (+u.cache_creation_input_tokens || 0);
-  if (typeof e.totalCostUsd === 'number') tel.llm.costUsd += e.totalCostUsd;
-  tel.llm.results++;
+// PER-CASE ATTRIBUTION: the run-level tool counters answer "did tools fire at all", but not "did THIS
+// case use a tool, and did that change its outcome" — which is the question that actually matters when
+// diagnosing a miss. The 2026-08-15 root-cause pass could not answer it: `agentVerdicts` was empty on all
+// 405 records, so a run-level "74% of tool-capable runs made zero tool calls" could not be joined to any
+// per-case result, and one root cause had to be INFERRED from verdict prose instead of observed. Passing a
+// per-case sink alongside the global one fixes that at no cost.
+function makeTraceSink(caseAcc) {
+  return function recordTraceFor(e) {
+    if (!e) return;
+    if (Array.isArray(e.blocks)) {
+      for (const b of e.blocks) {
+        if (b && b.kind === 'tool_use') {
+          tel.tools.calls++;
+          tel.tools.byName[b.name] = (tel.tools.byName[b.name] || 0) + 1;
+          if (caseAcc) { caseAcc.calls++; caseAcc.byName[b.name] = (caseAcc.byName[b.name] || 0) + 1; }
+        }
+      }
+      return;
+    }
+    if (e.type !== 'result') return;
+    if (e.numTurns > 1) tel.tools.multiTurnResults++;
+    tel.tools.maxTurns = Math.max(tel.tools.maxTurns, e.numTurns || 0);
+    if (caseAcc) {
+      if (e.numTurns > 1) caseAcc.multiTurnResults++;
+      caseAcc.maxTurns = Math.max(caseAcc.maxTurns, e.numTurns || 0);
+      caseAcc.llmCalls++;
+    }
+    const u = e.usage || {};
+    tel.llm.inputTokens += (+u.input_tokens || 0);
+    tel.llm.outputTokens += (+u.output_tokens || 0);
+    tel.llm.cacheReadTokens += (+u.cache_read_input_tokens || 0);
+    tel.llm.cacheCreateTokens += (+u.cache_creation_input_tokens || 0);
+    if (typeof e.totalCostUsd === 'number') tel.llm.costUsd += e.totalCostUsd;
+    tel.llm.results++;
+  };
 }
+const newCaseToolAcc = () => ({ calls: 0, byName: {}, multiTurnResults: 0, maxTurns: 0, llmCalls: 0 });
+const recordTrace = makeTraceSink(null);   // run-level only (the non-tool base agent)
 const baseAgent = makeRunAgent({ transport: makeClaudeSdkTransport({ ...TRANSPORT, onTraceSink: recordTrace }), model: MODEL });
 
 let callSeq = 0;
-const runAgent = (messages, subject) => sem.run(async () => {
+// One wrapper applied to BOTH the single-shot agent and (via orchestrate's
+// wrapAgent hook) the multi-turn tool agent, exactly as run-fn-llm.js:205-214
+// does — otherwise the tool agent runs outside the global LLM cap entirely.
+// It doubles as the probe for whether the tool agent was built at all: the hook
+// only fires inside the branch that replaces the judge.
+const wrapAgent = (agent) => (messages, subject) => sem.run(async () => {
   const id = `c${++callSeq}`;
   tel.inflight[id] = { xpath: subject?.xpath || null, sc: subject?.sc || null, skill: subject?.skill || subject?.rubricRef || null, startedAt: Date.now() };
   tel.llm.calls++;
   tel.llm.peakInFlight = Math.max(tel.llm.peakInFlight, Object.keys(tel.inflight).length);
   try {
-    const res = await baseAgent(messages, subject);
+    const res = await agent(messages, subject);
     tel.llm.done++;
     return res;
   } finally { delete tel.inflight[id]; }
 });
+const runAgent = wrapAgent(baseAgent);
 
 // ---------------------------------------------------------------- main
 
@@ -216,7 +260,7 @@ async function main() {
   const excluded = Object.entries(availableByStratum)
     .filter(([s]) => !new Set(cases.map((c) => c.stratum)).has(s))
     .map(([s, n]) => `${s}=${n}`).join(' ');
-  console.log(`\nact-augmented ANNOTATED suite — ${cases.length} pages | model=${MODEL} | include=${INCLUDE}`);
+  console.log(`\nact-augmented ANNOTATED suite — ${cases.length} pages | model=${MODEL} | include=${INCLUDE} | tools=${TOOLS ? 'ON' : 'OFF'} vision=ON`);
   console.log(`  strata in run : ${JSON.stringify(tel.byStratum)}`);
   console.log(`  excluded      : ${excluded || '(none)'}`);
   console.log(`  out           : results/${RUN_NAME}`);
@@ -224,13 +268,26 @@ async function main() {
   console.log(`                  node eval/checker-comparison/fn-llm-monitor.js\n`);
 
   fs.writeFileSync(path.join(OUT, 'manifest.json'), JSON.stringify({
-    runName: RUN_NAME, startedAt: new Date(startedAt).toISOString(), model: MODEL, include: INCLUDE,
+    runName: RUN_NAME, startedAt: new Date(startedAt).toISOString(), model: MODEL, include: INCLUDE, tools: TOOLS, vision: true,
     commit: (() => { try { return require('child_process').execSync('git rev-parse HEAD', { cwd: REPO_ROOT }).toString().trim(); } catch { return null; } })(),
     availableByStratum, runningByStratum: tel.byStratum,
     cases: cases.map((c) => ({ testcaseId: c.testcaseId, key: c.key, stratum: c.stratum, expected: c.expected, sc: c.sc })),
   }, null, 2));
 
-  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  // BROWSER_ARGS is the orchestrator's own arg set and must be used verbatim: it
+  // carries --allow-file-access-from-files, without which a file:// page's
+  // <frame>/<iframe> contentDocument is null under Chrome's opaque-origin policy
+  // and the collector silently returns ZERO elements for that frame. A run
+  // launched with a hand-rolled arg list under-collects iframe pages instead of
+  // failing, so the loss is invisible in the metrics.
+  //
+  // protocolTimeout is raised because this corpus runs 405 pages through one
+  // browser: at PAGE_CONC 8 the allocator peaked at 40 live contexts and
+  // Target.createBrowserContext began timing out on the default 180s, erroring
+  // 126/405 cases (all in the alphabetical tail — pure resource exhaustion).
+  const browser = await puppeteer.launch({
+    executablePath: CHROME, headless: 'new', args: BROWSER_ARGS, protocolTimeout: 300000,
+  });
   const alloc = createTabAllocator({ browser, maxTabs: MAX_TABS });
   const statusTimer = setInterval(() => {
     try { tel.tabs = alloc.stats ? alloc.stats() : {}; } catch { /* noop */ }
@@ -250,6 +307,12 @@ async function main() {
       const runId = `aug-${tc.testcaseId}`;
       tel.workers[wid] = { idx: i, ruleId: tc.ruleId, sc: tc.sc[0], expected: tc.expected, stratum: tc.stratum, phase: 'collect', startedAt: Date.now() };
       let rec;
+      // Browser-resource failures are transient and say nothing about the page,
+      // so retry once after letting the browser drain. A case that errors is
+      // dropped from BOTH the recall and specificity denominators, which quietly
+      // shrinks the eval instead of failing it — that must not happen silently.
+      for (let attempt = 0; attempt < 2; attempt++) {
+      rec = null;
       try {
         const lease = await alloc.acquire();
         let collect;
@@ -261,6 +324,8 @@ async function main() {
         } finally { await lease.release(); }
 
         tel.workers[wid].phase = 'orchestrate';
+        // per-case tool attribution (see makeTraceSink) — rides alongside the run-level counters
+        const caseTools = newCaseToolAcc();
         const drive = { file: collect.file, runId, pageDigest: collect.pageDigest, drivenAt: collect.collectedAt + 1, elements: [] };
         const out = await orchestrate(collect, drive, {
           resolveUrl: () => tc.url, executablePath: CHROME, browser, tabAllocator: alloc, maxTabs: MAX_TABS,
@@ -269,12 +334,35 @@ async function main() {
           budgetOpts: { maxRunWallClockMs: LIMITS.act.runWallClockMs },
           experimentConcurrency: Math.min(LIMITS.concurrency.experimentCap, LIMITS.concurrency.experiment),
           runLlm: true, runAgent, captureVision: true, llmConcurrency: GLOBAL_LLM,
+          // fires ONLY when the tool agent is built -> proves tools are live
+          wrapAgent: (a) => { tel.tools.agentBuilt = (tel.tools.agentBuilt || 0) + 1; caseTools.agentBuilt = (caseTools.agentBuilt || 0) + 1; return wrapAgent(a); },
+          // Tool wiring mirrors run-fn-llm.js:509-513 exactly — llmTools alone is
+          // not enough; without llmTransportConfig the orchestrator cannot build
+          // the tool agent and silently falls back to the single-shot judge.
+          llmTools: TOOLS,
+          llmTransportConfig: TOOLS ? { ...TRANSPORT, onTraceSink: makeTraceSink(caseTools) } : undefined,
+          llmToolConcurrency: LIMITS.concurrency.llmTool,
+          llmToolMaxTurns: LIMITS.llm.toolMaxTurns,
+          llmToolRunTimeoutMs: LIMITS.llm.toolRunTimeoutMs,
         });
         rec = scoreCase(tc, out);
+        // Attach the per-case tool trace so a later analysis can JOIN tool use to outcome. `toolCalls: 0`
+        // on a tools-ON case is a real finding (the judge chose not to look), not missing data — which is
+        // exactly the distinction the previous run could not make.
+        rec.toolUse = { ...caseTools, toolsEnabled: TOOLS };
       } catch (e) {
-        rec = { testcaseId: tc.testcaseId, ruleId: tc.ruleId, sc: tc.sc, expected: tc.expected, outcome: 'error', error: String((e && e.message) || e) };
-        tel.errors.push({ testcaseId: tc.testcaseId, error: rec.error });
+        const msg = String((e && e.message) || e);
+        const transient = /createBrowserContext|Target closed|protocolTimeout|timed out|Session closed|Connection closed/i.test(msg);
+        if (transient && attempt === 0) {
+          tel.workers[wid].phase = 'retry-backoff';
+          await new Promise((r) => setTimeout(r, 5000 + Math.min(i, 20) * 250));
+          continue;                                   // second and final attempt
+        }
+        rec = { testcaseId: tc.testcaseId, ruleId: tc.ruleId, sc: tc.sc, expected: tc.expected, outcome: 'error', error: msg, transient, attempts: attempt + 1 };
+        tel.errors.push({ testcaseId: tc.testcaseId, error: msg });
         if (tel.errors.length > 40) tel.errors.shift();
+      }
+      break;
       }
       // carry the reliability stratum + the humans' own votes into the record so
       // every downstream slice is a filter, never another run
@@ -289,7 +377,9 @@ async function main() {
       if (tel.recent.length > 25) tel.recent.pop();
       if (done % 10 === 0 || done === cases.length) {
         const s = summarize(results);
-        console.log(`  ${done}/${cases.length} recall=${s.recall.caught}/${s.recall.failedN} FP=${s.specificity.falsePositive}/${s.specificity.n} (${Math.round((Date.now() - t0) / 1000)}s)`);
+        const errN = results.filter((r) => r.outcome === 'error').length;
+        console.log(`  ${done}/${cases.length} recall=${s.recall.caught}/${s.recall.failedN} FP=${s.specificity.falsePositive}/${s.specificity.n}`
+          + `${errN ? ` ERR=${errN} (${((errN / done) * 100).toFixed(0)}%)` : ''} (${Math.round((Date.now() - t0) / 1000)}s)`);
         fs.writeFileSync(path.join(OUT, 'results.json'), JSON.stringify(results, null, 2));
       }
     }
@@ -307,9 +397,20 @@ async function main() {
   const s = summarize(results);
   s.model = MODEL; s.include = INCLUDE; s.runName = RUN_NAME;
   s.llm = tel.llm;
+  s.tools = { enabled: TOOLS, ...tel.tools };
   s.elapsedMs = Date.now() - startedAt;
   fs.writeFileSync(path.join(OUT, 'summary.json'), JSON.stringify(s, null, 2));
-  printSummary(results, `act-augmented annotated (${RUN_NAME}, ${MODEL}, tools OFF)`);
+  printSummary(results, `act-augmented annotated (${RUN_NAME}, ${MODEL}, tools ${TOOLS ? 'ON' : 'OFF'})`);
+  const errN = results.filter((r) => r.outcome === 'error').length;
+  if (errN) {
+    const pctErr = (errN / results.length) * 100;
+    console.log(`  errors:   ${errN}/${results.length} = ${pctErr.toFixed(1)}% — these are EXCLUDED from both denominators above`);
+    if (pctErr > 2) console.log(`  *** WARNING: ${pctErr.toFixed(1)}% error rate. The metrics describe only the ${results.length - errN} cases that scored. Do not report them as corpus-level results. ***`);
+  }
+  if (TOOLS) {
+    console.log(`  tools:    ${tel.tools.calls} calls, maxTurns ${tel.tools.maxTurns}, ${JSON.stringify(tel.tools.byName)}`);
+    if (!tel.tools.calls) console.log(`  *** WARNING: tools were ENABLED but ZERO tool calls were made — this is a single-shot run mislabelled as tools-ON. ***`);
+  }
   console.log(`\nresults → results/${RUN_NAME}/results.json`);
   console.log(`slice it → node eval/act-augmented/_tools/score-annotated-run.js ${RUN_NAME}`);
 }

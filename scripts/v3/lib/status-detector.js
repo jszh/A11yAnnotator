@@ -50,7 +50,14 @@ async function detectStatusMessages(page, opts = {}) {
       return true;
     };
     const isSafe = (el) => {
-      const type = (el.getAttribute('type') || el.type || '').toLowerCase();
+      // READ THE ATTRIBUTE, not the IDL property, for the submit/reset/image test. `el.type` on a
+      // <button> DEFAULTS to 'submit' even with no type= attribute, so `<button>Add to cart</button>`
+      // — the single most common status trigger there is — was classified as a submit and excluded
+      // from the trigger set entirely. It also made the next line dead code (`!type` can never be true
+      // for a BUTTON), which is itself the proof the intended gate was the narrower one: a bare button
+      // is only a default-submit hazard when it is INSIDE A FORM.
+      const attrType = (el.getAttribute('type') || '').toLowerCase();
+      const type = attrType || (el.tagName === 'BUTTON' ? '' : (el.type || '').toLowerCase());
       if (el.tagName === 'A' && el.getAttribute('href')) return false;
       if (type === 'submit' || type === 'reset' || type === 'image') return false;
       if (el.tagName === 'BUTTON' && !type && el.form) return false; // default-submit inside a form

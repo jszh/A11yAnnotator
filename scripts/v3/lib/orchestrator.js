@@ -16,7 +16,9 @@ const { makeTimings } = require('./timings.js'); // per-stage + per-element wall
 const { createTabAllocator } = require('./tab-allocator.js'); // ONE shared browser pool for EVERY lane
 const agentPlanner = require('./agent-planner.js');
 
-const BROWSER_ARGS = ['--no-sandbox', '--disable-dev-shm-usage', '--allow-file-access-from-files', '--autoplay-policy=no-user-gesture-required'];
+// single source of truth (./browser-args.js) — re-exported here for the callers
+// that already import it from the orchestrator.
+const { BROWSER_ARGS } = require('./browser-args.js');
 
 function mergeJudgmentsArtifacts(base, extra, id) {
   const raw = [
@@ -315,7 +317,11 @@ async function orchestrate(collect, drive, opts = {}) {
       }
       return set.size ? set : null;
     })();
-    let rubricSubjects = llmAdj.selectRubricSubjects(collect, ledger, llmRubrics.rubrics, { onlyAutoPartial, confinement, contrastExempt }); // llm-rubric:<id> (per SC)
+    // 2.4.3 focus-order EVIDENCE: the recorded tab sequence from the keyboard instrument. Threaded to the
+    // focus-management subject so focus-order-meaning-v0 receives the artifact it is written around; without
+    // it the rubric can only obey its own abstain clause (17/24 of the SC's misses were PARTIAL).
+    const focusOrder = (bundle.instruments && bundle.instruments.tabOrder) || null;
+    let rubricSubjects = llmAdj.selectRubricSubjects(collect, ledger, llmRubrics.rubrics, { onlyAutoPartial, confinement, contrastExempt, focusOrder }); // llm-rubric:<id> (per SC)
     // EVAL SCOPE GATE (opt-in): restrict the LLM to the SC(s) we have ground truth for. ACT ground truth is
     // PER-SC — a testcase only tells us pass/fail/inapplicable for its OWN rule's SC, not the page's other SCs.
     // Judging off-target obligations is both unscoreable (no GT) and wasted LLM/tool/vision spend. A Set of SC
@@ -422,6 +428,20 @@ async function orchestrate(collect, drive, opts = {}) {
       for (const f of ((bundle.checkerFindings && bundle.checkerFindings.findings) || [])) {
         if (!f || f.kind !== 'incomplete' || !f.xpath) continue;
         (checkerHintsByXpath[f.xpath] = checkerHintsByXpath[f.xpath] || []).push({ sc: f.sc, checker: f.source || 'checker', rule: f.ruleId || f.detector || 'rule', note: 'flagged for REVIEW — investigate this specific concern; needs-review is never a pass' });
+      }
+      // ALLOWLISTED axe PASSES: some rubrics carry an explicit DEFER-to-the-checker clause for a rule that
+      // measured exactly their question (use-of-color-v0: "when the handed axe `link-in-text-block` signal
+      // reports PASS, DEFER to it"). Those clauses were dead because passes were never collected, so the
+      // judge flagged links that axe had already cleared. A pass is scoped to the ONE question that rule
+      // decides — it is never a general clearance, and the note says so.
+      for (const p of ((collect && collect.axePasses) || [])) {
+        for (const n of (p.nodes || [])) {
+          if (!n || !n.xpath) continue;
+          (checkerHintsByXpath[n.xpath] = checkerHintsByXpath[n.xpath] || []).push({
+            checker: 'axe', rule: p.id, result: 'pass',
+            note: `axe rule "${p.id}" PASSED on this element. It is authoritative ONLY for the exact question that rule decides — defer to it there, and judge every other aspect yourself. A pass on one rule is not a clearance of the SC.`,
+          });
+        }
       }
       const pOpts = {
         runAgent: llmRunAgent, budget: opts.llmBudget, model: opts.llmModel, llmRubrics, llmConcurrency: toolConcurrency,

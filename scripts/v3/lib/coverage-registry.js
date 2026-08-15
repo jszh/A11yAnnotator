@@ -34,7 +34,14 @@ const SURFACES = Object.freeze([
   // S4 (RCA R4) — keyboard-operable is owed by every focusable EXCEPT a bare iframe/frame container (its CONTENTS
   // own 2.1.1); re-declared here independently to match the oracle's new gate (Rule 16).
   Object.freeze({ id: 'keyboard-operable', when: (el) => el.focusable === true && el.tag !== 'iframe' && el.tag !== 'frame', families: ['keyboard-operable'] }),
-  Object.freeze({ id: 'has-text', when: (el) => factHasText(el), families: ['text-contrast'] }),
+  // 1.4.3 EXEMPTS inactive UI components ("Text or images of text that are part of an inactive user
+  // interface component … have no contrast requirement"), so a text-bearing element that is INACTIVE
+  // owes no text-contrast family. Re-declared here independently to match the oracle's gate (Rule 16).
+  // This exemption was missing until 2026-08-15 and the drift did NOT read as a coverage gap on one
+  // element — `coverageErrors` fails CLOSED, so `build-v3.js` aborted the ENTIRE build and every SC on
+  // the page lost its obligations. 8/405 act-augmented pages were silently voided that way, and
+  // `score-lib.js` recorded the crash as `noObligation`, indistinguishable from a real coverage gap.
+  Object.freeze({ id: 'has-text', when: (el) => factHasText(el) && el.inactiveText !== true, families: ['text-contrast'] }),
   Object.freeze({ id: 'widget-role', when: (el) => WIDGET_ROLE.test(factRole(el)), families: ['name-role-value'] }),
   Object.freeze({ id: 'focusable-trap-risk', when: (el) => el.focusable === true && (el.inModal === true || el.focusRisk === true), families: ['no-keyboard-trap'] }),
   Object.freeze({ id: 'focusable-under-overlay', when: (el) => el.focusable === true && el.underOverlay === true, families: ['focus-not-obscured'] }),

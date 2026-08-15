@@ -41,6 +41,22 @@ indicating which instance fails to identify the specific erroring field. A messa
 points to the specific field (by a unique label, position, or programmatic association), not a label
 duplicated elsewhere on the form.
 
+**INCORRECT-MESSAGE failure mode (do not false-clear this either):** an error message that is fluent,
+specific, and correctly associated can still fail 3.3.1 if it **describes the wrong error**. 3.3.1 requires
+the error to be *identified* — a message that misidentifies it leaves the user unable to know what is
+actually wrong, which is the same outcome as no message at all. Check the message AGAINST the evidence you
+were handed, not just for its presence and specificity:
+  - it contradicts the value actually in the field ("Enter an amount of at least $5.00" beside a field
+    containing `25`; "Enter a valid email" beside a well-formed address);
+  - it names a DIFFERENT field than the one flagged (`aria-invalid` on Postcode, message about Phone);
+  - it states a constraint the page elsewhere contradicts (a stated max of 20 with a message saying 10);
+  - it reports a count/summary that disagrees with the fields actually marked invalid
+    ("3 errors" over a list of 2, or a summary naming fields that are not flagged).
+If the retained value or the page's own stated constraint is visible to you and the message contradicts it,
+that is **REPRODUCED**. Do not reason "a specific message exists, therefore the error is identified" — the
+message must be TRUE of the error that occurred. If you cannot see the submitted value or the constraint,
+say so and return PARTIAL rather than assuming the message is accurate.
+
 **Evidence handed to you:** the before/after crop of the field+error region (`state-before`,
 `state-after`), the field type, and — when present — `signals.nativeDialogText`: the VERBATIM text of a
 native `window.alert()`/`confirm()` the submit triggered. **A native dialog is browser chrome, not page

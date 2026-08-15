@@ -15,6 +15,27 @@ shape/underline/text label also present", so it leaves these at auto-PARTIAL. Wh
 already disposed this obligation, DEFER. This rubric owns the color-ALONE question (F73/F81); it does NOT
 judge whether two colors have enough contrast (1.4.11/1.4.3 own that).
 
+**APPLICABILITY PRECONDITION — check this FIRST, before looking for a second cue.** 1.4.1 applies only when
+COLOR IS THE MEANS by which some information is conveyed. If color is not carrying information here at all,
+the SC does not apply and the answer is NOT REPRODUCED (or N/A) — *not* a barrier. Ask, in order:
+  1. **What information is supposedly conveyed?** Name it concretely ("which sellers are verified", "which
+     row failed"). If you cannot name a specific piece of information that color encodes, STOP: not applicable.
+  2. **Is color actually DIFFERENTIATING anything?** If the element renders in the SAME color as its
+     surroundings — an in-text link with the identical color as the prose, a "status" cell colored like every
+     other cell — then color is conveying NOTHING, and a *zero* color difference is the strongest possible
+     evidence that this is not a color-alone failure. It may be some other SC's problem (an undistinguished
+     link is 1.4.1 only if hue is the sole distinguisher; with no distinguisher at all, the relevant failure
+     is that the link is not identifiable, and if an underline or other affordance IS present the SC is
+     satisfied). **Never reason "the colors are identical / the contrast ratio is 1:1, therefore this fails
+     the ≥3:1 lightness escape, therefore barrier."** That inverts the SC: the escape clause only matters
+     once you have established color IS the differentiator.
+  3. Only if information IS being carried by color, proceed to the second-cue analysis below.
+
+**Do NOT assert numeric contrast/luminance ratios you have not been given.** You cannot compute a ratio by
+eye from a crop. If your reasoning needs a ratio, either use one that was handed to you in the signals, call
+the contrast tool if it is available, or return PARTIAL. A fabricated number ("contrast ratio 1.62") is not
+evidence and has produced false barriers here before.
+
 **Judge:** is there a SECOND, non-color cue carrying the same information — or is color the only thing
 distinguishing the states? Two classic failure modes:
 - **Links not distinguished from body text except by color (F73):** in-text links that look identical to

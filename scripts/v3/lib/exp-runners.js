@@ -658,8 +658,29 @@ function probeFormError(marker) {
   // make the field invalid (the error condition this constraint detects)
   const orig = ('value' in el) ? el.value : null;
   const origAriaInvalid = el.getAttribute('aria-invalid'); // R2 G5-F4: snapshot so the probe leaves no aria-invalid residue
+  // The synthesized value must actually BE invalid for the field, or the probe is demanding an error
+  // message for a condition that is not an error. `required ⇒ ''` is genuinely invalid (empty fails
+  // required), and 'x'/'abc' genuinely fail email/url/number. But an OPTIONAL field with no way to
+  // synthesize an invalid value fell through to `''` — which for a non-required field is a perfectly
+  // VALID value. `type=tel` is the case that bit us: it counts as a constrained type at line ~588 yet has
+  // NO native validation at all, so every optional tel field was probed with a valid value and then
+  // reported `errorNotIdentified` when no error appeared. That fabricated error condition produced
+  // false positives on pages that were correct.
+  const invalidValue = required ? '' : (softEmail || /^(email|url)$/.test(type)) ? 'x' : /number/.test(type) ? 'abc' : null;
+  if (invalidValue === null) {
+    // Nothing invalid can be synthesized ⇒ this constraint is NOT probeable. Report NOT-APPLICABLE in the
+    // same shape the rest of this in-page probe returns (this function is serialized into the browser, so
+    // there is no `mk`/`request` here). errorNotIdentified stays FALSE: an unprobeable field is not a barrier.
+    for (const n of universe()) { try { delete n[PRE]; } catch (e) {} }
+    return {
+      isUserInputField, fieldRendered, fieldConstrained: false, applicable: false,
+      errorNotIdentified: false, nativeWouldBlock: false, customIdentifies: false,
+      unassociatedSurface: null, errorSample: '',
+      abstainReason: 'optional field with no synthesizable invalid value (e.g. type=tel with no pattern): an empty value is VALID here, so probing with one would fabricate the error condition',
+    };
+  }
   if ('value' in el) {
-    el.value = required ? '' : (softEmail || /^(email|url)$/.test(type)) ? 'x' : /number/.test(type) ? 'abc' : '';
+    el.value = invalidValue;
     for (const ev of ['input', 'change', 'blur']) el.dispatchEvent(new Event(ev, { bubbles: true }));
   }
   // native: would the browser BLOCK submit and show a message? (off when the form is novalidate)
@@ -706,7 +727,17 @@ function probeFormError(marker) {
       // 36b590 Passed Example 1). Credit it. An UNREFERENCED unchanged surface (a persistent cart status)
       // still falls through and is ignored, so a real barrier is not masked. (#16: the English OK_TEXT
       // co-gate is retired — the reference + error-markup association IS the language-agnostic credit.)
-      if (n.id && refSet.has(n.id) && errorStyled(n)) { customIdentifies = true; errorSample = now.slice(0, 80); break; }
+      // The co-gate used to be `errorStyled(n)` ALONE, which made the credit turn on the container's CSS
+      // CLASS NAME. Real pages name these `msg`, `err`, `field-msg` — none of which ERR_CLASS matches — so a
+      // page that had ALREADY rendered its error state (aria-invalid on the field + the associated message
+      // right there in the DOM) was scored `errorNotIdentified`. That produced 4 of the run's 14 false
+      // positives, all on 3.3.1, and single-token A/B copies confirmed it: renaming `class="msg"` to
+      // `class="msg error"` removed the barrier outright. A class name is a weak proxy; the FIELD's own
+      // declared invalid state is the normative signal, so accept that too. Deliberately NOT widening
+      // ERR_CLASS — that would let benign hint text read as an error and mask real barriers.
+      const fieldInvalid = el.getAttribute('aria-invalid') === 'true';
+      const namesErrorMessage = !!(el.getAttribute('aria-errormessage') || '').trim();
+      if (n.id && refSet.has(n.id) && (errorStyled(n) || fieldInvalid || namesErrorMessage)) { customIdentifies = true; errorSample = now.slice(0, 80); break; }
       continue;                                           // unchanged + unreferenced surface is not an error event
     }
     if (referencesField(n) || isLiveRegion(n) || errorStyled(n)) { customIdentifies = true; errorSample = now.slice(0, 80); break; }
@@ -1398,7 +1429,17 @@ async function runHoverContentTri(page, request) {
     const hasDesc = el.hasAttribute('aria-describedby');
     const r = el.getBoundingClientRect();
     const focusable = el.tabIndex >= 0 || /^(A|BUTTON|INPUT|SELECT|TEXTAREA)$/.test(el.tagName);
-    return { hasNativeTitleOnly: hasTitle && !hasDesc, hasTrigger: hasTitle || hasDesc || true, inView: r.top >= 0 && r.left >= 0 && r.bottom <= innerHeight && r.right <= innerWidth, focusable };
+    // hasTrigger is deliberately unconditional: by the time this runner executes, the COLLECTOR has already
+    // decided the element has hover/focus content (that is why an obligation exists), and since the round-3
+    // generalization that decision no longer requires a title/aria-describedby attribute — a listener-wired
+    // or CSS-driven reveal counts. Re-deriving "is there a trigger" from attributes here would switch the
+    // experiment OFF for exactly the modern reveals it was generalized to cover.
+    // The bug this pairs with lived in applicability-observer.js, which still re-derived the PRE-generalization
+    // definition (title || aria-describedby) and so disagreed with this fact on every listener-wired reveal —
+    // failing Rule-15 binding and silently demoting a fully PROVEN barrier to a deterministic PARTIAL.
+    // Kept as an explicit `true` rather than `hasTitle || hasDesc || true` so the dead operands do not read
+    // as a live condition to the next reader.
+    return { hasNativeTitleOnly: hasTitle && !hasDesc, hasTrigger: true, inView: r.top >= 0 && r.left >= 0 && r.bottom <= innerHeight && r.right <= innerWidth, focusable };
   }, marker).catch(() => null);
   if (!trig) return mk(request, 'hover-content-tri', '1.4.13', o, {}, { action: 'hover-focus-tri' });
   o.hasHoverFocusTrigger = trig.hasTrigger;

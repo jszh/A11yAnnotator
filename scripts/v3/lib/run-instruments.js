@@ -57,9 +57,26 @@ async function runInstruments(page, opts = {}) {
     add('vsr-meaning', an.meaning);
     add('vsr-meaning', an.meaningReview);
   }
-  // keyboard tab order (2.4.3)
+  // keyboard tab order (2.4.3). The SEQUENCE — not just the derived divergence findings — is the
+  // evidence focus-order-meaning-v0 is written around ("the recorded tab-order SEQUENCE from the
+  // deterministic instrument … Judge meaning over these"). Until 2026-08-15 only
+  // `tabOrderFindings(tab).findings` was kept and `tab.order` was dropped on the next line, so the
+  // rubric was promised an artifact it never received and correctly abstained: 17 of 24 2.4.3 misses
+  // were PARTIAL, and the SC scored 20.0% — the worst in the run — as a pure evidence gap.
+  // Backward (Shift+Tab) matters independently: a one-way escape reads as a clean ring forward.
   const tab = await collectTabOrder(page).catch(() => null);
   if (tab) add('tab-order', tabOrderFindings(tab).findings);
+  const tabBack = await collectTabOrder(page, { backward: true }).catch(() => null);
+  // Keep the stops small and judgeable: xpath + label + rect are what relate a stop to the layout.
+  const seq = (t) => (t && Array.isArray(t.order) ? t.order.map((o, i) => ({
+    index: Number.isFinite(o.index) ? o.index : i,
+    xpath: o.xpath || null, tag: o.tag || null, label: o.label || null, rect: o.rect || null,
+  })) : []);
+  const tabOrder = tab ? {
+    forward: seq(tab), backward: seq(tabBack),
+    wrapped: !!tab.wrapped, exhausted: !!tab.exhausted, count: tab.count || seq(tab).length,
+    backwardWrapped: tabBack ? !!tabBack.wrapped : null,
+  } : null;
   // keyboard traps (2.1.2): confirmed (authoritative-candidate) + directional (review)
   const traps = await detectKeyboardTraps(page).catch(() => null);
   if (traps) {
@@ -125,7 +142,9 @@ async function runInstruments(page, opts = {}) {
   const ariaNotices = await page.evaluate(() => (window.__v3ariaNotify || []).length).catch(() => 0);
   if (ariaNotices > 0) add('aria-notify', [{ sc: '4.1.3', kind: 'aria-notify-announced', xpath: null, detail: `the page made ${ariaNotices} ariaNotify() announcement(s) — a DOM-invisible AT announcement (credit, not a barrier)`, review: true }]);
 
-  return { findings };
+  // `tabOrder` is EVIDENCE, not a finding: it never clears or barriers anything on its own. It rides
+  // alongside `findings` so build-v3/orchestrator can thread it to the 2.4.3 judging subject.
+  return { findings, tabOrder };
 }
 
 // Load a URL in a fresh browser and run the instruments. The instruments artifact carries the run

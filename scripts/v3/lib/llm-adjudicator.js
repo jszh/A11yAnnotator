@@ -146,6 +146,10 @@ function selectSubjects(collect, ledger, { onlyAutoPartial = true, ownedScs } = 
 
 // PAGE-LEVEL skills whose subject needs the whole-page structure (title/headings/landmarks/tables) threaded —
 // a page-level synthetic xpath has no element, and per-element precompute is blind to page structure (Tier-0 #3).
+// NOTE `focus-management` is deliberately NOT here: that skill is shared by 2.4.7 focus-visible, 2.4.11
+// focus-not-obscured AND 2.4.3, and the first two are ELEMENT-level. The 2.4.3 page-level subject gets its
+// structure attached by rubric id instead (see focus-order-meaning-v0 below), so widening this set cannot
+// leak page facts into the element-level focus prompts.
 const PAGE_STRUCTURE_SKILLS = new Set(['page-structure', 'grouping-and-reading-order']);
 
 // PER-FACET RUBRIC GATING (Item 7, route-by-facet): some rubrics share an SC with a deterministic owner or apply
@@ -558,6 +562,40 @@ function precomputeSignals(element, skill, sc) {
   // is omitted from the viewport crop — so without this branch the model gets an EMPTY stub and judged "a plain
   // span" / "no title supplied". Surface the threaded page structure + the subject heading's own role/level/text/
   // offscreen so an off-viewport heading is still judgeable. `__pageStructure` is attached by selectRubricSubjects.
+  // 2.4.3 FOCUS-ORDER provisioning: hand over the recorded tab SEQUENCE the rubric is written around.
+  // Each stop carries its rect so the judge can relate the order to the visible layout (the actual 2.4.3
+  // question) instead of re-deriving an order it cannot observe. `backward` is surfaced separately because
+  // a one-way escape is invisible in the forward ring. Truncated to keep the prompt bounded; `truncated`
+  // is stated explicitly so a clipped tail is never mistaken for the end of the ring.
+  // Gated on the THREADED EVIDENCE, not on `skill`: focus-management is shared with the element-level
+  // 2.4.7/2.4.11 rubrics, and only focus-order-meaning-v0 is handed __focusOrder. So this branch cannot
+  // fire on a focus-visible / focus-not-obscured subject and their prompts stay byte-identical.
+  if (element.__focusOrder) {
+    const fo = element.__focusOrder;
+    // Landmarks/headings only — enough to name the REGION a tab stop lands in ("footer", "nav"), which is
+    // how a 2.4.3 order is argued about. Deliberately NOT the full page-structure payload: table-association
+    // and title facts are noise here, and reusing that branch would perturb the 1.3.1/2.4.2 prompts.
+    const struct = element.__pageStructure || null;
+    if (struct) {
+      s.structure = {
+        headings: Array.isArray(struct.headings) ? struct.headings.slice(0, 40) : [],
+        landmarks: Array.isArray(struct.landmarks) ? struct.landmarks.slice(0, 40) : undefined,
+      };
+    }
+    if (Array.isArray(fo.forward)) {
+      const CAP = 60;
+      const trim = (list) => (Array.isArray(list) ? list.slice(0, CAP) : []);
+      s.focusOrder = {
+        forward: trim(fo.forward), backward: trim(fo.backward),
+        count: fo.count != null ? fo.count : fo.forward.length,
+        wrapped: fo.wrapped === true, exhausted: fo.exhausted === true,
+        truncated: (fo.forward.length > CAP) || ((fo.backward || []).length > CAP),
+        note: 'ORDERED tab stops recorded by the deterministic keyboard instrument (forward = Tab, '
+          + 'backward = Shift+Tab); each stop carries its on-page rect. This is the SEQUENCE only — '
+          + 'whether it preserves meaning is YOUR judgment. An empty/degenerate sequence ⇒ PARTIAL.',
+      };
+    }
+  }
   if (skill === 'page-structure' || skill === 'grouping-and-reading-order') {
     const struct = element.__pageStructure || null;
     if (struct) {
@@ -1077,7 +1115,7 @@ function computeLinkPeerGroups(collect) {
   return groups;
 }
 
-function selectRubricSubjects(collect, ledger, rubrics, { onlyAutoPartial = true, confinement = null, contrastExempt = null } = {}) {
+function selectRubricSubjects(collect, ledger, rubrics, { onlyAutoPartial = true, confinement = null, contrastExempt = null, focusOrder = null } = {}) {
   // 2.1.2 keyboard-trap: `confinement` maps each CONFINED element xpath → { members:[{xpath,label}], setSize } (built
   // from the deterministic confinement instrument's REVIEW findings — the lying-static-advisory ones were already
   // promoted to a barrier and are excluded). The keyboard-trap-v0 rubric fires ONLY on a confined member, carrying
@@ -1139,6 +1177,15 @@ function selectRubricSubjects(collect, ledger, rubrics, { onlyAutoPartial = true
     // the relational link-name-equivalence rubric (__sameNameLinks). precomputeSignals reads these.
     const extra = {};
     if (structure && PAGE_STRUCTURE_SKILLS.has(rub.skill || '')) extra.__pageStructure = structure;
+    // 2.4.3 FOCUS ORDER: the recorded tab SEQUENCE from the deterministic keyboard instrument. The rubric
+    // is written around this artifact and abstains without it ("If the recorded sequence is empty/degenerate
+    // … return PARTIAL rather than guessing"), so before this was threaded the lane could only abstain.
+    // Keyed on the RUBRIC ID, not the skill: `focus-management` is also 2.4.7/2.4.11's skill and those are
+    // element-level subjects that must keep their existing prompts byte-identical.
+    if (rub.id === 'focus-order-meaning-v0') {
+      if (focusOrder) extra.__focusOrder = focusOrder;
+      if (structure) extra.__pageStructure = structure;
+    }
     // 2.4.4 SPLIT (fd3a94): the RELATIONAL "do same-named links resolve to equivalent destinations?" question is
     // OWNED by link-name-equivalence-v0, NOT link-purpose-v0 (the single-link purpose-in-context rubric). Mirror the
     // iframe duplicate-name-equivalence gate: this rubric fires ONLY on a link that shares its name with another link;

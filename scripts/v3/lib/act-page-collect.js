@@ -142,6 +142,19 @@ async function collectActPage(page, opts = {}) {
       return cs.display !== 'none' && cs.visibility !== 'hidden' && parseFloat(cs.opacity || '1') !== 0
         && r.width > 0 && r.height > 0;
     }
+    // 4.1.3 LIVE-REGION SHAPE — a status container is EXPECTED to be empty (and is often hidden) at rest;
+    // it is populated later, which is the whole announcement mechanism. `visible()` requires width>0 &&
+    // height>0, so an at-rest-empty region was dropped by the element-loop visibility skip ~170 lines before
+    // the `liveRegion` fact is computed — the fact's own comment ("Kept even when empty") described an
+    // intent the code never reached. That silently removed the ONLY element that can carry the
+    // status-message obligation, so 4.1.3 scored `noObligation` purely on resting CSS geometry.
+    // aria-hidden regions are still excluded: they are outside the a11y tree and can never announce.
+    function liveRegionShape(el) {
+      const al = (el.getAttribute('aria-live') || '').toLowerCase();
+      const ra = el.getAttribute('role') || '';
+      if (!(al === 'polite' || al === 'assertive' || /^(status|alert|log|progressbar|marquee|timer)$/.test(ra))) return false;
+      return el.getAttribute('aria-hidden') !== 'true';
+    }
     function textOf(el) { return (el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim(); }
     function focusableByMarkup(el) {
       if (el.disabled || el.getAttribute('aria-disabled') === 'true' || el.getAttribute('aria-hidden') === 'true') return false;
@@ -451,7 +464,8 @@ async function collectActPage(page, opts = {}) {
     for (const el of (_subset || document.querySelectorAll('body *'))) {
       if (!_subset) {
         if (els.length >= cap) { _cappedOut = true; break; }
-        if (!visible(el)) continue;
+        // a live-region container is admitted even when empty/zero-sized at rest (see liveRegionShape)
+        if (!visible(el) && !liveRegionShape(el)) continue;
       }
       const tag = el.tagName.toLowerCase();
       const roleAttr = el.getAttribute('role') || '';
@@ -625,6 +639,9 @@ async function collectActPage(page, opts = {}) {
       // region is typically populated dynamically, so it has no text at collect time).
       const _alive = (el.getAttribute('aria-live') || '').toLowerCase();
       const liveRegion = _alive === 'polite' || _alive === 'assertive' || /^(status|alert|log|progressbar|marquee|timer)$/.test(roleAttr);
+      // Recorded so a judge never reads "this region is empty/invisible right now" as a defect: that is the
+      // NORMAL resting state of a status container, and it is the state the announcement mechanism starts from.
+      const liveRegionHiddenAtRest = liveRegion && !visible(el);
       // TIME-BASED MEDIA (Item 10, 1.2.x): a <video>/<audio> + its <track> children. Kept even if not focusable.
       // AUTO-MOTION (Item 14d, 2.2.2): looping / >5s CSS animation, <marquee>, or autoplay media without controls —
       // the auto-moving content that owes a pause/stop/hide. Brief (<5s, finite) animation is excluded (not a failure).
@@ -751,6 +768,7 @@ async function collectActPage(page, opts = {}) {
         roleOverridesNative: ['a', 'button', 'input', 'select', 'textarea', 'summary', 'details'].includes(tag) && !!roleAttr,
         placeholder: el.getAttribute('placeholder') || null,
         liveRegion,
+        liveRegionHiddenAtRest,
         isMedia,
         mediaInfo,
         autoMotion,
@@ -977,14 +995,33 @@ async function collectActPage(page, opts = {}) {
       // so a successfully-resolving HTML xpath is never perturbed (near-zero regression).
       const ev = await cdp.send('Runtime.evaluate', { expression: `(function(){var nsf=function(s){return s.split('/').map(function(p){var m=p.match(/^([a-zA-Z][\\w-]*)(\\[[0-9]+\\])?$/);return m?'*[local-name()="'+m[1]+'"]'+(m[2]||''):p;}).join('/');};var parts=${JSON.stringify(xpath)}.split('>>');var doc=document,n=null;for(var i=0;i<parts.length;i++){if(!doc)return null;var r=doc.evaluate(parts[i],doc,null,9,null);n=r.singleNodeValue;if(!n){try{n=doc.evaluate(nsf(parts[i]),doc,null,9,null).singleNodeValue;}catch(e){n=null;}}if(!n)return null;if(i<parts.length-1){try{doc=n.contentDocument;}catch(e){return null;}}}return n;})()`, returnByValue: false }).catch(() => null);
       if (!ev || !ev.result || !ev.result.objectId) return null;
-      const dn = await cdp.send('DOM.describeNode', { objectId: ev.result.objectId }).catch(() => null);
+      const objectId = ev.result.objectId;
+      const dn = await cdp.send('DOM.describeNode', { objectId }).catch(() => null);
       const backendNodeId = dn && dn.node && dn.node.backendNodeId;
       if (!backendNodeId) return null;
       const r = await cdp.send('Accessibility.getAXNodeAndAncestors', { backendNodeId }).catch(() => null);
-      return (r && r.nodes && r.nodes[0]) || null;
+      // objectId returned alongside so a caller can ask DOMDebugger about this same node without re-resolving it.
+      return { ax: (r && r.nodes && r.nodes[0]) || null, objectId };
     };
     for (const el of data.elements || []) {
-      const ax = await resolveAx(el.xpath);
+      const res = await resolveAx(el.xpath);
+      const ax = res && res.ax;
+      // 2.1.2 FOCUS-RISK, listener-derived (focusable elements ONLY, so the extra CDP round-trip is bounded
+      // to the elements where a trap is even possible). The static `focusRisk` fact can see INLINE
+      // onblur/onfocus/onfocusout attributes and a modal-ish ancestor — but across all 20 2.1.2 pages in the
+      // synthetic corpus there were ZERO inline focus handlers: every trap was wired with addEventListener,
+      // which no DOM snapshot can see. Without this the obligation was never enumerated and the trap
+      // detector never ran, so a real trap scored `noObligation`.
+      if (res && res.objectId && el.focusable === true) {
+        const elr = await cdp.send('DOMDebugger.getEventListeners', { objectId: res.objectId, depth: 0 }).catch(() => null);
+        if (elr && Array.isArray(elr.listeners)) {
+          const types = [...new Set(elr.listeners.map((l) => String(l.type)))];
+          el.listenerTypes = types;
+          if (types.some((t) => t === 'blur' || t === 'focus' || t === 'focusout' || t === 'focusin' || t === 'keydown')) {
+            el.focusRisk = true;   // widens the static gate; the trap EXPERIMENT still decides whether it traps
+          }
+        }
+      }
       if (!ax) continue;                                 // unresolved ⇒ keep the heuristic axName (degraded fallback)
       const nm = ax.name && ax.name.value;
       if (typeof nm === 'string') el.axName = nm;         // AUTHORITATIVE; '' is a real resolved-empty name
@@ -996,7 +1033,8 @@ async function collectActPage(page, opts = {}) {
     // returns '' for an <h2><img alt="Foo"></h2> heading; CDP gives "Foo").
     for (const h of data.headings || []) {
       if (!h || !h.xpath) continue;
-      const ax = await resolveAx(h.xpath);
+      const hres = await resolveAx(h.xpath);
+      const ax = hres && hres.ax;
       const nm = ax && ax.name && ax.name.value;
       if (typeof nm === 'string') h.name = nm;
     }
@@ -1097,10 +1135,17 @@ async function collectActPage(page, opts = {}) {
         // last selector, querySelected against the TOP document, would miss or mis-resolve to a different top-level
         // node → wrong xpath. Return null for cross-frame targets (degrade to a shadow signal, never mis-attribute).
         const resolveXpath = (target) => { try { if (Array.isArray(target) && target.length > 1) return null; const sel = Array.isArray(target) ? target[0] : target; const el = sel ? document.querySelector(sel) : null; return el ? xpathOf(el) : null; } catch (e) { return null; } };
-        const cfg = { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice'] }, resultTypes: ['violations', 'incomplete'] };
+        // PASSES ALLOWLIST: a rubric may be told to DEFER to a checker that measured exactly its question —
+        // use-of-color-v0 says "when the handed axe `link-in-text-block` signal reports PASS, DEFER to it".
+        // That clause was UNREACHABLE: `resultTypes` did not include 'passes', so axe returned at most one
+        // truncated node per passing rule and none were ever mapped. The rubric then judged unaided and
+        // flagged links styled identically to their prose (1:1 contrast) — 3 of the run's 14 false positives.
+        // Only allowlisted rules are carried so the artifact does not balloon with every passing check.
+        const PASS_ALLOW = new Set(['link-in-text-block']);
+        const cfg = { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice'] }, resultTypes: ['violations', 'incomplete', 'passes'] };
         const r = await axe.run(document, cfg);
         const map = (arr) => (arr || []).map((v) => ({ id: v.id, impact: v.impact, wcag: (v.tags || []).filter((t) => /^wcag\d/.test(t)), nodes: (v.nodes || []).map((n) => ({ target: n.target, xpath: resolveXpath(n.target) })) }));
-        return { violations: map(r.violations), incomplete: map(r.incomplete) };
+        return { violations: map(r.violations), incomplete: map(r.incomplete), passes: map((r.passes || []).filter((v) => PASS_ALLOW.has(v.id))) };
       }).catch(() => null);
     } catch (e) { axeData = null; }
   }
@@ -1121,6 +1166,9 @@ async function collectActPage(page, opts = {}) {
     structure: { title: data.title || '', frameTitles: data.frameTitles || [], lang: data.lang || '', headings: data.headings || [], landmarks: data.landmarks || [], tables: tables || [], lists: lists || [] },
     axe: axeData ? axeData.violations : [],
     axeIncomplete: axeData ? axeData.incomplete : [],
+    // allowlisted PASSES only (see PASS_ALLOW): a rubric that is told to DEFER to a checker's pass needs the
+    // pass to actually exist. Never a clearance on its own — it resolves one named DEFER clause.
+    axePasses: axeData ? (axeData.passes || []) : [],
     axeRan: !!axeData,
   };
 }

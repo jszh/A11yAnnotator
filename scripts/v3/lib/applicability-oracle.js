@@ -310,7 +310,23 @@ function familiesFor(el) {
   if (el.isFormField === true || FORMFIELD_ROLE.test(role) || (el.tag === 'label' && factHasText(el))) fams.push('heading-descriptive');
   // 1.4.1 USE OF COLOR (coverage audit — un-orphans use-of-color-v0): links and form fields are the clearest
   // color-cue surfaces (link distinguished by colour alone; field state by colour). Rubric self-abstains otherwise.
-  if (role === 'link' || el.isFormField === true || FORMFIELD_ROLE.test(role)) fams.push('use-of-color');
+  // 1.4.1 USE OF COLOR aperture. Links + form fields are the clearest colour-cue surfaces, but they are not
+  // the only ones, and restricting to them made the SC structurally invisible on the shapes that actually
+  // fail it: a chart whose series are distinguished only by colour, a colour-coded status graphic, a
+  // legend-keyed diagram. Measured on the synthetic corpus this single line accounted for ~15 false
+  // negatives — and, because every obligation that DID exist sat in the link/form lane, all 5 of the SC's
+  // false positives too. Widened to GRAPHIC surfaces (svg/canvas/role=img), which is where colour-encoded
+  // information lives. The rubric carries the applicability precondition, so a graphic that conveys nothing
+  // by colour self-abstains rather than barriering.
+  // Deliberately EXCLUDES a plain raster <img>: whether its colour-encoded content is conveyed another way
+  // is judged as alt-text adequacy under 1.1.1, and enumerating 1.4.1 on every content image would flood the
+  // lane (it also broke the fifth-pass Rule-16 expectation that an <img> owes exactly 1.1.1 + 1.4.5). What
+  // IS included is the chart/diagram surface: inline <svg>, <canvas>, an explicit role="img" CONTAINER (the
+  // div-built chart), and the ARIA graphics roles.
+  const isGraphicSurface = el.tag === 'svg' || el.tag === 'canvas'
+    || (role === 'img' && el.tag !== 'img')
+    || role === 'graphics-document' || role === 'graphics-symbol';
+  if (role === 'link' || el.isFormField === true || FORMFIELD_ROLE.test(role) || isGraphicSurface) fams.push('use-of-color');
   if (el.isFormField === true || FORMFIELD_ROLE.test(role)) fams.push('error-suggestion'); // 3.3.3 (alongside field-label/error-identification)
   // C8 small-signal predicates (collector-provided cheap facts; the runner re-verifies in-page).
   if (el.hasGlyphText === true) fams.push('glyph-text-alternative');                        // 1.1.1 (icon-font/PUA in own text)

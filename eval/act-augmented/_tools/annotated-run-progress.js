@@ -91,7 +91,16 @@ function render() {
   }
   if (st?.llm) {
     const l = st.llm;
-    lines.push(`  llm: ${l.done}/${l.calls} calls, ${l.inFlightNow ?? 0} in flight (peak ${l.peakInFlight})   tokens in ${(l.inputTokens / 1000).toFixed(0)}k out ${(l.outputTokens / 1000).toFixed(0)}k cache-r ${(l.cacheReadTokens / 1000).toFixed(0)}k`);
+    lines.push(`  llm: ${l.done}/${l.calls} calls, ${l.inFlightNow ?? 0} in flight (peak ${l.peakInFlight})   tokens in ${(l.inputTokens / 1000).toFixed(0)}k out ${(l.outputTokens / 1000).toFixed(0)}k cache-r ${(l.cacheReadTokens / 1000).toFixed(0)}k   $${(l.costUsd || 0).toFixed(2)}`);
+  }
+  // A tools-ON run has silently made zero tool calls before. Say so loudly and
+  // early rather than leaving it to be discovered in the summary.
+  if (st?.config?.tools) {
+    const t = st.tools || { calls: 0, byName: {} };
+    const names = Object.entries(t.byName || {}).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([n, c]) => `${n}×${c}`).join(' ');
+    lines.push(`  tools: ON — ${t.calls} calls${t.calls ? `, maxTurns ${t.maxTurns}   ${names}` : '   ⚠ ZERO TOOL CALLS SO FAR — check the tool catalog / transport wiring'}`);
+  } else if (st) {
+    lines.push(`  tools: OFF (judge is single-shot; NOT comparable to the deployed tools=ON baselines)`);
   }
 
   if (results.length) {

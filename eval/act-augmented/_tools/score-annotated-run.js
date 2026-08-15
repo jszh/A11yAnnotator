@@ -76,8 +76,18 @@ for (const s of strata) slices[s] = metrics(results.filter((r) => (r.stratum || 
 // the headline comparison: everything nobody questioned, vs everything a human questioned
 slices['ALL-flagged (clear+fixed)'] = metrics(results.filter((r) => ['clear', 'fixed'].includes(r.stratum)));
 
-console.log(`\n=== ${runName} — ${manifest?.model || '?'} — n=${results.length}`);
+console.log(`\n=== ${runName} — ${manifest?.model || '?'} — tools ${manifest?.tools ? 'ON' : 'OFF'} — n=${results.length}`);
 if (manifest?.commit) console.log(`    commit ${manifest.commit.slice(0, 12)}   started ${manifest.startedAt}`);
+
+// An errored case has no polarity, so it silently leaves BOTH denominators —
+// the eval shrinks instead of failing. Say so before any metric is read.
+const errAll = results.filter((r) => r.outcome === 'error');
+if (errAll.length) {
+  const p = (errAll.length / results.length) * 100;
+  console.log(`\n    ${p > 2 ? '*** ' : ''}${errAll.length}/${results.length} cases ERRORED (${p.toFixed(1)}%) and are excluded from every denominator below${p > 2 ? ' — these are NOT corpus-level results ***' : ''}`);
+  const kinds = errAll.reduce((a, r) => ((a[String(r.error).slice(0, 60)] = (a[String(r.error).slice(0, 60)] || 0) + 1), a), {});
+  for (const [k, v] of Object.entries(kinds).sort((a, b) => b[1] - a[1]).slice(0, 3)) console.log(`      ${v}× ${k}`);
+}
 console.log(`\n${'slice'.padEnd(26)} ${'n'.padStart(4)} ${'GTfail'.padStart(6)} ${'recall'.padStart(15)} ${'FP'.padStart(15)} ${'prec'.padStart(6)} ${'F1'.padStart(6)} ${'err'.padStart(4)}`);
 console.log('-'.repeat(94));
 for (const [name, m] of Object.entries(slices)) {

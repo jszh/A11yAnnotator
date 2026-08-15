@@ -694,11 +694,20 @@ async function probeScreenReaderAfterAction(page, args, ctx) {
     // focus reading its name+role) are explicitly out of 4.1.3 scope. Surface BOTH: the full queue (transparency)
     // and the live-region subset (the 4.1.3-relevant datum). emptyQueue reflects the FULL queue; the model uses
     // noLiveRegionAnnouncement for 4.1.3 (and an un-hide / fresh-container insert may voice nothing ⇒ INCONCLUSIVE).
-    const liveRegionAnnouncements = announcements.filter((a) => /^(polite|assertive)\b/i.test(a));
+    // The prefix test alone was not enough: emptying a live region on completion makes the VSR emit the
+    // literal string "polite: " with NOTHING after it. That passed `/^(polite|assertive)\b/`, survived the
+    // upstream `.filter(Boolean)` (it is a non-empty string), and so counted as an announcement —
+    // `noLiveRegionAnnouncement` read false and the judge saw a non-empty queue while a real user hears
+    // silence. Require actual SPOKEN CONTENT after the politeness prefix.
+    const spokenBody = (a) => String(a).replace(/^(polite|assertive)\s*:?\s*/i, '').trim();
+    const liveRegionAnnouncements = announcements.filter((a) => /^(polite|assertive)\b/i.test(a) && spokenBody(a).length > 0);
+    // Surfaced separately so an emptied region is VISIBLE as an event rather than silently dropped — a
+    // region that was cleared did change, it just said nothing, and that distinction is 4.1.3-relevant.
+    const emptyLiveRegionEvents = announcements.filter((a) => /^(polite|assertive)\b/i.test(a) && spokenBody(a).length === 0).length;
     // sawLiveMutation + noLiveRegionAnnouncement together pin the 4.1.3 INCONCLUSIVE case: a live region DID update
     // but the SR voiced nothing (a region created-with-content, an aria-live=off, or a non-perceivable change) — vs
     // a clean "nothing happened" (no mutation). The model must NOT read an un-voiced update as a pass.
-    return { announcements, announcementCount: announcements.length, emptyQueue: announcements.length === 0, liveRegionAnnouncements, noLiveRegionAnnouncement: liveRegionAnnouncements.length === 0, liveRegionMutated: !!res.sawLiveMutation };
+    return { announcements, announcementCount: announcements.length, emptyQueue: announcements.length === 0, liveRegionAnnouncements, noLiveRegionAnnouncement: liveRegionAnnouncements.length === 0, liveRegionMutated: !!res.sawLiveMutation, emptyLiveRegionEvents, ...(emptyLiveRegionEvents > 0 ? { emptyAnnouncementNote: `${emptyLiveRegionEvents} live-region event(s) carried NO spoken text (e.g. the region was emptied on completion). A user hears SILENCE for these — they are NOT evidence that anything was announced.` } : {}) };
   } finally { try { await live.close(); } catch (e) {} }
 }
 

@@ -210,8 +210,19 @@ test('#11 TT-validation hardening: identical-to-prose text is never a candidate;
     'no visible difference ⇒ no heading candidate — soft cue-agnosticism must not license invention');
   assert.match(t, /page `<title>` echoed as the first line of prose is not one either/,
     'title-echo first line is an explicit negative control');
-  assert.match(t, phrase('The mismatch direction is VISUAL → PROGRAMMATIC only.'),
-    'sr-only/visually-hidden programmatic headings are conforming — the inverted mismatch is not a 1.3.1 failure');
+  // REWORDED 2026-08-15 (root-cause campaign). This used to pin the sentence "The mismatch direction is
+  // VISUAL → PROGRAMMATIC only." That blanket claim protected the sr-only guard below, but it ALSO told the
+  // judge to clear every programmatic→visual mismatch — which silently foreclosed WCAG F46 (th/caption/
+  // summary on a LAYOUT table) and cost 9 of 21 misses on 1.3.1. The guard this test exists for is
+  // unchanged and is re-pinned here in its new wording; the over-broad half is gone.
+  assert.match(t, phrase('A VISUALLY HIDDEN but ACCURATE structure is conforming.'),
+    'sr-only/visually-hidden programmatic headings are conforming — the round-1 10_D-2 regression stays closed');
+  assert.match(t, /sr-only[\s\S]{0,400}?CONFORMING|CONFORMING[\s\S]{0,400}?sr-only/,
+    'the sr-only technique must still be named as conforming, not merely implied');
+  // ...and the corrected half: a structure the content does NOT have is a failure in either direction.
+  assert.match(t, /F46/, 'fabricated table semantics (F46) must be reachable as a failure');
+  assert.match(t, phrase('MISDESCRIBES'),
+    'the test is whether the declared structure is TRUE — not which direction the mismatch runs');
   assert.match(t, phrase('A REPRODUCED verdict must NAME the relationship'),
     'degenerate justifications (restatement / bare measurement) cannot carry a page-level barrier');
 });

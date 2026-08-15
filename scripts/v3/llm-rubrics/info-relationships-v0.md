@@ -112,14 +112,16 @@ real list is NOT. Common failure patterns:
   have zero headings — that is `inapplicable`, not a barrier), do NOT invent one; return NOT REPRODUCED, or
   PARTIAL if the viewport is ambiguous about whether a candidate is a true section heading. Never describe "a
   visual heading at the top" you cannot point to as visually-heading-styled AND section-introducing.
-  **The mismatch direction is VISUAL → PROGRAMMATIC only.** 1.3.1 requires structure a sighted user
-  perceives to be programmatically determinable — never the reverse. A programmatic heading/landmark that
-  is VISUALLY HIDDEN (an sr-only/clip-pattern `<h1>`, an off-screen navigation heading) is a standard,
-  conforming technique that HELPS AT users; do NOT flag "a programmatic heading is invisible in the visual
-  layout" as a 1.3.1 mismatch — that inversion is not a failure mode of this SC. The deterministic signal
-  already tells you which headings these are: a `signals.structure.headings[]` entry with `offscreen: true`
-  is an intentionally visually-hidden AT aid — it can NEVER be the subject of a 1.3.1 barrier, and its
-  absence from the viewport is EXPECTED, not evidence of anything.
+  **A VISUALLY HIDDEN but ACCURATE structure is conforming.** An sr-only/clip-pattern `<h1>` or an
+  off-screen navigation heading is a standard technique that HELPS AT users; do NOT flag "a programmatic
+  heading is invisible in the visual layout" as a 1.3.1 mismatch. The deterministic signal tells you which
+  headings these are: a `signals.structure.headings[]` entry with `offscreen: true` is an intentionally
+  visually-hidden AT aid, and its absence from the viewport is EXPECTED, not evidence of anything.
+  **This does NOT mean 1.3.1 only runs visual→programmatic.** Structure declared in markup that the content
+  does not actually have — `<th>`/`<caption>`/`summary=` on a layout table (F46), a heading on a byline,
+  `<dl>` on non-term/definition pairs — is a genuine 1.3.1 failure: it conveys to an AT user a relationship
+  that does not exist. The question is never the direction, it is whether the declared structure is TRUE.
+  See the caveat near the end of this rubric for the full test.
 - **Heading LEVEL does not logically nest (TT 10.C):** distinct from "not marked up" above — a REAL heading
   whose programmatic LEVEL NUMBER contradicts its visual nesting relative to a nearby heading. Consult
   `signals.structure.headingOutline.sequence` — each entry may carry `suspect: 'SKIP_DEEPER'` (this heading's
@@ -210,8 +212,22 @@ from the roles + viewport — but judge it RIGHT, and do not invent a barrier th
   A verdict you can only justify with a restatement ("the issue was reproduced"), a bare measurement, or
   a generic suspicion is NOT evidence of a 1.3.1 failure — return PARTIAL (or NOT REPRODUCED if the
   structures you CAN name are all correctly conveyed). The summary must carry that named relationship.
-- **Never fail the INVERTED direction:** "a programmatic heading/landmark is visually hidden" (an
-  `offscreen: true` headings[] entry, an sr-only `<h1>`) is a CONFORMING technique, not a mismatch — if
-  the only "mismatch" you can name runs programmatic→visual, return NOT REPRODUCED.
+- **The INVERTED direction is conforming only when the programmatic structure is TRUE.** "A programmatic
+  heading/landmark is visually hidden" (an `offscreen: true` headings[] entry, an sr-only `<h1>`) is a
+  CONFORMING technique: the structure it declares is ACCURATE, it is simply delivered to AT only. Do not
+  flag that.
+  **But a programmatic structure that MISDESCRIBES the content is a 1.3.1 failure in this direction**, and
+  it is a common one. The test is not "which way does the mismatch run" — it is "does the markup assert a
+  relationship the content does not have?" A FABRICATED relationship conveys false information to AT users:
+    - `<th>` / `<caption>` / `summary=` on a **layout** table — the markup asserts row/column header
+      relationships between cells that are not a data grid at all (**WCAG F46**);
+    - a heading element on text that does not introduce a section (a byline, a price, a decorative
+      pull-quote) — the AT user is given a document outline that does not exist;
+    - `<blockquote>` on first-party prose that is not a quotation;
+    - `<dl>`/`<dt>`/`<dd>` on content that is not term/definition pairs;
+    - `role=`/ARIA that contradicts what the element actually is.
+  Judge these on the FACTS: name the relationship the markup declares, then say whether the content
+  actually has it. If it does not, that is REPRODUCED. Only return NOT REPRODUCED for the inverted
+  direction when the declared structure is accurate and merely invisible.
 
 **Output:** STRICT JSON `{verdict, confidence, summary, reasoning, evidenceRefs}`.

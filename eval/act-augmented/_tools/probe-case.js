@@ -93,19 +93,32 @@ const DESCRIBE = `(el) => {
       textAtLoad: (el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 120),
     })));
 
-  if (!has('hover') && !has('click') || has('tab')) {
+  // Walk the tab ring from the CURRENT state and return the stops. Extracted so it can be run BEFORE the
+  // click (resting order) and AGAIN after it (the order inside whatever the click opened).
+  //
+  // ORDERING BUG this fixes: the walk used to run unconditionally here, i.e. BEFORE the `--click` block far
+  // below. So `--click <opener> --tab` reported the tab order of the CLOSED page, and every modal/menu
+  // keyboard trap looked clean — the trapped ring only exists once the dialog is open. Anyone verifying a
+  // 2.1.2 case with the old ordering would have wrongly cleared it.
+  const walkTabRing = async (label) => {
     const max = Number(opt('maxtab', 40));
+    const stops = [];
     await page.evaluate(() => { const b = document.body; b.setAttribute('tabindex', '-1'); b.focus(); });
     const seen = [];
     for (let i = 0; i < max; i++) {
       await page.keyboard.press('Tab');
       const d = await page.evaluate(`(() => { const f = ${DESCRIBE}; return f(document.activeElement); })()`);
-      if (!d || d.tag === 'body') { out.notes.push(`tab walk left the page at stop ${i + 1}`); break; }
+      if (!d || d.tag === 'body') { out.notes.push(`${label}: tab walk left the page at stop ${i + 1}`); break; }
       const sig = `${d.tag}#${d.id}.${d.cls}|${d.text}`;
-      if (seen.length && seen[0] === sig && i > 1) { out.notes.push(`tab order cycled after ${i} stops`); break; }
+      if (seen.length && seen[0] === sig && i > 1) { out.notes.push(`${label}: tab order cycled after ${i} stops`); break; }
       if (i === 0) seen.push(sig);
-      out.tabOrder.push({ stop: i + 1, ...d });
+      stops.push({ stop: i + 1, ...d });
     }
+    return stops;
+  };
+
+  if (!has('hover') && !has('click') || has('tab')) {
+    out.tabOrder = await walkTabRing('resting');
   }
 
   if (has('hover')) {
@@ -156,6 +169,24 @@ const DESCRIBE = `(el) => {
         selector: sel,
         focusAfter: await page.evaluate(`(() => { const f = ${DESCRIBE}; return f(document.activeElement); })()`),
       };
+      // The ring INSIDE whatever the click opened — this is the one that reveals a modal/menu trap. Without
+      // it, `--click opener --tab` only ever described the closed page (see walkTabRing above).
+      if (has('tab')) {
+        out.tabOrderAfterClick = await walkTabRing('after-click');
+        // TRAP HEURISTIC: a trapped ring shows up as the TAIL of a long walk revisiting a tiny set of
+        // controls forever. (Checking the whole ring is wrong — the walk legitimately passes through the
+        // page's own controls before entering the dialog.) Advisory only: Shift+Tab and Esc decide it.
+        const ring = out.tabOrderAfterClick;
+        if (ring.length >= 12) {
+          const tail = ring.slice(-10).map((s) => `${s.tag}#${s.id || ''}|${s.text || ''}`);
+          const distinct = new Set(tail);
+          if (distinct.size <= 3) {
+            out.notes.push(`after-click: the last 10 tab stops cycle among only ${distinct.size} control(s) `
+              + `[${[...distinct].join(', ')}] and the walk never exited — CANDIDATE KEYBOARD TRAP (2.1.2). `
+              + `Confirm with Shift+Tab and Esc (--key Escape) before concluding.`);
+          }
+        }
+      }
     }
   }
 
