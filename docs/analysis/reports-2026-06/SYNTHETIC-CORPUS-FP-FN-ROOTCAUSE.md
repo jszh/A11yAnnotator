@@ -445,3 +445,36 @@ human call; the tag only stops the case being scored as settled. Applied by
 - **`TRIAGE_SCS` for 1.4.1 / 2.4.3 / 4.1.3**: a documented architectural decision whose cost is now
   quantified (25.8% vs 61.1% recall). Changing it creates obligations on all 581 ACT pages and could move
   the headline Table 1 numbers, so it needs its own pre/post experiment.
+
+---
+
+## 9. Outcome (2026-08-15, run `aug-annot-postfix-2026-08-15`, repo `c9b94a47`)
+
+Measured on the **identical 392-case set** (the pre-fix run re-scored over the same cases, so the
+exclusion of the 13 corpus defects is not credited to the fixes):
+
+| | before | after | Δ |
+|---|---|---|---|
+| recall | 52.4% (164/313) | **64.2%** (201/313) | **+11.8pp** |
+| FP rate | 12.7% (10/79) | 12.7% (10/79) | 0.0pp |
+| F1 | 0.674 | **0.767** | +0.094 |
+
+The outcome shift matches the diagnosis rather than being a generic lift: `noObligation` 54→36
+(the gate/collector/build-abort fixes), `uncertain` 21→8 (the tab-order evidence), `missedAgree`
+73→67 (the rubric fixes). **`TRIAGE_SCS` recall 26.7% → 45.6%** without touching that decision.
+
+**Every SC improved or held flat.** Largest: 2.4.3 +26.7pp, 1.4.1 +25.0pp, 2.1.2 +21.4pp,
+3.3.1 +17.2pp.
+
+**What the flat FP rate conceals — and the one real trade.** 11 FPs were eliminated and 7 new ones
+appeared. Four of the new ones are 2.4.3 and they are caused by the fix that helped most: handed a
+tab sequence, the judge stops abstaining and commits, sometimes to "the tab order does not match the
+visual left-to-right arrangement" — which this very rubric says is not a failure. Net 2.4.3 is
++8 TP / +4 FP, but `focus-order-meaning-v0` now needs a tightening pass on the
+"different-but-sensible order is NOT a failure" clause. **Follow-up, not a completed item.**
+
+Two further new FPs are 1.4.13 siblings of cases this analysis verified as corpus defects; they may
+be mislabeled too, but that has not been checked.
+
+**No adverse effect on ACT:** the deterministic 581-case gate is byte-identical to `postR3`
+(tp 13, fn 101, fp 1, tn 263, agreement 0.7302). Test suite 886/886.

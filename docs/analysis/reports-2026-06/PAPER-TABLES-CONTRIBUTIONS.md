@@ -826,8 +826,66 @@ are wired to **nothing**.
 
 **Instrumentation caveat for the next run:** `agentVerdicts` is empty on all 405 records, so the
 run-level fact that ~74% of tool-capable runs made zero tool calls (`agentBuilt` 397,
-`multiTurnResults` 104, 371 calls) **cannot be joined to per-case outcomes**. Add per-subject tool
-traces before drawing any tool-use conclusion.
+`multiTurnResults` 104, 371 calls) **cannot be joined to per-case outcomes**. (Fixed at `c9b94a47`:
+`run-annotated-suite.js` now records `rec.toolUse` per case.)
+
+## Table 1k-post — after the 11 root-caused fixes (2026-08-15)
+
+**Run `results/aug-annot-postfix-2026-08-15/`, repo at `c9b94a47`.** Sonnet 4.6, tools ON, **392
+pages, 0 errors**, 409 tool calls. The 13 corpus defects found by the root-cause pass are now tagged
+`needs-validation` and excluded (verified: 0 leaked into the run).
+
+**The comparison below is on the IDENTICAL 392-case set** — the pre-fix run re-scored over the same
+cases, so the exclusion of 13 mislabeled pages is NOT credited to the fixes. (For reference, the
+unrestricted pre-fix figure was 50.9% / 16.9% over 405; restricting to these 392 gives 52.4% / 12.7%.)
+
+| | before | after | Δ |
+|---|---|---|---|
+| **recall** | 164/313 = **52.4%** | 201/313 = **64.2%** | **+11.8pp** |
+| **FP rate** | 10/79 = 12.7% | 10/79 = **12.7%** | **0.0pp** |
+| precision | 94.3% | 95.3% | +1.0pp |
+| **F1** | 0.674 | **0.767** | **+0.094** |
+
+Where the 37 recovered cases came from — the outcome shift is the mechanism, and it matches the
+diagnosis rather than being a generic lift:
+
+| outcome (GT-fail) | before | after | Δ | attributable to |
+|---|---:|---:|---:|---|
+| `noObligation` | 54 | 36 | **−18** | P1 build-abort, P3 live-region visibility, P4 aperture, P5 focusRisk |
+| `uncertain` | 21 | 8 | **−13** | P2 — the judge finally receives the tab sequence it was told it had |
+| `missedAgree` | 73 | 67 | −6 | R1–R4 rubric fixes |
+| `caught` | 164 | 201 | **+37** | |
+
+Per-SC (recall before → after; * = `TRIAGE_SCS` member):
+
+| SC | before | after | Δ | FP before → after |
+|---|---|---|---|---|
+| 2.4.3 * | 20.0% | 46.7% | **+26.7pp** | 1/16 → **5/16** |
+| 1.4.1 * | 28.6% | 53.6% | **+25.0pp** | **4/14 → 0/14** |
+| 2.1.2 | 28.6% | 50.0% | +21.4pp | 0/9 → 0/9 |
+| 3.3.1 | 65.5% | 82.8% | +17.2pp | **4/6 → 2/6** |
+| 1.4.13 | 68.0% | 80.0% | +12.0pp | 0/6 → 2/6 |
+| 2.4.4 | 82.1% | 89.3% | +7.1pp | 1/4 → 0/4 |
+| 1.3.1 | 50.0% | 56.5% | +6.5pp | 0/7 → 0/7 |
+| 4.1.3 * | 31.3% | 37.5% | +6.3pp | 0/5 → 0/5 |
+| 1.1.1 | 69.0% | 71.4% | +2.4pp | 0/7 → 1/7 |
+| 2.4.2 | 84.0% | 84.0% | 0.0pp | 0/5 → 0/5 |
+
+`TRIAGE_SCS` recall rose **26.7% → 45.6%** without touching the architectural decision itself.
+
+**Honest reading of the flat FP rate.** The total is unchanged at 10/79, but the COMPOSITION shifted:
+11 false positives were eliminated (all 5 targeted 1.4.1, 2 of the 4 3.3.1, both 2.4.4, both 1.4.13)
+and 7 new ones appeared. **Four of the new ones are 2.4.3**, and they are a direct consequence of P2:
+with a tab sequence in hand the judge stops abstaining and commits — sometimes to "the tab order does
+not match the visual left-to-right arrangement", which `focus-order-meaning-v0` explicitly says is NOT
+a failure ("a different-but-sensible order is NOT a failure"). Net for 2.4.3 is +8 TP / +4 FP, clearly
+positive, but the rubric now needs a tightening pass on that clause — filed as follow-up. The other two
+new FPs are 1.4.13 SIBLINGS of cases the root-cause pass verified as corpus defects, so they may be
+mislabeled too; that is a hypothesis, not an established finding.
+
+**No adverse effect on ACT.** The deterministic 581-case ACT subset gate is **byte-identical** to the
+`postR3` baseline: tp 13, fn 101, fp 1, tn 263, decisionAgreement 0.7302, 0 errors
+(`upstream-evidence/v3-act-subset-postfix-2026-08-15/`). Test suite 886/886.
 
 ## Table 2 — Held-out generalization gate (581-case full corpus)
 
