@@ -40,6 +40,58 @@ table/header-association barrier ONLY for a table whose `perTable` verdict is `U
   `thCount` and `headers[]` will show ONLY 3 headers, one per row, none matching the column labels — that
   mismatch between what's visually a header and what's actually in `headers[]` IS the barrier).
 
+**THE GATE ABOVE COVERS ONE QUESTION ONLY — and its answer is NOT a clearance for the other three.** It asks
+"is a DATA table's header→data association programmatic?". It does NOT ask whether the table should have been a
+data table at all. Read `signals.structure.tableSemantics.perTable[i]` — a SECOND, independent verdict computed
+from `declared[]` (which structural markup the table actually carries), `presentational` (role=presentation/none),
+`rowCount`/`colCount`, and `cellsWithBlockContent` (cells holding a heading/list/form/nav/nested table rather
+than a value). **A `VALID` or `NOT_DATA` association verdict does not survive a non-`OK` semantics verdict** —
+they are answers to different questions, and on these three shapes the association gate reads exactly backwards:
+
+- `LAYOUT_STRUCTURE_SUSPECT` ⇒ the table declares data semantics (`declared[]` lists which: th / caption /
+  non-empty summary / scope / headers) while its content is not tabular data. **Confirm from the viewport that
+  the cells lay out page regions rather than presenting a data grid — then flag it (F46).** Do NOT be talked out
+  of it by a `VALID` association verdict: on a layout table, `scope=` is *the failure*, not proof of conformance.
+  A data table whose cells legitimately contain lists is the one over-fire to watch for — if the viewport shows
+  a real header row over real data rows, return NOT REPRODUCED for this table and say why.
+- `DATA_SEMANTICS_SUPPRESSED` ⇒ a real data grid carrying `role=presentation`/`none`. Its headers, caption and
+  scope are stripped from the accessibility tree, so an AT user gets an unstructured run of cells. **Flag it
+  (F92).** The association gate cannot see this table at all — a role override makes it report `NOT_DATA`.
+- `HEADERLESS_GRID_SUSPECT` ⇒ a ≥2×2 grid with not one `<th>`. If the viewport shows a header row/column
+  (styled bold, shaded, or reading as labels) rendered in plain `<td>`, the association is unmarked: **flag it
+  (F91 / TT 14.B)**. If it is genuinely a layout table, it is not a failure — say so. Note the association gate
+  cleared this table `NOT_DATA` *because* nobody marked the headers, i.e. the omission excused itself.
+- `OK` ⇒ the semantics check found nothing; the association verdict above governs, unchanged.
+
+**GUARD — a layout table carrying `role="presentation"`/`none` is CORRECT (DHS Trusted Tester 14.C's own PASS
+condition) and is never an F46**, even with a stray `<th>`: the role strips the table's owned semantics so no
+header relationship is exposed. An EMPTY `summary=""` is likewise not a failure — F46 names non-empty summaries.
+
+**STRUCTURE THAT NEVER BECAME MARKUP AT ALL.** The gates above only see content that IS a `<table>`. This
+signal covers content that isn't, and it is an ordinary 1.3.1 failure — a relationship a sighted reader
+gets, with nothing programmatic behind it:
+
+- **`signals.structure.fauxColumns` — whitespace-formatted columns (F34).** Each entry is an element whose
+  rendered text has runs of spaces ENDING AT THE SAME character offsets across several lines (`columnCount`,
+  `columnOffsets`, `lineCount`, plus a `sample` of the first lines). That alignment is what makes columns
+  line up on screen, and it is all a reader has: a screen reader collapses or reads straight through the
+  spaces, interleaving the columns. **Read the sample: if the aligned fields are a table — values under
+  headings, or two blocks of prose read side by side — flag it (F34).** *Guard:* alignment alone is not the
+  failure. ASCII art, a monospaced banner, a code listing, and indented source are aligned and convey no
+  row/column relationship; so is a single wide gap that just happens to repeat. Say which columns you see
+  before flagging, and return NOT REPRODUCED when the alignment is decorative or incidental.
+
+- **`signals.structure.presentationOutliers` / `presentationConventions` — presentation as meaning (F2).**
+  A minority of otherwise-comparable items is STRUCK THROUGH, or a run of inline text is set in SMALL CAPS,
+  with no `<del>`/`<s>`/`<dfn>`/`<mark>` and no accessible name declaring what that means. Both cues have
+  ONE conventional reading — struck-through says removed, cancelled, void, superseded; small-caps says
+  "this is a defined term" — so when they appear with no markup and no text equivalent, an AT user is told
+  nothing at all. **Say what the styling means, confirm no text on the page says it, then flag it (F2).**
+  *Guard:* if a legend, caption or nearby sentence explains the convention ("cancelled sessions are shown
+  struck through"), the information IS available in text and this is NOT a failure. Deliberately narrow:
+  weight and size differences are excluded because they are how ordinary visual HIERARCHY is expressed and
+  cannot be told apart from encoding by markup alone — a bolder item is not evidence of anything.
+
 This gate governs ONLY the table facet. Judge headings, lists, groups, and emphasis on their own merits below.
 
 **Interpreting the deterministic evidence.** `signals.structure` carries `headings[]` ({tag, role, level, text,
@@ -85,8 +137,22 @@ unmarked visual list in the viewport that no `lists[]` entry names, judge it fro
 
 For `kind:'real'`, `hasNonItemChildren:true` is a structural-break smell (axe owns the strict
 `list`/`listitem` validity finding — defer to it); `roleOverridesList:true` means the element was re-purposed
-(role=tablist/menu) and is a different question, not a 10.D list failure; judge wrong-TYPE (sequential steps as
-`ul`, or unordered items as `ol`) from `itemSamples`.
+(role=tablist/menu) and is a different question, not a 10.D list failure.
+
+**WRONG LIST TYPE IS ITS OWN FAILURE, not a footnote to the above.** `<ol>` and `<ul>` are different
+relationships, and an AT user is told which one they are in. Judge it from `itemSamples`:
+- Content whose ORDER is load-bearing — steps to follow, ranked results, an itinerary, anything the visible
+  text numbers or sequences ("Step 2", "Second,", "1.") — marked as `<ul>` tells the AT user the order does
+  not matter, and they lose the sequence a sighted reader sees. **Barrier.**
+- Content with no inherent order marked as `<ol>` asserts a ranking that does not exist, which is the same
+  class of false relationship as `<th>` on a layout table. **Barrier**, though the harm is milder — flag it
+  only when the numbering would actively mislead, not merely because `<ul>` would have been tidier.
+- Term/definition pairs coded as a two-item `<ul>` per pair, rather than `<dl>`/`<dt>`/`<dd>`, lose the
+  term→definition association. **Barrier** when the pairing is what the content is for (a glossary, a
+  specification table); not when it is an ordinary list that happens to use colons.
+*Guard:* a list whose items merely BEGIN with numerals because the numbers are part of the content (years,
+prices, model numbers) is not a sequence — do not read data as ordering. And a visually-numbered list that
+uses `<ol>` correctly needs no further comment.
 
 **Judge:** does a relationship a sighted user perceives (a visual heading, a list, a table's
 row/column association, a group/fieldset, an emphasis that carries meaning) have a programmatic

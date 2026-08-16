@@ -151,9 +151,22 @@ function buildV3(bundle, opts = {}) {
     if (xpath === oracle.PAGE_SECTIONHEADINGS_XPATH) return fam === 'section-headings' && !!(bundle.collect && bundle.collect.structure);
     if (xpath === oracle.PAGE_FOCUSORDER_XPATH) return fam === 'focus-order-meaning' && !!(bundle.collect && bundle.collect.structure);
     if (xpath === oracle.PAGE_MEANINGFUL_SEQUENCE_XPATH) return fam === 'meaningful-sequence' && pageHasReorder; // Item 14c
+    // page-level 4.1.3 (residual RCA S4) — gated on the status detector having OBSERVED a change, exactly
+    // as 1.3.2 is gated on a reading-order divergence.
+    // 1.4.1 colour peer groups (residual RCA S6) — a minted group anchor is exempt from the Rule-16 parity
+    // check for the same reason axe-decided/deterministic-barrier mints are: the family is not oracle-derived
+    // from the element's own facts, it comes from the element's RELATIONSHIP to its peers.
+    if (colourGroupAnchors.has(xpath)) return fam === 'use-of-color';
+    if (xpath === oracle.PAGE_STATUS_MESSAGE_XPATH) {
+      return fam === 'status-message' && !!(bundle.instruments && Array.isArray(bundle.instruments.findings)
+        && bundle.instruments.findings.some((f) => f && f.sc === '4.1.3' && f.kind === 'status-change-observed'));
+    }
     const el = collectByXpath[xpath];
     return !!el && oracle.familiesFor(el).includes(fam);
   };
+
+  const colourGroupAnchors = new Set(((bundle.collect && bundle.collect.structure && bundle.collect.structure.colourPeerGroups) || [])
+    .map((g) => (g && Array.isArray(g.members) && g.members[0] && g.members[0].xpath) || null).filter(Boolean));
 
   const proposals = (bundle.claimProposals && bundle.claimProposals.proposals) || [];
   const seen = new Set();
@@ -289,6 +302,14 @@ function buildV3(bundle, opts = {}) {
   const INSTRUMENT_BARRIER = {
     '2.1.2': { kinds: ['keyboard-trap', 'keyboard-trap-self-refocus', 'keyboard-trap-confinement'], family: 'no-keyboard-trap', state: 'keyboard-trap-probe', action: 'tab-cycle', mech: 'kbd-trap:' },
     '4.1.2': { kinds: ['focus-rests-in-aria-hidden'], family: 'name-role-value', state: 'focus-rest-probe', action: 'focus', mech: 'aria-hidden-focus:' },
+    // 4.1.3 (residual RCA S4): `status-not-announced` is the status detector's SOUND barrier — text that
+    // demonstrably appeared, demonstrably outside any live region, with focus demonstrably not moved to
+    // it. It was produced correctly and then discarded: 4.1.3 was routed only into the non-ledger
+    // TRIAGE_SCS queue, which score-lib never reads, so a live orchestrate on scope-boundary/case-05
+    // emitted 5 correct findings on the right element and the case still scored `noObligation`. Measured
+    // FP cost of promoting it: 0 findings on all 5 GT-pass 4.1.3 cases and 0 across a 45-page non-4.1.3
+    // sample. The trap mint loop below gives it an obligation to land on.
+    '4.1.3': { kinds: ['status-not-announced'], family: 'status-message', state: 'post-activation', action: 'activate', mech: 'status-detector:' },
   };
   const trapObs = [];
   if (bundle.instruments && Array.isArray(bundle.instruments.findings)) {
@@ -465,6 +486,25 @@ function buildV3(bundle, opts = {}) {
     seenDet.add(id);
     detBarrierObligations.push({ obligationId: id, xpath, sc: o.sc, claimFamily: o.claimFamily });
   }
+  // INSTRUMENT-TRAP obligations (residual RCA §3 — "the keystone"): `trapObs` promotes a CONFIRMED instrument trap
+  // to a BARRIER, but unlike axeObs/detBarrierObs it had NO mint loop, so it could only ever FILL an obligation the
+  // oracle had already enumerated — and for 2.1.2 it CANNOT: `detectKeyboardTraps` reports the confining REGION's
+  // xpath (run-instruments.js:83/112) while applicability-oracle.js:268 enumerates no-keyboard-trap per FOCUSABLE
+  // ELEMENT, so the §5b fill key never matched and every confirmed trap was silently dropped. MINT one per trapObs
+  // whose key isn't enumerated, exactly like axe-decided / deterministic-barrier.
+  // GUARD — a DIRECTIONAL one-way loop must never mint: ACT a1b64e requires escape in ONE direction only, so
+  // `keyboard-trap-directional` is emitted with `review:true` (run-instruments.js:84) and an ADVISORY confinement
+  // likewise (`review: !t.lyingAdvisory`, :112). trapObs is built from `!f.review` rows only (:295), so both are
+  // structurally excluded from this loop — the mint inherits that filter rather than restating it.
+  const trapMintedObligations = [];
+  const seenTrap = new Set();
+  for (const o of trapObs) {
+    const xpath = o.observationScope && o.observationScope.actionTargetRef;
+    const id = oracle.oblId(xpath, o.sc, o.claimFamily);
+    if (existingOblIds.has(id) || seenChk.has(id) || seenAxe.has(id) || seenDet.has(id) || seenTrap.has(id)) continue;
+    seenTrap.add(id);
+    trapMintedObligations.push({ obligationId: id, xpath, sc: o.sc, claimFamily: o.claimFamily });
+  }
   // 1.3.2 MEANINGFUL SEQUENCE (Item 14c): enumerate a PAGE-LEVEL meaning-vs-mechanics obligation ONLY when the vsr
   // detector found a visual-vs-source reorder (gated, never on every page). Page-level, auto-PARTIAL → sequence-meaning-v0.
   const sequenceObligations = [];
@@ -472,7 +512,42 @@ function buildV3(bundle, opts = {}) {
     const sid = oracle.oblId(oracle.PAGE_MEANINGFUL_SEQUENCE_XPATH, '1.3.2', 'meaningful-sequence');
     if (!existingOblIds.has(sid)) sequenceObligations.push({ obligationId: sid, xpath: oracle.PAGE_MEANINGFUL_SEQUENCE_XPATH, sc: '1.3.2', claimFamily: 'meaningful-sequence' });
   }
-  const obligations = [...staticObligations, ...dynamicObligations, ...checkerObligations, ...axeDecidedObligations, ...detBarrierObligations, ...sequenceObligations];
+  // 4.1.3 PAGE-LEVEL STATUS MESSAGES (residual RCA S4): GATED exactly like 1.3.2 above — minted only when
+  // the status detector actually OBSERVED a content change on activation (a `status-change-observed` review
+  // row), never on every page. That gate is what keeps the aperture honest: the element-level obligation
+  // (applicability-oracle.js:241) fires only where a live region already exists, i.e. only on pages that are
+  // already partly conformant, while 7 of the 8 missed cases have NO live region at rest — the absence being
+  // the failure. This obligation asks the question on any page that demonstrably produces a status change,
+  // and the rubric holds the Understanding's exceptions (tablist selection, survey questions, primary
+  // content) so an observed change is not the same thing as an owed announcement.
+  const statusObservedRows = (bundle.instruments && Array.isArray(bundle.instruments.findings))
+    ? bundle.instruments.findings.filter((f) => f && f.sc === '4.1.3' && f.kind === 'status-change-observed')
+    : [];
+  const statusObligations = [];
+  if (statusObservedRows.length) {
+    const sid = oracle.oblId(oracle.PAGE_STATUS_MESSAGE_XPATH, '4.1.3', 'status-message');
+    if (!existingOblIds.has(sid)) statusObligations.push({ obligationId: sid, xpath: oracle.PAGE_STATUS_MESSAGE_XPATH, sc: '4.1.3', claimFamily: 'status-message' });
+  }
+  // 1.4.1 COLOUR PEER GROUPS (residual RCA S6): one obligation per GROUP, anchored on its first member and
+  // GATED on the collector actually having found a group — the same gate shape as 1.3.2 and 4.1.3 above.
+  // Element-level 1.4.1 is role-based (link / form field / graphic surface) and structurally cannot see a
+  // colour-coded SET, because no member is individually defective; the information lives in the difference.
+  // The detector already excludes everything the criterion does not cover — colour-uniform groups, peers that
+  // also differ in weight/size/decoration/border/icon (the distinction survives colour loss), zebra striping,
+  // syntax highlighting, images, and swatch rows with no text.
+  const colourGroups = (bundle.collect && bundle.collect.structure && Array.isArray(bundle.collect.structure.colourPeerGroups))
+    ? bundle.collect.structure.colourPeerGroups : [];
+  const colourGroupObligations = [];
+  const seenColour = new Set();
+  for (const g of colourGroups) {
+    const anchor = g && Array.isArray(g.members) && g.members[0] && g.members[0].xpath;
+    if (!anchor) continue;
+    const id = oracle.oblId(anchor, '1.4.1', 'use-of-color');
+    if (existingOblIds.has(id) || seenChk.has(id) || seenAxe.has(id) || seenDet.has(id) || seenTrap.has(id) || seenColour.has(id)) continue;
+    seenColour.add(id);
+    colourGroupObligations.push({ obligationId: id, xpath: anchor, sc: '1.4.1', claimFamily: 'use-of-color' });
+  }
+  const obligations = [...staticObligations, ...dynamicObligations, ...checkerObligations, ...axeDecidedObligations, ...detBarrierObligations, ...trapMintedObligations, ...sequenceObligations, ...statusObligations, ...colourGroupObligations];
   // C2 — QUALWEB TWO-LANE (barrier + definitive-silent clear): the ONE checker wired as an AUTHORITATIVE
   // obligation disposition (the §2 invariant is carved out for QualWeb — verified counterfactual b49c0236).
   // The pure core turns QualWeb's own per-rule aggregate outcome into barrier/clear/review lane decisions
@@ -858,7 +933,11 @@ function buildV3(bundle, opts = {}) {
   // candidate per (xpath, SC) UNIONS every non-authoritative signal on it with an `agreement` count (plan
   // §2: union evidence, never adjudicate to a verdict). These are review packets, NOT PROVISIONAL ledger
   // rows — the project has no sound enumeration story for these families yet, so they never clear/barrier.
-  const TRIAGE_SCS = new Set(['1.4.1', '1.3.3', '1.3.2', '2.4.3', '4.1.3']);
+  // 4.1.3 was REMOVED from this set (residual RCA S4): it now has a real enumeration story — an
+  // INSTRUMENT_BARRIER promotion for `status-not-announced` plus a page-level obligation minted from the
+  // detector's observation rows — so its findings reach the ledger and the scorer instead of a queue
+  // nobody reads. Leaving it here as well would double-report the same signal.
+  const TRIAGE_SCS = new Set(['1.4.1', '1.3.3', '1.3.2', '2.4.3']);
   const triageMap = new Map();
   for (const f of [...instrumentFindings, ...checkerFindings]) {
     if (!TRIAGE_SCS.has(f.sc)) continue;

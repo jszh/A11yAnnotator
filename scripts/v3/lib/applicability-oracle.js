@@ -97,6 +97,11 @@ const FAMILIES = Object.freeze({
   //      a REQUIREMENT-SOURCED sensory-word pre-filter (applicability only); the sensory-characteristics-v0 rubric
   //      fills the auto-PARTIAL as a non-authoritative LLM PROVISIONAL (canary ceiling). ----
   'sensory-characteristics': Object.freeze({ sc: '1.3.3', skills: ['grouping-and-reading-order'] }),      // 1.3.3 (9bd38c) — a text node using a visual-reference word to identify content owes a non-visual alternative
+  // 1.3.1 CONTROL SEMANTICS (F42, residual RCA S6): an element carrying a script activation handler while
+  // declaring no interactive role and taking no focus. Distinct from every family above — this is not about
+  // a NAME (4.1.2) or about reaching a control that IS one (2.1.1); it is about markup that fails to state
+  // the relationship between what an element looks like and what it does.
+  'control-semantics':       Object.freeze({ sc: '1.3.1', skills: ['grouping-and-reading-order'] }),
 });
 
 const WIDGET_ROLE = /^(button|link|checkbox|switch|tab|menuitem|combobox|radio|slider)$/;
@@ -171,6 +176,15 @@ const PAGE_FOCUSORDER_XPATH = '/page-level::focus-order';
 // page-level pseudo-element for 1.3.2 meaningful sequence (Item 14c) — enumerated ONLY when the vsr detector
 // reports a visual-vs-source reading-order divergence (gated in build-v3, not on every multi-column page).
 const PAGE_MEANINGFUL_SEQUENCE_XPATH = '/page-level::meaningful-sequence';
+// page-level pseudo-element for 4.1.3 status messages (residual RCA S4). The element-level obligation at
+// :241 is gated on `el.liveRegion === true`, which anchors 4.1.3 to THE ONE ELEMENT THAT IS ALREADY
+// CORRECT: every remaining failure shape lives elsewhere — a plain <div> receiving status text, a region
+// INSERTED already holding its message, a region emptied, a status conveyed only by an icon. On 7 of the 8
+// missed cases there is no live region at rest at all, and that ABSENCE is the failure, so the gate could
+// only ever ask the question on pages that were already partly conformant. Like 1.3.2's, this obligation is
+// GATED in build-v3 — minted only when the status detector actually OBSERVED a content change on
+// activation — so it never fires on a page with no dynamic status surface.
+const PAGE_STATUS_MESSAGE_XPATH = '/page-level::status-message';
 // The page's title slot, read from EITHER the synthetic `collect.page` convention OR the real
 // collector's `collect.structure` (eval-page.js emits page-level facts under `structure`). Presence of
 // the slot — even an empty title — means this is a titled-document context that owes a 2.4.2 obligation.
@@ -343,6 +357,13 @@ function familiesFor(el) {
   if (el.zoomClipApplicable === true) fams.push('text-not-clipped-zoom');                      // 1.4.4 (59br37) — a clip-ancestor element wrapping visible text at the 640x512 viewport
   if (el.bypassApplicable === true) fams.push('bypass-blocks');                                // 2.4.1 — a page with repeated blocks + non-repeated content owes a bypass mechanism
   if (el.sensoryWordHint === true) fams.push('sensory-characteristics');                       // 1.3.3 (9bd38c) — a text node containing a requirement-sourced visual-reference word (LLM judges the alternative)
+  // 1.4.1 (residual RCA S6) — prose that identifies content BY COLOUR ("required fields are shown in red",
+  // "green buttons advance the application"). The Understanding's own example of the failure, and previously
+  // owned by nobody: sensory-lexicon.js excludes colour by design, and 1.4.1's aperture above is role-based
+  // (link / form field / graphic surface), so a paragraph of instructions matched neither. Applicability only —
+  // the rubric decides whether the reference identifies content and whether a non-colour alternative exists.
+  if (el.colorWordHint === true) fams.push('use-of-color');
+  if (el.emulatedControl === true) fams.push('control-semantics');                             // 1.3.1 (F42) — a script-activated element with no role and no focusability
   return [...new Set(fams)];
 }
 
@@ -429,7 +450,7 @@ function scForFamily(claimFamily) { return FAMILIES[claimFamily] && FAMILIES[cla
 
 module.exports = {
   FAMILIES, WIDGET_ROLE, FORMFIELD_ROLE, IMG_ROLE, HEADING_ROLE, decorativeSuspect, PAGE_REFLOW_XPATH, PAGE_TITLE_XPATH, PAGE_INFOREL_XPATH,
-  PAGE_SECTIONHEADINGS_XPATH, PAGE_FOCUSORDER_XPATH, PAGE_MEANINGFUL_SEQUENCE_XPATH, pageTitleSlotPresent,
+  PAGE_SECTIONHEADINGS_XPATH, PAGE_FOCUSORDER_XPATH, PAGE_MEANINGFUL_SEQUENCE_XPATH, PAGE_STATUS_MESSAGE_XPATH, pageTitleSlotPresent,
   isEvaluable, familiesFor, deriveObligations, oblId,
   applicableScsFor, enumerationErrors, outOfScopeElements, skillsForFamily, scForFamily, factHasText, factRole,
 };

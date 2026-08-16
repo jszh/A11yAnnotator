@@ -89,6 +89,9 @@ const SURFACES = Object.freeze([
   Object.freeze({ id: 'bypass-page', when: (el) => el.bypassApplicable === true, families: ['bypass-blocks'] }),                           // 2.4.1
   // ACT-REST expansion Round 3 — re-declared to match the oracle's new gate (Rule 16).
   Object.freeze({ id: 'sensory-text', when: (el) => el.sensoryWordHint === true, families: ['sensory-characteristics'] }),                 // 1.3.3 (9bd38c)
+  // Residual RCA S6 — re-declared to match the oracle's new colour-reference gate (Rule 16 parity).
+  Object.freeze({ id: 'color-reference-text', when: (el) => el.colorWordHint === true, families: ['use-of-color'] }),                      // 1.4.1 (F81 / G14 / Understanding 1.4.1)
+  Object.freeze({ id: 'emulated-control', when: (el) => el.emulatedControl === true, families: ['control-semantics'] }),                  // 1.3.1 (F42)
 ]);
 
 // The families this registry requires for one element (independent of the oracle).

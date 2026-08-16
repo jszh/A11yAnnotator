@@ -7,7 +7,16 @@ const { TOOL_CATALOG } = require('./cdp-tool-catalog.js');
 
 // facet → { sc, tool, why }. The runner/orchestrator should invoke the tool and attach its result as required evidence.
 const REQUIRED_TOOL_ROUTING = Object.freeze([
-  { sc: '1.4.1', tool: 'render_with_overrides', mode: 'grayscale', why: 'use-of-color: confirm a colour cue SURVIVES grayscale/CVD deterministically, not by the LLM eyeballing' },
+  // 1.4.1 — WITHDRAWN: `render_with_overrides(grayscale)` was routed here as REQUIRED evidence and is
+  // unsound for this question. Grayscale maps a colour to its LUMINANCE, so two hues that differ in
+  // lightness (red vs green, the commonest 1.4.1 shape there is) still render as clearly different shades
+  // and the re-render "confirms" a cue that a colour-blind user does not actually get. This repo had
+  // already MEASURED that: micro-checks.js:129 records grayscale losing its bake-off for exactly this
+  // reason and pins the 1.4.1 micro-check to the COLOUR crop. In the post-fix run it was the only tool
+  // that fired in the 1.4.1 bucket and it produced that bucket's only false clear. Routed instead:
+  // `compute_contrast_ratio` on the two peer colours, which answers the one thing that IS decidable — the
+  // G183 ≥3:1 luminance separation a link-in-text-block needs before any colour-only argument can stand.
+  { sc: '1.4.1', tool: 'compute_contrast_ratio', why: 'use-of-color (G183): COMPUTE the ratio between the colour-coded element and its peers/surrounding text — a hue difference with <3:1 separation is a colour-only distinction. NOT grayscale: it preserves luminance and clears colour-only cues (micro-checks.js:129)' },
   { sc: '1.4.5', tool: 'ocr_image_text', why: 'images-of-text: OCR the rendered text to compare against the alt/accessible name, instead of the LLM guessing' },
   { sc: '1.4.3', tool: 'compute_contrast_ratio', why: 'text contrast over a reducible flat backdrop should be COMPUTED, not eyeballed' },
   { sc: '1.4.11', tool: 'resolve_part_color', why: 'non-text contrast of a part/indicator vs its adjacent surface — the rendered used-colour, computed' },

@@ -156,7 +156,15 @@ async function orchestrate(collect, drive, opts = {}) {
     // fall back to empty findings (fail-closed — instruments are non-authoritative, so a skipped lane never asserts a
     // false NO_BARRIER; it just forgoes the deterministic catch and the obligation rides to the LLM/PARTIAL as before).
     const empty = { file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest, findings: [], timedOut: false };
-    const capMs = Number.isFinite(opts.instrumentsTimeoutMs) ? opts.instrumentsTimeoutMs : 90000;
+    const capMs = Number.isFinite(opts.instrumentsTimeoutMs) ? opts.instrumentsTimeoutMs : LIMITS.instruments.laneTimeoutMs;
+    // SALVAGE ON TIMEOUT (residual RCA S5). Substituting `empty` on expiry threw away instrument output that
+    // had ALREADY been measured — including the tab-order sequence, which is collected early in the lane
+    // while the slow parts (VSR transcript, status-message driving) come later. Measured over a 392-page
+    // run the cap fired on 67 pages (17.1%), and on exactly those pages 2.4.3 recall was 0% against 54%
+    // elsewhere. `partialSink` is filled as each artifact lands, so a timeout now degrades this stage to
+    // PARTIAL rather than to nothing. Still fail-closed: instruments never clear, so partial output can
+    // only forgo a catch, never assert a false one.
+    const partialSink = { findings: [], tabOrder: null };
     // CONCURRENCY GATE: when the caller passes a semaphore (run-telemetry makeSemaphore, .run(fn)), hold a slot for
     // the whole lane so only a few keyboard-driving lanes contend at once. The timeout starts only once we hold the
     // slot (inside run(fn)), so time spent queueing never burns the budget. No gate ⇒ run immediately (the timeout
@@ -164,9 +172,15 @@ async function orchestrate(collect, drive, opts = {}) {
     const stage = () => timings.stage('instruments', () => {
       let timer;
       const run = require('./run-instruments.js')
-        .runInstrumentsForUrl(url, { executablePath: opts.executablePath, browser, tabAllocator, file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest })
-        .catch(() => empty);
-      const guard = new Promise((resolve) => { timer = setTimeout(() => resolve({ ...empty, timedOut: true }), capMs); });
+        .runInstrumentsForUrl(url, { executablePath: opts.executablePath, browser, tabAllocator, file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest, partialSink })
+        .catch(() => ({ ...empty, findings: partialSink.findings.slice(), tabOrder: partialSink.tabOrder, partial: partialSink.findings.length > 0 || !!partialSink.tabOrder }));
+      const guard = new Promise((resolve) => {
+        timer = setTimeout(() => resolve({
+          ...empty, timedOut: true,
+          findings: partialSink.findings.slice(), tabOrder: partialSink.tabOrder,
+          partial: partialSink.findings.length > 0 || !!partialSink.tabOrder,
+        }), capMs);
+      });
       return Promise.race([run, guard]).finally(() => clearTimeout(timer));
     });
     bundle.instruments = opts.instrumentsGate && typeof opts.instrumentsGate.run === 'function'
@@ -320,8 +334,12 @@ async function orchestrate(collect, drive, opts = {}) {
     // 2.4.3 focus-order EVIDENCE: the recorded tab sequence from the keyboard instrument. Threaded to the
     // focus-management subject so focus-order-meaning-v0 receives the artifact it is written around; without
     // it the rubric can only obey its own abstain clause (17/24 of the SC's misses were PARTIAL).
-    const focusOrder = (bundle.instruments && bundle.instruments.tabOrder) || null;
-    let rubricSubjects = llmAdj.selectRubricSubjects(collect, ledger, llmRubrics.rubrics, { onlyAutoPartial, confinement, contrastExempt, focusOrder }); // llm-rubric:<id> (per SC)
+    // `partial` rides along so the 2.4.3 rubric knows a salvaged-on-timeout sequence for what it is:
+    // sound about ORDER (the walk completed), incomplete about the later instrument lanes.
+    const rawTabOrder = (bundle.instruments && bundle.instruments.tabOrder) || null;
+    const focusOrder = rawTabOrder ? { ...rawTabOrder, partial: bundle.instruments.timedOut === true || bundle.instruments.partial === true } : null;
+    const statusObservations = (bundle.instruments && Array.isArray(bundle.instruments.statusObservations)) ? bundle.instruments.statusObservations : null;
+    let rubricSubjects = llmAdj.selectRubricSubjects(collect, ledger, llmRubrics.rubrics, { onlyAutoPartial, confinement, contrastExempt, focusOrder, statusObservations }); // llm-rubric:<id> (per SC)
     // EVAL SCOPE GATE (opt-in): restrict the LLM to the SC(s) we have ground truth for. ACT ground truth is
     // PER-SC — a testcase only tells us pass/fail/inapplicable for its OWN rule's SC, not the page's other SCs.
     // Judging off-target obligations is both unscoreable (no GT) and wasted LLM/tool/vision spend. A Set of SC

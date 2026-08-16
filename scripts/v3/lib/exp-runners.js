@@ -608,7 +608,17 @@ function probeFormError(marker) {
     if (ncs.display === 'none' || ncs.visibility === 'hidden' || parseFloat(ncs.opacity) === 0) return '';
     const r = n.getBoundingClientRect();
     if (r.width <= 0 || r.height <= 0) return '';
-    return (n.textContent || '').replace(/\s+/g, ' ').trim();
+    // `textContent` alone DISCARDS an <img alt> — and 3.3.1 expressly permits a text alternative as the
+    // way an error is identified, so an error surface built as `<img alt="Error">` + styling read as
+    // EMPTY and the whole before/after diff concluded nothing had surfaced. Fold in the alt/aria-label of
+    // any image inside the surface, exactly as an AT would speak it. (Not `alt=""` — a decorative image
+    // announces nothing and must not count as an identification.)
+    let t = (n.textContent || '');
+    for (const im of n.querySelectorAll ? n.querySelectorAll('img[alt], svg[aria-label], [role="img"][aria-label]') : []) {
+      const a = (im.getAttribute('alt') || im.getAttribute('aria-label') || '').trim();
+      if (a) t += ' ' + a;
+    }
+    return t.replace(/\s+/g, ' ').trim();
   };
   const ERR_CLASS = /(error|invalid|warn|danger|fail|required|alert|toast|snackbar|notif|flash)/i;
   // A2 → #16 (round-3 overfit audit): the ERR_TEXT/OK_TEXT English keyword pair is retired from the
@@ -738,6 +748,17 @@ function probeFormError(marker) {
       const fieldInvalid = el.getAttribute('aria-invalid') === 'true';
       const namesErrorMessage = !!(el.getAttribute('aria-errormessage') || '').trim();
       if (n.id && refSet.has(n.id) && (errorStyled(n) || fieldInvalid || namesErrorMessage)) { customIdentifies = true; errorSample = now.slice(0, 80); break; }
+      // NOTE — an "abstain on a pre-rendered, unreferenced error surface" branch was added here and then
+      // REVERTED, because the validated ACT gate refuted it. The residual analysis observed that an error
+      // rendered DYNAMICALLY reaches the credit path below (at worst a PARTIAL) while the byte-identical
+      // error already in the DOM falls through here to a hard BARRIER, and called that asymmetry a defect.
+      // It is not: on ACT 36b590 the asymmetry is exactly right. Softening it to an abstain turned three
+      // GT-failed cases into misses (3.3.1 tp 4->1) — a generic "Please fill the field correctly." that
+      // names neither field nor problem, an "Invalid value for age." that identifies the field but not the
+      // invalid value, and one whose message carries `aria-hidden="true"` so no AT user ever receives it.
+      // The third settles it on its own. A message sitting in the DOM, unreferenced by the field and never
+      // surfaced by the submit, is not evidence that the error was identified TO THIS USER, and the two
+      // unvalidated synthetic FPs that motivated the change do not outweigh three validated TPs.
       continue;                                           // unchanged + unreferenced surface is not an error event
     }
     if (referencesField(n) || isLiveRegion(n) || errorStyled(n)) { customIdentifies = true; errorSample = now.slice(0, 80); break; }
@@ -1460,7 +1481,15 @@ async function runHoverContentTri(page, request) {
   const markRest = () => {
     for (const el of document.querySelectorAll('body *')) {
       const cs = getComputedStyle(el); const r = el.getBoundingClientRect();
-      el.__v3HoverRestVis = cs.display !== 'none' && cs.visibility !== 'hidden' && parseFloat(cs.opacity) > 0 && r.width > 1 && r.height > 1;
+      const notHidden = cs.display !== 'none' && cs.visibility !== 'hidden' && parseFloat(cs.opacity) > 0;
+      el.__v3HoverRestVis = notHidden && r.width > 1 && r.height > 1;
+      // PRESENT-but-boxless is tracked separately (residual RCA S6). The topmost-flipped test below asks
+      // "was this element's PARENT already there at rest", and answering it with the GEOMETRIC flag drops the
+      // whole React/Vue portal pattern: the tooltip is rendered into a persistent 0x0 absolutely-positioned
+      // wrapper, so the wrapper fails `width > 1` at rest, its revealed child is skipped for having a
+      // not-rest-visible parent, and the wrapper itself is skipped for having no box of its own — the tooltip
+      // vanishes from the signature entirely. Presence, not size, is the right question for the parent.
+      el.__v3HoverRestPresent = notHidden;
     }
   };
   const appearedSig = () => {
@@ -1469,8 +1498,8 @@ async function runHoverContentTri(page, request) {
       const cs = getComputedStyle(el); const r = el.getBoundingClientRect();
       const vis = cs.display !== 'none' && cs.visibility !== 'hidden' && parseFloat(cs.opacity) > 0 && r.width > 1 && r.height > 1;
       if (!vis || el.__v3HoverRestVis === true) continue;              // not shown, or already visible at rest
-      const p = el.parentElement;                                      // topmost flipped only: parent was rest-visible (or <body>)
-      if (p && p !== document.body && p.__v3HoverRestVis !== true) continue;
+      const p = el.parentElement;                                      // topmost flipped only: parent was PRESENT at rest (or <body>)
+      if (p && p !== document.body && p.__v3HoverRestPresent !== true) continue;
       const txt = (el.textContent || '').replace(/\s+/g, ' ').trim();  // non-trivial: own text, or geometry able to carry meaning
       if (!(txt.length > 0 || (r.width >= 16 && r.height >= 16))) continue;
       s++; t += txt.length;

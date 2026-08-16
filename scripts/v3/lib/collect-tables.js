@@ -44,6 +44,12 @@ function collectTables() {
     // during the corpus-wide regression scan for this fix, see docs). Row 0 is already independently evaluated by
     // firstRowAllTh/firstRowPartialTh; a REAL broken row-header-column attempt shows up in the BODY rows (1+)
     // disagreeing with each other, not in row 0's relationship to itself.
+    // HOW WIDE is the header axis, not merely whether one exists (residual RCA S2). `firstRowAllTh` is true
+    // for a table whose row 0 is a SINGLE `<th colspan=3>` masthead — the F46 layout shape — exactly as it is
+    // for a genuine 3-column header row. Counting the header cells separates them: a real header row labels
+    // two or more columns, a masthead labels none.
+    const headerRowThCount = rowCells.length > 0 ? rowCells[0].filter(isTh).length : 0;
+    const headerColThCount = rowCells.filter((r) => r.length > 0 && isTh(r[0])).length;
     const bodyRows = rowCells.slice(1);
     const firstColPartialTh = bodyRows.length >= 2 && bodyRows.some((r) => r.length > 0 && isTh(r[0])) && !bodyRows.every((r) => r.length > 0 && isTh(r[0]));
     let bodyTh = 0, anyRowspan = false, headerRows = 0, leadingHeader = true;
@@ -84,6 +90,31 @@ function collectTables() {
       if (td.id && refs.includes(td.id)) headersRefsSelf = true;
       if (tdHeaderSamples.length < 12) tdHeaderSamples.push({ cell: clip(td.textContent, 30), headers: refs, resolved });
     }
+    // ---- DECLARED-STRUCTURE facts (residual RCA S2 — F46 / F92 / F43) -------------------------------
+    // Everything above was built to answer ONE question: is a data table's header→data association
+    // programmatic? That question presupposes the table IS data. F46 asks the OPPOSITE one — does a table
+    // used only for LAYOUT fabricate data semantics (th / caption / non-empty summary / scope / headers)? —
+    // and F92 asks whether a table that IS data has had those semantics SUPPRESSED with role=presentation.
+    // Neither was answerable: `summary=` was never read at all, and every `headers=` fact above is gated on
+    // `isTableRole`, so a role=presentation table reported none of its own structural markup.
+    //
+    // F46 names th, caption, non-empty summary, headers= AND scope= as the failing markup. An EMPTY
+    // `summary=""` is explicitly not a failure (the technique says "non-empty summary attributes"), so the
+    // raw attribute is kept alongside the trimmed-emptiness test rather than coerced to a boolean.
+    const summaryAttr = t.getAttribute('summary');
+    const scopeCount = [...ths, ...tds].filter((c) => (c.getAttribute('scope') || '').trim()).length;
+    const headersAttrCount = [...ths, ...tds].filter((c) => (c.getAttribute('headers') || '').trim()).length;
+    // CELL CONTENT SHAPE — the observable that actually separates layout from data. A data cell holds a
+    // VALUE; a layout cell holds a page region. Counting cells that contain a heading, list, form, nav
+    // landmark, or a nested table is a far better discriminator than th-presence (which is circular: the
+    // <th> is the very thing F46 is about). Deliberately EXCLUDES <p> and <div> on their own — a data cell
+    // wrapping its value in a <p> or a <div> is ordinary and must not read as layout.
+    const BLOCK_SEL = 'h1,h2,h3,h4,h5,h6,ul,ol,dl,form,nav,section,article,aside,header,footer,figure,table';
+    const allCells = [...ths, ...tds];
+    const cellsWithBlockContent = allCells.filter((c) => c.querySelector(BLOCK_SEL)).length;
+    const cellTextLens = allCells.map((c) => clip(c.textContent, 4000).length);
+    const maxCellTextLen = cellTextLens.length ? Math.max(...cellTextLens) : 0;
+    const colCount = widths.length ? Math.max(...widths) : 0;
     return {
       rowCount: rows.length, thCount: ths.length, tdCount: tds.length,
       hasCaption: !!caption, captionText: caption ? clip(caption.textContent, 80) : null,
@@ -94,6 +125,14 @@ function collectTables() {
       headerWithNoDataCell: isTableRole && ths.length > 0 && tds.length === 0,
       // layout-vs-data heuristic for the rubric: a 1-row / th-less / caption-less table is likely layout, not data.
       looksLikeDataTable: isTableRole && rows.length > 1 && (ths.length > 0 || !!caption),
+      // ---- declared-structure facts (F46/F92/F43). Computed for EVERY table regardless of role override.
+      summaryAttr: summaryAttr === null ? null : clip(summaryAttr, 120),
+      hasNonEmptySummary: !!(summaryAttr && summaryAttr.trim()),
+      scopeCount, headersAttrCount, headerRowThCount, headerColThCount,
+      colCount, cellsWithBlockContent, cellCount: allCells.length, maxCellTextLen,
+      // a ≥2×2 grid with NOT ONE <th> — either a headerless data table (TT 14.B) or a layout table. The
+      // rubric decides which; the collector only reports the shape.
+      allTdGrid: rows.length >= 2 && colCount >= 2 && ths.length === 0,
     };
   });
 }

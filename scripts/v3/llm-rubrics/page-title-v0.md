@@ -57,8 +57,28 @@ identify the page on richness grounds. When the viewport does not reveal what th
 **Evidence handed to you:** the effective title string and the `viewport` — read the page's REAL topic
 from the viewport (the `<h1>`, main heading, or dominant visible content) and compare.
 
+**A TITLE THAT NAMES THE TEMPLATE BUT NOT THE INSTANCE IS NOT DESCRIPTIVE (F25 / TT 12.B).** The commonest
+real failure is not a missing or nonsense title — it is a correct-looking title that describes a CLASS of
+pages while the page in front of you is one specific member of it. The shape to look for: the title names
+the KIND of page — a receipt, a statement, a person's record, a result list, a reservation — while the
+page's actual subject is one particular instance of that kind. A user with many tabs open, or reading a
+browser history list, cannot tell such pages apart, which is the capability 2.4.2 exists to provide.
+
+So: after confirming the title names the page's topic, ask whether the page has an INSTANCE
+DISCRIMINATOR visible on screen — an order/invoice/reference number, a person or place name, a date, a
+search query, a result count, a document title — and whether the `<title>` carries it. **If the viewport
+shows a discriminator and the title omits it, that is a barrier.** No new instrument is needed: every
+discriminator this applies to is on screen in the crop you already have. Name the specific one you found.
+
+*Guard — do NOT invent this failure.* A page that genuinely has no instance (a home page, an "About us",
+a section landing page, a generic contact form) has no discriminator to carry, and its class-level title is
+correct. And a title that carries the discriminator in a suffix or prefix, alongside a site or
+section name, is fine — the requirement is that the information be there, not where it sits.
+
 **WCAG soundness caveats:**
 - 2.4.2 needs a DESCRIPTIVE title, not a unique-across-the-site one (that overlaps 2.4.x but is not the test).
+  The instance-discriminator test above is NOT a uniqueness test: it asks whether the title describes THIS
+  page, and a page whose subject is one specific record is not described by the bare name of its category.
 - Do not require an exact string match: a title that PARAPHRASES the topic accurately is fine. Flag only a
   genuine mismatch or a non-descriptive stand-in, not a reasonable rewording.
 - If the viewport does not reveal the page's topic (content below the fold / not captured), return PARTIAL

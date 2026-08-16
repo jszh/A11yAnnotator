@@ -590,11 +590,65 @@ function precomputeSignals(element, skill, sc) {
         count: fo.count != null ? fo.count : fo.forward.length,
         wrapped: fo.wrapped === true, exhausted: fo.exhausted === true,
         truncated: (fo.forward.length > CAP) || ((fo.backward || []).length > CAP),
+        // Whether index 0 is the page's genuine FIRST tab stop. The walk records a ring; the instrument
+        // un-rotates it at the document boundary, but a ring with no boundary crossing cannot be un-rotated
+        // and the judge must not then argue from where the list begins (residual RCA S5, clause B).
+        startAnchored: fo.startAnchored !== false,
+        // Did the instrument lane hit its wall-clock cap? A SALVAGED sequence is still sound evidence about
+        // order; it is only a warning that later instruments (traps, status) may be missing.
+        partial: fo.partial === true,
         note: 'ORDERED tab stops recorded by the deterministic keyboard instrument (forward = Tab, '
-          + 'backward = Shift+Tab); each stop carries its on-page rect. This is the SEQUENCE only — '
-          + 'whether it preserves meaning is YOUR judgment. An empty/degenerate sequence ⇒ PARTIAL.',
+          + 'backward = Shift+Tab); each stop carries its on-page rect, its accessible NAME (label), and — '
+          + 'when a modal is open — modalOpen/insideOpenModal/modalXpath. The ring is UN-ROTATED at the '
+          + 'document boundary, so index 0 is the true first stop WHEN startAnchored is true. This is the '
+          + 'SEQUENCE only — whether it preserves meaning is YOUR judgment. Empty/degenerate ⇒ PARTIAL.',
       };
     }
+  }
+  // 1.4.1 COLOUR PEER GROUP — see selectRubricSubjects. Gated on the threaded evidence, so an ordinary
+  // element-level 1.4.1 subject (a link, a form field, a graphic) keeps its prompt byte-identical.
+  if (element.__colourPeerGroup) {
+    const g = element.__colourPeerGroup;
+    s.colourPeerGroup = {
+      members: (g.members || []).slice(0, 12),
+      distinctColours: g.distinctColours,
+      note: 'These elements are STRUCTURAL PEERS (same tag, same role, same parent) that are IDENTICAL on every '
+        + 'non-colour axis the collector measured — font weight, style, size, text-decoration, border style, and '
+        + 'presence of an icon or generated-content marker — and DIFFER in used colour. Zebra striping, syntax '
+        + 'highlighting, colour-uniform sets, images and text-less swatches are already excluded. What is NOT '
+        + 'settled, and is yours to judge: whether the colour is carrying INFORMATION at all (a purely aesthetic '
+        + 'palette is not a 1.4.1 failure), and whether that information is also available as text elsewhere '
+        + '(a label, a legend entry attached to each item, an accessible name).',
+    };
+  }
+  // 3.3.1 ERROR-SUMMARY COHERENCE — see selectRubricSubjects. Gated on threaded evidence, so a 3.3.1
+  // subject on a page with no summary keeps its prompt byte-identical.
+  if (element.__errorSummaries) {
+    s.errorSummaries = {
+      summaries: element.__errorSummaries.slice(0, 3),
+      note: 'The page carries an error SUMMARY that names specific fields. `namedFields` are the fields it '
+        + 'points at; `flaggedFields` are the fields actually marked in error (aria-invalid, or an associated '
+        + 'message). `namedButNotFlagged` and `flaggedButNotNamed` are the two set differences, and `coherent` '
+        + 'is true only when both are empty. These are FACTS about correspondence, not a verdict: a summary '
+        + 'may legitimately name a field whose error is server-side and not yet reflected in the DOM.',
+    };
+  }
+  // 4.1.3 STATUS OBSERVATIONS — see selectRubricSubjects. Gated on the THREADED evidence, not on `skill`,
+  // so auto-update-notification-v0 (same skill) is untouched.
+  if (element.__statusObservations) {
+    const obs = element.__statusObservations;
+    const CAP = 12;
+    s.statusObservations = {
+      triggers: obs.slice(0, CAP),
+      count: obs.length,
+      truncated: obs.length > CAP,
+      note: 'Per-TRIGGER record from the deterministic status instrument: each entry is what activating that '
+        + 'control actually did. `regionsBornWithContent` = live regions INSERTED already holding their message '
+        + '(an AT watches regions that existed BEFORE the change, so these announce NOTHING). `regionsUpdated` = '
+        + 'pre-existing regions whose text changed, with politeness/atomic/emptied. `removedText` = status text '
+        + 'that LEFT the page (appearedThenRemoved marks a message added and then withdrawn inside the same '
+        + 'observation). These are FACTS about what happened, never a verdict about what was owed.',
+    };
   }
   if (skill === 'page-structure' || skill === 'grouping-and-reading-order') {
     const struct = element.__pageStructure || null;
@@ -657,6 +711,71 @@ function precomputeSignals(element, skill, sc) {
         : per.includes('BROKEN') ? 'HAS_BROKEN'
           : per.includes('UNCERTAIN') ? 'HAS_UNCERTAIN' : 'ALL_VALID';
       s.structure.tableAssociation = { page, hasDataTable: dataN > 0, perTable: per };
+      // DECLARED-STRUCTURE SEMANTICS (residual RCA S2 — F46 / F92 / F91). `tableAssociation` above answers
+      // exactly ONE question — is a DATA table's header→data association programmatic — and answers it with a
+      // HARD GATE. That gate is the wrong instrument for the OPPOSITE failures, and INVERTS on them:
+      //   · F46 (layout table fabricating data semantics): the `<th scope=col>` that IS the failure makes
+      //     `looksLikeDataTable` true and `hasScope` true ⇒ verdict VALID ⇒ "do NOT flag it".
+      //   · F92 (data table suppressed with role=presentation): `isTableRole` is false ⇒ NOT_DATA ⇒ cleared.
+      //   · F91 (data grid with no headers marked at all): thCount 0 and no caption ⇒ NOT_DATA ⇒ cleared —
+      //     the table is excused BY the very omission that fails it.
+      // This is an ADDITIVE second verdict computed from independent facts; `tVerdict` is untouched, so every
+      // FP protection it accumulated (simple-positional, partial-axis, dangling-ref) survives byte-identically.
+      const tSemantics = (t) => {
+        const presentational = t.roleOverride === 'presentation' || t.roleOverride === 'none';
+        const declared = [];
+        if (Number(t.thCount) > 0) declared.push('th');
+        if (t.hasCaption === true) declared.push('caption');
+        if (t.hasNonEmptySummary === true) declared.push('summary');   // F46 names NON-EMPTY summary only
+        if (Number(t.scopeCount) > 0) declared.push('scope');
+        if (Number(t.headersAttrCount) > 0) declared.push('headers');
+        // "not tabular data" evidence, any one of which is independently sound:
+        //  · a cell holds a page REGION (heading / list / form / nav / nested table), not a value;
+        //  · one column, or one row — there is no row×column relationship for the markup to convey.
+        // NOTE all three read as false on a pre-S2 collector pack (undefined ⇒ NaN comparison), so every
+        // verdict below degrades to OK rather than mis-firing on old evidence.
+        const layoutShaped = Number(t.cellsWithBlockContent) > 0 || Number(t.colCount) <= 1 || Number(t.rowCount) <= 1;
+        const dataShaped = Number(t.cellsWithBlockContent) === 0 && Number(t.rowCount) > 1 && Number(t.colCount) > 1;
+        // CREDIBLE HEADER AXIS — the exemption that keeps a real data table out of the F46 lane. Measured
+        // held-out over 872 pages, `layoutShaped` alone flipped two genuine data tables to suspect: a
+        // medication schedule whose cell holds a tooltip `<h2>`, and a booking grid whose cells hold session
+        // titles. Both have a FULL header row; neither is layout. So require the absence of a real header
+        // axis, defined as an axis that is (a) entirely `<th>`, (b) not contradicted by the other axis being
+        // half-marked — the existing #4 partial-axis guard — and (c) at least TWO header cells wide, which is
+        // what separates a header row from a single `<th colspan=3>` masthead (F46 case-01's exact shape).
+        const rowAxisReal = t.firstRowAllTh === true && t.firstColPartialTh !== true && Number(t.headerRowThCount) >= 2 && Number(t.colCount) >= 2;
+        const colAxisReal = t.firstColAllTh === true && t.firstRowPartialTh !== true && Number(t.headerColThCount) >= 2 && Number(t.rowCount) >= 2;
+        const credibleHeaderAxis = rowAxisReal || colAxisReal;
+        let verdict = 'OK';
+        // F46 — GUARD: `role=presentation`/`none` is TT 14.C's own PASS condition for a layout table (it
+        // strips the table's required-owned semantics, so the <th> is never exposed as a header) and must
+        // never be failed here. A nested <table> is NOT a required owned element of its parent table, so an
+        // ancestor's role=presentation does not cover it — that nested case is a genuine F46.
+        if (declared.length && layoutShaped && !presentational && !credibleHeaderAxis) verdict = 'LAYOUT_STRUCTURE_SUSPECT';
+        // F92 — GUARD: requires POSITIVE data evidence (declared header markup on a real grid). A bare
+        // role=presentation layout table with no th/caption/summary is the CORRECT pattern, never a failure.
+        else if (presentational && declared.length && dataShaped) verdict = 'DATA_SEMANTICS_SUPPRESSED';
+        // F91 / TT 14.B — a ≥2×2 grid with not one <th>. Suspect only: it is equally the shape of a plain
+        // layout table, so the judge must confirm from the viewport that the content is data.
+        else if (t.allTdGrid === true && !presentational && dataShaped) verdict = 'HEADERLESS_GRID_SUSPECT';
+        return {
+          verdict, declared, presentational, credibleHeaderAxis,
+          rowCount: t.rowCount, colCount: t.colCount, cellsWithBlockContent: t.cellsWithBlockContent,
+          summary: t.summaryAttr || null, caption: t.captionText || null,
+        };
+      };
+      // 1.3.1 F34 / F2 (residual RCA S7): structure carried by TEXT LAYOUT or by TEXT PRESENTATION, neither
+      // of which any role/attribute check can see. Surfaced next to the table verdicts because they are the
+      // same question — is a relationship a sighted reader gets also declared in markup — asked of content
+      // that never became a <table> in the first place.
+      if (Array.isArray(struct.fauxColumns) && struct.fauxColumns.length) s.structure.fauxColumns = struct.fauxColumns.slice(0, 4);
+      if (Array.isArray(struct.presentationOutliers) && struct.presentationOutliers.length) s.structure.presentationOutliers = struct.presentationOutliers.slice(0, 4);
+      if (Array.isArray(struct.presentationConventions) && struct.presentationConventions.length) s.structure.presentationConventions = struct.presentationConventions.slice(0, 4);
+      const perSem = tbls.map(tSemantics);
+      s.structure.tableSemantics = {
+        perTable: perSem,
+        suspectCount: perSem.filter((x) => x.verdict !== 'OK').length,
+      };
       // HEADING-OUTLINE SUSPECT SIGNAL (#5, TT 10.C): a pure level-NUMBER-sequence check can flag a classic
       // forward SKIP (h2 straight to h4, skipping h3) with confidence — a well-established anti-pattern. It
       // CANNOT, by itself, decide the DHS Trusted-Tester 405382-14 shape (an <h6> section immediately followed
@@ -1115,7 +1234,7 @@ function computeLinkPeerGroups(collect) {
   return groups;
 }
 
-function selectRubricSubjects(collect, ledger, rubrics, { onlyAutoPartial = true, confinement = null, contrastExempt = null, focusOrder = null } = {}) {
+function selectRubricSubjects(collect, ledger, rubrics, { onlyAutoPartial = true, confinement = null, contrastExempt = null, focusOrder = null, statusObservations = null } = {}) {
   // 2.1.2 keyboard-trap: `confinement` maps each CONFINED element xpath → { members:[{xpath,label}], setSize } (built
   // from the deterministic confinement instrument's REVIEW findings — the lying-static-advisory ones were already
   // promoted to a barrier and are excluded). The keyboard-trap-v0 rubric fires ONLY on a confined member, carrying
@@ -1185,6 +1304,27 @@ function selectRubricSubjects(collect, ledger, rubrics, { onlyAutoPartial = true
     if (rub.id === 'focus-order-meaning-v0') {
       if (focusOrder) extra.__focusOrder = focusOrder;
       if (structure) extra.__pageStructure = structure;
+    }
+    // 4.1.3 STATUS MESSAGES: the per-trigger record of what activation actually did — which regions
+    // existed BEFORE the click, which were inserted already carrying their message, which were emptied,
+    // and what text was removed. Without it the rubric was asked to judge announcement adequacy from a
+    // resting screenshot, which cannot show any of that. Keyed on the RUBRIC ID for the same reason as
+    // 2.4.3: `dynamic-announcement` is shared with auto-update-notification-v0, whose element-level
+    // prompts must stay byte-identical.
+    if (rub.id === 'status-message-v0' && statusObservations && statusObservations.length) extra.__statusObservations = statusObservations;
+    // 3.3.1 ERROR SUMMARY coherence — page-level evidence handed to every error-identification subject on
+    // the page, because the summary is about the form as a whole and any field's judgment can turn on it.
+    if (rub.id === 'error-identification-v0') {
+      const es = (collect && collect.structure && Array.isArray(collect.structure.errorSummaries)) ? collect.structure.errorSummaries : [];
+      if (es.length) extra.__errorSummaries = es;
+    }
+    // 1.4.1 COLOUR PEER GROUP: when this subject is the ANCHOR of a colour-coded peer set, hand over the whole
+    // group. Without it the judge sees one element in isolation and cannot see the only thing that matters —
+    // that its peers are identical to it except in colour.
+    if (rub.id === 'use-of-color-v0') {
+      const groups = (collect && collect.structure && Array.isArray(collect.structure.colourPeerGroups)) ? collect.structure.colourPeerGroups : [];
+      const g = groups.find((x) => x && Array.isArray(x.members) && x.members[0] && x.members[0].xpath === baseEl.xpath);
+      if (g) extra.__colourPeerGroup = g;
     }
     // 2.4.4 SPLIT (fd3a94): the RELATIONAL "do same-named links resolve to equivalent destinations?" question is
     // OWNED by link-name-equivalence-v0, NOT link-purpose-v0 (the single-link purpose-in-context rubric). Mirror the

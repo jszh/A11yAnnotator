@@ -66,6 +66,30 @@ read it directly; do NOT judge from the screenshot alone in that case, and do NO
 explanation, only a red outline" when `nativeDialogText` is sitting right there. If `nativeDialogText` is
 absent, judge from the screenshot as before (a DOM-toggled inline error, a summary region, etc.).
 
+**THE ERROR SUMMARY MUST AGREE WITH THE FLAGGED STATE (`signals.errorSummaries`).** When the page carries a
+summary block that names specific fields, you are handed the correspondence: `namedFields`, `flaggedFields`,
+and the two set differences. 3.3.1's intent is that users "are aware that an error has occurred and can
+determine what is wrong", and a summary is usually the FIRST thing a screen-reader user meets — often
+focused or announced via `role="alert"`. So its accuracy is part of whether the error is identified:
+
+- `namedButNotFlagged` non-empty ⇒ the summary sends the user to a field that is not in error. They will
+  hunt for a fault that is not there, and may never reach the one that is.
+- `flaggedButNotNamed` non-empty ⇒ a field IS in error and the summary omits it. If that field's own inline
+  message is correct, a sighted user may still find it — but the summary has under-reported the problem.
+- **Both non-empty is the worst case**: the summary describes a different set of problems than the page has.
+- `coherent: true` ⇒ the summary matches; judge the per-field identification on its own merits.
+
+**Do not treat correct per-field markup as settling this.** Every field can carry `aria-invalid` and a
+correct associated message while the summary still misdirects — that combination is exactly what this signal
+exists to surface, and it is invisible to the per-field probe.
+
+*Guards.* A summary may name a field whose error is SERVER-side and not yet reflected in `aria-invalid`;
+that is a mismatch in the data, not necessarily a failure — say so and prefer PARTIAL if you cannot tell.
+`namedFieldNotOnPage` lists summary lines that demand a field the form does not contain — a set difference
+over existing fields cannot show those, so they are reported separately; a user sent to fix a control that
+is not there cannot determine what is wrong either. And a generic banner that
+names no field is out of scope for this check entirely.
+
 **WCAG soundness caveats (these STOP a false clear/barrier):**
 - LANGUAGE-AGNOSTIC (Harness 3.3 D): the error text may be in ANY language — a clearly-worded message in
   Spanish/German/Japanese/etc. identifies the error exactly as an English one does. Do NOT require English

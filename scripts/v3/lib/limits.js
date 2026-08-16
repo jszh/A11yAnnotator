@@ -100,6 +100,16 @@ const LIMITS = Object.freeze({
     vsrWalkDeadlineMs: 120000,         // vsr-collect reading-order walk deadline
     vsrMaxSteps: 6000,                // vsr-collect step cap
     statusMaxTriggers: 25,            // status-detector probed-control cap (4.1.3)
+    // WALL-CLOCK CAP for the whole instrument lane. Was 90 s, hard-coded in the orchestrator and in every
+    // runner; MEASURED end-to-end after the 2026-08-16 campaign the lane costs 11 s / 12 s / 34 s / 70 s on
+    // progressively heavier pages, so the heaviest sat at 77% of budget and the cap was firing on 17.1% of a
+    // 392-page run. Raised with the salvage path in place (partialSink), so an overrun now degrades the lane
+    // to PARTIAL rather than discarding it — the cost of a larger cap is wall-clock, not correctness.
+    laneTimeoutMs: 180000,
+    // Budget for the 4.1.3 trigger sweep INSIDE that lane. Each active trigger costs up to `maxWaitMs`
+    // (2.5 s) because multi-phase status flows settle at 1400-1800 ms; 25 triggers would be a minute on its
+    // own, which is what forced a sweep budget in the first place.
+    statusSweepMs: 30000,
   }),
 });
 

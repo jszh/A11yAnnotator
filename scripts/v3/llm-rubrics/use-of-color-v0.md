@@ -34,7 +34,52 @@ the SC does not apply and the answer is NOT REPRODUCED (or N/A) — *not* a barr
 **Do NOT assert numeric contrast/luminance ratios you have not been given.** You cannot compute a ratio by
 eye from a crop. If your reasoning needs a ratio, either use one that was handed to you in the signals, call
 the contrast tool if it is available, or return PARTIAL. A fabricated number ("contrast ratio 1.62") is not
-evidence and has produced false barriers here before.
+evidence and has produced false barriers here before. This is a RULE with exactly one escape: the number
+must come from `compute_contrast_ratio` (or `resolve_part_color`) on the two colours you are comparing, or
+from the signals. There is no third source.
+
+**A GRAYSCALE OR CVD RE-RENDER IS NOT EVIDENCE THAT A CUE SURVIVES.** `render_with_overrides(grayscale)`
+maps each colour to its LUMINANCE, so two hues that differ in lightness — red vs green, the commonest shape
+this criterion covers — come back as visibly different shades and the re-render appears to "confirm" a cue
+that a colour-blind reader does not actually receive. It was measured worse than the colour crop for this
+question and produced this rubric's only false clear. If you want the lightness separation, COMPUTE it
+(`compute_contrast_ratio`, ≥3:1 per G183); a grayscale image is not a substitute, and "the elements are
+still distinguishable in grayscale" is never on its own a reason to clear.
+
+**A COLOUR PEER GROUP — `signals.colourPeerGroup`.** When this subject anchors a set of structural peers
+(same tag, same role, same parent) that are identical on every non-colour axis the collector measured and
+differ in used colour, you are handed the whole group with each member's label and colours. This is the
+shape element-level 1.4.1 cannot see, because no individual member looks wrong — the information lives in
+the DIFFERENCE. Two questions, in order:
+1. **Is the colour carrying information?** A palette chosen for looks is not a 1.4.1 failure. Ask what a
+   reader would learn from the colours — a category, a status, a severity, a grouping. If the members'
+   labels already name the category each member belongs to, the colour is reinforcing text that is already
+   there and there is no barrier.
+2. **If it is, is that information also available without colour?** A per-item text label, an icon or
+   pattern on each item, an accessible name, or a legend entry attached to each item all satisfy G14/G182.
+   A legend that maps colour→meaning in a SEPARATE key does NOT: the reader still has to perceive which
+   colour each item is to use it.
+Only if colour carries information AND nothing else conveys it is this a barrier. Colour-uniform groups,
+zebra striping, syntax highlighting, images and text-less swatches were already excluded before you saw it.
+
+**COLOUR REFERENCED IN INSTRUCTIONS (`signals.*colorReferences`, F81 / Understanding 1.4.1).** Prose that
+tells the reader to identify content by its colour is the Understanding's own example of this failure — it
+gives "required fields are shown in red" — because a reader who cannot distinguish the colours named cannot
+follow the instruction. The same applies to any instruction that picks out controls, rows, states or
+regions by colour and gives the reader no other way to find them. It is a barrier UNLESS the instruction
+ALSO supplies a non-colour means ("...shown in red and marked with an asterisk"), or the elements it refers
+to carry a distinguishing label the instruction could have used instead.
+*Guard:* a colour word used descriptively about a thing in the world — a product's colour, an ingredient,
+a proper name that happens to contain a colour word — identifies nothing ON THE PAGE and is not in scope.
+The test is whether a reader is being told to FIND something by its colour. If not, return N/A.
+
+**CATEGORY CODING WITHOUT A KEY (G14 / G182).** A chart, map, legend, calendar, or status table that encodes
+a category ONLY by fill colour fails even when every colour is far apart in luminance: the reader can see
+that two regions differ but cannot tell WHICH category each one is. G14 requires the distinction to be
+available without colour, and G182 gives the standard remedy — an additional visual pattern (hatching,
+texture, shape, direct labelling) or a text/symbol key attached to each series. So do not clear a
+colour-coded series because "the colours are clearly different"; ask whether a reader who cannot use hue
+can still map each region to its category.
 
 **Judge:** is there a SECOND, non-color cue carrying the same information — or is color the only thing
 distinguishing the states? Two classic failure modes:

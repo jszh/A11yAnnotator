@@ -41,12 +41,11 @@ deterministic runner already disposed this obligation, DEFER — you are only ha
   **A minor WORDING VARIANT of the SAME subject is NOT a mismatch — only a genuinely DIFFERENT subject is.**
   A typo, near-homophone, singular/plural difference, or loose paraphrase that still clearly names the SAME
   thing the image depicts is adequate; do not demand letter-perfect agreement with printed/canonical text.
-  Confirmed against this project's own held-out corpus ground truth: an `alt="The Giving Three"` on a book
-  cover whose printed title reads "THE GIVING TREE" is a Pass, not a Fail — a sighted user glancing at that
-  alt text would recognize the SAME book instantly; the one-word substitution does not misdirect them to a
-  different subject. Reserve REPRODUCED for when the name points to a DIFFERENT referent entirely (the wrong
-  organization's logo, the wrong book's cover, the wrong product) — not for imperfect spelling/wording of the
-  CORRECT referent.
+  The test is REFERENT IDENTITY, not spelling: if a sighted reader glancing at the alt would recognise the
+  same subject the image depicts, the alternative works, and a single mistyped or substituted word does not
+  misdirect them. Reserve REPRODUCED for when the name points to a DIFFERENT referent entirely (the wrong
+  organization's logo, the wrong publication's cover, the wrong product) — not for imperfect spelling or
+  wording of the CORRECT referent.
 - **Wrong purpose for a functional image — ONLY when the image IS the control's SOLE name.** A linked/iconed
   control whose accessible name comes ONLY from the image must convey the ACTION (where it goes / what it does),
   not merely the picture. **But if the enclosing link/button ALREADY has its own accessible name** — its own link
@@ -84,6 +83,15 @@ deterministic runner already disposed this obligation, DEFER — you are only ha
   empty/placeholder-looking?); if that alone doesn't resolve it, return PARTIAL. Fabricating a specific
   visual description you were never shown a picture for is a hallucinated barrier, not a grounded one.
 - You cannot see the page's intent for an ambiguous image — when the crop is inconclusive, return PARTIAL.
+- **AN ALT DOES NOT HAVE TO TRANSCRIBE EVERY WORD RENDERED INSIDE A PHOTO.** 1.1.1 asks for a text
+  alternative that serves the EQUIVALENT PURPOSE (G95: a short description that conveys the same purpose
+  and presents the same information). A photograph of a shopfront, a book cover, a product on a shelf, a
+  street scene, or a stage routinely contains incidental words — signage, a spine, packaging, a banner —
+  and an alt that says what the image IS is adequate even though it does not quote them. 1.4.5 draws the same line explicitly, exempting "text that is part of a picture that
+  contains significant other visual content". Flag omitted text ONLY when those words carry information the
+  alt's purpose requires — a chart's data labels, a screenshot of an error message, an infographic whose
+  content IS the words. "The alt does not transcribe the incidental signage visible in the photograph" is
+  not a 1.1.1 finding; this over-reach produced this rubric's only false positive.
 - Do not judge contrast/sizing here; another rubric owns those.
 
 **Output:** STRICT JSON `{verdict, confidence, summary, reasoning, evidenceRefs}`. verdict ∈

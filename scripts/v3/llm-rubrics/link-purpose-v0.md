@@ -87,6 +87,17 @@ Three failure modes:
   or redirect URL, and an opaque slug (`/p/48213`) are NOT contradictions — flag only when the name asserts a
   subject the destination demonstrably is not. If you cannot resolve the destination at all, say so and
   return PARTIAL rather than assuming either way.
+  **THE ASYMMETRY — destination evidence may REFUTE a name, never RESCUE one.** This clause exists ONLY to
+  catch a confidently wrong name; it is not a licence to read the destination as a source of purpose. 2.4.4
+  asks what the user can determine from the LINK TEXT (alone or with its programmatically-determined
+  context) — an `href`, a filename, a resolved title, or a fetched page's content is none of those. The user
+  cannot see any of it before following the link, which is the whole point of the criterion. So: when name
+  and destination AGREE, you have learned nothing new — go back and judge the name and its enclosing context
+  on their own, exactly as if no destination had been resolved. In particular, a descriptive filename or URL
+  slug does NOT make a vague name specific: if the name is one bare word and the URL happens to spell out a
+  fuller description or a file format, the user still sees only the bare word, and you must not report the
+  purpose as though they had read the URL. Borrowing detail from a destination to justify a clear is the one
+  way this clause can be misused.
 
 **LINK INSIDE A TABLE CELL — the row/column HEADER is programmatic enclosing context.** Per WCAG (H79), a link in a
 `<td>`/`role=cell` is contextualised by its cell's associated row/column header (the same association 1.3.1 governs).

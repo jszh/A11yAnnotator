@@ -329,7 +329,7 @@ async function main() {
         const drive = { file: collect.file, runId, pageDigest: collect.pageDigest, drivenAt: collect.collectedAt + 1, elements: [] };
         const out = await orchestrate(collect, drive, {
           resolveUrl: () => tc.url, executablePath: CHROME, browser, tabAllocator: alloc, maxTabs: MAX_TABS,
-          runInstruments: true, instrumentsGate: instGate, instrumentsTimeoutMs: 90000, now: collect.collectedAt + 2,
+          runInstruments: true, instrumentsGate: instGate, instrumentsTimeoutMs: LIMITS.instruments.laneTimeoutMs, now: collect.collectedAt + 2,
           restrictScs: new Set(tc.sc || []), maxAutomatic: LIMITS.act.maxAuto,
           budgetOpts: { maxRunWallClockMs: LIMITS.act.runWallClockMs },
           experimentConcurrency: Math.min(LIMITS.concurrency.experimentCap, LIMITS.concurrency.experiment),

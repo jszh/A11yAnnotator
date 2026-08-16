@@ -190,7 +190,14 @@ test('build: triageCandidates (E) consolidate instrument+checker signals on revi
   const r = buildV3(bundle);
   assert.equal(r.ok, true, JSON.stringify(r.errors));
   const tc = r.results.triageCandidates;
-  assert.deepEqual([...new Set(tc.map((c) => c.sc))].sort(), ['1.3.2', '1.4.1', '4.1.3'], '4.1.2 + decided 1.3.1 are excluded');
+  // 4.1.3 was REMOVED from TRIAGE_SCS (residual RCA S4). It used to land here — in a NON-LEDGER review
+  // queue that score-lib never reads — which is why a live orchestrate could emit five correct
+  // `status-not-announced` findings on the right element and still score the case `noObligation`. It now
+  // has a real enumeration story (INSTRUMENT_BARRIER promotion + the trap mint loop), asserted below.
+  assert.deepEqual([...new Set(tc.map((c) => c.sc))].sort(), ['1.3.2', '1.4.1'], '4.1.2 + decided 1.3.1 excluded; 4.1.3 now goes to the LEDGER, not the queue');
+  const status413 = r.results.obligationLedger.filter((o) => o.sc === '4.1.3' && o.xpath === '/y');
+  assert.equal(status413.length, 1, 'the 4.1.3 barrier must have an obligation to land on');
+  assert.equal(status413[0].cleared, false, 'and it must read as a barrier, not a clear');
   assert.ok(tc.every((c) => c.review === true && c.authoritative === false), 'triage candidates are review-only, never authoritative');
   assert.ok(tc.every((c) => c.agreement === c.signals.length && c.agreement >= 1), 'agreement = number of unioned signals');
   assert.equal(r.results.summary.triageCandidates, tc.length);

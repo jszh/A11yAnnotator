@@ -6,6 +6,10 @@
 const crypto = require('crypto');
 const { collectTables } = require('./collect-tables.js'); // Tier-0 #4: per-<table> relationship facts for 1.3.1
 const { collectLists } = require('./collect-lists.js');   // TT gap G1: per-list semantics (1.3.1 / TT 10.D)
+const { collectColourPeers } = require('./collect-colour-peers.js'); // residual RCA S6: 1.4.1 colour-coded peer groups
+const { collectFauxColumns } = require('./collect-faux-columns.js');  // residual RCA S7: 1.3.1 F34 whitespace-formatted columns
+const { collectErrorSummary } = require('./collect-error-summary.js'); // residual RCA S8: 3.3.1 error-summary vs flagged-state coherence
+const { collectStylingOutliers } = require('./collect-styling-outliers.js'); // residual RCA S8: 1.3.1 F2 presentation-as-meaning (strike-through / small-caps)
 
 function digestForUrl(url) {
   return 'sha256:url:' + crypto.createHash('sha256').update(String(url)).digest('hex');
@@ -573,9 +577,40 @@ async function collectActPage(page, opts = {}) {
       // (1.4.11) families EVEN when role-stripped (role="none"/"presentation") — that's exactly the mis-marked
       // decorative case. Kept by the inclusion filter so a role=none graphic still enumerates.
       const isImage = tag === 'img' || tag === 'svg' || tag === 'canvas' || roleAttr === 'img' || (tag === 'input' && type === 'image');
+      // EMULATED CONTROL (F42, residual RCA S6 — the 1.3.1 "control semantics" gap). A script activation
+      // handler bolted onto a plain element that is NOT focusable and declares NO interactive role: a
+      // keyboard user cannot reach it, and AT never announces it as a control, so the relationship between
+      // what it looks like and what it does exists only for a sighted mouse user. F42's own description:
+      // "JavaScript event handlers are attached to elements to emulate links… cannot be tabbed to from the
+      // keyboard and does not gain keyboard focus".
+      // Two guards keep this off ordinary event DELEGATION, which looks identical at the attribute level:
+      //  · an element that CONTAINS a natively-interactive descendant is enhancing real controls, not
+      //    replacing them (a clickable card wrapping a real <a> is fine — the link is still there);
+      //  · a handler on a near-full-viewport container is a delegation root, not a control.
+      const _NATIVE_INTERACTIVE = 'a[href],button,input,select,textarea,summary,[tabindex]:not([tabindex="-1"]),[role=button],[role=link],[role=checkbox],[role=radio],[role=switch],[role=menuitem],[role=tab],[role=option]';
+      const _INTERACTIVE_ROLE_RE = /^(button|link|checkbox|radio|switch|menuitem|menuitemcheckbox|menuitemradio|tab|option|slider|spinbutton|textbox|searchbox|combobox|treeitem)$/;
+      const _inlineActivation = el.hasAttribute('onclick') || el.hasAttribute('onkeydown') || el.hasAttribute('onkeypress') || el.hasAttribute('onkeyup');
+      const _nativeInteractiveTag = /^(a|button|input|select|textarea|summary|details|option|label)$/.test(tag);
+      const _tiAttr = el.getAttribute('tabindex');
+      const _emulatedShape = !focusable && !_nativeInteractiveTag && !_INTERACTIVE_ROLE_RE.test(roleAttr)
+        && !(_tiAttr !== null && +_tiAttr >= 0)
+        && !el.querySelector(_NATIVE_INTERACTIVE)
+        && !(box.width >= (window.innerWidth || 1280) * 0.8 && box.height >= (window.innerHeight || 800) * 0.5)
+        && box.width > 0 && box.height > 0;
+      // the LISTENER half is filled in the CDP pass (listenerTypes), which runs after this evaluate.
+      const emulatedControlShape = _emulatedShape;
+      const emulatedControlInline = _emulatedShape && _inlineActivation;
       // S7 (RCA R7, 0va7u6): an <svg> that renders LIVE <text>/<tspan> is NOT an image-of-text — that text is real
       // and accessible, so it owes NO 1.4.5 (images-of-text) obligation. Surfaced so the rubric clears it.
-      const svgLiveText = tag === 'svg' && !!el.querySelector('text, tspan') && (el.textContent || '').trim().length > 0;
+      // ...but ONLY when that text actually reaches the accessibility tree. An `aria-hidden="true"` svg (or
+      // one whose <text> sits inside an aria-hidden subtree) renders glyphs a sighted user reads and exposes
+      // NOTHING to an AT user, so calling its text "real and machine-readable" inverted the finding: the
+      // rubric was told the text was available at the exact moment it was not.
+      // `closest` matches the element itself, so this covers both `aria-hidden` ON the svg and on an ancestor.
+      const svgTextExposed = tag === 'svg' && !el.closest('[aria-hidden="true"]')
+        && ![...el.querySelectorAll('text, tspan')].every((t) => t.closest('[aria-hidden="true"]'));
+      const svgLiveText = tag === 'svg' && !!el.querySelector('text, tspan') && (el.textContent || '').trim().length > 0
+        && svgTextExposed;
       // 7d6734 (1.1.1 FP): the rule's subject is the SVG element WITH an explicit role + name. When the root <svg>
       // is itself UNNAMED (no aria-label/labelledby, no DIRECT child <title>) but wraps a named graphics DESCENDANT
       // (e.g. <svg><circle role="graphics-symbol" aria-label="1 circle">), the named descendant carries the meaning
@@ -618,11 +653,23 @@ async function collectActPage(page, opts = {}) {
       // from a meaningful logo (the photo often has MORE pixels). The real discriminator is whether the image's
       // information is REDUNDANT with adjacent text (→ correctly decorative) or UNIQUE (→ a barrier if removed
       // from the tree). Hand the rubric the surrounding text so it can judge redundancy, not just the pixels.
+      // The redundancy test is only sound if `nearbyText` excludes the SUBJECT'S OWN text. Taking
+      // `textOf(el.parentElement)` wholesale did not: for an inline <svg> the parent's text INCLUDES the
+      // svg's own <text>/<tspan> nodes, so the image supplied the very "nearby text" it was being compared
+      // against and the test self-satisfied. Every rubric that asks "is this information ALSO available as
+      // text" was judging against an inflated baseline — and worse, an aria-hidden <svg>'s text counted,
+      // though no AT user ever receives it. Subtract the subject's own text before reporting.
       const nearbyText = !isImage ? undefined : (function () {
+        const ownText = (el.textContent || '').replace(/\s+/g, ' ').trim();
+        const strip = (s) => {
+          let out = (s || '').replace(/\s+/g, ' ').trim();
+          if (ownText && out.includes(ownText)) out = out.split(ownText).join(' ').replace(/\s+/g, ' ').trim();
+          return out;
+        };
         const bits = [];
-        const fig = el.closest('figure'); if (fig) { const cap = fig.querySelector('figcaption'); if (cap) bits.push(textOf(cap)); }
-        if (el.parentElement) bits.push(textOf(el.parentElement));
-        for (const sib of [el.previousElementSibling, el.nextElementSibling]) if (sib) bits.push(textOf(sib));
+        const fig = el.closest('figure'); if (fig) { const cap = fig.querySelector('figcaption'); if (cap) bits.push(strip(textOf(cap))); }
+        if (el.parentElement) bits.push(strip(textOf(el.parentElement)));
+        for (const sib of [el.previousElementSibling, el.nextElementSibling]) if (sib) bits.push(strip(textOf(sib)));
         return [...new Set(bits.filter(Boolean))].join(' | ').replace(/\s+/g, ' ').trim().slice(0, 300) || undefined;
       })();
       // COMPLEX-IMAGE hint (Item 7b): a genuinely data-bearing image (in a <figure>, role=figure, or carrying an
@@ -632,7 +679,24 @@ async function collectActPage(page, opts = {}) {
       // C8 small-signal predicates (parity with eval-page.js / the ACT inline collector).
       const tabindexEffective = (() => { const ti = el.getAttribute('tabindex'); return ti !== null ? +ti : (['a', 'button', 'input', 'select', 'textarea', 'summary'].includes(tag) && !el.disabled ? 0 : null); })();
       let _ownTxt = ''; for (const _n of el.childNodes) if (_n.nodeType === 3) _ownTxt += _n.textContent;
-      const hasGlyphText = [..._ownTxt].some((ch) => { const c = ch.codePointAt(0); return (c >= 0xE000 && c <= 0xF8FF) || (c >= 0xF0000 && c <= 0xFFFFD) || (c >= 0x100000 && c <= 0x10FFFD); }) || (/[Ѐ-ӿͰ-Ͽ]/.test(_ownTxt) && /[a-zA-Z]/.test(_ownTxt));
+      // CONFUSABLE / NON-TEXT GLYPH TEXT. Two defects fixed here (residual RCA S6):
+      //  · the census covered the Private Use Areas but omitted U+1D400–U+1D7FF, Mathematical Alphanumeric
+      //    Symbols — the "𝗳𝗮𝗻𝗰𝘆 𝘁𝗲𝘅𝘁" block, which is how styled-text substitution is actually written and
+      //    which a screen reader reads out character-by-character as maths symbols, or skips entirely;
+      //  · the Cyrillic/Greek homoglyph test required MIXED script IN ONE NODE (`…&& /[a-zA-Z]/`), so a
+      //    FULLY substituted run — "$ЗОО", every character swapped — was invisible, and full substitution is
+      //    both the more deceptive case and the easier one to write.
+      const _cp = [..._ownTxt].map((ch) => ch.codePointAt(0));
+      const _inPUA = (c) => (c >= 0xE000 && c <= 0xF8FF) || (c >= 0xF0000 && c <= 0xFFFFD) || (c >= 0x100000 && c <= 0x10FFFD);
+      const _inMathAlnum = (c) => c >= 0x1D400 && c <= 0x1D7FF;
+      const _homoglyphScript = /[Ѐ-ӿͰ-Ͽ]/.test(_ownTxt);
+      const _hasLatin = /[a-zA-Z]/.test(_ownTxt);
+      const _hasDigitOrPunct = /[0-9$£€%.,:;!?()\[\]{}\/\\@#&*+=_-]/.test(_ownTxt);
+      const hasGlyphText = _cp.some(_inPUA) || _cp.some(_inMathAlnum)
+        // mixed script in one node (the original test), OR a fully-substituted run sitting in Latin-script
+        // page furniture — a currency symbol, digits or punctuation alongside non-Latin letters is the
+        // signature of "$ЗОО" and cannot be an ordinary Cyrillic/Greek word.
+        || (_homoglyphScript && (_hasLatin || _hasDigitOrPunct));
       const splitFieldGroup = (() => { if (tag !== 'input' && tag !== 'select') return false; const ml = parseInt(el.getAttribute('maxlength'), 10); if (!(Number.isFinite(ml) && ml <= 6)) return false; const grp = el.closest('fieldset, [role=group], form, div'); if (!grp) return false; return [...grp.querySelectorAll('input:not([type=hidden]):not([type=submit]):not([type=button]), select')].filter((i) => { const m = parseInt(i.getAttribute('maxlength'), 10); return Number.isFinite(m) && m <= 6; }).length >= 2; })();
       // LIVE REGION (Item 11, 4.1.3): a status container (aria-live polite/assertive, or an implicitly-live role)
       // owes a status-message obligation — are dynamic status changes announced to AT. Kept even when empty (a live
@@ -692,8 +756,36 @@ async function collectActPage(page, opts = {}) {
       const _bgCandidate = box.width >= 16 && box.height >= 16 && !_fullBleed; // not a tracking pixel, not a full-bleed hero
       // INTERACTIVITY via the shared `_bgInteractive` (R2 G2-1) — the old `isInteractive` omitted onclick / tabindex /
       // role=option,spinbutton,textbox,searchbox, dropping those bg controls on the ACT path while eval-page kept them.
+      // TEXT-BEARING CARVE-OUT (residual RCA S6). `text.length === 0` excluded ALL THREE of F3's own
+      // examples: the technique's book-distributor case puts new.png / limited.png / instock.png as
+      // BACKGROUNDS on list entries that carry the book titles as text, and the image is the only thing
+      // saying which books are new. Requiring the element to be textless meant the canonical F3 shape could
+      // never be nominated. Two bounded disjuncts re-admit it without flooding on icon-bulleted lists:
+      //  · the image sits in a RESERVED AREA beside the text (no-repeat plus real padding set aside for it),
+      //    which is how F3's own markup is written; AND
+      //  · it DISTINGUISHES this element from its peers — among 3+ same-tag siblings the background images
+      //    are not all identical. A decorative bullet repeated on every row is identical on every row and
+      //    is therefore still excluded; a status badge on SOME rows is not.
+      // Both are required together, so a uniformly-bulleted list stays out.
+      const _bgReservedArea = (() => {
+        const cs = getComputedStyle(el);
+        if (!/no-repeat/i.test(cs.backgroundRepeat || '')) return false;
+        const pads = [cs.paddingLeft, cs.paddingRight, cs.paddingTop, cs.paddingBottom].map((v) => parseFloat(v) || 0);
+        return Math.max(...pads) >= 12;
+      })();
+      const _bgDistinguishesPeers = (() => {
+        const p = el.parentElement; if (!p) return false;
+        const sibs = [...p.children].filter((c) => c.tagName === el.tagName);
+        if (sibs.length < 3) return false;
+        const urls = new Set(sibs.map((c) => {
+          const b = getComputedStyle(c).backgroundImage || '';
+          return (/url\(/i.test(b) ? ((b.match(/url\(["']?([^"')]+)["']?\)/i) || [])[1] || 'other') : 'none');
+        }));
+        return urls.size >= 2;   // not the same background on every peer ⇒ it is carrying a distinction
+      })();
+      const _bgTextOk = text.length === 0 || (_bgReservedArea && _bgDistinguishesPeers);
       const backgroundImageMeaningful = /url\(/i.test(_bgi) && !ariaHidden && !presentational && !isImage
-        && text.length === 0 && _accName.length === 0 && box.width > 0 && box.height > 0 && (_bgInteractive(el) || _bgCandidate);
+        && _bgTextOk && _accName.length === 0 && box.width > 0 && box.height > 0 && (_bgInteractive(el) || _bgCandidate);
       const backgroundImageUrl = backgroundImageMeaningful ? ((_bgi.match(/url\(["']?([^"')]+)["']?\)/i) || [])[1] || null) : null;
       // TT gap G3 (TT 7.D, 1.1.1): a CAPTCHA owes a non-visual AND non-auditory alternative — tightened, token-based
       // detection via the shared `_isCaptchaEl` (R2 G3-1: no longer a bare substring; title only on an iframe).
@@ -763,6 +855,7 @@ async function collectActPage(page, opts = {}) {
         ariaHiddenWithName, decorativeConflict,
         complexImageHint,
         tabindexEffective, hasGlyphText, splitFieldGroup, // C8 small-signal predicates (parity)
+        emulatedControlShape, emulatedControl: emulatedControlInline, // F42 (residual RCA S6) — shape + the inline half; the listener half is added in the CDP pass
         // Item 13 (cheap scrutiny signals, parity with eval-page): a native control that overrides its role
         // (<button role=link>) → name-role scrutiny; a field's placeholder → field-label scrutiny (placeholder-as-label).
         roleOverridesNative: ['a', 'button', 'input', 'select', 'textarea', 'summary', 'details'].includes(tag) && !!roleAttr,
@@ -981,6 +1074,7 @@ async function collectActPage(page, opts = {}) {
   // (:586-600) — so the common path has ZERO hand-coded accname rules. The heuristic axName survives only as a
   // degraded FALLBACK when a node cannot be resolved (e.g. a cross-origin frame's contentDocument is null). Uses
   // the same `>>`-frame descent as query_ax_node (S4). Never throws — CDP failure leaves every heuristic value.
+  let pageDelegatedListenerTypes = [];
   try {
     const cdp = await page.target().createCDPSession();
     await cdp.send('Accessibility.enable').catch(() => {});
@@ -1000,9 +1094,37 @@ async function collectActPage(page, opts = {}) {
       const backendNodeId = dn && dn.node && dn.node.backendNodeId;
       if (!backendNodeId) return null;
       const r = await cdp.send('Accessibility.getAXNodeAndAncestors', { backendNodeId }).catch(() => null);
-      // objectId returned alongside so a caller can ask DOMDebugger about this same node without re-resolving it.
-      return { ax: (r && r.nodes && r.nodes[0]) || null, objectId };
+      // CROSS-FRAME LISTENER RESOLUTION (residual RCA S7). `objectId` above is minted by a
+      // `Runtime.evaluate` in the TOP frame's execution context; for a node that actually lives in a child
+      // frame, `DOMDebugger.getEventListeners` on it returns `[]` — silently, indistinguishable from "this
+      // element has no listeners". Re-resolve from the backendNodeId, which CDP binds in the NODE'S OWN
+      // context, and hand that to the listener query instead. `backendNodeId` also rides along so callers
+      // can resolve ancestors the same way.
+      const own = await cdp.send('DOM.resolveNode', { backendNodeId }).catch(() => null);
+      const listenerObjectId = (own && own.object && own.object.objectId) || objectId;
+      return { ax: (r && r.nodes && r.nodes[0]) || null, objectId, listenerObjectId, backendNodeId };
     };
+    // Bounded budget for listener queries on NON-focusable elements (focusable ones are always queried —
+    // that set is already small and 2.1.2 depends on it). Keeps the 1.4.13 widening from turning a
+    // thousand-element page into a thousand extra CDP round-trips.
+    const LISTENER_QUERY_CAP = 120;
+    let nonFocusableListenerQueries = 0;
+    // DELEGATION ROOTS (residual RCA S7). `getEventListeners`' `depth` is DESCENDANT depth, so no value of
+    // it ever reaches an ANCESTOR — a handler bound to `document`, `body`, or a container that dispatches
+    // for its rows is invisible on every element it actually serves. Query the two page-level roots ONCE
+    // and record which event types are delegated there, so a downstream reader can tell "this element has
+    // no handler" from "this element's handler lives further up". Two round-trips per page, not per element.
+    pageDelegatedListenerTypes = await (async () => {
+      const types = new Set();
+      for (const expr of ['document', 'document.body']) {
+        const ev = await cdp.send('Runtime.evaluate', { expression: expr, returnByValue: false }).catch(() => null);
+        const oid = ev && ev.result && ev.result.objectId;
+        if (!oid) continue;
+        const lr = await cdp.send('DOMDebugger.getEventListeners', { objectId: oid, depth: 0 }).catch(() => null);
+        for (const l of ((lr && lr.listeners) || [])) types.add(String(l.type));
+      }
+      return [...types];
+    })().catch(() => []);
     for (const el of data.elements || []) {
       const res = await resolveAx(el.xpath);
       const ax = res && res.ax;
@@ -1012,13 +1134,53 @@ async function collectActPage(page, opts = {}) {
       // synthetic corpus there were ZERO inline focus handlers: every trap was wired with addEventListener,
       // which no DOM snapshot can see. Without this the obligation was never enumerated and the trap
       // detector never ran, so a real trap scored `noObligation`.
-      if (res && res.objectId && el.focusable === true) {
-        const elr = await cdp.send('DOMDebugger.getEventListeners', { objectId: res.objectId, depth: 0 }).catch(() => null);
+      // The sweep is no longer focusable-only. A 1.4.13 hover trigger is very often a NON-focusable
+      // `<span>`/`<abbr>` with an addEventListener('mouseenter') — invisible to `_hasHoverContent`, which
+      // can only see inline handlers, popovertarget, ARIA refs and CSS `:hover` rules. So the obligation
+      // was never enumerated for the listener-wired reveal, which is the modern way to write one. Widened
+      // to any RENDERED element, with a hard cap on the extra non-focusable queries so a large page cannot
+      // multiply CDP round-trips without bound.
+      const wantsListeners = el.focusable === true
+        || (nonFocusableListenerQueries < LISTENER_QUERY_CAP && el.box && el.box.width > 0 && el.box.height > 0);
+      if (res && (res.listenerObjectId || res.objectId) && wantsListeners) {
+        if (el.focusable !== true) nonFocusableListenerQueries++;
+        const elr = await cdp.send('DOMDebugger.getEventListeners', { objectId: res.listenerObjectId || res.objectId, depth: 0 }).catch(() => null);
         if (elr && Array.isArray(elr.listeners)) {
           const types = [...new Set(elr.listeners.map((l) => String(l.type)))];
           el.listenerTypes = types;
-          if (types.some((t) => t === 'blur' || t === 'focus' || t === 'focusout' || t === 'focusin' || t === 'keydown')) {
+          if (el.focusable === true && types.some((t) => t === 'blur' || t === 'focus' || t === 'focusout' || t === 'focusin' || t === 'keydown')) {
             el.focusRisk = true;   // widens the static gate; the trap EXPERIMENT still decides whether it traps
+          }
+          // 1.4.13 (residual RCA S6): a pointer/focus-enter listener IS a hover-content trigger candidate.
+          // Like focusRisk this only widens the GATE — the reveal experiment still decides whether anything
+          // is actually revealed, so a hover handler that merely restyles never becomes a 1.4.13 finding.
+          if (types.some((t) => t === 'mouseenter' || t === 'mouseover' || t === 'pointerenter' || t === 'pointerover')) {
+            el.hoverListener = true;
+            if (el.hasHoverContent !== true) el.hasHoverContent = true;
+          }
+          // F42's other half. The in-page pass could only see INLINE on* attributes; a modern emulated
+          // control is wired with addEventListener and is invisible there. `emulatedControlShape` already
+          // carries every structural guard (not focusable, no interactive role, no interactive descendant,
+          // not a page-sized delegation root), so this only supplies the activation-handler half.
+          if (el.emulatedControlShape === true && el.emulatedControl !== true
+              && types.some((t) => t === 'click' || t === 'keydown' || t === 'keypress' || t === 'keyup')) {
+            el.emulatedControl = true;
+          }
+        }
+        // ANCESTOR DELEGATION, one level up. The commonest real delegation is a container handling clicks
+        // for its own rows/items (a <ul>, a <tbody>, a card grid), and that ancestor is exactly one hop
+        // away. Resolving it costs one extra round-trip and only for elements that reported NO listeners of
+        // their own, so the common case is unaffected.
+        if (!Array.isArray(el.listenerTypes) || !el.listenerTypes.length) {
+          const parentXpath = typeof el.xpath === 'string' ? el.xpath.replace(/\/[^/]+$/, '') : '';
+          if (parentXpath && parentXpath !== '/html' && nonFocusableListenerQueries < LISTENER_QUERY_CAP) {
+            const pres = await resolveAx(parentXpath);
+            const poid = pres && (pres.listenerObjectId || pres.objectId);
+            if (poid) {
+              const plr = await cdp.send('DOMDebugger.getEventListeners', { objectId: poid, depth: 0 }).catch(() => null);
+              const ptypes = [...new Set(((plr && plr.listeners) || []).map((l) => String(l.type)))];
+              if (ptypes.length) el.ancestorListenerTypes = ptypes;
+            }
           }
         }
       }
@@ -1046,6 +1208,21 @@ async function collectActPage(page, opts = {}) {
   const tables = await page.evaluate(collectTables).catch(() => []);
   // TT gap G1: per-list semantics (real ul/ol/dl + visually-apparent faux lists) for the 1.3.1 JUDGMENT.
   const lists = await page.evaluate(collectLists).catch(() => []);
+  // 1.4.1 COLOUR PEER GROUPS (residual RCA S6): sets of structural peers distinguished ONLY by colour.
+  // The element-level 1.4.1 aperture (link / form field / graphic surface) cannot see this shape at all,
+  // because no individual element looks wrong — the failure is the contrast BETWEEN peers. Held-out over
+  // the 926-page corpus: 84% of pages produce zero groups, mean 0.23/page, p90 = 1.
+  const colourPeerGroups = await page.evaluate(collectColourPeers).catch(() => []);
+  // 1.3.1 F34 — whitespace-formatted columns / ASCII tables, where the row-column relationship is carried
+  // only by runs of spaces that a screen reader collapses or reads straight through.
+  const fauxColumns = await page.evaluate(collectFauxColumns).catch(() => []);
+  // 3.3.1 — does the page's ERROR SUMMARY agree with which fields are actually flagged? The per-field
+  // probe cannot see this: every field it examines is individually correct, and the misdirection lives in
+  // the disagreement between the summary and reality.
+  const errorSummaries = await page.evaluate(collectErrorSummary).catch(() => []);
+  // 1.3.1 F2 — presentation used to convey meaning. Trigger set narrowed BY MEASUREMENT to strike-through
+  // and small-caps (0.9% of pages); weight/size are how the web expresses hierarchy and were unusable.
+  const stylingOutliers = await page.evaluate(collectStylingOutliers).catch(() => ({ outlierGroups: [], inlineConventions: [] }));
   // #2 fix: collectTables/collectLists are top-document-only (document.querySelectorAll) — a frameset page's
   // real headings/lists/tables live in a child <frame>/<iframe> (e.g. the DHS Trusted-Tester corpus), which
   // NEVER reached structure.tables/lists before this fix, regardless of --allow-file-access-from-files. Puppeteer's
@@ -1150,6 +1327,36 @@ async function collectActPage(page, opts = {}) {
     } catch (e) { axeData = null; }
   }
 
+  // 1.4.1 COLOUR-REFERENCE pre-filter (residual RCA S6). Runs in NODE over each element's OWN text, exactly
+  // like the 1.3.3 sensory pre-filter it is modelled on. The 1.3.3 lexicon deliberately EXCLUDES colour words
+  // ("colour alone is SC 1.4.1's domain") and 1.4.1's own aperture is role-based — link / form field / graphic
+  // surface — so a paragraph of INSTRUCTIONS identifying content by colour ("Green buttons advance the
+  // application; red buttons cancel it") owed nothing to either SC and reached no judge. That is the
+  // Understanding's own example of a 1.4.1 failure. Applicability only: the rubric decides whether the colour
+  // reference actually identifies content and whether a non-colour alternative is given.
+  {
+    const { colorReferencesIn } = require('./color-reference-lexicon.js');
+    const hits = [];
+    for (const el of (data.elements || [])) {
+      if (!el || !el.text || typeof el.text !== 'string') continue;
+      // Bounded to elements that hold real prose: an instruction is a sentence, not a control's label. This
+      // keeps the hint off every button named "Green" and off single-word cells.
+      if (el.text.length < 12 || el.focusable === true || el.isFormField === true) continue;
+      const refs = colorReferencesIn(el.text);
+      if (refs.length) hits.push({ el, refs });
+    }
+    // DEEPEST HIT ONLY. `el.text` is the element's full subtree text, so one instruction sentence matched on
+    // the <strong> that holds it AND on its <p>, <main> and wrapper <div> — four obligations for one sentence,
+    // all pointing at the same words. Keep only the innermost element in each ancestor chain, which is the one
+    // that actually owns the text and the one a reviewer would be shown.
+    const hitPaths = hits.map((h) => h.el.xpath).filter((x) => typeof x === 'string');
+    for (const { el, refs } of hits) {
+      if (typeof el.xpath === 'string' && hitPaths.some((p) => p !== el.xpath && p.startsWith(el.xpath + '/'))) continue;
+      el.colorWordHint = true;
+      el.colorReferences = refs.slice(0, 4);
+    }
+  }
+
   return {
     file: opts.file || `act:${url}`,
     sourceUrl: opts.sourceUrl || url,
@@ -1162,8 +1369,10 @@ async function collectActPage(page, opts = {}) {
     // ONLY the collected prefix — a barrier past the cap is unseen by every v3 lane. Surfaced so the builder can
     // flag the page-clear as PARTIAL-COVERAGE rather than a full-page conformance claim. `cap` is the configured cap.
     coverage: { truncated: !!data.truncated, collected: (data.elements || []).length, domElementCount: data.domElementCount || null, cap: elementCap, subset: !!data.subset },
-    page: { reflowApplicable: !!data.reflowApplicable },
-    structure: { title: data.title || '', frameTitles: data.frameTitles || [], lang: data.lang || '', headings: data.headings || [], landmarks: data.landmarks || [], tables: tables || [], lists: lists || [] },
+    page: { reflowApplicable: !!data.reflowApplicable, delegatedListenerTypes: pageDelegatedListenerTypes },
+    structure: { title: data.title || '', frameTitles: data.frameTitles || [], lang: data.lang || '', headings: data.headings || [], landmarks: data.landmarks || [], tables: tables || [], lists: lists || [], colourPeerGroups: colourPeerGroups || [], fauxColumns, errorSummaries,
+      presentationOutliers: (stylingOutliers && stylingOutliers.outlierGroups) || [],
+      presentationConventions: (stylingOutliers && stylingOutliers.inlineConventions) || [] },
     axe: axeData ? axeData.violations : [],
     axeIncomplete: axeData ? axeData.incomplete : [],
     // allowlisted PASSES only (see PASS_ALLOW): a rubric that is told to DEFER to a checker's pass needs the

@@ -36,12 +36,22 @@ captures what a sighted user reads — visually AND via table position — not t
    otherwise generic or absent, that context is lost to AT — REPRODUCED. If the field's own accessible name
    already fully identifies it (e.g. `aria-label="Zip"` matching the row header), the table position is
    redundant, not required — NOT REPRODUCED.
-3. **Graphical-cue-only requirement/format marker:** a required-field indicator or format hint conveyed ONLY
-   graphically (an asterisk icon, a color swatch, a small glyph with no adjacent text) that is not reflected
-   anywhere in the accessible name or description — REPRODUCED. A textual cue (a `*` character, "(required)")
-   already inside the visible label text is normally ALSO in the accessible name once that label IS
-   programmatically associated — check `element-crop`/`surrounding-region` to confirm whether the cue is
-   genuinely graphics-only (an icon) or just plain text you'd expect a correctly-associated label to carry.
+3. **Requirement/format cue that never reaches the accessible name — by ANY means, not only a graphic.**
+   A required-field indicator, a format hint, or a constraint that a sighted user can see but that is
+   reflected nowhere in the accessible name or description is REPRODUCED. The cue can be:
+   - **graphical** — an asterisk icon, a colour swatch, a small glyph with no adjacent text;
+   - **positional or grouped** — a legend above the group ("All fields below are required"), a column
+     header, or a footnote elsewhere on the page that the field itself never references;
+   - **stylistic** — a bold or coloured label where the styling IS the signal (this overlaps 1.4.1; both
+     can hold, and here the question is only whether the accessible name carries it);
+   - **placeholder-only** — a format shown solely in `placeholder`, which is not a reliable accessible
+     description and disappears once the user types.
+   The test is not what KIND of cue it is; it is whether an AT user receives it at all.
+   *Do not* flag a cue that is plain text inside a correctly-associated label: a `*` character or
+   "(required)" sitting in the visible label text is normally ALSO in the accessible name once that label is
+   programmatically associated. Check `element-crop`/`surrounding-region` to confirm whether the cue is
+   genuinely unreachable (an icon, a separate legend, styling alone) or just plain text you would expect a
+   correctly-associated label to carry.
 
 **Evidence handed to you:** `element-crop` (the field), `surrounding-region` (wider context — including any
 enclosing `<table>` grid), the field's role/type, its accessible name/description, and (when the field is a
@@ -54,10 +64,10 @@ enclosing `<table>` grid), the field's role/type, its accessible name/descriptio
   unless there's a significant risk of confusion without it — do not invent a barrier for a field simply
   because it isn't tied to a `<h2>`/`<fieldset><legend>` section title elsewhere on the page. This applies to
   radio buttons and checkboxes too: a `<fieldset><legend>` (or equivalent) tying the group to its overall
-  question is GOOD PRACTICE, not an absolute 1.3.1 requirement — confirmed against TT 5.C's own worked example
-  (a "Choose Payment Method" `<h2>` followed by two `<label for>`-associated radio options, "Credit Card" /
-  "Online Banking", with NO fieldset/legend, scored Pass: each option's own accessible name already tells a
-  screen-reader user what it does). Do NOT flag a missing group association as a barrier merely because a
+  question is GOOD PRACTICE, not an absolute 1.3.1 requirement — the DHS Trusted Tester procedure's own
+  worked example for 5.C conforms with exactly this shape: a heading posing the question, followed by
+  `<label for>`-associated radio options and NO fieldset/legend, because each option's own accessible name
+  already tells a screen-reader user what it does. Do NOT flag a missing group association as a barrier merely because a
   section heading/question exists nearby and isn't programmatically tied to the group.
 - The one exception: flag it ONLY when the option's own accessible name is GENUINELY AMBIGUOUS without the
   group question — e.g. options literally named "Yes"/"No"/"Option A" with no visible common question nearby,

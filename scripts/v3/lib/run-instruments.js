@@ -9,7 +9,7 @@
 // keyboard traps (2.1.2), and VSR navigation traps. All were adversarially hardened for soundness.
 const { collectVsrTranscript } = require('./vsr-collect.js');
 const { analyzeTranscript } = require('./vsr-analysis.js');
-const { collectTabOrder, tabOrderFindings, detectKeyboardTraps, detectFocusRetentionTraps, detectFixedSetConfinementTraps, detectFocusRejection, detectFocusRestsInAriaHidden } = require('./kbd-graph.js');
+const { collectTabOrder, tabOrderFindings, detectKeyboardTraps, detectFocusRetentionTraps, detectFixedSetConfinementTraps, detectFocusRejection, detectFocusRestsInAriaHidden, detectEmbeddedFormatTraps } = require('./kbd-graph.js');
 const { vsrNavigationIntegrity } = require('./vsr-graph.js');
 const { detectStatusMessages } = require('./status-detector.js');
 
@@ -19,7 +19,11 @@ const CHROME = process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_PATH
 // Run every instrument against an already-loaded Puppeteer page. Returns { findings: [...] }.
 async function runInstruments(page, opts = {}) {
   const findings = [];
-  const add = (detector, list) => { for (const f of (list || [])) { const row = { detector, sc: f.sc || '', kind: f.kind, xpath: f.xpath || null, detail: f.detail || '', review: !!f.review }; if (f.calibrated === false) row.calibrated = false; if (Array.isArray(f.memberXpaths)) row.memberXpaths = f.memberXpaths; if (Number.isFinite(f.setSize)) row.setSize = f.setSize; findings.push(row); } };
+  // `partialSink` (residual RCA S5) mirrors each finding out as soon as it is produced, so the caller's
+  // wall-clock guard can return WHAT WAS ALREADY MEASURED instead of an empty bundle. Instruments are
+  // non-authoritative, so a partial set is always safe — it can only forgo a catch, never assert one.
+  const publish = () => { if (opts.partialSink) opts.partialSink.findings = findings.slice(); };
+  const add = (detector, list) => { for (const f of (list || [])) { const row = { detector, sc: f.sc || '', kind: f.kind, xpath: f.xpath || null, detail: f.detail || '', review: !!f.review }; if (f.calibrated === false) row.calibrated = false; if (Array.isArray(f.memberXpaths)) row.memberXpaths = f.memberXpaths; if (Number.isFinite(f.setSize)) row.setSize = f.setSize; findings.push(row); } publish(); };
 
   // #21 NATIVE DIALOG capture: Puppeteer auto-DISMISSES native alert()/confirm()/prompt() when no listener
   // is attached, so a page that surfaces validation/confirmation text via a native dialog goes invisible to
@@ -71,12 +75,25 @@ async function runInstruments(page, opts = {}) {
   const seq = (t) => (t && Array.isArray(t.order) ? t.order.map((o, i) => ({
     index: Number.isFinite(o.index) ? o.index : i,
     xpath: o.xpath || null, tag: o.tag || null, label: o.label || null, rect: o.rect || null,
+    // modal-containment facts (2.4.3 clause C): a stop with modalOpen but insideOpenModal:false is a
+    // tab stop OUTSIDE an open modal — a containment leak, decidable without rect geometry.
+    ...(o.modalOpen ? { modalOpen: true, insideOpenModal: o.insideOpenModal === true, modalXpath: o.modalXpath || null } : {}),
   })) : []);
   const tabOrder = tab ? {
     forward: seq(tab), backward: seq(tabBack),
     wrapped: !!tab.wrapped, exhausted: !!tab.exhausted, count: tab.count || seq(tab).length,
     backwardWrapped: tabBack ? !!tabBack.wrapped : null,
+    // whether index 0 is genuinely the FIRST tab stop, or merely where the ring happened to be entered
+    // (an open modal makes body.focus() inert — see collectTabOrder). The rubric must not read an
+    // unanchored index 0 as "focus starts here".
+    startAnchored: tab.startAnchored !== false,
   } : null;
+  // PUBLISH-AS-YOU-GO (residual RCA S5): the orchestrator races this whole stage against a 90 s wall-clock
+  // cap and, on expiry, substitutes an EMPTY bundle — discarding a tab order that was already in hand.
+  // Measured at 67/392 = 17.1% of a corpus run, and it landed exactly where it hurts: 2.4.3 recall was 0%
+  // on timed-out pages against 54% elsewhere. Hand each artifact to the sink the moment it exists so the
+  // timeout downgrades the stage to PARTIAL instead of to NOTHING.
+  if (opts.partialSink) { opts.partialSink.tabOrder = tabOrder; opts.partialSink.findings = findings.slice(); }
   // keyboard traps (2.1.2): confirmed (authoritative-candidate) + directional (review)
   const traps = await detectKeyboardTraps(page).catch(() => null);
   if (traps) {
@@ -116,6 +133,26 @@ async function runInstruments(page, opts = {}) {
     }
     add('keyboard-trap', confineRows);
   }
+  // EMBEDDED-FORMAT traps (2.1.2 / F10): focus enters an <iframe>/<object>/<embed> or a shadow root and
+  // cannot leave. Structurally invisible to every region detector above — their candidate regions come
+  // from focusables in THIS document, and the trapping content lives in another one. Runs after the
+  // region detectors (it drives Tab hard) and before the status sweep.
+  const embedTraps = await detectEmbeddedFormatTraps(page, opts).catch(() => null);
+  if (embedTraps) {
+    add('keyboard-trap', (embedTraps.traps || []).map((t) => ({
+      sc: t.sc, kind: 'keyboard-trap', xpath: t.xpath,
+      // A CROSS-ORIGIN embedded document cannot be counted, so its budget is a guess and the result is a
+      // review signal rather than a barrier — "trapped" and "took longer than we waited" are the same
+      // observation from outside.
+      review: t.sameOrigin !== true,
+      detail: `confirmed keyboard trap (WCAG F10): focus enters this ${t.kind} and cannot leave by Tab, Shift+Tab, or Escape`
+        + (Number.isFinite(t.innerFocusables) ? ` (${t.innerFocusables} focusable element(s) inside; the walk allowed for all of them)` : ' (cross-origin — inner focusables could not be counted, so this is a REVIEW signal)'),
+    })));
+    add('keyboard-trap', (embedTraps.directional || []).map((t) => ({
+      sc: t.sc, kind: 'keyboard-trap-directional', xpath: t.xpath, review: true,
+      detail: `one-way keyboard trap: focus enters this ${t.kind} and escapes in only one Tab direction`,
+    })));
+  }
   // focus-rejection (2.1.1/2.4.7, F55): a control that removes its OWN focus the instant it receives it —
   // the inverse of a self-refocus trap (focus can never rest on it, so it can't be operated or shown).
   const rej = await detectFocusRejection(page).catch(() => null);
@@ -133,6 +170,29 @@ async function runInstruments(page, opts = {}) {
   // demonstrably appeared without a live region and without focus moving to it).
   const status = await detectStatusMessages(page, opts).catch(() => null);
   if (status) add('status-message', status.findings);
+  // 4.1.3 OBSERVATIONS (residual RCA S4): what each trigger actually DID, whether or not it barriered.
+  // The barrier channel answers one narrow question (text appeared outside any live region) and every
+  // remaining 4.1.3 failure shape lives inside a live region and fails on the announcement's ADEQUACY —
+  // a region created together with its message, a message silently removed, the wrong politeness. Those
+  // pages produced NO finding and were therefore cleared with no judge ever asked. These rows are
+  // `review: true`: they never barrier on their own, they exist so the page carries an obligation and the
+  // rubric gets the facts.
+  const statusObs = (status && Array.isArray(status.observations)) ? status.observations : [];
+  if (statusObs.length) {
+    add('status-message', statusObs.map((o) => ({
+      sc: '4.1.3', kind: 'status-change-observed', xpath: o.trigger || null, review: true,
+      detail: 'activating ' + JSON.stringify(o.triggerLabel || '(unlabelled control)') + ' changed page content: '
+        + [
+          o.addedInsideLiveRegion.length ? `${o.addedInsideLiveRegion.length} text change(s) INSIDE a live region` : null,
+          o.addedOutsideLiveRegion.length ? `${o.addedOutsideLiveRegion.length} OUTSIDE any live region` : null,
+          o.regionsBornWithContent.length ? `${o.regionsBornWithContent.length} live region(s) INSERTED already carrying their message (an AT observes regions present BEFORE the change — a region born with its content announces nothing)` : null,
+          o.regionsUpdated.some((r) => r.emptied) ? 'a pre-existing live region was EMPTIED' : null,
+          o.removedText.length ? `${o.removedText.length} status text(s) REMOVED from the page` : null,
+        ].filter(Boolean).join('; ')
+        + '. This is an OBSERVATION, not a verdict — whether the announcement is adequate is the rubric\'s call.',
+    })));
+  }
+  if (opts.partialSink) opts.partialSink.statusObservations = statusObs;
 
   // #21 emit: a native dialog raised during interaction delivers text outside the DOM/ARIA model (review).
   page.off('dialog', onDialog);
@@ -144,7 +204,9 @@ async function runInstruments(page, opts = {}) {
 
   // `tabOrder` is EVIDENCE, not a finding: it never clears or barriers anything on its own. It rides
   // alongside `findings` so build-v3/orchestrator can thread it to the 2.4.3 judging subject.
-  return { findings, tabOrder };
+  // `statusObservations` rides alongside `tabOrder` for the same reason: it is EVIDENCE for the 4.1.3
+  // rubric, not a finding that decides anything on its own.
+  return { findings, tabOrder, statusObservations: statusObs };
 }
 
 // Load a URL in a fresh browser and run the instruments. The instruments artifact carries the run
@@ -156,6 +218,27 @@ async function runInstrumentsForUrl(url, opts = {}) {
     await page.goto(url, { waitUntil: 'load', timeout: opts.gotoTimeoutMs || 30000 }).catch(() => {});
     await require('./settle.js').awaitSettle(page); // gated V3_SETTLE_WAIT — settle before keyboard/VSR state reads
     const res = await runInstruments(page, opts);
+    // BOUNDED REVEAL PASS (2.1.2, residual RCA S4/TOOL). The at-rest detectors can only see regions that
+    // have visible focusables, so a CLOSED modal is invisible to them and the whole modal-trap family read
+    // as clean. Run LAST, on this same lane page (every read-only instrument is already finished, and the
+    // pass reloads before each probe anyway) and ONLY when nothing confirmed was found at rest.
+    const alreadyConfirmed = res.findings.some((f) => f.sc === '2.1.2' && !f.review);
+    if (!alreadyConfirmed && opts.revealPass !== false) {
+      const kbd = require('./kbd-graph.js');
+      const revealed = await kbd.detectTrapsAfterReveal(page, url, opts).catch(() => null);
+      if (revealed) {
+        const via = ` (revealed by activating ${JSON.stringify(revealed.opener.name || revealed.opener.xpath)})`;
+        for (const t of ((revealed.traps && revealed.traps.traps) || [])) {
+          res.findings.push({ detector: 'keyboard-trap', sc: t.sc, kind: 'keyboard-trap', xpath: t.regionXpath, review: false,
+            detail: 'confirmed keyboard trap: focus cannot escape by Tab, Shift+Tab, Esc, or a Close control' + via });
+        }
+        for (const t of ((revealed.selfTraps && revealed.selfTraps.traps) || [])) {
+          res.findings.push({ detector: 'keyboard-trap', sc: t.sc, kind: 'keyboard-trap-self-refocus', xpath: t.xpath, review: false,
+            detail: 'confirmed keyboard trap: this focusable re-grabs its own focus on blur' + via });
+        }
+        if (opts.partialSink) opts.partialSink.findings = res.findings.slice();
+      }
+    }
     return { file: opts.file || url, runId: opts.runId || null, pageDigest: opts.pageDigest || null, ...res };
   });
 }

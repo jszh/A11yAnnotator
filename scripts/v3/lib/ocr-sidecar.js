@@ -75,11 +75,35 @@ function makeOcrSidecar(opts = {}) {
         catch (e) { clearTimeout(timer); pending.delete(id); resolve({ error: 'ocr-write-failed' }); }
       });
     },
-    async close() {
-      if (proc && !dead) { try { proc.stdin.end(); } catch (e) {} try { proc.kill('SIGTERM'); } catch (e) {} }
+    // TEARDOWN. The previous version sent SIGTERM and returned immediately, which leaked on two counts and
+    // was measured doing so: 29 orphaned interpreters holding 13.7 GB accumulated on this machine, and
+    // `ocr-sidecar.test.js` reported a permanent file-level hang ("Promise resolution is still pending but
+    // the event loop has already resolved") in every full-suite run.
+    //   · PP-OCRv6 loads large models and can be inside a native call when the signal arrives, so SIGTERM
+    //     is not always honoured promptly. Nothing ever escalated, so a child that ignored it lived on,
+    //     was reparented to launchd, and kept its ~500 MB.
+    //   · The child was spawned with three PIPES and they were never destroyed, so its stdio handles kept
+    //     Node's event loop alive after the work was done — which IS the test hang.
+    // Now: end stdin, SIGTERM, and if the process has not exited within `killGraceMs`, SIGKILL. Destroy the
+    // pipes and unref the child either way, so this process can exit even if the child is wedged in an
+    // uninterruptible state (where no signal can reap it at all).
+    async close({ killGraceMs = 2000 } = {}) {
+      const p = proc;
       dead = true;
       for (const { resolve: res, timer } of pending.values()) { clearTimeout(timer); res({ error: 'ocr-closed' }); }
       pending.clear();
+      if (!p) return;
+      const exited = new Promise((res) => { let done = false; const fin = () => { if (!done) { done = true; res(); } }; p.once('exit', fin); p.once('error', fin); });
+      try { p.stdin.end(); } catch (e) {}
+      try { p.kill('SIGTERM'); } catch (e) {}
+      const timedOut = await Promise.race([
+        exited.then(() => false),
+        new Promise((res) => setTimeout(() => res(true), killGraceMs)),
+      ]);
+      if (timedOut) { try { p.kill('SIGKILL'); } catch (e) {} }
+      // Release the handles regardless — a wedged child must not hold this process open.
+      for (const s of [p.stdin, p.stdout, p.stderr]) { try { s && s.destroy(); } catch (e) {} }
+      try { p.unref(); } catch (e) {}
     },
   };
 }
