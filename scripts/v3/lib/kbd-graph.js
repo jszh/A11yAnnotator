@@ -837,14 +837,19 @@ async function detectEmbeddedFormatTraps(page, opts = {}) {
   for (const b of boundaries) {
     if (Number.isFinite(b.innerFocusables)) continue;                  // same-origin count already in hand
     if (b.kind === 'shadow-root') continue;                            // no frame — the in-page count is exact
+    let handle = null;
     try {
-      const handle = await page.$(`[data-v3-embed="${b.id}"]`);
+      handle = await page.$(`[data-v3-embed="${b.id}"]`);
       if (!handle) continue;
       const frame = await handle.contentFrame();
       if (!frame) continue;
       const n = await frame.evaluate((sel) => document.querySelectorAll(sel).length, FOCUSABLE_SEL);
       if (Number.isFinite(n)) { b.innerFocusables = n; b.countedViaCdp = true; b.sameOrigin = true; }
     } catch (e) { /* frame detached or genuinely unreachable — stays review */ }
+    // An ElementHandle pins a JSHandle in the browser until disposed. Leaking one per embed per page
+    // across a few hundred pages is exactly the kind of slow browser-side growth that ends in a dead
+    // renderer, so release it on every path.
+    finally { if (handle) { try { await handle.dispose(); } catch (e) {} } }
   }
 
   const atBoundary = (id) => page.evaluate((bid) => {
