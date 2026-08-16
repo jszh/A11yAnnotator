@@ -887,6 +887,74 @@ mislabeled too; that is a hypothesis, not an established finding.
 `postR3` baseline: tp 13, fn 101, fp 1, tn 263, decisionAgreement 0.7302, 0 errors
 (`upstream-evidence/v3-act-subset-postfix-2026-08-15/`). Test suite 886/886.
 
+## Table 1k-post2 — after the residual fix campaign (2026-08-16)
+
+**Run `results/aug-annot-s9-tools/`, repo at `3bd944d4`.** Sonnet 4.6, tools ON, **392 pages,
+1 error**, 215 tool calls across 13 distinct CDP tools (`agentBuilt` 391, `multiTurnResults` 67).
+Same 392-case set as Table 1k-post, so the comparison is like-for-like.
+
+The 1 errored case (`1.4.1 error-validation-color-only/case-05`) is excluded from every denominator.
+It is a **harness crash, not a judge miss**: `<input id="children" name="children">` inside a `<form>`
+makes `form.children` an own property returning the input (HTMLFormElement named getter), so
+`[...p.children]` throws `p.children is not iterable` at `act-page-collect.js:778`. Fix pending.
+
+| | Table 1k-post | this run | Δ |
+|---|---|---|---|
+| **recall** | 201/313 = **64.2%** | 246/312 = **78.8%** | **+14.6pp** |
+| **FP rate** | 10/79 = 12.7% | 10/79 = **12.7%** | **0.0pp** |
+| precision | 95.3% | **96.1%** | +0.8pp |
+| **F1** | 0.767 | **0.866** | **+0.099** |
+
+Outcome shift on GT-fail cases — aperture and judgment moved together, which is what the change plan
+predicted (the keystone mint loop targets `noObligation`, the rubric work targets `missedAgree`):
+
+| outcome (GT-fail) | before | after | Δ |
+|---|---:|---:|---:|
+| `noObligation` | 36 | 14 | **−22** |
+| `missedAgree` | 67 | 47 | **−20** |
+| `uncertain` | 8 | 3 | −5 |
+| `caught` | 201 | 246 | **+45** |
+
+Per-SC (recall before → after):
+
+| SC | before | after | Δ | FP before → after |
+|---|---|---|---|---|
+| 4.1.3 * | 37.5% | **75.0%** | **+37.5pp** | 0/5 → 0/5 |
+| 2.1.2 | 50.0% | **78.6%** | **+28.6pp** | 0/9 → 0/9 |
+| 1.3.1 | 56.5% | **78.3%** | **+21.7pp** | 0/7 → 1/7 |
+| 1.4.1 * | 53.6% | **74.1%** | **+20.5pp** | 0/14 → 2/14 |
+| 2.4.2 | 84.0% | **96.0%** | +12.0pp | 0/5 → 1/5 |
+| 1.4.13 | 80.0% | 88.0% | +8.0pp | 2/6 → 2/6 |
+| 3.3.1 | 82.8% | 89.7% | +6.9pp | 2/6 → 2/6 |
+| 2.4.3 * | 46.7% | 53.3% | +6.7pp | **5/16 → 2/16** |
+| 1.1.1 | 71.4% | 73.8% | +2.4pp | **1/7 → 0/7** |
+| 2.4.4 | 89.3% | 89.3% | 0.0pp | 0/4 → 0/4 |
+
+**No SC regressed in aggregate.** `TRIAGE_SCS` recall rose **50.0% → 63.2%**. The Table 1k-post
+follow-up on the 2.4.3 clause is partly discharged: its FP count fell 5/16 → 2/16 while recall rose.
+
+**Honest reading of the flat FP rate.** Again unchanged at 10/79, and again the composition shifted —
+**6 eliminated, 6 new**. The rate is stable but it is not the same ten. Case-level ledger vs baseline:
+**56 gained, 10 lost.**
+
+**Four of the six new FPs come from clauses added in this campaign**, each a widening that bought
+recall and carried a tail:
+- `info-relationships-v0` — the fabricated-relationship clause now fires on `<blockquote>` used as a
+  visual callout (1.3.1 case-06).
+- `use-of-color-v0` ×2 — cites the `color-reference-lexicon.js` hint as *corroboration of a barrier*
+  when it was specified as an **applicability-only** signal (same contract as the 1.3.3 lexicon).
+- `page-title-v0` — the F25/TT 12.B instance-discriminator clause flags a category-level title, which
+  is the exact tension that rubric's own soundness caveat names ("2.4.2 needs a DESCRIPTIVE title, not
+  a unique one").
+
+**A known contaminant depresses 1.3.1 in this run.** `control-semantics-v0.md` declares bare
+`sc: 1.3.1` and has **no `RUBRIC_GATE` entry** (`llm-adjudicator.js:159`), so it fired **116 times
+across all 53 1.3.1 cases** — on the page-level pseudo-xpath in every one, plus 63 form-field rows —
+where its F42 premise is false. It answers LIKELY_OK/high on a false premise, filling the obligation
+and displacing the incumbent rubric. It is present in **5 of the 10 recall regressions**. 1.3.1 still
+gained 21.7pp, so the fix is headroom to recover, not damage to repair. Gate predicate already exists
+as `el.emulatedControl === true` (`coverage-registry.js:94`).
+
 ## Table 2 — Held-out generalization gate (581-case full corpus)
 
 Each new deterministic detector evaluated over its **entire** ACT rule, not its tuned examples. Over-fire =

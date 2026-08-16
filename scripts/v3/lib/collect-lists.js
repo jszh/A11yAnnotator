@@ -12,6 +12,18 @@
 // Self-contained so it serializes cleanly through page.evaluate (no closures over Node scope). Both collectors
 // (act-page-collect.js, eval-page.js) run it and fold the result into `structure.lists`.
 function collectLists() {
+  // SHADOW-PROOF element-children read. HTMLFormElement's named getter turns each control's name/id into an
+  // OWN property of the form, shadowing the inherited `children` (and `childNodes`) accessor: a
+  // `<form><input name="children"></form>` makes `form.children` the INPUT, so `[...p.children]` throws
+  // "not iterable". The faux-list scan below collects EVERY parentElement of a p/div/span, and a <form> is a
+  // very common one — this is a live crash path, not a hypothetical. Node.prototype's getter is called
+  // directly so no control name can shadow it. Inlined: collectLists serializes through page.evaluate.
+  // The `l.children` reads in section 1 below are DELIBERATELY left alone: `l` comes from
+  // querySelectorAll('ul,ol,dl'), and HTMLUListElement/HTMLOListElement/HTMLDListElement have no named
+  // getter — only <form> (plus document/window/embed/object) does. Verified, not assumed.
+  const _CHILD_NODES_GET = (Object.getOwnPropertyDescriptor(Node.prototype, 'childNodes') || {}).get;
+  const childNodesOf = (e) => (!e ? [] : (_CHILD_NODES_GET ? _CHILD_NODES_GET.call(e) : (e.childNodes || [])));
+  const elemChildren = (e) => Array.prototype.filter.call(childNodesOf(e), (n) => n.nodeType === 1);
   const clip = (s, n) => (s || '').replace(/\s+/g, ' ').trim().slice(0, n);
   // a LEADING list MARKER a sighted reader perceives: a bullet glyph (•·▪‣◦⁃, the hyphen family, or *), a leading
   // EMOJI, or an ORDERED marker — arabic (1..9999), fullwidth digits, a single letter "a)"/"b)", a roman
@@ -77,7 +89,7 @@ function collectLists() {
     if (b.querySelector('ul,ol,dl,li')) continue;                       // wraps a real list ⇒ not a faux one
     if (b.querySelectorAll(':scope > br').length < 2) continue;
     const segs = []; let cur = '';
-    for (const n of b.childNodes) {
+    for (const n of childNodesOf(b)) {
       if (n.nodeType === 1 && n.tagName === 'BR') { segs.push(cur); cur = ''; } else cur += (n.textContent || '');
     }
     segs.push(cur);
@@ -97,7 +109,7 @@ function collectLists() {
   for (const p of parents) {
     if (fauxCount >= 12) break;
     if (/^(UL|OL|DL)$/.test(p.tagName) || inRealList(p)) continue;
-    const kids = [...p.children].filter((c) => /^(P|DIV|SPAN)$/.test(c.tagName));
+    const kids = elemChildren(p).filter((c) => /^(P|DIV|SPAN)$/.test(c.tagName));
     if (kids.length < 3) continue;
     const tally = {}; for (const c of kids) tally[c.tagName] = (tally[c.tagName] || 0) + 1;
     const dominant = Object.keys(tally).sort((a, b) => (tally[b] - tally[a]) || (a < b ? -1 : 1))[0];

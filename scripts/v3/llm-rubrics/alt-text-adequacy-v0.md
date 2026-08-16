@@ -48,7 +48,38 @@ deterministic runner already disposed this obligation, DEFER — you are only ha
   wording of the CORRECT referent.
 - **Wrong purpose for a functional image — ONLY when the image IS the control's SOLE name.** A linked/iconed
   control whose accessible name comes ONLY from the image must convey the ACTION (where it goes / what it does),
-  not merely the picture. **But if the enclosing link/button ALREADY has its own accessible name** — its own link
+  not merely the picture.
+  **NAMING THE FUNCTION IS THE REQUIREMENT, NOT ONE ACCEPTABLE OPTION AMONG SEVERAL.** When the image is the
+  control's only name, that name is the ONLY thing a non-sighted user is given to decide whether to activate
+  the control, so it must state what activating it DOES. A name that identifies the OBJECT DEPICTED — the
+  device, emblem, symbol, place, creature or product drawn in the icon — instead of the action is INADEQUATE,
+  and it is inadequate **even when it is an accurate, well-observed, well-written description of the
+  picture.** Accuracy of description is not the test here and must never be offered as the reason to clear:
+  a perfectly correct label for the drawing is exactly the failure this mode names. Nor may you rescue it by
+  reasoning that the icon is conventional, that most users would infer the action, that the depicted object
+  is associated with the action, or that a sighted user would understand it — 1.1.1 asks what the ANNOUNCED
+  TEXT conveys, and it must convey the function without that inference.
+  So, before clearing one of these: **say in your own words what the control DOES when activated, then check
+  whether the announced name says that.** If your sentence needs "which is used for…", "which represents…",
+  "which stands for…", or "which the user would recognise as…" to bridge from the name to the action, the
+  bridge is the barrier → REPRODUCED. This holds for every control whose only name comes from an image —
+  an `<img>` inside a link or button, an `<area>` hotspot in an image map, an `<svg>`/`role=img` that is a
+  control's sole label — and it holds INDEPENDENTLY for each such control on a page: sibling controls that
+  DO name their actions correctly are evidence about themselves only, never a reason to soften the one that
+  does not. **Judge only what is ANNOUNCED:** a visible caption, tooltip or label that is `aria-hidden`, or
+  otherwise absent from the accessible name, supplies the function to sighted users and to NO ONE ELSE — it
+  cannot be credited here.
+  *Guard — the one case where naming the subject IS naming the function.* When the control's destination or
+  effect literally IS the depicted thing — a thumbnail that opens the full-size version of that same image, a
+  portrait linking to that person's own profile, a cover linking to that publication, a brand mark linking to
+  that brand's own page — the subject and the outcome coincide, so naming the subject DOES tell the user what
+  they will get. **The depicted thing must BE what you get, not a symbol standing in for it.** An object that
+  merely SYMBOLISES or is conventionally ASSOCIATED with the action — an object standing for a task, an
+  emblem standing for a place, a category, a preference, or a choice the control applies — is the FAILURE
+  MODE above, not this guard, and "a recognised symbol for that action" is the very inference 1.1.1 refuses to
+  make the user perform. Apply this guard only when you can say the destination and the depiction are the
+  same thing.
+  **But if the enclosing link/button ALREADY has its own accessible name** — its own link
   TEXT, an `aria-label`, or `aria-labelledby` (e.g. `<a>` with visible text "W3C home", or `aria-label="Web
   Accessibility Initiative"`, wrapping an `<svg>` named "star") — then the SVG/icon is NOT the control's name: it
   is decorative-or-redundant *within* an already-named control, and its own short name ("star") is FINE (judge it
@@ -92,6 +123,10 @@ deterministic runner already disposed this obligation, DEFER — you are only ha
   alt's purpose requires — a chart's data labels, a screenshot of an error message, an infographic whose
   content IS the words. "The alt does not transcribe the incidental signage visible in the photograph" is
   not a 1.1.1 finding; this over-reach produced this rubric's only false positive.
+  **SCOPE — this caveat is about images judged AS IMAGES, and it does NOT reach a control's sole name.**
+  Where the image is the only name of a link or button, "an alt that says what the image IS" is not the
+  adequate answer, it is the failure: the equivalent purpose of a control's name is its FUNCTION. Do not
+  carry this caveat's licence across to the functional-image mode above.
 - Do not judge contrast/sizing here; another rubric owns those.
 
 **Output:** STRICT JSON `{verdict, confidence, summary, reasoning, evidenceRefs}`. verdict ∈

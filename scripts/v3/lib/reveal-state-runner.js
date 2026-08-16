@@ -70,6 +70,21 @@ async function runReveal(page, { aspect, triggerSelector, interaction, revealedS
     return { decided: true, verdict: 'pass', reason: 'focus can leave the composite widget via Tab and Shift+Tab' };
   }
   // ---- 2.4.3 F85 reveal-then-check focus order: focus moves INTO a dialog/menu + RETURNS on close ----
+  //
+  // NOT WIRED INTO PRODUCTION, AND DELIBERATELY SO. Nothing mints a `reveal-then-check-focus-order`
+  // candidate from a live page — `exp-runners.js` calls runReveal only with `arrow-key-composite-widget-trap`
+  // (2.1.2) — so this branch is exercised ONLY by its capability suite
+  // (eval/capability-tests/C2-reveal/reveal-then-check-focus-order/), where the trigger and the revealed
+  // region are both handed to it by selector.
+  //
+  // Before wiring it up, know why it was not: the `managesFocus` predicate below treats any
+  // role=dialog/menu/listbox as focus-managing, and therefore requires focus to be moved INTO it. That is
+  // wrong for a NON-modal dialog, which Understanding 2.4.3's own worked example says conforms by being
+  // placed immediately after its trigger in the focus order, with no focus move at all. Measured against
+  // real pages, this predicate FAILS a conforming non-modal disclosure — a false positive on exactly the
+  // shape the Understanding blesses. The production 2.4.3 lane instead uses the ADJACENCY-or-focus-move
+  // test in kbd-graph.js `collectRevealedFocusOrder`, which accepts either route as the Understanding does.
+  // Fix this predicate to match before considering it for the live lane.
   if (aspect === 'reveal-then-check-focus-order') {
     await page.focus(trig).catch(() => {});
     await activate(page, trig, interaction || 'click');

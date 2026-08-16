@@ -407,6 +407,10 @@ async function runBroadScopeForUrl(url, opts = {}) {
     const motionPage = await open();
     try {
       probes.reducedMotion = await probeReducedMotion(motionPage);
+      // COLLECTOR LIVENESS: lift any collectMotion throw into the existing `scopeWarnings` channel, which
+      // build-v3 already folds into results.broadScopeWarnings + summary.broadScopeWarnings. Without this the
+      // 2.2.2 lane can report "nothing is moving" on a page whose motion snapshot never actually ran.
+      scopeWarnings.push(...(probes.reducedMotion.scopeWarnings || []));
       for (const c of probes.reducedMotion.candidates || []) {
         const evidenceClaims = ['auto-motion-persists', 'duration-or-looping'];
         if (c.workingPauseStopHide) evidenceClaims.push('working-pause-stop-hide');
@@ -822,6 +826,9 @@ async function probeReducedMotion(page) {
   const controlEvidence = await exerciseMotionControls(page, persistent.map((m) => m.path));
   return {
     kind: 'reduced-motion-probe',
+    // liveness warnings ride the probe result so runBroadScopeForUrl can lift them into `scopeWarnings`
+    // (the existing channel build-v3 aggregates); empty on a healthy page.
+    scopeWarnings: controlEvidence.livenessWarnings || [],
     before,
     after,
     controlEvidence,
@@ -843,6 +850,19 @@ async function probeReducedMotion(page) {
 }
 
 async function exerciseMotionControls(page, targetPaths) {
+  // COLLECTOR LIVENESS. `page.evaluate(collectMotion).catch(() => ({ moving: [] }))` below turns an in-page
+  // THROW into "nothing on this page is moving" — the 2.2.2 lane then reports a clean pass for a page it never
+  // actually measured. Two lanes in this repo have already shipped dead behind exactly this shape. The fallback
+  // VALUE is unchanged (an empty snapshot still flows, nothing new can crash); the throw is merely recorded and
+  // returned so probeReducedMotion can push it into `scopeWarnings` — the warning channel build-v3 already
+  // aggregates into `broadScopeWarnings` (results list + summary count).
+  const livenessWarnings = [];
+  const motionSnapshot = async (phase) => {
+    try { return await page.evaluate(collectMotion); } catch (e) {
+      livenessWarnings.push(`collector-liveness: collectMotion threw during exerciseMotionControls (${phase}) — the motion snapshot is EMPTY by fallback, not by measurement: ${String((e && e.message) || e).replace(/\s+/g, ' ').slice(0, 200)}`);
+      return { moving: [] };
+    }
+  };
   const uniqueTargets = [...new Set((targetPaths || []).filter(Boolean).map(String))];
   if (!uniqueTargets.length) return { completed: true, controls: [], attempts: [], workingTargetPaths: [] };
   const controls = await page.evaluate(() => {
@@ -878,7 +898,7 @@ async function exerciseMotionControls(page, targetPaths) {
   const attempts = [];
   const activeByPath = (snapshot) => new Map((snapshot.moving || []).map((m) => [m.path, m.active]));
   for (const control of controls) {
-    const before = await page.evaluate(collectMotion).catch(() => ({ moving: [] }));
+    const before = await motionSnapshot('before-activation');
     let clicked = false;
     let error = '';
     try {
@@ -888,7 +908,7 @@ async function exerciseMotionControls(page, targetPaths) {
     } catch (e) {
       error = e && e.message ? String(e.message) : String(e);
     }
-    const after = await page.evaluate(collectMotion).catch(() => ({ moving: [] }));
+    const after = await motionSnapshot('after-activation');
     const beforeActive = activeByPath(before);
     const afterActive = activeByPath(after);
     const affectedTargetPaths = uniqueTargets.filter((path) => beforeActive.get(path) === true && afterActive.get(path) !== true);
@@ -896,7 +916,7 @@ async function exerciseMotionControls(page, targetPaths) {
     attempts.push({ ...control, clicked, error, affectedTargetPaths });
     if (working.size === uniqueTargets.length) break;
   }
-  return { completed: true, controls, attempts, workingTargetPaths: [...working].sort() };
+  return { completed: true, controls, attempts, workingTargetPaths: [...working].sort(), livenessWarnings };
 }
 
 async function probeForcedColors(page) {
@@ -948,13 +968,21 @@ async function probeForcedColors(page) {
 async function probeAudioAutoplay(page, opts = {}) {
   const waitMs = Number.isFinite(opts.waitMs) ? opts.waitMs : 3300;
   const collect = () => page.evaluate(() => {
+    // SHADOW-PROOF element-children read. HTMLFormElement's named getter makes each control's name/id an OWN
+    // property of the form, shadowing the inherited `children`/`childNodes` accessors — so on
+    // `<form><input name="children"></form>` the spread below throws "not iterable". `pathOf` walks EVERY
+    // ancestor of a media/control element, so any page whose control sits inside a form with such a name
+    // crashes the probe. Node.prototype's getter is called directly (own properties cannot shadow it);
+    // inlined because this function serializes through page.evaluate and cannot close over module scope.
+    const _CHILD_NODES_GET = (Object.getOwnPropertyDescriptor(Node.prototype, 'childNodes') || {}).get;
+    const elemChildren = (e) => (e ? Array.prototype.filter.call(_CHILD_NODES_GET ? _CHILD_NODES_GET.call(e) : (e.childNodes || []), (n) => n.nodeType === 1) : []);
     const pathOf = (el) => {
       if (el.id) return `#${CSS.escape(el.id)}`;
       const parts = [];
       let node = el;
       while (node && node.nodeType === Node.ELEMENT_NODE && node !== document.body) {
         const tag = node.tagName.toLowerCase();
-        const siblings = [...node.parentElement.children].filter((x) => x.tagName === node.tagName);
+        const siblings = elemChildren(node.parentElement).filter((x) => x.tagName === node.tagName);
         const nth = siblings.length > 1 ? `:nth-of-type(${siblings.indexOf(node) + 1})` : '';
         parts.unshift(`${tag}${nth}`);
         node = node.parentElement;
@@ -1867,6 +1895,13 @@ async function probeRevealStates(page, opts = {}) {
 async function probeVisualStructureDiscovery(page, opts = {}) {
   const limit = Number.isFinite(opts.limit) ? opts.limit : 50;
   return page.evaluate((max) => {
+    // SHADOW-PROOF element-children read — HTMLFormElement's named getter turns a control's name/id into an
+    // OWN property of the form, shadowing the inherited `children`/`childNodes` accessors, so on
+    // `<form><input name="children"></form>` a spread of `el.children` throws "not iterable". This probe
+    // walks `body *`, so it lands on every form on the page. Node.prototype's getter is called directly
+    // (own properties cannot shadow it); inlined because this arrow serializes through page.evaluate.
+    const _CHILD_NODES_GET = (Object.getOwnPropertyDescriptor(Node.prototype, 'childNodes') || {}).get;
+    const elemChildren = (e) => (e ? Array.prototype.filter.call(_CHILD_NODES_GET ? _CHILD_NODES_GET.call(e) : (e.childNodes || []), (n) => n.nodeType === 1) : []);
     const esc = (s) => (window.CSS && CSS.escape) ? CSS.escape(s) : String(s).replace(/[^a-zA-Z0-9_-]/g, '\\$&');
     const pathOf = (el) => {
       if (el.id) return `#${esc(el.id)}`;
@@ -1902,7 +1937,7 @@ async function probeVisualStructureDiscovery(page, opts = {}) {
       const r = el.getBoundingClientRect();
       const fontSize = Number.parseFloat(s.fontSize) || 0;
       const fontWeight = Number.parseInt(s.fontWeight, 10) || 400;
-      const children = [...el.children].filter(visible);
+      const children = elemChildren(el).filter(visible);
       const directTexts = children.map(textOf).filter((t) => t.length >= 2);
       const bulletChildren = children.filter((c) => /^[•●▪◦\-*]\s+\S/.test(textOf(c)) || getComputedStyle(c, '::before').content.replace(/^["']|["']$/g, '').match(/^[•●▪◦\-*]$/));
       const gridChildren = children.filter((c) => {
@@ -3199,6 +3234,7 @@ module.exports = {
   probeTextSpacing,
   probeResizeText,
   probeReducedMotion,
+  collectMotion, // exported for the collector-liveness RUNTIME test (must be evaluated in a real page)
   probeForcedColors,
   probeAudioAutoplay,
   probeFlashTemporal,

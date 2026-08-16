@@ -64,21 +64,44 @@ the KIND of page — a receipt, a statement, a person's record, a result list, a
 page's actual subject is one particular instance of that kind. A user with many tabs open, or reading a
 browser history list, cannot tell such pages apart, which is the capability 2.4.2 exists to provide.
 
-So: after confirming the title names the page's topic, ask whether the page has an INSTANCE
-DISCRIMINATOR visible on screen — an order/invoice/reference number, a person or place name, a date, a
-search query, a result count, a document title — and whether the `<title>` carries it. **If the viewport
-shows a discriminator and the title omits it, that is a barrier.** No new instrument is needed: every
-discriminator this applies to is on screen in the crop you already have. Name the specific one you found.
+So: after confirming the title names the page's topic, work the test in THREE ORDERED STEPS, and stop at the
+first one that resolves it. No new instrument is needed — everything you need is in the viewport you have.
 
-*Guard — do NOT invent this failure.* A page that genuinely has no instance (a home page, an "About us",
-a section landing page, a generic contact form) has no discriminator to carry, and its class-level title is
-correct. And a title that carries the discriminator in a suffix or prefix, alongside a site or
-section name, is fine — the requirement is that the information be there, not where it sits.
+1. **Read what the page presents as ITS OWN identity.** That is its main heading — the `<h1>`, or the
+   dominant title text at the top of the content if there is no `<h1>` — TOGETHER WITH any identifier the
+   page displays as part of NAMING ITSELF: in or immediately beside that heading, in a subtitle/eyebrow line,
+   or in a summary block whose job is to say which record this is (a reference/order/invoice/case number, a
+   named person or place, a date or period, a version, a search query). Detail that merely appears SOMEWHERE
+   IN THE BODY is CONTENT, not the page's identity: a value inside a table, a measurement, a figure caption,
+   a byline, a footer stamp, one item among many in a list. Do NOT go hunting through the body for a
+   discriminator the page itself does not use to name itself.
+2. **Compare the `<title>` against that heading.** If the title carries the heading's identifying
+   substance — the same subject, with none of the heading's identifying words dropped — then the title
+   DESCRIBES this page and you are **FINISHED: NOT REPRODUCED.** Wrapping it in a site or section name, in
+   either order, does not weaken it, and neither does terseness. A title that already says what the page's
+   own heading says cannot be failed by this clause at all: asking for MORE identification than the page
+   claims about itself is 2.4.6's stricter facet, not 2.4.2's.
+3. **Only if the title DROPS identifying words the heading carries**, ask what those dropped words do. The
+   barrier is the narrow case where what remains names only the CLASS of page while the heading names one
+   particular MEMBER of that class — a specific record, document, transaction, product, subject, or numbered
+   step — so the title would read identically for every other member of the class. **Name the exact words
+   the heading has and the title lacks, and say what they identify.** If you cannot quote such words from the
+   heading, there is no barrier here.
+
+*Guard — do NOT invent this failure.* A page that genuinely has no single instance as its subject (a home
+page, an "About us", a section/category view, a dashboard, a generic contact form) has no discriminator to
+carry, and its class-level title is correct — a section page's subject IS the section, so naming the section
+NAMES the page, even when that page sits in an obvious multi-page set and even when it displays plenty of
+specific data. A title that carries the discriminator in a suffix or prefix alongside a site or section name
+is fine — the requirement is that the information BE there, not where it sits.
 
 **WCAG soundness caveats:**
 - 2.4.2 needs a DESCRIPTIVE title, not a unique-across-the-site one (that overlaps 2.4.x but is not the test).
-  The instance-discriminator test above is NOT a uniqueness test: it asks whether the title describes THIS
-  page, and a page whose subject is one specific record is not described by the bare name of its category.
+  The instance-discriminator test above is NOT a uniqueness test, and you must not let it drift into one: it
+  asks whether the title describes THIS page, and a page whose subject is one specific record is not
+  described by the bare name of its category. Its anchor is the page's OWN heading, precisely so it cannot
+  become "would this string be unique across the site?" — a title matching the page's own heading is
+  descriptive by definition, and "another page could in principle be titled the same" is NOT a finding.
 - Do not require an exact string match: a title that PARAPHRASES the topic accurately is fine. Flag only a
   genuine mismatch or a non-descriptive stand-in, not a reasonable rewording.
 - If the viewport does not reveal the page's topic (content below the fold / not captured), return PARTIAL

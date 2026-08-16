@@ -38,6 +38,19 @@ evidence and has produced false barriers here before. This is a RULE with exactl
 must come from `compute_contrast_ratio` (or `resolve_part_color`) on the two colours you are comparing, or
 from the signals. There is no third source.
 
+**AND DO NOT ASSERT A COLOUR, A BORDER, OR A STATE YOU HAVE NOT SEEN.** The rule above governs the colours
+themselves, not just the ratios between them. Before writing that an element "is red", "has a coloured
+border/outline/background", or "is in the error / required / selected state", you must be able to POINT to
+that appearance in the crop, resolve it with `resolve_part_color`, or read it out of the signals. Naming a
+cue that is not on the page is the fastest way to invent a barrier on a page that has none — and it is
+indistinguishable, in the output, from a real finding. If you cannot confirm the appearance, return PARTIAL.
+**Read a peer group the right way round, too.** When SOME members of a structural peer group carry the coded
+appearance (a coloured border, a coloured label) *together with* its accompanying text or icon, and the
+member in front of you carries NEITHER the colour NOR that text, the correct reading is that this member is
+in the DEFAULT state — not that it is in the coded state with its non-colour cue missing. An element showing
+no cue of any kind is not a colour-alone failure; it is an element the coding does not apply to. Demanding an
+"error"/"required" indicator on a member that is not in that state inverts the criterion.
+
 **A GRAYSCALE OR CVD RE-RENDER IS NOT EVIDENCE THAT A CUE SURVIVES.** `render_with_overrides(grayscale)`
 maps each colour to its LUMINANCE, so two hues that differ in lightness — red vs green, the commonest shape
 this criterion covers — come back as visibly different shades and the re-render appears to "confirm" a cue
@@ -57,21 +70,65 @@ the DIFFERENCE. Two questions, in order:
    there and there is no barrier.
 2. **If it is, is that information also available without colour?** A per-item text label, an icon or
    pattern on each item, an accessible name, or a legend entry attached to each item all satisfy G14/G182.
-   A legend that maps colour→meaning in a SEPARATE key does NOT: the reader still has to perceive which
-   colour each item is to use it.
+   A separate key that maps colour→meaning by HUE NAME does NOT: the reader still has to perceive which
+   colour each item is to use it. (A key that names its states by a non-hue property is the one exception —
+   apply the key/legend test below, verification included.)
 Only if colour carries information AND nothing else conveys it is this a barrier. Colour-uniform groups,
 zebra striping, syntax highlighting, images and text-less swatches were already excluded before you saw it.
 
-**COLOUR REFERENCED IN INSTRUCTIONS (`signals.*colorReferences`, F81 / Understanding 1.4.1).** Prose that
-tells the reader to identify content by its colour is the Understanding's own example of this failure — it
-gives "required fields are shown in red" — because a reader who cannot distinguish the colours named cannot
-follow the instruction. The same applies to any instruction that picks out controls, rows, states or
-regions by colour and gives the reader no other way to find them. It is a barrier UNLESS the instruction
-ALSO supplies a non-colour means ("...shown in red and marked with an asterisk"), or the elements it refers
-to carry a distinguishing label the instruction could have used instead.
+**COLOUR REFERENCED IN INSTRUCTIONS (`signals.*colorReferences`, F81 / Understanding 1.4.1).**
+
+**THIS SIGNAL IS APPLICABILITY ONLY. IT IS A WORDING MATCH, NEVER A FINDING.** The detector matches
+grammatical CONSTRUCTIONS in prose — a presentation verb followed by a colour word, a colour word attached to
+a UI noun, an explicit "colour-coded" phrase. All a hit tells you is that THIS TEXT is in scope for a colour
+judgment: go and look. It is **not** evidence that colour is the only cue, **not** corroboration for a
+barrier you were already leaning toward, and it says **nothing whatsoever about any element other than the
+one whose own text matched**. So:
+- NEVER write that a barrier is confirmed by, supported by, or corroborated by a colour-reference hint. The
+  hint cannot confirm anything; it only opened the question.
+- NEVER carry a hit on one element's prose across to a verdict on a DIFFERENT element. A page-level sentence
+  does not make each control's own state colour-only — every element is judged on its own pixels and signals.
+- If the only thing supporting your barrier is that the lexicon fired, you have NO barrier: return NOT
+  REPRODUCED, or PARTIAL if the pixels are genuinely ambiguous.
+
+Once in scope, judge the instruction ITSELF, on its own words. Prose that tells the reader to identify
+content by its colour is the Understanding's own example of this failure — it gives "required fields are
+shown in red" — because a reader who cannot distinguish the colours named cannot follow the instruction. The
+same applies to any instruction that picks out controls, rows, states or regions by colour and gives the
+reader no other way to find them. It is a barrier UNLESS the instruction ALSO gives the reader a way to tell
+its referents apart WITHOUT perceiving hue — an added marker or text ("...shown in red and marked with an
+asterisk"), a position, an order, a shape, or a stated LIGHTNESS/shade difference between the coded states —
+or the elements it refers to carry a distinguishing label the instruction could have used instead. See the
+key/legend test below for how to decide whether that alternative actually works, and verify it before you
+credit it.
 *Guard:* a colour word used descriptively about a thing in the world — a product's colour, an ingredient,
 a proper name that happens to contain a colour word — identifies nothing ON THE PAGE and is not in scope.
 The test is whether a reader is being told to FIND something by its colour. If not, return N/A.
+
+**WHEN A KEY OR LEGEND COUNTS (G14 / G182) — the test is whether a reader can APPLY it WITHOUT hue.** Pages
+often explain their own colour coding in text. Such an explanation is neither automatically worthless nor
+automatically sufficient. Ask exactly one question: could a reader who cannot distinguish the hues involved
+USE this key to reach the same information a sighted reader gets?
+- A key phrased ONLY in hue names — one hue means this, another hue means that — CANNOT be applied by that
+  reader. They can see that two items differ; the key gives them no way to say WHICH is which. The
+  information remains colour-only ⇒ **the barrier stands.** This is the ordinary case, and it covers the
+  colour-only chart, map, calendar or status-table key however carefully it is worded.
+- A key that STATES a distinguishing property of the coded items which SURVIVES colour-vision loss — that one
+  state is lighter and the other darker, or that one carries a marker, icon, outline, shape or pattern the
+  other lacks — CAN be applied: the reader uses the stated property, not the hue. Then the information is not
+  conveyed by colour ALONE ⇒ **not a barrier for the states that key covers.** The key must SAY the property;
+  a key that merely happens to list its entries in some order has not given the reader anything, because
+  nothing tells them the coded items are ordered the same way.
+- **This exception is for a SMALL, EXPLICITLY CONTRASTED set of states — in practice two.** "Lighter versus
+  darker" is a distinction a reader can actually make; a ranking across four or six colour-coded categories
+  is not, so a multi-category series does not escape this way even if some lightness spread exists.
+- **VERIFY the property the key claims; do not take its word for it.** If it claims a lightness/shade
+  difference, MEASURE it (`compute_contrast_ratio` between the two used colours; read ≥3:1 as sufficient
+  separation, the threshold G183 uses). If it claims a marker, icon or shape, find it in the crop. A key
+  asserting a non-hue difference the page does not actually have is not a remedy — the barrier stands, and
+  you should say the key is inaccurate.
+- Per-item remedies always suffice and need no key at all: a text label, an icon or pattern on each item, or
+  an accessible name carrying the state (G14/G182).
 
 **CATEGORY CODING WITHOUT A KEY (G14 / G182).** A chart, map, legend, calendar, or status table that encodes
 a category ONLY by fill colour fails even when every colour is far apart in luminance: the reader can see
@@ -79,7 +136,7 @@ that two regions differ but cannot tell WHICH category each one is. G14 requires
 available without colour, and G182 gives the standard remedy — an additional visual pattern (hatching,
 texture, shape, direct labelling) or a text/symbol key attached to each series. So do not clear a
 colour-coded series because "the colours are clearly different"; ask whether a reader who cannot use hue
-can still map each region to its category.
+can still map each region to its category — the key/legend test above is exactly that question.
 
 **Judge:** is there a SECOND, non-color cue carrying the same information — or is color the only thing
 distinguishing the states? Two classic failure modes:
@@ -127,7 +184,12 @@ abstain rather than clear.
 - CRITICAL GUARD — the ≥3:1 escape is F73-ONLY; do NOT extend it to F81 states whose meaning relies on
   perceiving a SPECIFIC color (green=valid / red=invalid, red=required, color-keyed legend states): there
   the user must recognize WHICH color, not merely that the element stands apart, so an additional non-color
-  indicator (icon, text, asterisk, shape, border) is required REGARDLESS of contrast ratio.
+  indicator (icon, text, asterisk, shape, border) is required REGARDLESS of contrast ratio. The ONE situation
+  in which a lightness separation does resolve an F81 state is the key case above — where the page's own text
+  identifies its states by LIGHTNESS rather than by hue, so the reader never has to recognise WHICH colour,
+  AND you have measured that the stated separation is really there. A key that names its states by hue does
+  not qualify, however far apart those two colours happen to sit in luminance: knowing the two differ still
+  does not tell the reader which one the key was talking about.
 - When the crop cannot settle whether a second cue is present, return PARTIAL rather than guessing.
 
 **Output:** STRICT JSON `{verdict, confidence, summary, reasoning, evidenceRefs}` — summary = ONE sentence

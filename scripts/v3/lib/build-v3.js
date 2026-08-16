@@ -20,6 +20,7 @@ const xa = require('./cross-artifact.js');
 const obl = require('./obligations.js');
 const oracle = require('./applicability-oracle.js');
 const qualweb = require('./checker-qualweb.js'); // C2: QualWeb authoritative two-lane checker (barrier + definitive-silent clear)
+const confusable = require('./confusable-text.js'); // 1.1.1 glyph-substitution detector — mints its own obligations (see below)
 const schemas = require('./schemas.js');
 const attest = require('./attestation.js');
 const manifest = require('./manifest.js');
@@ -505,6 +506,67 @@ function buildV3(bundle, opts = {}) {
     seenTrap.add(id);
     trapMintedObligations.push({ obligationId: id, xpath, sc: o.sc, claimFamily: o.claimFamily });
   }
+  // CONFUSABLE-TEXT obligations (1.1.1 text-lookalike-glyph-substitution) — the same missed-mint shape as the
+  // keystone above. `detectConfusableText` is a shipped deterministic detector, but its ONLY consumer was the
+  // adjudicator's per-element evidence bundle (llm-adjudicator.js:240), which runs per ENUMERATED OBLIGATION.
+  // Glyph-substituted text ("𝗦𝘂𝗺𝗶 𝗧𝗮𝗻𝗮𝗸𝗮" in Mathematical Alphanumeric Symbols, "ϲоοk" in Cyrillic/Greek
+  // homoglyphs) lives on an <h1>/<p>/<span>, and applicability-oracle.js enumerates 1.1.1 only for GRAPHIC
+  // surfaces (img/svg/canvas/role=img/bg-image), so the detector's finding had no obligation to attach to: on
+  // text-lookalike-glyph-substitution/case-06 the only obligations minted were on the unrelated role="img"
+  // avatar div, and the barrier never reached a judge. MINT one per carrier, exactly like axe-decided /
+  // deterministic-barrier / instrument-trap.
+  //
+  // INNERMOST-ONLY. The collected `text` is innerText, so EVERY ancestor of a substituted word inherits it and
+  // the raw detector fires on <section>, <h1> and <span> alike (measured on case-01: 3 hits for 1 barrier).
+  // Only a carrier with no confusable DESCENDANT is minted, which lands the obligation on the element that
+  // actually owns the glyphs — and keeps one page's aperture at the number of distinct substituted runs.
+  //
+  // NON-authoritative by construction: this mints an OBLIGATION and no observation, so it lands auto-PARTIAL →
+  // an LLM PROVISIONAL fill. That is deliberate — "is this substitution a barrier" is a judgment the detector
+  // itself refuses to make (a fully-Cyrillic word under a matching declared lang is legitimate text), and the
+  // detector's own FP gates (mixed-script, the ≥4-letter fully-foldable floor, the SCRIPT_LANGS exemption) are
+  // what keep the mint bounded. A correctly-encoded near-miss — case-05's "RX-O0OO" SKU, Latin O + digit 0 —
+  // contains no non-ASCII codepoint at all and never reaches this loop.
+  //
+  // LETTER-BEARING GATE (found by measuring this mint's own held-out aperture, not by reasoning). The
+  // detector's `fullwidth` lane folds the whole U+FF01–FF5E block, PUNCTUATION included — and （ ） ／ ＋ ｜ ：
+  // are the CORRECT full-width forms in Japanese typography, not a spoof. Ungated, 9 of the 15 pages this
+  // mint fired on across eval/act-augmented were Japanese pages whose only "substitution" was a full-width
+  // bracket. 1.1.1 glyph substitution is text that RENDERS AS WORDS while not being letters, so mint only
+  // when the fold actually REPLACES a codepoint with an ASCII LETTER. The fold is codepoint-aligned with its
+  // input by construction (confusable-text.js emits exactly one character per input code point), so this is
+  // an exact positional comparison rather than a sample heuristic — and it is capped by asciiFold's own
+  // 200-char slice, hence the min-length walk. Full-width DIGITS are deliberately not enough on their own:
+  // they carry the Nd category and assistive technology reads them correctly.
+  const foldReplacesALetter = (src, cf) => {
+    const a = [...String(src || '')];
+    const b = [...String((cf && cf.asciiFold) || '')];
+    const n = Math.min(a.length, b.length);
+    for (let i = 0; i < n; i++) if (a[i] !== b[i] && /^[A-Za-z]$/.test(b[i])) return true;
+    return false;
+  };
+  const confusableObligations = [];
+  const seenConf = new Set();
+  {
+    const carriers = [];
+    for (const el of (bundle.collect && bundle.collect.elements) || []) {
+      if (!el || typeof el.xpath !== 'string' || !el.xpath) continue;
+      if (carriers.length >= 200) break;
+      const probe = (typeof el.text === 'string' && el.text) ? el.text : (typeof el.axName === 'string' ? el.axName : '');
+      if (!probe) continue;
+      const cf = confusable.detectConfusableText(probe, typeof el.nearestLang === 'string' ? el.nearestLang : null);
+      if (cf.hasConfusables && foldReplacesALetter(probe, cf)) carriers.push(el.xpath);
+    }
+    for (const xpath of carriers) {
+      // `a/b` is a descendant of `a`; `a>>c` is a shadow-root descendant of `a` (the collector's frame/shadow form).
+      if (carriers.some((o) => o !== xpath && (o.startsWith(xpath + '/') || o.startsWith(xpath + '>>')))) continue;
+      const id = oracle.oblId(xpath, '1.1.1', 'non-text-content');
+      if (existingOblIds.has(id) || seenChk.has(id) || seenAxe.has(id) || seenDet.has(id) || seenTrap.has(id) || seenConf.has(id)) continue;
+      seenConf.add(id);
+      confusableObligations.push({ obligationId: id, xpath, sc: '1.1.1', claimFamily: 'non-text-content' });
+      if (confusableObligations.length >= 12) break; // page cap, mirroring the collector's other bounded lanes
+    }
+  }
   // 1.3.2 MEANINGFUL SEQUENCE (Item 14c): enumerate a PAGE-LEVEL meaning-vs-mechanics obligation ONLY when the vsr
   // detector found a visual-vs-source reorder (gated, never on every page). Page-level, auto-PARTIAL → sequence-meaning-v0.
   const sequenceObligations = [];
@@ -547,7 +609,7 @@ function buildV3(bundle, opts = {}) {
     seenColour.add(id);
     colourGroupObligations.push({ obligationId: id, xpath: anchor, sc: '1.4.1', claimFamily: 'use-of-color' });
   }
-  const obligations = [...staticObligations, ...dynamicObligations, ...checkerObligations, ...axeDecidedObligations, ...detBarrierObligations, ...trapMintedObligations, ...sequenceObligations, ...statusObligations, ...colourGroupObligations];
+  const obligations = [...staticObligations, ...dynamicObligations, ...checkerObligations, ...axeDecidedObligations, ...detBarrierObligations, ...trapMintedObligations, ...confusableObligations, ...sequenceObligations, ...statusObligations, ...colourGroupObligations];
   // C2 — QUALWEB TWO-LANE (barrier + definitive-silent clear): the ONE checker wired as an AUTHORITATIVE
   // obligation disposition (the §2 invariant is carved out for QualWeb — verified counterfactual b49c0236).
   // The pure core turns QualWeb's own per-rule aggregate outcome into barrier/clear/review lane decisions
@@ -953,6 +1015,15 @@ function buildV3(bundle, opts = {}) {
   const triageCandidates = [...triageMap.values()].map((c) => ({ ...c, agreement: c.signals.length }));
 
   // (6) emit v3-only results; refuse if a legacy label somehow survived
+  // Liveness is reported by TWO lanes and must be joined here, because each publishes on its own artifact:
+  // `collect` (act-page-collect's `liveEval`) and `instruments` (run-instruments, which forwards kbd-graph's
+  // `probeActive` sites and survives a lane timeout via partialSink). Joining at the source of each is not an
+  // option — build is the only place that sees both. Tagged by `lane` so a reader can tell a collect-lane
+  // failure from an instrument-lane one; the instruments records already carry their own `phase`.
+  const _liveness = [
+    ...((bundle.collect && Array.isArray(bundle.collect.collectorLiveness)) ? bundle.collect.collectorLiveness.map((l) => ({ lane: 'collect', ...l })) : []),
+    ...((bundle.instruments && Array.isArray(bundle.instruments.collectorLiveness)) ? bundle.instruments.collectorLiveness.map((l) => ({ lane: 'instruments', ...l })) : []),
+  ];
   const stripClaim = (c) => { const { _target, _family, _sc, _authState, disposition, authoritative, ...rest } = c; return rest; };
   const stripPartial = (p) => { const { _target, _family, _sc, authoritative, ...rest } = p; return rest; };
   const results = {
@@ -976,6 +1047,12 @@ function buildV3(bundle, opts = {}) {
       ? { truncated: true, collected: bundle.collect.coverage.collected, domElementCount: bundle.collect.coverage.domElementCount, cap: bundle.collect.coverage.cap,
           note: 'element cap truncated collection — a clear covers only the first N collected elements; a barrier past the cap is NOT excluded (EN C.9.6.2 full-pages)' }
       : { truncated: false },
+    // COLLECTOR LIVENESS (act-page-collect `liveEval`): which `.catch()`-guarded collectors THREW on this page.
+    // Same rail as `coverage` above, one level down: an empty lane must never be mistaken for a measured-empty
+    // lane. Two lanes in this campaign shipped DEAD behind those guards (collect-colour-peers' lost
+    // module.exports; captureInventory's cross-scope reference) and every artifact still read clean, so this is
+    // carried into the published results rather than left to a live console. Empty on a healthy page.
+    collectorLiveness: _liveness,
     dynamicSubjects: dyn.subjects, // post-action discoveries, expanded + reconciled (Rule 13)
     adjudicationRecommendations, // DERIVED view over the un-promoted source:'llm' shadow obs (3.1 unify)
     instrumentFindings, // non-authoritative VSR/keyboard instrument signals (shadow until gold-calibrated)
@@ -1003,6 +1080,13 @@ function buildV3(bundle, opts = {}) {
       cleared: claims.filter((c) => c.observationOutcome === 'NO_BARRIER_OBSERVED' || c.wcagApplicability === 'INAPPLICABLE').length,
       outOfScopeElements: outOfScope.length,
       coverageTruncated: !!(bundle.collect && bundle.collect.coverage && bundle.collect.coverage.truncated), // EN C.9.6.2 full-pages
+      // COUNT + NAMES of collectors that threw on this page (0 / [] on a healthy page). The run harnesses
+      // persist `built.results.summary` per case, so summing this column across a run answers "collector X threw
+      // on N pages" from the saved artifacts alone — which is the whole point: a lane that goes dead has to be
+      // visible in a run I can read afterwards, not only while it is happening.
+      collectorFailures: _liveness.length,
+      collectorFailuresByCollector: _liveness
+        .reduce((m, f) => { m[f.collector] = (m[f.collector] || 0) + 1; return m; }, Object.create(null)),
       dynamicSubjects: dyn.subjects.length,
       adjudicationRecommendations: adjudicationRecommendations.length,
       instrumentFindings: instrumentFindings.length,

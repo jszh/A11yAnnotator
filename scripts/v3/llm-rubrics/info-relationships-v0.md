@@ -289,11 +289,32 @@ from the roles + viewport — but judge it RIGHT, and do not invent a barrier th
       relationships between cells that are not a data grid at all (**WCAG F46**);
     - a heading element on text that does not introduce a section (a byline, a price, a decorative
       pull-quote) — the AT user is given a document outline that does not exist;
-    - `<blockquote>` on first-party prose that is not a quotation;
-    - `<dl>`/`<dt>`/`<dd>` on content that is not term/definition pairs;
+    - `<dl>`/`<dt>`/`<dd>` on content that is not term/definition pairs — a term→definition pairing is
+      announced between items that do not stand in that relation;
+    - `<blockquote>` on first-party prose that is not a quotation — the text is attributed to an outside
+      source that does not exist;
     - `role=`/ARIA that contradicts what the element actually is.
   Judge these on the FACTS: name the relationship the markup declares, then say whether the content
   actually has it. If it does not, that is REPRODUCED. Only return NOT REPRODUCED for the inverted
   direction when the declared structure is accurate and merely invisible.
+  **TWO HARD PRECONDITIONS before you may raise a fabricated-structure barrier. Both, every time.**
+  1. **THE ELEMENT MUST ACTUALLY BE IN THE EVIDENCE.** Name the specific element or attribute you are
+     flagging, as it appears in `signals.structure` or the collected DOM. **Rendered appearance is NOT
+     markup, and you may not infer an element from how something LOOKS.** An indented panel, a tinted or
+     bordered callout box, a left-rule aside, a boxed tip, a shaded sidebar, a large centred line, a
+     two-column band — none of these is evidence that a `<blockquote>`, `<dl>`, `<table>`, `<th>` or heading
+     element exists behind it. Authors produce every one of those with CSS on a plain `<p>` or `<div>`, and a
+     plain `<p>` declares NOTHING and therefore cannot fabricate anything. If the structure you are about to
+     flag is not present in the evidence you were handed, you have not found a fabrication — you have
+     imagined one. DROP the claim entirely (and judge the page's other facets on their own merits); return
+     PARTIAL only if the structural signals themselves are genuinely incomplete.
+  2. **NAME THE FALSEHOOD AND WHO IS MISLED BY IT.** In ONE sentence, state what an AT user is TOLD that is
+     untrue and what they will therefore misunderstand: which cells are claimed to head which, which term is
+     claimed to define which, which outline node they will land on that is not a section, whose words this
+     text is claimed to be. **Sloppy or imprecise authoring is not automatically a 1.3.1 barrier** — the
+     declared structure has to actually SAY something false about this content, not merely be a tidier
+     author's second choice. If the only sentence you can write is that an element is being used for its
+     visual appearance, or that a different element would have been more idiomatic, you do NOT have a
+     finding: that is a style opinion, and 1.3.1 does not adjudicate style. Say the untruth, or drop it.
 
 **Output:** STRICT JSON `{verdict, confidence, summary, reasoning, evidenceRefs}`.

@@ -62,11 +62,36 @@ function probeActive() {
   // but deciding that from rect geometry alone is guesswork, so record it as a fact per stop. Covers both
   // the native top-layer form and the ARIA form; a purely VISUAL scrim declares nothing programmatically
   // and is deliberately left to the judge and the viewport.
-  const openModal = document.querySelector('dialog[open], [aria-modal="true"]');
-  const ownModal = a.closest ? a.closest('dialog[open], [aria-modal="true"]') : null;
+  //
+  // VISIBILITY GATE (2026-08-16). The selector alone matched markup that is NOT open. The commonest shape
+  // for a scripted dialog is to ship its markup at rest inside a `display:none` scrim and toggle a class,
+  // and `[aria-modal="true"]` sits on the dialog INSIDE that scrim — so a page with no dialog showing
+  // stamped `modalOpen: true` on EVERY stop while `insideOpenModal` was false for all of them (the dialog's
+  // own contents are unreachable at rest). The 2.4.3 rubric's containment clause is fact-gated on exactly
+  // that pair, so it fired deterministically on pages with nothing open: a manufactured barrier, measured
+  // as the whole of this SC's false-positive set. The comment above is still right that a purely VISUAL
+  // scrim declares nothing programmatically; the converse — a programmatic declaration inside a HIDDEN
+  // container — is not an open modal either. Same predicate findRevealOpeners uses for a visible control.
+  const modalShowing = (el) => {
+    if (!el) return false;
+    if (el.closest && el.closest('[aria-hidden="true"]')) return false;
+    const cs = getComputedStyle(el);
+    if (cs.display === 'none' || cs.visibility === 'hidden') return false;
+    if (!(el.offsetParent !== null || cs.position === 'fixed')) return false;
+    const br = el.getBoundingClientRect();
+    return br.width >= 1 && br.height >= 1;
+  };
+  let openModal = null;
+  for (const m of document.querySelectorAll('dialog[open], [aria-modal="true"]')) { if (modalShowing(m)) { openModal = m; break; } }
+  let ownModal = a.closest ? a.closest('dialog[open], [aria-modal="true"]') : null;
+  if (ownModal && !modalShowing(ownModal)) ownModal = null;
   return { sentinel: false, seen, xpath: getXPath(a), tag: a.tagName.toLowerCase(),
     rect: { x: Math.round(pinned ? r.left : r.left + window.scrollX), y: Math.round(pinned ? r.top : r.top + window.scrollY), w: Math.round(r.width), h: Math.round(r.height) },
     label,
+    // ROLE + explicit tabindex (2.4.3 redundant-stop pre-computation, redundantStopFacts below). A stop's
+    // TAG alone cannot distinguish a real widget from a generic container that merely carries tabindex.
+    role: (a.getAttribute && a.getAttribute('role')) || null,
+    tabindexAttr: (a.getAttribute && a.getAttribute('tabindex')) || null,
     modalOpen: !!openModal,
     insideOpenModal: !!ownModal,
     modalXpath: ownModal ? getXPath(ownModal) : null };
@@ -94,22 +119,34 @@ async function collectTabOrder(page, opts = {}) {
   // recoverable without touching focus at all: walk, note where the boundary fell, and rotate the recorded
   // sequence to start just after it. Verified to reproduce the user-visible order in all three shapes above.
   await page.evaluate(() => { window.__kbdSeen = new WeakSet(); }).catch(() => {});
+  // COLLECTOR LIVENESS for the two probeActive evaluates. Both are `.catch()`-guarded, and the fallback they
+  // return is `{ sentinel: true }` — which the ring logic reads as a legitimate DOCUMENT-BOUNDARY crossing,
+  // not as a failure. So a dead probeActive does not degrade to "this page has no tab stops"; it fabricates
+  // a plausible boundary, and the rotation logic then anchors the ring on it. The recorded order that every
+  // 2.4.3 judgment rests on would be silently wrong while looking entirely normal. (Two collectors have
+  // already shipped dead in this campaign from exactly this shape of guard, both with a green test suite.)
+  //
+  // Same contract as act-page-collect's `liveEval`: the fallback VALUE is unchanged, so a genuinely broken
+  // page degrades exactly as it does today — the throw merely becomes OBSERVABLE. `err: true` on the
+  // in-loop fallback was already there and was read by nothing; it now has a consumer.
+  const liveness = [];
+  const note = (where, e) => liveness.push({ collector: 'probeActive@' + where, error: String((e && e.message) || e).replace(/\s+/g, ' ').slice(0, 300) });
   // Whatever the page itself focused on load IS the user's first stop, and the walk (which records the
   // element AFTER each Tab) can never see it otherwise — seed it. probeActive also enrols it in the
   // cycle-detection WeakSet, so returning to it still ends the ring.
-  const entry = await page.evaluate(probeActive).catch(() => ({ sentinel: true }));
+  const entry = await page.evaluate(probeActive).catch((e) => { note('entry', e); return { sentinel: true }; });
   const order = [];
   let wrapped = false, exhausted = false, sawNode = false, sentinelStreak = 0;
   let boundaryAt = -1;   // index in `order` after which the document boundary was crossed
   if (!entry.sentinel) {
-    order.push({ index: 0, xpath: entry.xpath, tag: entry.tag, rect: entry.rect, label: entry.label, modalOpen: entry.modalOpen, insideOpenModal: entry.insideOpenModal, modalXpath: entry.modalXpath });
+    order.push({ index: 0, xpath: entry.xpath, tag: entry.tag, rect: entry.rect, label: entry.label, role: entry.role || null, tabindexAttr: entry.tabindexAttr || null, modalOpen: entry.modalOpen, insideOpenModal: entry.insideOpenModal, modalXpath: entry.modalXpath });
     sawNode = true;
   }
   for (let i = 0; i < cap; i++) {
     if (backward) { await page.keyboard.down('Shift'); await page.keyboard.press('Tab'); await page.keyboard.up('Shift'); }
     else { await page.keyboard.press('Tab'); }
     if (process.env.V3_SETTLE_KBD !== '0') await require('./settle.js').awaitFocusSettle(page); // DEFAULT-ON (opt out V3_SETTLE_KBD=0); settle the FOCUSED element before reading activeElement — see settle.js
-    const info = await page.evaluate(probeActive).catch(() => ({ sentinel: true, err: true }));
+    const info = await page.evaluate(probeActive).catch((e) => { note('walk', e); return { sentinel: true, err: true }; });
     // A SINGLE body/sentinel mid-ring is normal — positive tabindex routes focus through the document
     // boundary after the highest tabindex, so only TWO consecutive sentinels (or a WeakSet revisit) is a
     // true wrap (audit: positive-tabindex order was truncated to 1 element by treating the 1st sentinel
@@ -124,7 +161,7 @@ async function collectTabOrder(page, opts = {}) {
     sentinelStreak = 0;
     if (info.seen) { wrapped = true; break; }                                      // revisited ⇒ ring complete
     sawNode = true;
-    order.push({ index: order.length, xpath: info.xpath, tag: info.tag, rect: info.rect, label: info.label, modalOpen: info.modalOpen, insideOpenModal: info.insideOpenModal, modalXpath: info.modalXpath });
+    order.push({ index: order.length, xpath: info.xpath, tag: info.tag, rect: info.rect, label: info.label, role: info.role || null, tabindexAttr: info.tabindexAttr || null, modalOpen: info.modalOpen, insideOpenModal: info.insideOpenModal, modalXpath: info.modalXpath });
   }
   if (!wrapped && order.length >= cap) exhausted = true;
   // UN-ROTATE at the boundary so index 0 is the page's genuine first tab stop. A boundary at the very end
@@ -138,7 +175,10 @@ async function collectTabOrder(page, opts = {}) {
   } else if (boundaryAt >= 0) {
     startAnchored = true;                        // boundary fell at the end ⇒ index 0 is already first
   }
-  return { order, wrapped, exhausted, count: order.length, backward, startAnchored, boundaryAt };
+  // `liveness` is EMPTY on every healthy page (the common case), so it costs nothing to carry and its mere
+  // presence in an artifact is the signal. A repeated 'probeActive@walk' entry means the recorded sequence
+  // is short by that many stops AND may be anchored on a fabricated boundary — read it before the order.
+  return { order, wrapped, exhausted, count: order.length, backward, startAnchored, boundaryAt, liveness };
 }
 
 // Tab-order check (2.4.3): the forward focus order vs the visual order.
@@ -146,6 +186,83 @@ function tabOrderFindings(tab, opts = {}) {
   const items = (tab.order || []).map((s) => ({ xpath: s.xpath, rect: s.rect, label: s.label }));
   const r = visualOrderDivergence(items, { sc: '2.4.3', kind: 'tab-order', rowBand: opts.rowBand });
   return { findings: r.findings, comparable: r.comparable };
+}
+
+// ── REDUNDANT / MEANINGLESS TAB STOP pre-computation (2.4.3) ────────────────────────────────────────
+// 2.4.3 is not only about the ORDER of the stops: the Understanding's own failure example is a stop that
+// should not exist at all — "a control appearing to receive focus multiple times due to the use of nested
+// focusable elements. <div tabindex="0"><button>...</button></div>". A page with that shape records a
+// sequence in perfect visual order, so an order-only reading of the ring answers "this preserves meaning"
+// — correctly, on the question it was asked — and the defect is invisible.
+//
+// Both signatures are decidable from the ring we already collected, with no extra driving:
+//  (a) WRAPPER-THEN-CHILD. Two CONSECUTIVE stops where the first element is a DOM ANCESTOR of the second.
+//      The recorded xpaths make this exact (an ancestor's xpath is a path prefix of its descendant's), and
+//      it is precisely the Understanding's example. Corroborating geometry/naming — the wrapper's rect
+//      encloses the child's, and their accessible names are equal or the wrapper's contains the child's —
+//      rides along so the judge can see it is the SAME control reached twice rather than a group followed
+//      by its first member.
+//  (b) GENERIC-CONTAINER STOP. A stop whose element is a layout container (div/span/p/section/li/td/…)
+//      that is in the ring only because it carries an explicit non-negative `tabindex`, and that declares
+//      no interactive role. Focusable static content is EXPLICITLY permitted by the Understanding, so this
+//      is deliberately reported as a FACT and never as a verdict — a scroll region, a labelled group that
+//      owns its own controls, and a live-region container are all legitimate. What makes it a barrier is
+//      whether the stop interrupts a sequence the user is working through, which is the judge's call.
+// Both are pure functions of the ring: no page access, no extra Tab presses, no extra wall-clock.
+const GENERIC_TAGS = new Set(['div', 'span', 'p', 'section', 'article', 'li', 'td', 'th', 'label', 'figure', 'header', 'footer', 'main', 'aside', 'nav', 'ul', 'ol', 'dl', 'dd', 'dt', 'blockquote', 'pre', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']);
+// roles that make a generic element a REAL widget/landmark the user is meant to reach — never "meaningless"
+const INTERACTIVE_ROLES = /^(button|link|checkbox|radio|switch|tab|menuitem|menuitemcheckbox|menuitemradio|option|combobox|listbox|slider|spinbutton|textbox|searchbox|treeitem|gridcell|columnheader|rowheader|scrollbar|separator|application|toolbar|tablist|menu|menubar|tree|grid|table|radiogroup|group|region|dialog|alertdialog|navigation|banner|main|contentinfo|complementary|form|search|article|list|listitem|figure|img|document|feed|log|status|marquee|timer|tooltip|progressbar|meter|tabpanel|treegrid|row|rowgroup)$/i;
+// A DATA-ENTRY stop: something the user types/chooses into, as opposed to a link or a command button.
+const FIELD_TAGS = new Set(['input', 'select', 'textarea']);
+const FIELD_ROLES = /^(textbox|searchbox|combobox|spinbutton|slider|listbox|checkbox|radio|switch)$/i;
+const norm = (s) => String(s == null ? '' : s).toLowerCase().replace(/\s+/g, ' ').trim();
+const isFieldStop = (s) => !!s && (FIELD_TAGS.has(String(s.tag || '').toLowerCase()) || (s.role && FIELD_ROLES.test(s.role)));
+// The tag of the deepest ancestor COMMON to a set of stops, read straight off their xpaths (an xpath is a
+// path, so the shared prefix IS the common ancestor). Used only to ask "are these stops in one field group".
+const commonAncestorTag = (xpaths) => {
+  const parts = xpaths.map((x) => String(x || '').split('/').filter(Boolean));
+  if (parts.some((p) => !p.length)) return null;
+  const lim = Math.min(...parts.map((p) => p.length));
+  let i = 0;
+  for (; i < lim; i++) { const s = parts[0][i]; if (!parts.every((p) => p[i] === s)) break; }
+  return i ? String(parts[0][i - 1]).replace(/\[\d+\]$/, '').toLowerCase() : null;
+};
+
+function redundantStopFacts(tab) {
+  const order = (tab && Array.isArray(tab.order)) ? tab.order : [];
+  const byXpath = {};
+  const encloses = (a, b) => !!(a && b) && a.w * a.h >= b.w * b.h
+    && a.x <= b.x + 1 && a.y <= b.y + 1 && a.x + a.w >= b.x + b.w - 1 && a.y + a.h >= b.y + b.h - 1;
+  for (let i = 0; i < order.length; i++) {
+    const cur = order[i];
+    if (!cur || !cur.xpath) continue;
+    const next = order[i + 1];
+    // (a) the stop IMMEDIATELY BEFORE its own descendant
+    if (next && next.xpath && next.xpath.startsWith(cur.xpath + '/')) {
+      const a = norm(cur.label), b = norm(next.label);
+      const f = byXpath[cur.xpath] || (byXpath[cur.xpath] = {});
+      f.wrapsNextStop = true;
+      f.rectEnclosesNextStop = encloses(cur.rect, next.rect);
+      f.nameCoversNextStop = !!(a && b && (a === b || a.includes(b)));
+    }
+    // (b) a generic layout container in the ring only because of an explicit tabindex
+    const ti = cur.tabindexAttr == null ? null : parseInt(cur.tabindexAttr, 10);
+    if (GENERIC_TAGS.has(String(cur.tag || '').toLowerCase()) && Number.isFinite(ti) && ti >= 0
+        && !(cur.role && INTERACTIVE_ROLES.test(cur.role))) {
+      const f = byXpath[cur.xpath] || (byXpath[cur.xpath] = {});
+      f.genericContainerStop = true;
+      // …and WHERE it sits, which is the whole difference between tedious and confusing. Probed directly:
+      // the bare flag also fires on a static stop that OPENS a group of links and on one that TRAILS a
+      // completed form, neither of which impedes anything — reporting it unqualified would trade a catch
+      // for two false alarms. The Understanding's concern is a stop that makes the sequence CONFUSING, and
+      // the sharp version of that is a non-operable stop wedged between two data-entry fields OF THE SAME
+      // field group: the user is part-way through filling one thing in and focus lands on nothing.
+      const prev = order[i - 1];
+      f.interruptsCoupledSequence = !!(isFieldStop(prev) && isFieldStop(next)
+        && ['form', 'fieldset'].includes(commonAncestorTag([prev.xpath, cur.xpath, next.xpath])));
+    }
+  }
+  return byXpath;
 }
 
 // ── Keyboard TRAP detection (WCAG 2.1.2 No Keyboard Trap) — LOTUS (ICSE'23) graph reachability ──────
@@ -710,6 +827,288 @@ async function findRevealOpeners(page, maxOpeners = 2) {
   }, maxOpeners).catch(() => []);
 }
 
+// ── REVEAL-STATE FOCUS ORDER (WCAG 2.4.3 / F85) ────────────────────────────────────────────────────
+// The tab-order instrument records the ring AT REST, and a panel that is `display:none` at rest
+// contributes no stops — so a complete, clean ring is not evidence about the state the user is actually
+// in once they open something. It is evidence about a state they have not entered yet. Every reveal-order
+// failure is therefore invisible to the resting ring by construction.
+//
+// The rubric already carried a clause telling the judge to drive this itself with the live tool
+// repertoire. Measured over a full corpus run that clause produced ZERO tool calls on 6 of the 7 pages it
+// was written for, and the one page that did call a tool still cleared. "Ask the judge to go and look" is
+// a proven-failed lever here; the reveal state has to arrive as a deterministic FACT the judge reasons
+// over, exactly like the resting ring does.
+//
+// Two facts decide it, and both come from the normative sources rather than from any page:
+//
+//  · ADJACENCY. Understanding 2.4.3's non-modal example states the requirement directly: "the interactive
+//    elements in the dialog are inserted in the focus order immediately after the button". So: record the
+//    ring at rest, activate the opener, record the ring again, and ask whether the FIRST newly-appearing
+//    stop is the one immediately after the opener. A page that satisfies this by DOM placement passes with
+//    no script at all; a page that satisfies it by MOVING focus into the revealed content passes too, which
+//    is why `focusMovedIntoRevealed` is recorded alongside and a barrier needs BOTH to be false.
+//
+//  · RETURN. DHS Trusted Tester 4.F step 2b requires checking the focus order "to, from, and within the
+//    revealed content" — the FROM half is where focus lands once the content is dismissed again. So:
+//    enter the revealed region, dismiss it, and record where focus went.
+//
+// Three guard rails, each of which a probe showed to be load-bearing:
+//  1. only claim anything when a region that was HIDDEN at rest is now VISIBLE. Activating a control that
+//     merely APPENDS nodes (add a row, load more) also grows the ring, and reading that as "revealed
+//     content placed far from its trigger" would be a manufactured barrier. Tagging the hidden ancestors
+//     BEFORE activation makes the distinction exact rather than heuristic.
+//  2. only judge the return when the region ACTUALLY became hidden again. A multi-step panel whose buttons
+//     advance rather than close is not a dismissal, and requiring focus to return from one would fail a
+//     conforming page.
+//  3. scope the close-control search INSIDE the revealed region, and record whether the opener still
+//     exists afterwards. A trigger and a confirm button can legitimately share a name, so a document-wide
+//     name match re-opens what it meant to close; and when the activated action DELETES its own trigger,
+//     "focus did not return to the trigger" is not a failure — F85's own note blesses a logical neighbour.
+// Every field is a FACT. Nothing here mints a finding or a barrier on its own.
+const REVEAL_ACT_SETTLE_MS = 250;   // let an open/close handler (class toggle, transition, focus move) land
+
+// in-page: mark every currently-HIDDEN ancestor of a focusable. Walking UP from the focusables (rather
+// than over every element) keeps this proportional to the focusable count, not the DOM size.
+function tagHiddenRegionsInPage(focSel, mark) {
+  const isHidden = (el) => {
+    if (!el || el.nodeType !== 1) return false;
+    if (el.hidden) return true;
+    if (el.getAttribute && el.getAttribute('aria-hidden') === 'true') return true;
+    const cs = getComputedStyle(el);
+    if (cs.display === 'none' || cs.visibility === 'hidden') return true;
+    if (!(el.offsetParent !== null || cs.position === 'fixed')) return true;
+    const r = el.getBoundingClientRect();
+    return r.width < 1 && r.height < 1;
+  };
+  let n = 0;
+  const seen = new Set();
+  for (const f of document.querySelectorAll(focSel)) {
+    for (let p = f; p && p !== document.documentElement; p = p.parentElement) {
+      if (seen.has(p) || p.hasAttribute('data-v3-revhidden')) break;   // this chain was already walked
+      seen.add(p);
+      if (isHidden(p)) { if (mark) p.setAttribute('data-v3-revhidden', '1'); n++; }
+    }
+  }
+  return n;
+}
+
+const REVEAL_XPATH_FN = `(e) => { const gx = (n) => { if (!n || !n.tagName) return ''; if (n === document.body) return '/html/body';
+  const ns = n.namespaceURI, isHtml = !ns || ns === 'http://www.w3.org/1999/xhtml', t = isHtml ? n.tagName.toLowerCase() : n.tagName;
+  let i = 1; for (let s = n.previousElementSibling; s; s = s.previousElementSibling) if (s.tagName === n.tagName) i++;
+  return gx(n.parentElement) + (isHtml ? '/' + t + '[' + i + ']' : "/*[local-name()='" + t + "'][" + i + "]"); }; return gx(e); }`;
+
+async function collectRevealedFocusOrder(page, url, opts = {}) {
+  const maxOpeners = Number.isFinite(opts.maxOpeners) ? opts.maxOpeners : 2;
+  const gotoTimeoutMs = opts.gotoTimeoutMs || 20000;
+  const settle = require('./settle.js');
+  const wait = (ms) => page.evaluate((t) => new Promise((r) => setTimeout(r, t)), ms).catch(() => null);
+  const activeXpath = () => page.evaluate(`(${REVEAL_XPATH_FN})(document.activeElement)`).catch(() => null);
+  const reload = async () => {
+    await page.goto(url, { waitUntil: 'load', timeout: gotoTimeoutMs });
+    await settle.awaitSettle(page).catch(() => {});
+  };
+
+  // PRECONDITION — this page must demonstrably HAVE something to reveal, and a control that declares it
+  // reveals something. Both are answered on the page AS IT STANDS (the caller hands it over at rest), so a
+  // page with no hidden focusable content pays two in-page queries and NO page load at all. That matters:
+  // most pages are that page, and a speculative reload each would be the whole cost of this instrument.
+  const hiddenRegions = await page.evaluate(tagHiddenRegionsInPage, FOCUSABLE_SEL, false).catch(() => 0);
+  if (!hiddenRegions) return { states: [], openers: 0, hiddenRegions: 0 };
+  // DECLARED-INTENT openers only. findRevealOpeners' rank 3 is "any other safe button" — good enough to
+  // speculatively hunt for a trap (where a false candidate simply finds nothing), but not good enough to
+  // ground a 2.4.3 evidence claim, because clicking an arbitrary button and reading the ring difference is
+  // exactly the shape that would manufacture one. Ranks 0-2 are aria-haspopup / aria-expanded=false /
+  // aria-controls-at-a-hidden-target / a reveal verb in the name.
+  const openers = (await findRevealOpeners(page, 8)).filter((o) => o && o.rank <= 2).slice(0, maxOpeners);
+  if (!openers.length) return { states: [], openers: 0, hiddenRegions };
+
+  const states = [];
+  // The caller's page is already AT REST on `url` and has only been READ (Tab presses move focus; they do
+  // not activate anything), so the first opener needs no reload. Every subsequent one does — one opener's
+  // dialog state must never contaminate the next probe.
+  let fresh = opts.pageIsFresh === true;
+  for (const op of openers) {
+    try {
+      if (!fresh) await reload();
+      fresh = false;
+      await page.evaluate(tagHiddenRegionsInPage, FOCUSABLE_SEL, true).catch(() => 0);
+      const here = page.url();   // compare against what the browser ACTUALLY has, not the requested string
+      // the RESTING ring. The caller normally hands over the one the lane already collected on this same
+      // load of this same page (identical by construction), so the common path costs no extra walk.
+      let restXpaths = Array.isArray(opts.restingXpaths) && opts.restingXpaths.length ? opts.restingXpaths : null;
+      if (!restXpaths) {
+        const t0 = await collectTabOrder(page).catch(() => null);
+        restXpaths = t0 ? (t0.order || []).map((o) => o.xpath) : [];
+      }
+      const restSet = new Set(restXpaths);
+
+      // TAG the opener before activating it. Every identity question after this point — is the opener still
+      // in the ring, is it still on the page, is focus back on it — must be asked of the ELEMENT, never of
+      // its xpath: an xpath is positional, so an action that removes a sibling silently re-points it at a
+      // DIFFERENT element. Measured on a fixture whose confirm handler deletes its own trigger: the trigger's
+      // xpath then resolved to the NEXT button, and "focus returned to the opener" was reported about an
+      // element that was not the opener. There it happened to agree with the truth; the mirror case (a node
+      // removed BEFORE the trigger) would have manufactured a barrier out of the same aliasing.
+      const clicked = await page.evaluate((xp) => {
+        const el = document.evaluate(xp, document, null, 9, null).singleNodeValue;
+        if (!el) return false;
+        el.setAttribute('data-v3-revopener', '1');
+        if (el.focus) el.focus();
+        el.click();
+        return true;
+      }, op.xpath).catch(() => false);
+      if (!clicked) continue;
+      await wait(REVEAL_ACT_SETTLE_MS);
+      if (page.url() !== here) continue;   // the click navigated — there is no opened state to compare
+
+      // pin the post-activation focus to the ELEMENT too, and re-read the opener's CURRENT xpath — opening
+      // can restructure the DOM, and the ring below is walked against the restructured document.
+      const afterOpen = await page.evaluate(() => {
+        const gx = (n) => { if (!n || !n.tagName) return ''; if (n === document.body) return '/html/body';
+          const ns = n.namespaceURI, isHtml = !ns || ns === 'http://www.w3.org/1999/xhtml', t = isHtml ? n.tagName.toLowerCase() : n.tagName;
+          let i = 1; for (let s = n.previousElementSibling; s; s = s.previousElementSibling) if (s.tagName === n.tagName) i++;
+          return gx(n.parentElement) + (isHtml ? '/' + t + '[' + i + ']' : "/*[local-name()='" + t + "'][" + i + "]"); };
+        const a = document.activeElement;
+        if (a && a.setAttribute && a !== document.body && a !== document.documentElement) a.setAttribute('data-v3-revfocus', '1');
+        const op2 = document.querySelector('[data-v3-revopener]');
+        return { focusXpath: gx(a), openerXpathNow: op2 ? gx(op2) : null };
+      }).catch(() => ({ focusXpath: null, openerXpathNow: null }));
+      const opened = await collectTabOrder(page).catch(() => null);
+      if (!opened) continue;
+      const openedXpaths = (opened.order || []).map((o) => o.xpath);
+      const newStops = openedXpaths.map((x, i) => ({ x, i })).filter((s) => !restSet.has(s.x));
+      const openerIndex = openedXpaths.indexOf(afterOpen.openerXpathNow || op.xpath);
+      const firstNewStopIndex = newStops.length ? newStops[0].i : -1;
+
+      // GUARD 1: the first new stop must live inside a region that was HIDDEN at rest and is visible now.
+      const region = newStops.length ? await page.evaluate((xp) => {
+        const gx = (n) => { if (!n || !n.tagName) return ''; if (n === document.body) return '/html/body';
+          const ns = n.namespaceURI, isHtml = !ns || ns === 'http://www.w3.org/1999/xhtml', t = isHtml ? n.tagName.toLowerCase() : n.tagName;
+          let i = 1; for (let s = n.previousElementSibling; s; s = s.previousElementSibling) if (s.tagName === n.tagName) i++;
+          return gx(n.parentElement) + (isHtml ? '/' + t + '[' + i + ']' : "/*[local-name()='" + t + "'][" + i + "]"); };
+        const vis = (el) => { const cs = getComputedStyle(el);
+          if (cs.display === 'none' || cs.visibility === 'hidden') return false;
+          if (!(el.offsetParent !== null || cs.position === 'fixed')) return false;
+          const r = el.getBoundingClientRect(); return r.width >= 1 && r.height >= 1; };
+        const el = document.evaluate(xp, document, null, 9, null).singleNodeValue;
+        if (!el) return null;
+        let best = null;
+        for (let p = el; p && p !== document.documentElement; p = p.parentElement) {
+          if (p.getAttribute && p.getAttribute('data-v3-revhidden') === '1' && vis(p)) best = p;
+        }
+        if (!best) return null;
+        best.setAttribute('data-v3-revregion', '1');
+        return { xpath: gx(best), role: best.getAttribute('role') || null, tag: best.tagName.toLowerCase(),
+          focusables: best.querySelectorAll('a[href],button,input:not([type=hidden]),select,textarea,[tabindex],[contenteditable=true]').length };
+      }, newStops[0].x).catch(() => null) : null;
+
+      const st = {
+        openerXpath: op.xpath, openerName: op.name || null,
+        restingStops: restXpaths.length, openedStops: openedXpaths.length, newStops: newStops.length,
+        revealedRegionXpath: region ? region.xpath : null,
+        revealedRegionRole: region ? (region.role || region.tag) : null,
+        openerIndex: openerIndex >= 0 ? openerIndex : null,
+        firstNewStopIndex: firstNewStopIndex >= 0 ? firstNewStopIndex : null,
+        // null (not false) whenever the question could not be asked: nothing was revealed, the opener is
+        // no longer in the ring (an inerted background is the usual reason), or the new stops did not come
+        // from a formerly-hidden region.
+        adjacent: (region && openerIndex >= 0 && firstNewStopIndex >= 0) ? (firstNewStopIndex === openerIndex + 1) : null,
+        focusMovedIntoRevealed: null,
+        focusAfterOpen: afterOpen.focusXpath || null,
+        newStopLabels: newStops.slice(0, 6).map((s) => (opened.order[s.i] || {}).label || null),
+      };
+      if (region) {
+        st.focusMovedIntoRevealed = await page.evaluate(() => {
+          const reg = document.querySelector('[data-v3-revregion]');
+          const el = document.querySelector('[data-v3-revfocus]');
+          if (!reg) return null;
+          return !!(el && reg.contains(el));   // no tagged focus ⇒ activation left focus on body ⇒ not moved in
+        }).catch(() => null);
+      }
+
+      // ── RETURN. Enter the region explicitly first: after the opened-ring walk focus is wherever the ring
+      // left it, and a page that does nothing on dismissal would then be graded on a coincidence. Entering
+      // also reproduces the situation the requirement is about — the user is INSIDE the thing they close.
+      if (region && region.focusables > 0) {
+        const entered = await page.evaluate((focSel) => {
+          const reg = document.querySelector('[data-v3-revregion]');
+          if (!reg) return false;
+          for (const f of reg.querySelectorAll(focSel)) {
+            const cs = getComputedStyle(f);
+            if (!(f.offsetParent !== null || cs.position === 'fixed') || cs.visibility === 'hidden') continue;
+            const ti = f.getAttribute('tabindex');
+            if (ti !== null && parseInt(ti, 10) < 0) continue;
+            f.focus();
+            if (reg.contains(document.activeElement)) return true;
+          }
+          return false;
+        }, FOCUSABLE_SEL).catch(() => false);
+        if (entered) {
+          const regionHidden = () => page.evaluate(() => {
+            const reg = document.querySelector('[data-v3-revregion]');
+            if (!reg || !reg.isConnected) return true;
+            const cs = getComputedStyle(reg);
+            if (cs.display === 'none' || cs.visibility === 'hidden' || reg.hidden) return true;
+            if (reg.getAttribute('aria-hidden') === 'true') return true;
+            if (!(reg.offsetParent !== null || cs.position === 'fixed')) return true;
+            const r = reg.getBoundingClientRect(); return r.width < 1 && r.height < 1;
+          }).catch(() => null);
+          await page.keyboard.press('Escape').catch(() => {});
+          await wait(REVEAL_ACT_SETTLE_MS);
+          let hidden = await regionHidden();
+          let via = hidden ? 'escape' : null, control = null;
+          if (!hidden) {
+            // GUARD 3: only controls INSIDE the revealed region, and only ones that NAME themselves as a
+            // way out. A control that advances a multi-step flow is not a dismissal.
+            control = await page.evaluate((reSrc) => {
+              const re = new RegExp(reSrc, 'i');
+              const reg = document.querySelector('[data-v3-revregion]');
+              if (!reg) return null;
+              for (const b of reg.querySelectorAll('button,[role=button],input[type=button]')) {
+                const cs = getComputedStyle(b);
+                if (!(b.offsetParent !== null || cs.position === 'fixed') || cs.visibility === 'hidden') continue;
+                if (b.disabled) continue;
+                const n = ((b.getAttribute('aria-label') || '') + ' ' + (b.getAttribute('title') || '') + ' ' + (b.textContent || '')).replace(/\s+/g, ' ').trim();
+                if (re.test(n) || b.hasAttribute('data-dismiss')) { b.click(); return n.slice(0, 40) || '(unnamed)'; }
+              }
+              return null;
+            }, CLOSE_RE.source).catch(() => null);
+            if (control) {
+              await wait(REVEAL_ACT_SETTLE_MS);
+              hidden = await regionHidden();
+              if (hidden) via = 'close-control';
+            }
+          }
+          st.dismissAttempted = true;
+          st.dismissedVia = via;
+          st.dismissControlName = control;
+          // GUARD 2: a region that did not actually hide was not dismissed, so its focus position says
+          // nothing about the return requirement.
+          st.regionHiddenAfterDismiss = hidden === true;
+          if (hidden === true) {
+            st.focusAfterDismiss = await activeXpath();
+            // BOTH questions asked of the tagged ELEMENT, never of a positional xpath — see the tagging note.
+            const back = await page.evaluate(() => {
+              const el = document.querySelector('[data-v3-revopener]');
+              if (!el || !el.isConnected) return { present: false, returned: false };
+              const cs = getComputedStyle(el);
+              return {
+                present: (el.offsetParent !== null || cs.position === 'fixed') && cs.visibility !== 'hidden' && !el.disabled,
+                returned: document.activeElement === el,
+              };
+            }).catch(() => null);
+            st.returnedToOpener = back ? back.returned : null;
+            // …and the trigger has to still BE there for "return to the trigger" to be the right question.
+            st.openerStillPresent = back ? back.present : null;
+          }
+        }
+      }
+      states.push(st);
+    } catch (e) { /* this opener did not work out — the next one still gets its turn */ }
+  }
+  return { states, openers: openers.length, hiddenRegions };
+}
+
 // Reload → click one opener → run the trap detectors. Returns the first CONFIRMED result, tagged with the
 // opener that revealed it, or null. The caller owns page lifetime; this never touches the shared lane page.
 async function detectTrapsAfterReveal(page, url, opts = {}) {
@@ -920,4 +1319,4 @@ async function detectEmbeddedFormatTraps(page, opts = {}) {
   return { traps, directional, boundaries: boundaries.length };
 }
 
-module.exports = { collectTabOrder, tabOrderFindings, detectKeyboardTraps, detectFocusRetentionTraps, detectFixedSetConfinementTraps, detectFocusRejection, detectFocusRestsInAriaHidden, findRevealOpeners, detectTrapsAfterReveal, detectEmbeddedFormatTraps, REACH_SAFETY_CAP, REFOCUS_SETTLE_MS, TRAP_REGION_SEL, FOCUSABLE_SEL, OPENER_VERB_RE };
+module.exports = { collectTabOrder, tabOrderFindings, redundantStopFacts, detectKeyboardTraps, detectFocusRetentionTraps, detectFixedSetConfinementTraps, detectFocusRejection, detectFocusRestsInAriaHidden, findRevealOpeners, collectRevealedFocusOrder, detectTrapsAfterReveal, detectEmbeddedFormatTraps, REACH_SAFETY_CAP, REFOCUS_SETTLE_MS, TRAP_REGION_SEL, FOCUSABLE_SEL, OPENER_VERB_RE };

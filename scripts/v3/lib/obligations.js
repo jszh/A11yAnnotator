@@ -57,9 +57,39 @@ function reconcileLinkPurpose(fills) {
   if (!suppressed.length) return { fills, suppressed: [] };
   return { fills: fills.filter((f) => !(_mechOf(f) === _LINK_PURPOSE && f.outcome === 'BARRIER_OBSERVED')), suppressed };
 }
-function mergeProvisional(allFills) {
-  const { fills: fillsForDecision, suppressed } = reconcileLinkPurpose(allFills);
-  const fills = fillsForDecision;
+// FACET PRECEDENCE (1.1.1 long-description FN — the same shape as the 2.4.4 reconcile above, applied to the
+// image lane). Some claim-families are answered by ONE specific rubric and by nothing else: `long-description`
+// asks "does the LONG DESCRIPTION convey the information the image carries", which is a different question from
+// `non-text-content`'s "is the accessible NAME/alt adequate". Routing is by SC, so an alt-adequacy verdict can
+// still land on the long-description obligation (an <svg> with a named descendant enumerates `long-description`
+// but NOT `non-text-content`, so alt-text-adequacy-v0's subject binds to the long-description row). Confirmed
+// live on eval/act-augmented/1.1.1/pages/complex-image-long-description-incomplete/case-03 + case-07, where
+// alt-text-adequacy-v0 returned LIKELY_OK/high ("the accessible NAME is adequate") on the very element whose
+// figcaption lists the diagram's boxes but none of its arrows.
+//
+// The rule is deliberately ASYMMETRIC and fail-CLOSED, the opposite direction to reconcileLinkPurpose: only a
+// CLEAR is dropped, never a barrier, so no recall is ever lost — an off-facet rubric that spots a real barrier
+// still fills. And only an `llm-rubric:` mechanism is eligible for suppression, so a deterministic/instrument/
+// checker fill (axe, target-size, trap) is never touched. If suppression leaves no decisive fill, the obligation
+// falls back to auto-PARTIAL — the honest "nobody answered this question" state, which cannot manufacture a
+// barrier (an auto-PARTIAL row is not a finding). Scoped to the declared families; all others are untouched.
+const _FACET_OWNERS = { 'long-description': new Set(['llm-rubric:long-description-completeness-v0']) };
+function reconcileFacet(fills, claimFamily) {
+  const owners = _FACET_OWNERS[claimFamily];
+  if (!owners) return { fills, suppressed: [] };
+  const isOffFacetClear = (f) => f.outcome === 'NO_BARRIER_OBSERVED' && _mechOf(f).startsWith('llm-rubric:') && !owners.has(_mechOf(f));
+  const suppressed = fills.filter(isOffFacetClear);
+  if (!suppressed.length) return { fills, suppressed: [] };
+  return { fills: fills.filter((f) => !isOffFacetClear(f)), suppressed };
+}
+function mergeProvisional(allFills, claimFamily) {
+  // the two reconciles are family-disjoint by construction (link-purpose is 2.4.4 `link-purpose`, facet is 1.1.1
+  // `long-description`), so at most one can fire on any obligation and their `suppressed` lists never mix.
+  const linkRec = reconcileLinkPurpose(allFills);
+  const facetRec = reconcileFacet(linkRec.fills, claimFamily);
+  const suppressed = [...linkRec.suppressed, ...facetRec.suppressed];
+  const reconcileRule = facetRec.suppressed.length ? 'facet-owner-authoritative' : 'link-equivalence-authoritative';
+  const fills = facetRec.fills;
   const barriers = fills.filter((f) => f.outcome === 'BARRIER_OBSERVED');
   const clears = fills.filter((f) => f.outcome === 'NO_BARRIER_OBSERVED');
   if (!barriers.length && !clears.length) return null; // no DECISIVE fill (all abstentions/unknown) ⇒ no row, fail-closed
@@ -80,7 +110,7 @@ function mergeProvisional(allFills) {
   // supportRefs from the ORIGINAL fills so a reconcile-suppressed link-purpose barrier still rides the audit trail.
   const block = { ...rest, supportRefs: [...new Set(allFills.map((f) => (f.provisional || {}).mechanism).filter(Boolean))].sort() };
   if (conflict) block.conflict = conflict;
-  if (suppressed.length) block.reconciled = { rule: 'link-equivalence-authoritative', suppressed: [...new Set(suppressed.map((f) => (f.provisional || {}).mechanism).filter(Boolean))].sort() };
+  if (suppressed.length) block.reconciled = { rule: reconcileRule, suppressed: [...new Set(suppressed.map((f) => (f.provisional || {}).mechanism).filter(Boolean))].sort() };
   return { cleared, provisional: block };
 }
 function reconcile(obligations, dispositions) {
@@ -101,7 +131,7 @@ function reconcile(obligations, dispositions) {
     const d = Object.prototype.hasOwnProperty.call(det, o.obligationId) ? det[o.obligationId] : undefined;
     if (d) return { ...base, disposition: d.kind, cleared: !!d.cleared, autoPartial: false, shadow: !!d.shadow }; // deterministic wins
     const fills = Object.prototype.hasOwnProperty.call(prov, o.obligationId) ? prov[o.obligationId] : null;
-    if (fills && fills.length) { const m = mergeProvisional(fills); if (m) return { ...base, disposition: 'PROVISIONAL', cleared: m.cleared, autoPartial: false, shadow: false, provisional: m.provisional }; }
+    if (fills && fills.length) { const m = mergeProvisional(fills, o.claimFamily); if (m) return { ...base, disposition: 'PROVISIONAL', cleared: m.cleared, autoPartial: false, shadow: false, provisional: m.provisional }; }
     return { ...base, disposition: 'PARTIAL', cleared: false, autoPartial: true, shadow: false }; // un-filled ⇒ auto-PARTIAL
   });
   return { errors, ledger };

@@ -164,6 +164,19 @@ const RUBRIC_GATE = {
   // no page-level judgment to make) — wasted/nonsensical LLM calls, not just noise.
   'info-relationships-v0': (el) => !!el && el.xpath === oracle.PAGE_INFOREL_XPATH,
   'field-programmatic-association-v0': (el) => !!el && (el.isFormField === true || oracle.FORMFIELD_ROLE.test(el.role || el.roleAttr || el.axRole || el.sampledRole || '')),
+  // ...and a THIRD (residual RCA S6): control-semantics-v0 is the F42 "emulated control" rubric. Its whole premise
+  // is a collected FACT — `emulatedControl === true`, the element carries a script activation handler while being
+  // NON-focusable, role-less, tabindex-less and containing no interactive descendant (act-page-collect.js:601/1165,
+  // coverage-registry.js:94, applicability-oracle.js:366). Shipped WITHOUT a gate it inherited the by-SC routing and
+  // fired on EVERY 1.3.1 row: measured on results/aug-annot-s9-tools it produced 116 verdicts across all 53 1.3.1
+  // cases — the page-level `/page-level::info-relationships` pseudo-element in every single one, plus 63 form-field
+  // rows — where the premise the rubric asserts as "settled, you do not need to re-derive" is FALSE. Handed a false
+  // premise the model does not abstain: 84/116 came back LIKELY_OK (82 at high confidence), which then FILLS the
+  // obligation and displaces the incumbent rubric's barrier verdict under mergeProvisional. Present in 5 of the 10
+  // recall regressions. The gate is the same fact the oracle used to mint the obligation, so the rubric now fires
+  // ONLY where its premise holds. It cannot collide with the two gates above: `emulatedControl` requires a
+  // non-focusable, non-native-tag element, so it is never a form field, and never the page-level pseudo-xpath.
+  'control-semantics-v0': (el) => !!el && el.emulatedControl === true,
   // 7a: the complex-backdrop 1.4.3 rubric is for a NON-flat backdrop ONLY — a reliably COMPUTABLE ratio is owned
   // by the deterministic text-contrast-pixel runner (Tier-0 #2). Route only when the runner abstained.
   'contrast-over-complex-backdrop-v0': (el) => !!el && el.contrastReliable !== true,
@@ -190,6 +203,17 @@ const RUBRIC_GATE = {
   // the timer-driven carousel the collector actually flagged. Confirmed live: without this gate, real DHS pages
   // routed the rubric onto plain iframes/links and produced malformed/empty prompts that OpenAI rejected outright.
   'auto-update-notification-v0': (el) => !!el && el.autoUpdatingContent === true,
+};
+
+// PER-FACET CLAIM-FAMILY BINDING (companion to RUBRIC_GATE). A gate decides WHETHER a rubric fires on an element;
+// this map decides WHICH of that element's claim-families its verdict is bound to — i.e. which OBLIGATION the
+// verdict fills. Routing is by SC, and an element can own several families on ONE SC, so without this the binding
+// is "whichever family the oracle happened to emit first" (see the FACET REBIND in selectRubricSubjects). Declare
+// an entry ONLY for a rubric that answers a specific, separately-enumerated facet; the obligations.js facet
+// precedence is the second half of the same rule (an off-facet verdict may not CLEAR a facet it did not answer).
+const RUBRIC_FAMILY = {
+  'long-description-completeness-v0': 'long-description', // 1.1.1 — "is the LONG DESCRIPTION complete", not "is the NAME adequate"
+  'alt-text-adequacy-v0': 'non-text-content',             // 1.1.1 — the alt/name-adequacy facet
 };
 
 // v2.9 PURE SIGNAL PRE-COMPUTE (3.1 §3): reuse a11y-eval verbatim where the inputs exist on the
@@ -626,11 +650,23 @@ function precomputeSignals(element, skill, sc) {
   if (element.__errorSummaries) {
     s.errorSummaries = {
       summaries: element.__errorSummaries.slice(0, 3),
+      // PER-SUBJECT correspondence (see resolveSummaryField). The page-level sets above are about the FORM; this
+      // says where THIS field sits in them, so the judge does not have to run the set-membership step itself.
+      // Absent whenever the field could not be resolved unambiguously — never a guess.
+      ...(element.__errorSummaryField ? { thisField: element.__errorSummaryField } : {}),
       note: 'The page carries an error SUMMARY that names specific fields. `namedFields` are the fields it '
         + 'points at; `flaggedFields` are the fields actually marked in error (aria-invalid, or an associated '
         + 'message). `namedButNotFlagged` and `flaggedButNotNamed` are the two set differences, and `coherent` '
         + 'is true only when both are empty. These are FACTS about correspondence, not a verdict: a summary '
-        + 'may legitimately name a field whose error is server-side and not yet reflected in the DOM.',
+        + 'may legitimately name a field whose error is server-side and not yet reflected in the DOM.'
+        + (element.__errorSummaryField
+          ? ' `thisField` places THE FIELD YOU ARE JUDGING in that correspondence (resolved by '
+            + element.__errorSummaryField.resolvedVia + '): `named` = the summary points at this field, `flagged` = '
+            + 'this field is actually marked in error, and the two booleans below them say which set difference it '
+            + 'falls in. Judge THIS field\'s row, not the page totals — and note that this field\'s OWN markup being '
+            + 'correct does not settle it, because the mismatch lives between the summary and the flagged state, '
+            + 'not inside the field.'
+          : ''),
     };
   }
   // 4.1.3 STATUS OBSERVATIONS — see selectRubricSubjects. Gated on the THREADED evidence, not on `skill`,
@@ -1213,6 +1249,72 @@ function buildLinksByName(collect) {
   return linksByName;
 }
 
+// 3.3.1 per-field error-summary correspondence. Resolves THE FIELD BEING JUDGED to its entry in the page's
+// error-summary correspondence, so the judge is told "this field is one the summary names but the page does not
+// flag" instead of being handed a page-level list and left to do the set-membership step itself.
+//
+// The join is the awkward part and is deliberately FAIL-SAFE — an unresolvable field yields null and the prompt
+// keeps exactly today's page-level evidence, never a guessed correspondence. collect-error-summary.js identifies
+// a field as `f.id || f.getAttribute('name') || xpathOf(f)`, and the collected element record carries NEITHER id
+// NOR name, so there are exactly two sound joins:
+//   · XPATH — an id-less, name-less field is keyed BY its xpath, which the element record does carry (exact match);
+//   · ACCESSIBLE NAME — `namedVia[{via:'label-text', text:<label text>, field:<key>}]` records the label text the
+//     summary matched, and a labelled field's accessible name IS that label text. Required to be UNIQUE among the
+//     page's form fields (two fields named "Postcode" cannot be told apart this way) and to resolve to exactly ONE
+//     key across every summary on the page; ambiguity ⇒ null.
+// `via:'link'` entries carry the SUMMARY LINK's text, not the field's label, so they are not used for the name
+// join — but a link-named field still resolves through the xpath join when it is id-less, and through the name
+// join when a label-text entry also names it. A field that is FLAGGED but never NAMED appears in no `namedVia`
+// entry, so it only resolves via xpath; that gap is a collector-side limitation (the summaries do not publish a
+// per-field xpath) and is recorded in DEFERRED-TODO terms in the report, not papered over here.
+const _normName = (s) => (typeof s === 'string' ? s.replace(/\s+/g, ' ').trim().toLowerCase() : '');
+const FORMFIELD_TAG = /^(input|select|textarea)$/;
+function resolveSummaryField(collect, el, summaries) {
+  if (!el || !Array.isArray(summaries) || !summaries.length) return null;
+  const has = (arr, k) => Array.isArray(arr) && arr.includes(k);
+  const keysOf = (s) => [...(s.namedFields || []), ...(s.flaggedFields || [])];
+  // (1) XPATH join — exact, no ambiguity possible, and TRIED FIRST for that reason. Three sources, in order of
+  // directness: the per-entry `fieldXpath` the collector records for every field a summary NAMES; the
+  // `flaggedFieldsXpath` array it publishes index-aligned with `flaggedFields` (the only way to reach a field
+  // that is FLAGGED but never NAMED, which is precisely the `flaggedButNotNamed` shape); and a key that IS an
+  // xpath, which is how an id-less, name-less field is keyed in the first place.
+  let key = null, via = null;
+  const xp = typeof el.xpath === 'string' ? el.xpath : '';
+  if (xp) {
+    for (const s of summaries) {
+      for (const v of (s.namedVia || [])) if (v && v.fieldXpath === xp && v.field) { key = v.field; break; }
+      if (key == null && Array.isArray(s.flaggedFieldsXpath) && Array.isArray(s.flaggedFields)) {
+        const i = s.flaggedFieldsXpath.indexOf(xp);
+        if (i >= 0 && s.flaggedFields[i] != null) key = s.flaggedFields[i];
+      }
+      if (key == null && has(keysOf(s), xp)) key = xp;
+      if (key != null) { via = 'xpath'; break; }
+    }
+  }
+  // (2) ACCESSIBLE-NAME join — only when the name is unique among the page's form fields AND maps to one key.
+  if (key == null) {
+    const nm = _normName(el.axName);
+    if (!nm) return null;
+    const fields = ((collect && collect.elements) || []).filter((e) => e && (e.isFormField === true || FORMFIELD_TAG.test(e.tag || '')));
+    if (fields.filter((e) => _normName(e.axName) === nm).length !== 1) return null; // ambiguous subject ⇒ say nothing
+    const keys = new Set();
+    for (const s of summaries) for (const v of (s.namedVia || [])) {
+      if (v && v.via === 'label-text' && _normName(v.text) === nm && v.field) keys.add(v.field);
+    }
+    if (keys.size !== 1) return null;                                              // ambiguous mapping ⇒ say nothing
+    key = [...keys][0]; via = 'accessible-name';
+  }
+  const named = summaries.some((s) => has(s.namedFields, key));
+  const flagged = summaries.some((s) => has(s.flaggedFields, key));
+  return {
+    named,
+    flagged,
+    namedButNotFlagged: summaries.some((s) => has(s.namedButNotFlagged, key)),
+    flaggedButNotNamed: summaries.some((s) => has(s.flaggedButNotNamed, key)),
+    resolvedVia: via,
+  };
+}
+
 // #8 fix (2.4.4 resolve_destination self-coalescing): a page-level xpath -> [peer xpaths] map, threaded onto the
 // tool session (orchestrator.js) so resolve_destination can auto-expand a single-target call into the WHOLE known
 // same-name-link set server-side. Root cause this closes: a documented, cross-model failure (limits.js's
@@ -1284,9 +1386,24 @@ function selectRubricSubjects(collect, ledger, rubrics, { onlyAutoPartial = true
   const rows = (ledger || []).filter((r) => (onlyAutoPartial ? (r.autoPartial || (r.sc === '2.1.2' && !!confinementFor(r.xpath))) : true));
   const seen = new Set();
   const subjects = [];
+  const byKey = new Map(); // key → the pushed subject, for the FACET REBIND below
   for (const row of rows) for (const rub of (bySc[row.sc] || [])) {
     const key = `${row.xpath}::${rub.id}`;
-    if (seen.has(key)) continue;
+    // FACET REBIND (1.1.1 long-description FN). One subject per (xpath, rubric) is correct — it is ONE LLM call —
+    // but the subject inherits the claimFamily of whichever ledger row for (xpath, sc) happened to come FIRST, and
+    // an element can own SEVERAL families on one SC. A complex image owns BOTH `non-text-content` and
+    // `long-description` on 1.1.1, and the oracle emits non-text-content first, so long-description-completeness-v0
+    // bound its verdict to `non-text-content` — answering the LONG-DESCRIPTION question but FILLING the alt-adequacy
+    // obligation, while the long-description obligation received no fill at all. Verified live on
+    // eval/act-augmented/1.1.1/pages/complex-image-long-description-incomplete/case-03 + case-07. When a LATER row
+    // carries the family this rubric actually answers, rebind the existing subject to it — no extra LLM call, the
+    // verdict simply lands on its OWN obligation. Rubrics absent from RUBRIC_FAMILY are untouched.
+    if (seen.has(key)) {
+      const want = RUBRIC_FAMILY[rub.id];
+      const s = byKey.get(key);
+      if (want && s && row.claimFamily === want && s.claimFamily !== want) s.claimFamily = want;
+      continue;
+    }
     const baseEl = elByXpath[row.xpath] || { xpath: row.xpath };
     const gate = RUBRIC_GATE[rub.id]; // per-facet gating (Item 7): skip a rubric that is not this element's facet
     if (gate && !gate(baseEl)) continue;
@@ -1316,7 +1433,19 @@ function selectRubricSubjects(collect, ledger, rubrics, { onlyAutoPartial = true
     // the page, because the summary is about the form as a whole and any field's judgment can turn on it.
     if (rub.id === 'error-identification-v0') {
       const es = (collect && collect.structure && Array.isArray(collect.structure.errorSummaries)) ? collect.structure.errorSummaries : [];
-      if (es.length) extra.__errorSummaries = es;
+      if (es.length) {
+        extra.__errorSummaries = es;
+        // ...plus the PER-SUBJECT correspondence. The summaries above are a PAGE-level fact, but the rubric fires
+        // per FIELD, so as shipped the judge had to perform the set-membership step itself — "is the field I am
+        // judging one of the ones the summary names but the page does not flag?". Measured: on a page whose summary
+        // named a field the page never flagged, the judge held `namedButNotFlagged:[<that field>]` in its prompt,
+        // evaluated the field in isolation, found its own markup correct, and cleared — the exact inversion the
+        // rubric warns against two lines above the signal. Removing the reasoning STEP is the lever; more rubric
+        // prose telling it to reason harder is not. Same shape as `__sameNameLinks`: derived here, where the whole
+        // page is in scope, and merely PRESENTED by precomputeSignals.
+        const f = resolveSummaryField(collect, baseEl, es);
+        if (f) extra.__errorSummaryField = f;
+      }
     }
     // 1.4.1 COLOUR PEER GROUP: when this subject is the ANCHOR of a colour-coded peer set, hand over the whole
     // group. Without it the judge sees one element in isolation and cannot see the only thing that matters —
@@ -1359,7 +1488,9 @@ function selectRubricSubjects(collect, ledger, rubrics, { onlyAutoPartial = true
     // only re-derive the (true-but-irrelevant) sub-threshold ratio and FALSE-barrier a passing case.
     if (rub.id === 'contrast-over-complex-backdrop-v0' && contrastExempt && contrastExempt.has(row.xpath)) { seen.delete(key); continue; }
     const element = Object.keys(extra).length ? { ...baseEl, ...extra } : baseEl;
-    subjects.push({ xpath: row.xpath, sc: row.sc, claimFamily: row.claimFamily, rubricId: rub.id, rubric: rub, skill: rub.skill || null, element });
+    const subject = { xpath: row.xpath, sc: row.sc, claimFamily: row.claimFamily, rubricId: rub.id, rubric: rub, skill: rub.skill || null, element };
+    subjects.push(subject);
+    byKey.set(key, subject);
   }
   return subjects;
 }

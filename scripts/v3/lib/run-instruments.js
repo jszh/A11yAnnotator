@@ -9,7 +9,7 @@
 // keyboard traps (2.1.2), and VSR navigation traps. All were adversarially hardened for soundness.
 const { collectVsrTranscript } = require('./vsr-collect.js');
 const { analyzeTranscript } = require('./vsr-analysis.js');
-const { collectTabOrder, tabOrderFindings, detectKeyboardTraps, detectFocusRetentionTraps, detectFixedSetConfinementTraps, detectFocusRejection, detectFocusRestsInAriaHidden, detectEmbeddedFormatTraps } = require('./kbd-graph.js');
+const { collectTabOrder, tabOrderFindings, redundantStopFacts, collectRevealedFocusOrder, detectKeyboardTraps, detectFocusRetentionTraps, detectFixedSetConfinementTraps, detectFocusRejection, detectFocusRestsInAriaHidden, detectEmbeddedFormatTraps } = require('./kbd-graph.js');
 const { vsrNavigationIntegrity } = require('./vsr-graph.js');
 const { detectStatusMessages } = require('./status-detector.js');
 
@@ -38,7 +38,9 @@ async function runInstruments(page, opts = {}) {
   // genuine announcement is CREDITED, not false-flagged as a 4.1.3 barrier. NOTE: the project Chrome build
   // already ships these as functions, so this spy is LIVE here (the typeof guards keep it inert only on a UA
   // that lacks the API); the sentinel + try/catch make it safe and non-double-wrapping (adversarial verify #5).
-  await page.evaluate(() => {
+  // Factored out because the reveal-state pass RELOADS the page, which wipes an in-page wrapper — a spy that
+  // is not re-installed after that reload silently stops crediting announcements for the rest of the lane.
+  const installAriaNotifySpy = () => page.evaluate(() => {
     if (window.__v3ariaNotify) return; window.__v3ariaNotify = [];
     const rec = (msg) => { try { window.__v3ariaNotify.push({ len: String(msg == null ? '' : msg).length }); } catch (e) {} };
     try {
@@ -52,6 +54,7 @@ async function runInstruments(page, opts = {}) {
       }
     } catch (e) {}
   }).catch(() => {});
+  await installAriaNotifySpy();
 
   // VSR transcript → reading order (1.3.2) + announcement-vs-meaning (4.1.2)
   const transcript = await collectVsrTranscript(page, opts).catch(() => null);
@@ -68,19 +71,43 @@ async function runInstruments(page, opts = {}) {
   // rubric was promised an artifact it never received and correctly abstained: 17 of 24 2.4.3 misses
   // were PARTIAL, and the SC scored 20.0% — the worst in the run — as a pure evidence gap.
   // Backward (Shift+Tab) matters independently: a one-way escape reads as a clean ring forward.
+  // COLLECTOR LIVENESS (2026-08-16). `collectTabOrder` guards its two in-page `probeActive` evaluates with
+  // `.catch(() => ({ sentinel: true }))`, and a sentinel is READ AS A DOCUMENT-BOUNDARY CROSSING rather than
+  // as an error — so a dead probe does not produce an empty ring, it produces a plausible WRONG one. It now
+  // records what it swallowed (fallback values unchanged); collect it here so the failure is visible in the
+  // artifact instead of only in a live console. Surfaced on the instruments artifact as `collectorLiveness`,
+  // matching the field act-page-collect publishes on the collect artifact.
+  const collectorLiveness = [];
   const tab = await collectTabOrder(page).catch(() => null);
-  if (tab) add('tab-order', tabOrderFindings(tab).findings);
+  if (tab && Array.isArray(tab.liveness)) collectorLiveness.push(...tab.liveness.map((l) => ({ ...l, phase: 'tabOrder.forward' })));
+  const tabFindings = tab ? tabOrderFindings(tab).findings : [];
+  if (tab) add('tab-order', tabFindings);
   const tabBack = await collectTabOrder(page, { backward: true }).catch(() => null);
+  if (tabBack && Array.isArray(tabBack.liveness)) collectorLiveness.push(...tabBack.liveness.map((l) => ({ ...l, phase: 'tabOrder.backward' })));
+  // VISUAL-ORDER DIVERGENCE, threaded to the stop it is ABOUT. `tabOrderFindings` already runs the
+  // column-aware divergence detector over this very ring and emits one uncalibrated-triage finding per
+  // stop that is reached out of its own column's visual order — and until now every one of them was
+  // dropped into `findings` and never reached the rubric that is written around this artifact. That is a
+  // measured recall loss: the detector separates a systematic column-by-column walk of a 2-D arrangement
+  // (no findings — the Understanding blesses either whole-row or whole-column traversal) from a scatter
+  // that follows neither (findings on most of its stops), which is exactly the discrimination the judge
+  // was being asked to make by eye. It rides as `visualOrderDivergence` on the stop, tagged as triage.
+  const divergenceByXpath = {};
+  for (const f of tabFindings) { if (f && f.xpath && !divergenceByXpath[f.xpath]) divergenceByXpath[f.xpath] = f.detail || ''; }
+  // REDUNDANT / MEANINGLESS STOP facts (2.4.3), a pure function of the ring — see kbd-graph.
+  const redundant = tab ? redundantStopFacts(tab) : {};
   // Keep the stops small and judgeable: xpath + label + rect are what relate a stop to the layout.
-  const seq = (t) => (t && Array.isArray(t.order) ? t.order.map((o, i) => ({
+  const seq = (t, decorate) => (t && Array.isArray(t.order) ? t.order.map((o, i) => ({
     index: Number.isFinite(o.index) ? o.index : i,
     xpath: o.xpath || null, tag: o.tag || null, label: o.label || null, rect: o.rect || null,
     // modal-containment facts (2.4.3 clause C): a stop with modalOpen but insideOpenModal:false is a
     // tab stop OUTSIDE an open modal — a containment leak, decidable without rect geometry.
     ...(o.modalOpen ? { modalOpen: true, insideOpenModal: o.insideOpenModal === true, modalXpath: o.modalXpath || null } : {}),
+    ...(decorate && divergenceByXpath[o.xpath] ? { visualOrderDivergence: divergenceByXpath[o.xpath] } : {}),
+    ...(decorate && redundant[o.xpath] ? redundant[o.xpath] : {}),
   })) : []);
   const tabOrder = tab ? {
-    forward: seq(tab), backward: seq(tabBack),
+    forward: seq(tab, true), backward: seq(tabBack, false),
     wrapped: !!tab.wrapped, exhausted: !!tab.exhausted, count: tab.count || seq(tab).length,
     backwardWrapped: tabBack ? !!tabBack.wrapped : null,
     // whether index 0 is genuinely the FIRST tab stop, or merely where the ring happened to be entered
@@ -93,7 +120,51 @@ async function runInstruments(page, opts = {}) {
   // Measured at 67/392 = 17.1% of a corpus run, and it landed exactly where it hurts: 2.4.3 recall was 0%
   // on timed-out pages against 54% elsewhere. Hand each artifact to the sink the moment it exists so the
   // timeout downgrades the stage to PARTIAL instead of to NOTHING.
-  if (opts.partialSink) { opts.partialSink.tabOrder = tabOrder; opts.partialSink.findings = findings.slice(); }
+  if (opts.partialSink) { opts.partialSink.tabOrder = tabOrder; opts.partialSink.findings = findings.slice(); if (collectorLiveness.length) opts.partialSink.collectorLiveness = collectorLiveness.slice(); }
+  // ── REVEAL-STATE FOCUS ORDER (2.4.3 / F85). The resting ring above is the only state anything measured,
+  // and a panel that is display:none at rest contributes no stops to it — so every reveal-order failure was
+  // structurally invisible. `collectRevealedFocusOrder` activates the page's DECLARED reveal openers and
+  // records the opened-state ring plus what happens on dismissal.
+  //
+  // PLACEMENT is deliberate and load-bearing. This sits immediately after the tab-order publish and BEFORE
+  // the trap detectors and the 4.1.3 sweep, for two reasons: the lane's wall-clock cap fires on ~17% of a
+  // corpus run, and it cuts whatever is at the END (the existing bounded reveal pass for 2.1.2 lives there
+  // and is duly cut); and the resting ring this pass diffs against has just been collected on this same
+  // load, so it can be handed over instead of re-walked. The pass RELOADS, so the ariaNotify spy is
+  // re-installed and the page is returned to a clean load before the read-only detectors below continue —
+  // which is the state they used to see anyway (nothing before this point activates anything).
+  if (tab && tabOrder && opts.url && opts.revealFocusPass !== false) {
+    const before = Date.now();
+    const rev = await collectRevealedFocusOrder(page, opts.url, {
+      restingXpaths: (tab.order || []).map((o) => o.xpath),
+      maxOpeners: Number.isFinite(opts.maxRevealOpeners) ? opts.maxRevealOpeners : 2,
+      gotoTimeoutMs: opts.gotoTimeoutMs,
+      pageIsFresh: true,           // only Tab presses have touched this load
+    }).catch(() => null);
+    if (rev && rev.states && rev.states.length) {
+      tabOrder.revealedStates = rev.states;
+      // Bind each state to the STOP whose control produces it. The opener is an ordinary tab stop, so this
+      // is where the fact belongs — and it is the only per-stop channel the judging subject carries, so a
+      // page-level side-car would be dropped before the prompt.
+      const byOpener = {};
+      for (const st of rev.states) if (st && st.openerXpath) byOpener[st.openerXpath] = st;
+      for (const stop of tabOrder.forward) {
+        const st = byOpener[stop.xpath];
+        if (st) stop.reveal = st;
+      }
+      if (opts.partialSink) opts.partialSink.tabOrder = tabOrder;
+    }
+    // RESTORE whenever an opener was ATTEMPTED — not only when one yielded a usable state. An opener that
+    // was clicked and then abandoned (it navigated, revealed nothing, or threw) leaves the page just as
+    // dirty as one that worked, and every detector below this point assumes a page at rest. Gating the
+    // restore on `states.length` would have skipped it on exactly the pages where the pass went wrong.
+    if (rev && rev.openers > 0) {
+      await page.goto(opts.url, { waitUntil: 'load', timeout: opts.gotoTimeoutMs || 30000 }).catch(() => {});
+      await require('./settle.js').awaitSettle(page).catch(() => {});
+      await installAriaNotifySpy();
+    }
+    if (rev) tabOrder.revealPassMs = Date.now() - before;
+  }
   // keyboard traps (2.1.2): confirmed (authoritative-candidate) + directional (review)
   const traps = await detectKeyboardTraps(page).catch(() => null);
   if (traps) {
@@ -206,7 +277,10 @@ async function runInstruments(page, opts = {}) {
   // alongside `findings` so build-v3/orchestrator can thread it to the 2.4.3 judging subject.
   // `statusObservations` rides alongside `tabOrder` for the same reason: it is EVIDENCE for the 4.1.3
   // rubric, not a finding that decides anything on its own.
-  return { findings, tabOrder, statusObservations: statusObs };
+  // `collectorLiveness` records which `.catch()`-guarded in-page evaluate THREW on this page — empty on a
+  // healthy page, so its presence at all is the signal. Not folded into `results.summary.collectorFailures`
+  // here: that join lives in build-v3, which this change does not own.
+  return { findings, tabOrder, statusObservations: statusObs, collectorLiveness };
 }
 
 // Load a URL in a fresh browser and run the instruments. The instruments artifact carries the run
@@ -217,7 +291,9 @@ async function runInstrumentsForUrl(url, opts = {}) {
   return withLanePage(opts, async (page) => {
     await page.goto(url, { waitUntil: 'load', timeout: opts.gotoTimeoutMs || 30000 }).catch(() => {});
     await require('./settle.js').awaitSettle(page); // gated V3_SETTLE_WAIT — settle before keyboard/VSR state reads
-    const res = await runInstruments(page, opts);
+    // `url` rides in opts so the reveal-state pass (2.4.3) can reload THIS page mid-lane; runInstruments is
+    // otherwise page-only and stays callable against an already-loaded page in the tests.
+    const res = await runInstruments(page, { ...opts, url });
     // BOUNDED REVEAL PASS (2.1.2, residual RCA S4/TOOL). The at-rest detectors can only see regions that
     // have visible focusables, so a CLOSED modal is invisible to them and the whole modal-trap family read
     // as clean. Run LAST, on this same lane page (every read-only instrument is already finished, and the

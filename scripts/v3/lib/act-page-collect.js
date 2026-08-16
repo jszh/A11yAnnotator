@@ -96,6 +96,21 @@ async function collectActPage(page, opts = {}) {
   const collectedAt = Number.isFinite(opts.now) ? opts.now : Date.now();
   const pageDigest = opts.pageDigest || digestForUrl(opts.sourceUrl || url);
   const data = await page.evaluate((cap, subsetXpaths, targetSelectors) => {
+    // ── SHADOW-PROOF element-children read. `HTMLFormElement` has a NAMED GETTER: every control's name/id
+    //    becomes an OWN property of the form, and an own property shadows ANY inherited accessor. So
+    //    `<form><input name="children"></form>` makes `form.children` the INPUT — spreading it throws
+    //    "p.children is not iterable" (this crashed the real suite on
+    //    eval/act-augmented/1.4.1/pages/error-validation-color-only/case-05.html) and `.length === 0` reads
+    //    `undefined === 0` ⇒ false, silently disabling the check. MEASURED in Chromium: `childNodes` is
+    //    shadowable too (`<input name="childNodes">` ⇒ `form.childNodes` is the INPUT, and a plain
+    //    `filter.call(form.childNodes, …)` then returns [] — wrong, and silent). Calling Node.prototype's
+    //    getter DIRECTLY bypasses own-property lookup entirely, so no control name can corrupt it, and
+    //    `Array.prototype.filter.call` never consults Symbol.iterator. INLINED per file on purpose: every
+    //    function here serializes through page.evaluate and cannot close over module scope (a require()
+    //    would throw at runtime in the page). ──────────────────────────────────────────────────────────────
+    const _CHILD_NODES_GET = (Object.getOwnPropertyDescriptor(Node.prototype, 'childNodes') || {}).get;
+    const childNodesOf = (e) => (!e ? [] : (_CHILD_NODES_GET ? _CHILD_NODES_GET.call(e) : (e.childNodes || [])));
+    const elemChildren = (e) => Array.prototype.filter.call(childNodesOf(e), (n) => n.nodeType === 1);
     // #11 fix (scorer precision): when the caller supplies the TT test record's OWN target selector(s) (a CSS
     // selector, comma-combined `element.matches()` handles a list natively), tag each collected element with
     // whether it's actually the element this specific test is about. `run-trusted-tester.js`'s scorer used to
@@ -189,6 +204,92 @@ async function collectActPage(page, opts = {}) {
         || ['link', 'button', 'menuitem', 'menuitemcheckbox', 'menuitemradio', 'tab', 'checkbox', 'radio', 'switch', 'slider', 'textbox', 'combobox', 'searchbox', 'option', 'spinbutton'].includes(role)
         || (ti !== null && +ti >= 0) || el.hasAttribute('onclick');
     }
+    // ── BG-MEANING GEOMETRY / COHORT helpers (F3 aperture). Shared by the top-level gate and the in-frame
+    //    `_bgMeaningful` so the two paths cannot drift apart again. Each reads only `el` + its own view. ──────
+    const _bgUrlOf = (el) => { const b = _view(el).getComputedStyle(el).backgroundImage || ''; return /url\(/i.test(b) ? ((b.match(/url\(["']?([^"')]+)["']?\)/i) || [])[1] || 'other') : 'none'; };
+    // TRACKING-PIXEL FLOOR. Was `>= 16` in both dimensions, which is not a tracking-pixel floor at all — it is
+    // above the size of a real informational glyph. A required-field asterisk painted as a background on an
+    // empty 12x12 <span> (informative-css-background-image/case-03) is exactly the F3 shape and was silently
+    // dropped by it. 8px is the smallest dimension at which a glyph is legible at all, and still 4x a 1x1
+    // tracking pixel / 2x a 4px spacer. MEASURED held-out over 3562 corpus pages: 8 / 6 / 4 / area>=64 are
+    // indistinguishable in aperture, so the value is not fitted to the 12px fixture; 8 is chosen because,
+    // unlike an area floor, it also rejects hairline 4xN divider images (the classic decorative background).
+    const _BG_MIN_PX = 8;
+    // A DISCRETE MARK vs the element's own surface: a non-repeating background given an EXPLICIT pixel size
+    // that paints a small fraction of the box and does not reach its edges — i.e. an icon/badge the author
+    // placed ON the control, not a texture/photo/hero filling it. This is the second way F3's "the image
+    // carries information the text does not" shape appears: the canonical book-distributor markup sets the
+    // image BESIDE the text in reserved padding, but a seat-map exit-row badge
+    // (informative-css-background-image/case-06) sits OVER a 46x46 control that declares no padding at all.
+    // Only explicit `<len>px <len>px` sizes qualify. MEASURED computed forms in Chromium: `background-size:14px`
+    // stays `14px` (one token — the height is `auto`, i.e. the intrinsic aspect ratio), `14px 14px` and the
+    // shorthand `.../14px 14px` both give `14px 14px`, `contain` stays `contain`. The one-token, `auto`, `cover`
+    // and `contain` forms all need the image's INTRINSIC size, which is not synchronously readable here — so
+    // they stay OUT rather than being guessed. That is a known recall gap in this branch, not an oversight: an
+    // author who writes `background-size:14px` for a badge is not nominated. Widening to a width-only fraction
+    // was not shipped because it was not measured.
+    function _bgDiscreteMark(el, box) {
+      const cs = _view(el).getComputedStyle(el);
+      if (!/no-repeat/i.test(cs.backgroundRepeat || '')) return false;
+      const m = (cs.backgroundSize || '').trim().match(/^([\d.]+)px\s+([\d.]+)px$/);
+      if (!m) return false;
+      const iw = parseFloat(m[1]), ih = parseFloat(m[2]);
+      if (!(iw > 0 && ih > 0 && box.width > 0 && box.height > 0)) return false;
+      return (iw * ih) <= box.width * box.height * 0.35 && iw <= box.width - 6 && ih <= box.height - 6;
+    }
+    // The image sits in space RESERVED for it beside the text (F3's own markup): no-repeat + real padding.
+    function _bgReservedArea(el) {
+      const cs = _view(el).getComputedStyle(el);
+      if (!/no-repeat/i.test(cs.backgroundRepeat || '')) return false;
+      const pads = [cs.paddingLeft, cs.paddingRight, cs.paddingTop, cs.paddingBottom].map((v) => parseFloat(v) || 0);
+      return Math.max.apply(null, pads) >= 12;
+    }
+    // DIRECT-SIBLING cohort (unchanged): among 3+ same-tag siblings the backgrounds are not all identical.
+    function _bgPeersDirect(el) {
+      const p = el.parentElement; if (!p) return false;
+      const sibs = elemChildren(p).filter((c) => c.tagName === el.tagName);
+      if (sibs.length < 3) return false;
+      return new Set(sibs.map(_bgUrlOf)).size >= 2;
+    }
+    // NEARBY cohort — the direct-sibling scope is too narrow for a GRID. In case-06 every seat in an exit ROW
+    // carries the same badge, so at sibling scope the row looks uniform and the distinction (this row vs the
+    // other rows) is invisible; one level up, the cabin's 16 seats carry two distinct backgrounds. Walk at
+    // most 3 ancestors and compare only same-tag elements at the SAME DOM DEPTH, so the cohort stays a
+    // structural peer set (the seats of a cabin) and never degrades into "every <button> on the page".
+    function _bgPeersNearby(el) {
+      const depthOf = (n) => { let d = 0; for (let q = n.parentElement; q; q = q.parentElement) d++; return d; };
+      const mine = depthOf(el);
+      let lvl = 0;
+      for (let p = el.parentElement; p && lvl < 3; p = p.parentElement, lvl++) {
+        let cohort;
+        try { cohort = [...p.querySelectorAll(el.tagName)].slice(0, 300).filter((c) => depthOf(c) === mine); } catch (e) { return false; }
+        if (cohort.length < 3) continue;
+        if (new Set(cohort.map(_bgUrlOf)).size >= 2) return true;
+      }
+      return false;
+    }
+    // TEXT-BEARING CARVE-OUT (residual RCA S6, widened). `text.length === 0` excluded ALL THREE of F3's own
+    // examples: the technique's book-distributor case puts new.png / limited.png / instock.png as BACKGROUNDS
+    // on list entries that carry the book titles as text, and the image is the only thing saying which books
+    // are new. Two bounded shapes re-admit a text-bearing element without flooding on icon-bulleted lists —
+    // in BOTH the image must also DISTINGUISH this element from its peers, so a decorative bullet repeated
+    // identically on every row is still excluded:
+    //   · BESIDE the text in reserved padding, distinguishing among DIRECT siblings (F3's own markup); or
+    //   · BADGED OVER the element as a small discrete mark, distinguishing within the NEARBY cohort.
+    // The two branches are deliberately additive rather than merged into one `(reserved||mark) && nearby`:
+    // that variant measures identically on the corpus but would also loosen the already-shipped reserved-area
+    // branch from siblings to the ancestor walk, changing a lane that is working. Dropping the peer gate from
+    // the badge branch was measured too: same page count but 58 elements instead of 56, the two extra being on
+    // an unrelated 2.4.4 page — the cohort gate is what keeps this honest.
+    // HELD-OUT APERTURE, 3562 pages (eval/act-augmented 926 + its 967-page _archive + the 602-case ACT subset
+    // + eval/capability-tests 958 + act-rules 90 + wai 19), whole predicate, any element:
+    //   before  14 pages (0.39%) / 40 elements      after  18 pages (0.51%) / 56 elements
+    // The ACT subset is UNMOVED (3 pages / 3 elements before and after), which is why the deterministic
+    // 581-case gate can stay byte-identical through this change.
+    function _bgTextCarveOk(el, box, text) {
+      if (!(text && text.length)) return true;
+      return (_bgReservedArea(el) && _bgPeersDirect(el)) || (_bgDiscreteMark(el, box) && _bgPeersNearby(el));
+    }
     // TIGHTENED captcha detection (R2 G3-1): provider-specific (data-sitekey / provider src / g-recaptcha|h-captcha|
     // cf-turnstile) OR captcha/turnstile as a LEADING token segment (captcha-box, recaptcha-container) — NOT a buried
     // substring (no-captcha-needed-badge), and a `title` counts ONLY on an iframe (a provider widget frame), never
@@ -215,10 +316,14 @@ async function collectActPage(page, opts = {}) {
       if (hidden || pres || isImg || !(box.width > 0 && box.height > 0)) return { meaningful: false, url: null };
       const lbl = (el.getAttribute('aria-labelledby') || '').split(/\s+/).filter(Boolean).map((id) => { const t = el.ownerDocument.getElementById(id); return t ? (t.textContent || '') : ''; }).join(' ');
       const accName = ((tg === 'img' ? (el.getAttribute('alt') || '') : '') + ' ' + (el.getAttribute('aria-label') || '') + ' ' + lbl + ' ' + (el.getAttribute('title') || '')).trim();
-      if ((el.textContent || '').trim().length || accName.length) return { meaningful: false, url: null };
+      // PARITY (was a silent divergence): the top-level gate got the S6 text carve-out and this in-frame twin
+      // did not, so `any text at all ⇒ not meaningful` still held inside same-origin frames. Both now call the
+      // one `_bgTextCarveOk`, and both use `_BG_MIN_PX`, so the two paths cannot drift again.
+      if (accName.length) return { meaningful: false, url: null };
+      if (!_bgTextCarveOk(el, box, (el.textContent || '').trim())) return { meaningful: false, url: null };
       const vw = win.innerWidth || 1280, vh = win.innerHeight || 800;
       const fullBleed = box.width >= vw * 0.8 && box.height >= vh * 0.5;
-      const candidate = box.width >= 16 && box.height >= 16 && !fullBleed;
+      const candidate = box.width >= _BG_MIN_PX && box.height >= _BG_MIN_PX && !fullBleed;
       const meaningful = _bgInteractive(el) || candidate;
       return { meaningful, url: meaningful ? ((bgi.match(/url\(["']?([^"')]+)["']?\)/i) || [])[1] || null) : null };
     }
@@ -678,7 +783,7 @@ async function collectActPage(page, opts = {}) {
       const complexImageHint = isImage && (!!el.closest('figure') || roleAttr === 'figure' || el.hasAttribute('aria-describedby'));
       // C8 small-signal predicates (parity with eval-page.js / the ACT inline collector).
       const tabindexEffective = (() => { const ti = el.getAttribute('tabindex'); return ti !== null ? +ti : (['a', 'button', 'input', 'select', 'textarea', 'summary'].includes(tag) && !el.disabled ? 0 : null); })();
-      let _ownTxt = ''; for (const _n of el.childNodes) if (_n.nodeType === 3) _ownTxt += _n.textContent;
+      let _ownTxt = ''; for (const _n of childNodesOf(el)) if (_n.nodeType === 3) _ownTxt += _n.textContent;
       // CONFUSABLE / NON-TEXT GLYPH TEXT. Two defects fixed here (residual RCA S6):
       //  · the census covered the Private Use Areas but omitted U+1D400–U+1D7FF, Mathematical Alphanumeric
       //    Symbols — the "𝗳𝗮𝗻𝗰𝘆 𝘁𝗲𝘅𝘁" block, which is how styled-text substitution is actually written and
@@ -753,37 +858,12 @@ async function collectActPage(page, opts = {}) {
       // the crop. Interactive elements are nominated at ANY size (a control labelled only by a bg-image is a barrier).
       const _vw = window.innerWidth || 1280, _vh = window.innerHeight || 800;
       const _fullBleed = box.width >= _vw * 0.8 && box.height >= _vh * 0.5; // a near-full-screen backdrop ⇒ decorative
-      const _bgCandidate = box.width >= 16 && box.height >= 16 && !_fullBleed; // not a tracking pixel, not a full-bleed hero
+      const _bgCandidate = box.width >= _BG_MIN_PX && box.height >= _BG_MIN_PX && !_fullBleed; // not a tracking pixel, not a full-bleed hero
       // INTERACTIVITY via the shared `_bgInteractive` (R2 G2-1) — the old `isInteractive` omitted onclick / tabindex /
       // role=option,spinbutton,textbox,searchbox, dropping those bg controls on the ACT path while eval-page kept them.
-      // TEXT-BEARING CARVE-OUT (residual RCA S6). `text.length === 0` excluded ALL THREE of F3's own
-      // examples: the technique's book-distributor case puts new.png / limited.png / instock.png as
-      // BACKGROUNDS on list entries that carry the book titles as text, and the image is the only thing
-      // saying which books are new. Requiring the element to be textless meant the canonical F3 shape could
-      // never be nominated. Two bounded disjuncts re-admit it without flooding on icon-bulleted lists:
-      //  · the image sits in a RESERVED AREA beside the text (no-repeat plus real padding set aside for it),
-      //    which is how F3's own markup is written; AND
-      //  · it DISTINGUISHES this element from its peers — among 3+ same-tag siblings the background images
-      //    are not all identical. A decorative bullet repeated on every row is identical on every row and
-      //    is therefore still excluded; a status badge on SOME rows is not.
-      // Both are required together, so a uniformly-bulleted list stays out.
-      const _bgReservedArea = (() => {
-        const cs = getComputedStyle(el);
-        if (!/no-repeat/i.test(cs.backgroundRepeat || '')) return false;
-        const pads = [cs.paddingLeft, cs.paddingRight, cs.paddingTop, cs.paddingBottom].map((v) => parseFloat(v) || 0);
-        return Math.max(...pads) >= 12;
-      })();
-      const _bgDistinguishesPeers = (() => {
-        const p = el.parentElement; if (!p) return false;
-        const sibs = [...p.children].filter((c) => c.tagName === el.tagName);
-        if (sibs.length < 3) return false;
-        const urls = new Set(sibs.map((c) => {
-          const b = getComputedStyle(c).backgroundImage || '';
-          return (/url\(/i.test(b) ? ((b.match(/url\(["']?([^"')]+)["']?\)/i) || [])[1] || 'other') : 'none');
-        }));
-        return urls.size >= 2;   // not the same background on every peer ⇒ it is carrying a distinction
-      })();
-      const _bgTextOk = text.length === 0 || (_bgReservedArea && _bgDistinguishesPeers);
+      // TEXT-BEARING CARVE-OUT (residual RCA S6, widened for the badged-over-control shape) — see
+      // `_bgTextCarveOk` above, now shared with the in-frame `_bgMeaningful` twin.
+      const _bgTextOk = _bgTextCarveOk(el, box, text);
       const backgroundImageMeaningful = /url\(/i.test(_bgi) && !ariaHidden && !presentational && !isImage
         && _bgTextOk && _accName.length === 0 && box.width > 0 && box.height > 0 && (_bgInteractive(el) || _bgCandidate);
       const backgroundImageUrl = backgroundImageMeaningful ? ((_bgi.match(/url\(["']?([^"')]+)["']?\)/i) || [])[1] || null) : null;
@@ -1203,26 +1283,49 @@ async function collectActPage(page, opts = {}) {
     await cdp.detach().catch(() => {});
   } catch (e) { /* CDP unavailable ⇒ the page keeps its heuristic axNames (never throws) */ }
 
+  // ── COLLECTOR LIVENESS ────────────────────────────────────────────────────────────────────────────────────
+  // Every optional collector below is `.catch()`-guarded so a genuinely broken page never crashes a run. The
+  // cost is that an in-page THROW is indistinguishable from "this page has no findings" — a whole lane can be
+  // DEAD for an entire corpus run and every artifact still reads as a clean, empty result. That has now shipped
+  // TWICE in this campaign from two independent causes: collect-colour-peers.js lost its `module.exports` and
+  // the entire 1.4.1 peer lane was dead (196c4f19, fixed at f4fcce9b), and captureInventory referenced a helper
+  // declared in a DIFFERENT serialized function, killing F102/G224 detection.
+  //
+  // `liveEval` keeps the fallback VALUE identical — the empty result still flows, nothing new can crash — and
+  // only makes the throw OBSERVABLE, by recording (collector, message) on the collect artifact. build-v3 folds
+  // that into `results.summary.collectorFailures`, which the run harnesses already persist per case, so a dead
+  // lane is visible in the run artifacts afterwards rather than only in a live console. The message matters more
+  // than the stack, so only the message is kept (clipped).
+  //
+  // DELIBERATELY NOT applied to the per-FRAME evaluates below: a cross-origin frame throws on evaluate by
+  // design, so counting those would bury a real defect under expected noise.
+  const collectorLiveness = [];
+  const liveEval = async (name, fn, empty) => {
+    try { return await page.evaluate(fn); } catch (e) {
+      collectorLiveness.push({ collector: name, error: String((e && e.message) || e).replace(/\s+/g, ' ').slice(0, 300) });
+      return empty;
+    }
+  };
   // Tier-0 #4: per-<table> relationship facts (separate evaluate so the self-contained extractor is shared with
   // eval-page.js). Read-only; any failure degrades to [] (never throws).
-  const tables = await page.evaluate(collectTables).catch(() => []);
+  const tables = await liveEval('collectTables', collectTables, []);
   // TT gap G1: per-list semantics (real ul/ol/dl + visually-apparent faux lists) for the 1.3.1 JUDGMENT.
-  const lists = await page.evaluate(collectLists).catch(() => []);
+  const lists = await liveEval('collectLists', collectLists, []);
   // 1.4.1 COLOUR PEER GROUPS (residual RCA S6): sets of structural peers distinguished ONLY by colour.
   // The element-level 1.4.1 aperture (link / form field / graphic surface) cannot see this shape at all,
   // because no individual element looks wrong — the failure is the contrast BETWEEN peers. Held-out over
   // the 926-page corpus: 84% of pages produce zero groups, mean 0.23/page, p90 = 1.
-  const colourPeerGroups = await page.evaluate(collectColourPeers).catch(() => []);
+  const colourPeerGroups = await liveEval('collectColourPeers', collectColourPeers, []);
   // 1.3.1 F34 — whitespace-formatted columns / ASCII tables, where the row-column relationship is carried
   // only by runs of spaces that a screen reader collapses or reads straight through.
-  const fauxColumns = await page.evaluate(collectFauxColumns).catch(() => []);
+  const fauxColumns = await liveEval('collectFauxColumns', collectFauxColumns, []);
   // 3.3.1 — does the page's ERROR SUMMARY agree with which fields are actually flagged? The per-field
   // probe cannot see this: every field it examines is individually correct, and the misdirection lives in
   // the disagreement between the summary and reality.
-  const errorSummaries = await page.evaluate(collectErrorSummary).catch(() => []);
+  const errorSummaries = await liveEval('collectErrorSummary', collectErrorSummary, []);
   // 1.3.1 F2 — presentation used to convey meaning. Trigger set narrowed BY MEASUREMENT to strike-through
   // and small-caps (0.9% of pages); weight/size are how the web expresses hierarchy and were unusable.
-  const stylingOutliers = await page.evaluate(collectStylingOutliers).catch(() => ({ outlierGroups: [], inlineConventions: [] }));
+  const stylingOutliers = await liveEval('collectStylingOutliers', collectStylingOutliers, { outlierGroups: [], inlineConventions: [] });
   // #2 fix: collectTables/collectLists are top-document-only (document.querySelectorAll) — a frameset page's
   // real headings/lists/tables live in a child <frame>/<iframe> (e.g. the DHS Trusted-Tester corpus), which
   // NEVER reached structure.tables/lists before this fix, regardless of --allow-file-access-from-files. Puppeteer's
@@ -1379,6 +1482,10 @@ async function collectActPage(page, opts = {}) {
     // pass to actually exist. Never a clearance on its own — it resolves one named DEFER clause.
     axePasses: axeData ? (axeData.passes || []) : [],
     axeRan: !!axeData,
+    // COLLECTOR LIVENESS (see liveEval above): which `.catch()`-guarded collectors THREW on this page.
+    // Empty on a healthy page. Surfaced beside `coverage` because it is the same kind of disclosure: the
+    // artifact stating what it does NOT cover, rather than letting an empty result read as a clean one.
+    collectorLiveness,
   };
 }
 

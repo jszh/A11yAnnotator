@@ -26,6 +26,14 @@ const THRESHOLD = 3.0; // 1.4.11 fixed threshold
 // ---- in-page resolver: gather the component's cue colors + the adjacent surface, all as used-rgba ----
 // Returns null on not-found. Strings are canvas-normalized rgba so parseRGB never chokes (oklch/color()).
 function collectNonTextFacts(selector, opts) {
+  // SHADOW-PROOF element-children read. HTMLFormElement's named getter makes each control's name/id an OWN
+  // property of the form, shadowing the inherited `children`/`childNodes` accessors — so on
+  // `<form><input name="children"></form>` the `nestedFill` spread below throws "not iterable". A <form> is a
+  // legitimate 1.4.11 target (a bordered form panel), so this is reachable. Node.prototype's getter is called
+  // directly (own properties cannot shadow it); inlined because collectNonTextFacts serializes through
+  // page.evaluate and cannot close over module scope.
+  const _CHILD_NODES_GET = (Object.getOwnPropertyDescriptor(Node.prototype, 'childNodes') || {}).get;
+  const elemChildren = (e) => (e ? Array.prototype.filter.call(_CHILD_NODES_GET ? _CHILD_NODES_GET.call(e) : (e.childNodes || []), (n) => n.nodeType === 1) : []);
   const want = opts || {};
   const el = selector.startsWith('//')
     ? document.evaluate(selector, document, null, 9, null).singleNodeValue
@@ -63,7 +71,7 @@ function collectNonTextFacts(selector, opts) {
   const pseudoBar = (ps) => { const s = getComputedStyle(el, ps); const c = s.content; if (!c || c === 'none') return false; return !transparent(toRgba(s.backgroundColor)); };
   const pseudoCue = pseudoBar('::before') || pseudoBar('::after');
   const myBg = toRgba(cs.backgroundColor); const ownBox = el.getBoundingClientRect();
-  const nestedFill = [...el.children].some((ch) => { const cbg = toRgba(getComputedStyle(ch).backgroundColor); if (transparent(cbg) || cbg === myBg) return false; const cr = ch.getBoundingClientRect(); return cr.width >= 2 && cr.height >= 2 && (cr.width < ownBox.width - 2 || cr.height < ownBox.height - 2); });
+  const nestedFill = elemChildren(el).some((ch) => { const cbg = toRgba(getComputedStyle(ch).backgroundColor); if (transparent(cbg) || cbg === myBg) return false; const cr = ch.getBoundingClientRect(); return cr.width >= 2 && cr.height >= 2 && (cr.width < ownBox.width - 2 || cr.height < ownBox.height - 2); });
 
   // ADJACENT surface (1.4.11 judges the boundary against the ADJACENT colour, not the page bg). Sample it at the 4
   // side-midpoints JUST OUTSIDE the box via elementFromPoint → each point's effective opaque bg. If the sampled

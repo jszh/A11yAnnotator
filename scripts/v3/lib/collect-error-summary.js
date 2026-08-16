@@ -50,7 +50,15 @@ function collectErrorSummary() {
     return false;
   });
   const idOf = (f) => f.id || f.getAttribute('name') || xpathOf(f);
-  const flaggedIds = new Set(flagged.map(idOf));
+  // The correspondence is keyed by `idOf`, which is the right identity for SET arithmetic but is not resolvable
+  // by a downstream consumer: the collected element records carry neither `id` nor `name`, so a per-field
+  // consumer (the 3.3.1 rubric judges ONE field at a time) could not tell which of these keys is the field in
+  // front of it, except in the id-less case where the key happens to BE an xpath. Publish the xpath ALONGSIDE
+  // every key so that join is exact for every field. First-wins on a duplicate key, matching the Set below, so
+  // `flaggedFields[i]` and `flaggedFieldsXpath[i]` stay index-aligned by construction.
+  const flaggedByKey = new Map();
+  for (const f of flagged) { const k = idOf(f); if (!flaggedByKey.has(k)) flaggedByKey.set(k, xpathOf(f)); }
+  const flaggedIds = new Set(flaggedByKey.keys());
 
   const out = [];
   for (const box of document.querySelectorAll(SUMMARY_SEL)) {
@@ -64,7 +72,11 @@ function collectErrorSummary() {
       const target = document.getElementById(decodeURIComponent(a.getAttribute('href').slice(1)));
       if (!target) continue;
       const field = target.matches(FIELD_SEL) ? target : target.querySelector(FIELD_SEL);
-      if (field) { named.add(idOf(field)); namedVia.push({ via: 'link', text: norm(a.textContent).slice(0, 70), field: idOf(field) }); }
+      // `fieldXpath` is the element this entry RESOLVED to. It matters most on this branch: `text` here is the
+      // summary link's own prose (a whole instruction sentence), not the field's label, so a consumer cannot
+      // join on it without guessing — and one summary line routinely contains ANOTHER field's label, so the
+      // guess would be wrong rather than merely absent. A wrong correspondence is worse than none.
+      if (field) { named.add(idOf(field)); namedVia.push({ via: 'link', text: norm(a.textContent).slice(0, 70), field: idOf(field), fieldXpath: xpathOf(field) }); }
     }
     if (!named.size) {
       // No links — match the summary's text against each field's visible label.
@@ -73,7 +85,7 @@ function collectErrorSummary() {
         const lab = f.labels && f.labels[0] ? norm(f.labels[0].textContent) : '';
         if (lab.length >= 3 && summaryText.includes(lab.toLowerCase())) {
           named.add(idOf(f));
-          namedVia.push({ via: 'label-text', text: lab.slice(0, 70), field: idOf(f) });
+          namedVia.push({ via: 'label-text', text: lab.slice(0, 70), field: idOf(f), fieldXpath: xpathOf(f) });
         }
       }
     }
@@ -103,6 +115,10 @@ function collectErrorSummary() {
       text: norm(box.textContent).slice(0, 160),
       namedFields: [...named].slice(0, MAX),
       flaggedFields: [...flaggedIds].slice(0, MAX),
+      // index-aligned with `flaggedFields`. A field that is FLAGGED but never NAMED appears in no `namedVia`
+      // entry at all, so this is the ONLY way to resolve it to an element — and that is exactly the
+      // `flaggedButNotNamed` shape the correspondence exists to report.
+      flaggedFieldsXpath: [...flaggedByKey.values()].slice(0, MAX),
       namedButNotFlagged: namedNotFlagged.slice(0, MAX),
       flaggedButNotNamed: flaggedNotNamed.slice(0, MAX),
       // a summary line naming a field the form does not contain — see the comment above

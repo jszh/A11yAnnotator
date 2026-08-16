@@ -16,6 +16,15 @@ const SLOP = 2;
 
 function measureReflow320() {
   const SLOP = 2; // inlined — page.evaluate does not capture module-level consts
+  // SHADOW-PROOF element-children read. HTMLFormElement's named getter makes each control's name/id an OWN
+  // property of the form, shadowing the inherited `children`/`childNodes` accessors. `unbreakableString`
+  // below reads `el.children.length === 0`; on `<form><input name="children"></form>` that is
+  // `undefined === 0` ⇒ FALSE — no throw, the leaf test just stops firing, so a form pinned by an
+  // unbreakable token is no longer classified as the C33 culprit and `pinIntrinsic` silently loses a case.
+  // Node.prototype's getter is called directly; inlined (measureReflow320 serializes through page.evaluate).
+  const _CHILD_NODES_GET = (Object.getOwnPropertyDescriptor(Node.prototype, 'childNodes') || {}).get;
+  const childNodesOf = (e) => (!e ? [] : (_CHILD_NODES_GET ? _CHILD_NODES_GET.call(e) : (e.childNodes || [])));
+  const elemChildren = (e) => Array.prototype.filter.call(childNodesOf(e), (n) => n.nodeType === 1);
   const se = document.scrollingElement || document.documentElement;
   const vw = window.innerWidth, vh = window.innerHeight;
   const docOverflow = se.scrollWidth > se.clientWidth + SLOP;
@@ -49,7 +58,7 @@ function measureReflow320() {
     const longTok = /\S{30,}/.test(t.replace(/\s+/g, ' '));
     const allowsBreak = /(anywhere|break-word|break-all)/.test((c.overflowWrap || '') + ' ' + (c.wordBreak || ''));
     const nowrap = (c.whiteSpace || '').indexOf('nowrap') >= 0;
-    return longTok && !allowsBreak && (nowrap || el.children.length === 0);
+    return longTok && !allowsBreak && (nowrap || elemChildren(el).length === 0);
   };
 
   // GRANULARITY of an INHERITED exemption (Understanding 1.4.10: the exception "applies only to that
@@ -165,6 +174,14 @@ function disposeReflow(m) {
 // Used for the WIDE(1280)-vs-320 diff: F102 (content present at wide DISAPPEARS at 320) + G224 (meaningful
 // indentation collapses). A `sig` keys the same content across widths.
 function captureInventory() {
+  // SHADOW-PROOF childNodes read — DECLARED AGAIN HERE ON PURPOSE. captureInventory serializes through its own
+  // page.evaluate, so it cannot see the copy inside measureReflow320: referencing that one throws a
+  // ReferenceError IN THE PAGE, which `page.evaluate(captureInventory).catch(() => ({}))` swallows into an
+  // empty inventory — silently killing F102/G224 detection with no test failure at this file's own level.
+  // (That is exactly what happened on the first pass here; the full suite caught it via the two
+  // overfit-reflow-generalization F102 cases.) See measureReflow320 above for why the getter is called directly.
+  const _CHILD_NODES_GET = (Object.getOwnPropertyDescriptor(Node.prototype, 'childNodes') || {}).get;
+  const childNodesOf = (e) => (!e ? [] : (_CHILD_NODES_GET ? _CHILD_NODES_GET.call(e) : (e.childNodes || [])));
   const out = {};
   // :target reveal rules (hoisted, once per capture) — a same-document #fragment link is only a REAL reveal
   // path when a stylesheet actually un-hides the target on navigation (`#x:target{display:…}`): fragment
@@ -193,7 +210,7 @@ function captureInventory() {
   })();
   for (const el of document.querySelectorAll('body *')) {
     const cs = getComputedStyle(el);
-    const own = [...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join('').replace(/\s+/g, ' ').trim();
+    const own = [...childNodesOf(el)].filter((n) => n.nodeType === 3).map((n) => n.textContent).join('').replace(/\s+/g, ' ').trim();
     if (!own || own.length < 4) continue;
     const r = el.getBoundingClientRect();
     const sig = own.slice(0, 60);
@@ -240,17 +257,31 @@ function captureInventory() {
 }
 
 async function runReflow(page, { url } = {}) {
+  // COLLECTOR LIVENESS. The three `page.evaluate(...).catch(() => <empty>)` guards below turn an in-page THROW
+  // into "this page has no inventory / no measurement" — which is exactly how the captureInventory cross-scope
+  // ReferenceError disabled F102 + G224 detection with every artifact still reading clean. The fallback VALUE is
+  // unchanged; the throw is recorded and returned on `liveness` so the caller can see that an empty inventory was
+  // a FALLBACK, not a measurement. (Unlike the collect/broad-scope lanes this runner is not on the production
+  // orchestrate path — reflow-checklist.js is only reached from eval/capability-tests/_tools — so there is no
+  // pipeline artifact to fold it into; it rides the runner's own result.)
+  const liveness = [];
+  const liveEval = async (name, fn, empty) => {
+    try { return await page.evaluate(fn); } catch (e) {
+      liveness.push({ collector: name, error: String((e && e.message) || e).replace(/\s+/g, ' ').slice(0, 300) });
+      return empty;
+    }
+  };
   // WIDE pass (1280) — inventory for the F102/G224 diff
   await page.setViewport({ width: 1280, height: 900, deviceScaleFactor: 1 }).catch(() => {});
   if (url) await page.goto(url, { waitUntil: 'load' }).catch(() => {});
   await require('./settle.js').awaitSettle(page); // gated V3_SETTLE_WAIT — fonts+layout settle before the reflow diff
   await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))).catch(() => {});
-  const wide = await page.evaluate(captureInventory).catch(() => ({}));
+  const wide = await liveEval('captureInventory@1280', captureInventory, {});
   // NARROW pass (320) — overflow measure + inventory
   await page.setViewport({ width: 320, height: 256, deviceScaleFactor: 1 }).catch(() => {});
   await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))).catch(() => {});
-  const m = await page.evaluate(measureReflow320).catch(() => null);
-  const narrow = await page.evaluate(captureInventory).catch(() => ({}));
+  const m = await liveEval('measureReflow320', measureReflow320, null);
+  const narrow = await liveEval('captureInventory@320', captureInventory, {});
   // DIFF: F102 disappearance (visible-at-wide, gone-at-320, no reveal equivalent) + G224 indent collapse
   let f102 = null, g224 = false;
   if (m && wide && narrow) {
@@ -275,7 +306,9 @@ async function runReflow(page, { url } = {}) {
     m.f102Disappeared = f102; m.g224IndentCollapsed = g224;
   }
   const d = disposeReflow(m);
-  return { sc: '1.4.10', measure: m, ...d };
+  return { sc: '1.4.10', measure: m, ...d, liveness };
 }
 
-module.exports = { runReflow, disposeReflow, measureReflow320 };
+// captureInventory is exported for the collector-liveness RUNTIME test: the only way to catch a cross-scope
+// reference inside a page.evaluate body is to actually evaluate it in a real page.
+module.exports = { runReflow, disposeReflow, measureReflow320, captureInventory };

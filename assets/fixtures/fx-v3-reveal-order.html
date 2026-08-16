@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Reveal-state focus order — conforming shapes (2.4.3 / F85)</title>
+<style>
+  body { font: 15px/1.5 system-ui, sans-serif; margin: 24px; max-width: 900px; }
+  section { border: 1px solid #ccd; border-radius: 8px; padding: 14px; margin: 16px 0; }
+  h2 { font-size: 15px; margin: 0 0 8px; }
+  .panel { display: none; border: 1px solid #9ab; background: #f4f8fb; padding: 10px; margin-top: 8px; }
+  .panel.open { display: block; }
+  button, input, a { font: inherit; }
+  button { padding: 5px 10px; }
+  .far { margin-top: 8px; }
+</style>
+</head>
+<body>
+<h1>Conforming reveal shapes</h1>
+
+<!-- A. NON-ADJACENT panel, but activation MOVES FOCUS into it. F85 is satisfied by focus management, so a
+     detector that fails on non-adjacency alone would wrongly flag this. -->
+<section>
+  <h2>A — panel rendered far away, focus moved into it on open</h2>
+  <button id="a-open" aria-haspopup="dialog" aria-expanded="false" aria-controls="a-panel">Open settings</button>
+  <a class="far" id="a-decoy1" href="#a1">Unrelated link one</a>
+  <a class="far" id="a-decoy2" href="#a2">Unrelated link two</a>
+  <a class="far" id="a-decoy3" href="#a3">Unrelated link three</a>
+</section>
+
+<!-- B. A control that APPENDS brand-new nodes rather than revealing hidden ones. The ring grows and the new
+     stops are nowhere near the button, but nothing was "revealed" — no barrier, and no claim should be made. -->
+<section>
+  <h2>B — "add" button that appends new nodes at the end of a list</h2>
+  <button id="b-add" aria-haspopup="true">Add option</button>
+  <a class="far" id="b-decoy1" href="#b1">Between one</a>
+  <a class="far" id="b-decoy2" href="#b2">Between two</a>
+  <div id="b-list"></div>
+</section>
+
+<!-- C. A multi-STEP panel whose in-panel buttons ADVANCE rather than close. A naive "click a close-ish
+     control and require focus to return" rule would fail this conforming page. -->
+<section>
+  <h2>C — multi-step panel; "Done" advances a step, it does not dismiss</h2>
+  <button id="c-open" aria-expanded="false" aria-controls="c-panel">Open checklist</button>
+  <div class="panel" id="c-panel" role="dialog" aria-modal="false" aria-label="Checklist">
+    <p id="c-step">Step 1 of 2</p>
+    <button id="c-done">Done with this step</button>
+  </div>
+</section>
+
+<!-- D. The activated action DELETES its own trigger, then focuses the logical neighbour. F85's own note
+     blesses this; requiring "focus returns to the trigger" would fail a conforming page. -->
+<section>
+  <h2>D — dismissing removes the trigger; focus goes to the neighbour</h2>
+  <button id="d-open" aria-haspopup="dialog" aria-expanded="false" aria-controls="d-panel">Remove this entry</button>
+  <button id="d-neighbour">Next entry</button>
+  <div class="panel" id="d-panel" role="dialog" aria-modal="false" aria-label="Confirm removal">
+    <button id="d-cancel">Cancel</button>
+  </div>
+</section>
+
+<script>
+// A — reveal + move focus in (conforming by focus management, not by placement)
+var aPanel = document.createElement('div');
+aPanel.className = 'panel'; aPanel.id = 'a-panel';
+aPanel.setAttribute('role', 'dialog'); aPanel.setAttribute('aria-modal', 'false'); aPanel.setAttribute('aria-label', 'Settings');
+aPanel.innerHTML = '<label>Display name <input id="a-field"></label> <button id="a-close">Close</button>';
+document.body.appendChild(aPanel);   // deliberately the LAST block in the document
+document.getElementById('a-open').addEventListener('click', function () {
+  aPanel.classList.add('open');
+  this.setAttribute('aria-expanded', 'true');
+  document.getElementById('a-field').focus();          // the conforming move
+});
+document.getElementById('a-close').addEventListener('click', function () {
+  aPanel.classList.remove('open');
+  var o = document.getElementById('a-open');
+  o.setAttribute('aria-expanded', 'false');
+  o.focus();                                            // and it returns
+});
+
+// B — append genuinely new nodes; nothing was hidden and nothing is revealed
+var bN = 0;
+document.getElementById('b-add').addEventListener('click', function () {
+  bN++;
+  var b = document.createElement('button');
+  b.textContent = 'Appended option ' + bN;
+  document.getElementById('b-list').appendChild(b);
+});
+
+// C — the in-panel button advances the flow; the panel stays open
+var cStep = 1;
+document.getElementById('c-open').addEventListener('click', function () {
+  document.getElementById('c-panel').classList.add('open');
+  this.setAttribute('aria-expanded', 'true');
+  document.getElementById('c-done').focus();
+});
+document.getElementById('c-done').addEventListener('click', function () {
+  cStep++;
+  document.getElementById('c-step').textContent = 'Step ' + cStep + ' of 2';
+});
+
+// D — confirming deletes the trigger and focuses the neighbour (F85's documented exception)
+document.getElementById('d-open').addEventListener('click', function () {
+  document.getElementById('d-panel').classList.add('open');
+  this.setAttribute('aria-expanded', 'true');
+  document.getElementById('d-cancel').focus();
+});
+document.getElementById('d-cancel').addEventListener('click', function () {
+  document.getElementById('d-panel').classList.remove('open');
+  var o = document.getElementById('d-open');
+  if (o) o.remove();                                    // the trigger no longer exists
+  document.getElementById('d-neighbour').focus();       // the logical neighbour
+});
+</script>
+</body>
+</html>

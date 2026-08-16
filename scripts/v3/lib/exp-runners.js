@@ -806,6 +806,15 @@ async function runFormErrorProbe(page, request) {
 // C8 — reflow-overflow-probe → 1.4.10 (BARRIER-ONLY, page-level @ 320×256)
 // =====================================================================================
 function measureReflow() {
+  // SHADOW-PROOF element-children read. HTMLFormElement's named getter makes each control's name/id an OWN
+  // property of the form, shadowing the inherited `children`/`childNodes` accessors. The C33 unbreakable-string
+  // carve-out below reads `el.children.length === 0` over EVERY element on the page; on a
+  // `<form><input name="children"></form>` that is `undefined === 0` ⇒ FALSE — no throw, the carve-out just
+  // stops firing and a legitimate C33 scroller is reported as a barrier. Silent, so no test would ever catch
+  // it. Node.prototype's getter is called directly (own properties cannot shadow it); inlined because
+  // measureReflow serializes through page.evaluate and cannot close over module scope.
+  const _CHILD_NODES_GET = (Object.getOwnPropertyDescriptor(Node.prototype, 'childNodes') || {}).get;
+  const elemChildren = (e) => (e ? Array.prototype.filter.call(_CHILD_NODES_GET ? _CHILD_NODES_GET.call(e) : (e.childNodes || []), (n) => n.nodeType === 1) : []);
   const se = document.scrollingElement || document.documentElement;
   const SLOP = 2;
   const horizontalScrollPresent = se.scrollWidth > se.clientWidth + SLOP;
@@ -888,7 +897,7 @@ function measureReflow() {
     if (!/(auto|scroll)/.test(cs.overflowX)) continue;
     if (el.scrollWidth <= el.clientWidth + SLOP) continue;
     if (is2D(el)) continue;
-    if (/\S{30,}/.test((el.textContent || '').replace(/\s+/g, ' ')) && el.children.length === 0) continue; // unbreakable string ⇒ C33 affordance
+    if (/\S{30,}/.test((el.textContent || '').replace(/\s+/g, ' ')) && elemChildren(el).length === 0) continue; // unbreakable string ⇒ C33 affordance
     const scope = el.parentElement || el;
     const reachable = el.tabIndex >= 0 || !!scope.querySelector('[role=tablist] [role=tab]')
       || [...scope.querySelectorAll('button,[role=button],a[href],[role=tab]')].some((b) => { const bc = getComputedStyle(b); return bc.display !== 'none' && bc.visibility !== 'hidden' && !b.disabled && b.getAttribute('aria-disabled') !== 'true' && b.getAttribute('aria-hidden') !== 'true' && (b.tabIndex == null || b.tabIndex >= 0); });
@@ -1762,6 +1771,13 @@ async function runTextSpacingAdequate(page, request) {
   if (!tagged) return mkStatic(request, 'text-spacing-adequate', '1.4.12', 'spacingApplicable', false, null, 'measure-text-spacing');
   const d = await page.evaluate((m) => {
     const el = document.querySelector(`[data-v3-target="${m}"]`); if (!el) return null;
+    // SHADOW-PROOF element-children read — HTMLFormElement's named getter makes each control's name/id an OWN
+    // property of the form, shadowing the inherited `children`/`childNodes` accessors, so `for (const c of
+    // n.children)` throws "not iterable" on `<form><input name="children"></form>`. The 1.4.12 target can be
+    // a form (or any ancestor of one), and `walk` descends the whole subtree, so this is reachable.
+    // Node.prototype's getter is called directly; inlined (this arrow serializes through page.evaluate).
+    const _CHILD_NODES_GET = (Object.getOwnPropertyDescriptor(Node.prototype, 'childNodes') || {}).get;
+    const elemChildren = (e) => (e ? Array.prototype.filter.call(_CHILD_NODES_GET ? _CHILD_NODES_GET.call(e) : (e.childNodes || []), (n) => n.nodeType === 1) : []);
     const PROPS = ['letter-spacing', 'word-spacing', 'line-height'];
     const CASCADE_KW = new Set(['inherit', 'unset', 'revert', 'revert-layer']); // defer to cascade ⇒ not a lock (inline; page.evaluate has no module scope)
     // A property counts only when it LOCKS a concrete value at !important — a cascade-deferring keyword
@@ -1779,7 +1795,7 @@ async function runTextSpacingAdequate(page, request) {
     const leaves = [];
     const walk = (n) => {
       for (const c of n.childNodes) if (c.nodeType === 3 && c.textContent.trim()) { leaves.push(n); break; }
-      for (const c of n.children) walk(c);
+      for (const c of elemChildren(n)) walk(c);
     };
     walk(el);
     if (!leaves.length) return { applicable: false };
