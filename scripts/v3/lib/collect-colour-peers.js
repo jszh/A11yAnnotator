@@ -111,3 +111,5 @@ function collectColourPeers() {
   }
   return groups;
 }
+
+module.exports = { collectColourPeers };

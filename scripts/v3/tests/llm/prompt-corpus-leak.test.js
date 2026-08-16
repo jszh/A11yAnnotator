@@ -102,3 +102,75 @@ test('no distinctive rubric example appears verbatim in a corpus page', () => {
   }
   assert.deepEqual(bad, [], `${bad.length} rubric example(s) taken from the eval set:\n${bad.join('\n')}`);
 });
+
+// ===================================================================================
+// EVERY PROMPT SURFACE, not just the rubric files.
+//
+// A rubric is the biggest prompt surface but far from the only one. These also reach a judge verbatim:
+//   · cdp-tool-catalog.js  `when:`   — the per-tool when-to-use line injected into the tool block
+//   · llm-adjudicator.js   `note:`   — the explanatory note attached to each precomputed signal
+//   · micro-checks.js      `text:`   — the per-cue boolean micro-rubrics
+//   · broad-scope-llm-review.js      — the broad-scope packet prompts
+//   · run-instruments.js / status-detector.js  `detail:` — finding text that rides into the ledger
+//     and, from there, into the evidence a judge reads.
+// A corpus-derived example in ANY of them teaches to the test exactly as a rubric one does, so the gate
+// covers the lot. Only string LITERALS are checked: comments never reach a prompt, and the code is dense
+// with them precisely because the reasoning is recorded next to the decision.
+// ===================================================================================
+const PROMPT_SOURCES = [
+  'cdp-tool-catalog.js', 'llm-adjudicator.js', 'micro-checks.js',
+  'broad-scope-llm-review.js', 'run-instruments.js', 'status-detector.js',
+  'collect-error-summary.js', 'collect-colour-peers.js', 'collect-faux-columns.js',
+  'collect-styling-outliers.js', 'color-reference-lexicon.js', 'collect-tables.js',
+];
+
+// Strip comments so a `// measured on case-03` note never trips the gate — only shipped strings count.
+function stringLiteralsOf(src) {
+  const noBlock = src.replace(/\/\*[\s\S]*?\*\//g, ' ');
+  const noLine = noBlock.split('\n').map((l) => {
+    // crude but adequate: drop from an unquoted // to end of line
+    let inS = null, out = '';
+    for (let i = 0; i < l.length; i++) {
+      const c = l[i], p = l[i - 1];
+      if (inS) { out += c; if (c === inS && p !== '\\') inS = null; continue; }
+      if (c === '"' || c === "'" || c === '`') { inS = c; out += c; continue; }
+      if (c === '/' && l[i + 1] === '/') break;
+      out += c;
+    }
+    return out;
+  }).join('\n');
+  return [...noLine.matchAll(/'((?:[^'\\]|\\.)*)'|"((?:[^"\\]|\\.)*)"|`((?:[^`\\]|\\.)*)`/g)]
+    .map((m) => m[1] || m[2] || m[3] || '').filter((x) => x.length >= 12);
+}
+
+test('no PROMPT-BOUND string literal names a corpus case family', () => {
+  if (!fs.existsSync(CORPUS_ROOT)) return;
+  const families = [];
+  for (const sc of fs.readdirSync(CORPUS_ROOT)) {
+    const pages = path.join(CORPUS_ROOT, sc, 'pages');
+    if (!/^\d/.test(sc) || !fs.existsSync(pages)) continue;
+    for (const d of fs.readdirSync(pages)) if (fs.statSync(path.join(pages, d)).isDirectory()) families.push(d);
+  }
+  const bad = [];
+  for (const f of PROMPT_SOURCES) {
+    const fp = path.join(__dirname, '..', '..', 'lib', f);
+    if (!fs.existsSync(fp)) continue;
+    for (const lit of stringLiteralsOf(fs.readFileSync(fp, 'utf8'))) {
+      for (const fam of families) if (lit.includes(fam)) bad.push(`${f}: string literal names case family "${fam}"`);
+    }
+  }
+  assert.deepEqual(bad, [], bad.join('\n'));
+});
+
+test('no PROMPT-BOUND string literal states a ground-truth outcome or cites the eval set', () => {
+  const BANNED = [/held-out corpus/i, /ground[- ]truth/i, /\bGT[- ](pass|fail)/i, /is a Pass, not a Fail/i, /act-augmented/i, /\bcase-\d{2}\b/];
+  const bad = [];
+  for (const f of PROMPT_SOURCES) {
+    const fp = path.join(__dirname, '..', '..', 'lib', f);
+    if (!fs.existsSync(fp)) continue;
+    for (const lit of stringLiteralsOf(fs.readFileSync(fp, 'utf8'))) {
+      for (const re of BANNED) { const m = lit.match(re); if (m) bad.push(`${f}: ${JSON.stringify(m[0])} in a shipped string`); }
+    }
+  }
+  assert.deepEqual(bad, [], bad.join('\n'));
+});

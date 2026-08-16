@@ -391,3 +391,71 @@ test('S7 P5: the collector resolves listeners in the NODE\'S OWN context, not th
   assert.match(src, /ancestorListenerTypes/, 'one-level ancestor delegation must be recorded');
   assert.match(src, /delegatedListenerTypes: pageDelegatedListenerTypes/, 'page-level delegation roots must be reported');
 });
+
+// ===================================================================================
+// S8 — ADVERSARIAL edge cases for the detectors added last. Each of these is a shape that
+// LOOKS like the failure and is not, or looks benign and is not. The held-out sweeps proved the
+// aperture; these pin the specific ways each predicate could be made to lie.
+// ===================================================================================
+const { collectErrorSummary } = require('../../lib/collect-error-summary.js');
+const { collectFauxColumns } = require('../../lib/collect-faux-columns.js');
+const { collectStylingOutliers } = require('../../lib/collect-styling-outliers.js');
+const { collectColourPeers } = require('../../lib/collect-colour-peers.js');
+
+// These four run IN THE PAGE, so exercising them needs a DOM. Rather than stand up Chrome for a pure
+// predicate, assert the properties that hold at the source level plus the contracts callers depend on.
+test('S8: every page-evaluated collector is self-contained (no closure over Node scope)', () => {
+  // They are handed to page.evaluate, so a reference to anything outside their own body is a
+  // ReferenceError inside the browser — a failure mode that shows up as an empty result, not a crash,
+  // and therefore as a silent loss of coverage.
+  for (const [name, fn] of Object.entries({ collectErrorSummary, collectFauxColumns, collectStylingOutliers, collectColourPeers })) {
+    const src = fn.toString();
+    assert.ok(!/\brequire\s*\(/.test(src), `${name} must not require() — it runs in the browser`);
+    assert.ok(!/\bprocess\./.test(src), `${name} must not touch process`);
+    assert.ok(!/\bmodule\b/.test(src), `${name} must not reference module`);
+  }
+});
+
+test('S8 F2: the trigger set is strike-through + small-caps ONLY — weight/size must not trigger', () => {
+  // Measured: including weight/size fires on 28.6% of pages because that is how the web expresses
+  // HIERARCHY. If someone widens `appearance` back, this catches it before a corpus run does.
+  const src = collectStylingOutliers.toString();
+  const appearance = src.match(/const appearance = \(cs\) => \[([^\]]*)\]/);
+  assert.ok(appearance, 'the trigger signature must be a single readable expression');
+  assert.match(appearance[1], /textDecorationLine/);
+  assert.match(appearance[1], /fontVariantCaps/);
+  assert.ok(!/fontWeight|fontSize/.test(appearance[1]),
+    `weight/size must not be in the TRIGGER set (they are still REPORTED): ${appearance[1]}`);
+});
+
+test('S8 error-summary: coherence requires ALL THREE differences to be empty', () => {
+  // A summary can be wrong in three independent ways and any one of them misdirects the user. If the
+  // predicate ever reduces to two, a summary that omits a broken field would read as coherent.
+  const src = collectErrorSummary.toString();
+  const coh = src.match(/coherent:\s*([^,]+),/);
+  assert.ok(coh, 'coherent must be a single explicit expression');
+  for (const part of ['namedNotFlagged.length === 0', 'flaggedNotNamed.length === 0', 'unresolved.length === 0']) {
+    assert.ok(coh[1].includes(part), `coherence must require ${part} — got: ${coh[1]}`);
+  }
+});
+
+test('S8 error-summary: a block CONTAINING form fields is a form section, not a summary about one', () => {
+  const src = collectErrorSummary.toString();
+  assert.match(src, /if \(box\.querySelector\(FIELD_SEL\)\) continue;/,
+    'a role=alert wrapper around the form itself would otherwise "name" every field in it');
+});
+
+test('S8 F34: alignment is only counted where whitespace actually RENDERS', () => {
+  // Outside white-space:pre* the browser collapses runs of spaces, so there is no visual column to lose
+  // and any "alignment" in the source is invisible to everyone.
+  const src = collectFauxColumns.toString();
+  assert.match(src, /\^pre\(\$\|-\)/, 'must gate on white-space: pre / pre-wrap / pre-line');
+});
+
+test('S8 F10: the escape probe requires Tab AND Shift+Tab AND Escape to all fail', () => {
+  const src = require('fs').readFileSync(require('path').join(__dirname, '..', '..', 'lib', 'kbd-graph.js'), 'utf8');
+  const fn = src.slice(src.indexOf('async function detectEmbeddedFormatTraps'));
+  assert.match(fn, /bwd\.escaped === true.*directional/s, 'a one-way escape is directional, never a barrier');
+  assert.match(fn, /escEscapes/, 'Escape must be probed — an editor that swallows Tab but honours Esc is a PASS');
+  assert.match(fn, /countedViaCdp/, 'cross-origin frames must be counted through the frame API');
+});
