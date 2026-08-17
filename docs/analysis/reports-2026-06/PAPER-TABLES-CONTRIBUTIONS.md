@@ -1048,6 +1048,51 @@ masked SVG `<text>` measurement defect (glyph-hiding styles don't drive SVG `fil
 ACT afw4f7 Inapplicable Ex4 into a false barrier in the first gate run (`v3-act-subset-s11-gate/`,
 fp 2); fixed fill-aware (both polarities regression-tested), fp back to 1 in the rerun.
 
+## Table 1k-post5 — synthetic s11 run (2026-08-17)
+
+**Run `results/aug-annot-s11-tools/`, repo at `01241deb` + a PARTIAL uncommitted batch-2 tree.**
+Modules loaded at 09:13:20; five core batch-2 files (vision-capture, collect-tables,
+act-page-collect, llm-adjudicator, build-v3) have mtimes 09:45–10:04 — the run measured the 09:13
+snapshot, and the area-coords crop lane is PROVEN absent from it (HEAD vision-capture has zero
+area code; all 5 area subjects were gate-dropped pre-call). This run therefore UNDER-credits the
+batch and is not attributable to any single tree state; the next scored run must ride the pinned
+batch-2 commit. Sonnet 4.6, tools ON, 392 pages, 0 errors, 144 min, $75.97, 897 LLM calls,
+132 tool calls.
+
+| slice | recall | FP | F1 | (s10 →) |
+|---|---|---|---|---|
+| ALL | **277/313 = 88.5%** | **6/79 = 7.6%** | **0.930** | 84.0% · 12.7% · 0.898 |
+| unflagged | 248/279 = 88.9% | 2/36 = 5.6% | 0.938 | 85.3% · 11.1% · 0.914 |
+| clear | 25/28 = 89.3% | 4/42 = 9.5% | 0.877 | 75.0% · 14.3% · 0.764 |
+| fixed | 4/6 = 66.7% | 0/1 | 0.800 | unchanged |
+
+Pre-registration (b97da1c6 commit message) hit both aggregate predictions (recall "high-80s" →
+88.5%; FP "~9–10%" → 7.6%, better). Case-level: **16 of the pre-registered FN targets fixed**
+(all three 2.4.4 destination-contradiction, 2.1.2 esc-standard-03, both 1.4.13 tooltip-applicability,
+1.1.1 long-description-04, 1.4.1 image-chart-05/ui-status-05/color-coded-05, 3.3.1
+non-text-only-03 + silent-redisplay-02, all three 4.1.3 announced-text) and **2 of 3 FP targets**
+(2.4.2 title-too-generic-06, 1.1.1 filename-placeholder-07; 2.4.3 row-vs-column-05 went FP→uncertain,
+half-credit). Not fixed: 8 targets (icon-link-05; error-summary-04 [enabler-only, as flagged];
+2.1.2 region-loop-01/04 + 4.1.3 wrong-live-region-01 [mints never fired]; context-and-function-03;
+image-chart-03 [obligation now mints, judge missed]; non-textual-05). Unregistered gains ×5 under the
+bundle rule (incl. both 4.1.3 removal-of-status cases — mechanism = batch-2 timeline lane — and two
+unregistered FP clears). **Regressions ×6** (1.3.1 ascii-pre-04, special-status-05; 1.4.13
+persistent-auto-timeout-03; 2.4.3 f85-focus-return-02; 3.3.1 error-message-mismatches-05/06) plus
+one new FP (2.4.4 generic-link-text-02) — RCA in flight; net Δ = +14 catches, −4 FP.
+
+## Table 1k-post6 — batch-2 ACT commit gate (2026-08-17)
+
+**ACT 581 gate — clean** (`upstream-evidence/v3-act-subset-b2-gate/`, vs reference
+`v3-act-subset-s11-gate2/`): tp 13, fn 101, fp 1, tn 262, tnWithClear 9, outOfScope 195, error 0.
+Row-level: 580/581 identical; the single delta is 3798f2c4/307n5z — the reference's 660s-timeout
+error row completing cleanly as fn, exactly as the pre-existing `flake-307n5z-recheck` predicted.
+Gated tree = batch-2 complete + 21 review-finding remediations (6 leakage, 14 soundness, 1
+test-harness) + the 126-entry corpus prose-leak strip (act-augmented only; not in this gate's
+corpus). Suite: 1281 tests, 1280 pass, 1 OCR env-skip; prompt-corpus-leak 5/5 with 2 new
+PROMPT_SOURCES files (broad-scope-probes.js, confusable-text.js). NOTE: an earlier same-tree
+approved-only partial run sits in `v3-act-subset-b2-gate/`'s history (first invocation lacked
+`--proposed`, 312 cases); the recorded full run supersedes it.
+
 ## Table 2 — Held-out generalization gate (581-case full corpus)
 
 Each new deterministic detector evaluated over its **entire** ACT rule, not its tuned examples. Over-fire =
