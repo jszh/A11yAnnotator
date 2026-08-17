@@ -100,3 +100,10 @@ fixes first, judgment fixes behind fixed-evidence replay per the two-lane valida
 - Next scored run: ON THE SERVER (user directive; codex resized to c4-highcpu-16 and validated
   sharding at --pages 32 --browsers 4). Local scored runs discontinued for now; platform-change
   caveat applies vs Mac baselines (fonts/vision).
+
+## Scope expansion (user, 2026-08-17 evening): cover ALL residuals
+
+Batch 3 now covers the FULL s12 residual, not just the s11-regression RCA set. Five RCA lanes
+launched over the ~15 never-root-caused FNs, the 3 stable FPs, and the 4.1.3 loss cluster
+(fixed-evidence replays). Findings merge into the fix list above before implementation begins.
+Still open for the user: the removal-of-status-06 label-vs-doctrine ruling.
