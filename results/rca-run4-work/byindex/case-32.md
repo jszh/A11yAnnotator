@@ -1,0 +1,70 @@
+CASE INDEX: 32
+TESTCASE_ID: f91d77e96c06
+KIND (authoritative, from run4 GT+outcome): FP
+SC: 4.1.2   RULE: 5c01ea   ARIA state or property is permitted
+
+This file is SELF-CONTAINED. Below: (1) the harness evidence slice — GT, LLM in-scope verdicts+summaries, off-target barriers, and the model FULL reasoning trace (THINK/SAY/TOOL_CALL/TOOL_RESULT); (2) the fixture HTML inlined.
+
+================= EVIDENCE SLICE =================
+# RCA case f91d77e96c06  [FP]
+- rule: 5c01ea  ARIA state or property is permitted
+- sc(GT-scored): 4.1.2   expected(GT): passed   outcome: caught   polarity: specificity
+- v3Barrier(deterministic): false   inScopeAutoPartial: 0   inScopeObligations: 1
+- fixture: eval/checker-comparison/act-subset/pages/5c01ea/f91d77e96c069380252b674faaf08eecab375503.html
+
+## in-scope verdicts
+- RUBRIC 4.1.2 LIKELY_BARRIER conf=medium [accessible-name-adequacy-v0] xpath=/html/body/div[1]
+  summary: The accessible name 'My button' does not convey the purpose of the button control, functioning as a generic placeholder name.
+
+## model reasoning trace (per subject)
+
+### subject sc=4.1.2 xpath=/html/body/div[1] rubric=accessible-name-adequacy-v0 verdict=REPRODUCED
+THINK: Let me analyze this case. The element is `/html/body/div[1]` with an accessible name "My button" (present: true, resolved: true). The element-crop shows "My button" text visually as well.
+
+The key question here is about name adequacy for a `div` element. But wait - I need to check the checkerHint and what role this element has. The rubric mentions that if there's an ARIA attribute legality issue, I should check that.
+
+Looking at the signals:
+- The element is a `div` (`/html/body/div[1]`)
+- It has the accessible name "My button" 
+- There's no checkerHint flagging prohibited ARIA attributes, so this doesn't seem to be an ARIA legality issue
+
+Since there's no indication of an aria-prohibited-attr violation, the concern appears to be about whether the name "My button" is adequate for this generic div element. The name itself is present and resolved, but I need to consider whether it's sufficiently descriptive for the element's purpose. I need to check what the computed role actually is to determine whether this element qualifies as a user interface component under the accessibility guidelines.
+TOOL_CALL mcp__cdp__query_ax_node input={"targetXpath":"/html/body/div[1]"}
+TOOL_RESULT: [{"type":"text","text":"{\"resolved\":true,\"inTree\":true,\"role\":\"button\",\"roleSource\":\"role\",\"headingLevel\":null,\"nameFrom\":[\"contents\"],\"labelledby\":null,\"describedby\":null,\"focusable\":false,\"isAriaHidden\":false,\"requiredStatesPresent\":[\"pressed\"],\"requiredStatesMissing\":[],\"ignoredReasons\":[],\"ignoredByActiveModal\":false}"}]
+THINK: Now I have the full picture:
+- Role: "button" (from `role` attribute - i.e., `role="button"`)
+- Name from: `contents` (the text content "My button")
+- Focusable: false (!)
+- Required states present: `pressed` 
+
+So this div has `role="button"` applied. The accessible name is "My button" derived from its text contents. 
+
+The name "My button" - is it adequate? It's a generic name. The rubric says: "a generic name ('button', 'link', 'click', 'untitled') on a control whose purpose is specific" is a failure. The name "My button" essentially says "My button" which doesn't convey what the button actually does. It's similar to just calling something "button" - it's generic and doesn't describe the button's purpose.
+The visual content matches what's rendered, but the name itself is problematic—"My button" is essentially a placeholder that doesn't communicate the button's actual function. While the focusability issue is a separate role/state problem, the name "My button" fails to adequately describe what this control does. The rubric distinguishes between truly generic names like "button" or "click" and labels that are at least specific to that control, even if they don't describe purpose. "My button" is the actual visible text, so it's the control's name, but it doesn't convey what the button actually does—there's no context clue about its function from what I can see in the element. the name alone doesn't convey what the button does or where it leads, so it fails to meet the accessibility requirement that a non-sighted user could understand the control's purpose. This appears to be a reproduced failure case, though I'm considering whether this might be a test fixture rather than a real application—but judging by the pixels alone, "My button" is inadequate because there's no surrounding visual context to clarify its function.
+SAY: ```json
+{
+  "verdict": "REPRODUCED",
+  "confidence": "medium",
+  "summary": "The accessible name 'My button' does not convey the purpose of the button control, functioning as a generic placeholder name.",
+  "reasoning": "The element carries role='button' (from attribute), its name 'My button' is derived from text contents, yet the name communicates only that this is 'a button belonging to someone' — it says nothing about what the control does or where it goes, making it functionally equivalent to the paradigm failure cases ('button', 'click', 'untitled') listed in the rubric; the element-crop and surrounding-region show no additional visual context that would clarify its purpose.",
+  "evidenceRefs": [
+    "accessibleName.value='My button', present:true, resolved:true (deterministic signal)",
+    "query_ax_node: role='button' (roleSource='role'), nameFrom=['contents'], focusable=false",
+    "element-crop: visible text 'My button' only — no icon, action indicator, or destination context"
+  ]
+}
+```
+
+
+================= FIXTURE HTML (5c01ea/f91d77e96c06) =================
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Passed Example 2</title>
+</head>
+<body>
+	<div role="button" aria-pressed="false">My button</div>
+</body>
+</html>
+```

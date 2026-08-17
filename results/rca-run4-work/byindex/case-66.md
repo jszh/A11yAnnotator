@@ -1,0 +1,76 @@
+CASE INDEX: 66
+TESTCASE_ID: f92350be3a29
+KIND (authoritative, from run4 GT+outcome): FN
+SC: 2.4.4   RULE: fd3a94   Links with identical accessible names and same context serve equivalent purpose
+
+This file is SELF-CONTAINED. Below: (1) the harness evidence slice — GT, LLM in-scope verdicts+summaries, off-target barriers, and the model FULL reasoning trace (THINK/SAY/TOOL_CALL/TOOL_RESULT); (2) the fixture HTML inlined.
+
+================= EVIDENCE SLICE =================
+# RCA case f92350be3a29  [FN]
+- rule: fd3a94  Links with identical accessible names and same context serve equivalent purpose
+- sc(GT-scored): 2.4.4   expected(GT): failed   outcome: missedAgree   polarity: recall
+- v3Barrier(deterministic): false   inScopeAutoPartial: 1   inScopeObligations: 2
+- fixture: eval/checker-comparison/act-subset/pages/fd3a94/f92350be3a294ad1a41de6d7202f09bdd4e5d6c0.html
+
+## in-scope verdicts
+- RUBRIC 2.4.4 LIKELY_OK conf=medium [link-purpose-v0] xpath=/html/body/div[1]/span[3]/a[1]
+  summary: Both 'Contact Us' links share the same raw href (distinctRawHrefs=1) and the name itself is descriptive, so no 2.4.4 barrier is identified.
+
+## model reasoning trace (per subject)
+
+### subject sc=2.4.4 xpath=/html/body/div[1]/span[3]/a[1] rubric=link-purpose-v0 verdict=NOT REPRODUCED
+THINK: The deterministic signals show there are 2 "Contact Us" links (the target and a peer). The peer has the same name "Contact Us" and the raw href is shown. I need to resolve the destinations to confirm if they're the same or different. Let me call resolve_destination on both links.
+SAY: The deterministic signals flag a same-name peer link. Per the rubric and the `uncertainReason`, I must call `resolve_destination` on the full set before deciding — raw href equality is not sufficient to clear.
+TOOL_CALL mcp__cdp__resolve_destination input={"linkXpaths":["/html/body/div[1]/span[3]/a[1]","/html/body/div[1]/span[3]/a[2]"]}
+TOOL_RESULT: [{"type":"text","text":"{\"fingerprints\":[{\"linkXpath\":\"/html/body/div[1]/span[3]/a[1]\",\"refused\":\"cross-origin\",\"destinationOrigin\":\"null\"},{\"linkXpath\":\"/html/body/div[1]/span[3]/a[2]\",\"refused\":\"cross-origin\",\"destinationOrigin\":\"null\"}],\"equality\":{\"finalUrlEqual\":false,\"titleEqual\":false,\"h1Equal\":false,\"mainFirstParagraphEqual\":false},\"note\":\"each link resolved to a raw fingerprint (+ redirect timing) + a per-field byte-EQUALITY grid across the resolved set (fd3a94 is a SET test). Equality is string-equality only — the model judges \\\"same purpose?\
+THINK: Both links are cross-origin so I can't resolve their destinations. However, looking at the equality grid, `finalUrlEqual: false` — but wait, both were refused due to cross-origin, so the equality comparison isn't meaningful here.
+
+Looking at the raw href from the deterministic signals:
+- The peer link (a[2]) has href: `../_assets/WAI/content-assets/wcag-act-rules/test-assets/links-with-identical-names-serve-equivalent-purpose-b20e66/contact-us.html`
+
+The target link (a[1]) href isn't shown explicitly, but both share the same accessible name "Contact Us". 
+
+Since `distinctRawHrefs: 1`, both links actually point to the same raw href. The uncertainty here is that identical raw hrefs can still diverge through redirects, meta-refreshes, or SPA routing, but I can't verify this because they're cross-origin. Still, the fact that they share the same raw destination is a strong signal they serve equivalent purposes.
+
+Plus, "Contact Us" itself is a descriptive name—it clearly communicates what the link does rather than being vague like "click here" or "read more." With the same raw href and a descriptive accessible name, this doesn't meet the criteria for a reproduced link failure, which requires different destinations. The same raw href is strong evidence they point to the same destination, and the descriptive name rules out the generic-in-context issue, so I'm confident returning NOT REPRODUCED at medium confidence despite the cross-origin limitation preventing full verification.
+SAY: Both links refused resolution as cross-origin, so settled destinations cannot be confirmed. I now reason from all available evidence.
+
+```json
+{
+  "verdict": "NOT REPRODUCED",
+  "confidence": "medium",
+  "summary": "Both 'Contact Us' links share the same raw href (distinctRawHrefs=1) and the name itself is descriptive, so no 2.4.4 barrier is identified.",
+  "reasoning": "The accessible name 'Contact Us' is inherently descriptive (it names the action/destination and is not a generic term like 'click here'), so the generic-in-context failure mode does not apply; the identical-names failure mode requires different destinations, but the deterministic signal shows distinctRawHrefs=1 (both same-named links point to the same raw href), and resolve_destination was refused (cross-origin) without revealing any divergence, giving no positive evidence of different destinations.",
+  "evidenceRefs": [
+    "accessibleName.value = 'Contact Us' (non-generic, descriptive)",
+    "sameNameLinks.distinctRawHrefs = 1 (both links share the same raw href)",
+    "resolve_destination: both links refused as cross-origin — no settled-destination divergence detected",
+    "element-crop and surrounding-region: visual confirmation of 'Contact Us' label"
+  ]
+}
+```
+
+
+================= FIXTURE HTML (fd3a94/f92350be3a29) =================
+```html
+<!DOCTYPE html>
+<html lang="en">
+	<div>
+		<span style="text-align:center;">Contact us</span>
+		<span style="display:flex; justify-content:space-around;">
+			<img src="../_assets/WAI/content-assets/wcag-act-rules/test-assets/shared/chat.png" alt="Chat" style="max-width:50px;" />
+			<img src="../_assets/WAI/content-assets/wcag-act-rules/test-assets/shared/phone.png" alt="Phone" style="max-width:50px;" />
+		</span>
+		<span style="display:flex; justify-content:space-around;">
+			<a
+				href="../_assets/WAI/content-assets/wcag-act-rules/test-assets/links-with-identical-names-serve-equivalent-purpose-b20e66/contact-us.html"
+				>Contact Us</a
+			>
+			<a
+				href="../_assets/WAI/content-assets/wcag-act-rules/test-assets/links-with-identical-names-serve-equivalent-purpose-b20e66/contact-us.html"
+				>Contact Us</a
+			>
+		</span>
+	</div>
+</html>
+```

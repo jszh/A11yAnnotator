@@ -1,0 +1,1303 @@
+[
+  {
+    "testcaseId": "228c0a3d78557fb48a855d6733d50848a86f0d62",
+    "ruleId": "fd3a94",
+    "sc": [
+      "2.4.4"
+    ],
+    "traces": [
+      {
+        "sc": "2.4.4",
+        "targetXpath": "/html/body/p[1]/a[1]",
+        "rubricRef": "link-name-equivalence-v0",
+        "verdict": "REPRODUCED",
+        "latencyMs": 23773,
+        "trace": [
+          {
+            "type": "system"
+          },
+          {
+            "type": "rate_limit_event"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "thinking",
+                "text": "I need to evaluate whether two same-named links (\"ACT rules\") serve equivalent purposes. The signals show:\n- This link: `<a href=\"https://act-rules.github.io/\">ACT rules</a>`\n- Peer link: `<a href=\"https://www.w3.org/community/act-r/\">ACT rules</a>`\n\nThese are cross-origin links with different raw hrefs. Let me call resolve_destination to check their settled destinations."
+              }
+            ]
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "text",
+                "text": "I need to resolve the settled destinations for both same-named \"ACT rules\" links before deciding."
+              }
+            ]
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "tool_use",
+                "id": "toolu_014mduTW5oCnMM7U3eVZVG1Z",
+                "name": "mcp__cdp__resolve_destination",
+                "input": {
+                  "linkXpaths": [
+                    "/html/body/p[1]/a[1]",
+                    "/html/body/p[1]/a[2]"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "type": "user",
+            "role": "user",
+            "blocks": [
+              {
+                "kind": "tool_result",
+                "toolUseId": "toolu_014mduTW5oCnMM7U3eVZVG1Z",
+                "isError": false,
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "{\"fingerprints\":[{\"linkXpath\":\"/html/body/p[1]/a[1]\",\"finalUrl\":\"https://act-rules.github.io/pages/about\",\"httpStatus\":200,\"title\":\"\",\"h1\":null,\"mainFirstParagraph\":null,\"visibleText\":null,\"instantRedirect\":false,\"redirectDelayMs\":null,\"crossOrigin\":true},{\"linkXpath\":\"/html/body/p[1]/a[2]\",\"finalUrl\":\"https://www.w3.org/community/act-r/\",\"httpStatus\":200,\"title\":\"ACT Rules Community Group\",\"h1\":\"Community & Business Groups\",\"mainFirstParagraph\":\"The ACT Rules Community Group (previously known as Auto-WCAG), is an open forum set up to document and harmonise the interpretation of W3C accessibility standar\",\"visibleText\":\"Skip to toolbar Skip Log In My W3C Account Search COMMUNITY & BUSINESS GROUPS CURRENT GROUPS REPORTS ABOUT Home / ACT Rules Community Group ACT RULES COMMUNITY GROUP The ACT Rules Community Group (previously known as Auto-WCAG), is an open \",\"instantRedirect\":false,\"redirectDelayMs\":null,\"crossOrigin\":true}],\"resolvedCount\":2,\"equality\":{\"finalUrlEqual\":false,\"titleEqual\":false,\"h1Equal\":false,\"mainFirstParagraphEqual\":false,\"visibleTextEqual\":false},\"note\":\"each link resolved to a raw fingerprint (+ redirect timing) + a per-field byte-EQUALITY grid across the resolved set. Equality is string-equality only (the model judges \\\"same purpose?\\\"); an equality field is null when fewer than 2 links resolved (could not compare — NOT \\\"different\\\"). visibleText/h1 are read from the RENDERED page (post client-side JS), so two same-named links to different query branches differ here even when the static URL/title match.\"}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "thinking",
+                "text": "Both links resolved successfully (cross-origin but still resolved). The equality grid shows all fields differ:\n- `finalUrlEqual`: false — `https://act-rules.github.io/pages/about` vs `https://www.w3.org/community/act-r/`\n- `titleEqual`: false\n- `h1Equal`: false\n- `mainFirstParagraphEqual`: false\n\nLink 1 (`https://act-rules.github.io/`) redirects to `https://act-rules.github.io/pages/about` — this appears to be the ACT Rules website (act-rules.github.io).\nLink 2 goes to the W3C ACT Rules Community Group page. These are genuinely different destinations despite both relating to \"ACT rules,\" and without surrounding context, there's no way for a user to distinguish which link leads where. This is a WCAG 2.4.4 violation — identical link text pointing to different resources."
+              }
+            ]
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "text",
+                "text": "Both links resolved. The equality grid is entirely `false` across every field — different `finalUrl`, different `title`, different `h1`, different `mainFirstParagraph`. The settled destinations are:\n\n- Link 1 → `https://act-rules.github.io/pages/about` (the ACT Rules GitHub-hosted site)\n- Link 2 → `https://www.w3.org/community/act-r/` (the W3C ACT Rules Community Group page)\n\nThese are genuinely different sites/pages with different content. The enclosing block text (\"We are on social media:\") provides no disambiguation between the two \"ACT rules\" links — neither the sentence nor the list context names a distinct subject for each link.\n\n```json\n{\n  \"verdict\": \"REPRODUCED\",\n  \"confidence\": \"high\",\n  \"summary\": \"Two links sharing the identical accessible name 'ACT rules' resolve to genuinely different destinations (act-rules.github.io vs. w3.org/community/act-r/) with no surrounding context that disambiguates which is which.\",\n  \"reasoning\": \"resolve_destination confirmed all equality fields false: finalUrl, title, h1, and mainFirstParagraph all diverge between the two settled destinations, and the enclosing block text ('We are on social media:') does not provide programmatic context that distinguishes the purpose of either link.\",\n  \"evidenceRefs\": [\n    \"sameNameLinks.peers[0].xpath=/html/body/p[1]/a[2], name='ACT rules', href='https://www.w3.org/community/act-r/'\",\n    \"resolve_destination: link1 finalUrl=https://act-rules.github.io/pages/about, link2 finalUrl=https://www.w3.org/community/act-r/\",\n    \"resolve_destination equality grid: finalUrlEqual=false, titleEqual=false, h1Equal=false, mainFirstParagraphEqual=false\",\n    \"enclosingContext.blockText='We are on social media:' — does not disambiguate the two same-named links\"\n  ]\n}\n```"
+              }
+            ]
+          },
+          {
+            "type": "result",
+            "subtype": "success",
+            "isError": false,
+            "numTurns": 2,
+            "usage": {
+              "input_tokens": 4,
+              "cache_creation_input_tokens": 4858,
+              "cache_read_input_tokens": 12156,
+              "output_tokens": 1065,
+              "server_tool_use": {
+                "web_search_requests": 0,
+                "web_fetch_requests": 0
+              },
+              "service_tier": "standard",
+              "cache_creation": {
+                "ephemeral_1h_input_tokens": 4858,
+                "ephemeral_5m_input_tokens": 0
+              },
+              "inference_geo": "not_available",
+              "iterations": [
+                {
+                  "input_tokens": 1,
+                  "output_tokens": 832,
+                  "cache_read_input_tokens": 8168,
+                  "cache_creation_input_tokens": 678,
+                  "cache_creation": {
+                    "ephemeral_5m_input_tokens": 0,
+                    "ephemeral_1h_input_tokens": 678
+                  },
+                  "type": "message"
+                }
+              ],
+              "speed": "standard"
+            },
+            "totalCostUsd": 0.0515798
+          }
+        ]
+      },
+      {
+        "sc": "2.4.4",
+        "targetXpath": "/html/body/p[1]/a[1]",
+        "rubricRef": "link-purpose-v0",
+        "verdict": "REPRODUCED",
+        "latencyMs": 13797,
+        "trace": [
+          {
+            "type": "system"
+          },
+          {
+            "type": "rate_limit_event"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "thinking",
+                "text": "Let me analyze this case. There are two links with the same accessible name \"ACT rules\" in the same paragraph:\n1. `<a href=\"https://act-rules.github.io/\">ACT rules</a>`\n2. `<a href=\"https://www.w3.org/community/act-r/\">ACT rules</a>`\n\nThe enclosing context is \"We are on social media:\" which doesn't disambiguate between the two same-named links going to different destinations.\n\nThese are identical names pointing to different destinations - a classic 2.4.4 failure. I should use resolve_destination to confirm they go to different places, but the hrefs are clearly different (act-rules.github.io vs w3.org/community/act-r/), and they are cross-origin links. \n\nThe tool won't help much since these are cross-origin links, but the URLs themselves are distinct enough to confirm they lead to different destinations. This is the textbook case of identical link names with different purposes, and the surrounding context doesn't provide any clarification either. This is definitely a violation."
+              }
+            ]
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "text",
+                "text": "```json\n{\n  \"verdict\": \"REPRODUCED\",\n  \"confidence\": \"high\",\n  \"summary\": \"Two links share the identical accessible name 'ACT rules' but point to different destinations, making it impossible to distinguish their purposes.\",\n  \"reasoning\": \"The enclosing HTML shows two `<a>` elements both named 'ACT rules' — one href='https://act-rules.github.io/' and one href='https://www.w3.org/community/act-r/' — within the same paragraph; the enclosing context ('We are on social media:') provides no disambiguating information, so a user cannot determine which link goes where, satisfying the identical-names-different-purpose failure mode under 2.4.4.\",\n  \"evidenceRefs\": [\n    \"enclosingHtml: two <a>ACT rules</a> links with distinct hrefs in the same <p>\",\n    \"enclosingContext.blockText: 'We are on social media:' — no subject disambiguation\",\n    \"rawElementHtml: <a href=\\\"https://act-rules.github.io/\\\">ACT rules</a>\",\n    \"sibling link: <a href=\\\"https://www.w3.org/community/act-r/\\\">ACT rules</a>\"\n  ]\n}\n```"
+              }
+            ]
+          },
+          {
+            "type": "result",
+            "subtype": "success",
+            "isError": false,
+            "numTurns": 1,
+            "usage": {
+              "input_tokens": 3,
+              "cache_creation_input_tokens": 4544,
+              "cache_read_input_tokens": 0,
+              "output_tokens": 607,
+              "server_tool_use": {
+                "web_search_requests": 0,
+                "web_fetch_requests": 0
+              },
+              "service_tier": "standard",
+              "cache_creation": {
+                "ephemeral_1h_input_tokens": 4544,
+                "ephemeral_5m_input_tokens": 0
+              },
+              "inference_geo": "not_available",
+              "iterations": [
+                {
+                  "input_tokens": 3,
+                  "output_tokens": 607,
+                  "cache_read_input_tokens": 0,
+                  "cache_creation_input_tokens": 4544,
+                  "cache_creation": {
+                    "ephemeral_5m_input_tokens": 0,
+                    "ephemeral_1h_input_tokens": 4544
+                  },
+                  "type": "message"
+                }
+              ],
+              "speed": "standard"
+            },
+            "totalCostUsd": 0.03984900000000001
+          }
+        ]
+      },
+      {
+        "sc": "2.4.4",
+        "targetXpath": "/html/body/p[1]/a[2]",
+        "rubricRef": "link-name-equivalence-v0",
+        "verdict": "REPRODUCED",
+        "latencyMs": 20524,
+        "trace": [
+          {
+            "type": "system"
+          },
+          {
+            "type": "rate_limit_event"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "thinking",
+                "text": "The two links both have the accessible name \"ACT rules\" but point to different URLs:\n- `/html/body/p[1]/a[1]`: href=\"https://act-rules.github.io/\"\n- `/html/body/p[1]/a[2]`: href=\"https://www.w3.org/community/act-r/\"\n\nThese are cross-origin links, so resolve_destination won't work. But I can judge from context and the URLs themselves.\n\nThe enclosing context is \"We are on social media:\" - this doesn't disambiguate the two links at all. Both are named \"ACT rules\" but point to different destinations (the ACT rules GitHub site vs the W3C community group page). The enclosing block text does not distinguish between them.\nSince I can't use resolve_destination for cross-origin links, I'm relying on the URLs themselves—they clearly go to different domains, one to the GitHub organization and one to the W3C community page. The surrounding context doesn't help clarify which is which, so this is a 2.4.4 barrier. The URLs point to different domains, so REPRODUCED seems right here—the context doesn't help disambiguate, and while I can't verify with the tool due to cross-origin restrictions, the href differences alone suggest they're distinct resources. I'll mark it as medium confidence."
+              }
+            ]
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "text",
+                "text": "```json\n{\n  \"verdict\": \"REPRODUCED\",\n  \"confidence\": \"medium\",\n  \"summary\": \"Two links sharing the identical accessible name 'ACT rules' point to distinct cross-origin destinations with no enclosing context that distinguishes them, constituting a 2.4.4 barrier.\",\n  \"reasoning\": \"Both links carry the name 'ACT rules' (distinctRawHrefs=2: act-rules.github.io vs w3.org/community/act-r/); resolve_destination cannot run cross-origin, but the enclosing block text 'We are on social media:' provides zero programmatic disambiguation between the two links, so a user navigating by link name cannot determine which destination serves which purpose.\",\n  \"evidenceRefs\": [\n    \"sameNameLinks.count=1, peers=[{xpath:/html/body/p[1]/a[1], href:https://act-rules.github.io/}]\",\n    \"rawElementHtml: <a href=\\\"https://www.w3.org/community/act-r/\\\">ACT rules</a>\",\n    \"enclosingContext.blockText: 'We are on social media:' — no per-link disambiguation\",\n    \"sameNameLinks.distinctRawHrefs=2 (different cross-origin hosts)\"\n  ]\n}\n```"
+              }
+            ]
+          },
+          {
+            "type": "result",
+            "subtype": "success",
+            "isError": false,
+            "numTurns": 1,
+            "usage": {
+              "input_tokens": 3,
+              "cache_creation_input_tokens": 3881,
+              "cache_read_input_tokens": 0,
+              "output_tokens": 955,
+              "server_tool_use": {
+                "web_search_requests": 0,
+                "web_fetch_requests": 0
+              },
+              "service_tier": "standard",
+              "cache_creation": {
+                "ephemeral_1h_input_tokens": 3881,
+                "ephemeral_5m_input_tokens": 0
+              },
+              "inference_geo": "not_available",
+              "iterations": [
+                {
+                  "input_tokens": 3,
+                  "output_tokens": 955,
+                  "cache_read_input_tokens": 0,
+                  "cache_creation_input_tokens": 3881,
+                  "cache_creation": {
+                    "ephemeral_5m_input_tokens": 0,
+                    "ephemeral_1h_input_tokens": 3881
+                  },
+                  "type": "message"
+                }
+              ],
+              "speed": "standard"
+            },
+            "totalCostUsd": 0.040428
+          }
+        ]
+      },
+      {
+        "sc": "2.4.4",
+        "targetXpath": "/html/body/p[1]/a[2]",
+        "rubricRef": "link-purpose-v0",
+        "verdict": "REPRODUCED",
+        "latencyMs": 14044,
+        "trace": [
+          {
+            "type": "system"
+          },
+          {
+            "type": "rate_limit_event"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "thinking",
+                "text": "Let me analyze this case. There are two links with the same accessible name \"ACT rules\" in the same paragraph, but they point to different destinations:\n1. `https://act-rules.github.io/` — ACT rules\n2. `https://www.w3.org/community/act-r/` — ACT rules (this is the element being evaluated)\n\nThe enclosing context is \"We are on social media:\" which doesn't disambiguate between the two same-named links going to different destinations.\n\nThis is a classic identical-names-different-destinations failure. Both links are named \"ACT rules\" but point to different URLs. \n\nThe URLs are clearly on different domains, so they definitely lead to different destinations. This is a barrier."
+              }
+            ]
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "text",
+                "text": "```json\n{\n  \"verdict\": \"REPRODUCED\",\n  \"confidence\": \"high\",\n  \"summary\": \"Two links share the identical accessible name 'ACT rules' but point to different destinations (act-rules.github.io vs w3.org/community/act-r/), and the enclosing context 'We are on social media:' does not disambiguate them.\",\n  \"reasoning\": \"The enclosingHtml shows two same-named links ('ACT rules') within the same paragraph with distinct hrefs (different domains/paths); the enclosing block text 'We are on social media:' provides no disambiguation, satisfying the identical-names-different-purpose failure mode defined in the rubric.\",\n  \"evidenceRefs\": [\n    \"enclosingHtml: two <a> elements both named 'ACT rules', href1=https://act-rules.github.io/, href2=https://www.w3.org/community/act-r/\",\n    \"enclosingContext.blockText: 'We are on social media:' — does not name or distinguish the two destinations\",\n    \"surrounding-region crop: both 'ACT rules' links visible in same line\"\n  ]\n}\n```"
+              }
+            ]
+          },
+          {
+            "type": "result",
+            "subtype": "success",
+            "isError": false,
+            "numTurns": 1,
+            "usage": {
+              "input_tokens": 3,
+              "cache_creation_input_tokens": 4549,
+              "cache_read_input_tokens": 0,
+              "output_tokens": 552,
+              "server_tool_use": {
+                "web_search_requests": 0,
+                "web_fetch_requests": 0
+              },
+              "service_tier": "standard",
+              "cache_creation": {
+                "ephemeral_1h_input_tokens": 4549,
+                "ephemeral_5m_input_tokens": 0
+              },
+              "inference_geo": "not_available",
+              "iterations": [
+                {
+                  "input_tokens": 3,
+                  "output_tokens": 552,
+                  "cache_read_input_tokens": 0,
+                  "cache_creation_input_tokens": 4549,
+                  "cache_creation": {
+                    "ephemeral_5m_input_tokens": 0,
+                    "ephemeral_1h_input_tokens": 4549
+                  },
+                  "type": "message"
+                }
+              ],
+              "speed": "standard"
+            },
+            "totalCostUsd": 0.039039
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "testcaseId": "4c72b3b9b06bf1edc3c959070731b65871ee0c8f",
+    "ruleId": "c4a8a4",
+    "sc": [
+      "2.4.2"
+    ],
+    "traces": [
+      {
+        "sc": "2.4.2",
+        "targetXpath": "/page-level::title",
+        "rubricRef": "page-title-v0",
+        "verdict": "NOT REPRODUCED",
+        "latencyMs": 18564,
+        "trace": [
+          {
+            "type": "system"
+          },
+          {
+            "type": "rate_limit_event"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "thinking",
+                "text": "The page title is \"University of Arkham\" and the h1 is \"Search results for \"accessibility\" at the University of Arkham\". \n\nThe title \"University of Arkham\" names the site/organization but doesn't describe the page's specific content (search results for \"accessibility\"). However, per the rubric, I should NOT flag a barrier merely because the title is generic or could be more descriptive. The rubric says: \"a bare site/org name\" is NOT a barrier.\n\nBut wait - is this a topic contradiction? The page is a search results page. \n\nActually, looking at the rubric more carefully, \"University of Arkham\" is a bare site/org name, which explicitly passes. It doesn't contradict the content since the page is indeed about the University of Arkham. So this isn't a barrier."
+              }
+            ]
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "text",
+                "text": "```json\n{\n  \"verdict\": \"NOT REPRODUCED\",\n  \"confidence\": \"high\",\n  \"summary\": \"The page title 'University of Arkham' is a non-empty, non-placeholder site/org name that does not contradict the visible page content, so no 2.4.2 barrier is present under the tested facet.\",\n  \"reasoning\": \"The deterministic signal confirms `pageTitle.present=true` with value 'University of Arkham'; the h1 reads 'Search results for \\\"accessibility\\\" at the University of Arkham' — the title names the same institution the page belongs to and does not misdirect; per the rubric, a bare site/org name that doesn't contradict the content is explicitly cleared as NOT a barrier.\",\n  \"evidenceRefs\": [\n    \"signals.pageTitle.value = 'University of Arkham'\",\n    \"signals.pageTitle.present = true\",\n    \"signals.structure.headings[0].text = 'Search results for \\\"accessibility\\\" at the University of Arkham'\",\n    \"viewport h1 visible and consistent with title's site reference\"\n  ]\n}\n```"
+              }
+            ]
+          },
+          {
+            "type": "result",
+            "subtype": "success",
+            "isError": false,
+            "numTurns": 1,
+            "usage": {
+              "input_tokens": 3,
+              "cache_creation_input_tokens": 5159,
+              "cache_read_input_tokens": 3988,
+              "output_tokens": 556,
+              "server_tool_use": {
+                "web_search_requests": 0,
+                "web_fetch_requests": 0
+              },
+              "service_tier": "standard",
+              "cache_creation": {
+                "ephemeral_1h_input_tokens": 5159,
+                "ephemeral_5m_input_tokens": 0
+              },
+              "inference_geo": "not_available",
+              "iterations": [
+                {
+                  "input_tokens": 3,
+                  "output_tokens": 556,
+                  "cache_read_input_tokens": 3988,
+                  "cache_creation_input_tokens": 5159,
+                  "cache_creation": {
+                    "ephemeral_5m_input_tokens": 0,
+                    "ephemeral_1h_input_tokens": 5159
+                  },
+                  "type": "message"
+                }
+              ],
+              "speed": "standard"
+            },
+            "totalCostUsd": 0.042774400000000004
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "testcaseId": "81d501e52085d9e5712e241bdd24708e7cb4a301",
+    "ruleId": "047fe0",
+    "sc": [
+      "2.4.10"
+    ],
+    "traces": [
+      {
+        "sc": "2.4.10",
+        "targetXpath": "/page-level::section-headings",
+        "rubricRef": "section-headings-v0",
+        "verdict": "REPRODUCED",
+        "latencyMs": 73990,
+        "trace": [
+          {
+            "type": "system"
+          },
+          {
+            "type": "rate_limit_event"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "thinking",
+                "text": "Let me analyze the evidence:\n\n1. The page is \"The Three Kingdoms, Chapter 1\"\n2. There's one h1: \"Three Heroes Swear Brotherhood at a Feast in the Peach Garden\" - marked as not aria-hidden, not offscreen\n3. The viewport shows: a nav with an ordered list (Chapter 1, Chapter 2 links), followed by a paragraph of text\n4. The h1 is NOT visible in the viewport screenshot\n\nThe h1 is reported as `offscreen: false` in the signals, but it's not visible in the viewport screenshot. I need to check where it actually sits on the page using capture_full_page.\nLooking more closely at the viewport, I see the navigation list and prose text, but the h1 isn't showing up even though the signals claim it's not offscreen. I should capture the full page to understand where the h1 is actually positioned."
+              }
+            ]
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "text",
+                "text": "I need to confirm where the h1 physically sits relative to the content — it's not visible in the viewport screenshot, so I'll capture the full page to check its position."
+              }
+            ]
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "tool_use",
+                "id": "toolu_01Qn9AozUiFZGSGatS6xqxJw",
+                "name": "mcp__cdp__capture_full_page",
+                "input": {
+                  "targetXpath": "/html/body/div[1]/h1[1]"
+                }
+              }
+            ]
+          },
+          {
+            "type": "user",
+            "role": "user",
+            "blocks": [
+              {
+                "kind": "tool_result",
+                "toolUseId": "toolu_01Qn9AozUiFZGSGatS6xqxJw",
+                "isError": false,
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "{\"screenshot\":\"<base64 23268 chars elided>\",\"fullPage\":true,\"pageSize\":{\"w\":1280,\"h\":900},\"viewport\":{\"w\":1280,\"h\":900},\"target\":{\"box\":{\"x\":8,\"y\":-978,\"w\":888,\"h\":37},\"tag\":\"h1\",\"role\":null,\"text\":\"Three Heroes Swear Brotherhood at a Feast in the Peach Garden\",\"inViewport\":false,\"offDocument\":true,\"verticalPositionPct\":-109},\"note\":\"the WHOLE scrollable document (below the fold included). A target box is in PAGE coordinates (origin = document top); a NEGATIVE y or offDocument:true means the element is positioned OUTSIDE the document (e.g. top:-9999px → visually hidden) and is NOT in the captured pixels. Use to confirm an off-viewport element exists and judge WHERE it sits relative to surrounding content — never infer a barrier from position alone.\"}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "thinking",
+                "text": "The results are very clear. The h1 element \"Three Heroes Swear Brotherhood at a Feast in the Peach Garden\" has:\n- `y: -978` (negative y position)\n- `offDocument: true`\n- `verticalPositionPct: -109`\n\nThis means the h1 is positioned OUTSIDE the document (off-screen, like `top: -9999px` style). It's visually hidden and not actually introducing the content for sighted users.\n\nThe visible content consists of:\n1. A nav with a TOC (Chapter 1, Chapter 2)\n2. A prose paragraph starting with \"Unity succeeds division and division follows unity...\"\n\nSo there are two distinct sections on the page—the navigation and the actual content—but the h1 that should introduce the prose is hidden off-document. This creates a reproduced barrier where sighted users can't perceive the heading that's supposed to introduce the main content section.\n\nNow I need to think about whether the N/A precondition applies. The page has navigation as a repeated element and then what appears to be a single prose paragraph as the main content. Since this is Chapter 1 of \"The Three Kingdoms,\" it's likely just one section of content, which might mean the multiple-sections requirement doesn't actually trigger here.\n\nBut there's still the issue that the h1 is off-document—visually hidden from sighted users—so they can't see what chapter they're reading, which seems like an accessibility problem regardless. Navigation landmarks are typically separate from content sections for accessibility purposes. The real issue here is whether the page structure has multiple distinct content sections—the table of contents and the prose content—or if it's all one continuous block. Since there's a visible nav followed by prose without a heading, and the h1 is hidden off-document, this looks like a case where the main content section is missing its heading, which would be a violation. Sighted users don't see any heading for the main prose content, and while there's both a navigation section and a content section visible, the h1 is off-document. The rubric confirms this is a failure case—a heading exists in the tree but isn't perceivable in place, which matches the REPRODUCED pattern exactly. The h1 being off-document with negative positioning is exactly the failure mode the rubric describes—a visually hidden heading that leaves the visible content unheaded. The page has distinct navigation and prose sections, so this meets the multi-section precondition. I'm leaning toward REPRODUCED, though there's a question of whether a single chapter in a multi-chapter work counts as \"multiple distinct sections\" or if the N/A precondition applies since this is one continuous chapter body. The h1 is positioned well off-document at y: -978, which confirms it's not organizing the visible content on the page. This gives me high confidence that REPRODUCED is the correct interpretation."
+              }
+            ]
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "text",
+                "text": "The full-page capture reveals the critical fact: the h1 element (\"Three Heroes Swear Brotherhood at a Feast in the Peach Garden\") has `y: -978`, `offDocument: true`, and `verticalPositionPct: -109` — it is positioned completely outside the document (classic visually-hidden trick), not visible anywhere on the rendered page.\n\nThe visible page shows:\n1. A `<nav>` / TOC region (Chapter 1 plain text, Chapter 2 link)\n2. A prose content section (\"Unity succeeds division…\")\n\nThe h1 is programmatically present in the a11y tree but is off-document and therefore does not visibly introduce the prose content section for sighted users. This is exactly the failure mode described in the rubric: *\"An off-document or nav-only heading does not organize the visible content (descriptiveness is irrelevant here).\"*\n\n```json\n{\n  \"verdict\": \"REPRODUCED\",\n  \"confidence\": \"high\",\n  \"summary\": \"The page's h1 heading is positioned off-document (y = -978, offDocument = true) and is never visible to sighted users, leaving the main prose content section with no perceivable heading.\",\n  \"reasoning\": \"capture_full_page confirmed the h1 at xpath /html/body/div[1]/h1[1] has offDocument:true and verticalPositionPct:-109, meaning it is hidden via an off-screen CSS trick; the visible page presents a nav/TOC section plus a prose content section, but no heading visibly marks the start of the prose section — exactly the 2.4.10 failure mode where a programmatic heading that is off-document does not organize visible content.\",\n  \"evidenceRefs\": [\n    \"structure.headings[0]: h1 'Three Heroes Swear Brotherhood…', ariaHidden:false, offscreen:false (programmatic signal only)\",\n    \"capture_full_page target box: {x:8, y:-978, w:888, h:37}, offDocument:true, verticalPositionPct:-109, inViewport:false\",\n    \"Viewport screenshot: shows nav (Chapter 1/2 list) + prose paragraph with no visible heading\"\n  ]\n}\n```"
+              }
+            ]
+          },
+          {
+            "type": "result",
+            "subtype": "success",
+            "isError": false,
+            "numTurns": 2,
+            "usage": {
+              "input_tokens": 4,
+              "cache_creation_input_tokens": 24477,
+              "cache_read_input_tokens": 13514,
+              "output_tokens": 3387,
+              "server_tool_use": {
+                "web_search_requests": 0,
+                "web_fetch_requests": 0
+              },
+              "service_tier": "standard",
+              "cache_creation": {
+                "ephemeral_1h_input_tokens": 24477,
+                "ephemeral_5m_input_tokens": 0
+              },
+              "inference_geo": "not_available",
+              "iterations": [
+                {
+                  "input_tokens": 1,
+                  "output_tokens": 2792,
+                  "cache_read_input_tokens": 9526,
+                  "cache_creation_input_tokens": 18939,
+                  "cache_creation": {
+                    "ephemeral_5m_input_tokens": 0,
+                    "ephemeral_1h_input_tokens": 18939
+                  },
+                  "type": "message"
+                }
+              ],
+              "speed": "standard"
+            },
+            "totalCostUsd": 0.2044022
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "testcaseId": "ec2a7a47c3850e8aacd971a445b90390b2ab73bb",
+    "ruleId": "7d6734",
+    "sc": [
+      "1.1.1"
+    ],
+    "traces": [
+      {
+        "sc": "1.1.1",
+        "targetXpath": "/html/body/svg[1]",
+        "rubricRef": "alt-text-adequacy-v0",
+        "verdict": "PARTIAL",
+        "latencyMs": 67892,
+        "trace": [
+          {
+            "type": "system"
+          },
+          {
+            "type": "rate_limit_event"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "thinking",
+                "text": "Let me analyze this case:\n\n1. The element is an SVG (`/html/body/svg[1]`) containing a circle with `role=\"graphics-object\"`\n2. The accessible name is empty (no alt text, no aria-label)\n3. The SVG renders a yellow circle\n4. There's no surrounding text context\n5. No enclosing link/button\n\nKey questions:\n- What is the computed role of the SVG itself?\n- Is this SVG informative or decorative?\n\nThe SVG has no `role` attribute itself, so it defaults to... let me think. An SVG element without a role defaults to no particular landmark role - it's essentially generic. \n\nThe SVG itself lacks a role attribute and isn't marked as `aria-hidden`, so it's exposed to assistive technology, but without `role=\"img\"` or an accessible name, it won't be announced as an image. The circle inside carries `role=\"graphics-object\"`, which means the SVG is being treated as a container for graphical content rather than a single image unit. I need to determine what the computed role of the SVG element itself actually is. I need to check what the accessibility tree actually shows for this SVG element to determine its computed role and whether it needs an accessible name."
+              }
+            ]
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "tool_use",
+                "id": "toolu_01C2etQUFbQS4bRwEYjiBPhx",
+                "name": "mcp__cdp__query_ax_node",
+                "input": {
+                  "targetXpath": "/html/body/svg[1]"
+                }
+              }
+            ]
+          },
+          {
+            "type": "user",
+            "role": "user",
+            "blocks": [
+              {
+                "kind": "tool_result",
+                "toolUseId": "toolu_01C2etQUFbQS4bRwEYjiBPhx",
+                "isError": false,
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "{\"resolved\":true,\"inTree\":true,\"role\":\"SvgRoot\",\"roleSource\":\"internalRole\",\"headingLevel\":null,\"nameFrom\":[],\"labelledby\":null,\"describedby\":null,\"focusable\":false,\"isAriaHidden\":false,\"requiredStatesPresent\":[],\"requiredStatesMissing\":null,\"ignoredReasons\":[],\"ignoredByActiveModal\":false}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "thinking",
+                "text": "The SVG has a computed role of \"SvgRoot\" - which is an internal Chromium role. This is NOT the same as role=\"img\". \n\nIn Chromium's accessibility tree, `SvgRoot` is the internal role for an `<svg>` element that is not explicitly given a role. This is typically treated as a generic container, not as an image requiring an alt text.\n\nSince the role is \"SvgRoot\" (not \"img\"), this SVG is essentially treated as a container element. The lack of an accessible name on a container is not a 1.1.1 barrier.\nThe circle inside has `role=\"graphics-object\"`, which is an SVG-specific role for individual graphic elements that don't require their own alt text. Since the SVG itself is a generic container with no accessible name requirement, and there's no surrounding context or link/button wrapping it, I need to reconsider whether the visible yellow circle creates a 1.1.1 issue from a user perspective.\n\nThe key distinction is that \"SvgRoot\" means assistive technology won't treat this as a non-text content item requiring an alternative—it's a generic container role, not an image role. So the absence of a name isn't the same kind of accessibility barrier as an image element without alt text would be.\n\nBut I need to reconsider this against WCAG 1.1.1's broader definition of non-text content. Visually, the SVG is definitely rendering non-text content, and since it's not hidden from assistive technology, the question becomes whether it meaningfully conveys something that needs describing. Looking at the failure modes in the rubric, this SVG isn't explicitly marked as decorative or functional—it's just there—which makes it harder to categorize. The SVG has no surrounding text to provide context, and since it's the only content on the page, the lack of an explicit decorative marker like `aria-hidden=\"true\"` or `role=\"presentation\"` suggests this is meant to be informative. So the yellow circle appears to be an image without a text alternative, which would be a barrier under WCAG 1.1.1. With the SVG being the only content on the page, a screen reader user would encounter just a \"SvgRoot\" container with no accessible name—which would be a barrier if this is meaningful content like a logo or diagram, but appropriate if it's purely decorative. I'm settling on PARTIAL because I can't definitively determine from the yellow circle alone whether it needs a text alternative. may not announce it. The circle inside has an explicit `role=\"graphics-object\"`, which does appear in the accessibility tree. Looking at the Graphics ARIA spec, this role doesn't require a name—it can derive one from the author or contents, but neither is present here. So my conclusion is that the SVG renders a yellow circle in the accessibility tree, but without a name or label to convey its purpose.\n\nA single yellow circle on an otherwise blank page is genuinely ambiguous—it could be decorative or informative. Given the lack of context and the test-like nature of the page, I can't definitively say whether the missing text alternative creates a barrier. PARTIAL seems like the right call here."
+              }
+            ]
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "text",
+                "text": "The AX node shows the SVG has a computed role of **\"SvgRoot\"** (Chromium's internal container role for an `<svg>` element without an explicit `role` attribute), not `\"img\"`. It is in the accessibility tree, is not `aria-hidden`, and has no accessible name. The only child is a `<circle>` with `role=\"graphics-object\"` (a Graphics-ARIA group-like role that does not mandate a name).\n\n```json\n{\n  \"verdict\": \"PARTIAL\",\n  \"confidence\": \"medium\",\n  \"summary\": \"Cannot determine whether the standalone yellow-circle SVG is informative or decorative — the evidence is insufficient to confirm or rule out a 1.1.1 barrier.\",\n  \"reasoning\": \"The SVG's computed role is 'SvgRoot' (container, not 'img'), so ARIA does not mandate an accessible name, and its sole child carries role='graphics-object' (also name-optional); the rendered crop shows a plain yellow circle with zero surrounding text context on an otherwise empty page, making the purpose (informative vs. purely decorative) genuinely ambiguous — the rubric's 'crop is inconclusive / cannot tell the page's intent' condition applies.\",\n  \"evidenceRefs\": [\n    \"query_ax_node: role=SvgRoot, inTree=true, isAriaHidden=false, nameFrom=[], no accessible name\",\n    \"rawElementHtml: <circle role='graphics-object' cx='50' cy='50' r='40' fill='yellow'>\",\n    \"element-crop: solid yellow filled circle, no baked-in text, no surrounding content\",\n    \"enclosingHtml: <body> contains only this SVG — no adjacent text to establish redundancy or purpose\"\n  ]\n}\n```"
+              }
+            ]
+          },
+          {
+            "type": "result",
+            "subtype": "success",
+            "isError": false,
+            "numTurns": 2,
+            "usage": {
+              "input_tokens": 4,
+              "cache_creation_input_tokens": 5640,
+              "cache_read_input_tokens": 12735,
+              "output_tokens": 3353,
+              "server_tool_use": {
+                "web_search_requests": 0,
+                "web_fetch_requests": 0
+              },
+              "service_tier": "standard",
+              "cache_creation": {
+                "ephemeral_1h_input_tokens": 5640,
+                "ephemeral_5m_input_tokens": 0
+              },
+              "inference_geo": "not_available",
+              "iterations": [
+                {
+                  "input_tokens": 1,
+                  "output_tokens": 2579,
+                  "cache_read_input_tokens": 8747,
+                  "cache_creation_input_tokens": 881,
+                  "cache_creation": {
+                    "ephemeral_5m_input_tokens": 0,
+                    "ephemeral_1h_input_tokens": 881
+                  },
+                  "type": "message"
+                }
+              ],
+              "speed": "standard"
+            },
+            "totalCostUsd": 0.0912025
+          }
+        ]
+      }
+    ]
+  }
+]

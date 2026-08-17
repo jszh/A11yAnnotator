@@ -1,0 +1,94 @@
+CASE INDEX: 13
+TESTCASE_ID: 8ad324fd8d3f
+KIND (authoritative, from run4 GT+outcome): FP
+SC: 1.1.1   RULE: 7d6734   SVG element with explicit role has non-empty accessible name
+
+This file is SELF-CONTAINED. Below: (1) the harness evidence slice — GT, LLM in-scope verdicts+summaries, off-target barriers, and the model FULL reasoning trace (THINK/SAY/TOOL_CALL/TOOL_RESULT); (2) the fixture HTML inlined.
+
+================= EVIDENCE SLICE =================
+# RCA case 8ad324fd8d3f  [FP]
+- rule: 7d6734  SVG element with explicit role has non-empty accessible name
+- sc(GT-scored): 1.1.1   expected(GT): passed   outcome: caught   polarity: specificity
+- v3Barrier(deterministic): false   inScopeAutoPartial: 0   inScopeObligations: 1
+- fixture: eval/checker-comparison/act-subset/pages/7d6734/8ad324fd8d3f5113f72ac40f978a85e1777d43d1.html
+
+## in-scope verdicts
+- RUBRIC 1.1.1 LIKELY_BARRIER conf=high [alt-text-adequacy-v0] xpath=/html/body/svg[1]
+  summary: The SVG renders a meaningful yellow circle that is the direct subject of the surrounding question 'How many circles are there?', yet has no accessible name, denying non-sighted users the information.
+
+## model reasoning trace (per subject)
+
+### subject sc=1.1.1 xpath=/html/body/svg[1] rubric=alt-text-adequacy-v0 verdict=REPRODUCED
+THINK: Let me analyze this case:
+
+- Element: `/html/body/svg[1]`
+- Accessible name: empty (not present)
+- The element-crop shows a yellow circle with a green border
+- The surrounding region shows text "How many circles are there?" followed by the yellow circle
+
+The surrounding context makes it clear this SVG is informative - it's part of a question "How many circles are there?" and the SVG depicts a circle that users need to count. This is meaningful content that a non-sighted user would be denied without a text alternative.
+
+The image is NOT decorative - it directly answers/relates to the question "How many circles are there?" A screen reader user needs to know there is 1 circle here.
+Since the accessible name is empty and this SVG contains meaningful content that's essential to answering the question, this is definitely an accessibility issue. I should check what role the browser is assigning to it.
+TOOL_CALL mcp__cdp__query_ax_node input={"targetXpath":"/html/body/svg[1]"}
+TOOL_RESULT: [{"type":"text","text":"{\"resolved\":false,\"reason\":\"node not found at the given xpath/coordinate\"}"}]
+THINK: The node wasn't found via AX. Let me look at the evidence I have:
+
+1. The element-crop clearly shows a yellow circle with green border - this is an SVG rendering a meaningful graphic
+2. The surrounding region text says "How many circles are there?" - this SVG is informative content (it represents one of the circles being counted)
+3. The accessible name is empty (no alt, no aria-label)
+4. The SVG is clearly informative - it's part of answering a visual counting question
+
+This is a clear case: the SVG depicts a circle that is the direct subject of the question "How many circles are there?" A non-sighted user needs to know this circle exists. 
+
+The missing accessible name creates an accessibility gap here. The SVG isn't just decorative or redundant with surrounding text—it's the actual visual content that answers the question being asked.
+SAY: The AX node wasn't resolved, but the visual evidence is sufficient to decide.
+
+**Analysis:**
+
+- **Element-crop:** Renders a yellow-filled circle with a dark-green border — clearly a meaningful graphic, not a decorative flourish.
+- **Surrounding context:** The text immediately above reads *"How many circles are there?"* — the SVG **is the content being counted**; it is the direct subject of the question.
+- **Accessible name:** Empty (`""`), with no `aria-label`, no `title`, no `role="img"` with a name — the element is effectively invisible to AT.
+- **Decorative/redundancy check:** The nearby text does NOT describe the circle; it poses a question whose answer depends on perceiving the SVG. This is unique, informative content — not a decorative flourish or a redundant illustration.
+- **Conclusion:** A non-sighted user is denied the information that a circle is present, which is the very thing the surrounding question depends on. This is a missing-alt barrier.
+
+```json
+{
+  "verdict": "REPRODUCED",
+  "confidence": "high",
+  "summary": "The SVG renders a meaningful yellow circle that is the direct subject of the surrounding question 'How many circles are there?', yet has no accessible name, denying non-sighted users the information.",
+  "reasoning": "The element-crop shows an informative circle graphic; the surrounding text 'How many circles are there?' confirms it conveys countable content — not decoration — yet the accessible name is empty, satisfying the missing-alt failure mode under 1.1.1.",
+  "evidenceRefs": [
+    "element-crop: yellow circle with green border — rendered, meaningful graphic",
+    "surrounding-region text: 'How many circles are there?'",
+    "accessibleName.present: false, value: ''",
+    "No aria-label, title, or role=img with name on the SVG"
+  ]
+}
+```
+
+
+================= FIXTURE HTML (7d6734/8ad324fd8d3f) =================
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Passed Example 2</title>
+</head>
+<body>
+	<p>How many circles are there?</p>
+	<svg xmlns="https://www.w3.org/2000/svg">
+		<circle
+			role="graphics-symbol"
+			cx="50"
+			cy="50"
+			r="40"
+			stroke="green"
+			stroke-width="4"
+			fill="yellow"
+			aria-label="1 circle"
+		></circle>
+	</svg>
+</body>
+</html>
+```

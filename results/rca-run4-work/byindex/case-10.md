@@ -1,0 +1,57 @@
+CASE INDEX: 10
+TESTCASE_ID: e15b9aca4aaa
+KIND (authoritative, from run4 GT+outcome): FP
+SC: 1.1.1   RULE: 23a2a8   Image has non-empty accessible name
+
+This file is SELF-CONTAINED. Below: (1) the harness evidence slice — GT, LLM in-scope verdicts+summaries, off-target barriers, and the model FULL reasoning trace (THINK/SAY/TOOL_CALL/TOOL_RESULT); (2) the fixture HTML inlined.
+
+================= EVIDENCE SLICE =================
+# RCA case e15b9aca4aaa  [FP]
+- rule: 23a2a8  Image has non-empty accessible name
+- sc(GT-scored): 1.1.1   expected(GT): inapplicable   outcome: caught   polarity: specificity
+- v3Barrier(deterministic): false   inScopeAutoPartial: 0   inScopeObligations: 1
+- fixture: eval/checker-comparison/act-subset/pages/23a2a8/e15b9aca4aaa53cb3a96ae48e78e1af064b9a01d.html
+
+## in-scope verdicts
+- RUBRIC 1.1.1 LIKELY_BARRIER conf=high [alt-text-adequacy-v0] xpath=/html/body/img[1]
+  summary: The W3C logo is hidden from assistive technology via aria-hidden with no nearby text alternative, denying non-sighted users the brand/identity information it conveys.
+
+## model reasoning trace (per subject)
+
+### subject sc=1.1.1 xpath=/html/body/img[1] rubric=alt-text-adequacy-v0 verdict=REPRODUCED
+THINK: The image shows a W3C logo. The element is aria-hidden (removed from accessibility tree), has no accessible name, and no nearby text. I need to determine if this image conveys unique meaning that a non-sighted user would be denied.
+
+The crop clearly shows a W3C logo/wordmark. This is a logo that identifies the page/organization. Per the rubric, a logo/wordmark that IDENTIFIES the page being hidden from AT is a barrier (the ACT e88epe example explicitly mentions an aria-hidden/alt="" W3C logo that is the page's brand identity → REPRODUCED).
+
+This is exactly the case mentioned in the rubric: "ACT e88epe: an `aria-hidden`/`alt=""` W3C logo that is the page's brand identity → REPRODUCED"
+Since the W3C logo serves as the brand identifier and is completely hidden from assistive technology with no alternative text nearby, this creates an accessibility barrier.
+SAY: ```json
+{
+  "verdict": "REPRODUCED",
+  "confidence": "high",
+  "summary": "The W3C logo is hidden from assistive technology via aria-hidden with no nearby text alternative, denying non-sighted users the brand/identity information it conveys.",
+  "reasoning": "The element-crop unmistakably renders the W3C wordmark logo — a brand identifier conveying unique organisational identity — yet the element is removed from the accessibility tree via aria-hidden='true', no accessible name is present (value is empty), and nearbyText is null, so there is no adjacent text that would make the logo redundant; this matches the rubric's explicit ACT e88epe pattern of an aria-hidden W3C logo that is the page's brand identity constituting a barrier.",
+  "evidenceRefs": [
+    "decorativeMarking.removedFromA11yTree=true",
+    "decorativeMarking.hiddenMechanism=aria-hidden",
+    "decorativeMarking.nearbyText=null",
+    "accessibleName.value='' (empty, unannounced)",
+    "element-crop: W3C wordmark logo visible",
+    "ACT rule e88epe (aria-hidden W3C logo = brand identity barrier)"
+  ]
+}
+```
+
+
+================= FIXTURE HTML (23a2a8/e15b9aca4aaa) =================
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Inapplicable Example 2</title>
+</head>
+<body>
+	<img src="../_assets/WAI/content-assets/wcag-act-rules/test-assets/shared/w3c-logo.png" aria-hidden="true" />
+</body>
+</html>
+```

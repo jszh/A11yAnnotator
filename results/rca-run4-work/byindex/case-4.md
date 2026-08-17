@@ -1,0 +1,50 @@
+CASE INDEX: 4
+TESTCASE_ID: efa1e0438bb5
+KIND (authoritative, from run4 GT+outcome): FP
+SC: 2.4.2   RULE: 2779a5   HTML page has non-empty title
+
+This file is SELF-CONTAINED. Below: (1) the harness evidence slice — GT, LLM in-scope verdicts+summaries, off-target barriers, and the model FULL reasoning trace (THINK/SAY/TOOL_CALL/TOOL_RESULT); (2) the fixture HTML inlined.
+
+================= EVIDENCE SLICE =================
+# RCA case efa1e0438bb5  [FP]
+- rule: 2779a5  HTML page has non-empty title
+- sc(GT-scored): 2.4.2   expected(GT): passed   outcome: caught   polarity: specificity
+- v3Barrier(deterministic): false   inScopeAutoPartial: 0   inScopeObligations: 1
+- fixture: eval/checker-comparison/act-subset/pages/2779a5/efa1e0438bb515332ec6b4d943044c336ca77fab.html
+
+## in-scope verdicts
+- RUBRIC 2.4.2 LIKELY_BARRIER conf=high [page-title-v0] xpath=/page-level::title
+  summary: The page title 'Title of the page.' is a non-descriptive boilerplate placeholder that does not identify the page's topic or purpose.
+
+## model reasoning trace (per subject)
+
+### subject sc=2.4.2 xpath=/page-level::title rubric=page-title-v0 verdict=REPRODUCED
+THINK: The viewport is blank/white. The page title is "Title of the page." which is a generic placeholder. Let me check if there's content below the fold, but the title itself is clearly a boilerplate placeholder - "Title of the page." is not descriptive of any actual page topic.
+
+The title "Title of the page." is a classic boilerplate/placeholder title that doesn't describe any specific page topic or purpose. This is a barrier under 2.4.2.
+
+The viewport is empty/white, and no headings are detected in the structure signals either. The title is clearly a placeholder template string, not a descriptive title.
+SAY: ```json
+{
+  "verdict": "REPRODUCED",
+  "confidence": "high",
+  "summary": "The page title 'Title of the page.' is a non-descriptive boilerplate placeholder that does not identify the page's topic or purpose.",
+  "reasoning": "The effective title is the literal template string 'Title of the page.' — a generic stand-in that conveys no subject matter; the viewport is blank and the structure signals show no headings or landmarks, confirming no real topic is surfaced anywhere to redeem the placeholder title.",
+  "evidenceRefs": [
+    "pageTitle.value = 'Title of the page.'",
+    "structure.headings = []",
+    "viewport: blank white page"
+  ]
+}
+```
+
+
+================= FIXTURE HTML (2779a5/efa1e0438bb5) =================
+```html
+<!DOCTYPE html>
+<html>
+	<body>
+		<title>Title of the page.</title>
+	</body>
+</html>
+```

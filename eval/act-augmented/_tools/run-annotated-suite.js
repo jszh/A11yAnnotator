@@ -36,6 +36,7 @@ require('../../../scripts/v3/lib/load-env.js').loadEnv(REPO_ROOT);
 
 const { orchestrate, BROWSER_ARGS } = require('../../../scripts/v3/lib/orchestrator.js');
 const { createTabAllocator } = require('../../../scripts/v3/lib/tab-allocator.js');
+const { createBrowserShardPool } = require('../../../scripts/v3/lib/browser-shard-pool.js');
 const { makeRunAgent, makeClaudeSdkTransport } = require('../../../scripts/v3/lib/llm-agent-adapter.js');
 const { collectActPage, normalizeCollectRoles } = require('../../../scripts/v3/lib/act-page-collect.js');
 const { makeSemaphore, sampleMemory } = require('../../../scripts/v3/lib/run-telemetry.js');
@@ -61,11 +62,18 @@ const AXE_PATH = process.env.AXE_PATH || path.join(REPO_ROOT, 'axe.min.js');
 const RUN_NAME = String(arg('out', 'aug-annotated-sonnet46'));
 const OUT = path.join(REPO_ROOT, 'results', RUN_NAME);
 const LIMIT = Number(arg('limit', 0));
-// Concurrency is deliberately below the shared limits: one browser serving 405
-// pages peaked at 40 live contexts at PAGE_CONC 8 and started failing to open
-// more. Tabs are the scarce resource here, not the LLM.
-const PAGE_CONC = Number(arg('pages', 6));
-const MAX_TABS = Math.min(LIMITS.concurrency.maxTabs, Number(arg('max-tabs', 24)));
+// Concurrency: tabs are the scarce resource, not the LLM. History: at PAGE_CONC 8
+// with protocolTimeout 180s and no self-heal, one browser peaked at 40 live contexts
+// and createBrowserContext started timing out; at PAGE_CONC 6 the allocator sat
+// pinned at its 24-tab cap (~3.7 concurrent tabs per case). 12/36 scales both
+// knobs together, stays under LIMITS.concurrency.maxTabs=50, and relies on the
+// 300s protocolTimeout + browser self-heal below as the wedge backstop.
+const PAGE_CONC = Number(arg('pages', 12));
+const MAX_TABS = Math.min(LIMITS.concurrency.maxTabs, Number(arg('max-tabs', 36)));
+// Keep --max-tabs as the aggregate run-wide budget. --browsers partitions that
+// budget across independent Chromium processes (e.g. 4 browsers + 144 tabs =
+// four 36-tab allocators) so browser-context/CDP work can use multiple cores.
+const BROWSER_SHARDS = Math.max(1, Math.min(PAGE_CONC, MAX_TABS, Math.floor(Number(arg('browsers', 1)) || 1)));
 const GLOBAL_LLM = Math.min(LIMITS.concurrency.llm, Number(arg('global-llm', LIMITS.concurrency.llm)));
 const MODEL = process.env.V3_LLM_MODEL || 'claude-sonnet-4-6';
 const INCLUDE = String(arg('include', 'unflagged,clear,fixed'));
@@ -73,6 +81,9 @@ const SC_FILTER = arg('sc', null);
 // --tools: live in-process CDP tools (multi-turn judge). The deployed harness
 // baselines all run tools=ON, so a tools-OFF run here is NOT comparable to them.
 const TOOLS = !!arg('tools', false);
+// --no-llm: deterministic phases only (collect/instruments/experiments/build; no judge).
+// A perf/stress probe, NOT comparable to any scored run — summary.json carries noLlm:true.
+const NO_LLM = !!arg('no-llm', false);
 
 // CLAUDE.md: do NOT override LLM_EVAL_STATUS_PATH unless running >1 experiment at once.
 const FIXED_STATUS_PATH = process.env.LLM_EVAL_STATUS_PATH || '/tmp/llm-eval-status.json';
@@ -156,7 +167,7 @@ function loadCases() {
 const startedAt = Date.now();
 const tel = {
   startedAt, runName: RUN_NAME, phase: 'init', done: 0, total: 0,
-  config: { model: MODEL, include: INCLUDE, pageConc: PAGE_CONC, globalLlm: GLOBAL_LLM, maxTabs: MAX_TABS, vision: true, tools: TOOLS },
+  config: { model: MODEL, include: INCLUDE, pageConc: PAGE_CONC, globalLlm: GLOBAL_LLM, maxTabs: MAX_TABS, browserShards: BROWSER_SHARDS, vision: true, tools: TOOLS, noLlm: NO_LLM },
   workers: {}, inflight: {},
   llm: { calls: 0, done: 0, results: 0, peakInFlight: 0, inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheCreateTokens: 0, costUsd: 0 },
   // A tools-ON run that makes zero tool calls has happened before (prompting gap
@@ -181,7 +192,10 @@ function writeStatus() {
 }
 
 const sem = makeSemaphore(GLOBAL_LLM);
-const instGate = makeSemaphore(Math.max(1, Math.min(PAGE_CONC, 4)));
+// Instrument cap (--inst-gate, default 6): at 4, the instrument phase (mean ~43s/case)
+// bounds whole-run throughput to ~10.7s/case — below what PAGE_CONC 12 can reach.
+// Larger machines can raise it; it is the browser-heaviest lane, so it scales with tabs.
+const instGate = makeSemaphore(Math.max(1, Math.min(PAGE_CONC, Number(arg('inst-gate', 6)))));
 
 // Token usage arrives on the transport's trace sink, not on the agent's return
 // value — the same sink run-fn-llm.js uses, so the counters stay comparable.
@@ -250,7 +264,7 @@ async function main() {
   const { cases: all, availableByStratum } = loadCases();
   let cases = all;
   if (LIMIT > 0) cases = cases.slice(0, LIMIT);
-  if (!process.env.CLAUDE_CODE_OAUTH_TOKEN) { console.error('FATAL: CLAUDE_CODE_OAUTH_TOKEN not set (.env)'); process.exit(1); }
+  if (!NO_LLM && !process.env.CLAUDE_CODE_OAUTH_TOKEN) { console.error('FATAL: CLAUDE_CODE_OAUTH_TOKEN not set (.env)'); process.exit(1); }
 
   fs.mkdirSync(OUT, { recursive: true });
   tel.total = cases.length;
@@ -269,6 +283,7 @@ async function main() {
 
   fs.writeFileSync(path.join(OUT, 'manifest.json'), JSON.stringify({
     runName: RUN_NAME, startedAt: new Date(startedAt).toISOString(), model: MODEL, include: INCLUDE, tools: TOOLS, vision: true,
+    concurrency: { pageConc: PAGE_CONC, maxTabs: MAX_TABS, browserShards: BROWSER_SHARDS },
     commit: (() => { try { return require('child_process').execSync('git rev-parse HEAD', { cwd: REPO_ROOT }).toString().trim(); } catch { return null; } })(),
     availableByStratum, runningByStratum: tel.byStratum,
     cases: cases.map((c) => ({ testcaseId: c.testcaseId, key: c.key, stratum: c.stratum, expected: c.expected, sc: c.sc })),
@@ -288,8 +303,12 @@ async function main() {
   const launchBrowser = () => puppeteer.launch({
     executablePath: CHROME, headless: 'new', args: BROWSER_ARGS, protocolTimeout: 300000,
   });
-  let browser = await launchBrowser();
-  let alloc = createTabAllocator({ browser, maxTabs: MAX_TABS });
+  const pool = await createBrowserShardPool({
+    browserCount: BROWSER_SHARDS,
+    totalTabs: MAX_TABS,
+    launchBrowser,
+    createAllocator: (browser, cap) => createTabAllocator({ browser, maxTabs: cap }),
+  });
   // BROWSER SELF-HEAL (aug-annot-s11 post-mortem). The shared browser can wedge TERMINALLY — allocator
   // telemetry from the wedged run: peak 24 contexts, then inUse 0 with 395 consecutive createBrowserContext
   // timeouts — after which every remaining case (292 of 392) died at context creation and the run silently
@@ -298,29 +317,8 @@ async function main() {
   // isolated; consecutive ones mean the browser is gone). Single-flight + generation-guarded so concurrent
   // failing workers trigger exactly one relaunch, and a worker whose failure predates the current
   // generation never kills a fresh browser. Measurement-neutral: no scoring path changes.
-  let browserGen = 0;
-  let consecTransient = 0;
-  let healing = null;
-  const healBrowser = (genAtFailure) => {
-    if (genAtFailure !== browserGen) return healing || Promise.resolve(); // already healed past that browser
-    if (!healing) {
-      healing = (async () => {
-        tel.heals = (tel.heals || 0) + 1;
-        const old = browser;
-        browserGen += 1;
-        try { alloc.close(); } catch { /* noop */ }
-        try { await Promise.race([old.close(), new Promise((r) => setTimeout(r, 10000))]); } catch { /* noop */ }
-        try { const p = old.process && old.process(); if (p) p.kill('SIGKILL'); } catch { /* noop */ }
-        browser = await launchBrowser();
-        alloc = createTabAllocator({ browser, maxTabs: MAX_TABS });
-        consecTransient = 0;
-        writeStatus();
-      })().finally(() => { healing = null; });
-    }
-    return healing;
-  };
   const statusTimer = setInterval(() => {
-    try { tel.tabs = alloc.stats ? alloc.stats() : {}; } catch { /* noop */ }
+    try { tel.tabs = pool.stats(); tel.heals = tel.tabs.heals; } catch { /* noop */ }
     try { tel.mem = sampleMemory ? sampleMemory() : {}; } catch { /* noop */ }
     writeStatus();
   }, STATUS_EVERY_MS);
@@ -329,7 +327,8 @@ async function main() {
   let cursor = 0, done = 0;
   const t0 = Date.now();
 
-  const worker = async (wid) => {
+  const worker = async (wid, workerIndex) => {
+    const shard = pool.shardFor(workerIndex);
     while (true) {
       const i = cursor++;
       if (i >= cases.length) { delete tel.workers[wid]; return; }
@@ -343,10 +342,10 @@ async function main() {
       // shrinks the eval instead of failing it — that must not happen silently.
       for (let attempt = 0; attempt < 2; attempt++) {
       rec = null;
-      const genAtStart = browserGen; // which browser this attempt ran on (for the self-heal guard)
+      const genAtStart = shard.gen; // which shard generation this attempt ran on (for the self-heal guard)
       try {
-        if (healing) await healing;  // never start an attempt mid-relaunch
-        const lease = await alloc.acquire();
+        if (shard.healing) await shard.healing;  // never start an attempt mid-relaunch
+        const lease = await shard.alloc.acquire();
         let collect;
         try {
           collect = normalizeCollectRoles(await collectActPage(lease.page, {
@@ -360,12 +359,12 @@ async function main() {
         const caseTools = newCaseToolAcc();
         const drive = { file: collect.file, runId, pageDigest: collect.pageDigest, drivenAt: collect.collectedAt + 1, elements: [] };
         const out = await orchestrate(collect, drive, {
-          resolveUrl: () => tc.url, executablePath: CHROME, browser, tabAllocator: alloc, maxTabs: MAX_TABS, // reads the CURRENT browser/alloc bindings (self-heal swaps them)
+          resolveUrl: () => tc.url, executablePath: CHROME, browser: shard.browser, tabAllocator: shard.alloc, maxTabs: shard.cap, // reads the CURRENT shard bindings (self-heal swaps them)
           runInstruments: true, instrumentsGate: instGate, instrumentsTimeoutMs: LIMITS.instruments.laneTimeoutMs, now: collect.collectedAt + 2,
           restrictScs: new Set(tc.sc || []), maxAutomatic: LIMITS.act.maxAuto,
           budgetOpts: { maxRunWallClockMs: LIMITS.act.runWallClockMs },
           experimentConcurrency: Math.min(LIMITS.concurrency.experimentCap, LIMITS.concurrency.experiment),
-          runLlm: true, runAgent, captureVision: true, llmConcurrency: GLOBAL_LLM,
+          runLlm: !NO_LLM, runAgent, captureVision: true, llmConcurrency: GLOBAL_LLM,
           // fires ONLY when the tool agent is built -> proves tools are live
           wrapAgent: (a) => { tel.tools.agentBuilt = (tel.tools.agentBuilt || 0) + 1; caseTools.agentBuilt = (caseTools.agentBuilt || 0) + 1; return wrapAgent(a); },
           // Tool wiring mirrors run-fn-llm.js:509-513 exactly — llmTools alone is
@@ -382,14 +381,19 @@ async function main() {
         // on a tools-ON case is a real finding (the judge chose not to look), not missing data — which is
         // exactly the distinction the previous run could not make.
         rec.toolUse = { ...caseTools, toolsEnabled: TOOLS };
-        consecTransient = 0; // a healthy completion ends any failure streak
+        shard.consecTransient = 0; // a healthy completion ends this shard's failure streak
       } catch (e) {
         const msg = String((e && e.message) || e);
         const transient = /createBrowserContext|Target closed|protocolTimeout|timed out|Session closed|Connection closed/i.test(msg);
         if (transient) {
-          consecTransient += 1;
-          // two consecutive transient failures across the run = the browser is gone, not flaking
-          if (consecTransient >= 2) { tel.workers[wid].phase = 'browser-heal'; await healBrowser(genAtStart); }
+          shard.consecTransient += 1;
+          // two consecutive transient failures on one shard = that browser is gone, not flaking
+          if (shard.consecTransient >= 2) {
+            tel.workers[wid].phase = 'browser-heal';
+            await pool.heal(shard, genAtStart);
+            tel.heals = pool.stats().heals;
+            writeStatus();
+          }
         }
         if (transient && attempt === 0) {
           tel.workers[wid].phase = 'retry-backoff';
@@ -423,11 +427,11 @@ async function main() {
     }
   };
 
-  await Promise.all(Array.from({ length: Math.min(PAGE_CONC, cases.length || 1) }, (_, k) => worker(`w${k}`)));
+  await Promise.all(Array.from({ length: Math.min(PAGE_CONC, cases.length || 1) }, (_, k) => worker(`w${k}`, k)));
 
   clearInterval(statusTimer);
-  alloc.close();
-  await browser.close().catch(() => {});
+  await pool.close();
+  try { tel.tabs = pool.stats(); tel.heals = tel.tabs.heals; } catch { /* noop */ }
   tel.phase = 'done';
   writeStatus();
 

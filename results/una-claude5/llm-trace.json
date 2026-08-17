@@ -1,0 +1,941 @@
+[
+  {
+    "testcaseId": "228c0a3d78557fb48a855d6733d50848a86f0d62",
+    "ruleId": "fd3a94",
+    "sc": [
+      "2.4.4"
+    ],
+    "traces": [
+      {
+        "sc": "2.4.4",
+        "targetXpath": "/html/body/p[1]/a[1]",
+        "rubricRef": "link-name-equivalence-v0",
+        "verdict": "REPRODUCED",
+        "latencyMs": 14541,
+        "trace": [
+          {
+            "type": "system"
+          },
+          {
+            "type": "rate_limit_event"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "thinking",
+                "text": ""
+              }
+            ]
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "tool_use",
+                "id": "toolu_01AqCdWvZKZ1rau3MXdBqKKU",
+                "name": "mcp__cdp__resolve_destination",
+                "input": {
+                  "linkXpaths": [
+                    "/html/body/p[1]/a[1]",
+                    "/html/body/p[1]/a[2]"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "type": "user",
+            "role": "user",
+            "blocks": [
+              {
+                "kind": "tool_result",
+                "toolUseId": "toolu_01AqCdWvZKZ1rau3MXdBqKKU",
+                "isError": false,
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "{\"fingerprints\":[{\"linkXpath\":\"/html/body/p[1]/a[1]\",\"finalUrl\":\"https://act-rules.github.io/pages/about\",\"httpStatus\":200,\"title\":\"\",\"h1\":null,\"mainFirstParagraph\":null,\"visibleText\":null,\"instantRedirect\":false,\"redirectDelayMs\":null,\"crossOrigin\":true},{\"linkXpath\":\"/html/body/p[1]/a[2]\",\"finalUrl\":\"https://www.w3.org/community/act-r/\",\"httpStatus\":200,\"title\":\"ACT Rules Community Group\",\"h1\":\"Community & Business Groups\",\"mainFirstParagraph\":\"The ACT Rules Community Group (previously known as Auto-WCAG), is an open forum set up to document and harmonise the interpretation of W3C accessibility standar\",\"visibleText\":\"Skip to toolbar Skip Log In My W3C Account Search COMMUNITY & BUSINESS GROUPS CURRENT GROUPS REPORTS ABOUT Home / ACT Rules Community Group ACT RULES COMMUNITY GROUP The ACT Rules Community Group (previously known as Auto-WCAG), is an open \",\"instantRedirect\":false,\"redirectDelayMs\":null,\"crossOrigin\":true}],\"resolvedCount\":2,\"equality\":{\"finalUrlEqual\":false,\"titleEqual\":false,\"h1Equal\":false,\"mainFirstParagraphEqual\":false,\"visibleTextEqual\":false},\"note\":\"each link resolved to a raw fingerprint (+ redirect timing) + a per-field byte-EQUALITY grid across the resolved set. Equality is string-equality only (the model judges \\\"same purpose?\\\"); an equality field is null when fewer than 2 links resolved (could not compare — NOT \\\"different\\\"). visibleText/h1 are read from the RENDERED page (post client-side JS), so two same-named links to different query branches differ here even when the static URL/title match.\"}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "text",
+                "text": "Two different settled destinations: one resolves to `act-rules.github.io/pages/about` (the ACT Rules spec \"about\" page), the other to `w3.org/community/act-r/` (the ACT Rules W3C Community Group page) — different organizations/pages, no title/h1/content overlap, and the enclosing context (\"We are on social media:\" followed by two identically-named links) does not disambiguate which is which."
+              }
+            ]
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "tool_use",
+                "id": "toolu_012xmC8ZUCyHJLJhqRcvVFPz",
+                "name": "mcp__cdp__query_ax_node",
+                "input": {
+                  "targetXpath": "/html/body/p[1]/a[1]"
+                }
+              }
+            ]
+          },
+          {
+            "type": "user",
+            "role": "user",
+            "blocks": [
+              {
+                "kind": "tool_result",
+                "toolUseId": "toolu_012xmC8ZUCyHJLJhqRcvVFPz",
+                "isError": false,
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "{\"resolved\":true,\"inTree\":true,\"role\":\"link\",\"roleSource\":\"role\",\"headingLevel\":null,\"nameFrom\":[\"contents\"],\"labelledby\":null,\"describedby\":null,\"focusable\":true,\"isAriaHidden\":false,\"requiredStatesPresent\":[],\"requiredStatesMissing\":[],\"ignoredReasons\":[],\"ignoredByActiveModal\":false}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "text",
+                "text": "{\"verdict\":\"REPRODUCED\",\"confidence\":\"high\",\"summary\":\"The two identically-named 'ACT rules' links resolve to genuinely different destinations (the ACT-Rules spec site vs. the W3C ACT Rules Community Group page) with no disambiguating context, so a user cannot tell them apart from the shared name.\",\"reasoning\":\"resolve_destination shows finalUrl/title/h1/mainFirstParagraph all diverge between act-rules.github.io/pages/about and w3.org/community/act-r/, and the shared enclosing sentence 'We are on social media:' gives no per-link distinguishing text.\",\"evidenceRefs\":[\"sameNameLinks.distinctRawHrefs=2\",\"resolve_destination.equality.finalUrlEqual=false\",\"resolve_destination.equality.titleEqual=false\",\"enclosingContext.blockText='We are on social media:' (does not disambiguate)\"]}"
+              }
+            ]
+          },
+          {
+            "type": "result",
+            "subtype": "success",
+            "isError": false,
+            "numTurns": 3,
+            "usage": {
+              "input_tokens": 6,
+              "cache_creation_input_tokens": 6821,
+              "cache_read_input_tokens": 28719,
+              "output_tokens": 718,
+              "server_tool_use": {
+                "web_search_requests": 0,
+                "web_fetch_requests": 0
+              },
+              "service_tier": "standard",
+              "cache_creation": {
+                "ephemeral_1h_input_tokens": 6821,
+                "ephemeral_5m_input_tokens": 0
+              },
+              "inference_geo": "not_available",
+              "iterations": [
+                {
+                  "input_tokens": 2,
+                  "output_tokens": 310,
+                  "cache_read_input_tokens": 12020,
+                  "cache_creation_input_tokens": 348,
+                  "cache_creation": {
+                    "ephemeral_5m_input_tokens": 0,
+                    "ephemeral_1h_input_tokens": 348
+                  },
+                  "type": "message"
+                }
+              ],
+              "speed": "standard"
+            },
+            "totalCostUsd": 0.0631327
+          }
+        ]
+      },
+      {
+        "sc": "2.4.4",
+        "targetXpath": "/html/body/p[1]/a[1]",
+        "rubricRef": "link-purpose-v0",
+        "verdict": "REPRODUCED",
+        "latencyMs": 9195,
+        "trace": [
+          {
+            "type": "system"
+          },
+          {
+            "type": "rate_limit_event"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "thinking",
+                "text": ""
+              }
+            ]
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "text",
+                "text": "{\"verdict\": \"REPRODUCED\", \"confidence\": \"high\", \"summary\": \"Two links both accessibly named \\\"ACT rules\\\" in the same enclosing paragraph point to completely different destinations, so the shared name fails to distinguish their purposes.\", \"reasoning\": \"enclosingHtml shows two sibling <a> elements both named \\\"ACT rules\\\" with hrefs https://act-rules.github.io/ and https://www.w3.org/community/act-r/ — different destinations under an identical name is the classic 2.4.4 identical-names failure.\", \"evidenceRefs\": [\"enclosingHtml\", \"rawElementHtml\", \"enclosingContext.blockText\"]}"
+              }
+            ]
+          },
+          {
+            "type": "result",
+            "subtype": "success",
+            "isError": false,
+            "numTurns": 1,
+            "usage": {
+              "input_tokens": 2,
+              "cache_creation_input_tokens": 6333,
+              "cache_read_input_tokens": 0,
+              "output_tokens": 464,
+              "server_tool_use": {
+                "web_search_requests": 0,
+                "web_fetch_requests": 0
+              },
+              "service_tier": "standard",
+              "cache_creation": {
+                "ephemeral_1h_input_tokens": 6333,
+                "ephemeral_5m_input_tokens": 0
+              },
+              "inference_geo": "not_available",
+              "iterations": [
+                {
+                  "input_tokens": 2,
+                  "output_tokens": 464,
+                  "cache_read_input_tokens": 0,
+                  "cache_creation_input_tokens": 6333,
+                  "cache_creation": {
+                    "ephemeral_5m_input_tokens": 0,
+                    "ephemeral_1h_input_tokens": 6333
+                  },
+                  "type": "message"
+                }
+              ],
+              "speed": "standard"
+            },
+            "totalCostUsd": 0.048420000000000005
+          }
+        ]
+      },
+      {
+        "sc": "2.4.4",
+        "targetXpath": "/html/body/p[1]/a[2]",
+        "rubricRef": "link-name-equivalence-v0",
+        "verdict": "PARTIAL",
+        "latencyMs": 8570,
+        "trace": [
+          {
+            "type": "system"
+          },
+          {
+            "type": "rate_limit_event"
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "thinking",
+                "text": ""
+              }
+            ]
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "text",
+                "text": "I'll resolve the settled destinations for both same-named links to confirm whether they're equivalent.\n\nresolve_destination(linkXpaths=[\"/html/body/p[1]/a[2]\", \"/html/body/p[1]/a[1]\"])"
+              }
+            ]
+          },
+          {
+            "type": "result",
+            "subtype": "success",
+            "isError": false,
+            "numTurns": 1,
+            "usage": {
+              "input_tokens": 2,
+              "cache_creation_input_tokens": 5565,
+              "cache_read_input_tokens": 0,
+              "output_tokens": 114,
+              "server_tool_use": {
+                "web_search_requests": 0,
+                "web_fetch_requests": 0
+              },
+              "service_tier": "standard",
+              "cache_creation": {
+                "ephemeral_1h_input_tokens": 5565,
+                "ephemeral_5m_input_tokens": 0
+              },
+              "inference_geo": "not_available",
+              "iterations": [
+                {
+                  "input_tokens": 2,
+                  "output_tokens": 114,
+                  "cache_read_input_tokens": 0,
+                  "cache_creation_input_tokens": 5565,
+                  "cache_creation": {
+                    "ephemeral_5m_input_tokens": 0,
+                    "ephemeral_1h_input_tokens": 5565
+                  },
+                  "type": "message"
+                }
+              ],
+              "speed": "standard"
+            },
+            "totalCostUsd": 0.037919
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "rate_limit_event"
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "text",
+                "text": "{\"verdict\": \"PARTIAL\", \"confidence\": \"low\", \"summary\": \"Tool call issued to resolve link destinations but no result was returned to evaluate.\", \"reasoning\": \"I attempted to call resolve_destination on both same-named links to compare their settled destinations, but no actual output/result was captured in the prior turn, so equivalence could not be confirmed or denied.\", \"evidenceRefs\": []}"
+              }
+            ]
+          },
+          {
+            "type": "result",
+            "subtype": "success",
+            "isError": false,
+            "numTurns": 1,
+            "usage": {
+              "input_tokens": 2,
+              "cache_creation_input_tokens": 2681,
+              "cache_read_input_tokens": 0,
+              "output_tokens": 136,
+              "server_tool_use": {
+                "web_search_requests": 0,
+                "web_fetch_requests": 0
+              },
+              "service_tier": "standard",
+              "cache_creation": {
+                "ephemeral_1h_input_tokens": 2681,
+                "ephemeral_5m_input_tokens": 0
+              },
+              "inference_geo": "not_available",
+              "iterations": [
+                {
+                  "input_tokens": 2,
+                  "output_tokens": 136,
+                  "cache_read_input_tokens": 0,
+                  "cache_creation_input_tokens": 2681,
+                  "cache_creation": {
+                    "ephemeral_5m_input_tokens": 0,
+                    "ephemeral_1h_input_tokens": 2681
+                  },
+                  "type": "message"
+                }
+              ],
+              "speed": "standard"
+            },
+            "totalCostUsd": 0.018945
+          }
+        ]
+      },
+      {
+        "sc": "2.4.4",
+        "targetXpath": "/html/body/p[1]/a[2]",
+        "rubricRef": "link-purpose-v0",
+        "verdict": "PARTIAL",
+        "latencyMs": 9495,
+        "trace": [
+          {
+            "type": "system"
+          },
+          {
+            "type": "rate_limit_event"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "thinking",
+                "text": ""
+              }
+            ]
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "text",
+                "text": "I'll verify whether these two same-named \"ACT rules\" links actually resolve to different destinations.\n\nresolve_destination(linkXpaths: [\"/html/body/p[1]/a[1]\", \"/html/body/p[1]/a[2]\"])"
+              }
+            ]
+          },
+          {
+            "type": "result",
+            "subtype": "success",
+            "isError": false,
+            "numTurns": 1,
+            "usage": {
+              "input_tokens": 2,
+              "cache_creation_input_tokens": 6337,
+              "cache_read_input_tokens": 0,
+              "output_tokens": 271,
+              "server_tool_use": {
+                "web_search_requests": 0,
+                "web_fetch_requests": 0
+              },
+              "service_tier": "standard",
+              "cache_creation": {
+                "ephemeral_1h_input_tokens": 6337,
+                "ephemeral_5m_input_tokens": 0
+              },
+              "inference_geo": "not_available",
+              "iterations": [
+                {
+                  "input_tokens": 2,
+                  "output_tokens": 271,
+                  "cache_read_input_tokens": 0,
+                  "cache_creation_input_tokens": 6337,
+                  "cache_creation": {
+                    "ephemeral_5m_input_tokens": 0,
+                    "ephemeral_1h_input_tokens": 6337
+                  },
+                  "type": "message"
+                }
+              ],
+              "speed": "standard"
+            },
+            "totalCostUsd": 0.045549
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "rate_limit_event"
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "text",
+                "text": "{\"verdict\": \"PARTIAL\", \"confidence\": \"low\", \"summary\": \"Could not confirm whether the two same-named links resolve to different destinations.\", \"reasoning\": \"Destination resolution was attempted but not completed/confirmed, so the conclusion is inconclusive.\", \"evidenceRefs\": []}"
+              }
+            ]
+          },
+          {
+            "type": "result",
+            "subtype": "success",
+            "isError": false,
+            "numTurns": 1,
+            "usage": {
+              "input_tokens": 2,
+              "cache_creation_input_tokens": 2682,
+              "cache_read_input_tokens": 0,
+              "output_tokens": 105,
+              "server_tool_use": {
+                "web_search_requests": 0,
+                "web_fetch_requests": 0
+              },
+              "service_tier": "standard",
+              "cache_creation": {
+                "ephemeral_1h_input_tokens": 2682,
+                "ephemeral_5m_input_tokens": 0
+              },
+              "inference_geo": "not_available",
+              "iterations": [
+                {
+                  "input_tokens": 2,
+                  "output_tokens": 105,
+                  "cache_read_input_tokens": 0,
+                  "cache_creation_input_tokens": 2682,
+                  "cache_creation": {
+                    "ephemeral_5m_input_tokens": 0,
+                    "ephemeral_1h_input_tokens": 2682
+                  },
+                  "type": "message"
+                }
+              ],
+              "speed": "standard"
+            },
+            "totalCostUsd": 0.018493999999999997
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "testcaseId": "81d501e52085d9e5712e241bdd24708e7cb4a301",
+    "ruleId": "047fe0",
+    "sc": [
+      "2.4.10"
+    ],
+    "traces": [
+      {
+        "sc": "2.4.10",
+        "targetXpath": "/page-level::section-headings",
+        "rubricRef": "section-headings-v0",
+        "verdict": "REPRODUCED",
+        "latencyMs": 23263,
+        "trace": [
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "thinking",
+                "text": ""
+              }
+            ]
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "tool_use",
+                "id": "toolu_01R7Qf3L5C8pv88rVKLgbwHg",
+                "name": "mcp__cdp__capture_full_page",
+                "input": {
+                  "targetXpath": "/html/body/div[1]/h1[1]"
+                }
+              }
+            ]
+          },
+          {
+            "type": "rate_limit_event"
+          },
+          {
+            "type": "user",
+            "role": "user",
+            "blocks": [
+              {
+                "kind": "tool_result",
+                "toolUseId": "toolu_01R7Qf3L5C8pv88rVKLgbwHg",
+                "isError": false,
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "{\"screenshot\":\"<base64 23268 chars elided>\",\"fullPage\":true,\"pageSize\":{\"w\":1280,\"h\":900},\"viewport\":{\"w\":1280,\"h\":900},\"target\":{\"box\":{\"x\":8,\"y\":-978,\"w\":888,\"h\":37},\"tag\":\"h1\",\"role\":null,\"text\":\"Three Heroes Swear Brotherhood at a Feast in the Peach Garden\",\"inViewport\":false,\"offDocument\":true,\"verticalPositionPct\":-109},\"note\":\"the WHOLE scrollable document (below the fold included). A target box is in PAGE coordinates (origin = document top); a NEGATIVE y or offDocument:true means the element is positioned OUTSIDE the document (e.g. top:-9999px → visually hidden) and is NOT in the captured pixels. Use to confirm an off-viewport element exists and judge WHERE it sits relative to surrounding content — never infer a barrier from position alone.\"}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "thinking",
+                "text": ""
+              }
+            ]
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "tool_use",
+                "id": "toolu_01JFu31wuoiPUgDEnYDiweR3",
+                "name": "mcp__cdp__capture_full_page",
+                "input": {}
+              }
+            ]
+          },
+          {
+            "type": "user",
+            "role": "user",
+            "blocks": [
+              {
+                "kind": "tool_result",
+                "toolUseId": "toolu_01JFu31wuoiPUgDEnYDiweR3",
+                "isError": false,
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "{\"screenshot\":\"<base64 23268 chars elided>\",\"fullPage\":true,\"pageSize\":{\"w\":1280,\"h\":900},\"viewport\":{\"w\":1280,\"h\":900},\"target\":null,\"note\":\"the WHOLE scrollable document (below the fold included). A target box is in PAGE coordinates (origin = document top); a NEGATIVE y or offDocument:true means the element is positioned OUTSIDE the document (e.g. top:-9999px → visually hidden) and is NOT in the captured pixels. Use to confirm an off-viewport element exists and judge WHERE it sits relative to surrounding content — never infer a barrier from position alone.\"}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "text",
+                "text": "Confirmed: the only h1 on the page is positioned at `top:-978px` (offDocument:true, inViewport:false) — completely off-document/visually hidden. The page has multiple distinct content sections (a chapter TOC list with 2 entries, and the chapter prose paragraph), but the prose section that the h1 was meant to introduce has no visible heading at all for sighted users.\n\n{\"verdict\": \"REPRODUCED\", \"confidence\": \"high\", \"summary\": \"The page's only heading (h1) is positioned off-document (top:-978px, offDocument:true) and never visually appears, leaving the visible main-content section (the chapter prose, distinct from the TOC list above it) without any heading introducing it.\", \"reasoning\": \"capture_full_page confirms the h1 box is off-document/out of viewport (inViewport:false, verticalPositionPct:-109), so while a TOC list and a prose paragraph are two distinct perceivable sections, the prose section's only candidate heading is not visible to sighted users, matching the rubric's explicit off-screen-heading failure mode.\", \"evidenceRefs\": [\"structure.headings[0] offscreen:false but capture_full_page target.offDocument:true, target.inViewport:false, target.box.y=-978\", \"viewport screenshot shows ordered TOC list then unheaded paragraph prose\"]}"
+              }
+            ]
+          },
+          {
+            "type": "result",
+            "subtype": "success",
+            "isError": false,
+            "numTurns": 3,
+            "usage": {
+              "input_tokens": 6,
+              "cache_creation_input_tokens": 50928,
+              "cache_read_input_tokens": 51907,
+              "output_tokens": 1515,
+              "server_tool_use": {
+                "web_search_requests": 0,
+                "web_fetch_requests": 0
+              },
+              "service_tier": "standard",
+              "cache_creation": {
+                "ephemeral_1h_input_tokens": 50928,
+                "ephemeral_5m_input_tokens": 0
+              },
+              "inference_geo": "not_available",
+              "iterations": [
+                {
+                  "input_tokens": 2,
+                  "output_tokens": 446,
+                  "cache_read_input_tokens": 34049,
+                  "cache_creation_input_tokens": 22426,
+                  "cache_creation": {
+                    "ephemeral_5m_input_tokens": 0,
+                    "ephemeral_1h_input_tokens": 22426
+                  },
+                  "type": "message"
+                }
+              ],
+              "speed": "standard"
+            },
+            "totalCostUsd": 0.34654209999999996
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "testcaseId": "4c72b3b9b06bf1edc3c959070731b65871ee0c8f",
+    "ruleId": "c4a8a4",
+    "sc": [
+      "2.4.2"
+    ],
+    "traces": [
+      {
+        "sc": "2.4.2",
+        "targetXpath": "/page-level::title",
+        "rubricRef": "page-title-v0",
+        "verdict": "NOT REPRODUCED",
+        "latencyMs": 4306,
+        "trace": [
+          {
+            "type": "system"
+          },
+          {
+            "type": "rate_limit_event"
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "text",
+                "text": "{\"verdict\":\"NOT REPRODUCED\",\"confidence\":\"high\",\"summary\":\"The page title \\\"University of Arkham\\\" is non-empty and does not contradict the page's topic.\",\"reasoning\":\"pageTitle.present is true with value \\\"University of Arkham\\\", a real (if generic) title naming the site, and it does not misdirect from the visible h1 content about a search at the University of Arkham.\",\"evidenceRefs\":[\"signals.pageTitle.value\",\"structure.headings[0].text\"]}"
+              }
+            ]
+          },
+          {
+            "type": "result",
+            "subtype": "success",
+            "isError": false,
+            "numTurns": 1,
+            "usage": {
+              "input_tokens": 2,
+              "cache_creation_input_tokens": 6341,
+              "cache_read_input_tokens": 5547,
+              "output_tokens": 163,
+              "server_tool_use": {
+                "web_search_requests": 0,
+                "web_fetch_requests": 0
+              },
+              "service_tier": "standard",
+              "cache_creation": {
+                "ephemeral_1h_input_tokens": 6341,
+                "ephemeral_5m_input_tokens": 0
+              },
+              "inference_geo": "not_available",
+              "iterations": [
+                {
+                  "input_tokens": 2,
+                  "output_tokens": 163,
+                  "cache_read_input_tokens": 5547,
+                  "cache_creation_input_tokens": 6341,
+                  "cache_creation": {
+                    "ephemeral_5m_input_tokens": 0,
+                    "ephemeral_1h_input_tokens": 6341
+                  },
+                  "type": "message"
+                }
+              ],
+              "speed": "standard"
+            },
+            "totalCostUsd": 0.04439110000000001
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "testcaseId": "ec2a7a47c3850e8aacd971a445b90390b2ab73bb",
+    "ruleId": "7d6734",
+    "sc": [
+      "1.1.1"
+    ],
+    "traces": [
+      {
+        "sc": "1.1.1",
+        "targetXpath": "/html/body/svg[1]",
+        "rubricRef": "alt-text-adequacy-v0",
+        "verdict": "REPRODUCED",
+        "latencyMs": 21696,
+        "trace": [
+          {
+            "type": "system"
+          },
+          {
+            "type": "rate_limit_event"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "thinking",
+                "text": ""
+              }
+            ]
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "tool_use",
+                "id": "toolu_01Y4adwNQS6hmUzzksWGeiJz",
+                "name": "mcp__cdp__query_ax_node",
+                "input": {
+                  "targetXpath": "/html/body/svg[1]"
+                }
+              }
+            ]
+          },
+          {
+            "type": "user",
+            "role": "user",
+            "blocks": [
+              {
+                "kind": "tool_result",
+                "toolUseId": "toolu_01Y4adwNQS6hmUzzksWGeiJz",
+                "isError": false,
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "{\"resolved\":true,\"inTree\":true,\"role\":\"SvgRoot\",\"roleSource\":\"internalRole\",\"headingLevel\":null,\"nameFrom\":[],\"labelledby\":null,\"describedby\":null,\"focusable\":false,\"isAriaHidden\":false,\"requiredStatesPresent\":[],\"requiredStatesMissing\":null,\"ignoredReasons\":[],\"ignoredByActiveModal\":false}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "thinking",
+                "text": ""
+              }
+            ]
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "tool_use",
+                "id": "toolu_01Q3PJ5KsLk3uNCpGZrTv9fJ",
+                "name": "mcp__cdp__capture_full_page",
+                "input": {}
+              }
+            ]
+          },
+          {
+            "type": "user",
+            "role": "user",
+            "blocks": [
+              {
+                "kind": "tool_result",
+                "toolUseId": "toolu_01Q3PJ5KsLk3uNCpGZrTv9fJ",
+                "isError": false,
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "{\"screenshot\":\"<base64 8680 chars elided>\",\"fullPage\":true,\"pageSize\":{\"w\":1280,\"h\":900},\"viewport\":{\"w\":1280,\"h\":900},\"target\":null,\"note\":\"the WHOLE scrollable document (below the fold included). A target box is in PAGE coordinates (origin = document top); a NEGATIVE y or offDocument:true means the element is positioned OUTSIDE the document (e.g. top:-9999px → visually hidden) and is NOT in the captured pixels. Use to confirm an off-viewport element exists and judge WHERE it sits relative to surrounding content — never infer a barrier from position alone.\"}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "system"
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "thinking",
+                "text": ""
+              }
+            ]
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "blocks": [
+              {
+                "kind": "text",
+                "text": "{\"verdict\": \"REPRODUCED\", \"confidence\": \"medium\", \"summary\": \"The SVG circle is explicitly marked with role=\\\"graphics-object\\\" (a meaningful, non-decorative graphics role) yet has no accessible name, so a non-sighted user gets no information about what this shape represents.\", \"reasoning\": \"The element's accessible name is empty/absent while its inner circle bears role=\\\"graphics-object\\\" — a role reserved for meaningful graphical objects (not decorative ones, which would omit a role or use aria-hidden/presentation) — and there is no surrounding text on the page to supply equivalent information.\", \"evidenceRefs\": [\"accessibleName.present=false\", \"rawElementHtml: role=\\\"graphics-object\\\"\", \"element-crop: isolated yellow circle, no nearby text\", \"query_ax_node: role SvgRoot, nameFrom=[], isAriaHidden=false\"]}"
+              }
+            ]
+          },
+          {
+            "type": "result",
+            "subtype": "success",
+            "isError": false,
+            "numTurns": 3,
+            "usage": {
+              "input_tokens": 6,
+              "cache_creation_input_tokens": 15137,
+              "cache_read_input_tokens": 29620,
+              "output_tokens": 1112,
+              "server_tool_use": {
+                "web_search_requests": 0,
+                "web_fetch_requests": 0
+              },
+              "service_tier": "standard",
+              "cache_creation": {
+                "ephemeral_1h_input_tokens": 15137,
+                "ephemeral_5m_input_tokens": 0
+              },
+              "inference_geo": "not_available",
+              "iterations": [
+                {
+                  "input_tokens": 2,
+                  "output_tokens": 571,
+                  "cache_read_input_tokens": 12228,
+                  "cache_creation_input_tokens": 8456,
+                  "cache_creation": {
+                    "ephemeral_5m_input_tokens": 0,
+                    "ephemeral_1h_input_tokens": 8456
+                  },
+                  "type": "message"
+                }
+              ],
+              "speed": "standard"
+            },
+            "totalCostUsd": 0.119631
+          }
+        ]
+      }
+    ]
+  }
+]

@@ -1,0 +1,75 @@
+CASE INDEX: 16
+TESTCASE_ID: 8c835039e68f
+KIND (authoritative, from run4 GT+outcome): FP
+SC: 4.1.2   RULE: 307n5z   Element with presentational children has no focusable content
+
+This file is SELF-CONTAINED. Below: (1) the harness evidence slice — GT, LLM in-scope verdicts+summaries, off-target barriers, and the model FULL reasoning trace (THINK/SAY/TOOL_CALL/TOOL_RESULT); (2) the fixture HTML inlined.
+
+================= EVIDENCE SLICE =================
+# RCA case 8c835039e68f  [FP]
+- rule: 307n5z  Element with presentational children has no focusable content
+- sc(GT-scored): 4.1.2   expected(GT): passed   outcome: caught   polarity: specificity
+- v3Barrier(deterministic): false   inScopeAutoPartial: 0   inScopeObligations: 1
+- fixture: eval/checker-comparison/act-subset/pages/307n5z/8c835039e68f3fefc58e8b0985b2060fa02b3480.html
+
+## in-scope verdicts
+- RUBRIC 4.1.2 LIKELY_BARRIER conf=high [accessible-name-adequacy-v0] xpath=/html/body/ul[1]
+  summary: The element carries role="menu" (an explicit widget role) but has no accessible name, leaving screen reader users unable to identify what this menu controls.
+
+## model reasoning trace (per subject)
+
+### subject sc=4.1.2 xpath=/html/body/ul[1] rubric=accessible-name-adequacy-v0 verdict=REPRODUCED
+THINK: Let me analyze this case. The element is `/html/body/ul[1]`, which is a list element (`<ul>`). The deterministic signal shows:
+
+- `accessibleName.present: false` — the element has no accessible name
+- `resolved: true` — this was definitively resolved
+- The uncertainReason notes: "this is a nameless menu CONTAINER — most container roles do NOT require an accessible name, so an empty name is USUALLY NOT a barrier; flag one ONLY if the role genuinely needs a name here (e.g. MULTIPLE same-role containers coexist and must be told apart), otherwise NOT a barrier"
+I'm re-reading the rubric to understand how it handles this situation. The rubric distinguishes between name-presence checks (which are already determined by the detector) and name-adequacy checks (which apply to interactive controls). Since this is a `<ul>` container rather than a control, I need to figure out whether the rubric's REPRODUCED outcome applies here or if there's a different path for non-control elements.
+
+The `uncertainReason` clarifies that most container roles don't require accessible names by default—only flag one as a barrier if multiple same-role containers exist and need differentiation. So I'm checking whether this specific list needs a name to distinguish it from others on the page. I'm realizing the rubric distinguishes between two cases: when a name is present but adequacy is uncertain versus when a name is absent entirely. The deterministic detector flags empty names as routing to me because it's non-authoritative, and in that scenario the absent name itself constitutes the 4.1.2 barrier. But I need to determine whether a `<ul>` list actually requires an accessible name under WCAG 4.1.2 in the first place—that's the crux of whether this is truly a violation or just a container that doesn't need one.
+
+Looking at the visual, there's a checkbox for "Sort by Last Modified" in what appears to be a filter or sort menu, which suggests the element might have a role like "menu" or "listbox" that would indeed require a name. I should query the computed role to make that determination.
+SAY: I need to check the computed role of this `<ul>` element before deciding, since the `uncertainReason` says it's a "nameless menu CONTAINER" and the barrier only exists if the role genuinely requires a name (e.g., multiple same-role containers coexist).
+TOOL_CALL mcp__cdp__query_ax_node input={"targetXpath":"/html/body/ul[1]"}
+TOOL_RESULT: [{"type":"text","text":"{\"resolved\":true,\"inTree\":true,\"role\":\"menu\",\"roleSource\":\"role\",\"headingLevel\":null,\"nameFrom\":[],\"labelledby\":null,\"describedby\":null,\"focusable\":false,\"isAriaHidden\":false,\"requiredStatesPresent\":[],\"requiredStatesMissing\":[],\"ignoredReasons\":[],\"ignoredByActiveModal\":false}"}]
+THINK: The computed role is "menu" (from a `role` attribute). A `role="menu"` element is a widget that requires an accessible name under WCAG 4.1.2, especially if there could be multiple menus on the page.
+
+Now I need to determine: is there only ONE menu on this page, or are there multiple? If there's only one, a name might not be strictly required to distinguish it. But generally, `role="menu"` requires an accessible name.
+
+Actually, let me look at the ARIA spec for role="menu": it does require an accessible name per the ARIA spec (aria-labelledby, aria-label, or title). 
+
+The ARIA spec is clear that role="menu" needs an accessible name, and without one, a screen reader will just announce "menu" with no context about what it controls. Since there's no accessible name present and no name sources available, this menu fails the requirement. Since the accessible name is missing and the role is "menu" — a widget that requires a name for accessibility — this is a genuine WCAG 2.1 barrier, so I'll flag it as REPRODUCED.
+SAY: The computed role is **`menu`** (explicitly set via the `role` attribute), not a generic list. `role="menu"` is a widget role that requires an accessible name so screen readers can announce what the menu is for — without it, AT will only say "menu" with no label, leaving the user unable to understand the control's purpose.
+
+```json
+{
+  "verdict": "REPRODUCED",
+  "confidence": "high",
+  "summary": "The element carries role=\"menu\" (an explicit widget role) but has no accessible name, leaving screen reader users unable to identify what this menu controls.",
+  "reasoning": "query_ax_node confirmed role=menu sourced from a role attribute, with nameFrom=[] and no labelledby/describedby — the absence of a name on a menu widget is a genuine 4.1.2 barrier (AT announces only \"menu\" with no label), and the rubric directs REPRODUCED when accessibleName.present is false and the role genuinely requires a name.",
+  "evidenceRefs": [
+    "accessibleName.present:false (resolved:true)",
+    "query_ax_node → role:menu, roleSource:role, nameFrom:[], labelledby:null",
+    "Visual crop: single-item menu containing a 'Sort by Last Modified' checkbox option"
+  ]
+}
+```
+
+
+================= FIXTURE HTML (307n5z/8c835039e68f) =================
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Passed Example 3</title>
+</head>
+<body>
+	<ul role="menu">
+		<li role="menuitemcheckbox" aria-checked="true">
+			<input type="checkbox" role="none" disabled checked />
+			Sort by Last Modified
+		</li>
+	</ul>
+</body>
+</html>
+```

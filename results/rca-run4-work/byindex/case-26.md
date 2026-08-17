@@ -1,0 +1,129 @@
+CASE INDEX: 26
+TESTCASE_ID: ba5019010a6e
+KIND (authoritative, from run4 GT+outcome): FP
+SC: 1.3.1   RULE: a25f45   Headers attribute specified on a cell refers to cells in the same table element
+
+This file is SELF-CONTAINED. Below: (1) the harness evidence slice — GT, LLM in-scope verdicts+summaries, off-target barriers, and the model FULL reasoning trace (THINK/SAY/TOOL_CALL/TOOL_RESULT); (2) the fixture HTML inlined.
+
+================= EVIDENCE SLICE =================
+# RCA case ba5019010a6e  [FP]
+- rule: a25f45  Headers attribute specified on a cell refers to cells in the same table element
+- sc(GT-scored): 1.3.1   expected(GT): passed   outcome: caught   polarity: specificity
+- v3Barrier(deterministic): false   inScopeAutoPartial: 0   inScopeObligations: 1
+- fixture: eval/checker-comparison/act-subset/pages/a25f45/ba5019010a6e0cfbcb46b2f7e9e63a6117e06f97.html
+
+## in-scope verdicts
+- RUBRIC 1.3.1 LIKELY_BARRIER conf=medium [info-relationships-v0] xpath=/page-level::info-relationships
+  summary: The visual parent/group-header relationship between 'Name' and its sub-headers 'Firstname'/'Lastname' is not programmatically determinable because no scope or headers attributes are present on any of the three <th> cells.
+
+## model reasoning trace (per subject)
+
+### subject sc=1.3.1 xpath=/page-level::info-relationships rubric=info-relationships-v0 verdict=REPRODUCED
+THINK: Let me analyze the deterministic signals for this table:
+
+- rowCount: 2, thCount: 3, tdCount: 0
+- headers: [{id:"name", scope:null, text:"Name"}, {id:null, scope:null, text:"Firstname"}, {id:null, scope:null, text:"Lastname"}]
+- tdWithHeaders: 0, tdHeaderSamples: []
+- danglingIdref: false
+- headerWithNoDataCell: true
+- looksLikeDataTable: true
+
+The table has 3 `<th>` cells and 0 `<td>` cells, but 2 rows. 
+
+The first row contains the "Name" header, while the second row has "Firstname" and "Lastname" headers, but there are no actual data cells anywhere. This suggests either the table is missing its data rows entirely, or what should be data cells have been marked up as headers instead. Looking at the viewport, all three headers appear bold and centered, which is unusual for a properly structured data table.
+
+The test case is labeled "Passed Example 6," which implies it should pass accessibility checks, yet the signal shows `headerWithNoDataCell: true`. This seems contradictory — if "Name" is meant to be a group header spanning the two sub-columns using colspan, that structure could work correctly, but I need to verify how the headers are actually associated.
+
+The real issue for WCAG 1.3.1 is whether the visual hierarchy — where "Name" appears as a parent category above "Firstname" and "Lastname" — is also programmatically determinable. Without proper scope attributes or id/headers associations, a screen reader user might not understand that "Name" groups the two sub-headers together, even though a sighted user can see this relationship clearly.
+
+Since this is marked as a passing example, I'm reconsidering what the ACT rule is actually testing — maybe it's evaluating something different about how table headers should be structured or announced. data cells are empty, the real issue is whether the hierarchical relationship between "Name" and its sub-headers "Firstname" and "Lastname" is properly expressed in the markup. Without colspan on "Name" and headers attributes linking the sub-headers back to it, that parent-child association isn't programmatically determinable, even if it's visually implied.
+
+Let me examine the actual DOM structure to see what's really there.
+TOOL_CALL mcp__cdp__query_ax_node input={"targetXpath":"//table"}
+TOOL_CALL mcp__cdp__capture_full_page input={"targetXpath":"//table"}
+TOOL_RESULT: [{"type":"text","text":"{\"resolved\":true,\"inTree\":true,\"role\":\"table\",\"roleSource\":\"role\",\"headingLevel\":null,\"nameFrom\":[],\"labelledby\":null,\"describedby\":null,\"focusable\":false,\"isAriaHidden\":false,\"requiredStatesPresent\":[],\"requiredStatesMissing\":[],\"ignoredReasons\":[],\"ignoredByActiveModal\":false}"}]
+TOOL_RESULT: [{"type":"text","text":"{\"screenshot\":\"<base64 11880 chars elided>\",\"fullPage\":true,\"pageSize\":{\"w\":1280,\"h\":900},\"viewport\":{\"w\":1280,\"h\":900},\"target\":{\"box\":{\"x\":8,\"y\":8,\"w\":148,\"h\":46},\"tag\":\"table\",\"role\":null,\"text\":\"Name Firstname Lastname\",\"inViewport\":true,\"offDocument\":false,\"verticalPositionPct\":1},\"note\":\"the WHOLE scrollable document (below the fold included). A target box is in PAGE coordinates (origin = document top); a NEGATIVE y or offDocument:true means the element is positioned OUTSIDE the document (e.g. top:-9999px → visually
+THINK: Now let me look more carefully at the table structure. The signals tell me:
+
+- rowCount: 2, thCount: 3, tdCount: 0
+- headers: [{id:"name", scope:null, text:"Name"}, {id:null, scope:null, text:"Firstname"}, {id:null, scope:null, text:"Lastname"}]
+- headerWithNoDataCell: true
+- looksLikeDataTable: true
+
+The table has:
+- Row 1: "Name" th (with id="name", no scope)
+- Row 2: "Firstname" th, "Lastname" th (no id, no scope)
+
+With no data cells present, the visual layout shows "Name" centered above "Firstname Lastname" in the row below, which suggests "Name" functions as a group header for the two columns beneath it. The headerWithNoDataCell flag confirms this—"Name" has no corresponding data column, and sighted users would perceive it as a parent category for the firstname and lastname columns.
+
+Now I'm questioning whether the relationship between "Name" and its sub-columns is actually encoded in the markup. Looking at the structure, "Name" has an id but no scope attribute, while "Firstname" and "Lastname" lack any headers attributes that would reference it. Since this is marked as a passing example, I need to reconsider what ACT rule might be at play here—possibly one that evaluates whether header cells have assigned data cells, though with no td elements present, that relationship isn't explicitly defined in the code. The page is labeled as a passed example, but that doesn't necessarily mean it passes 1.3.1 specifically. Looking at the structure: three `<th>` elements with zero `<td>` elements, "Name" positioned visually as a group header above "Firstname" and "Lastname", and the headerWithNoDataCell signal confirming no data cells exist. The core issue for 1.3.1 is whether the relationship between "Name" as a group header and its sub-headers is programmatically determinable—without proper `colspan`, `scope="colgroup"`, or `headers` attributes, that visual grouping relationship isn't properly encoded in the markup. The issue is that without proper scope attributes, the visual hierarchy where "Name" groups "Firstname" and "Lastname" isn't actually encoded in the markup. For WCAG 1.3.1 compliance, I'd need either `scope="colgroup"` on the "Name" header with `scope="col"` on the subheaders, or some other structural markup to establish that relationship programmatically. This confirms the lack of programmatic structure—no scope attributes, no proper header associations, and the `headerWithNoDataCell` flag suggests a broken relationship between the headers. The visual hierarchy of "Name" spanning "Firstname" and "Lastname" isn't encoded in the markup, so for WCAG 1.3.1, the information structure isn't reliably determinable to assistive technology, even though this is marked as a passed example. Without colspan or colgroup scope attributes, the visual hierarchy isn't programmatically exposed to assistive technology users. Given this is marked as a "Passed Example" for the ACT rule about table headers having assigned data cells, I need to reconsider whether the rule might pass vacuously when there are no `<td>` elements, or if the colgroup structure itself satisfies the requirement. it might mean the `scope` attribute isn't present on those `<th>` elements. Without scope or colspan attributes to establish the programmatic relationship, the visual grouping of "Name" as a parent header for "Firstname" and "Lastname" isn't determinable by assistive technology—that would be a 1.3.1 failure. Though the page is labeled "Passed Example 6," so I need to reconsider what I might be missing about why this would actually pass. The rule might not apply here if this is a layout table or if all cells are headers with no data cells to associate. But for WCAG 1.3.1, the visual grouping of "Name" spanning "Firstname" and "Lastname" needs explicit markup encoding—without scope attributes or proper nesting, assistive technology can't reliably determine those relationships, which creates an accessibility barrier.
+
+I'm hesitant though because the page labels this as "Passed Example 6," so let me dig into the actual accessibility tree to see what the markup really reveals.
+TOOL_CALL mcp__cdp__query_ax_node input={"targetXpath":"//table//tr[1]/th[1]"}
+TOOL_CALL mcp__cdp__query_ax_node input={"targetXpath":"//table//tr[2]/th[1]"}
+TOOL_RESULT: [{"type":"text","text":"{\"resolved\":true,\"inTree\":true,\"role\":\"columnheader\",\"roleSource\":\"role\",\"headingLevel\":null,\"nameFrom\":[\"contents\"],\"labelledby\":null,\"describedby\":null,\"focusable\":false,\"isAriaHidden\":false,\"requiredStatesPresent\":[],\"requiredStatesMissing\":[],\"ignoredReasons\":[],\"ignoredByActiveModal\":false}"}]
+TOOL_RESULT: [{"type":"text","text":"{\"resolved\":true,\"inTree\":true,\"role\":\"columnheader\",\"roleSource\":\"role\",\"headingLevel\":null,\"nameFrom\":[\"contents\"],\"labelledby\":null,\"describedby\":null,\"focusable\":false,\"isAriaHidden\":false,\"requiredStatesPresent\":[],\"requiredStatesMissing\":[],\"ignoredReasons\":[],\"ignoredByActiveModal\":false}"}]
+THINK: Both cells have role "columnheader." "Name" is a columnheader in row 1, and "Firstname" is a columnheader in row 2. 
+
+The key issue:
+1. No `scope` attributes (all scope:null from signals)
+2. No `headers` attributes
+3. No data cells (tdCount: 0)
+4. "Name" has `id="name"` but nothing references it
+
+The visual shows "Name" as a group header over "Firstname" and "Lastname", but without scope="colgroup" or colspan="2" on "Name", this relationship isn't programmatically determinable.
+Without colspan="2" on "Name", it only spans one column, so it would only apply to "Firstname" rather than both columns—the visual centering might be misleading. Adding colspan="2" would properly express that "Name" groups both "Firstname" and "Lastname" together, but the signals don't currently indicate whether that attribute is present. So the real issue is whether the hierarchical relationship between "Name" and its sub-headers needs to be programmatically determinable for accessibility compliance. Even if colspan is present, without proper scope attributes like `scope="colgroup"` or `scope="col"`, assistive technology users won't understand that "Name" is a grouping header for "Firstname" and "Lastname"—they'll just see three separate headers. For a data table where this hierarchy is meaningful to understanding the content, that relationship should be explicitly marked up.
+
+But I'm second-guessing myself because the example is supposed to pass. Let me check what the ACT rule actually requires for table header cells. with REPRODUCED because the visual grouping between "Name" and its sub-headers isn't programmatically conveyed without scope attributes, and the `headerWithNoDataCell` flag signals a broken association pattern. The table registers as a data table but has no actual data cells, which means assistive technology users can't navigate the implied header relationships—so even though this is a structural edge case, the lack of programmatic semantics makes it a failure. The HTML table algorithm can infer header associations based on position, but that only works with actual data cells—here there are none. Without explicit scope or headers attributes, the visual grouping of "Name" over "Firstname" and "Lastname" has no programmatic representation, making this a clear 1.3.1 violation.
+SAY: Based on the deterministic signals and live inspection, I have sufficient evidence to judge.
+
+**What the signals reveal:**
+- Table has 2 rows, 3 `<th>` cells (thCount:3), and **zero `<td>` cells** (tdCount:0)
+- Row 1: "Name" th (id="name", scope:**null**)
+- Row 2: "Firstname" th (no id, scope:**null**), "Lastname" th (no id, scope:**null**)
+- `headerWithNoDataCell: true` — confirmed broken-association smell
+- `looksLikeDataTable: true` — this is treated as a data table
+- AX inspection: all three cells resolve as `role=columnheader`, none carry scope or headers wiring
+
+**Visual relationship (viewport):** "Name" is visually rendered above and encompassing "Firstname" + "Lastname", conveying a clear parent/group-header relationship — a sighted user perceives "Name" as the category label for both sub-columns.
+
+**Programmatic encoding:** None of the headers carry `scope` attributes. "Name" lacks `scope="colgroup"` and neither sub-header carries `scope="col"` or `headers="name"`. Without explicit `colspan`+`scope` wiring or `headers` IDREFs, the group-header relationship ("Name" parents both "Firstname" and "Lastname") is not programmatically determinable. AT cannot navigate the two-level header hierarchy that sighted users perceive. The `headerWithNoDataCell:true` flag confirms at least one header has no associated cell — and with zero `<td>` elements, all three headers are orphaned.
+
+```json
+{
+  "verdict": "REPRODUCED",
+  "confidence": "medium",
+  "summary": "The visual parent/group-header relationship between 'Name' and its sub-headers 'Firstname'/'Lastname' is not programmatically determinable because no scope or headers attributes are present on any of the three <th> cells.",
+  "reasoning": "Signals show scope:null for all three <th> elements, no headers= IDREFs, and tdCount:0 with headerWithNoDataCell:true; the visual two-level column-header grouping ('Name' spanning both sub-columns) has no corresponding semantic encoding (no scope='colgroup', no scope='col', no headers='name'), so AT cannot expose the association a sighted user perceives (ACT d0f69e / WCAG 1.3.1).",
+  "evidenceRefs": [
+    "signals.structure.tables[0].headers — all three entries have scope:null",
+    "signals.structure.tables[0].tdCount:0 and headerWithNoDataCell:true",
+    "signals.structure.tables[0].looksLikeDataTable:true",
+    "query_ax_node(//table//tr[1]/th[1]) — role=columnheader, no labelledby/describedby wiring",
+    "query_ax_node(//table//tr[2]/th[1]) — role=columnheader, no labelledby/describedby wiring",
+    "viewport screenshot — 'Name' visually positioned as group header above 'Firstname' and 'Lastname'"
+  ]
+}
+```
+
+
+================= FIXTURE HTML (a25f45/ba5019010a6e) =================
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Passed Example 6</title>
+</head>
+<body>
+	<table>
+		<tr>
+			<th id="name" colspan="2">Name</th>
+		</tr>
+		<tr>
+			<th headers="name">Firstname</th>
+			<th headers="name">Lastname</th>
+		</tr>
+	</table>
+</body>
+</html>
+```

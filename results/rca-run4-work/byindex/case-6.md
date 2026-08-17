@@ -1,0 +1,53 @@
+CASE INDEX: 6
+TESTCASE_ID: 0ad882dffaf6
+KIND (authoritative, from run4 GT+outcome): FP
+SC: 2.4.2   RULE: 2779a5   HTML page has non-empty title
+
+This file is SELF-CONTAINED. Below: (1) the harness evidence slice — GT, LLM in-scope verdicts+summaries, off-target barriers, and the model FULL reasoning trace (THINK/SAY/TOOL_CALL/TOOL_RESULT); (2) the fixture HTML inlined.
+
+================= EVIDENCE SLICE =================
+# RCA case 0ad882dffaf6  [FP]
+- rule: 2779a5  HTML page has non-empty title
+- sc(GT-scored): 2.4.2   expected(GT): passed   outcome: caught   polarity: specificity
+- v3Barrier(deterministic): false   inScopeAutoPartial: 0   inScopeObligations: 1
+- fixture: eval/checker-comparison/act-subset/pages/2779a5/0ad882dffaf6edd16058119e1c513b4746b0ac27.html
+
+## in-scope verdicts
+- RUBRIC 2.4.2 LIKELY_BARRIER conf=high [page-title-v0] xpath=/page-level::title
+  summary: The page title 'Title of the page.' is a generic placeholder that does not describe the page's topic or purpose, constituting a 2.4.2 barrier.
+
+## model reasoning trace (per subject)
+
+### subject sc=2.4.2 xpath=/page-level::title rubric=page-title-v0 verdict=REPRODUCED
+THINK: The page title is "Title of the page." - this is a generic placeholder/boilerplate title. The viewport is blank/white with no visible content. Let me check if there's content below the fold.
+
+The title "Title of the page." is clearly a placeholder/boilerplate string - it's not descriptive of any actual page topic. This is a barrier under 2.4.2.
+
+Even without seeing meaningful page content, the title itself is a generic placeholder ("Title of the page.") that identifies nothing specific about the page's topic or purpose. This is similar to "Untitled" or "Document" - it's a stand-in that fails to describe the page.
+SAY: ```json
+{
+  "verdict": "REPRODUCED",
+  "confidence": "high",
+  "summary": "The page title 'Title of the page.' is a generic placeholder that does not describe the page's topic or purpose, constituting a 2.4.2 barrier.",
+  "reasoning": "The effective title extracted is the literal string 'Title of the page.' — a boilerplate stand-in indistinguishable from 'Untitled' or 'Document'; it names no subject, and the blank viewport (no headings, no landmarks, no visible content) provides no evidence that this phrasing meaningfully describes any real topic.",
+  "evidenceRefs": [
+    "pageTitle.value = 'Title of the page.'",
+    "structure.headings = [] (no headings present)",
+    "viewport: entirely blank — no visible content to match against"
+  ]
+}
+```
+
+
+================= FIXTURE HTML (2779a5/0ad882dffaf6) =================
+```html
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Title of the page.</title>
+	</head>
+	<body>
+		<title></title>
+	</body>
+</html>
+```
