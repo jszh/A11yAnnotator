@@ -1093,6 +1093,34 @@ PROMPT_SOURCES files (broad-scope-probes.js, confusable-text.js). NOTE: an earli
 approved-only partial run sits in `v3-act-subset-b2-gate/`'s history (first invocation lacked
 `--proposed`, 312 cases); the recorded full run supersedes it.
 
+## Table 1k-post7 — synthetic s12: the CLEAN batch-2 measurement (2026-08-17, server)
+
+**Run `results/aug-annot-s12-tools/`, repo at `7b379689` (clean tree — first single-commit-attributable
+run of the campaign). PLATFORM CHANGE: c4-highcpu-16 GCE server (Linux/Chrome 151), not the Mac —
+fonts/vision shift means case-level comparisons vs s10/s11 carry platform noise on vision-dependent
+cases.** Sonnet 4.6, tools ON, 390 pages (2 label-dispute cases retagged needs-validation), 0 errors,
+35.8 min (4× faster than local), $61.16, 911 LLM calls, 225 tool calls, `--pages 24 --max-tabs 96
+--browsers 4 --inst-gate 10`.
+
+| slice | recall | FP | F1 | (s11 →) |
+|---|---|---|---|---|
+| ALL | 276/311 = 88.7% | 5/79 = 6.3% | 0.932 | 88.5% · 7.6% · 0.930 |
+| fixed | **6/6 = 100%** | 0/1 | 1.000 | 66.7% · 0.800 |
+
+Aggregate flat vs s11 (within noise floor + platform shift); churn 13 gains / 14 losses / 1 FP
+cleared / 0 new FPs. Mechanism confirmations: **area-map case-03 CAUGHT** (proves the s11 miss was
+run-state skew — the area-crop lane simply hadn't run); **2.1.2 region-loop 01+04 CAUGHT** (the
+lane-cap RCA confirmed from the other side: on server hardware the instrument lane fits the 90s cap
+and the oneway mint fires — the batch-3 hoist remains the fix for constrained hardware); 4.1.3
+wrong-politeness-01 caught (pre-batch-3, likely via the timeline lane); text-lookalike-05 caught
+(numeric lane live post-tightening); 2.4.4 generic-link FP cleared (supports the primed-noise read).
+Losses cluster in 4.1.3 (6 of 14: announced-text-02/03, partial-update-04/05, removal-06,
+wrong-politeness-02) — plausibly the status-lane remediations (phase-B budget pool, state-change
+softening) plus platform noise; the batch-3 replay validations must cover these families. NOTE
+removal-06 is the disabled-flip shape: its GT (failed) now tensions with the soundness-review
+position that a state-change-only outcome may have no status message in scope — label-vs-doctrine
+dispute to resolve, not silently re-tune.
+
 ## Table 2 — Held-out generalization gate (581-case full corpus)
 
 Each new deterministic detector evaluated over its **entire** ACT rule, not its tuned examples. Over-fire =
