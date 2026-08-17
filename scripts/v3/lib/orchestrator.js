@@ -313,10 +313,26 @@ async function orchestrate(collect, drive, opts = {}) {
       const findings = (bundle.instruments && Array.isArray(bundle.instruments.findings)) ? bundle.instruments.findings : [];
       const map = {};
       for (const f of findings) {
-        if (!f || f.kind !== 'keyboard-trap-confinement' || !f.review || !f.xpath) continue;
+        if (!f || !f.review || !f.xpath) continue;
+        const oneway = f.kind === 'keyboard-trap-oneway';
+        if (f.kind !== 'keyboard-trap-confinement' && !oneway) continue;
         const members = (Array.isArray(f.memberXpaths) && f.memberXpaths.length) ? f.memberXpaths : [f.xpath];
-        if (!map[f.xpath]) map[f.xpath] = { members: members.map((x) => ({ xpath: x })), setSize: f.setSize || members.length };
+        if (!map[f.xpath]) {
+          map[f.xpath] = { members: members.map((x) => ({ xpath: x })), setSize: f.setSize || members.length };
+          // ONE-WAY facts ride into the subject's signals (adjudicator keyboardTrap branch): direction + the
+          // walled-off focusables are exactly what the rubric's REVIEW branch reasons over.
+          if (oneway) map[f.xpath].oneway = { direction: f.direction || 'forward',
+            unreached: Array.isArray(f.unreached) ? f.unreached : [],
+            unreachedCount: Number.isFinite(f.unreachedCount) ? f.unreachedCount : (Array.isArray(f.unreached) ? f.unreached.length : 0) };
+        }
       }
+      // The keyboard-trap-escape EXPERIMENT's C5 `oneWayConflict` observation is deliberately NOT consumed
+      // here (adversarial soundness finding #1, probe-confirmed): Shift+Tab from a page's FIRST focusable
+      // exits into browser chrome, which the experiment records as `shiftEscapes:false` with `valid:false`,
+      // so on a textbook no-trap form the observation fabricates a backward "one-way confinement" of the
+      // field itself (setSize 1, nothing unreached) — a self-contradictory false premise handed to the
+      // rubric. The instrument-findings channel above is the sound one-way source: it requires a REAL
+      // observed loop over a member set with rendered focusables walled off.
       return Object.keys(map).length ? map : null;
     })();
     // #3 (1.4.3 non-language exemption): the xpaths whose text-contrast-pixel experiment determined the rendered
@@ -339,7 +355,35 @@ async function orchestrate(collect, drive, opts = {}) {
     const rawTabOrder = (bundle.instruments && bundle.instruments.tabOrder) || null;
     const focusOrder = rawTabOrder ? { ...rawTabOrder, partial: bundle.instruments.timedOut === true || bundle.instruments.partial === true } : null;
     const statusObservations = (bundle.instruments && Array.isArray(bundle.instruments.statusObservations)) ? bundle.instruments.statusObservations : null;
-    let rubricSubjects = llmAdj.selectRubricSubjects(collect, ledger, llmRubrics.rubrics, { onlyAutoPartial, confinement, contrastExempt, focusOrder, statusObservations }); // llm-rubric:<id> (per SC)
+    // 1.4.13 FACET EVIDENCE: the hover-content-tri probe's PER-FACET measurements, keyed by trigger xpath.
+    // The experiment records dismissible / hoverable / persistent as separate typed outcomes and publishes a
+    // barrier only when one of them FAILS — so the obligations that survive to the LLM lane are exactly the
+    // ones where a facet is unsettled, and until now not one of those measurements reached a prompt. Threaded
+    // so each of the three atomic 1.4.13 rubrics is both ROUTED by, and REASONS OVER, its own facet's fact.
+    // `dwellMs` is stated rather than implied: the persistence rubric's whole residue is "is there a timer
+    // longer than the window that was tested", which is unanswerable without the window.
+    const hoverFacets = (() => {
+      // The dwell `runHoverContentTri` waits before re-reading the page for the Persistent property
+      // (exp-runners.js, `await H.settle(page, 1600); o.persistent = …`). Pinned by a regression test so the
+      // number the judge is told it may rely on cannot silently drift away from the number measured.
+      const HOVER_PERSIST_DWELL_MS = 1600;
+      const map = {};
+      for (const e of (experiments && Array.isArray(experiments.results) ? experiments.results : [])) {
+        if (!e || e.sc !== '1.4.13' || e.experimentId !== 'hover-content-tri' || !e.targetXpath) continue;
+        const o = e.outcome || {}; const m = e.measurement || {};
+        map[e.targetXpath] = {
+          probeRan: o.measurementDeterministic === true,
+          contentAppeared: o.contentAppeared === true,
+          contentIsAdditional: o.contentIsAdditional === true,
+          dismissible: o.dismissible === true, hoverable: o.hoverable === true, persistent: o.persistent === true,
+          nativeTitleOnly: m.nativeTitleOnly === true,
+          revealMode: typeof m.revealMode === 'string' ? m.revealMode : null,
+          dwellMs: HOVER_PERSIST_DWELL_MS,
+        };
+      }
+      return Object.keys(map).length ? map : null;
+    })();
+    let rubricSubjects = llmAdj.selectRubricSubjects(collect, ledger, llmRubrics.rubrics, { onlyAutoPartial, confinement, contrastExempt, focusOrder, statusObservations, hoverFacets }); // llm-rubric:<id> (per SC)
     // EVAL SCOPE GATE (opt-in): restrict the LLM to the SC(s) we have ground truth for. ACT ground truth is
     // PER-SC — a testcase only tells us pass/fail/inapplicable for its OWN rule's SC, not the page's other SCs.
     // Judging off-target obligations is both unscoreable (no GT) and wasted LLM/tool/vision spend. A Set of SC

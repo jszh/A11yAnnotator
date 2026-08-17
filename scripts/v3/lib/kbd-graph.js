@@ -10,6 +10,15 @@ const { visualOrderDivergence } = require('./order-check.js');
 const LIMITS = require('./limits.js'); // instrument caps (tier F)
 
 const REACH_SAFETY_CAP = LIMITS.instruments.reachSafetyCap; // anti-pathology only; the normal stop is a wrap (matches realKeyboardReach)
+// SEGMENTED (composite) inputs — <input type=time|date|datetime-local|month|week> — are ONE element wrapping
+// several internal segments (hour/minute, day/month/year): Tab moves BETWEEN the segments while
+// document.activeElement stays the same <input>. Bound on how many consecutive Tab presses the ring-walk will
+// spend inside one such element before giving up. Chrome renders SEVEN segments for datetime-local with
+// step=1 (mm/dd/yyyy hh:mm:ss AM/PM — adversarial soundness finding #2, probe-confirmed), so the bound is 10;
+// and exhausting it is recorded as `exhausted`, NEVER as a wrap — a cap hit means the recording is
+// incomplete, and calling it a completed ring is exactly the degenerate one-stop artifact this guard exists
+// to prevent.
+const SEGMENTED_PRESS_CAP = 10;
 
 // In-page: identify the active element with a stable per-call WeakSet (cycle detection), and read its
 // xpath + document-relative rect + a short label. Returns a sentinel for body/null (ring boundary).
@@ -92,6 +101,9 @@ function probeActive() {
     // TAG alone cannot distinguish a real widget from a generic container that merely carries tabindex.
     role: (a.getAttribute && a.getAttribute('role')) || null,
     tabindexAttr: (a.getAttribute && a.getAttribute('tabindex')) || null,
+    // SEGMENTED composite input (time/date/…): Tab traverses INTERNAL segments while activeElement stays this
+    // same element, so a revisit read here is not necessarily a ring wrap — the walk loop needs to know.
+    segmented: a.tagName === 'INPUT' && /^(time|date|datetime-local|month|week)$/.test(a.type || ''),
     modalOpen: !!openModal,
     insideOpenModal: !!ownModal,
     modalXpath: ownModal ? getXPath(ownModal) : null };
@@ -138,6 +150,17 @@ async function collectTabOrder(page, opts = {}) {
   const order = [];
   let wrapped = false, exhausted = false, sawNode = false, sentinelStreak = 0;
   let boundaryAt = -1;   // index in `order` after which the document boundary was crossed
+  // COMPOSITE-INPUT WRAP GUARD (2026-08-16). A segmented control (<input type=time|date|…>) consumes Tab for
+  // its INTERNAL segments while document.activeElement stays the same element, so the plain revisit test
+  // (`info.seen ⇒ wrapped`) fired on the SECOND press and recorded a one-stop "ring" for a page whose real
+  // ring had dozens of stops — and everything downstream (2.4.3 order findings, the __focusOrder evidence the
+  // focus-order rubric leans on) then reasoned from that degenerate artifact as if it were the page. A repeat
+  // of the SAME segmented element is therefore NOT judged a wrap: keep pressing Tab (bounded by
+  // SEGMENTED_PRESS_CAP per element) until focus moves on; only a repeat that is NOT a same-element segmented
+  // continuation — or a segmented element that exhausts the per-element cap — is a wrap. Every non-segmented
+  // element keeps the exact pre-existing behavior (immediate wrap on revisit).
+  let lastXpath = entry.sentinel ? null : entry.xpath;
+  let segPresses = 0;
   if (!entry.sentinel) {
     order.push({ index: 0, xpath: entry.xpath, tag: entry.tag, rect: entry.rect, label: entry.label, role: entry.role || null, tabindexAttr: entry.tabindexAttr || null, modalOpen: entry.modalOpen, insideOpenModal: entry.insideOpenModal, modalXpath: entry.modalXpath });
     sawNode = true;
@@ -159,7 +182,18 @@ async function collectTabOrder(page, opts = {}) {
       continue;
     }
     sentinelStreak = 0;
-    if (info.seen) { wrapped = true; break; }                                      // revisited ⇒ ring complete
+    if (info.seen) {                                                               // revisited ⇒ ring complete…
+      // …UNLESS this is the SAME segmented element still consuming Tab for an internal segment (see the
+      // guard note above). Not a new stop and not a wrap — press again, bounded per element. Cap
+      // exhaustion is an INCOMPLETE recording (`exhausted`), never a completed ring.
+      if (info.segmented && info.xpath === lastXpath) {
+        if (segPresses < SEGMENTED_PRESS_CAP) { segPresses++; continue; }
+        exhausted = true; break;
+      }
+      wrapped = true; break;
+    }
+    segPresses = 0;
+    lastXpath = info.xpath;
     sawNode = true;
     order.push({ index: order.length, xpath: info.xpath, tag: info.tag, rect: info.rect, label: info.label, role: info.role || null, tabindexAttr: info.tabindexAttr || null, modalOpen: info.modalOpen, insideOpenModal: info.insideOpenModal, modalXpath: info.modalXpath });
   }
@@ -610,6 +644,13 @@ async function detectFixedSetConfinementTraps(page, opts = {}) {
   if (firstInS < 0) return { traps: [], focusableCount: total };
   const fwdConfined = fwdSeq.slice(firstInS).every((id) => S.has(id));
   if (!fwdConfined) return { traps: [], focusableCount: total };
+  // OBSERVED-CYCLE guard (adversarial soundness finding #7): on a page with more focusables than the sweep
+  // budget the forward walk never wraps, the tail half passes the confinement test VACUOUSLY (each element
+  // settled exactly once), and everything past the truncation point reads as "walled off". Confinement — and
+  // the one-way REVIEW lane below — may only be asserted when the window demonstrably LOOPED over S: the
+  // confined slice must revisit (>= 2 settles per member on average), which a truncated single pass cannot.
+  const confinedSettles = fwdSeq.slice(firstInS).filter((id) => id && byId.has(id)).length;
+  if (confinedSettles < S.size * 2) return { traps: [], focusableCount: total };
   // TRANSIENT-REACH guard (80af7b Passed Ex7, async sibling-progression): a `setTimeout(()=>sibling.focus())` bounce
   // lets the browser FIRST land focus on the element OUTSIDE S (the next sibling) before the timer bounces it back.
   // The user genuinely reached that outside element, so this is PROGRESSION, not a hard trap. If any PRE-settle
@@ -617,14 +658,48 @@ async function detectFixedSetConfinementTraps(page, opts = {}) {
   // onblur bounce — the failed cases — never lets focus settle outside S even immediately.)
   if (fwd.imm.slice(firstInS).some((id) => id && byId.has(id) && !S.has(id))) return { traps: [], focusableCount: total };
 
-  // an independent extended Shift+Tab sweep must ALSO never leave S (a one-way bounce is not a hard trap —
-  // the user can still escape backward; that case is left to the directional reporting in detectKeyboardTraps).
+  // ── ONE-WAY CONFINEMENT evidence (2.1.2, REVIEW — never a barrier) ─────────────────────────────────
+  // Derived ENTIRELY from the forward sweep already in hand: zero extra page driving. The forward window is
+  // confined to S, and any rendered focusable that NO forward press ever landed on (settled or pre-settle) is
+  // content walled off in the normal navigation direction. That is exactly TT 4.C's "keyboard access is
+  // restricted to a small section of the page with no way to navigate out of the loop" — but 4.C also carves
+  // out a section that legitimately REQUIRES input/interaction before allowing focus to progress, and that
+  // exception is semantic: keyboard-driving cannot see it. So a one-way confinement is emitted as a REVIEW
+  // finding that routes to the keyboard-trap rubric, and it is emitted ONLY when the backward gate below shows
+  // focus is NOT confined backward — a region confined in BOTH directions (a modal) takes the existing,
+  // stronger confinement lane and can never arrive here.
+  const reachedForward = new Set([...fwdSeq, ...fwd.imm].filter((id) => id && byId.has(id)));
+  const unreachedForward = focs.filter((f) => !reachedForward.has(f.id));
+  const onewayReturn = () => {
+    if (!unreachedForward.length) return { traps: [], focusableCount: total };  // nothing walled off ⇒ nothing to review
+    const members = [...S].map((id) => byId.get(id)).filter(Boolean);
+    if (!members.length) return { traps: [], focusableCount: total };
+    const anchor = members[0];
+    return {
+      traps: [], focusableCount: total,
+      onewayTraps: [{ sc: '2.1.2', kind: 'keyboard-trap-oneway', direction: 'forward', review: true,
+        xpath: anchor.xpath, tag: anchor.tag, label: anchor.label,
+        memberXpaths: members.map((m) => m.xpath), setSize: S.size,
+        unreached: unreachedForward.slice(0, 5).map((f) => ({ tag: f.tag, label: f.label })),
+        unreachedCount: unreachedForward.length }],
+    };
+  };
+
+  // BACKWARD GATE, MIRRORED (2026-08-16). The old gate required the ENTIRE backward sequence's real stops to
+  // sit inside S — but every backward sweep starts at the document boundary and reaches the page's LAST
+  // focusable first, so unless S happened to contain the last tab stop the gate could essentially never pass,
+  // and genuine both-direction traps were declined (the backward sweep legitimately crosses outside-S content
+  // BEFORE it enters the trap, exactly as the forward sweep does). Mirror the forward logic: locate the first
+  // settled stop inside S and require confinement — and the transient-reach guard — from that point onward.
   const bwd = await sweep(true, window);
   if (!bwd) return { traps: [], focusableCount: total, undetermined: true };
-  const bwdTail = bwd.seq.filter((id) => id && byId.has(id));
-  if (!bwdTail.length || !bwdTail.every((id) => S.has(id))) return { traps: [], focusableCount: total };
-  // backward transient-reach guard (mirror): an async progression escapes backward too.
-  if (bwd.imm.some((id) => id && byId.has(id) && !S.has(id))) return { traps: [], focusableCount: total };
+  const bwdFirstInS = bwd.seq.findIndex((id) => S.has(id));
+  const bwdConfined = bwdFirstInS >= 0
+    && bwd.seq.slice(bwdFirstInS).filter((id) => id && byId.has(id)).every((id) => S.has(id))
+    // backward transient-reach guard (mirror of the forward one): an async progression escapes backward too.
+    && !bwd.imm.slice(bwdFirstInS).some((id) => id && byId.has(id) && !S.has(id));
+  // confined FORWARD only ⇒ the one-way REVIEW lane (or nothing, when no focusable is actually walled off).
+  if (!bwdConfined) return onewayReturn();
 
   // ESCAPE route check (CRITICAL false-positive guard): drive focus into S, press Escape, settle, and confirm
   // focus is STILL inside S. A legitimate modal that traps focus but releases on Escape moves focus OUT of S
@@ -644,23 +719,40 @@ async function detectFixedSetConfinementTraps(page, opts = {}) {
   if (escEscapes) return { traps: [], focusableCount: total };       // escapable ⇒ not a barrier
 
   // ADVISED-KEY escape (80af7b advisory exception): 2.1.2 PERMITS a non-standard exit IF the page ADVISES the user
-  // of it AND that key actually works. `tryAdvised` parses an advisory ("Press Ctrl+M to Exit") from the CURRENT page
+  // of it AND that key actually works. `tryAdvised` parses an advisory ("Press Alt+F6 to exit") from the CURRENT page
   // text, drives focus into S, presses the combo, and reports: 'clear' (the advised key freed focus ⇒ documented exit
   // works ⇒ NOT a barrier), 'lying' (the page advises a key that does NOT move focus ⇒ a 2.1.2 barrier), 'none' (no
   // advisory in the current text), or 'undetermined' (probe failed ⇒ fail-closed).
   const tryAdvised = async () => {
     const advised = await page.evaluate(() => {
       const t = (document.body && (document.body.innerText || document.body.textContent)) || '';
-      const m = t.match(/press\s+(?:the\s+)?((?:ctrl|control|alt|option|shift|cmd|command|meta)\s*\+\s*)?["']?([A-Za-z0-9])["']?\s+(?:key\s+)?to\s+(?:leave|exit|close|escape|dismiss|continue|go)/i);
-      return m ? { mod: (m[1] || '').replace(/[^a-z]/gi, '').toLowerCase(), key: m[2].toLowerCase() } : null;
+      // Advisory grammar (2026-08-16): the old single pattern matched ONLY "press X to VERB" word order with
+      // at most ONE modifier, so a verb-first advisory ("To VERB …, press Ctrl+Alt+X") or any multi-modifier
+      // combo was invisible and the advisory fast-path could not fire. Both are now covered, still
+      // conservatively: an explicit "press", a SINGLE key character (quoted or bare, never a bare word), a
+      // known exit verb, and a bounded word gap in the verb-first form.
+      const MODS = "(?:ctrl|control|alt|option|shift|cmd|command|meta)";
+      const COMBO = "((?:" + MODS + "\\s*\\+\\s*)*)";                       // zero or more "Mod+" prefixes
+      const KEY = "[\"']?([A-Za-z0-9])[\"']?(?![A-Za-z0-9])";               // one key char, never a word prefix
+      const VERB = "(?:leave|exit|close|escape|dismiss|continue|go)";
+      // press-first: "press Alt+F6 to exit", "press the Ctrl+Alt+D key to leave the editor"
+      let m = t.match(new RegExp("press\\s+(?:the\\s+)?" + COMBO + KEY + "\\s+(?:key\\s+)?to\\s+" + VERB, 'i'));
+      // verb-first: "To leave the editor and return to the article list, press Ctrl+Alt+D" — the gap between
+      // the verb and "press" is bounded (≤10 words, none crossing a sentence end) so the two halves cannot be
+      // stitched across sentences. Real advisories routinely name both the region left AND the destination
+      // ("to leave X and return to Y"), which is why a short gap under-matches.
+      if (!m) m = t.match(new RegExp("to\\s+" + VERB + "(?:\\s+[^\\s.!?]+){0,10}?[,:]?\\s+press(?:ing)?\\s+(?:the\\s+)?" + COMBO + KEY, 'i'));
+      if (!m) return null;
+      const mods = (m[1] || '').split('+').map((s) => s.trim().toLowerCase()).filter(Boolean);
+      return { mods, key: m[2].toLowerCase() };
     }).catch(() => null);
     if (!advised || !advised.key) return 'none';
     await page.evaluate((id) => { const el = document.querySelector(`[data-v3-foc="${id}"]`); if (el) el.focus(); }, [...S][0]).catch(() => null);
     const MOD = { ctrl: 'Control', control: 'Control', alt: 'Alt', option: 'Alt', shift: 'Shift', cmd: 'Meta', command: 'Meta', meta: 'Meta' };
-    const mod = MOD[advised.mod] || null;
-    if (mod) await page.keyboard.down(mod);
+    const mods = (advised.mods || []).map((k) => MOD[k]).filter(Boolean);   // hold EVERY advised modifier, in written order
+    for (const mod of mods) await page.keyboard.down(mod);
     await page.keyboard.press(advised.key);
-    if (mod) await page.keyboard.up(mod);
+    for (const mod of mods.slice().reverse()) await page.keyboard.up(mod);
     await settleMs(page, escSettle);
     const after = await page.evaluate(activeFocId).catch(() => null);
     if (after === null) return 'undetermined';
@@ -897,9 +989,20 @@ const REVEAL_XPATH_FN = `(e) => { const gx = (n) => { if (!n || !n.tagName) retu
   let i = 1; for (let s = n.previousElementSibling; s; s = s.previousElementSibling) if (s.tagName === n.tagName) i++;
   return gx(n.parentElement) + (isHtml ? '/' + t + '[' + i + ']' : "/*[local-name()='" + t + "'][" + i + "]"); }; return gx(e); }`;
 
+// MARKERS this pass writes into the page. They are the proof-of-restoration probe: a genuine reload wipes
+// every one of them, so their ABSENCE after the caller's restore is evidence the page really was reloaded,
+// and their presence is evidence it was not. Exported so run-instruments can verify without duplicating the list.
+const REVEAL_MARKER_SEL = '[data-v3-revopener],[data-v3-revregion],[data-v3-revfocus],[data-v3-revhidden]';
+
 async function collectRevealedFocusOrder(page, url, opts = {}) {
   const maxOpeners = Number.isFinite(opts.maxOpeners) ? opts.maxOpeners : 2;
   const gotoTimeoutMs = opts.gotoTimeoutMs || 20000;
+  // PROGRESS SINK (2026-08-16). The caller restores the page whenever this pass ACTIVATED anything, and it
+  // learns that from the return value — which a rejection destroys, taking the "an opener was clicked" fact
+  // with it and silently skipping the cleanup on exactly the runs that went wrong. `opts.progress` is a
+  // caller-owned object mutated in place BEFORE each irreversible step, so the record survives any throw.
+  const progress = (opts.progress && typeof opts.progress === 'object') ? opts.progress : {};
+  progress.ran = true;
   const settle = require('./settle.js');
   const wait = (ms) => page.evaluate((t) => new Promise((r) => setTimeout(r, t)), ms).catch(() => null);
   const activeXpath = () => page.evaluate(`(${REVEAL_XPATH_FN})(document.activeElement)`).catch(() => null);
@@ -913,6 +1016,7 @@ async function collectRevealedFocusOrder(page, url, opts = {}) {
   // page with no hidden focusable content pays two in-page queries and NO page load at all. That matters:
   // most pages are that page, and a speculative reload each would be the whole cost of this instrument.
   const hiddenRegions = await page.evaluate(tagHiddenRegionsInPage, FOCUSABLE_SEL, false).catch(() => 0);
+  progress.hiddenRegions = hiddenRegions;
   if (!hiddenRegions) return { states: [], openers: 0, hiddenRegions: 0 };
   // DECLARED-INTENT openers only. findRevealOpeners' rank 3 is "any other safe button" — good enough to
   // speculatively hunt for a trap (where a false candidate simply finds nothing), but not good enough to
@@ -920,6 +1024,7 @@ async function collectRevealedFocusOrder(page, url, opts = {}) {
   // exactly the shape that would manufacture one. Ranks 0-2 are aria-haspopup / aria-expanded=false /
   // aria-controls-at-a-hidden-target / a reveal verb in the name.
   const openers = (await findRevealOpeners(page, 8)).filter((o) => o && o.rank <= 2).slice(0, maxOpeners);
+  progress.openersFound = openers.length;
   if (!openers.length) return { states: [], openers: 0, hiddenRegions };
 
   const states = [];
@@ -949,6 +1054,10 @@ async function collectRevealedFocusOrder(page, url, opts = {}) {
       // xpath then resolved to the NEXT button, and "focus returned to the opener" was reported about an
       // element that was not the opener. There it happened to agree with the truth; the mirror case (a node
       // removed BEFORE the trigger) would have manufactured a barrier out of the same aliasing.
+      // Recorded BEFORE the await, not after: this evaluate both TAGS the page and CLICKS, so a rejection
+      // (navigation, detached context, closed target) can leave the page activated with no return value to
+      // say so. From here on the caller MUST restore, whatever this function goes on to return or throw.
+      progress.activated = true;
       const clicked = await page.evaluate((xp) => {
         const el = document.evaluate(xp, document, null, 9, null).singleNodeValue;
         if (!el) return false;
@@ -1118,7 +1227,14 @@ async function detectTrapsAfterReveal(page, url, opts = {}) {
   // means the dialog is ALREADY OPEN. Enumerating against that state made the precondition below answer
   // "no hidden region on this page" and the whole pass returned null, silently: verified by a direct probe
   // that found the trap on a clean load and nothing at all through the lane.
-  await page.goto(url, { waitUntil: 'load', timeout: opts.gotoTimeoutMs || 20000 }).catch(() => {});
+  //
+  // …and the reload's own failure was SWALLOWED (`.catch(() => {})`), which reinstated the very bug the
+  // paragraph above describes: a goto that timed out left the driven page in place and the pass went on to
+  // enumerate against it, answering "no hidden dialog here" about a page whose dialog was merely already
+  // open. A reload we cannot confirm is not a clean load, so BAIL — returning null (no claim) is the sound
+  // reading of "we could not get the page into the state this pass requires".
+  const reloaded = await page.goto(url, { waitUntil: 'load', timeout: opts.gotoTimeoutMs || 20000 }).then(() => true).catch(() => false);
+  if (!reloaded) return null;
   await require('./settle.js').awaitSettle(page).catch(() => {});
   // PRECONDITION — and the reason ranked-3 openers are allowed at all. Run this pass ONLY on a page that
   // demonstrably HAS something to reveal: a trap-region-shaped container (dialog/menu/listbox/modal) that
@@ -1319,4 +1435,4 @@ async function detectEmbeddedFormatTraps(page, opts = {}) {
   return { traps, directional, boundaries: boundaries.length };
 }
 
-module.exports = { collectTabOrder, tabOrderFindings, redundantStopFacts, detectKeyboardTraps, detectFocusRetentionTraps, detectFixedSetConfinementTraps, detectFocusRejection, detectFocusRestsInAriaHidden, findRevealOpeners, collectRevealedFocusOrder, detectTrapsAfterReveal, detectEmbeddedFormatTraps, REACH_SAFETY_CAP, REFOCUS_SETTLE_MS, TRAP_REGION_SEL, FOCUSABLE_SEL, OPENER_VERB_RE };
+module.exports = { collectTabOrder, tabOrderFindings, redundantStopFacts, detectKeyboardTraps, detectFocusRetentionTraps, detectFixedSetConfinementTraps, detectFocusRejection, detectFocusRestsInAriaHidden, findRevealOpeners, collectRevealedFocusOrder, detectTrapsAfterReveal, detectEmbeddedFormatTraps, REACH_SAFETY_CAP, REFOCUS_SETTLE_MS, TRAP_REGION_SEL, FOCUSABLE_SEL, OPENER_VERB_RE, REVEAL_MARKER_SEL };

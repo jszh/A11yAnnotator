@@ -246,10 +246,33 @@ test('CHANNEL: per-stop reveal / divergence / redundant-stop facts survive into 
 test('CHANNEL GUARD: the rubric names every fact key it tells the judge to reason over', () => {
   // A fact the rubric never mentions is a fact the judge has no instruction for; a rubric clause about a
   // key the instrument never emits is an instruction about nothing. Keep the two halves in step.
+  //
+  // 2.4.3 is now judged by FIVE rubrics rather than one — the clause facts below are independent
+  // sub-requirements taking different evidence, and fusing them into a single verdict was the SC's largest
+  // source of run-to-run verdict churn. So the guard is per-OWNER, which is strictly stronger than the
+  // single-file form it replaces: it pins each key to the rubric that must explain it, and would now also
+  // catch a key drifting into a rubric that has no business reasoning over it.
   const fs2 = require('node:fs');
-  const rubric = fs2.readFileSync(require('node:path').join(__dirname, '..', '..', 'llm-rubrics', 'focus-order-meaning-v0.md'), 'utf8');
+  const path2 = require('node:path');
+  const read = (id) => fs2.readFileSync(path2.join(__dirname, '..', '..', 'llm-rubrics', `${id}.md`), 'utf8');
+  const OWNER = {
+    'focus-order-meaning-v0': ['visualOrderDivergence', 'startAnchored'],
+    'focus-modal-containment-v0': ['modalOpen', 'insideOpenModal', 'modalXpath'],
+    'focus-reveal-adjacency-v0': ['adjacent', 'focusMovedIntoRevealed'],
+    'focus-return-after-dismissal-v0': ['regionHiddenAfterDismiss', 'returnedToOpener', 'openerStillPresent'],
+    'focus-redundant-stop-v0': ['wrapsNextStop', 'genericContainerStop', 'interruptsCoupledSequence'],
+  };
+  const covered = new Set();
+  for (const [id, keys] of Object.entries(OWNER)) {
+    const rubric = read(id);
+    for (const key of keys) {
+      assert.ok(rubric.includes(key), `${id} explains the "${key}" fact it owns`);
+      covered.add(key);
+    }
+  }
+  // …and nothing the instrument emits fell through the split unexplained.
   for (const key of ['adjacent', 'focusMovedIntoRevealed', 'regionHiddenAfterDismiss', 'returnedToOpener',
     'openerStillPresent', 'visualOrderDivergence', 'wrapsNextStop', 'genericContainerStop', 'interruptsCoupledSequence']) {
-    assert.ok(rubric.includes(key), `the rubric explains the "${key}" fact`);
+    assert.ok(covered.has(key), `some 2.4.3 rubric still explains the "${key}" fact`);
   }
 });

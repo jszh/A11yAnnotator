@@ -179,7 +179,13 @@ const RUBRIC_GATE = {
   'control-semantics-v0': (el) => !!el && el.emulatedControl === true,
   // 7a: the complex-backdrop 1.4.3 rubric is for a NON-flat backdrop ONLY — a reliably COMPUTABLE ratio is owned
   // by the deterministic text-contrast-pixel runner (Tier-0 #2). Route only when the runner abstained.
-  'contrast-over-complex-backdrop-v0': (el) => !!el && el.contrastReliable !== true,
+  // `contrastReliable` was dead until the collector began emitting it, so this gate was unconditionally true in
+  // production; switching it on drops every subject with a sound ratio. Passing ones SHOULD be dropped — that is
+  // the facet the runner owns. A sound ratio that FAILS must not be: the subject is only here because the
+  // deterministic runner abstained, so this rubric is the last lane that can see it.
+  'contrast-over-complex-backdrop-v0': (el) => !!el && !(el.contrastReliable === true
+    && Number.isFinite(el.contrastSolid) && Number.isFinite(el.contrastThreshold)
+    && el.contrastSolid >= el.contrastThreshold),
   // 7b: long-description-completeness is for genuinely data-bearing images (figure / role=figure / aria-describedby);
   // a logo/icon gets alt-text-adequacy only (long-desc on a simple logo was UNCERTAIN noise on 2/3 of them). NOT a
   // decorative-suspect (removed-from-tree) image — the dedicated verification rubric owns that question.
@@ -215,6 +221,76 @@ const RUBRIC_FAMILY = {
   'long-description-completeness-v0': 'long-description', // 1.1.1 — "is the LONG DESCRIPTION complete", not "is the NAME adequate"
   'alt-text-adequacy-v0': 'non-text-content',             // 1.1.1 — the alt/name-adequacy facet
 };
+
+// 2.4.2 TITLE ↔ PRIMARY-HEADING CORRESPONDENCE (companion to resolveSummaryField's per-subject join; same
+// principle — remove a REASONING STEP by handing over the fact, rather than adding rubric prose telling the
+// judge to reason more carefully). page-title-v0's F25/TT-12.B clause is anchored on the page's own main
+// heading, and the judge was left to identify that heading off a screenshot and perform the word-level
+// comparison itself. Both of the SC's residual errors on results/aug-annot-s{9,10}-tools are failures of that
+// step and not of the judgment: on one page the <title> contains the <h1> VERBATIM and the judge failed it for
+// omitting a subtitle line; on another the <title> is a strict PREFIX of the <h1> and the judge read that as a
+// match and cleared. This computes both answers deterministically.
+//
+// PRIMARY HEADING = the first heading that a sighted user would read as the page naming itself: the first
+// level-1 heading that is neither aria-hidden nor rendered off-screen; if the page has none, the first
+// non-hidden heading at the SHALLOWEST level present. Hidden/off-screen headings are excluded because they do
+// not present the page's identity to anyone. No heading, or no title ⇒ null (the rubric keeps today's
+// read-it-from-the-viewport behaviour), never a guess.
+//
+// COMPARISON is word-level and diacritic/case-insensitive, NOT a substring test: a title is only credited with
+// carrying the heading when EVERY content word of the heading also appears in the title. Function words are
+// dropped on both sides so "Contact us" vs "Contact ..." is not a difference of substance, and the residue is
+// reported verbatim so the rubric's "quote the exact words the heading has and the title lacks" step is
+// answerable from the signal instead of from the crop. This is a FACT about two strings, never a verdict:
+// a title can carry every heading word and still fail 2.4.2 on other grounds (a placeholder, a contradiction
+// elsewhere), and a title can drop heading words that identify nothing.
+//
+// APERTURE, measured over the 926-page eval/act-augmented corpus: 47 pages have no <h1>, and of the rest the
+// split is 468 carries / 411 drops (53.2% / 46.8%) — a balanced discriminator, not a blanket clear.
+const _TITLE_FUNCTION_WORDS = new Set([
+  'the', 'a', 'an', 'of', 'for', 'and', 'or', 'to', 'in', 'on', 'at', 'by', 'with',
+  'de', 'la', 'el', 'los', 'las', 'un', 'una', 'y', 'du', 'des', 'le', 'les', 'et',
+  'der', 'die', 'das', 'und', 'il', 'lo', 'gli', 'di', 'e',
+]);
+// NFKD + combining-mark strip folds accents so "Lámina" and "lamina" are one word; the Unicode property
+// classes keep CJK/Arabic/Cyrillic intact (a `\w`-based split would erase every non-Latin heading).
+const _titleWords = (s) => (typeof s === 'string' ? s : '')
+  .normalize('NFKD').replace(/\p{M}+/gu, '').toLowerCase()
+  .replace(/[^\p{L}\p{N}]+/gu, ' ').trim().split(' ')
+  .filter((w) => w && !_TITLE_FUNCTION_WORDS.has(w));
+function resolvePrimaryHeading(headings) {
+  const hs = (Array.isArray(headings) ? headings : []).filter((h) => h
+    && typeof h.text === 'string' && h.text.trim().length > 0
+    && h.ariaHidden !== true && h.offscreen !== true);
+  if (!hs.length) return null;
+  const levels = hs.map((h) => (Number.isFinite(h.level) ? h.level : 99));
+  const want = Math.min(...levels);
+  const i = levels.indexOf(want);
+  return { text: hs[i].text.trim(), level: Number.isFinite(hs[i].level) ? hs[i].level : null, headingCount: hs.length };
+}
+function titleHeadingCorrespondence(title, headings) {
+  const t = typeof title === 'string' ? title.trim() : '';
+  if (!t) return null;
+  const h = resolvePrimaryHeading(headings);
+  if (!h) return null;
+  const hw = _titleWords(h.text);
+  if (!hw.length) return null;                       // a punctuation/emoji-only heading says nothing to compare
+  const tw = new Set(_titleWords(t));
+  const missing = [...new Set(hw.filter((w) => !tw.has(w)))].slice(0, 12);
+  return {
+    headingText: h.text.slice(0, 160),
+    headingLevel: h.level,
+    titleCarriesHeadingWords: missing.length === 0,
+    headingWordsMissingFromTitle: missing,
+    note: 'DETERMINISTIC comparison of the <title> against the page\'s PRIMARY visible heading (the shallowest '
+      + 'non-hidden, on-screen heading — what the page presents as naming itself). `titleCarriesHeadingWords` is '
+      + 'true when EVERY content word of that heading also appears in the title (case- and accent-insensitive, '
+      + 'function words ignored, order and extra title text irrelevant); `headingWordsMissingFromTitle` lists the '
+      + 'heading\'s content words the title does NOT contain. These are FACTS about two strings, not a verdict: '
+      + 'a title carrying every heading word can still fail on other grounds, and dropped words may identify '
+      + 'nothing. Absent when the page has no usable heading — then read the page\'s identity from the viewport.',
+  };
+}
 
 // v2.9 PURE SIGNAL PRE-COMPUTE (3.1 §3): reuse a11y-eval verbatim where the inputs exist on the
 // element facts, so the agent reasons over the SAME deterministic measures v2.9 surfaced — never
@@ -252,6 +328,16 @@ function precomputeSignals(element, skill, sc) {
   // subject (name/role in the prompt) only, i.e. axe-level evidence. Used to measure the value of v3 precompute.
   if (process.env.V3_MINIMAL_EVIDENCE === '1') return s;
   const num = (v) => (Number.isFinite(v) ? v : undefined);
+  // TERMINAL ABSTENTION (s10 RCA a3; set by selectRubricSubjects on every terminal-PARTIAL row). Skill-agnostic:
+  // whatever the facet, the judge must know the deterministic owner of this obligation RAN and could not decide —
+  // otherwise "no deterministic finding" reads as a quiet pass, which is the exact inversion the ledger encodes.
+  if (element.__terminalPartial === true) {
+    s.deterministicAbstained = {
+      uncertainReason: 'the deterministic experiment that owned this obligation RAN and ABSTAINED (terminal PARTIAL): '
+        + 'it could not decide this shape, and its silence is NOT evidence of a pass. Judge from the evidence you are '
+        + 'given; if that evidence cannot settle the question either, return PARTIAL rather than clearing.',
+    };
+  }
   // 1.1.1 text-lookalike-glyph-substitution: the element's visible text / accessible name RENDERS as words but is
   // built from non-letter codepoints an SR cannot read (math-styled / fullwidth / enclosed / Cyrillic-Greek homoglyph
   // mixed into a Latin word). DETERMINISTIC — surfaced so the judge sees the SEEN text vs the AT-readable fold.
@@ -322,6 +408,9 @@ function precomputeSignals(element, skill, sc) {
       // pixel runner abstained (irreducible photo backdrop) and this still reaches vision, the model cannot
       // invent "light/white text" and clear — afw4f7 #2 hallucinated the fg as white over a #555-on-black case.
       fg: typeof element.color === 'string' ? element.color : (typeof element.fg === 'string' ? element.fg : undefined),
+      // ...and the BACKDROP the ratio was computed against. Publishing the foreground alone still leaves the
+      // backdrop to be read off a crop, which is the half that gets mis-attributed to a neighbouring control.
+      bg: typeof element.effBg === 'string' ? element.effBg : (typeof element.bg === 'string' ? element.bg : undefined),
       // present IFF the runner could not produce a sound ratio — the explicit "why I abstained" the agent needs:
       uncertainReason: ratio == null
         ? (element.contrastUnreliableReason || 'the backdrop could not be reduced to two flat colors (gradient / image / overlay / semi-transparency), so a sound contrast ratio is not computable — judge readability from the pixels')
@@ -339,10 +428,14 @@ function precomputeSignals(element, skill, sc) {
     // 2.1.2 keyboard-trap (keyboard-trap-v0): the CONFINED set the deterministic instrument confirmed (attached as
     // __confinement when this element is a confinement member). The rubric reveals/verifies the documented escape.
     if (element.__confinement && Array.isArray(element.__confinement.members)) {
+      const ow = (element.__confinement.oneway && typeof element.__confinement.oneway === 'object') ? element.__confinement.oneway : null;
       s.keyboardTrap = {
         members: element.__confinement.members,
         setSize: element.__confinement.setSize,
-        uncertainReason: 'a deterministic probe confirmed focus is CONFINED to these elements (cannot leave by Tab, Shift+Tab, or Escape, and an element outside the set is never reached). This is a 2.1.2 barrier UNLESS the user is told how to escape (a non-standard key, possibly behind a help control) AND that key works. Activate each member with observe_state_after_activation to reveal any escape instructions, then drive a focus-then-press sequence with interact_and_observe (actions:[{op:focus,xpath:member},{op:press,key:"Ctrl+M"}]) and read the press step.activeAfter — if it is OUTSIDE this set the key freed focus, otherwise it did nothing. Undocumented or non-working ⇒ REPRODUCED.',
+        ...(ow ? { oneway: ow } : {}),
+        uncertainReason: ow
+          ? ('a deterministic sweep observed ONE-WAY confinement: sequential navigation in the ' + (ow.direction || 'forward') + ' direction loops focus inside these elements, and ' + (Number.isFinite(ow.unreachedCount) ? ow.unreachedCount : (ow.unreached || []).length) + ' rendered focusable(s) outside the set were never reached in that direction (focus DOES escape the other way — a tester workaround, not a pass, per TT 4.C). Apply the rubric\'s one-way REVIEW branch: a section that genuinely requires input or interaction — completable by keyboard — before allowing focus to progress is NOT a failure; a loop that merely walls off later content with no advertised working exit IS. Verify behaviorally with observe_state_after_activation and interact_and_observe exactly as for a full confinement.')
+          : 'a deterministic probe confirmed focus is CONFINED to these elements (cannot leave by Tab, Shift+Tab, or Escape, and an element outside the set is never reached). This is a 2.1.2 barrier UNLESS the user is told how to escape (a non-standard key, possibly behind a help control) AND that key works. Activate each member with observe_state_after_activation to reveal any escape instructions, then drive a focus-then-press sequence with interact_and_observe pressing THE COMBO THE PAGE ADVISES — never a key of your own invention (actions:[{op:focus,xpath:member},{op:press,key:"Alt+F6"}] if Alt+F6 were the advertised exit) — and read the press step.activeAfter: if it is OUTSIDE this set the key freed focus, otherwise it did nothing. Undocumented or non-working ⇒ REPRODUCED.',
       };
     }
     // S5 (RCA R5): the 2.1.2 no-keyboard-trap judgment needs the trap-RISK context. A trap means focus is
@@ -527,6 +620,20 @@ function precomputeSignals(element, skill, sc) {
             : 'this link sits within enclosing block text that MAY disambiguate it — judge whether the name TOGETHER WITH this enclosing-block context identifies the link purpose.',
       };
     }
+    // 2.4.4 LINK-TARGET FACTS (residual RCA S10) — collected per link by collect-link-facts.js and joined by
+    // xpath in act-page-collect.js. DOM-RESOLVED and deterministic: for a same-document fragment href the
+    // collector resolved the target element IN the document (exists? what does its own heading / accessible
+    // name say?); for every link it states the href's terminal path segment + file extension and whether
+    // another link on the page shares this trimmed name while resolving to a DIFFERENT href. Replaces a
+    // stochastic resolve_destination call on the fragment-destination question with a fact. Not a detector:
+    // it MINTS nothing and changes no routing.
+    if (element.linkTargetFacts && typeof element.linkTargetFacts === 'object'
+        && (element.tag === 'a' || element.tag === 'area' || element.axRole === 'link' || element.roleAttr === 'link')) {
+      s.linkTarget = {
+        ...element.linkTargetFacts,
+        uncertainReason: 'DOM-RESOLVED destination facts for THIS link (no tool call, no OCR). When `fragment` is present the href is a same-document fragment: `targetExists` says whether the target element exists in the DOM, and `targetHeadingText` / `firstHeadingText` / `targetName` are what the destination says it is, in its own words — AUTHORITATIVE over screenshots/OCR for what the fragment destination is; judge name-vs-destination agreement against these strings, and treat targetExists:false as a destination the name cannot be describing. `terminalSegment`/`extension` are the href\'s final path segment and file type — ADVISORY, never a contradiction alone: a document title linked straight to its file is an ordinary passing convention; the extension is contradiction evidence only when the name or its rendered presentation promises a purpose the file type cannot serve. `sameNameDifferentTarget:true` means another link on this page shares this trimmed name but resolves to a DIFFERENT href (the identical-names mode\'s precondition); false means the name is unique here or all bearers go the same place. The asymmetry stands: these facts may REFUTE a name, never RESCUE a vague one.',
+      };
+    }
     // Item 12 (composite name-role-state): surface the already-collected states/axStates bundle so the rubric can
     // judge whether a container exposes its required child states (selected/expanded/checked/level). axStates is the
     // authoritative CDP-computed set (eval-page); states is the DOM-attribute fallback. Absent ⇒ rubric self-abstains.
@@ -629,6 +736,38 @@ function precomputeSignals(element, skill, sc) {
       };
     }
   }
+  // 1.4.13 HOVER-CONTENT FACETS — see selectRubricSubjects. The per-facet measurements the deterministic
+  // tri-probe made on THIS trigger, handed to the facet rubric that owns each one. Gated on the THREADED
+  // evidence, not on `skill`: `color-and-visual-text` is shared with the 1.4.1/1.4.3 element rubrics, whose
+  // prompts must stay byte-identical.
+  //
+  // WHY. The probe already measures dismissability, hoverability and persistence separately and records them
+  // as typed outcomes — and none of it reached a prompt. The rubric that consumed these obligations opened by
+  // telling the judge to defer to "a concrete CLAIM" it was never given, then asked it to settle all three
+  // from a before/after screenshot pair. Two of the three are not answerable from stills at all.
+  //
+  // The NOTE is the load-bearing half. Each field's measurement has a known SUFFICIENCY, and they differ: a
+  // successful Escape or a successful pointer travel is sufficient under the criterion, while a bounded dwell
+  // is not — so `persistent: true` is reported here as the bounded observation it is, never as a clearance.
+  if (element.__hoverFacets && typeof element.__hoverFacets === 'object') {
+    const f = element.__hoverFacets;
+    s.hoverFacets = {
+      ...f,
+      note: 'PER-FACET measurements from the deterministic hover/focus probe on THIS trigger. `dismissible` '
+        + 'true means Escape removed the content with the trigger still held, OR the content obscures nothing '
+        + '(which exempts it) — either is SUFFICIENT under the criterion. `hoverable` true means the content '
+        + 'survived a real pointer travel from the trigger onto it — also sufficient. `persistent` is the ONE '
+        + 'field whose true is NOT sufficient: it means only "still present after `dwellMs`", so content on a '
+        + 'timer longer than that dwell measures true and still fails. `revealMode` is which channel revealed '
+        + 'it (hover / focus). THE NEGATIVES ARE WEAK: the probe finds revealed content by diffing the '
+        + 'visibility of real ELEMENTS, so a tooltip drawn by a CSS pseudo-element, painted into a canvas, or '
+        + 'hosted in a namespace the probe could not address reports `contentAppeared: false` while plainly '
+        + 'showing on screen — read that as "the probe saw nothing", never as "nothing appears". Likewise '
+        + '`nativeTitleOnly` is an ATTRIBUTE test: per the HTML spec an EMPTY `title=""` carries no advisory '
+        + 'information and renders no UA tooltip, so the flag does not establish that what is on '
+        + 'screen is the browser\'s own tooltip. These are FACTS with stated limits, never a verdict.',
+    };
+  }
   // 1.4.1 COLOUR PEER GROUP — see selectRubricSubjects. Gated on the threaded evidence, so an ordinary
   // element-level 1.4.1 subject (a link, a form field, a graphic) keeps its prompt byte-identical.
   if (element.__colourPeerGroup) {
@@ -644,6 +783,62 @@ function precomputeSignals(element, skill, sc) {
         + 'palette is not a 1.4.1 failure), and whether that information is also available as text elsewhere '
         + '(a label, a legend entry attached to each item, an accessible name).',
     };
+  }
+  // 1.4.1 THE FIELD'S OWN RESOLVED COLOURS AND STATE (residual RCA S10) — collected per element by
+  // act-page-collect.js, present ONLY on a form field whose form is not colour-uniform. Not a detector: it
+  // MINTS nothing and changes no routing; it supplies the counter-fact a colour judgment needs.
+  //
+  // WHY. A 1.4.1 form-field subject arrived with no colour facts at all — `s.contrast` is a stub on this
+  // collector (it never emits color/effBg), so the only source for "is this field red / is it in the error
+  // state" was the crops. The `surrounding-region` crop is a RECTANGLE: on a two-column row it carries the
+  // NEIGHBOURING field's border. Measured — a default-state input beside an invalid one was reported as
+  // having a "red LEFT border ... sole error indicator" on a page whose markup gives it no error class and
+  // no aria-invalid. The judge was not inventing a colour, it was ATTRIBUTING a real pixel to the wrong
+  // element, and nothing in the prompt could contradict it. A rubric prohibition cannot fix that; the
+  // element's own computed style can.
+  if (skill === 'color-and-visual-text' && element.fieldColourState && typeof element.fieldColourState === 'object') {
+    s.fieldColourState = {
+      ...element.fieldColourState,
+      uncertainReason: 'these are THIS element\'s OWN computed values, read off its resolved style — they are '
+        + 'AUTHORITATIVE over the crops for what colour it is and what state it is in. The surrounding-region '
+        + 'crop is a rectangle and on a multi-column form it contains the EDGES OF NEIGHBOURING FIELDS, so a '
+        + 'coloured border seen near this element may belong to the control beside it; if no side of `border` '
+        + 'carries that colour, this field does not have it. `errorStated`/`requiredStated`/`state.*` are what '
+        + 'the page programmatically says about THIS field. `sameAppearanceAs` are the peers rendering exactly '
+        + 'as it does and `differentAppearanceFrom` the rest, each with its own `errorStated` and `nonColourCue` '
+        + '— a field matching the peers that carry no cue, and differing from the peers stated to be in a state, '
+        + 'is in the DEFAULT state, which is not a colour-alone failure. `labelColourContrasts` is the MEASURED '
+        + 'luminance separation from each other label colour in the set; use it instead of estimating a ratio. '
+        + 'These are FACTS, not a verdict: whether the colour carries INFORMATION, and whether a non-colour cue '
+        + 'exists where one is needed, is yours to judge.',
+    };
+  }
+  // 1.3.1 CONTROL-GROUP CORRESPONDENCE — collected per element by act-page-collect.js, present only on a
+  // member of a set that genuinely forms ONE question (radios/checkboxes sharing a control name, or sibling
+  // controls none of which carries a label element / aria-label / aria-labelledby). Not a detector: it MINTS
+  // nothing and changes no routing.
+  //
+  // WHY. Whether a visible group label has a programmatic counterpart is a fieldset/legend or
+  // role=group|radiogroup + accessible-name lookup, and it reached no prompt. Its absence produced errors in
+  // BOTH directions from the same judge on one page shape: on a set that WAS grouped (a radiogroup naming its
+  // heading through aria-labelledby) it asserted the visible text was "NOT programmatically associated" with
+  // the controls; on sets that were NOT grouped it declined to decide — "could not confirm programmatic
+  // grouping", "could not complete an accessibility-tree query" — with zero tool calls made. The collector's
+  // own note closes both directions; nothing further is added here.
+  if ((skill === 'grouping-and-reading-order' || skill === 'forms-instructions-errors')
+      && element.controlGroup && typeof element.controlGroup === 'object') {
+    s.controlGroup = element.controlGroup;
+  }
+  // 3.3.1 THE ERROR STATE ALREADY PRESENT AT REST — collected per field by act-page-collect.js, present only
+  // on a form that is not pristine as loaded (a field flagged at rest, or values already in the boxes).
+  //
+  // WHY. The 3.3.1 lane routes through a before/after driver. On a server-rendered redisplay that driver is
+  // guaranteed to abstain — no script, novalidate, nothing to trigger — AND it destroys the evidence: the
+  // retained value clears, so a transcript showing the field emptying is the probe erasing the barrier, not
+  // the page passing. The barrier only ever existed in the state the page loaded in. The collector's note
+  // carries that reading rule; nothing further is added here.
+  if (skill === 'forms-instructions-errors' && element.atRestErrorState && typeof element.atRestErrorState === 'object') {
+    s.atRestErrorState = element.atRestErrorState;
   }
   // 3.3.1 ERROR-SUMMARY COHERENCE — see selectRubricSubjects. Gated on threaded evidence, so a 3.3.1
   // subject on a page with no summary keeps its prompt byte-identical.
@@ -683,7 +878,12 @@ function precomputeSignals(element, skill, sc) {
         + '(an AT watches regions that existed BEFORE the change, so these announce NOTHING). `regionsUpdated` = '
         + 'pre-existing regions whose text changed, with politeness/atomic/emptied. `removedText` = status text '
         + 'that LEFT the page (appearedThenRemoved marks a message added and then withdrawn inside the same '
-        + 'observation). These are FACTS about what happened, never a verdict about what was owed.',
+        + 'observation). THE THREE FOCUS FACTS ARE NOT INTERCHANGEABLE: `focusMoved` = focus came to rest on a '
+        + 'REAL element (the change-of-context exclusion); `focusMovedIntoNewContent` = it landed INSIDE the '
+        + 'content that appeared (the strongest exclusion — the AT announced it by focusing it); `focusDropped` '
+        + '= the activation DESTROYED the focused element and focus fell back to the document body, which '
+        + 'announces nothing and silently loses the user\'s place — a barrier SYMPTOM, never an exclusion. '
+        + 'These are FACTS about what happened, never a verdict about what was owed.',
     };
   }
   if (skill === 'page-structure' || skill === 'grouping-and-reading-order') {
@@ -695,7 +895,18 @@ function precomputeSignals(element, skill, sc) {
         // frameset's real rendered content can carry its own title unrelated to the outer document's. Surfaced
         // ONLY when non-empty so a non-framed page's pageTitle shape is byte-identical to before this fix.
         const fts = Array.isArray(struct.frameTitles) ? struct.frameTitles.filter((x) => typeof x === 'string' && x) : [];
-        s.pageTitle = { value: t || null, present: t.trim().length > 0, ...(fts.length ? { frameTitles: fts } : {}) };
+        // TITLE ↔ PRIMARY-HEADING CORRESPONDENCE (see resolvePrimaryHeading). The F25/TT-12.B clause in
+        // page-title-v0 is anchored on "what the page presents as its own identity", and until now the judge had
+        // to pick that anchor BY EYE off the viewport crop and then do the word-level comparison itself. Measured
+        // on results/aug-annot-s9-tools + s10-tools, that is exactly where both of the SC's residual errors live:
+        // a STABLE false positive on a page whose <title> contains its <h1> verbatim (the judge walked past the
+        // heading to a subtitle line and failed the title for omitting it), and a lost true positive on a page
+        // whose <title> is a strict PREFIX of its <h1> (the judge read prefix-match as match and cleared).
+        // Both are anchor-selection errors, not judgment errors, so the lever is to REMOVE the step: hand over
+        // the heading and the exact word-level difference. Absent whenever there is no usable heading or no
+        // title — never a guess, and the rubric then falls back to reading the viewport as before.
+        const hc = titleHeadingCorrespondence(t, struct.headings);
+        s.pageTitle = { value: t || null, present: t.trim().length > 0, ...(fts.length ? { frameTitles: fts } : {}), ...(hc ? { headingCorrespondence: hc } : {}) };
       }
       s.structure = {
         title: typeof struct.title === 'string' ? struct.title : null,
@@ -1336,12 +1547,89 @@ function computeLinkPeerGroups(collect) {
   return groups;
 }
 
-function selectRubricSubjects(collect, ledger, rubrics, { onlyAutoPartial = true, confinement = null, contrastExempt = null, focusOrder = null, statusObservations = null } = {}) {
+// ── FACET-SPLIT ROUTING (1.4.13 + 2.4.3) ────────────────────────────────────────────────────────────
+// Both SCs used to run ONE rubric that fused several INDEPENDENT sub-requirements into a single verdict,
+// and both were the least stable rubrics in the set (measured by pairing every (case, rubric, xpath) across
+// two corpus runs: 66.7% and 65.2%, against 96.7% for the most atomic page-level rubric). A fused rubric
+// cannot be stable: each sub-requirement needs DIFFERENT evidence, so the judge is forced to answer the ones
+// it has no facts for, and a judge handed a false or absent premise does not abstain — it answers
+// confidently, and differently each time.
+//
+// The split is safe at the AGGREGATION layer for free: obligations.js `mergeProvisional` is barrier-dominant,
+// so N rubrics filling one obligation compute exactly the disjunction the fused rubric was asking one prompt
+// to compute ("a failure of ANY of these reproduces the barrier"). Nothing in obligations.js changes.
+//
+// What makes it work is the GATE. Routing is BY SC, so a rubric added to an SC without one fires on every
+// subject of that SC. These gates key on the DETERMINISTIC facts the runner/instrument already measured, and
+// they are FAIL-OPEN: a facet is subtracted only when a probe POSITIVELY settled it, never merely because a
+// probe reported nothing. That direction is not stylistic — the 1.4.13 tri-probe detects revealed content by
+// diffing the visibility of real ELEMENTS, so a tooltip drawn by a CSS pseudo-element (`::after { content }`),
+// painted into a canvas, or hosted in a namespace `document.evaluate` cannot address reports
+// `contentAppeared: false` on a page that plainly shows one. Subtracting on that negative would drop real
+// barriers; subtracting only on a positive cannot.
+// The claim families the a3 terminal-PARTIAL carve-out admits (see the row filter in selectRubricSubjects).
+// Exactly the starved lanes the s10 residual RCA priced: 1.4.13 (hover experiment abstains terminally),
+// 2.1.2 (keyboard-trap-escape abstains; largely covered by the confinement carve-out but kept for parity),
+// and 3.3.1 (form-error probe abstains on at-rest error states).
+const TERMINAL_PARTIAL_FAMILIES = new Set(['hover-content', 'no-keyboard-trap', 'error-identification']);
+const HOVER_FACET_RUBRICS = new Set(['hover-dismissable-v0', 'hover-hoverable-v0', 'hover-persistent-v0']);
+// `f` is the hover-content-tri observation for this trigger, or null when the probe never produced one.
+function hoverFacetOpen(rubricId, f) {
+  if (!f) return true;                                   // unmeasured ⇒ every facet is open
+  // DISMISSABLE — the probe pressed Escape with the trigger still held, and separately checked whether the
+  // content obscures anything at all (the criterion only owes dismissability when it does). Either outcome is
+  // a SUFFICIENT condition under WCAG, so a `true` genuinely closes the question.
+  if (rubricId === 'hover-dismissable-v0') return f.dismissible !== true;
+  // HOVERABLE — the probe travelled a real pointer from the trigger onto the content; surviving that is
+  // sufficient. Also vacuous for a FOCUS-only reveal: the Hoverable condition is about pointer-hover-triggered
+  // content, and the runner itself records `revealMode: 'focus'` precisely when hovering revealed nothing.
+  if (rubricId === 'hover-hoverable-v0') return f.hoverable !== true && f.revealMode !== 'focus';
+  // PERSISTENT — deliberately NOT subtractable. The probe's `persistent` is "still present after `dwellMs`",
+  // and the criterion is "remains until hover/focus is removed, it is dismissed, or its info is invalid". A
+  // tooltip on a timer LONGER than the dwell measures `true` and still fails, so a `true` leaves a real
+  // residue. Its premise ("additional content is revealed on hover or focus") is the very fact that mints the
+  // obligation, so the SC routing already guarantees it — this rubric's gate IS the obligation.
+  return true;
+}
+// 2.4.3 — one entry per CLAUSE that carries its own pre-computed fact on a recorded tab stop. The incumbent
+// `focus-order-meaning-v0` keeps the residual meaning-of-the-resting-order question and is NOT listed here:
+// it fires wherever a sequence exists, which is what preserves the SC's recall when none of the clause facts
+// are present (a page whose only defect is a scrambled order lights up no clause fact at all).
+const FOCUS_CLAUSE_OF = {
+  'focus-modal-containment-v0': 'modal',
+  'focus-reveal-adjacency-v0': 'revealInsertion',
+  'focus-return-after-dismissal-v0': 'revealReturn',
+  'focus-redundant-stop-v0': 'redundant',
+};
+// Which clause facts this page's recorded ring actually carries. Computed ONCE per page from the same
+// artifact the rubrics read, so a gate can never disagree with the evidence its rubric is handed.
+function focusClauseFacts(focusOrder) {
+  const stops = (focusOrder && Array.isArray(focusOrder.forward)) ? focusOrder.forward : [];
+  const rev = (s) => (s && s.reveal && typeof s.reveal === 'object') ? s.reveal : null;
+  return {
+    // clause C — a stop was taken while a modal was RENDERED open (leak or not; the rubric decides which).
+    modal: stops.some((s) => s && s.modalOpen === true),
+    // clause D, insertion half — the instrument could ASK where the revealed region sits. A `null` on both
+    // fields means the question could not be asked, and the rubric is told never to argue from a null, so
+    // routing it there would be a guaranteed abstain.
+    revealInsertion: stops.some((s) => { const r = rev(s); return !!r && (r.adjacent != null || r.focusMovedIntoRevealed != null); }),
+    // clause D, return half — INDEPENDENT of insertion, and gated on the one precondition the requirement
+    // has: something was actually dismissed. Without that nothing is owed and the rubric says so itself.
+    revealReturn: stops.some((s) => { const r = rev(s); return !!r && r.regionHiddenAfterDismiss === true; }),
+    // clause E — a wrapper stop or an explicit-tabindex container stop exists to judge.
+    redundant: stops.some((s) => s && (s.wrapsNextStop === true || s.genericContainerStop === true)),
+  };
+}
+function selectRubricSubjects(collect, ledger, rubrics, { onlyAutoPartial = true, confinement = null, contrastExempt = null, focusOrder = null, statusObservations = null, hoverFacets = null } = {}) {
   // 2.1.2 keyboard-trap: `confinement` maps each CONFINED element xpath → { members:[{xpath,label}], setSize } (built
   // from the deterministic confinement instrument's REVIEW findings — the lying-static-advisory ones were already
   // promoted to a barrier and are excluded). The keyboard-trap-v0 rubric fires ONLY on a confined member, carrying
   // the trapped set so the regular LLM judge can reveal a buried advisory + verify the key with the tools.
   const confinementFor = (xpath) => (confinement && Object.prototype.hasOwnProperty.call(confinement, xpath)) ? confinement[xpath] : null;
+  // 1.4.13: the hover-content-tri observation for a TRIGGER xpath (null when the probe produced none).
+  const hoverFacetsFor = (xpath) => (hoverFacets && Object.prototype.hasOwnProperty.call(hoverFacets, xpath)) ? hoverFacets[xpath] : null;
+  // 2.4.3: which clause facts this page's recorded ring carries — computed once, read by the clause gates.
+  const focusClauses = focusClauseFacts(focusOrder);
   const elByXpath = {};
   for (const el of (collect && collect.elements) || []) if (el && el.xpath) elByXpath[el.xpath] = el;
   const structure = (collect && collect.structure) || null; // page facts threaded to page-structure subjects (Tier-0 #3)
@@ -1383,7 +1671,25 @@ function selectRubricSubjects(collect, ledger, rubrics, { onlyAutoPartial = true
   // uncertain (the undocumented-escape question only the rubric can settle) ⇒ keep it in the lane regardless of
   // autoPartial. The keyboard-trap-v0 gate below still requires the confinement, and it is the SOLE 2.1.2 rubric
   // (verified) so no other rubric can leak onto the now-included row.
-  const rows = (ledger || []).filter((r) => (onlyAutoPartial ? (r.autoPartial || (r.sc === '2.1.2' && !!confinementFor(r.xpath))) : true));
+  //
+  // GENERALISED (s10 residual RCA, mechanism a3 APERTURE-STARVED): 2.1.2 was not the only lane starved this way —
+  // any experiment that runs and terminally ABSTAINS (disposition PARTIAL, autoPartial=false) left its obligation
+  // unreachable by every judge, scoring `noObligation` despite the obligation existing and being undecided. A
+  // terminal PARTIAL is exactly the "checker abstains ⇒ hand the judge WHY" case: keep the row in the lane. The
+  // per-rubric gates below still apply, so a rubric whose premise-fact is absent drops the subject as before;
+  // shadow-lane dispositions stay excluded (non-authoritative by design, never judged).
+  //
+  // ALLOWLISTED, not universal (adversarial soundness finding #3, probe-confirmed): unconstrained, the dominant
+  // admitted channel was `field-label` on every field where the field-label probe abstains — it abstained on 6/6
+  // textbook for/id fields on two probed pages — plus 1.4.11 abstains, i.e. a per-field LLM-call flood and fresh
+  // FP surface on SCs the residual RCA never priced. The carve-out covers exactly the families whose starvation
+  // the RCA measured; widen it only WITH a measured run behind the widening.
+  const rows = (ledger || []).filter((r) => (onlyAutoPartial
+    ? (r.autoPartial
+      || (r.sc === '2.1.2' && !!confinementFor(r.xpath))
+      || (TERMINAL_PARTIAL_FAMILIES.has(r.claimFamily)
+        && r.disposition === 'PARTIAL' && r.cleared !== true && r.shadow !== true))
+    : true));
   const seen = new Set();
   const subjects = [];
   const byKey = new Map(); // key → the pushed subject, for the FACET REBIND below
@@ -1418,9 +1724,28 @@ function selectRubricSubjects(collect, ledger, rubrics, { onlyAutoPartial = true
     // … return PARTIAL rather than guessing"), so before this was threaded the lane could only abstain.
     // Keyed on the RUBRIC ID, not the skill: `focus-management` is also 2.4.7/2.4.11's skill and those are
     // element-level subjects that must keep their existing prompts byte-identical.
-    if (rub.id === 'focus-order-meaning-v0') {
+    // ...and to the four CLAUSE rubrics split out of it, each of which reads the same artifact for its own
+    // facet. Keyed on the rubric SET rather than a single id for the same reason as before: `focus-management`
+    // is also 2.4.7/2.4.11's skill and those are element-level subjects whose prompts must stay byte-identical.
+    if (rub.id === 'focus-order-meaning-v0' || Object.prototype.hasOwnProperty.call(FOCUS_CLAUSE_OF, rub.id)) {
+      // CLAUSE GATE. Fire a clause rubric ONLY where its own fact is present on the recorded ring. Without
+      // this each of the four would inherit the by-SC routing and fire on every 2.4.3 page — the same defect
+      // shape that put a rubric's premise-free verdict on all 53 pages of another SC, where the model answered
+      // LIKELY_OK at high confidence rather than abstaining and displaced the incumbent's barrier.
+      const clause = FOCUS_CLAUSE_OF[rub.id];
+      if (clause && !focusClauses[clause]) { seen.delete(key); continue; }
       if (focusOrder) extra.__focusOrder = focusOrder;
       if (structure) extra.__pageStructure = structure;
+    }
+    // 1.4.13 FACET GATE + evidence. The tri-probe's per-facet measurements were NEVER threaded to a prompt:
+    // the fused rubric told the judge to "DEFER to that CLAIM" for claims it was never handed, and to decide
+    // dismissability, hoverability and persistence from two static screenshots — which is what produced the
+    // measured coin-flip (9 verdict flips across two runs on one page's triggers, 6 of them moving away from
+    // the labelled answer). The facts go over with the subject now, each facet to the rubric that owns it.
+    if (HOVER_FACET_RUBRICS.has(rub.id)) {
+      const f = hoverFacetsFor(row.xpath);
+      if (!hoverFacetOpen(rub.id, f)) { seen.delete(key); continue; }
+      if (f) extra.__hoverFacets = f;
     }
     // 4.1.3 STATUS MESSAGES: the per-trigger record of what activation actually did — which regions
     // existed BEFORE the click, which were inserted already carrying their message, which were emptied,
@@ -1487,6 +1812,11 @@ function selectRubricSubjects(collect, ledger, rubrics, { onlyAutoPartial = true
     // inapplicable. SUBTRACT it from the LLM contrast lane — the deterministic facet is settled; the rubric would
     // only re-derive the (true-but-irrelevant) sub-threshold ratio and FALSE-barrier a passing case.
     if (rub.id === 'contrast-over-complex-backdrop-v0' && contrastExempt && contrastExempt.has(row.xpath)) { seen.delete(key); continue; }
+    // TERMINAL-ABSTENTION marker (pairs with the generalised a3 carve-out in the row filter above): the subject
+    // must be told the deterministic experiment RAN and could not decide — its silence is an abstention, never a
+    // pass. Set uniformly on every terminal-PARTIAL row (the 2.1.2 confinement subjects carry it too, truthfully),
+    // and surfaced as one generic sentence by precomputeSignals.
+    if (row.autoPartial !== true && row.disposition === 'PARTIAL') extra.__terminalPartial = true;
     const element = Object.keys(extra).length ? { ...baseEl, ...extra } : baseEl;
     const subject = { xpath: row.xpath, sc: row.sc, claimFamily: row.claimFamily, rubricId: rub.id, rubric: rub, skill: rub.skill || null, element };
     subjects.push(subject);

@@ -57,36 +57,43 @@ identify the page on richness grounds. When the viewport does not reveal what th
 **Evidence handed to you:** the effective title string and the `viewport` — read the page's REAL topic
 from the viewport (the `<h1>`, main heading, or dominant visible content) and compare.
 
-**A TITLE THAT NAMES THE TEMPLATE BUT NOT THE INSTANCE IS NOT DESCRIPTIVE (F25 / TT 12.B).** The commonest
-real failure is not a missing or nonsense title — it is a correct-looking title that describes a CLASS of
-pages while the page in front of you is one specific member of it. The shape to look for: the title names
-the KIND of page — a receipt, a statement, a person's record, a result list, a reservation — while the
-page's actual subject is one particular instance of that kind. A user with many tabs open, or reading a
-browser history list, cannot tell such pages apart, which is the capability 2.4.2 exists to provide.
+**INSTANCE-UNIQUENESS IS NOT A BARRIER CONDITION — the only instance-shaped failure here is
+heading-anchored (F25 / TT 12.B).** 2.4.2 requires the title to describe the page's topic or purpose; it
+does NOT require the title to distinguish this page from the other pages of its set. "This title would read
+the same for every record/result/statement of this kind" is at most an advisory observation — never, on its
+own, a barrier: naming the KIND of page IS describing its topic, and demanding the instance detail on top of
+that is a richness ask, not this criterion. The one narrow case that DOES fail is a title that drops
+identifying words the page ITSELF claims as its identity — its own primary heading — and that case is
+decided ONLY through the three anchored steps below, never from detail found elsewhere in the body.
 
 So: after confirming the title names the page's topic, work the test in THREE ORDERED STEPS, and stop at the
-first one that resolves it. No new instrument is needed — everything you need is in the viewport you have.
+first one that resolves it. **You do not have to find the anchor or do the comparison yourself — when
+`signals.pageTitle.headingCorrespondence` is present, steps 1 and 2 are ALREADY ANSWERED for you, off the DOM
+rather than off the crop. Use those values; do not re-derive them by eye and do not overrule them from the
+screenshot.**
 
-1. **Read what the page presents as ITS OWN identity.** That is its main heading — the `<h1>`, or the
-   dominant title text at the top of the content if there is no `<h1>` — TOGETHER WITH any identifier the
-   page displays as part of NAMING ITSELF: in or immediately beside that heading, in a subtitle/eyebrow line,
-   or in a summary block whose job is to say which record this is (a reference/order/invoice/case number, a
-   named person or place, a date or period, a version, a search query). Detail that merely appears SOMEWHERE
-   IN THE BODY is CONTENT, not the page's identity: a value inside a table, a measurement, a figure caption,
-   a byline, a footer stamp, one item among many in a list. Do NOT go hunting through the body for a
-   discriminator the page itself does not use to name itself.
-2. **Compare the `<title>` against that heading.** If the title carries the heading's identifying
-   substance — the same subject, with none of the heading's identifying words dropped — then the title
-   DESCRIBES this page and you are **FINISHED: NOT REPRODUCED.** Wrapping it in a site or section name, in
-   either order, does not weaken it, and neither does terseness. A title that already says what the page's
-   own heading says cannot be failed by this clause at all: asking for MORE identification than the page
-   claims about itself is 2.4.6's stricter facet, not 2.4.2's.
-3. **Only if the title DROPS identifying words the heading carries**, ask what those dropped words do. The
-   barrier is the narrow case where what remains names only the CLASS of page while the heading names one
-   particular MEMBER of that class — a specific record, document, transaction, product, subject, or numbered
-   step — so the title would read identically for every other member of the class. **Name the exact words
-   the heading has and the title lacks, and say what they identify.** If you cannot quote such words from the
-   heading, there is no barrier here.
+1. **The page's OWN identity is its primary heading**, and when the correspondence signal is present that
+   heading is `headingCorrespondence.headingText` — the shallowest heading that is actually visible to a user.
+   That heading, and nothing else, is the anchor. Everything else on the page is CONTENT, not the page's
+   identity: a subtitle or eyebrow line, a breadcrumb, a byline, a value inside a table or summary block, a
+   figure caption, a footer stamp, one item among many in a list. **A title is NOT failed for omitting detail
+   that sits outside the page's own heading** — that is where this clause turns into a richness test, which is
+   2.4.6, not 2.4.2. If the signal is ABSENT (no usable heading), fall back to reading the dominant title text
+   at the top of the content from the viewport, and hold to the same rule about what is and is not identity.
+2. **Compare the `<title>` against that heading — the signal has already done it.**
+   `headingCorrespondence.titleCarriesHeadingWords === true` means every content word of the heading is
+   present in the title, so the title says what the page's own heading says and you are **FINISHED: NOT
+   REPRODUCED** under this clause. Wrapping it in a site or section name, in either order, does not weaken it;
+   neither does terseness; neither does extra text in the title. Asking for MORE identification than the page
+   claims about itself is 2.4.6's stricter facet, not 2.4.2's. **A partial or prefix overlap is NOT a match** —
+   only an empty `headingWordsMissingFromTitle` ends the test here.
+3. **Only if the title DROPS identifying words the heading carries** — i.e.
+   `headingWordsMissingFromTitle` is non-empty — ask what those dropped words do. The barrier is the narrow
+   case where what remains names only the CLASS of page while the heading names one particular MEMBER of that
+   class — a specific record, document, transaction, product, subject, or numbered step — so the title would
+   read identically for every other member of the class. **Quote the dropped words and say what they
+   identify.** Dropped words that identify NOTHING in particular (a filler word, a generic verb, a repeat of
+   the site name) are not a barrier — the missing words have to be the ones that say WHICH member this is.
 
 *Guard — do NOT invent this failure.* A page that genuinely has no single instance as its subject (a home
 page, an "About us", a section/category view, a dashboard, a generic contact form) has no discriminator to
@@ -102,6 +109,11 @@ is fine — the requirement is that the information BE there, not where it sits.
   described by the bare name of its category. Its anchor is the page's OWN heading, precisely so it cannot
   become "would this string be unique across the site?" — a title matching the page's own heading is
   descriptive by definition, and "another page could in principle be titled the same" is NOT a finding.
+- `headingCorrespondence` is a STRING comparison, not a judgment, and it settles only the clause above.
+  `titleCarriesHeadingWords: true` does NOT clear a title that is a literal placeholder, nor one that
+  contradicts the page's topic — those two tests are earlier in this rubric and are still yours to make from
+  the viewport. And a title may legitimately PARAPHRASE its heading: when words are listed as missing but the
+  title says the same thing in different words, that is a reasonable rewording, not a dropped discriminator.
 - Do not require an exact string match: a title that PARAPHRASES the topic accurately is fine. Flag only a
   genuine mismatch or a non-descriptive stand-in, not a reasonable rewording.
 - If the viewport does not reveal the page's topic (content below the fold / not captured), return PARTIAL

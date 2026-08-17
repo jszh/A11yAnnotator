@@ -57,6 +57,25 @@ link text stripped — that is precisely the programmatically-enclosing context 
 When the `surrounding-region` crop and `blockText` seem to disagree (the crop may not have framed a nested ancestor's
 text), the deterministic `blockText` is AUTHORITATIVE for what ENCLOSES the link.
 
+**`signals.linkTarget` is the DETERMINISTIC destination fact — when present, it IS the destination evidence.**
+The collector resolved the link's `href` in the DOM itself (no tool call, no OCR, no navigation). When
+`linkTarget.fragment` is present the href is a same-document fragment: `targetExists` states whether the target
+element exists, and `targetHeadingText` / `firstHeadingText` / `targetName` are the resolved fragment target's own
+heading/name — that resolved heading/name is THE destination evidence to judge the name-vs-destination-agreement
+question against (contradiction mode below), and it is AUTHORITATIVE over screenshots/OCR for what the fragment
+destination is; do NOT return PARTIAL for "cannot resolve the fragment" when these facts are in hand. A name that
+names one section while the resolved target's heading names a DIFFERENT one is the contradiction; `targetExists:false`
+means the page contains no such destination at all. `linkTarget.terminalSegment` / `extension` state the href's final
+path segment and file type — an ADVISORY fact, not a contradiction by itself: linking a document's title straight to
+its file is an ordinary, passing convention ("Harvest Ledger 2031" → a `.pdf` identifies its purpose), so never barrier
+on name-omits-the-format alone. The extension becomes contradiction evidence only in COMBINATION: the name or its
+rendered presentation promises a purpose the file type cannot serve, or the same name elsewhere on the page resolves
+to the content page while THIS link is the file — weigh it with the visual evidence (e.g. an icon-only link whose
+glyph is the real statement of purpose). `sameNameDifferentTarget:true` is the
+deterministic precondition of the identical-names mode — another link on this page shares this trimmed name while
+resolving to a DIFFERENT href; `false` means the name is unique on the page or every bearer goes to the same place.
+The asymmetry below applies unchanged: these facts may REFUTE a name, never RESCUE a vague one.
+
 Three failure modes:
 - **Format-only / action-only name:** a name that states only a FORMAT (a file-format token) or a bare
   ACTION ("Download", "Read more", "More", "Details") whose ENCLOSING context does not name the destination

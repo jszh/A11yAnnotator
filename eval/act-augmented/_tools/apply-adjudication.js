@@ -92,7 +92,7 @@ function main() {
   const applied = [];
   if (apply) {
     const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    const bdir = path.join(ROOT, 'eval/act-augmented/_archive/adjudication-fixes', stamp);
+    const bdir = path.join(ROOT, 'eval/_corpus-archive/act-augmented/adjudication-fixes', stamp);
     fs.mkdirSync(bdir, { recursive: true });
     for (const [file, ps] of byFile) {
       const abs = path.join(ROOT, file);

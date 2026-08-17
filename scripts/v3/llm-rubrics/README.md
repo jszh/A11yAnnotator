@@ -23,9 +23,15 @@ in-scope, **[+]** = beyond the 22-SC scope (incidental).
 | images-of-text-v0 | 1.4.5 | 22 | **sole** | image renders text that should be real text |
 | reflow-no-hscroll-v0 | 1.4.10 | 22 | residual | reflow barrier the DET probe abstained on |
 | non-text-contrast-v0 | 1.4.11 | 22 | residual | graphical/gradient cue contrast (DET handles flat-reducible) |
-| hover-content-v0 | 1.4.13 | 22 | residual | hoverable/dismissible/persistent adequacy |
+| hover-dismissable-v0 | 1.4.13 | 22 | residual | can the revealed content be removed in place (gate: probe did not settle `dismissible`) |
+| hover-hoverable-v0 | 1.4.13 | 22 | residual | can the pointer travel onto it (gate: probe did not settle `hoverable`, and not a focus-only reveal) |
+| hover-persistent-v0 | 1.4.13 | 22 | residual | does it withdraw itself on a timer (gate: the obligation — a bounded dwell never closes it) |
 | keyboard… (see keyboard-operable) | 2.1.1 | 22 | residual | — |
-| focus-order-meaning-v0 | 2.4.3 | 22 | residual | recorded focus sequence preserves meaning (DET handles F44) |
+| focus-order-meaning-v0 | 2.4.3 | 22 | residual | does the RESTING sequence preserve meaning (gate: a sequence exists — the residual clause) |
+| focus-modal-containment-v0 | 2.4.3 | 22 | residual | does focus stay inside an open modal (gate: a stop carries `modalOpen`) |
+| focus-reveal-adjacency-v0 | 2.4.3 | 22 | residual | is revealed content inserted after its opener (gate: a stop's `reveal.adjacent`/`focusMovedIntoRevealed` is non-null) |
+| focus-return-after-dismissal-v0 | 2.4.3 | 22 | residual | does focus return to the opener after dismissal (gate: a stop's `reveal.regionHiddenAfterDismiss` is true) |
+| focus-redundant-stop-v0 | 2.4.3 | 22 | residual | a wrapper/container stop that confuses the sequence (gate: a stop carries `wrapsNextStop`/`genericContainerStop`) |
 | link-purpose-v0 | 2.4.4 | 22 | residual | link purpose in context (axe owns name presence) |
 | heading-descriptive-v0 | 2.4.6 | 22 | **sole** | heading/label descriptiveness (≠ presence) |
 | focus-visible-clear-v0 | 2.4.7 | 22 | residual | focus indicator the DET runner abstained on |

@@ -236,7 +236,12 @@ function measureContrast(marker) {
   // the RENDERED glyph fill — `-webkit-text-fill-color` overrides the painted ink while leaving
   // `color` unchanged (audit V3R4 red-team), so read the fill colour, not just `color`. (A pixel
   // foreground-agreement channel below additionally catches filter/blend ink overrides.)
-  const fillRaw = cs.webkitTextFillColor && cs.webkitTextFillColor !== 'currentcolor' ? cs.webkitTextFillColor : cs.color;
+  // SVG <text> paints with `fill`, not `color` — reading `color` on an SVG subject reports the inherited
+  // CSS colour, which can diverge from the rendered ink (fill:red text under color:black). Prefer the
+  // computed fill for an SVG-namespaced element; `fill:none` renders no ink of its own, so fall through.
+  const isSvgInk = el.namespaceURI === 'http://www.w3.org/2000/svg';
+  const fillRaw = (isSvgInk && cs.fill && cs.fill !== 'none') ? cs.fill
+    : (cs.webkitTextFillColor && cs.webkitTextFillColor !== 'currentcolor' ? cs.webkitTextFillColor : cs.color);
   const fg = rgba(fillRaw);
   const sizePx = parseFloat(cs.fontSize) || 0;
   let weight = parseInt(cs.fontWeight, 10); if (isNaN(weight)) weight = cs.fontWeight === 'bold' ? 700 : 400;
@@ -337,7 +342,13 @@ function inkClip(marker) {
 function setGlyphColor(marker, color) {
   const id = 'v3-glyph-color';
   const ex = document.getElementById(id); if (ex) ex.remove();
-  if (color) { const s = document.createElement('style'); s.id = id; s.textContent = `[data-v3-target="${marker}"], [data-v3-target="${marker}"] *{color:${color}!important;-webkit-text-fill-color:${color}!important;text-shadow:none!important;caret-color:transparent!important}`; document.head.appendChild(s); }
+  // `fill`/`stroke` drive SVG <text> ink, which `color`/`-webkit-text-fill-color` do not touch — without
+  // them the three backdrop shots of an SVG text subject are IDENTICAL (glyphs present in all three), the
+  // sentinel diff finds no glyph geometry, and the "backdrop" sample contains the glyphs themselves: a
+  // black-on-white SVG text then measures as a fake non-uniform backdrop with a ~1:1 worst case (ACT
+  // afw4f7 Inapplicable Ex4, exposed the moment tagByXpath could resolve SVG subjects). Both properties
+  // are inert on HTML boxes, so non-SVG behavior is byte-identical.
+  if (color) { const s = document.createElement('style'); s.id = id; s.textContent = `[data-v3-target="${marker}"], [data-v3-target="${marker}"] *{color:${color}!important;-webkit-text-fill-color:${color}!important;fill:${color}!important;stroke:${color}!important;text-shadow:none!important;caret-color:transparent!important}`; document.head.appendChild(s); }
   return true;
 }
 // in-page: is the backdrop BEHIND THE GLYPHS a single uniform colour? Takes three equal-size base64

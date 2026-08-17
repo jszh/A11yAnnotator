@@ -26,6 +26,28 @@ observation only — no POST). `delta.noErrorSurfaced:true` after an invalid sub
 validate server-side), NOT a pass → PARTIAL. Judge the `invalidFields` error text exactly as you would the
 handed crop. (If tools are off, or you cannot induce an error, fall back to N/A as before.)
 
+**THE PAGE MAY ALREADY BE IN ITS ERROR STATE AS LOADED — `signals.atRestErrorState` (judge THAT state; do
+NOT require a submit).** When this per-field signal is present, the collector read the form off the live DOM
+before any interaction: `flaggedAtRest` + `indicators` (error styling, `aria-invalid`, an icon at load),
+`retainedValue`/`hasRetainedValue`, `appearanceDiffersFromPeers` vs `peerFieldAppearance` (the measured
+comparison against this form's other fields), `associatedErrorText` vs `adjacentErrorText` (a message the
+control points at vs one merely sitting beside it), and `pageErrorTextPresent`/`pageErrorTextSample`
+(whether ANY error-shaped text exists anywhere on the page). A server that re-renders the form carrying the
+rejected values IS the error event — it already happened, there is nothing left to trigger, and interacting
+DESTROYS the evidence. So when the signal shows the page already presenting an error state (a field
+`flaggedAtRest`, or retained values with visual flagging):
+- Judge the displayed state directly: is THIS error identified IN TEXT (`associatedErrorText`,
+  `adjacentErrorText`, or page-level error text naming the problem)? A field flagged at rest only by a
+  border/colour/icon, with no associated or adjacent error text and `pageErrorTextPresent: false`, is
+  exactly the barrier → REPRODUCED.
+- The "`noErrorSurfaced` after an invalid submit is INCONCLUSIVE" guard does NOT apply here — that guard
+  protects a genuinely pristine form whose validation was never exercised, and it remains correct there.
+  Applying it to a page whose error is already displayed converts the clearest failure shape into an
+  abstention.
+- A UA-generated constraint-validation bubble (the browser's own "fill in this field"-style tooltip on a
+  fresh submit attempt) is the user agent's message about a FUTURE submission — it is NOT the author's
+  identification of the error state the page is already displaying, and must not be credited as one.
+
 **Judge:** when the input is rejected, is the error IDENTIFIED in text — and does that text give the
 user the clear DIRECTION of what went wrong (which field, what the problem is), not merely a generic
 "submission failed"? "Email is required" or "Date must be after today" IDENTIFIES the error in text. A
@@ -103,7 +125,9 @@ names no field is out of scope for this check entirely.
 - Do not call it a false CLEAR: a visible-only/color-only cue with no text does NOT identify the error,
   even if a sighted user could guess it.
 - If no error was actually demonstrated for this field (the input was accepted, or rejection was not
-  triggered), there is nothing to judge → N/A (abstain). When the crop is inconclusive about whether
+  triggered), there is nothing to judge → N/A (abstain). An at-rest error state
+  (`signals.atRestErrorState` above) IS a demonstrated error — do not N/A a page that loaded already
+  flagged merely because no rejection was driven. When the crop is inconclusive about whether
   text was shown, return PARTIAL rather than guessing.
 
 **Output:** STRICT JSON `{verdict, confidence, summary, reasoning, evidenceRefs}`. verdict ∈

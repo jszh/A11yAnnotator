@@ -955,6 +955,99 @@ and displacing the incumbent rubric. It is present in **5 of the 10 recall regre
 gained 21.7pp, so the fix is headroom to recover, not damage to repair. Gate predicate already exists
 as `el.emulatedControl === true` (`coverage-registry.js:94`).
 
+## Table 1k-post3 — after the post-run RCA fixes (2026-08-16)
+
+**Run `results/aug-annot-s10-tools/`, repo at `ace2be98`.** Sonnet 4.6, tools ON, **392 pages,
+0 errors**, 239 tool calls (`agentBuilt` 392, `multiTurnResults` 78). Same 392-case set throughout,
+so all three columns are like-for-like.
+
+| | baseline (`c9b94a47`) | post-campaign (`3bd944d4`) | **this run (`ace2be98`)** |
+|---|---|---|---|
+| **recall** | 201/313 = 64.2% | 246/312 = 78.8% | **263/313 = 84.0%** |
+| **FP rate** | 10/79 = 12.7% | 10/79 = 12.7% | **10/79 = 12.7%** |
+| precision | 95.3% | 96.1% | **96.3%** |
+| **F1** | 0.767 | 0.866 | **0.898** |
+| errors | 0 | 1 | **0** |
+| `fixed` stratum | 2/6 = 33.3% | 2/6 = 33.3% | **4/6 = 66.7%** |
+
+**+19.8pp of recall across two cycles at an unchanged false-positive rate.** The 1 error in the
+previous run (the `HTMLFormElement` named-getter crash) is fixed.
+
+Outcome shift, s9 → s10 (GT-fail cases): `missedAgree` **−14**, `noObligation` −2, `caught` **+17**.
+The gain is now dominated by JUDGMENT rather than aperture, the reverse of the previous cycle —
+consistent with the fact that the aperture defects were mostly fixed last round.
+
+Per-SC recall across all three runs:
+
+| SC | n | baseline | s9 | s10 | Δ (s9→s10) | FP s10 · s9 |
+|---|---|---|---|---|---|---|
+| **2.4.3** | 46 | 47% | 53% | **97%** | **+43** | **1/16 · 2** |
+| 1.1.1 | 49 | 71% | 74% | **88%** | +14 | 1/7 · 0 |
+| 1.3.1 | 53 | 57% | 78% | **83%** | +4 | 1/7 · 1 |
+| 2.1.2 | 37 | 50% | 79% | **82%** | +4 | 0/9 · 0 |
+| 1.4.1 | 42 | 54% | 74% | 75% | +1 | 2/14 · 2 |
+| 1.4.13 | 31 | 80% | 88% | 88% | 0 | 2/6 · 2 |
+| 3.3.1 | 35 | 83% | 90% | 86% | −3 | 2/6 · 2 |
+| 2.4.2 | 30 | 84% | 96% | 92% | −4 | 1/5 · 1 |
+| 4.1.3 | 37 | 38% | 75% | 69% | −6 | 0/5 · 0 |
+| 2.4.4 | 32 | 89% | 89% | 82% | −7 | 0/4 · 0 |
+
+Case ledger vs s9: **30 gained, 13 lost.**
+
+**What the two cycles establish about WHICH interventions work.** This is the methodologically
+useful result, and it is one-sided:
+
+- **Changing what the judge can OBSERVE produced large, clean, predicted gains.** The 2.4.3
+  reveal-state instrument recovered 11 cases with 0 losses and eliminated both prior FPs, and each
+  gain maps to a specific mechanism (R1 adjacency ×5, R1 focus-return ×2 — precisely the pair the
+  agent said adjacency alone would miss — R4 redundant-stop ×2, R3 divergence threading ×1). The
+  `control-semantics-v0` routing gate went from 116 misrouted verdicts across all 53 1.3.1 cases to
+  11 genuine rows, with **0 page-level misfires** (was 53).
+- **Changing prompt WORDING to narrow a clause did not work, twice.** `use-of-color-v0` is inert
+  (1.4.1 74%→75%, both target FPs survive unchanged); `page-title-v0`'s narrowing cost a true
+  positive while its target FP persisted (2.4.2 96%→92%). The one rubric edit that clearly worked
+  was a **strengthening**, not a narrowing (`alt-text-adequacy`, 1.1.1 74%→88%).
+- **Explicit prohibitions do not stop a judge that has already decided.** `use-of-color-v0` gained a
+  rule reading "DO NOT ASSERT A COLOUR, A BORDER, OR A STATE YOU HAVE NOT SEEN", and the judge still
+  reports a red left border on a field that carries no error class and therefore no such border. The
+  companion case is 3.3.1 case-06, where the judge held `namedButNotFlagged:["country"]` and cleared
+  the field regardless. In both, the missing lever is EVIDENCE (supply the computed value so there is
+  nothing to invent), not wording.
+
+**Four SCs regressed and are the input to the next cycle.** 4.1.3 (−6, 3 cases) and 2.4.4 (−7, 2
+cases) are both suspicious of CROSS-LANE INTERFERENCE: the new reveal-state instrument runs *before*
+the status sweep and drives openers, activates dialogs and dismisses them, so it may mutate page
+state ahead of status detection. Nothing in this campaign edited 4.1.3 or 2.4.4 logic directly.
+3.3.1 (−3) coincides with the `thisField` prompt-input change; 1.3.1 lost 3
+`form-label-and-group-relationships-by-context` cases where the routing gate withdrew
+`control-semantics` verdicts that may have been carrying those rows for the wrong reason.
+All four are hypotheses pending root-cause, not findings.
+
+**No adverse effect on ACT.** The deterministic 581-case gate is identical to baseline: tp 13, fn 101,
+fp 1, tn 263, decisionAgreement 0.7301587301587301, 0 errors, **0 bucket changes**
+(`upstream-evidence/v3-act-subset-COMMITGATE/`). The only per-row deltas are two keyboard-trap pages
+trading a shadow observation, exactly as the modal-visibility gate predicts. Suite 1039 tests,
+1038 pass, 0 fail, 1 skipped; `prompt-corpus-leak` 5/5.
+
+## Table 1k-post4 — s11 residual batch, ACT commit gate (2026-08-17)
+
+The full s10-residual batch (11 planned fixes + rubric atomicity + two adversarial reviews with all
+confirmed findings remediated; committed as the "s11 batch" commit this table rides in). Suite: 1166
+tests, 1165 pass, 0 fail, 1 skipped (OCR sidecar env-skip); `prompt-corpus-leak` 5/5 with 2 new
+PROMPT_SOURCES files. Synthetic s11 run pending (next table).
+
+**ACT 581 gate — clean** (`upstream-evidence/v3-act-subset-s11-gate2/`, vs reference
+`v3-act-subset-final-2026-08-16/`): tp 13, fn 100, fp 1, tn 262, outOfScope 195, error 1,
+decisionAgreement 0.7314. Every delta vs reference is flake-class, individually verified:
+the reference's 2 error rows (WS-endpoint launch timeout; TargetCloseError) complete cleanly here
+(one lands tnWithClear), and 1 new 660s case-timeout (307n5z/3798f2c4, an existing fn either way)
+completes as fn on a single-rule recheck (`upstream-evidence/flake-307n5z-recheck/`). The
+pre-declared 80af7b watch: 15/16 rows byte-identical, the 16th is the reference flake resolving.
+One real finding en route: the tagByXpath namespace fix made SVG subjects resolvable and exposed a
+masked SVG `<text>` measurement defect (glyph-hiding styles don't drive SVG `fill`), which turned
+ACT afw4f7 Inapplicable Ex4 into a false barrier in the first gate run (`v3-act-subset-s11-gate/`,
+fp 2); fixed fill-aware (both polarities regression-tested), fp back to 1 in the rerun.
+
 ## Table 2 — Held-out generalization gate (581-case full corpus)
 
 Each new deterministic detector evaluated over its **entire** ACT rule, not its tuned examples. Over-fire =

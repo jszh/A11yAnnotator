@@ -16,7 +16,7 @@ const IRR = path.join(ROOT, 'eval/act-augmented/_annotator/irr');
 const OUT = path.join(IRR, 'adjudication');
 
 function latestBackup() {
-  const dir = path.join(ROOT, 'eval/act-augmented/_archive/comment-strip-backups');
+  const dir = path.join(ROOT, 'eval/_corpus-archive/act-augmented/comment-strip-backups');
   const kids = fs.readdirSync(dir).filter((d) => fs.statSync(path.join(dir, d)).isDirectory()).sort();
   return path.relative(ROOT, path.join(dir, kids[kids.length - 1]));
 }

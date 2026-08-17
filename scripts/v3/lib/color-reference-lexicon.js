@@ -31,6 +31,11 @@ const COLOR_WORDS = Object.freeze([
 
 // Nouns that make the referent WEB CONTENT rather than a thing in the world. "Green button" is a colour
 // reference to a control; "green chilli" is a chilli.
+// Round-3 residual RCA widenings (image-chart / ui-status shapes): state-bearing control nouns
+// (toggle/switch/pill/chip/badge/swatch) and the chart-surface nouns (tile/map) — all generic UI/chart
+// vocabulary, none tied to any one page's subject matter (subject nouns like a map's place-name category
+// belong to `region/area`, already present). Still construction-gated — a bare colour word next to none of
+// these matches nothing.
 const UI_NOUNS = Object.freeze([
   'button', 'buttons', 'link', 'links', 'field', 'fields', 'row', 'rows', 'cell', 'cells',
   'item', 'items', 'entry', 'entries', 'text', 'label', 'labels', 'icon', 'icons', 'box', 'boxes',
@@ -39,14 +44,22 @@ const UI_NOUNS = Object.freeze([
   'circle', 'circles', 'highlight', 'highlights', 'border', 'borders', 'background', 'header',
   'heading', 'headings', 'message', 'messages', 'value', 'values', 'option', 'options',
   'segment', 'segments', 'slice', 'slices', 'wedge', 'band', 'block', 'blocks', 'card', 'cards',
+  'toggle', 'toggles', 'switch', 'switches', 'pill', 'pills', 'tile', 'tiles',
+  'swatch', 'swatches', 'chip', 'chips', 'badge', 'badges',
+  'map', 'maps',
 ]);
 
 // Verbs of PRESENTATION. The Understanding's example is built from one of these.
+// Round-3 residual RCA: the SHADING/FILL verbs — the vocabulary a choropleth/chart alt actually uses
+// ("…are shaded red", "…is filled in grey") — were missing, so an alt that names its own colour coding
+// matched nothing. Word-boundary anchored like every other entry ("tint" cannot fire in "tinting" — the
+// \b in the pattern requires the token to end).
 const PRESENT_VERBS = Object.freeze([
   'shown', 'show', 'shows', 'marked', 'mark', 'marks', 'indicated', 'indicate', 'indicates',
   'highlighted', 'highlight', 'highlights', 'displayed', 'display', 'displays', 'flagged', 'flag',
   'flags', 'denoted', 'denote', 'denotes', 'identified', 'identify', 'identifies', 'appear',
   'appears', 'coloured', 'colored', 'printed', 'listed', 'rendered', 'set',
+  'shaded', 'shade', 'shades', 'tinted', 'tint', 'filled', 'fill',
 ]);
 
 const COLOR_ALT = COLOR_WORDS.join('|');
@@ -63,14 +76,42 @@ const PATTERNS = Object.freeze([
   Object.freeze({ id: 'colour-ui-noun', re: new RegExp(`\\b(?:${COLOR_ALT})\\b(?:\\W+\\w+){0,1}\\W+\\b(?:${NOUN_ALT})\\b`, 'i') }),
   // 3. EXPLICIT COLOUR CODING — "colour-coded by team", "indicated by colour", "the same colour".
   Object.freeze({ id: 'colour-coding', re: /\b(?:colou?r-?coded|by\s+colou?r|colou?r\s+(?:key|legend|coding)|same\s+colou?r|different\s+colou?rs?)\b/i }),
+  // 4. UI NOUN "in" COLOUR — "rows highlighted in red", "the fields in green". The mirror of pattern 2
+  //    (which is COLOUR-then-NOUN only): a noun-FIRST legend sentence matched no construction at all.
+  //    One optional word between noun and "in" ("tiles rendered in amber") and one between "in" and the
+  //    colour ("the switch in the green position"); everything word-boundary anchored, so no substring
+  //    can fire it.
+  Object.freeze({ id: 'ui-noun-in-colour', re: new RegExp(`\\b(?:${NOUN_ALT})\\b(?:\\W+\\w+){0,1}\\W+in\\W+(?:\\w+\\W+){0,1}(?:${COLOR_ALT})\\b`, 'i') }),
 ]);
+
+// PROPER-NOUN GUARD (case-SENSITIVE, applied per-match): a Capitalized colour word immediately followed
+// by another Capitalized word is a NAME, not a presentation reference — "Orange County", "Red Sea
+// region", "Red Square". Sentence-initial colour references survive ("Green buttons advance…" — the
+// following word is lowercase), and ALL-CAPS UI text survives too ("GREEN BUTTONS" matches no
+// Capitalized-word form). Without this, adding county/map/region-style nouns would turn every American
+// place name into an obligation.
+const CAP_COLOR_ALT = COLOR_WORDS.map((w) => w[0].toUpperCase() + w.slice(1)).join('|');
+const PROPER_NOUN_PAIR = new RegExp(`\\b(?:${CAP_COLOR_ALT})\\b\\s+[A-Z]`);
 
 // Returns the matching CONSTRUCTION ids (not the words) — so a caller can see WHY it fired.
 function colorReferencesIn(text) {
   const s = String(text == null ? '' : text);
   if (!s) return [];
   const hits = [];
-  for (const p of PATTERNS) { const m = s.match(p.re); if (m) hits.push({ pattern: p.id, match: m[0].slice(0, 60) }); }
+  for (const p of PATTERNS) {
+    // fresh global twin per call — the frozen PATTERNS keep their non-global identity (and no shared
+    // lastIndex state), while the guard needs to be able to SKIP a proper-noun match and keep looking.
+    const g = new RegExp(p.re.source, 'gi');
+    let m;
+    while ((m = g.exec(s)) !== null) {
+      // the guard must see the word FOLLOWING the match too: pattern 1 stops AT the colour word, so in
+      // "marked in Red Square" the capitalized successor sits just past m[0].
+      const tail = (s.slice(m.index + m[0].length).match(/^\W+\w+/) || [''])[0];
+      if (PROPER_NOUN_PAIR.test(m[0] + tail)) continue; // a name, not a presentation reference — try the next occurrence
+      hits.push({ pattern: p.id, match: m[0].slice(0, 60) });
+      break;
+    }
+  }
   return hits;
 }
 

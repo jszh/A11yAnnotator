@@ -48,6 +48,24 @@ screenshot, which cannot show any of it. Read them in this order:
 5. `addedOutsideLiveRegion` NON-EMPTY with nothing else ⇒ the plain-`<div>` case; the detector will normally
    already have barriered it.
 
+**THE ANNOUNCED STRING MUST STAND ON ITS OWN — a SECOND, independent check, applied only AFTER the wiring
+checks above pass.** Correct delivery (a pre-existing region, sane politeness, updated in place) settles HOW
+the message reaches AT, never WHAT it says — do not stop at "the live region is correctly implemented". Take
+the exact string an AT would speak (`regionsUpdated[].after`, an `addedInsideLiveRegion` entry, or a
+`liveRegionAnnouncements` entry) and read it ALONE, with no screen: does it state what happened, and to WHAT
+it happened? A sighted user reads the update inside its visual context — the row it sits in, the label beside
+it, the control it decorates; an AT user gets ONLY the string. Barrier ONLY when ALL THREE hold: **(i)** the
+string names no subject — it states an outcome, quantity, or state change without saying what it applies to;
+**(ii)** that referent IS on screen for a sighted user at the moment of the update, carried by some visible
+text or accessible name near the update; and **(iii)** that
+referent text sits OUTSIDE the announced region and is not re-announced with the update. You must POINT TO
+the specific on-screen text that carries the missing referent; if you cannot, there is no barrier under this
+check. *Guards — do NOT sweep up terse-but-complete statuses.* A one-word outcome ("Done") after a single
+unambiguous user action, where no on-screen text supplies a referent the string lacks, is COMPLETE. A
+count/value whose referent IS the announced region itself — the region's own persistent text or accessible
+name says what is being counted and travels with the update — is COMPLETE. Brevity alone is never the
+finding; the finding is a referent the sighted user gets and the announced string drops.
+
 **NOT EVERY OBSERVED CHANGE IS A STATUS MESSAGE — check these exclusions FIRST.** This obligation now fires
 on any page where activation demonstrably changed content, so the scope test is yours to apply. Per the
 Understanding, a status message informs the user "on the success or results of an action, on the waiting
@@ -59,6 +77,16 @@ via a change of context. Therefore return **N/A**, not a barrier, for:
   its progress, its completion, or the absence of any result — displayed alongside them, IS one.
 - **A change of context.** If activation moved focus, opened a modal that takes focus, or navigated, the AT
   has already announced the new content by focusing it — out of scope by definition (`focusMoved: true`).
+  **Read the three focus facts precisely; only one of them takes a page out of scope.**
+  - `focusMoved: true` means focus came to rest on a REAL element after the activation. That is the
+    change-of-context exclusion above.
+  - `focusMovedIntoNewContent: true` is the stronger form — focus landed INSIDE the content that appeared.
+    That is what "the AT announced it by focusing it" actually means, and it is the cleanest exclusion.
+  - `focusDropped: true` is the **OPPOSITE of an exclusion, and never grounds for one.** It means the
+    activation DESTROYED the element that had focus and focus fell back to the document body. Nothing was
+    announced; the user's focus position was silently lost. That is a barrier SYMPTOM, and on a page whose
+    new content is announced by nothing else it strengthens the case rather than removing it. Do not read a
+    dropped focus as a change of context — no context was communicated, it was discarded.
 - **A selection the user just made.** Selecting a tab, checking a checkbox, choosing a radio in a survey —
   the control's own state change is announced by the control, and the panel it reveals is primary content.
 - **Content revealed by a disclosure the user opened.** Same reason.

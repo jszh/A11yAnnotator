@@ -122,6 +122,13 @@ const PROMPT_SOURCES = [
   'broad-scope-llm-review.js', 'run-instruments.js', 'status-detector.js',
   'collect-error-summary.js', 'collect-colour-peers.js', 'collect-faux-columns.js',
   'collect-styling-outliers.js', 'color-reference-lexicon.js', 'collect-tables.js',
+  // act-page-collect.js hosts page-side collectors of its own whose `uncertainReason` strings ride into a
+  // prompt exactly as a rubric clause does; it belongs in the gate for the same reason every file above does.
+  'act-page-collect.js',
+  // leak-audit coverage gap (2026-08-17): collect-link-facts.js ships link/heading text into prompts (all
+  // page-derived and clipped today, but an authored string added later must be visible to this gate), and
+  // kbd-graph.js's sweep output composes into prompt-bound findings (labels are page text; same rationale).
+  'collect-link-facts.js', 'kbd-graph.js',
 ];
 
 // Strip comments so a `// measured on case-03` note never trips the gate — only shipped strings count.

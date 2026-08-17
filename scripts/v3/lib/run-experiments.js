@@ -32,9 +32,22 @@ const { BROWSER_ARGS } = require('./browser-args.js');
 const CLIP_PAD = 10; // include an outline-offset ring that renders outside the border box
 
 // In-page: resolve an element by xpath and tag it so we can recognise focus landing on it.
+// NAMESPACE FALLBACK (LLM-ROUTING-AND-FAILURE-ANALYSIS Tier-0 #1): an unprefixed name-test matches only
+// null-namespace (HTML) nodes, so an SVG/MathML subject resolves to null and every runner that tags its
+// target silently abstains via `.catch(() => false)`. Same rewrite as xpath-ns.js `nsXPath` — inlined here
+// because this body is serialized into the page and cannot require(). Plain resolution is tried first, so
+// every currently-resolving xpath takes the identical path it always did.
 function tagByXpath(xpath, marker) {
-  const r = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
-  const el = r.singleNodeValue;
+  const resolve = (xp) => document.evaluate(xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+  let el = resolve(xpath);
+  if (!el && typeof xpath === 'string' && xpath.indexOf('/') !== -1) {
+    el = resolve(xpath.split('/').map((step) => {
+      if (!step) return step;
+      const m = /^([a-zA-Z][\w-]*)(\[\d+\])?$/.exec(step);
+      if (!m) return step;
+      return `*[local-name()='${m[1]}']${m[2] || ''}`;
+    }).join('/'));
+  }
   if (!el) return false;
   el.setAttribute('data-v3-target', marker);
   return true;

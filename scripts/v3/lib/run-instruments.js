@@ -16,6 +16,36 @@ const { detectStatusMessages } = require('./status-detector.js');
 const CHROME = process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_PATH
   || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 
+// VERIFIED RESTORE after the reveal-state pass activated a control. The old form was a bare
+// `page.goto(url).catch(() => {})`: a reload that FAILED — a goto timeout is the ordinary failure under lane
+// concurrency — was indistinguishable from one that worked, and every detector below then ran against an
+// opened dialog while the artifact claimed a page at rest. So: reload, PROVE it, retry once, and hand the
+// caller the proof. The proof is the pass's own markers (`data-v3-revopener` / `-revregion` / `-revfocus` /
+// `-revhidden`): a real document load wipes every one of them, so their survival is positive evidence that
+// the page in front of us is still the one the pass left behind.
+async function restoreLoadedPage(page, opts, installAriaNotifySpy) {
+  const url = opts.url;
+  const markerSel = require('./kbd-graph.js').REVEAL_MARKER_SEL;
+  let error = null;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      await page.goto(url, { waitUntil: 'load', timeout: opts.gotoTimeoutMs || 30000 });
+      await require('./settle.js').awaitSettle(page).catch(() => {});
+    } catch (e) { error = 'reload: ' + String((e && e.message) || e).slice(0, 160); continue; }
+    // `null` from the probe means the question could not even be ASKED (detached context) — which is not
+    // proof of restoration, so it fails closed exactly like a surviving marker.
+    const clean = await page.evaluate((sel) => !!document.body && document.querySelectorAll(sel).length === 0, markerSel).catch(() => null);
+    if (clean === true) {
+      await installAriaNotifySpy();   // an in-page wrapper does not survive the load it just did
+      return { ok: true, error: null };
+    }
+    error = clean === false
+      ? 'the reveal pass\'s in-page markers survived the reload, so the document was never replaced'
+      : 'the restored page could not be inspected (detached execution context)';
+  }
+  return { ok: false, error };
+}
+
 // Run every instrument against an already-loaded Puppeteer page. Returns { findings: [...] }.
 async function runInstruments(page, opts = {}) {
   const findings = [];
@@ -23,6 +53,17 @@ async function runInstruments(page, opts = {}) {
   // wall-clock guard can return WHAT WAS ALREADY MEASURED instead of an empty bundle. Instruments are
   // non-authoritative, so a partial set is always safe — it can only forgo a catch, never assert one.
   const publish = () => { if (opts.partialSink) opts.partialSink.findings = findings.slice(); };
+  // COLLECTOR LIVENESS. Every detector below is invoked as `await detect…(page).catch(() => null)`, and a
+  // null is then read as "this detector found nothing" — which is exactly what a detector that DIED also
+  // looks like. On non-authoritative shadow signals that reads through as "absence ⇒ pass", the failure mode
+  // this campaign keeps rediscovering (collect-colour-peers' lost export, reflow's cross-scope helper, the
+  // reveal pass's unverified restore). The guard below keeps the swallow — a dead instrument must never end
+  // the lane — but RECORDS it, so the artifact says "this detector threw" instead of nothing at all.
+  const collectorLiveness = [];
+  const guard = async (phase, p) => {
+    try { return await p; }
+    catch (e) { collectorLiveness.push({ phase, where: phase, error: String((e && e.message) || e).slice(0, 200) }); return null; }
+  };
   const add = (detector, list) => { for (const f of (list || [])) { const row = { detector, sc: f.sc || '', kind: f.kind, xpath: f.xpath || null, detail: f.detail || '', review: !!f.review }; if (f.calibrated === false) row.calibrated = false; if (Array.isArray(f.memberXpaths)) row.memberXpaths = f.memberXpaths; if (Number.isFinite(f.setSize)) row.setSize = f.setSize; findings.push(row); } publish(); };
 
   // #21 NATIVE DIALOG capture: Puppeteer auto-DISMISSES native alert()/confirm()/prompt() when no listener
@@ -57,7 +98,7 @@ async function runInstruments(page, opts = {}) {
   await installAriaNotifySpy();
 
   // VSR transcript → reading order (1.3.2) + announcement-vs-meaning (4.1.2)
-  const transcript = await collectVsrTranscript(page, opts).catch(() => null);
+  const transcript = await guard('vsr.transcript', collectVsrTranscript(page, opts));
   if (transcript && transcript.ok) {
     const an = analyzeTranscript(transcript);
     add('vsr-reading-order', an.readingOrder);
@@ -77,12 +118,11 @@ async function runInstruments(page, opts = {}) {
   // records what it swallowed (fallback values unchanged); collect it here so the failure is visible in the
   // artifact instead of only in a live console. Surfaced on the instruments artifact as `collectorLiveness`,
   // matching the field act-page-collect publishes on the collect artifact.
-  const collectorLiveness = [];
-  const tab = await collectTabOrder(page).catch(() => null);
+  const tab = await guard('tabOrder.forward', collectTabOrder(page));
   if (tab && Array.isArray(tab.liveness)) collectorLiveness.push(...tab.liveness.map((l) => ({ ...l, phase: 'tabOrder.forward' })));
   const tabFindings = tab ? tabOrderFindings(tab).findings : [];
   if (tab) add('tab-order', tabFindings);
-  const tabBack = await collectTabOrder(page, { backward: true }).catch(() => null);
+  const tabBack = await guard('tabOrder.backward', collectTabOrder(page, { backward: true }));
   if (tabBack && Array.isArray(tabBack.liveness)) collectorLiveness.push(...tabBack.liveness.map((l) => ({ ...l, phase: 'tabOrder.backward' })));
   // VISUAL-ORDER DIVERGENCE, threaded to the stop it is ABOUT. `tabOrderFindings` already runs the
   // column-aware divergence detector over this very ring and emits one uncalibrated-triage finding per
@@ -135,12 +175,19 @@ async function runInstruments(page, opts = {}) {
   // which is the state they used to see anyway (nothing before this point activates anything).
   if (tab && tabOrder && opts.url && opts.revealFocusPass !== false) {
     const before = Date.now();
+    // PROGRESS SINK, not the return value, is what decides the restore. `rev` is null on a rejection, and the
+    // one fact the restore turns on — "an opener was clicked" — used to travel ONLY inside `rev`, so the throw
+    // path skipped cleanup on exactly the runs that went wrong. `progress` is mutated in place inside the pass
+    // before each irreversible step, so it survives whatever the pass does next.
+    const progress = {};
+    let revealError = null;
     const rev = await collectRevealedFocusOrder(page, opts.url, {
       restingXpaths: (tab.order || []).map((o) => o.xpath),
       maxOpeners: Number.isFinite(opts.maxRevealOpeners) ? opts.maxRevealOpeners : 2,
       gotoTimeoutMs: opts.gotoTimeoutMs,
       pageIsFresh: true,           // only Tab presses have touched this load
-    }).catch(() => null);
+      progress,
+    }).catch((e) => { revealError = String((e && e.message) || e).slice(0, 200); return null; });
     if (rev && rev.states && rev.states.length) {
       tabOrder.revealedStates = rev.states;
       // Bind each state to the STOP whose control produces it. The opener is an ordinary tab stop, so this
@@ -158,29 +205,52 @@ async function runInstruments(page, opts = {}) {
     // was clicked and then abandoned (it navigated, revealed nothing, or threw) leaves the page just as
     // dirty as one that worked, and every detector below this point assumes a page at rest. Gating the
     // restore on `states.length` would have skipped it on exactly the pages where the pass went wrong.
-    if (rev && rev.openers > 0) {
-      await page.goto(opts.url, { waitUntil: 'load', timeout: opts.gotoTimeoutMs || 30000 }).catch(() => {});
-      await require('./settle.js').awaitSettle(page).catch(() => {});
-      await installAriaNotifySpy();
+    //
+    // …and the trigger is `progress.activated`, which is set INSIDE the pass immediately before the click,
+    // so a pass that threw after activating still restores. `rev.openers > 0` is kept as a second, weaker
+    // trigger: it covers a (currently impossible) future in which the pass activates without going through
+    // that line, and it is the shape the tests pin.
+    const mustRestore = progress.activated === true || (rev && rev.openers > 0);
+    let restored = null, restoreError = null;
+    if (mustRestore) restored = await restoreLoadedPage(page, opts, installAriaNotifySpy).then((r) => {
+      restoreError = r.error; return r.ok;
+    });
+    // PROVENANCE. A lane that cannot PROVE it restored is as bad as one that did not: the reload's own error
+    // was swallowed here (`.catch(() => {})`), so a restore that failed under load looked exactly like one
+    // that worked, and every detector below silently ran on an opened dialog. Publish what happened —
+    // `restored:false` is the signal the artifact was collected on a page this pass had activated.
+    if (progress.ran) {
+      tabOrder.revealPass = {
+        openersFound: Number.isFinite(progress.openersFound) ? progress.openersFound : 0,
+        activated: progress.activated === true,
+        restoreAttempted: !!mustRestore,
+        restored: mustRestore ? restored === true : null,
+        ...(revealError ? { error: revealError } : {}),
+        ...(restoreError ? { restoreError } : {}),
+      };
+      // Same channel `collectTabOrder` uses for a swallowed in-page throw: a failure that is only visible in
+      // a live console is a failure nobody sees. Both conditions are silent-by-construction otherwise.
+      if (revealError) collectorLiveness.push({ phase: 'revealFocusPass', where: 'collectRevealedFocusOrder', error: revealError });
+      if (mustRestore && restored !== true) collectorLiveness.push({ phase: 'revealFocusPass.restore', where: 'page.goto(restore)', error: restoreError || 'the page could not be proven restored after the reveal pass activated a control; every detector below this point ran on a page that may still be in its opened state' });
     }
-    if (rev) tabOrder.revealPassMs = Date.now() - before;
+    tabOrder.revealPassMs = Date.now() - before;
   }
   // keyboard traps (2.1.2): confirmed (authoritative-candidate) + directional (review)
-  const traps = await detectKeyboardTraps(page).catch(() => null);
+  const traps = await guard('keyboardTraps', detectKeyboardTraps(page));
   if (traps) {
     add('keyboard-trap', traps.traps.map((t) => ({ sc: t.sc, kind: 'keyboard-trap', xpath: t.regionXpath, detail: 'confirmed keyboard trap: focus cannot escape by Tab, Shift+Tab, Esc, or a Close control' })));
     add('keyboard-trap', traps.directionalTraps.map((t) => ({ sc: t.sc, kind: 'keyboard-trap-directional', xpath: t.regionXpath, detail: 'one-way keyboard trap: focus escapes in only one Tab direction', review: true })));
   }
   // self-refocus traps (2.1.2): a LONE focusable that re-grabs its own focus on blur — the region
   // detector above cannot see these (no region; its escape probe runs before the async refocus fires).
-  const selfTraps = await detectFocusRetentionTraps(page).catch(() => null);
+  const selfTraps = await guard('focusRetentionTraps', detectFocusRetentionTraps(page));
   if (selfTraps) add('keyboard-trap', selfTraps.traps.map((t) => ({ sc: t.sc, kind: 'keyboard-trap-self-refocus', xpath: t.xpath, detail: 'confirmed keyboard trap: this focusable re-grabs its own focus on blur, so Tab and Shift+Tab cannot move focus off it' })));
   // fixed-set CONFINEMENT traps (2.1.2): focus mutual-bounces among a small fixed set it can never LEAVE by
   // Tab/Shift+Tab/Esc — the region + self-refocus detectors miss these (no region; focus DOES move, just never out).
-  const confine = await detectFixedSetConfinementTraps(page).catch(() => null);
+  const confine = await guard('confinementTraps', detectFixedSetConfinementTraps(page));
   // DEMOTED to a REVIEW signal — NOT an authoritative deterministic barrier. The held-out adversarial sweep over the
   // full 80af7b rule proved the mutual-bounce confinement detector over-fires on 4/7 PASSED cases: a trap whose only
-  // exit is a NON-STANDARD key (e.g. Ctrl+M) is a 2.1.2 PASS *iff the page ADVISES the user of that method*, and a
+  // exit is a NON-STANDARD key (e.g. Alt+F6) is a 2.1.2 PASS *iff the page ADVISES the user of that method*, and a
   // FAIL otherwise — yet the two are MECHANICALLY IDENTICAL (Tab/Shift+Tab/Escape all fail to exit in both). The
   // advisory is semantic; keyboard-driving cannot see it. So confinement routes to the 2.1.2 rubric (which can read
   // the page for the escape advisory), and never mints a barrier on its own. The SOUND deterministic catch is the
@@ -203,12 +273,31 @@ async function runInstruments(page, opts = {}) {
       }
     }
     add('keyboard-trap', confineRows);
+    // ONE-WAY confinement (REVIEW, never a barrier): a forward loop that walls off later content while the
+    // other direction still escapes. TT 4.C counts "restricted to a small section … no way to navigate out of
+    // the loop" as a failure and lists backward navigation only as a tester workaround — but 4.C's
+    // required-interaction exception (a section that genuinely requires input before releasing focus) is
+    // semantic, so this routes to keyboard-trap-v0 and never mints on its own. Fan out over the members like
+    // the full confinement above so the rubric gate can key on any member xpath.
+    const onewayRows = [];
+    for (const t of (confine.onewayTraps || [])) {
+      const members = (Array.isArray(t.memberXpaths) && t.memberXpaths.length) ? t.memberXpaths : [t.xpath];
+      const seenOw = new Set();
+      for (const xpath of members) {
+        if (!xpath || seenOw.has(xpath)) continue; seenOw.add(xpath);
+        onewayRows.push({ sc: t.sc, kind: 'keyboard-trap-oneway', detector: 'confinement', review: true, xpath,
+          memberXpaths: t.memberXpaths, setSize: t.setSize, direction: t.direction || 'forward',
+          unreached: Array.isArray(t.unreached) ? t.unreached : [], unreachedCount: t.unreachedCount,
+          detail: `focus is confined to a fixed set of ${t.setSize} element(s) in the ${t.direction || 'forward'} Tab direction only: ${t.unreachedCount} rendered focusable(s) outside the set are never reached in that direction, though focus escapes the other way. A 2.1.2 barrier UNLESS the section genuinely requires input or interaction — completable by keyboard — before allowing focus to progress, or a documented exit key works; the keyboard-trap rubric decides which.` });
+      }
+    }
+    add('keyboard-trap', onewayRows);
   }
   // EMBEDDED-FORMAT traps (2.1.2 / F10): focus enters an <iframe>/<object>/<embed> or a shadow root and
   // cannot leave. Structurally invisible to every region detector above — their candidate regions come
   // from focusables in THIS document, and the trapping content lives in another one. Runs after the
   // region detectors (it drives Tab hard) and before the status sweep.
-  const embedTraps = await detectEmbeddedFormatTraps(page, opts).catch(() => null);
+  const embedTraps = await guard('embeddedFormatTraps', detectEmbeddedFormatTraps(page, opts));
   if (embedTraps) {
     add('keyboard-trap', (embedTraps.traps || []).map((t) => ({
       sc: t.sc, kind: 'keyboard-trap', xpath: t.xpath,
@@ -226,21 +315,42 @@ async function runInstruments(page, opts = {}) {
   }
   // focus-rejection (2.1.1/2.4.7, F55): a control that removes its OWN focus the instant it receives it —
   // the inverse of a self-refocus trap (focus can never rest on it, so it can't be operated or shown).
-  const rej = await detectFocusRejection(page).catch(() => null);
+  const rej = await guard('focusRejection', detectFocusRejection(page));
   if (rej) add('focus-rejection', rej.rejections.map((r) => ({ sc: r.sc, kind: 'focus-rejected-on-receipt', xpath: r.xpath, detail: `this control removes its own keyboard focus the moment it receives it (F55 onfocus→blur)${r.inlineHandler ? ' [inline onfocus/onblur handler]' : ''}; a keyboard user cannot operate it and no focus indicator can ever show (also 2.4.7)` })));
   // 6cfa84 (4.1.2): a tabbable element under an aria-hidden ANCESTOR where focus RESTS (no sentinel redirect) — the
   // AT never announces it. DYNAMIC by necessity: the rule's passed focus-sentinel is statically identical to its
   // failed barrier, so a static flag was unsound (held-out-proven). build-v3 promotes this to a 4.1.2 barrier.
-  const ariaHiddenFocus = await detectFocusRestsInAriaHidden(page).catch(() => null);
+  const ariaHiddenFocus = await guard('focusRestsInAriaHidden', detectFocusRestsInAriaHidden(page));
   if (ariaHiddenFocus) add('aria-hidden-focus', ariaHiddenFocus.traps.map((t) => ({ sc: t.sc, kind: 'focus-rests-in-aria-hidden', detector: 'focus-rest', xpath: t.xpath, detail: 'this focusable element sits inside an aria-hidden=true subtree and focus RESTS on it (no focus sentinel redirected away), so a keyboard user reaches a control the assistive technology never announces — no name, role, or state' })));
   // VSR navigation traps (reading-cursor cannot advance/retreat)
-  const vt = await vsrNavigationIntegrity(page, opts).catch(() => null);
+  const vt = await guard('vsrNavigationIntegrity', vsrNavigationIntegrity(page, opts));
   if (vt) add('vsr-trap', vt.traps);
   // 4.1.3 status messages (action→announcement). Runs LAST: it DRIVES actions (clicks), so it must
   // not perturb the read-only VSR/keyboard instruments above. Sound-first (only flags content that
   // demonstrably appeared without a live region and without focus moving to it).
-  const status = await detectStatusMessages(page, opts).catch(() => null);
+  //
+  // FOCUS NEUTRALISATION (2026-08-16). "It must not perturb the instruments above" was only ever half the
+  // contract; nothing stopped the instruments above from perturbing IT. The sweep records, per trigger,
+  // whether activation MOVED FOCUS, and the 4.1.3 rubric reads `focusMoved: true` as "a change of context ⇒
+  // 4.1.3 does not apply". That fact is computed against `document.activeElement` AS THE SWEEP FINDS IT —
+  // and every detector between here and the tab-order walk drives focus (detectFocusRejection focuses each
+  // focusable in turn and leaves the last one focused). Measured on
+  // eval/act-augmented/4.1.3/pages/is-it-a-status-message-scope-boundary/case-06: the lane hands the sweep a
+  // page with focus parked on `#reserveBtn` — the trigger itself — whose handler hides the form, so focus
+  // falls to <body> and `activeElement !== focusBefore` reports "focus moved" about a page where focus was
+  // DESTROYED and nothing was announced. Same page, same click, pristine load ⇒ focusMoved:false; focus
+  // parked on the trigger ⇒ focusMoved:true. Blur back to the state a document has at load so the
+  // observation is a property of the PAGE, not of which detector happened to run last. (status-detector.js
+  // separately hardens the fact itself, so a page that focuses something mid-sweep is still read correctly.)
+  await page.evaluate(() => { const a = document.activeElement; if (a && a !== document.body && typeof a.blur === 'function') a.blur(); }).catch(() => {});
+  const status = await guard('statusMessages', detectStatusMessages(page, opts));
   if (status) add('status-message', status.findings);
+  // The sweep swallows two failures of its own and reports them as fields rather than throwing: a trigger
+  // ENUMERATION that died (which otherwise reads as "this page has no drivable control") and a sweep that
+  // ABORTED mid-way on a destroyed context. Both look exactly like "nothing to find" downstream, so they
+  // ride the same liveness channel as the rest.
+  if (status && status.enumError) collectorLiveness.push({ phase: 'statusMessages.enumerate', where: 'trigger enumeration', error: status.enumError });
+  if (status && status.sweepAborted) collectorLiveness.push({ phase: 'statusMessages.sweep', where: `aborted after ${status.triggersProbed} of ${status.triggersTotal} trigger(s)`, error: status.sweepAborted });
   // 4.1.3 OBSERVATIONS (residual RCA S4): what each trigger actually DID, whether or not it barriered.
   // The barrier channel answers one narrow question (text appeared outside any live region) and every
   // remaining 4.1.3 failure shape lives inside a live region and fails on the announcement's ADEQUACY —
@@ -259,6 +369,10 @@ async function runInstruments(page, opts = {}) {
           o.regionsBornWithContent.length ? `${o.regionsBornWithContent.length} live region(s) INSERTED already carrying their message (an AT observes regions present BEFORE the change — a region born with its content announces nothing)` : null,
           o.regionsUpdated.some((r) => r.emptied) ? 'a pre-existing live region was EMPTIED' : null,
           o.removedText.length ? `${o.removedText.length} status text(s) REMOVED from the page` : null,
+          // The two focus facts that DECIDE scope, spelled out where they are otherwise only a boolean on the
+          // structured observation. `focusDropped` in particular must never be read as a change of context.
+          o.focusMovedIntoNewContent ? 'focus MOVED INTO the new content (the change is announced by the focus move)' : null,
+          o.focusDropped ? 'focus was DROPPED to the document body — the element holding it was hidden or removed, so focus was DESTROYED rather than moved; this is NOT a change of context' : null,
         ].filter(Boolean).join('; ')
         + '. This is an OBSERVATION, not a verdict — whether the announcement is adequate is the rubric\'s call.',
     })));
@@ -319,4 +433,6 @@ async function runInstrumentsForUrl(url, opts = {}) {
   });
 }
 
-module.exports = { runInstruments, runInstrumentsForUrl, CHROME };
+// `restoreLoadedPage` is exported for its OWN tests: its whole value is the failure path (a reload that did
+// not happen), which is unreachable through the lane on a healthy page.
+module.exports = { runInstruments, runInstrumentsForUrl, restoreLoadedPage, CHROME };

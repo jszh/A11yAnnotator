@@ -18,6 +18,16 @@
 // assertion that shares its SC.
 'use strict';
 
+// F13 mint (below): the requirement-sourced colour-CONSTRUCTION detector — never a bag of colour words.
+const { hasColorReference, colorReferencesIn } = require('./color-reference-lexicon.js');
+// F13 fires only on the STRONG constructions (adversarial soundness finding #5, probe-confirmed): the weak
+// colour+noun pattern over-matches ordinary photo alts through polysemous nouns ("a blue box truck", "a
+// green field at sunset"), while every genuine colour-encoded chart alt states its coding with a
+// presentation verb, a noun-in-colour legend sentence, or explicit colour-coding vocabulary.
+const F13_STRONG = new Set(['presented-in-colour', 'ui-noun-in-colour', 'colour-coding']);
+const f13ColourConstruction = (t) => typeof t === 'string' && t.length > 0
+  && colorReferencesIn(t).some((h) => F13_STRONG.has(h.pattern));
+
 // Claim-family registry: assertionId -> { sc, skills[] }. The seed covers the Phase-1 walking
 // skeleton; new experiments register their family here. `skills` are S2.SKILL_SCS keys.
 const FAMILIES = Object.freeze({
@@ -106,6 +116,12 @@ const FAMILIES = Object.freeze({
 
 const WIDGET_ROLE = /^(button|link|checkbox|switch|tab|menuitem|combobox|radio|slider)$/;
 const FORMFIELD_ROLE = /^(textbox|combobox|listbox|spinbutton|searchbox|slider)$/;
+// 1.4.1 STATE-BEARING widget roles (residual RCA S10, ui-status-action case-05): roles whose ARIA contract
+// carries a BINARY/SELECTED state (aria-checked / aria-selected) that the page renders visually — and that
+// visual rendering is exactly what can be colour-only (a green pill vs a grey pill). Precisely these roles,
+// not WIDGET_ROLE: a plain button/link/menuitem has no rendered state to encode, so widening to all widgets
+// would flood every toolbar. Native checkbox/radio inputs already arrive via isFormField.
+const STATE_BEARING_ROLE = /^(switch|checkbox|radio|tab|option|menuitemcheckbox|menuitemradio)$/;
 // 4.1.2 COMPOSITE container roles (Item 12): a relational name-role-value obligation axe abstains on. EXCLUDES
 // bare group/region (no name/state obligation, floods every app page) — only roles that owe a name + child states.
 const COMPOSITE_ROLE = /^(menu|menubar|tree|treegrid|grid|tablist|listbox|radiogroup)$/;
@@ -215,6 +231,30 @@ const factRole = (el) => {
   return '';
 };
 
+// 4.1.3 MUTED-live-region shape (residual RCA S10). An element that carries live-region PLUMBING while
+// exposing no live semantics to AT:
+//   · `aria-live` PRESENT but the collector's `liveRegion` fact is false — the collectors set liveRegion
+//     only for polite/assertive (or a live role), so a present-but-not-live aria-live is `off`/invalid,
+//     i.e. explicitly muted;
+//   · `aria-atomic`/`aria-relevant` (attributes that mean nothing OUTSIDE a live region) with no live role
+//     and no live aria-live — wired for announcements that can never happen;
+//   · an `<output>` whose native status role is explicitly overridden (role=none/presentation/…) —
+//     a plain <output> is a REAL live region and rides the `liveRegion` gate, not this one.
+// Exact and rare by construction: any genuinely-live element short-circuits on `liveRegion === true`, so
+// the polite/assertive/status/alert/log population can never double-mint through this lane. Reads the
+// `ariaAttrs` attribute-name census (act-page-collect emits it; a collector without it simply never fires
+// this lane).
+function mutedLiveRegionShape(el) {
+  if (!el || el.liveRegion === true) return false;               // a real live region already owes status-message
+  const role = factRole(el).toLowerCase();
+  if (/^(status|alert|log|progressbar|marquee|timer)$/.test(role)) return false; // live-role facts belong to the liveRegion gate
+  const attrs = Array.isArray(el.ariaAttrs) ? el.ariaAttrs : [];
+  if (attrs.includes('aria-live')) return true;                  // present but not polite|assertive ⇒ muted (aria-live="off"/invalid)
+  if (attrs.includes('aria-atomic') || attrs.includes('aria-relevant')) return true; // live-region plumbing, no live semantics
+  if (el.tag === 'output' && role.length > 0) return true;       // native status role explicitly overridden away
+  return false;
+}
+
 // Is this a collected element with any evaluable accessibility surface at all? Used to fail closed:
 // a non-empty page of evaluable elements that yields ZERO obligations is a generation defect.
 function isEvaluable(el) {
@@ -253,6 +293,10 @@ function familiesFor(el) {
   // probe_screen_reader_after_action CDP tools when enabled). "absence ≠ pass": a detector that found no insertion
   // is NOT a clear (the un-hide case is exactly what it misses).
   if (el.liveRegion === true) fams.push('status-message');
+  // 4.1.3 MUTED live region (residual RCA S10, wrong-live-region-politeness case-01): an element WIRED like
+  // a live region but silenced to AT. The `liveRegion` gate above anchors 4.1.3 to elements that are already
+  // correct; the anti-pattern "looks wired to a linter, muted to AT" is its exact inverse and minted nothing.
+  if (mutedLiveRegionShape(el)) fams.push('status-message');
   // #9 fix (TT 4.1.2 2.D): auto-updating content (carousel/slideshow) that is NOT already inside a live region —
   // if it IS (liveRegion:true), status-message-v0 already owns judging whether the announcement is adequate;
   // this family owns the prior question ("is there ANY notification mechanism at all").
@@ -318,6 +362,14 @@ function familiesFor(el) {
   // TT gap G3 (TT 7.D, 1.1.1): a CAPTCHA owes a non-visual AND non-auditory alternative — its own review-tier family.
   if (el.isCaptcha === true) fams.push('captcha-alternative');                             // 1.1.1 (CAPTCHA modalities)
   if (role === 'link') fams.push('link-purpose');                                          // 2.4.4
+  // <area href> (residual RCA S10, 1.1.1 context-and-function case-03): an image-map area with an href IS a
+  // link (its native role) and ALWAYS owes a text alternative — its alt is the destination's name. But the
+  // collectors report no sampledRole for <area> (nativeRole maps only <a href>), so the role-based link and
+  // image branches both miss it and an image map's failing areas carried NO obligation at all. Enumerate the
+  // two families it owes by construction: 1.1.1 (the alt) + 2.4.4 (the link purpose). `<area>` without href
+  // is not a link (no obligation), and this is the narrowest sound widening in the residual — <area> is rare
+  // and every match is definitionally a link.
+  if (el.tag === 'area' && typeof el.href === 'string' && el.href.length > 0) { fams.push('non-text-content'); fams.push('link-purpose'); }
   if (HEADING_ROLE.test(role)) fams.push('heading-descriptive');                           // 2.4.6 (heading facet)
   // 2.4.6 LABEL facet (coverage audit): a form field / <label> owes heading-descriptive too — the v0 rubric
   // judges BOTH heading AND label descriptiveness (ACT cc0f0a). The heading-only gate missed labels.
@@ -340,7 +392,23 @@ function familiesFor(el) {
   const isGraphicSurface = el.tag === 'svg' || el.tag === 'canvas'
     || (role === 'img' && el.tag !== 'img')
     || role === 'graphics-document' || role === 'graphics-symbol';
-  if (role === 'link' || el.isFormField === true || FORMFIELD_ROLE.test(role) || isGraphicSurface) fams.push('use-of-color');
+  // STATE_BEARING_ROLE (residual RCA S10): a role=switch/checkbox/radio/tab/option/menuitemcheckbox/
+  // menuitemradio widget renders a checked/selected state, and that rendering can be colour-only —
+  // `<button role="switch" aria-checked>` styled as a green/grey pill matched NONE of the three
+  // predicates here and 1.4.1 minted nothing on the whole page.
+  if (role === 'link' || el.isFormField === true || FORMFIELD_ROLE.test(role) || STATE_BEARING_ROLE.test(role) || isGraphicSurface) fams.push('use-of-color');
+  // F13 EXCEPTION to the plain-<img> exclusion above (residual RCA S10, the image-chart FN pair). WCAG F13
+  // fails BOTH 1.1.1 and 1.4.1 for "a text alternative that does not include information that is conveyed
+  // by color differences in the image". An image whose OWN text alternative NAMES a colour construction
+  // (an alt of the shape "…rows with errors are shaded red") is declaring that its content is
+  // colour-encoded, so the 1.4.1 question — is that information conveyed some other way? — is owed on THIS
+  // image. Bounded by the requirement-sourced construction lexicon (never a bare colour word), so an
+  // ordinary photo alt or attributive colour adjective cannot fire it — the flood the exclusion comment
+  // above worries about stays excluded. Sources: the collector's `alt` (eval-page shape), `axName` (both
+  // collectors; labelledText folds alt/aria-label/title in), and the long-description facts
+  // (`describedByText`/`longDescriptionText`) for any collector that supplies them.
+  if ((IMG_ROLE.test(role) || el.isImage === true) && el.removedFromA11yTree !== true
+    && [el.alt, el.axName, el.describedByText, el.longDescriptionText].some(f13ColourConstruction)) fams.push('use-of-color');
   if (el.isFormField === true || FORMFIELD_ROLE.test(role)) fams.push('error-suggestion'); // 3.3.3 (alongside field-label/error-identification)
   // C8 small-signal predicates (collector-provided cheap facts; the runner re-verifies in-page).
   if (el.hasGlyphText === true) fams.push('glyph-text-alternative');                        // 1.1.1 (icon-font/PUA in own text)
@@ -449,7 +517,7 @@ function skillsForFamily(claimFamily) { return (FAMILIES[claimFamily] && FAMILIE
 function scForFamily(claimFamily) { return FAMILIES[claimFamily] && FAMILIES[claimFamily].sc; }
 
 module.exports = {
-  FAMILIES, WIDGET_ROLE, FORMFIELD_ROLE, IMG_ROLE, HEADING_ROLE, decorativeSuspect, PAGE_REFLOW_XPATH, PAGE_TITLE_XPATH, PAGE_INFOREL_XPATH,
+  FAMILIES, WIDGET_ROLE, FORMFIELD_ROLE, STATE_BEARING_ROLE, IMG_ROLE, HEADING_ROLE, decorativeSuspect, mutedLiveRegionShape, PAGE_REFLOW_XPATH, PAGE_TITLE_XPATH, PAGE_INFOREL_XPATH,
   PAGE_SECTIONHEADINGS_XPATH, PAGE_FOCUSORDER_XPATH, PAGE_MEANINGFUL_SEQUENCE_XPATH, PAGE_STATUS_MESSAGE_XPATH, pageTitleSlotPresent,
   isEvaluable, familiesFor, deriveObligations, oblId,
   applicableScsFor, enumerationErrors, outOfScopeElements, skillsForFamily, scForFamily, factHasText, factRole,

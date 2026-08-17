@@ -15,6 +15,7 @@
 'use strict';
 
 const oracle = require('./applicability-oracle.js');
+const { colorReferencesIn } = require('./color-reference-lexicon.js'); // shared input contract (see colour-referencing-image)
 
 // re-declared here ON PURPOSE (not imported from the oracle) so a drift in the oracle's role sets is
 // caught by disagreement rather than silently shared.
@@ -92,6 +93,29 @@ const SURFACES = Object.freeze([
   // Residual RCA S6 — re-declared to match the oracle's new colour-reference gate (Rule 16 parity).
   Object.freeze({ id: 'color-reference-text', when: (el) => el.colorWordHint === true, families: ['use-of-color'] }),                      // 1.4.1 (F81 / G14 / Understanding 1.4.1)
   Object.freeze({ id: 'emulated-control', when: (el) => el.emulatedControl === true, families: ['control-semantics'] }),                  // 1.3.1 (F42)
+  // Residual RCA S10 aperture widenings — re-declared to match the oracle's four new branches (Rule 16).
+  // <area href>: an image-map region link is a link with its own alt — 1.1.1 + 2.4.4; no href ⇒ nothing.
+  Object.freeze({ id: 'image-map-area', when: (el) => el.tag === 'area' && typeof el.href === 'string' && el.href.length > 0, families: ['non-text-content', 'link-purpose'] }),
+  // State-bearing widget roles whose visual state can be colour-only (regex re-declared, not imported).
+  Object.freeze({ id: 'state-bearing-role', when: (el) => /^(switch|checkbox|radio|tab|option|menuitemcheckbox|menuitemradio)$/.test(factRole(el)), families: ['use-of-color'] }),
+  // F13: an in-tree image whose own text alternative NAMES a colour construction owes use-of-color. The
+  // construction lexicon is a SHARED input contract like factRole/factHasText (re-writing it here would
+  // silently diverge on the vocabulary, not catch drift); the surface→family logic — including the
+  // STRONG-patterns-only restriction (weak colour+noun over-matches photo alts: "a blue box truck") — is
+  // re-declared. If the oracle's F13_STRONG set drifts narrower than this one, the build aborts loudly,
+  // which is Rule 16 doing its job.
+  Object.freeze({ id: 'colour-referencing-image', when: (el) => (IMG_ROLE.test(factRole(el)) || el.isImage === true) && el.removedFromA11yTree !== true
+    && [el.alt, el.axName, el.describedByText, el.longDescriptionText].some((t) => typeof t === 'string' && t.length > 0
+      && colorReferencesIn(t).some((h) => h.pattern === 'presented-in-colour' || h.pattern === 'ui-noun-in-colour' || h.pattern === 'colour-coding')), families: ['use-of-color'] }),
+  // Muted live region: aria-live plumbing with no live semantics (aria-live present but not live, or
+  // atomic/relevant with no live role, or an <output> whose native role is overridden) owes status-message.
+  Object.freeze({ id: 'muted-live-region', when: (el) => {
+    if (!el || el.liveRegion === true) return false;
+    const role = factRole(el).toLowerCase();
+    if (/^(status|alert|log|progressbar|marquee|timer)$/.test(role)) return false;
+    const attrs = Array.isArray(el.ariaAttrs) ? el.ariaAttrs : [];
+    return attrs.includes('aria-live') || attrs.includes('aria-atomic') || attrs.includes('aria-relevant') || (el.tag === 'output' && role.length > 0);
+  }, families: ['status-message'] }),
 ]);
 
 // The families this registry requires for one element (independent of the oracle).

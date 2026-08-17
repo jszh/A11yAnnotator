@@ -123,6 +123,14 @@ deterministic runner already disposed this obligation, DEFER — you are only ha
   alt's purpose requires — a chart's data labels, a screenshot of an error message, an infographic whose
   content IS the words. "The alt does not transcribe the incidental signage visible in the photograph" is
   not a 1.1.1 finding; this over-reach produced this rubric's only false positive.
+  **And this is general, not photo-specific. BEFORE raising a barrier for ANY omission, two checks, both
+  required:** **(1)** name, in your own words, the specific USE this page puts the image to that the
+  omitted detail defeats — if you cannot state a use the omission actually breaks, the detail is incidental
+  and the alt is adequate; **(2)** check whether the surrounding page text (the `surrounding-region`, a
+  caption, adjacent prose) already carries the omitted information — information the page provides in text
+  beside the image is denied to no one, and an alt that skips it rather than repeating it is correct
+  practice, not a barrier. An alt that conveys the image's purpose while omitting incidental detail is a
+  CLEAR.
   **SCOPE — this caveat is about images judged AS IMAGES, and it does NOT reach a control's sole name.**
   Where the image is the only name of a link or button, "an alt that says what the image IS" is not the
   adequate answer, it is the failure: the equivalent purpose of a control's name is its FUNCTION. Do not

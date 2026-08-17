@@ -38,18 +38,20 @@ evidence and has produced false barriers here before. This is a RULE with exactl
 must come from `compute_contrast_ratio` (or `resolve_part_color`) on the two colours you are comparing, or
 from the signals. There is no third source.
 
-**AND DO NOT ASSERT A COLOUR, A BORDER, OR A STATE YOU HAVE NOT SEEN.** The rule above governs the colours
-themselves, not just the ratios between them. Before writing that an element "is red", "has a coloured
-border/outline/background", or "is in the error / required / selected state", you must be able to POINT to
-that appearance in the crop, resolve it with `resolve_part_color`, or read it out of the signals. Naming a
-cue that is not on the page is the fastest way to invent a barrier on a page that has none — and it is
-indistinguishable, in the output, from a real finding. If you cannot confirm the appearance, return PARTIAL.
-**Read a peer group the right way round, too.** When SOME members of a structural peer group carry the coded
-appearance (a coloured border, a coloured label) *together with* its accompanying text or icon, and the
-member in front of you carries NEITHER the colour NOR that text, the correct reading is that this member is
-in the DEFAULT state — not that it is in the coded state with its non-colour cue missing. An element showing
-no cue of any kind is not a colour-alone failure; it is an element the coding does not apply to. Demanding an
-"error"/"required" indicator on a member that is not in that state inverts the criterion.
+**THE SUBJECT'S OWN RESOLVED COLOURS AND STATE — `signals.fieldColourState`.** For a form field whose form is
+not colour-uniform you are handed that field's USED colours (text, background, per-side `border`, `outline`),
+its label's colour, its state attributes, and the peers whose appearance DIFFERS from it. **These values are
+AUTHORITATIVE over the crops for what colour this element is and what state it is in.** A `surrounding-region`
+crop is a rectangle, so on a multi-column form it contains the EDGES OF NEIGHBOURING FIELDS — a coloured border
+near this element's boundary may belong to the control beside it. If no side of `border` carries the coded
+colour, this field does not have that border, whatever the crop appears to show. `sameAppearanceAs` lists the
+peers that render exactly as this one does and `differentAppearanceFrom` the rest, each with its own
+`errorStated` and its `nonColourCue`. A field matching the peers that carry no cue, and differing from the peers
+stated to be in a state, is in the DEFAULT STATE — not a colour-alone failure but a field the coding does not
+apply to, and demanding an error/required indicator on it inverts the criterion. `labelColourContrasts` is the
+MEASURED luminance separation between this field's label colour and each other label colour in the set: it is
+the number the key/legend test below asks for, so use it rather than estimating one. Where no such signal is
+present you still may not assert a colour, border or state you cannot point to — return PARTIAL instead.
 
 **A GRAYSCALE OR CVD RE-RENDER IS NOT EVIDENCE THAT A CUE SURVIVES.** `render_with_overrides(grayscale)`
 maps each colour to its LUMINANCE, so two hues that differ in lightness — red vs green, the commonest shape
@@ -59,22 +61,29 @@ question and produced this rubric's only false clear. If you want the lightness 
 (`compute_contrast_ratio`, ≥3:1 per G183); a grayscale image is not a substitute, and "the elements are
 still distinguishable in grayscale" is never on its own a reason to clear.
 
-**A COLOUR PEER GROUP — `signals.colourPeerGroup`.** When this subject anchors a set of structural peers
-(same tag, same role, same parent) that are identical on every non-colour axis the collector measured and
-differ in used colour, you are handed the whole group with each member's label and colours. This is the
-shape element-level 1.4.1 cannot see, because no individual member looks wrong — the information lives in
-the DIFFERENCE. Two questions, in order:
-1. **Is the colour carrying information?** A palette chosen for looks is not a 1.4.1 failure. Ask what a
-   reader would learn from the colours — a category, a status, a severity, a grouping. If the members'
-   labels already name the category each member belongs to, the colour is reinforcing text that is already
-   there and there is no barrier.
-2. **If it is, is that information also available without colour?** A per-item text label, an icon or
-   pattern on each item, an accessible name, or a legend entry attached to each item all satisfy G14/G182.
-   A separate key that maps colour→meaning by HUE NAME does NOT: the reader still has to perceive which
-   colour each item is to use it. (A key that names its states by a non-hue property is the one exception —
-   apply the key/legend test below, verification included.)
-Only if colour carries information AND nothing else conveys it is this a barrier. Colour-uniform groups,
-zebra striping, syntax highlighting, images and text-less swatches were already excluded before you saw it.
+**A COLOUR PEER GROUP — `signals.colourPeerGroup`. WHEN THIS SIGNAL IS PRESENT, THE GROUP IS THE
+QUESTION.** The subject element is merely the group's ANCHOR — the member the obligation attached to — and
+a verdict that reasons only about the anchor's own text or colours answers the wrong question. Judge the
+SET: across the members listed, is the colour difference the ONLY thing distinguishing a category, status
+or state, with no per-member text, pattern, shape or icon cue carrying the same distinction? The members
+are structural peers (same tag, same role, same parent), identical on every non-colour axis the collector
+measured, and differ in used colour; each is listed with its label and colours. A listed member may itself
+be colour-uniform — an uncoded member sitting inside a coded set, such as a neutral lead item beside
+category-coded siblings — it is there for comparison, and "this member's information is already plain
+text" clears that MEMBER, never the group. This is the shape element-level 1.4.1 cannot see, because no
+individual member looks wrong — the information lives in the DIFFERENCE. Two questions, in order:
+1. **Is the colour carrying information across the set?** A palette chosen for looks is not a 1.4.1
+   failure. Ask what a reader would learn from the colours — a category, a status, a severity, a grouping.
+   If each coded member's OWN label already names the category it belongs to, the colour is reinforcing
+   text that is already there and there is no barrier.
+2. **If it is, is that information also available without colour for EVERY coded member?** A per-item text
+   label, an icon or pattern on each item, an accessible name, or a legend entry attached to each item all
+   satisfy G14/G182. A separate key that maps colour→meaning by HUE NAME does NOT: the reader still has to
+   perceive which colour each item is to use it. (A key that names its states by a non-hue property is the
+   one exception — apply the key/legend test below, verification included.)
+Only if colour carries information AND nothing else conveys it is this a barrier — and it stands even when
+the anchor happens to be the plainest member of the group. Colour-uniform groups, zebra striping, syntax
+highlighting, images and text-less swatches were already excluded before you saw it.
 
 **COLOUR REFERENCED IN INSTRUCTIONS (`signals.*colorReferences`, F81 / Understanding 1.4.1).**
 
@@ -157,11 +166,12 @@ distinguishing the states? Two classic failure modes:
 color-cued element against its peers and see whether a second cue is present), the role/state, and any
 associated text. Judge from these pixels only.
 
-**Interpreting the deterministic evidence (and why it is uncertain):** this obligation reached you BECAUSE
-the deterministic lane could not decide it — for F73/F81 a `contrast.uncertainReason` or a "color-only
-cue could not be ruled out" signal means the checker saw a color difference but could not prove a non-color
-cue is ALSO present (underline, icon, asterisk, shape, text). Treat that as the exact thing to confirm in
-the pixels: hunt for the second cue. CRITICAL invariant: ABSENCE OF A DETERMINISTIC FINDING IS NOT A PASS.
+**Interpreting the deterministic evidence (and why it is uncertain):** this obligation reached you BECAUSE the
+deterministic lane could not decide it — so hunt for the second cue. Note that `contrast.uncertainReason` is a
+GENERIC abstention notice: it reports that no ratio was computed, and it describes NEITHER this element's
+backdrop nor its colours. Never read it as a finding that a colour difference was observed here, and never
+treat its wording about gradients/overlays as a fact about this element. CRITICAL invariant: ABSENCE OF A
+DETERMINISTIC FINDING IS NOT A PASS.
 The checker did not certify "a second cue exists" — it punted precisely because it could not tell. So never
 infer "no finding ⇒ a non-color cue must be there"; look, and if no non-color cue is visible where one is
 needed, that is the barrier. If the crop is ambiguous about whether a faint underline/border exists,

@@ -6,10 +6,11 @@
 const crypto = require('crypto');
 const { collectTables } = require('./collect-tables.js'); // Tier-0 #4: per-<table> relationship facts for 1.3.1
 const { collectLists } = require('./collect-lists.js');   // TT gap G1: per-list semantics (1.3.1 / TT 10.D)
-const { collectColourPeers } = require('./collect-colour-peers.js'); // residual RCA S6: 1.4.1 colour-coded peer groups
+const { collectColourPeers, collectFieldColourState, collectTextContrastFacts } = require('./collect-colour-peers.js'); // residual RCA S6/S10: 1.4.1 colour-coded peer groups + per-field resolved colour/state; + the resolved fg/backdrop the `contrast` signal is built from
 const { collectFauxColumns } = require('./collect-faux-columns.js');  // residual RCA S7: 1.3.1 F34 whitespace-formatted columns
-const { collectErrorSummary } = require('./collect-error-summary.js'); // residual RCA S8: 3.3.1 error-summary vs flagged-state coherence
+const { collectErrorSummary, collectAtRestErrorState } = require('./collect-error-summary.js'); // residual RCA S8: 3.3.1 error-summary vs flagged-state coherence
 const { collectStylingOutliers } = require('./collect-styling-outliers.js'); // residual RCA S8: 1.3.1 F2 presentation-as-meaning (strike-through / small-caps)
+const { collectLinkTargetFacts } = require('./collect-link-facts.js'); // residual RCA S10: 2.4.4 DOM-resolved fragment targets + per-link href facts
 
 function digestForUrl(url) {
   return 'sha256:url:' + crypto.createHash('sha256').update(String(url)).digest('hex');
@@ -173,6 +174,19 @@ async function collectActPage(page, opts = {}) {
       const ra = el.getAttribute('role') || '';
       if (!(al === 'polite' || al === 'assertive' || /^(status|alert|log|progressbar|marquee|timer)$/.test(ra))) return false;
       return el.getAttribute('aria-hidden') !== 'true';
+    }
+    // 1.1.1/2.4.4 <area href> — an image-map area has a 0×0 client rect in Chrome, so the element-loop
+    // visibility skip dropped every one before the oracle's area branch could enumerate it (RCA s10: an
+    // image map's five region links scored no obligation at all). An area is RENDERED exactly when its
+    // owning <map name> is wired to a VISIBLE <img usemap> — admit that, and only that; an area in an
+    // unreferenced map stays inert content, and an area with no href owns nothing either way.
+    function renderedAreaShape(el) {
+      if (el.tagName.toLowerCase() !== 'area' || !el.hasAttribute('href')) return false;
+      const map = el.closest('map');
+      const name = map && map.getAttribute('name');
+      if (!name) return false;
+      const img = document.querySelector('img[usemap="#' + (window.CSS && CSS.escape ? CSS.escape(name) : name.replace(/["\\]/g, '\\$&')) + '"]');
+      return !!img && visible(img);
     }
     function textOf(el) { return (el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim(); }
     function focusableByMarkup(el) {
@@ -573,8 +587,9 @@ async function collectActPage(page, opts = {}) {
     for (const el of (_subset || document.querySelectorAll('body *'))) {
       if (!_subset) {
         if (els.length >= cap) { _cappedOut = true; break; }
-        // a live-region container is admitted even when empty/zero-sized at rest (see liveRegionShape)
-        if (!visible(el) && !liveRegionShape(el)) continue;
+        // a live-region container is admitted even when empty/zero-sized at rest (see liveRegionShape), and a
+        // wired image-map area even though its client rect is 0×0 (see renderedAreaShape)
+        if (!visible(el) && !liveRegionShape(el) && !renderedAreaShape(el)) continue;
       }
       const tag = el.tagName.toLowerCase();
       const roleAttr = el.getAttribute('role') || '';
@@ -1234,7 +1249,9 @@ async function collectActPage(page, opts = {}) {
           // 1.4.13 (residual RCA S6): a pointer/focus-enter listener IS a hover-content trigger candidate.
           // Like focusRisk this only widens the GATE — the reveal experiment still decides whether anything
           // is actually revealed, so a hover handler that merely restyles never becomes a 1.4.13 finding.
-          if (types.some((t) => t === 'mouseenter' || t === 'mouseover' || t === 'pointerenter' || t === 'pointerover')) {
+          // `mousemove`/`pointermove` included (residual RCA S10): a tracked tooltip is wired on MOVE, not
+          // enter — same applicability-only widening, the reveal experiment still decides what is revealed.
+          if (types.some((t) => t === 'mouseenter' || t === 'mouseover' || t === 'pointerenter' || t === 'pointerover' || t === 'mousemove' || t === 'pointermove')) {
             el.hoverListener = true;
             if (el.hasHoverContent !== true) el.hasHoverContent = true;
           }
@@ -1316,6 +1333,17 @@ async function collectActPage(page, opts = {}) {
   // because no individual element looks wrong — the failure is the contrast BETWEEN peers. Held-out over
   // the 926-page corpus: 84% of pages produce zero groups, mean 0.23/page, p90 = 1.
   const colourPeerGroups = await liveEval('collectColourPeers', collectColourPeers, []);
+  // 1.4.1 PER-FIELD RESOLVED COLOUR + STATE (residual RCA S10). Attached per ELEMENT below, not to `structure`:
+  // it answers "what colour is THIS field, and is it in the coded state or the default one" for the subject the
+  // judge is actually looking at. See collect-colour-peers.js for why the crops alone cannot answer that.
+  const fieldColourStates = await liveEval('collectFieldColourState', collectFieldColourState, []);
+  // 1.4.3/1.4.1 RESOLVED FOREGROUND + EFFECTIVE BACKDROP. `precomputeSignals` builds the `contrast` signal —
+  // the colour fact EVERY color-and-visual-text subject receives — from six element keys this collector never
+  // emitted, so the signal degraded to a fixed stub asserting the backdrop was irreducible and telling the
+  // judge to read the pixels, on every colour subject including the great majority whose text sits on a flat
+  // opaque colour. See collect-colour-peers.js for the soundness rules (the contrast runner's CSS-side rules,
+  // amortized, and strictly more conservative wherever the runner leans on rendered pixels).
+  const textContrastFacts = await liveEval('collectTextContrastFacts', collectTextContrastFacts, []);
   // 1.3.1 F34 — whitespace-formatted columns / ASCII tables, where the row-column relationship is carried
   // only by runs of spaces that a screen reader collapses or reads straight through.
   const fauxColumns = await liveEval('collectFauxColumns', collectFauxColumns, []);
@@ -1323,9 +1351,21 @@ async function collectActPage(page, opts = {}) {
   // probe cannot see this: every field it examines is individually correct, and the misdirection lives in
   // the disagreement between the summary and reality.
   const errorSummaries = await liveEval('collectErrorSummary', collectErrorSummary, []);
+  // 3.3.1 — the error state a server-rendered redisplay carries AS LOADED. The before/after driver the lane
+  // routes through cannot see it (there is nothing to trigger) and ERASES it (the retained value clears), so
+  // the only place this barrier ever exists is the state the page loaded in. See collect-error-summary.js.
+  const atRestErrorStates = await liveEval('collectAtRestErrorState', collectAtRestErrorState, []);
+  // 1.3.1 — does a visible group label have a programmatic counterpart? Trivially computable, previously in no
+  // prompt, and its absence produced errors in BOTH directions on one page shape. See collectControlGroups.
+  const controlGroups = await liveEval('collectControlGroups', collectControlGroups, []);
   // 1.3.1 F2 — presentation used to convey meaning. Trigger set narrowed BY MEASUREMENT to strike-through
   // and small-caps (0.9% of pages); weight/size are how the web expresses hierarchy and were unusable.
   const stylingOutliers = await liveEval('collectStylingOutliers', collectStylingOutliers, { outlierGroups: [], inlineConventions: [] });
+  // 2.4.4 LINK-TARGET FACTS (residual RCA S10) — a same-document fragment href resolved to its target
+  // element IN THE DOM (does it exist, what does its own heading/name say), plus per-link terminal path
+  // segment / extension and the same-name-different-target flag. Replaces a stochastic resolve_destination
+  // tool call on the name-vs-destination question with a fact: no network, no OCR, no variance.
+  const linkTargetFacts = await liveEval('collectLinkTargetFacts', collectLinkTargetFacts, []);
   // #2 fix: collectTables/collectLists are top-document-only (document.querySelectorAll) — a frameset page's
   // real headings/lists/tables live in a child <frame>/<iframe> (e.g. the DHS Trusted-Tester corpus), which
   // NEVER reached structure.tables/lists before this fix, regardless of --allow-file-access-from-files. Puppeteer's
@@ -1460,6 +1500,84 @@ async function collectActPage(page, opts = {}) {
     }
   }
 
+  // 1.4.1 PER-FIELD COLOUR/STATE ATTACHMENT (residual RCA S10). Joined in NODE by xpath, exactly like the
+  // colour-reference pre-filter above: the page-side collector produced one record per form field whose field
+  // set is NOT colour-uniform, and each record belongs to the element the judge will be handed. A field whose
+  // form encodes nothing in colour gets no key at all, so the signal's mere PRESENCE already says "there is a
+  // colour difference across this form's fields" — and its absence costs those prompts nothing.
+  if (Array.isArray(fieldColourStates) && fieldColourStates.length) {
+    const byXpath = new Map();
+    for (const el of (data.elements || [])) if (el && typeof el.xpath === 'string') byXpath.set(el.xpath, el);
+    for (const rec of fieldColourStates) {
+      if (!rec || typeof rec.xpath !== 'string') continue;
+      const el = byXpath.get(rec.xpath);
+      if (!el) continue;                    // collected under a cap / different frame — never synthesize an element
+      const { xpath, ...facts } = rec;      // the element already carries its xpath
+      el.fieldColourState = facts;
+    }
+  }
+
+  // TEXT CONTRAST FACTS ATTACHMENT. Same xpath join. These are the six keys `precomputeSignals` already reads
+  // (`color`, `effBg`, `contrastReliable`, `contrastSolid`, `contrastUnreliableReason`, `needsPixelContrast`),
+  // so no adjudicator wiring is added — the existing branch stops reading a stub and starts reading facts.
+  // Assigned key-by-key and only when absent, so a key another lane already set on this element is never
+  // overwritten, and an element the collector could not resolve keeps exactly what it had.
+  if (Array.isArray(textContrastFacts) && textContrastFacts.length) {
+    const byXpath = new Map();
+    for (const el of (data.elements || [])) if (el && typeof el.xpath === 'string') byXpath.set(el.xpath, el);
+    for (const rec of textContrastFacts) {
+      if (!rec || typeof rec.xpath !== 'string') continue;
+      const el = byXpath.get(rec.xpath);
+      if (!el) continue;                    // collected under a cap / different frame — never synthesize an element
+      for (const k of ['color', 'effBg', 'contrastReliable', 'contrastSolid', 'contrastThreshold', 'needsPixelContrast', 'contrastUnreliableReason']) {
+        if (rec[k] !== undefined && el[k] === undefined) el[k] = rec[k];
+      }
+    }
+  }
+
+  // 3.3.1 AT-REST ERROR STATE + 1.3.1 CONTROL-GROUP CORRESPONDENCE — same xpath join. Both are per-SUBJECT
+  // facts (the 3.3.1 and 1.3.1 rubrics judge ONE field at a time), so each record is attached to the element
+  // the judge will be handed; the control-group record additionally goes onto `structure` for the page-level
+  // 1.3.1 pseudo-element. Neither key existed before, so nothing that reads an element record changes.
+  if ((Array.isArray(atRestErrorStates) && atRestErrorStates.length) || (Array.isArray(controlGroups) && controlGroups.length)) {
+    const byXpath = new Map();
+    for (const el of (data.elements || [])) if (el && typeof el.xpath === 'string') byXpath.set(el.xpath, el);
+    for (const rec of (atRestErrorStates || [])) {
+      if (!rec || typeof rec.xpath !== 'string') continue;
+      const el = byXpath.get(rec.xpath);
+      if (!el) continue;
+      const { xpath, ...facts } = rec;
+      el.atRestErrorState = facts;
+    }
+    for (const g of (controlGroups || [])) {
+      if (!g || !Array.isArray(g.members)) continue;
+      // one record per SET, attached to each of its members — the set IS the subject's context, and a member
+      // handed only its own markup cannot see that it is one of several answers to a single question.
+      const { members, ...rest } = g;
+      for (const m of members) {
+        if (!m || typeof m.xpath !== 'string') continue;
+        const el = byXpath.get(m.xpath);
+        if (!el) continue;
+        el.controlGroup = { ...rest, members, thisMember: m.xpath };
+      }
+    }
+  }
+
+  // 2.4.4 LINK-TARGET FACTS ATTACHMENT (residual RCA S10) — same xpath join. Each record is per LINK and
+  // belongs to the element the judge will be handed; `linkTargetFacts` did not exist on any element before,
+  // so nothing that reads an element record changes until an adjudicator branch surfaces it.
+  if (Array.isArray(linkTargetFacts) && linkTargetFacts.length) {
+    const byXpath = new Map();
+    for (const el of (data.elements || [])) if (el && typeof el.xpath === 'string') byXpath.set(el.xpath, el);
+    for (const rec of linkTargetFacts) {
+      if (!rec || typeof rec.xpath !== 'string') continue;
+      const el = byXpath.get(rec.xpath);
+      if (!el) continue;                    // collected under a cap / not in the inventory — never synthesize an element
+      const { xpath, ...facts } = rec;      // the element already carries its xpath
+      el.linkTargetFacts = facts;
+    }
+  }
+
   return {
     file: opts.file || `act:${url}`,
     sourceUrl: opts.sourceUrl || url,
@@ -1473,7 +1591,7 @@ async function collectActPage(page, opts = {}) {
     // flag the page-clear as PARTIAL-COVERAGE rather than a full-page conformance claim. `cap` is the configured cap.
     coverage: { truncated: !!data.truncated, collected: (data.elements || []).length, domElementCount: data.domElementCount || null, cap: elementCap, subset: !!data.subset },
     page: { reflowApplicable: !!data.reflowApplicable, delegatedListenerTypes: pageDelegatedListenerTypes },
-    structure: { title: data.title || '', frameTitles: data.frameTitles || [], lang: data.lang || '', headings: data.headings || [], landmarks: data.landmarks || [], tables: tables || [], lists: lists || [], colourPeerGroups: colourPeerGroups || [], fauxColumns, errorSummaries,
+    structure: { title: data.title || '', frameTitles: data.frameTitles || [], lang: data.lang || '', headings: data.headings || [], landmarks: data.landmarks || [], tables: tables || [], lists: lists || [], colourPeerGroups: colourPeerGroups || [], fauxColumns, errorSummaries, controlGroups: controlGroups || [],
       presentationOutliers: (stylingOutliers && stylingOutliers.outlierGroups) || [],
       presentationConventions: (stylingOutliers && stylingOutliers.inlineConventions) || [] },
     axe: axeData ? axeData.violations : [],
@@ -1489,6 +1607,253 @@ async function collectActPage(page, opts = {}) {
   };
 }
 
+// ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
+// SC 1.3.1 — CONTROL-GROUP / VISIBLE-LABEL CORRESPONDENCE.
+//
+// WHY THIS EXISTS. Whether a set of controls governed by a visible group label is ALSO grouped programmatically
+// is trivially computable — `fieldset` + `legend`, or `role="group"`/`role="radiogroup"` carrying an accessible
+// name — and it was in no prompt at all. Measured on one page shape, that absence produced errors in BOTH
+// directions from the same judge: on a set that WAS grouped (a `role="radiogroup"` naming its heading through
+// `aria-labelledby`) it reported the visible text as "NOT programmatically associated" with the controls, an
+// assertion the DOM directly contradicts; and on sets that were NOT grouped it declined to decide, reporting
+// that it "could not confirm programmatic grouping" and "could not complete an accessibility-tree query" —
+// having made no tool call at all. One fact answers all three: an invented absence is refuted by stating the
+// association, and a fabricated excuse is removed by stating the absence.
+//
+// THE ASYMMETRY, which is the whole design problem. Stating the association POSITIVELY is free — it can only
+// ever contradict a claim that the association is missing. Stating the ABSENCE positively is not free: absence
+// of a programmatic group is only a barrier when a group relationship is actually OWED, and a fact that
+// announces "a visible label governs these controls and nothing groups them" over every heading that happens
+// to sit above a run of fields would manufacture barriers across ordinary, correct forms. So the absence is
+// only ever stated for a set whose members genuinely form ONE question:
+//   (A) two or more radios/checkboxes SHARING A CONTROL NAME — sharing a name is what makes them one question,
+//       and their own labels ("Yes", "No", an amount) are by construction not self-sufficient; or
+//   (B) two or more sibling controls of which NONE carries a label element, `aria-label` or `aria-labelledby` —
+//       a set named, if at all, only by `title`/`placeholder`, which is the split-one-question-into-parts shape.
+// A run of separately labelled fields under a section heading matches NEITHER, and is never reported.
+//
+// DECIDES NOTHING. It states which controls form a set, what visible text governs them, whether a programmatic
+// group exists, what its accessible name is, and whether the two correspond. Whether the visible text is
+// genuinely the question the controls answer — and so whether the relationship is required — stays with the
+// rubric, and the note says so explicitly in both directions.
+//
+// Self-contained so it serializes through page.evaluate.
+function collectControlGroups() {
+  const MAX_GROUPS = 8, MAX_MEMBERS = 12, MAX_TEXT = 120;
+  const xpathOf = (e) => {
+    if (!e || !e.tagName) return '';
+    if (e === document.documentElement) return '/html';
+    if (e === document.body && e.tagName === 'BODY') return '/html/body';
+    const t = e.tagName.toLowerCase();
+    let i = 1; for (let s = e.previousElementSibling; s; s = s.previousElementSibling) if (s.tagName === e.tagName) i++;
+    return xpathOf(e.parentElement) + '/' + t + '[' + i + ']';
+  };
+  const norm = (s) => String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
+  const clip = (s, n) => norm(s).slice(0, n);
+  const visible = (e) => {
+    if (!e || !e.tagName) return false;
+    const cs = getComputedStyle(e);
+    if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity || '1') === 0) return false;
+    const r = e.getBoundingClientRect();
+    return r.width > 0 && r.height > 0;
+  };
+  const idsText = (e, attr) => {
+    const v = e.getAttribute(attr);
+    if (!v) return '';
+    let t = '';
+    for (const id of v.trim().split(/\s+/).slice(0, 4)) {
+      let n = null;
+      try { n = document.getElementById(id); } catch (err) { n = null; }
+      if (n) t += ' ' + (n.textContent || '');
+    }
+    return clip(t, MAX_TEXT);
+  };
+  // A control's OWN label mechanism. `title` and `placeholder` are deliberately excluded: they are what the
+  // split-question shape uses INSTEAD of a label, and treating them as labelling would hide exactly the set
+  // this is meant to describe. Reported as data either way, never as a verdict.
+  const ownLabel = (e) => {
+    const lb = idsText(e, 'aria-labelledby');
+    if (lb) return { via: 'aria-labelledby', text: lb };
+    const al = clip(e.getAttribute('aria-label') || '', MAX_TEXT);
+    if (al) return { via: 'aria-label', text: al };
+    let lab = null;
+    try { if (e.labels && e.labels.length) lab = e.labels[0]; } catch (err) { lab = null; }
+    if (!lab) { try { lab = e.closest('label'); } catch (err) { lab = null; } }
+    if (lab) return { via: 'label', text: clip(lab.textContent, MAX_TEXT), el: lab };
+    return null;
+  };
+  const nearestForm = (e) => { try { return e.closest('form'); } catch (err) { return null; } };
+  const commonAncestor = (els) => {
+    let a = els[0];
+    for (const e of els.slice(1)) { while (a && !a.contains(e)) a = a.parentElement; }
+    return a || document.body;
+  };
+  const firstVisibleIdTarget = (e, attr) => {
+    const v = e.getAttribute(attr);
+    if (!v) return null;
+    for (const id of v.trim().split(/\s+/).slice(0, 4)) {
+      let n = null;
+      try { n = document.getElementById(id); } catch (err) { n = null; }
+      if (n && visible(n)) return n;
+    }
+    return null;
+  };
+  // The programmatic group, if any: the nearest ancestor of the whole set that groups it by one of the
+  // mechanisms that actually create the relationship in the accessibility tree. The walk stops at the form
+  // (and at 6 levels) so a wrapper far above the set is never credited with naming it.
+  const programmaticGroup = (anc) => {
+    let levels = 0;
+    for (let p = anc; p && p !== document.documentElement && levels < 6; p = p.parentElement, levels++) {
+      const tag = p.tagName.toLowerCase();
+      const role = String(p.getAttribute('role') || '').toLowerCase();
+      const lbEl = firstVisibleIdTarget(p, 'aria-labelledby');
+      const lb = idsText(p, 'aria-labelledby');
+      const al = clip(p.getAttribute('aria-label') || '', MAX_TEXT);
+      if (tag === 'fieldset') {
+        let leg = null;
+        for (const c of p.children) if (c.tagName && c.tagName.toLowerCase() === 'legend') { leg = c; break; }
+        if (leg) return { el: p, xpath: xpathOf(p), mechanism: 'fieldset+legend', accessibleName: clip(leg.textContent, MAX_TEXT), nameSource: visible(leg) ? { xpath: xpathOf(leg), rendered: true } : { xpath: xpathOf(leg), rendered: false } };
+        if (lb) return { el: p, xpath: xpathOf(p), mechanism: 'fieldset+aria-labelledby', accessibleName: lb, nameSource: lbEl ? { xpath: xpathOf(lbEl), rendered: true } : { xpath: null, rendered: false } };
+        if (al) return { el: p, xpath: xpathOf(p), mechanism: 'fieldset+aria-label', accessibleName: al, nameSource: { xpath: null, rendered: false } };
+        return { el: p, xpath: xpathOf(p), mechanism: 'fieldset (no legend, no aria name)', accessibleName: '', nameSource: null };
+      }
+      if (role === 'group' || role === 'radiogroup') {
+        if (lb) return { el: p, xpath: xpathOf(p), mechanism: 'role=' + role + '+aria-labelledby', accessibleName: lb, nameSource: lbEl ? { xpath: xpathOf(lbEl), rendered: true } : { xpath: null, rendered: false } };
+        if (al) return { el: p, xpath: xpathOf(p), mechanism: 'role=' + role + '+aria-label', accessibleName: al, nameSource: { xpath: null, rendered: false } };
+        return { el: p, xpath: xpathOf(p), mechanism: 'role=' + role + ' (no accessible name)', accessibleName: '', nameSource: null };
+      }
+      if (tag === 'form') break;                        // never credit a wrapper above the form with naming this set
+    }
+    return null;
+  };
+  // The visible text blocks immediately BEFORE the set, as CANDIDATES — deliberately a short list in document
+  // order, not a single pick. Choosing one and calling it "the group label" is a judgment, and a first
+  // implementation that made that pick chose a trailing help sentence over the question above it, and chose an
+  // unrelated paragraph over a legend, producing a "the names differ" claim about correctly grouped controls.
+  // Anchored at the set's own position inside its container, not at the container's own position.
+  const precedingVisibleText = (anc, memberSet, labelEls) => {
+    const ok = (n) => {
+      if (!n || !n.tagName || memberSet.has(n) || labelEls.has(n)) return false;
+      if (/^(script|style|noscript|legend)$/.test(n.tagName.toLowerCase())) return false;
+      if (n.querySelector && n.querySelector('input, select, textarea, [role="radio"], [role="checkbox"]')) return false; // a block holding controls is not a label FOR them
+      if (!visible(n)) return false;
+      return norm(n.textContent).length >= 2;
+    };
+    // where the set STARTS inside `anc` — the top-most ancestor of the first member that is a child of `anc`.
+    let start = null;
+    for (const m of memberSet) { start = m; break; }
+    if (start) { while (start && start.parentElement && start.parentElement !== anc) start = start.parentElement; }
+    const found = [];
+    const scanBack = (from) => {
+      let seen = 0;
+      for (let s = from; s && found.length < 3 && seen < 10; s = s.previousElementSibling, seen++) {
+        if (ok(s)) found.push({ xpath: xpathOf(s), text: clip(s.textContent, MAX_TEXT), tag: s.tagName.toLowerCase() });
+      }
+    };
+    if (start && start.parentElement === anc) scanBack(start.previousElementSibling);
+    let node = anc, levels = 0;
+    while (found.length < 3 && node && levels < 4) {
+      scanBack(node.previousElementSibling);
+      if (node === document.body) break;
+      node = node.parentElement; levels++;
+    }
+    return found.reverse();                              // document order — the question reads before its help text
+  };
+
+  const sets = [];
+  // (A) radios / checkboxes sharing a control name — one question by construction.
+  const byName = new Map();
+  for (const el of document.querySelectorAll('input[type="radio" i], input[type="checkbox" i]')) {
+    if (!visible(el)) continue;
+    const nm = el.getAttribute('name');
+    if (!nm) continue;
+    const f = nearestForm(el);
+    const key = (f ? xpathOf(f) : 'document') + '|' + String(el.getAttribute('type') || '').toLowerCase() + '|' + nm;
+    if (!byName.has(key)) byName.set(key, []);
+    const g = byName.get(key);
+    if (g.length < MAX_MEMBERS) g.push(el);
+  }
+  for (const [, members] of byName) if (members.length >= 2) sets.push({ kind: 'shared-control-name', members });
+  // (B) sibling controls of which NONE carries a label / aria-label / aria-labelledby.
+  const bySibling = new Map();
+  for (const el of document.querySelectorAll('input:not([type="hidden" i]):not([type="submit" i]):not([type="button" i]):not([type="reset" i]), select, textarea')) {
+    if (!visible(el)) continue;
+    const p = el.parentElement; if (!p) continue;
+    const key = xpathOf(p);
+    if (!bySibling.has(key)) bySibling.set(key, []);
+    const g = bySibling.get(key);
+    if (g.length < MAX_MEMBERS) g.push(el);
+  }
+  for (const [, members] of bySibling) {
+    if (members.length < 2) continue;
+    if (members.some((m) => (m.getAttribute('type') || '').toLowerCase() === 'radio' || (m.getAttribute('type') || '').toLowerCase() === 'checkbox')) continue; // covered by (A)
+    if (members.some((m) => !!ownLabel(m))) continue;                                 // separately labelled ⇒ not one question
+    sets.push({ kind: 'unlabelled-sibling-controls', members });
+  }
+
+  const out = [];
+  const seen = new Set();
+  for (const set of sets) {
+    if (out.length >= MAX_GROUPS) break;
+    const key = set.members.map((m) => xpathOf(m)).join(',');
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const anc = commonAncestor(set.members);
+    const memberSet = new Set(set.members);
+    const labelEls = new Set();
+    let named = 0, titleOnly = 0;
+    const members = [];
+    for (const m of set.members) {
+      const ol = ownLabel(m);
+      if (ol) { named++; if (ol.el) labelEls.add(ol.el); }
+      else if (m.getAttribute('title') || m.getAttribute('placeholder')) titleOnly++;
+      members.push({ xpath: xpathOf(m), ownName: ol ? ol.text : null, ownNameVia: ol ? ol.via : null });
+    }
+    const group = programmaticGroup(anc);
+    const named2 = group && norm(group.accessibleName);
+    // does the grouping container also hold controls that are NOT in this set? Then it is a wrapper around
+    // several questions, and its name is not this set's label.
+    let otherControls = 0;
+    if (group && group.el) {
+      for (const c of group.el.querySelectorAll('input:not([type="hidden" i]):not([type="submit" i]):not([type="button" i]):not([type="reset" i]), select, textarea')) {
+        if (!memberSet.has(c) && visible(c)) otherControls++;
+      }
+    }
+    let correspondence;
+    if (!group) correspondence = 'no-programmatic-group';
+    else if (!named2) correspondence = 'group-without-accessible-name';
+    else if (group.nameSource && group.nameSource.rendered) correspondence = 'group-named-by-visible-text';
+    else correspondence = 'group-named-but-name-not-rendered-on-screen';
+    // Only offered where there is no programmatic group to compare against — where there IS one, the visible
+    // label is the group's own rendered name source, and guessing a second one invents a disagreement.
+    const preceding = group ? null : precedingVisibleText(anc, memberSet, labelEls);
+
+    const rec = {
+      kind: set.kind,
+      memberCount: set.members.length,
+      members: members.slice(0, MAX_MEMBERS),
+      containerXpath: xpathOf(anc),
+      membersWithOwnName: named,
+      membersNamedOnlyByTitleOrPlaceholder: titleOnly,
+      programmaticGroup: group ? { xpath: group.xpath, mechanism: group.mechanism, accessibleName: group.accessibleName, nameRenderedOnScreen: !!(group.nameSource && group.nameSource.rendered), nameSourceXpath: group.nameSource ? group.nameSource.xpath : null, alsoContainsOtherControls: otherControls } : null,
+      correspondence,
+      // FACET-SYMMETRIC on purpose: one missing fact produced an invented absence on a correctly grouped set
+      // AND a fabricated excuse on ungrouped ones, so the note has to close both.
+      uncertainReason: (correspondence === 'group-named-by-visible-text'
+        ? 'these controls ARE programmatically grouped and the group carries the accessible name shown above — `nameSourceXpath` is the on-screen element the name comes from. The association is in the DOM: do NOT report this text as "not programmatically associated" with these controls.'
+        : correspondence === 'group-named-but-name-not-rendered-on-screen'
+          ? 'these controls ARE programmatically grouped and the group HAS an accessible name, but that name is not rendered anywhere on screen — judge whether it conveys the same thing the visible text does.'
+          : correspondence === 'group-without-accessible-name'
+            ? 'a grouping container exists for these controls but carries NO accessible name (no legend, no aria-label, no aria-labelledby), so the group is announced without saying what it is for.'
+            : 'NO programmatic grouping mechanism (fieldset+legend, role=group / role=radiogroup with an accessible name, or aria-labelledby on a container) exists for this control set. That has been CHECKED in the DOM — it is a determined result, not an unavailable one, so do not report it as unconfirmable and do not ask for an accessibility-tree query to settle it. `precedingVisibleText` lists the visible text blocks immediately before the set, in reading order, as CANDIDATES for the question they answer — which one (if any) is the group label is yours to read. Whether the absence is a barrier is also yours: it is one when that text is the question these controls answer and their own names do not carry that meaning alone; it is NOT one when each control\'s own accessible name already suffices.')
+        + ' `members[].ownName` is each control\'s own accessible name and how it is derived; `title` and `placeholder` are reported as ABSENT names, because neither is a label.',
+    };
+    if (preceding && preceding.length) rec.precedingVisibleText = preceding;
+    out.push(rec);
+  }
+  return out;
+}
+
 // Backfill any missing role fields (orchestrate's candidate generator reads sampledRole/axRole).
 function normalizeCollectRoles(collect) {
   for (const el of collect.elements || []) {
@@ -1498,4 +1863,4 @@ function normalizeCollectRoles(collect) {
   return collect;
 }
 
-module.exports = { collectActPage, normalizeCollectRoles, nativeRole, digestForUrl };
+module.exports = { collectActPage, normalizeCollectRoles, nativeRole, digestForUrl, collectControlGroups };

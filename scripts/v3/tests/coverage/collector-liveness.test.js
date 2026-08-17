@@ -27,9 +27,11 @@ const puppeteer = require('puppeteer');
 
 const { collectTables } = require('../../lib/collect-tables.js');
 const { collectLists } = require('../../lib/collect-lists.js');
-const { collectColourPeers } = require('../../lib/collect-colour-peers.js');
+const { collectColourPeers, collectFieldColourState, collectTextContrastFacts } = require('../../lib/collect-colour-peers.js');
 const { collectFauxColumns } = require('../../lib/collect-faux-columns.js');
-const { collectErrorSummary } = require('../../lib/collect-error-summary.js');
+const { collectErrorSummary, collectAtRestErrorState } = require('../../lib/collect-error-summary.js');
+const { collectLinkTargetFacts } = require('../../lib/collect-link-facts.js');
+const { collectControlGroups } = require('../../lib/act-page-collect.js');
 const { collectStylingOutliers } = require('../../lib/collect-styling-outliers.js');
 const { collectMotion } = require('../../lib/broad-scope-probes.js');
 const { captureInventory, measureReflow320, runReflow } = require('../../lib/reflow-runner.js');
@@ -80,6 +82,8 @@ South         95       ok</pre>
   <div class="spinner"></div>
   <button type="button">Pause animation</button>
   <div class="scroller">ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnop</div>
+  <nav><a href="#appendix">Appendix</a> <a href="files/summary.pdf">Summary</a> <a href="#missing-anchor">Errata</a></nav>
+  <section id="appendix"><h2>Appendix</h2><p>Supplementary figures.</p></section>
 </body></html>`);
 
 async function withBrowser(fn) {
@@ -92,12 +96,17 @@ async function withBrowser(fn) {
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
 
 const GUARDED_COLLECTORS = [
-  // act-page-collect.js — six `.catch()`-guarded evaluates
+  // act-page-collect.js — every `liveEval`-guarded evaluate
   ['collectTables', collectTables],
   ['collectLists', collectLists],
   ['collectColourPeers', collectColourPeers],
+  ['collectFieldColourState', collectFieldColourState],
+  ['collectTextContrastFacts', collectTextContrastFacts],
   ['collectFauxColumns', collectFauxColumns],
   ['collectErrorSummary', collectErrorSummary],
+  ['collectAtRestErrorState', collectAtRestErrorState],
+  ['collectLinkTargetFacts', collectLinkTargetFacts],
+  ['collectControlGroups', collectControlGroups],
   ['collectStylingOutliers', collectStylingOutliers],
   // broad-scope-probes.js — collectMotion (two guarded call sites)
   ['collectMotion', collectMotion],

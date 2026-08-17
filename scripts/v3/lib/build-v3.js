@@ -506,6 +506,24 @@ function buildV3(bundle, opts = {}) {
     seenTrap.add(id);
     trapMintedObligations.push({ obligationId: id, xpath, sc: o.sc, claimFamily: o.claimFamily });
   }
+  // ONE-WAY obligation mint (keyboard-trap-oneway ONLY — see HUNK-keyboard-oneway-gate.md scope note): the
+  // finding is REVIEW — it must never promote a barrier, and the trapObs guard above keeps it out of that
+  // loop — but on a page the oracle did not enumerate (no inModal/focusRisk member) there is also NO ledger
+  // row, so keyboard-trap-v0 has nothing to run on and the finding evaporates. Mint the OBLIGATION ONLY: no
+  // observation is attached, nothing is decided here; the adjudicator's confinement carve-out routes the row
+  // to the rubric, which owns the TT 4.C required-interaction question. `keyboard-trap-directional` and a
+  // review `keyboard-trap-confinement` still mint NOTHING (S1 GUARD tests, user-approved).
+  const reviewTrapMintedObligations = [];
+  if (bundle.instruments && Array.isArray(bundle.instruments.findings)) {
+    for (const f of bundle.instruments.findings) {
+      if (!f || f.review !== true || f.sc !== '2.1.2' || !f.xpath) continue;
+      if (f.kind !== 'keyboard-trap-oneway') continue;
+      const id = oracle.oblId(f.xpath, '2.1.2', 'no-keyboard-trap');
+      if (existingOblIds.has(id) || seenChk.has(id) || seenAxe.has(id) || seenDet.has(id) || seenTrap.has(id)) continue;
+      seenTrap.add(id);
+      reviewTrapMintedObligations.push({ obligationId: id, xpath: f.xpath, sc: '2.1.2', claimFamily: 'no-keyboard-trap' });
+    }
+  }
   // CONFUSABLE-TEXT obligations (1.1.1 text-lookalike-glyph-substitution) — the same missed-mint shape as the
   // keystone above. `detectConfusableText` is a shipped deterministic detector, but its ONLY consumer was the
   // adjudicator's per-element evidence bundle (llm-adjudicator.js:240), which runs per ENUMERATED OBLIGATION.
@@ -609,7 +627,7 @@ function buildV3(bundle, opts = {}) {
     seenColour.add(id);
     colourGroupObligations.push({ obligationId: id, xpath: anchor, sc: '1.4.1', claimFamily: 'use-of-color' });
   }
-  const obligations = [...staticObligations, ...dynamicObligations, ...checkerObligations, ...axeDecidedObligations, ...detBarrierObligations, ...trapMintedObligations, ...confusableObligations, ...sequenceObligations, ...statusObligations, ...colourGroupObligations];
+  const obligations = [...staticObligations, ...dynamicObligations, ...checkerObligations, ...axeDecidedObligations, ...detBarrierObligations, ...trapMintedObligations, ...reviewTrapMintedObligations, ...confusableObligations, ...sequenceObligations, ...statusObligations, ...colourGroupObligations];
   // C2 — QUALWEB TWO-LANE (barrier + definitive-silent clear): the ONE checker wired as an AUTHORITATIVE
   // obligation disposition (the §2 invariant is carved out for QualWeb — verified counterfactual b49c0236).
   // The pure core turns QualWeb's own per-rule aggregate outcome into barrier/clear/review lane decisions

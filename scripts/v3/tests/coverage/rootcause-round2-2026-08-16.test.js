@@ -91,6 +91,24 @@ test('S1 GUARD: an ADVISORY confinement (review:true) must not mint either', () 
   assert.deepEqual(oblsFor(r, '2.1.2'), [], 'an advisory confinement is a review row, not a barrier');
 });
 
+test('S1 COMPANION (oneway): a keyboard-trap-oneway REVIEW finding mints exactly ONE obligation and decides NOTHING', () => {
+  // HUNK-keyboard-oneway-gate.md hunk D: the one-way pages score 0 obligations (plain role=group buttons —
+  // no inModal/focusRisk member), so without this mint the REVIEW finding evaporates before any judge. The
+  // mint is obligation-ONLY: no observation, no barrier — the row lands auto-PARTIAL and the adjudicator's
+  // confinement carve-out routes it to keyboard-trap-v0, which owns the TT 4.C required-interaction call.
+  // The two guards above stay authoritative: directional and advisory-confinement rows still mint nothing.
+  const r = buildV3(bundleWith({
+    elements: [{ xpath: '/html/body/div[1]/button[1]', tag: 'button', focusable: true }],
+    findings: [{ sc: '2.1.2', kind: 'keyboard-trap-oneway', xpath: '/html/body/div[1]/button[1]', review: true, detector: 'confinement', direction: 'forward', unreached: [{ tag: 'a', label: 'x' }], unreachedCount: 1 }],
+  }), { authority: PROMOTED });
+  assert.equal(r.ok, true, JSON.stringify(r.errors));
+  const traps = oblsFor(r, '2.1.2');
+  assert.equal(traps.length, 1, 'exactly one minted obligation');
+  assert.equal(traps[0].claimFamily, 'no-keyboard-trap');
+  assert.equal(traps[0].autoPartial, true, 'nothing disposed it — the rubric lane owns the question');
+  assert.equal(traps[0].cleared, false, 'a review finding never clears');
+});
+
 test('S1 GUARD: minting never DUPLICATES an obligation the oracle already enumerated', () => {
   // A focusable inside a modal DOES get an oracle-enumerated no-keyboard-trap obligation. If the
   // trap lands on that same element the mint must dedupe, or the ledger double-counts the failure.
