@@ -775,7 +775,17 @@ function precomputeSignals(element, skill, sc) {
     s.colourPeerGroup = {
       members: (g.members || []).slice(0, 12),
       distinctColours: g.distinctColours,
-      note: 'These elements are STRUCTURAL PEERS (same tag, same role, same parent) that are IDENTICAL on every '
+      ...(g.tokenLane === true ? { tokenLane: true, legendText: g.legendText || undefined } : {}),
+      note: g.tokenLane === true
+        ? 'These elements are TEXT-LESS COLOUR TOKENS: the same tag and class, spread across DIFFERENT '
+          + 'parents, each painting its own background, with no text of their own — and the same token class '
+          + 'also appears inside a text-bearing context (legendText). The SET is the question, not the anchor '
+          + 'element alone. What is yours to judge: whether the colour codes information (a status, a '
+          + 'category), and whether that information is available in text AT THE POINT OF USE — a legend '
+          + 'elsewhere that only NAMES the colours does not by itself make each token readable without colour '
+          + 'perception (G14). A token set whose meaning is also conveyed per-instance in text, a pattern, or '
+          + 'an icon is not a failure.'
+        : 'These elements are STRUCTURAL PEERS (same tag, same role, same parent) that are IDENTICAL on every '
         + 'non-colour axis the collector measured — font weight, style, size, text-decoration, border style, and '
         + 'presence of an icon or generated-content marker — and DIFFER in used colour. Zebra striping, syntax '
         + 'highlighting, colour-uniform sets, images and text-less swatches are already excluded. What is NOT '
@@ -828,6 +838,105 @@ function precomputeSignals(element, skill, sc) {
   if ((skill === 'grouping-and-reading-order' || skill === 'forms-instructions-errors')
       && element.controlGroup && typeof element.controlGroup === 'object') {
     s.controlGroup = element.controlGroup;
+  }
+  // 1.3.1 PAGE-LEVEL CONTROL-GROUP SUMMARY — see selectRubricSubjects. The per-member record above answers
+  // "which set is THIS field part of"; this one answers the page-level question — which sets exist, what
+  // visible text governs each, and whether a programmatic group NAME exists — on the subject where that
+  // question is actually judged.
+  if (element.__controlGroupsPage) {
+    const cg = element.__controlGroupsPage;
+    s.controlGroups = {
+      groups: (cg.groups || []).slice(0, 8),
+      splitFieldGroupXpaths: (cg.splitFieldGroupXpaths || []).slice(0, 12),
+      note: 'Each entry is a control SET that forms ONE question by construction (radios/checkboxes sharing '
+        + 'a control name, or sibling controls of which NONE carries a label element / aria-label / '
+        + 'aria-labelledby). `hasProgrammaticGroupName` and `programmaticGroup` state whether a grouping '
+        + 'mechanism (fieldset+legend, role=group/radiogroup with an accessible name) names the set — '
+        + 'CHECKED in the DOM, a determined result in BOTH directions: where it is true, do NOT report the '
+        + 'visible text as "not programmatically associated"; where `correspondence` is '
+        + 'no-programmatic-group, do not report it as unconfirmable and do not ask for an '
+        + 'accessibility-tree query to settle it. `visibleLabelCandidates` are the visible text blocks '
+        + 'immediately before the set, in reading order — which one (if any) is the question the controls '
+        + 'answer is yours to read, and the absence of a group is a barrier only when that text carries '
+        + 'meaning the members\' own names (`memberOwnNames`) do not carry alone. `splitFieldGroupXpaths` '
+        + 'are inputs that are PARTS of one multipart field (short-maxlength siblings named, if at all, by '
+        + 'title/placeholder); their group question belongs to this subject too. These are FACTS about the '
+        + 'page\'s grouping state, never a verdict.',
+    };
+  }
+  // 1.3.1 VISUAL-STRUCTURE DISCOVERIES — see selectRubricSubjects. The broad-scope visual-structure probe
+  // now runs per-case in the collector (one read-only evaluate); its heading discoveries give the judge a
+  // deterministic anchor for the styled-non-semantic-heading shape instead of a live-AX-check-shaped
+  // question answered from the crop.
+  if (element.__visualHeadings) {
+    s.visualHeadings = {
+      entries: element.__visualHeadings.slice(0, 8),
+      note: 'Rendered text blocks that LOOK like headings — heading-scale font size/weight, short, '
+        + 'block-level — while being neither h1-h6 nor role=heading. The visual-heading PREMISE is '
+        + 'established from computed style, deterministically: do not re-derive it from the crop and do '
+        + 'not request a live accessibility-tree check to establish it. What stays yours: whether the text '
+        + 'actually INTRODUCES the content below it as a section (text serving branding, emphasis, or '
+        + 'display purposes rather than introducing what follows is not a heading), and whether a real programmatic heading already carries '
+        + 'that structure. A styled line that does introduce a section, with no programmatic heading '
+        + 'anywhere for it, is the visual-structure-without-markup direction of 1.3.1.',
+    };
+  }
+  // 1.3.1 EXACT DECLARED-STRUCTURE / GROUPING-STATE FACTS — see selectRubricSubjects and
+  // act-page-collect.js collectStructuralMarkupFacts. Each converts a previously-unanswerable page-level
+  // question into a stated, checked result; each is DATA with a reading rule, never a verdict.
+  if (element.__structuralMarkupFacts) {
+    const smf = element.__structuralMarkupFacts;
+    if (Array.isArray(smf.blockquotesWithoutSource) && smf.blockquotesWithoutSource.length) {
+      s.blockquotesWithoutSource = {
+        entries: smf.blockquotesWithoutSource.slice(0, 4),
+        note: 'Each entry is a visible <blockquote> with NO cite= attribute, NO <cite> descendant, and NO '
+          + 'adjacent attribution (no figcaption in an enclosing figure, no dash-led attribution line '
+          + 'beside or inside it) — the element declares a quotation relationship and names no source '
+          + 'anywhere the DOM can see. CHECKED, not unconfirmable. Yours to judge from the text: whether '
+          + 'it reads as first-party prose merely styled as a quote — markup asserting the words belong to '
+          + 'an outside source that does not exist is the declared-structure-must-be-true failure — or as '
+          + 'a genuine quotation whose source is simply unstated, which is not by itself a 1.3.1 barrier.',
+      };
+    }
+    if (Array.isArray(smf.dlOrderAnomalies) && smf.dlOrderAnomalies.length) {
+      s.dlOrderAnomalies = {
+        entries: smf.dlOrderAnomalies.slice(0, 4),
+        note: 'dt/dd ordering facts for each anomalous <dl>. `leadingDd` = a description before any term; '
+          + '`trailingDt` = a trailing term with no description; `invertedDivGroups` = spec-legal <div> '
+          + 'wrappers whose description PRECEDES its term — each of these can bind the announced '
+          + 'term→description pairing to the wrong items. `countMismatch` is ONLY a count fact: several '
+          + 'descriptions per term and several terms per description are both legal, so judge it from the '
+          + 'rendered pairs, not the arithmetic.',
+      };
+    }
+    if (Array.isArray(smf.radioGroupsWithoutGrouping) && smf.radioGroupsWithoutGrouping.length) {
+      s.radioGroupsWithoutGrouping = {
+        entries: smf.radioGroupsWithoutGrouping.slice(0, 4),
+        note: 'Radio sets sharing a control name with NO accessibly-named grouping container — no fieldset '
+          + 'named by a legend or by aria-label/aria-labelledby, no role=radiogroup, and no accessibly-named '
+          + 'role=group — anywhere from their common ancestor up to the form — a CHECKED '
+          + 'absence, so do not report grouping as unconfirmable and do not ask for an accessibility-tree '
+          + 'query to settle it. `precedingText` is the visible text block immediately before the set with '
+          + 'its computed weight/size. The absence is a barrier when that text is the question the radios '
+          + 'answer and their own labels do not carry it alone; it is NOT one when each radio\'s own '
+          + 'accessible name already suffices.',
+      };
+    }
+    if (Array.isArray(smf.requiredStateInventory) && smf.requiredStateInventory.length) {
+      s.requiredStateInventory = {
+        entries: smf.requiredStateInventory.slice(0, 6),
+        note: 'Per-form counts: fields with required= / aria-required=true, visible required-word tokens in '
+          + 'the form\'s text, and label/legend asterisk markers (CSS-generated ones included). ZERO IS A '
+          + 'MEASURED ABSENCE, not an unavailable signal — but the counts are FACTS ONLY, never a verdict. '
+          + 'requiredAttrCount and ariaRequiredCount both 0 makes a visibly-announced required state a '
+          + 'barrier ONLY IF the required indication is ALSO absent from the fields\' accessible names and '
+          + 'associated label text: an asterisk or a required-word that sits INSIDE a field\'s associated '
+          + 'label is part of that field\'s accessible name and IS programmatically conveyed, attributes or '
+          + 'not. The unprogrammatic shape is a required indication carried only by styling, colour, layout, '
+          + 'or text associated with no field. A form where the counts line up with the visible '
+          + 'marking needs no further required-state scrutiny.',
+      };
+    }
   }
   // 3.3.1 THE ERROR STATE ALREADY PRESENT AT REST — collected per field by act-page-collect.js, present only
   // on a form that is not pristine as loaded (a field flagged at rest, or values already in the boxes).
@@ -886,6 +995,64 @@ function precomputeSignals(element, skill, sc) {
         + 'These are FACTS about what happened, never a verdict about what was owed.',
     };
   }
+  // 4.1.3 MULTI-STEP TIMELINE — the phase-B sidecar to statusObservations (threaded by rubric id, same
+  // gate). One entry per ACTIVE trigger; `timeline` is the complete ordered record of the activation.
+  if (element.__statusTimelines) {
+    const tls = element.__statusTimelines;
+    const CAPT = 8;
+    s.statusTimelines = {
+      triggers: tls.slice(0, CAPT),
+      count: tls.length, truncated: tls.length > CAPT,
+      note: 'Per-trigger ORDERED record of everything that happened after activation, to a longer horizon '
+        + 'than the single before/after observation (each row: atMs since activation + kind). Kinds: '
+        + 'content-added/content-removed (with inLiveRegion/fromLiveRegion), live-region-emptied/-refilled/'
+        + '-updated (a pre-existing region\'s text transitions, in order), state-change (an attribute flip '
+        + 'such as disabled/aria-busy/aria-expanded — onTrigger marks the activated control itself), '
+        + 'visibility-flip (a class/style-driven show/hide of pre-rendered content), value-emptied (a form '
+        + 'control\'s value cleared). Read the END of the flow, not an intermediate phase: after a busy or '
+        + 'progress message is removed or its region emptied, whatever conveys the OUTCOME must itself be '
+        + 'announced. The hard failure shape is TEXTUAL status that reaches no AT: an outcome carried only '
+        + 'by a content-added row OUTSIDE any live region, or a live-region-emptied with no announced '
+        + 'follow-up. A flow whose only outcome rows are state-changes or visibility-flips is NOT that '
+        + 'shape: an attribute flip IS programmatically determinable, so decide instead whether any VISIBLE '
+        + 'status message conveys the outcome — if sighted users receive no status message either, there '
+        + 'may be no status message in scope at all. These are FACTS about what happened, '
+        + 'never a verdict about what was owed.',
+    };
+  }
+  // 4.1.3 LIVE-REGION BIRTHS — document-start recorder facts (per region, from before the first byte of
+  // the document): whether it existed-and-was-empty BEFORE receiving content, or was mounted/wired with
+  // its message already in place, and whether it later removed itself.
+  if (element.__liveRegionBirths) {
+    const b = element.__liveRegionBirths;
+    s.liveRegionBirths = {
+      regions: (Array.isArray(b.regions) ? b.regions : []).slice(0, 6),
+      documentAgeMs: b.documentAgeMs,
+      note: 'Recorded from DOCUMENT-START, so unlike every other signal it can see state from before the '
+        + 'page finished loading. mountedAfterLoad + emptyAtBirth:false = the region was INSERTED already '
+        + 'carrying its message (an AT observes regions that pre-existed the change, so this announces '
+        + 'nothing on many AT); via:"attribute-wired" + emptyAtBirth:false = live semantics were added onto '
+        + 'content that was already set (same problem); removedAtMs = the region later left the document, '
+        + 'so the message may never be readable on demand. emptyAtBirth:true with a later firstContentAtMs '
+        + 'is the healthy shape and corroborates correct wiring. Facts, not a verdict.',
+    };
+  }
+  // 1.4.1 POST-ACTIVATION COLOUR DELTAS — see selectRubricSubjects (use-of-color only). Page-level
+  // instrument fact: rows/tiles whose computed colours changed when a control was activated.
+  if (element.__colourStateDeltas) {
+    s.colourStateDeltas = {
+      deltas: element.__colourStateDeltas.slice(0, 8),
+      note: 'Deterministic post-activation measurement, PAGE-LEVEL: each delta row records that activating '
+        + 'its `trigger` changed the computed background/colour of the element named by THAT ROW\'S xpath '
+        + 'from the before value to the after value — the listed element may or may not be the element you '
+        + 'are judging, so match the row\'s xpath against your subject before attributing any delta to it. '
+        + 'textAlsoChangedNearby says '
+        + 'whether any TEXT was also added in or around that element in the same window. A state change '
+        + 'conveyed ONLY by such a colour flip (textAlsoChangedNearby:false, and no other persistent visual '
+        + 'cue in the crop) is information conveyed by colour alone. The at-rest screenshot CANNOT show any '
+        + 'of this — judge the delta, not the crop. Facts, not a verdict.',
+    };
+  }
   if (skill === 'page-structure' || skill === 'grouping-and-reading-order') {
     const struct = element.__pageStructure || null;
     if (struct) {
@@ -924,6 +1091,12 @@ function precomputeSignals(element, skill, sc) {
       // table can be associable-by-position OR not; the GT-pass and GT-fail d0f69e cases are collector-identical here),
       // so it is NOT subtracted — the rubric judges it. Page verdict drives the rubric's hard gate (rubric §lead).
       const tbls = Array.isArray(struct.tables) ? struct.tables : [];
+      // ARIA-table records (collect-tables `ariaTable: true`) carry NO native wiring facts, so the
+      // association projection below stays NATIVE-ONLY — exactly what the rubric documents for this hard
+      // gate. The collector orders natives FIRST, so per[i] stays index-aligned with structure.tables[i]
+      // for every native record; aria records have no association entry and their one deterministic
+      // verdict rides tableSemantics below.
+      const nativeTbls = tbls.filter((t) => !(t && t.ariaTable === true));
       const tVerdict = (t) => {
         const isData = t && t.looksLikeDataTable === true && t.roleOverride !== 'presentation' && t.roleOverride !== 'none';
         if (!isData) return 'NOT_DATA';
@@ -952,7 +1125,7 @@ function precomputeSignals(element, skill, sc) {
           && t.regularGrid === true && Number(t.bodyTh) === 0 && Number(t.headerRows) <= 1;
         return simplePositional ? 'VALID' : 'UNCERTAIN';
       };
-      const per = tbls.map(tVerdict);
+      const per = nativeTbls.map(tVerdict);
       const dataN = per.filter((v) => v !== 'NOT_DATA').length;
       const page = dataN === 0 ? 'NO_DATA_TABLE'
         : per.includes('BROKEN') ? 'HAS_BROKEN'
@@ -969,6 +1142,27 @@ function precomputeSignals(element, skill, sc) {
       // This is an ADDITIVE second verdict computed from independent facts; `tVerdict` is untouched, so every
       // FP protection it accumulated (simple-positional, partial-axis, dangling-ref) survives byte-identically.
       const tSemantics = (t) => {
+        // ARIA table/grid record (residual RCA S10): one deterministic verdict from the collector's two
+        // independent checks — the OWNED-ELEMENT CONTRACT (rows present, every cell owned by a row,
+        // consistent per-row counts, aria-owns honoured) and the CELL-CONTENT SHAPE. The collector's
+        // `fabricatedTableSemantics` flag (contract HOLDS while the majority of data cells hold
+        // block/region content) maps onto the SAME F46 verdict name this rubric's declared-structure
+        // branch already receives — LAYOUT_STRUCTURE_SUSPECT: markup declaring data semantics over content
+        // that is not tabular data. A well-formed ARIA grid — or one whose contract is BROKEN, a different
+        // defect visible in its own record fields — stays OK here and is judged under the rubric's
+        // existing ARIA guidance (positional association, aria-owns, query_ax_node).
+        if (t && t.ariaTable === true) {
+          const declared = ['role=' + (t.role || 'table')];
+          if (Number(t.columnheaderCount) > 0) declared.push('role=columnheader');
+          if (Number(t.rowheaderCount) > 0) declared.push('role=rowheader');
+          return {
+            verdict: t.fabricatedTableSemantics === true ? 'LAYOUT_STRUCTURE_SUSPECT' : 'OK',
+            declared, presentational: false, ariaTable: true,
+            ownedContractHolds: t.ownedContractHolds === true,
+            rowCount: t.rowCount, colCount: t.colCount, cellsWithBlockContent: t.cellsWithBlockContent,
+            summary: null, caption: null,
+          };
+        }
         const presentational = t.roleOverride === 'presentation' || t.roleOverride === 'none';
         const declared = [];
         if (Number(t.thCount) > 0) declared.push('th');
@@ -1620,7 +1814,7 @@ function focusClauseFacts(focusOrder) {
     redundant: stops.some((s) => s && (s.wrapsNextStop === true || s.genericContainerStop === true)),
   };
 }
-function selectRubricSubjects(collect, ledger, rubrics, { onlyAutoPartial = true, confinement = null, contrastExempt = null, focusOrder = null, statusObservations = null, hoverFacets = null } = {}) {
+function selectRubricSubjects(collect, ledger, rubrics, { onlyAutoPartial = true, confinement = null, contrastExempt = null, focusOrder = null, statusObservations = null, statusTimelines = null, liveRegionBirths = null, colourStateDeltas = null, hoverFacets = null } = {}) {
   // 2.1.2 keyboard-trap: `confinement` maps each CONFINED element xpath → { members:[{xpath,label}], setSize } (built
   // from the deterministic confinement instrument's REVIEW findings — the lying-static-advisory ones were already
   // promoted to a barrier and are excluded). The keyboard-trap-v0 rubric fires ONLY on a confined member, carrying
@@ -1754,6 +1948,11 @@ function selectRubricSubjects(collect, ledger, rubrics, { onlyAutoPartial = true
     // 2.4.3: `dynamic-announcement` is shared with auto-update-notification-v0, whose element-level
     // prompts must stay byte-identical.
     if (rub.id === 'status-message-v0' && statusObservations && statusObservations.length) extra.__statusObservations = statusObservations;
+    // …and the phase-B evidence, threaded on the same key so auto-update-notification-v0 (same skill) stays
+    // byte-identical. Timelines/births can exist where observations do not (a state-only trigger, a
+    // birth with no drivable trigger), so they are gated independently.
+    if (rub.id === 'status-message-v0' && statusTimelines && statusTimelines.length) extra.__statusTimelines = statusTimelines;
+    if (rub.id === 'status-message-v0' && liveRegionBirths) extra.__liveRegionBirths = liveRegionBirths;
     // 3.3.1 ERROR SUMMARY coherence — page-level evidence handed to every error-identification subject on
     // the page, because the summary is about the form as a whole and any field's judgment can turn on it.
     if (rub.id === 'error-identification-v0') {
@@ -1772,6 +1971,25 @@ function selectRubricSubjects(collect, ledger, rubrics, { onlyAutoPartial = true
         if (f) extra.__errorSummaryField = f;
       }
     }
+    // 1.3.1 PAGE-LEVEL GROUPING + DECLARED-STRUCTURE EVIDENCE (residual RCA S10/S11). Four exact collector
+    // facts plus the page-wide control-group summary and the visual-structure heading discoveries, all of
+    // which were computable and reached no prompt: the group question is judged on the page-level
+    // info-relationships subject, and the per-member controlGroup records above reach only ELEMENT
+    // subjects. Keyed on the RUBRIC ID like __errorSummaries so every other grouping-skill rubric keeps
+    // its prompt byte-identical.
+    if (rub.id === 'info-relationships-v0') {
+      const st = (collect && collect.structure) || null;
+      const cg = st && st.controlGroupsSummary;
+      if (cg && ((Array.isArray(cg.groups) && cg.groups.length)
+        || (Array.isArray(cg.splitFieldGroupXpaths) && cg.splitFieldGroupXpaths.length))) extra.__controlGroupsPage = cg;
+      const vh = (st && Array.isArray(st.visualHeadings)) ? st.visualHeadings : [];
+      if (vh.length) extra.__visualHeadings = vh;
+      const smf = {};
+      for (const k of ['blockquotesWithoutSource', 'dlOrderAnomalies', 'radioGroupsWithoutGrouping', 'requiredStateInventory']) {
+        if (st && Array.isArray(st[k]) && st[k].length) smf[k] = st[k];
+      }
+      if (Object.keys(smf).length) extra.__structuralMarkupFacts = smf;
+    }
     // 1.4.1 COLOUR PEER GROUP: when this subject is the ANCHOR of a colour-coded peer set, hand over the whole
     // group. Without it the judge sees one element in isolation and cannot see the only thing that matters —
     // that its peers are identical to it except in colour.
@@ -1779,6 +1997,10 @@ function selectRubricSubjects(collect, ledger, rubrics, { onlyAutoPartial = true
       const groups = (collect && collect.structure && Array.isArray(collect.structure.colourPeerGroups)) ? collect.structure.colourPeerGroups : [];
       const g = groups.find((x) => x && Array.isArray(x.members) && x.members[0] && x.members[0].xpath === baseEl.xpath);
       if (g) extra.__colourPeerGroup = g;
+      // POST-ACTIVATION COLOUR DELTAS (instrument fact, page-level): a row/tile whose computed colours flip
+      // on activation with no text change is 1.4.1's state-conveyed-by-colour-alone shape, and it is
+      // invisible to every at-rest signal this rubric otherwise receives.
+      if (colourStateDeltas && colourStateDeltas.length) extra.__colourStateDeltas = colourStateDeltas;
     }
     // 2.4.4 SPLIT (fd3a94): the RELATIONAL "do same-named links resolve to equivalent destinations?" question is
     // OWNED by link-name-equivalence-v0, NOT link-purpose-v0 (the single-link purpose-in-context rubric). Mirror the

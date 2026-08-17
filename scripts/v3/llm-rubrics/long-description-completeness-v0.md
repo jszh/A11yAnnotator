@@ -34,6 +34,13 @@ unreliable; work these four steps instead:
 1. **Enumerate** the discrete facts a sighted reader can extract from the crop — the categories/series
    shown, the connections/relationships between parts (what joins to what, what depends on what), the named
    values/labels, any legend or key distinctions. A bounded, concrete list: each entry one checkable fact.
+   **For a RELATIONAL image the relation set is a mandatory category.** When the image is a chart, diagram,
+   map or graph whose purpose includes relations — a food-web's who-eats-whom, or any diagram whose
+   meaning lives in which named parts connect to which — enumerate the individual
+   connections as facts in their own right, separate from the entities they join. An enumeration that lists
+   the entities but none of the links between them has under-enumerated, and a description with the same gap
+   omits a MATERIAL fact: for such an image, who-connects-to-whom is the reason the image exists, so a text
+   alternative that names every entity while omitting the relations is incomplete.
 2. **For EACH fact, quote or mark ABSENT.** Either quote the exact substring of the provided text
    alternative (alt + long description + caption/associated text) that carries the fact, or mark the fact
    ABSENT. A paraphrase carries a fact only if you can still quote the words doing the carrying; a fact you
@@ -44,6 +51,14 @@ unreliable; work these four steps instead:
    the reason the image is there. Incidental or decorative detail is not material.
 4. **Verdict:** REPRODUCED only when ≥1 MATERIAL fact is ABSENT from the description AND is not conveyed
    anywhere else on the page (check the `surrounding-region` for an adjacent table/text that carries it).
+   **The elsewhere-escape is held to the same quoting standard as step 2:** you may clear a MATERIAL fact
+   through that escape ONLY by quoting the on-page text that carries it — the caption sentence, the table
+   cell, the paragraph — exactly as you would quote the description itself. An unquoted "the data is also in
+   the adjacent table/caption" is the fabricated-redundancy error: if you cannot quote the carrying text from
+   the evidence handed to you, treat the fact as ABSENT there too — text you cannot quote does not exist.
+   When the `surrounding-region`/signals handed to you are capped or plausibly incomplete for the place the
+   carrying text would live, the escape is unverifiable rather than refuted — return PARTIAL (cannot verify
+   from the provided excerpt) instead of treating the unquotable text as absent.
    Name the missing fact and quote what the description says in its place. If every material fact has a
    quote, NOT REPRODUCED — "could say more" is not a barrier.
 

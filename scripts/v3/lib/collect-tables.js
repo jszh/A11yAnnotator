@@ -9,7 +9,7 @@
 // (act-page-collect.js, eval-page.js) run it and fold the result into `structure.tables`.
 function collectTables() {
   const clip = (s, n) => (s || '').replace(/\s+/g, ' ').trim().slice(0, n);
-  return [...document.querySelectorAll('table')].slice(0, 20).map((t) => {
+  const nativeTables = [...document.querySelectorAll('table')].slice(0, 20).map((t) => {
     // a25f45 / 1.3.1 table relationships apply to a TABLE-role element. A role override to a non-table role
     // (role=heading/presentation/none/...) drops the table semantics ⇒ the header-wiring smells are meaningless
     // (ACT inapplicable) ⇒ do not compute them, so the deterministic hints never fire on a non-data-table.
@@ -135,6 +135,158 @@ function collectTables() {
       allTdGrid: rows.length >= 2 && colCount >= 2 && ths.length === 0,
     };
   });
+
+  // ---- ARIA TABLES / GRIDS (residual RCA S10 — declared table semantics OUTSIDE a native <table>) --------
+  // Everything above reads native <table> markup, so a role=table/grid/treegrid built from generic elements
+  // carried NO entry here at all — the adjudicator's tableAssociation gate honestly says so, and the rubric
+  // then falls back to a live accessibility-tree query the judge frequently never makes. Yet an ARIA grid
+  // declares the SAME owned-element structure a native table does (rows owning columnheaders/cells), and it
+  // can fabricate data semantics the same way F46 describes: a set of independent page regions marked up as
+  // one data grid, telling an AT user that unrelated widgets stand in row/column relationships.
+  //
+  // Two independent verifications, both DETERMINISTIC and both facts-only:
+  //  · the OWNED-ELEMENT CONTRACT — rows present (DOM descendants of THIS container, or referenced via
+  //    aria-owns from the container/its rowgroups), every cell-role element owned by a row, and per-row cell
+  //    counts consistent. A held contract means the declared structure is well-formed AS DECLARED — which is
+  //    exactly when a false declaration is most convincing to AT.
+  //  · the CELL-CONTENT SHAPE — the same discriminator the native pass uses (a data cell holds a VALUE; a
+  //    region-cell holds headings/lists/nested structure), widened with the ARIA role equivalents.
+  // `fabricatedTableSemantics` fires ONLY when the contract HOLDS while the MAJORITY (and ≥2) of the data
+  // cells carry block/region content — declared-structure-true-but-content-not-tabular. A broken contract is
+  // a different defect (reported via the contract fields, never this flag), and `cellsWithInteractiveContent`
+  // is reported but deliberately NOT a trigger: a legitimate editable grid is full of controls. The
+  // adjudicator maps this flag onto the same tableSemantics verdict channel the info-relationships rubric's
+  // F46 branch already reads; nothing here is a verdict.
+  const ariaTables = [];
+  if (nativeTables.length < 20) {
+    const CELL_ROLE = /^(cell|gridcell|columnheader|rowheader)$/;
+    const roleOf = (e) => String((e && e.getAttribute && e.getAttribute('role')) || '').trim().toLowerCase();
+    const xpathOf = (e) => {
+      if (!e || !e.tagName) return '';
+      if (e === document.documentElement) return '/html';
+      if (e === document.body && e.tagName === 'BODY') return '/html/body';
+      const tg = e.tagName.toLowerCase();
+      let i = 1; for (let s = e.previousElementSibling; s; s = s.previousElementSibling) if (s.tagName === e.tagName) i++;
+      return xpathOf(e.parentElement) + '/' + tg + '[' + i + ']';
+    };
+    const byId = (id) => { try { return document.getElementById(id); } catch (e) { return null; } };
+    const ownsOf = (e) => {
+      const v = (e && e.getAttribute && e.getAttribute('aria-owns')) || '';
+      if (!v.trim()) return [];
+      return v.trim().split(/\s+/).slice(0, 40).map(byId).filter(Boolean);
+    };
+    // the nearest ancestor that owns table semantics (an ARIA container OR a native <table>) — scoping guard
+    // so a nested grid's rows/cells are never double-counted into the outer container's contract.
+    const nearestTableScope = (e) => {
+      for (let p = e.parentElement; p; p = p.parentElement) {
+        if (p.tagName === 'TABLE') return p;
+        if (/^(table|grid|treegrid)$/.test(roleOf(p))) return p;
+      }
+      return null;
+    };
+    const containers = [...document.querySelectorAll('[role]')]
+      .filter((e) => /^(table|grid|treegrid)$/.test(roleOf(e)) && e.tagName !== 'TABLE')
+      .slice(0, 20 - nativeTables.length);
+    for (const c of containers) {
+      const role = roleOf(c);
+      const rowgroups = [...c.querySelectorAll('[role]')].filter((e) => roleOf(e) === 'rowgroup' && nearestTableScope(e) === c);
+      let rowsViaAriaOwns = false;
+      // TRUNCATION IS A FACT, NOT A DEFECT (soundness probe 2026-08-17): the caps below sample the
+      // structure, and a capped read must say so — a conformant 51-row grid used to surface its overflow
+      // rows' cells as `cellsOutsideRows` and read `ownedContractHolds: false` with no marker at all.
+      let rowsTruncated = false, cellsTruncated = false;
+      const rowSet = [];
+      const seenRows = new Set();
+      const addRow = (r, viaOwns) => {
+        if (!r || seenRows.has(r) || roleOf(r) !== 'row') return;
+        if (rowSet.length >= 40) { rowsTruncated = true; return; }
+        seenRows.add(r); rowSet.push(r);
+        if (viaOwns) rowsViaAriaOwns = true;
+      };
+      for (const r of c.querySelectorAll('[role]')) if (roleOf(r) === 'row' && nearestTableScope(r) === c) addRow(r, false);
+      for (const src of [c, ...rowgroups]) for (const o of ownsOf(src)) addRow(o, true);
+      // cells per row: element children plus the row's own aria-owns references, cell-roled only.
+      // SHADOW-PROOF children read (same defect class act-page-collect.js documents): a role=row placed on a
+      // <form> would let a control named "children"/"childNodes" shadow the inherited accessor, so read via
+      // Node.prototype's own getter, which no named property can shadow.
+      const _CN_GET = (Object.getOwnPropertyDescriptor(Node.prototype, 'childNodes') || {}).get;
+      const elemKids = (e) => {
+        const cn = _CN_GET ? _CN_GET.call(e) : (e.childNodes || []);
+        const out = [];
+        for (let i = 0; i < cn.length; i++) if (cn[i].nodeType === 1) out.push(cn[i]);
+        return out;
+      };
+      const cellsOf = (r) => {
+        const kids = [...elemKids(r), ...ownsOf(r)];
+        const cs = [];
+        for (const k of kids) {
+          if (!CELL_ROLE.test(roleOf(k))) continue;
+          if (cs.length >= 30) { cellsTruncated = true; break; } // a 31st cell exists — the sample is a sample
+          cs.push(k);
+        }
+        return cs;
+      };
+      const rowCells = rowSet.map(cellsOf);
+      const allCells = [];
+      for (const rc of rowCells) allCells.push(...rc);
+      const rowWidths = rowCells.map((cs) => cs.length);
+      const colCount = rowWidths.length ? Math.max(...rowWidths) : 0;
+      const rowCellCountsConsistent = rowWidths.length > 0 && rowWidths.every((w) => w === rowWidths[0]);
+      const columnheaderCount = allCells.filter((x) => roleOf(x) === 'columnheader').length;
+      const rowheaderCount = allCells.filter((x) => roleOf(x) === 'rowheader').length;
+      const dataCells = allCells.filter((x) => roleOf(x) === 'cell' || roleOf(x) === 'gridcell');
+      // a cell-role element scoped to this container that NO row holds — outside the contract. Judged
+      // STRUCTURALLY (direct row parent, or aria-owns membership of any row), never by membership in the
+      // CAPPED sample above: the sample stops at 40 rows / 30 cells per row, but this scan is uncapped, so
+      // testing against the sample read every overflow cell of a conformant 51-row grid as "outside any
+      // row" and reported a broken contract with no truncation marker at all (soundness probe 2026-08-17).
+      const inRow = new Set(allCells);
+      const ownedByAnyRow = new Set();
+      const noteRowOwns = (r) => { for (const o of ownsOf(r)) ownedByAnyRow.add(o); };
+      for (const r of c.querySelectorAll('[role]')) if (roleOf(r) === 'row' && nearestTableScope(r) === c) noteRowOwns(r);
+      for (const r of rowSet) noteRowOwns(r); // aria-owns-referenced rows can live OUTSIDE the container in the DOM
+      let cellsOutsideRows = 0;
+      for (const e of c.querySelectorAll('[role]')) {
+        if (!CELL_ROLE.test(roleOf(e))) continue;
+        if (nearestTableScope(e) !== c) continue;
+        if (inRow.has(e) || ownedByAnyRow.has(e)) continue;
+        if (e.parentElement && roleOf(e.parentElement) === 'row') continue; // row-held — merely past a sampling cap
+        cellsOutsideRows++;
+      }
+      const firstRowAllColumnheader = rowCells.length > 0 && rowCells[0].length >= 2 && rowCells[0].every((x) => roleOf(x) === 'columnheader');
+      // region-shaped cell content — the native BLOCK_SEL plus its ARIA equivalents. Judged over DATA cells
+      // only (a header cell holding a sort <button> is ordinary and must not read as a region).
+      const ARIA_BLOCK_SEL = 'h1,h2,h3,h4,h5,h6,ul,ol,dl,form,nav,section,article,aside,header,footer,figure,table,[role="heading"],[role="list"],[role="figure"],[role="region"],[role="group"],[role="table"],[role="grid"]';
+      const blockDataCells = dataCells.filter((x) => x.querySelector(ARIA_BLOCK_SEL)).length;
+      const interactiveDataCells = dataCells.filter((x) => x.querySelector('a[href],button,input,select,textarea,[role="button"],[role="link"]')).length;
+      const cellTextLens = allCells.map((x) => clip(x.textContent, 4000).length);
+      const ownedContractHolds = rowSet.length > 0 && allCells.length > 0 && cellsOutsideRows === 0 && rowCellCountsConsistent;
+      ariaTables.push({
+        ariaTable: true,                                  // marker: NO native wiring facts on this record
+        role,
+        xpath: xpathOf(c),                                // ARIA records carry a locator (additive; native records never did)
+        rowCount: rowSet.length, colCount,
+        cellCount: allCells.length, dataCellCount: dataCells.length,
+        columnheaderCount, rowheaderCount,
+        rowsViaAriaOwns, cellsOutsideRows, rowCellCountsConsistent, ownedContractHolds,
+        // present ONLY when a sampling cap was actually hit (same presence-is-the-signal convention as
+        // enumError/sweepAborted): rowCount/cellCount and the contract fields describe the SAMPLE. The
+        // structural cellsOutsideRows scan above keeps the contract sound under truncation — remaining
+        // contract failures on a truncated record are defects observed INSIDE the sample, never artifacts
+        // of the cap.
+        ...(rowsTruncated || cellsTruncated ? { truncated: true } : {}),
+        firstRowAllColumnheader,
+        cellsWithBlockContent: blockDataCells,
+        cellsWithInteractiveContent: interactiveDataCells,
+        maxCellTextLen: cellTextLens.length ? Math.max(...cellTextLens) : 0,
+        fabricatedTableSemantics: ownedContractHolds && dataCells.length >= 2
+          && blockDataCells >= 2 && blockDataCells * 2 >= dataCells.length,
+      });
+    }
+  }
+  // natives FIRST (the adjudicator's association projection is native-only and index-aligned — see the
+  // frame-merge re-partition in act-page-collect.js for the multi-document case).
+  return [...nativeTables, ...ariaTables];
 }
 
 module.exports = { collectTables };

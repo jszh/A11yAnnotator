@@ -11,6 +11,7 @@ const { collectFauxColumns } = require('./collect-faux-columns.js');  // residua
 const { collectErrorSummary, collectAtRestErrorState } = require('./collect-error-summary.js'); // residual RCA S8: 3.3.1 error-summary vs flagged-state coherence
 const { collectStylingOutliers } = require('./collect-styling-outliers.js'); // residual RCA S8: 1.3.1 F2 presentation-as-meaning (strike-through / small-caps)
 const { collectLinkTargetFacts } = require('./collect-link-facts.js'); // residual RCA S10: 2.4.4 DOM-resolved fragment targets + per-link href facts
+const { probeVisualStructureDiscovery } = require('./broad-scope-probes.js'); // residual RCA S10: per-case visual-structure discovery (1.3.1 styled non-semantic headings)
 
 function digestForUrl(url) {
   return 'sha256:url:' + crypto.createHash('sha256').update(String(url)).digest('hex');
@@ -1317,8 +1318,10 @@ async function collectActPage(page, opts = {}) {
   // DELIBERATELY NOT applied to the per-FRAME evaluates below: a cross-origin frame throws on evaluate by
   // design, so counting those would bury a real defect under expected noise.
   const collectorLiveness = [];
-  const liveEval = async (name, fn, empty) => {
-    try { return await page.evaluate(fn); } catch (e) {
+  // `arg` (optional) is forwarded as the evaluate argument — used by collectColourPeers to receive the
+  // Node-side V3_COLOUR_TOKEN_LANE flag (the collector is self-contained and must not read env in-page).
+  const liveEval = async (name, fn, empty, arg) => {
+    try { return await (arg === undefined ? page.evaluate(fn) : page.evaluate(fn, arg)); } catch (e) {
       collectorLiveness.push({ collector: name, error: String((e && e.message) || e).replace(/\s+/g, ' ').slice(0, 300) });
       return empty;
     }
@@ -1332,7 +1335,11 @@ async function collectActPage(page, opts = {}) {
   // The element-level 1.4.1 aperture (link / form field / graphic surface) cannot see this shape at all,
   // because no individual element looks wrong — the failure is the contrast BETWEEN peers. Held-out over
   // the 926-page corpus: 84% of pages produce zero groups, mean 0.23/page, p90 = 1.
-  const colourPeerGroups = await liveEval('collectColourPeers', collectColourPeers, []);
+  // V3_COLOUR_TOKEN_LANE=1 (default off) additionally nominates text-less colour-token groups (status-dot
+  // matrices) — see collect-colour-peers.js's token-lane header and HUNKS-colour-token-lane.md. The flag may
+  // not be set on any scored run until the held-out aperture measurement has been reviewed.
+  const colourPeerGroups = await liveEval('collectColourPeers', collectColourPeers, [],
+    { tokenLane: process.env.V3_COLOUR_TOKEN_LANE === '1' });
   // 1.4.1 PER-FIELD RESOLVED COLOUR + STATE (residual RCA S10). Attached per ELEMENT below, not to `structure`:
   // it answers "what colour is THIS field, and is it in the coded state or the default one" for the subject the
   // judge is actually looking at. See collect-colour-peers.js for why the crops alone cannot answer that.
@@ -1358,6 +1365,12 @@ async function collectActPage(page, opts = {}) {
   // 1.3.1 — does a visible group label have a programmatic counterpart? Trivially computable, previously in no
   // prompt, and its absence produced errors in BOTH directions on one page shape. See collectControlGroups.
   const controlGroups = await liveEval('collectControlGroups', collectControlGroups, []);
+  // 1.3.1 EXACT DECLARED-STRUCTURE / GROUPING-STATE FACTS (residual RCA S10/S11) — four cheap deterministic
+  // page-level facts (blockquote-without-source, dl order anomalies, ungrouped shared-name radio sets,
+  // per-form required-state inventory), each converting a previously coin-flip page-level 1.3.1 UNCERTAIN
+  // into a stated, checked result. See collectStructuralMarkupFacts for the reading rules.
+  const structuralMarkupFacts = await liveEval('collectStructuralMarkupFacts', collectStructuralMarkupFacts,
+    { blockquotesWithoutSource: [], dlOrderAnomalies: [], radioGroupsWithoutGrouping: [], requiredStateInventory: [] });
   // 1.3.1 F2 — presentation used to convey meaning. Trigger set narrowed BY MEASUREMENT to strike-through
   // and small-caps (0.9% of pages); weight/size are how the web expresses hierarchy and were unusable.
   const stylingOutliers = await liveEval('collectStylingOutliers', collectStylingOutliers, { outlierGroups: [], inlineConventions: [] });
@@ -1366,6 +1379,30 @@ async function collectActPage(page, opts = {}) {
   // segment / extension and the same-name-different-target flag. Replaces a stochastic resolve_destination
   // tool call on the name-vs-destination question with a fact: no network, no OCR, no variance.
   const linkTargetFacts = await liveEval('collectLinkTargetFacts', collectLinkTargetFacts, []);
+  // BROAD-SCOPE VISUAL-STRUCTURE PROBE, run per-case (residual RCA S10 — the styled-non-semantic-heading
+  // variance class). broad-scope-probes.js' visual-structure discovery — rendered heading/list/grid shapes
+  // with no programmatic counterpart — previously ran ONLY under the opt-in broad-scope sidecar
+  // (opts.runBroadScope), which no per-case harness enables, so the page-level 1.3.1 judge re-derived "is
+  // that big bold line a heading?" from the crop on every run — a live-AX-check-shaped question and a
+  // measured coin flip. The probe is ONE read-only evaluate on the already-loaded page (no new page, no
+  // navigation, no mutation, early-exit at `limit` candidates), and every collected page owes the
+  // page-level 1.3.1 obligation (the structure slot mints it), so the 1.3.1 gate holds by construction.
+  // Only the HEADING discoveries are surfaced — the deterministic anchor the judge lacked; the probe's
+  // list/grid shapes stay with the richer faux-list (collect-lists) and faux-column collectors above.
+  // Not `liveEval` (the probe drives its own evaluate), but the same liveness disclosure applies.
+  // `opts.visualStructureProbe === false` lets a unit test or caller skip the pass entirely.
+  let visualHeadings = [];
+  if (opts.visualStructureProbe !== false) {
+    try {
+      const vs = await probeVisualStructureDiscovery(page, { limit: 12 });
+      visualHeadings = ((vs && vs.candidates) || [])
+        .filter((c) => c && c.kind === 'visual-heading')
+        .slice(0, 8)
+        .map((c) => ({ path: c.path, tag: c.tag, role: c.role || null, text: c.text, fontSize: c.fontSize, fontWeight: c.fontWeight, box: c.box }));
+    } catch (e) {
+      collectorLiveness.push({ collector: 'probeVisualStructureDiscovery', error: String((e && e.message) || e).replace(/\s+/g, ' ').slice(0, 300) });
+    }
+  }
   // #2 fix: collectTables/collectLists are top-document-only (document.querySelectorAll) — a frameset page's
   // real headings/lists/tables live in a child <frame>/<iframe> (e.g. the DHS Trusted-Tester corpus), which
   // NEVER reached structure.tables/lists before this fix, regardless of --allow-file-access-from-files. Puppeteer's
@@ -1379,6 +1416,17 @@ async function collectActPage(page, opts = {}) {
     const fLists = await frame.evaluate(collectLists).catch(() => []);
     for (const l of fLists) l.inFrame = true;
     lists.push(...fLists);
+  }
+  // NATIVE-<table> RECORDS FIRST across the frame merge (residual RCA S10 / Tier-3 ARIA grid). collectTables
+  // now also emits `ariaTable: true` records for role=table/grid built from generic elements. The adjudicator
+  // computes its tableAssociation projection over NATIVE records only (aria records carry no th/headers=
+  // wiring), so every native record must sit at the SAME index in `structure.tables` as in that native-only
+  // projection or the rubric's tables[i] ↔ perTable[i] cross-reference breaks. Within one document the
+  // collector already returns natives first; a frame merge interleaves, so re-partition (stable) here.
+  if (tables.some((t) => t && t.ariaTable === true)) {
+    const _natT = tables.filter((t) => !(t && t.ariaTable === true));
+    const _ariaT = tables.filter((t) => t && t.ariaTable === true);
+    tables.length = 0; tables.push(..._natT, ..._ariaT);
   }
   if (tables.length > 20) tables.length = 20; // preserve collectTables' own per-page cap after merging frame content
   if (lists.length > 40) lists.length = 40;   // preserve collectLists' own per-page cap
@@ -1563,6 +1611,40 @@ async function collectActPage(page, opts = {}) {
     }
   }
 
+  // 1.3.1 PAGE-LEVEL CONTROL-GROUP SUMMARY (residual RCA S11). The per-member `controlGroup` records above
+  // reach only ELEMENT-level subjects, but the group question — "is the visible question these controls
+  // answer tied to them programmatically?" — is judged on the PAGE-LEVEL info-relationships pseudo-element,
+  // which until now received none of this: the fact was collected per element and never threaded to the
+  // subject where the question is actually asked. One compact page-wide summary — per group: the members,
+  // the visible label-like text preceding the set, and whether a programmatic group NAME exists — plus the
+  // xpaths of split-field parts (the `splitFieldGroup` fact minted for 4.1.2, routed to 1.3.1 here: a
+  // multipart field is the same set-of-parts-answering-one-question shape, and its group question belongs
+  // to this subject too). The adjudicator threads it to the page-level subject; absent — and cost-free —
+  // on any page with no qualifying set.
+  const _splitFieldXpaths = (data.elements || [])
+    .filter((el) => el && el.splitFieldGroup === true && typeof el.xpath === 'string')
+    .map((el) => el.xpath).slice(0, 12);
+  const _splitFieldSet = new Set(_splitFieldXpaths);
+  const controlGroupsSummary = ((controlGroups || []).length || _splitFieldXpaths.length) ? {
+    groups: (controlGroups || []).slice(0, 8).map((g) => ({
+      kind: g.kind,
+      memberCount: g.memberCount,
+      memberXpaths: (g.members || []).map((m) => m && m.xpath).filter((x) => typeof x === 'string').slice(0, 12),
+      memberOwnNames: (g.members || []).slice(0, 12).map((m) => (m && m.ownName) || null),
+      containerXpath: g.containerXpath,
+      correspondence: g.correspondence,
+      hasProgrammaticGroupName: !!(g.programmaticGroup && String(g.programmaticGroup.accessibleName || '').trim()),
+      programmaticGroup: g.programmaticGroup ? {
+        mechanism: g.programmaticGroup.mechanism,
+        accessibleName: g.programmaticGroup.accessibleName,
+        nameRenderedOnScreen: g.programmaticGroup.nameRenderedOnScreen === true,
+      } : null,
+      visibleLabelCandidates: Array.isArray(g.precedingVisibleText) ? g.precedingVisibleText : [],
+      membersAreSplitFieldParts: (g.members || []).some((m) => m && _splitFieldSet.has(m.xpath)),
+    })),
+    splitFieldGroupXpaths: _splitFieldXpaths,
+  } : undefined;
+
   // 2.4.4 LINK-TARGET FACTS ATTACHMENT (residual RCA S10) — same xpath join. Each record is per LINK and
   // belongs to the element the judge will be handed; `linkTargetFacts` did not exist on any element before,
   // so nothing that reads an element record changes until an adjudicator branch surfaces it.
@@ -1592,6 +1674,15 @@ async function collectActPage(page, opts = {}) {
     coverage: { truncated: !!data.truncated, collected: (data.elements || []).length, domElementCount: data.domElementCount || null, cap: elementCap, subset: !!data.subset },
     page: { reflowApplicable: !!data.reflowApplicable, delegatedListenerTypes: pageDelegatedListenerTypes },
     structure: { title: data.title || '', frameTitles: data.frameTitles || [], lang: data.lang || '', headings: data.headings || [], landmarks: data.landmarks || [], tables: tables || [], lists: lists || [], colourPeerGroups: colourPeerGroups || [], fauxColumns, errorSummaries, controlGroups: controlGroups || [],
+      // residual RCA S10/S11 — page-level 1.3.1 facts. `controlGroupsSummary` is undefined (⇒ dropped by
+      // JSON) on pages with no qualifying control set and no split-field part, so untouched pages serialize
+      // byte-identically but for the four (possibly empty) fact arrays below.
+      controlGroupsSummary,
+      blockquotesWithoutSource: (structuralMarkupFacts && structuralMarkupFacts.blockquotesWithoutSource) || [],
+      dlOrderAnomalies: (structuralMarkupFacts && structuralMarkupFacts.dlOrderAnomalies) || [],
+      radioGroupsWithoutGrouping: (structuralMarkupFacts && structuralMarkupFacts.radioGroupsWithoutGrouping) || [],
+      requiredStateInventory: (structuralMarkupFacts && structuralMarkupFacts.requiredStateInventory) || [],
+      visualHeadings,
       presentationOutliers: (stylingOutliers && stylingOutliers.outlierGroups) || [],
       presentationConventions: (stylingOutliers && stylingOutliers.inlineConventions) || [] },
     axe: axeData ? axeData.violations : [],
@@ -1854,6 +1945,222 @@ function collectControlGroups() {
   return out;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
+// SC 1.3.1 — EXACT DECLARED-STRUCTURE / GROUPING-STATE FACTS (residual RCA S10/S11).
+//
+// Four deterministic page-level facts, each cheap, each converting a page-level 1.3.1 question that judges
+// were answering with UNCERTAIN-plus-an-excuse ("could not confirm", "unconfirmed from available signals")
+// into a stated, checked result. DATA ONLY — every judgement stays with the rubric:
+//
+//  · blockquotesWithoutSource — a visible <blockquote> with no cite= attribute, no <cite> descendant, and
+//    no adjacent attribution (no <figcaption> in an enclosing <figure>, no dash-led attribution line as the
+//    next sibling or last child). The element DECLARES a quotation relationship; this fact states that the
+//    declaration names no source anywhere the DOM can see. Whether the text is genuinely quoted — and so
+//    whether the declared relationship is true — is the judge's call, in the declared-structure-must-be-true
+//    direction (F-technique family: markup asserting a relationship the content does not have).
+//  · dlOrderAnomalies — a <dl> whose dt/dd sequence carries an unambiguous ordering defect: a description
+//    before any term (leadingDd), a trailing term with no description (trailingDt), a <div>-wrapped
+//    name-value group whose description precedes its term (invertedDivGroups — the spec requires dt+ then
+//    dd+ inside a wrapper), or asymmetric dt/dd counts (countMismatch — REPORTED, not judged: several
+//    descriptions per term and several terms per description are both legal, so the counts are facts for
+//    the judge, not a verdict). A <dl> announces a term→description pairing; these are the orderings under
+//    which that announcement can bind the wrong items.
+//  · radioGroupsWithoutGrouping — 2+ visible radios sharing a control name (one question by construction)
+//    with NO enclosing accessibly-named fieldset (legend, or aria-label/aria-labelledby resolving to
+//    text), role=radiogroup, or accessibly-named role=group anywhere from
+//    their nearest common ancestor up to the form. A CHECKED absence — the deliberately narrow twin of
+//    collectControlGroups' richer record (belt-and-braces: two independently-authored predicates for the
+//    shape that kept reaching judges as "unconfirmable") — plus the visible text block immediately
+//    preceding the set, with its computed weight/size so label-like styling is a stated fact.
+//  · requiredStateInventory — per form (and once for out-of-form fields): counts of required= /
+//    aria-required=true attributes, of visible required-word tokens, and of asterisk markers on
+//    label/legend text (CSS-generated ::before/::after asterisks included). ZERO IS A MEASURED ABSENCE:
+//    "no element carries required or aria-required" becomes a fact the judge can cite instead of an
+//    unconfirmable, in both directions (a page whose legend says fields are required while nothing is
+//    programmatically required, and a page whose fields are all correctly marked).
+//
+// Self-contained so it serializes through page.evaluate.
+function collectStructuralMarkupFacts() {
+  const MAX = 6, MAX_TEXT = 120;
+  const xpathOf = (e) => {
+    if (!e || !e.tagName) return '';
+    if (e === document.documentElement) return '/html';
+    if (e === document.body && e.tagName === 'BODY') return '/html/body';
+    const t = e.tagName.toLowerCase();
+    let i = 1; for (let s = e.previousElementSibling; s; s = s.previousElementSibling) if (s.tagName === e.tagName) i++;
+    return xpathOf(e.parentElement) + '/' + t + '[' + i + ']';
+  };
+  const norm = (s) => String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
+  const clip = (s, n) => norm(s).slice(0, n);
+  const visible = (e) => {
+    if (!e || !e.tagName) return false;
+    const cs = getComputedStyle(e);
+    if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity || '1') === 0) return false;
+    const r = e.getBoundingClientRect();
+    return r.width > 0 && r.height > 0;
+  };
+  const out = { blockquotesWithoutSource: [], dlOrderAnomalies: [], radioGroupsWithoutGrouping: [], requiredStateInventory: [] };
+
+  // (1) <blockquote> with no source anywhere the DOM can see.
+  const attributionish = (e) => {
+    if (!e || !e.tagName) return false;
+    if (e.querySelector && e.querySelector('cite')) return true;
+    // an attribution line as typically rendered: a leading dash-family character before the source's name
+    return /^[—–―~-]/.test(norm(e.textContent));
+  };
+  for (const bq of document.querySelectorAll('blockquote')) {
+    if (out.blockquotesWithoutSource.length >= MAX) break;
+    if (!visible(bq)) continue;
+    if ((bq.getAttribute('cite') || '').trim()) continue;
+    if (bq.querySelector('cite')) continue;
+    const fig = bq.closest('figure');
+    if (fig && fig.querySelector('figcaption')) continue;           // <figure><blockquote/><figcaption> attribution pattern
+    if (attributionish(bq.nextElementSibling)) continue;            // adjacent attribution line after the quote
+    const kids = [];
+    for (const k of bq.children) kids.push(k);
+    if (kids.length && attributionish(kids[kids.length - 1])) continue; // trailing attribution line inside the quote
+    out.blockquotesWithoutSource.push({ xpath: xpathOf(bq), textSample: clip(bq.textContent, MAX_TEXT) });
+  }
+
+  // (2) <dl> ordering anomalies. Walk dt/dd in document order, descending through spec-legal <div> wrappers.
+  for (const dl of document.querySelectorAll('dl')) {
+    if (out.dlOrderAnomalies.length >= MAX) break;
+    const seq = [];
+    let invertedDivGroups = 0;
+    const groupSeq = (node, into) => {
+      for (const k of node.children) {
+        const t = k.tagName.toLowerCase();
+        if (t === 'dt' || t === 'dd') into.push(t);
+        else if (t === 'div') {
+          const inner = [];
+          groupSeq(k, inner);
+          // a wrapper holding BOTH kinds whose first item is a description = the inverted-pair shape
+          // (the spec requires each wrapper to hold dt+ followed by dd+).
+          if (inner.length && inner[0] === 'dd' && inner.indexOf('dt') !== -1) invertedDivGroups++;
+          into.push(...inner);
+        }
+      }
+    };
+    groupSeq(dl, seq);
+    if (!seq.length) continue;
+    const dtCount = seq.filter((t) => t === 'dt').length;
+    const ddCount = seq.length - dtCount;
+    const leadingDd = seq[0] === 'dd';
+    const trailingDt = seq[seq.length - 1] === 'dt';
+    const countMismatch = dtCount !== ddCount;
+    if (leadingDd || trailingDt || countMismatch || invertedDivGroups > 0) {
+      out.dlOrderAnomalies.push({ xpath: xpathOf(dl), dtCount, ddCount, leadingDd, trailingDt, invertedDivGroups, countMismatch });
+    }
+  }
+
+  // (3) radios sharing a control name with NO programmatic grouping.
+  const byName = new Map();
+  for (const r of document.querySelectorAll('input[type="radio" i]')) {
+    if (!visible(r)) continue;
+    const nm = r.getAttribute('name');
+    if (!nm) continue;
+    const f = (() => { try { return r.closest('form'); } catch (e) { return null; } })();
+    const key = (f ? xpathOf(f) : 'document') + '|' + nm;
+    if (!byName.has(key)) byName.set(key, []);
+    const g = byName.get(key);
+    if (g.length < 12) g.push(r);
+  }
+  for (const [, members] of byName) {
+    if (out.radioGroupsWithoutGrouping.length >= MAX) break;
+    if (members.length < 2) continue;
+    let anc = members[0];
+    for (const m of members.slice(1)) { while (anc && !anc.contains(m)) anc = anc.parentElement; }
+    if (!anc) anc = document.body;
+    // grouped when the common ancestor — or an ancestor of it, up to the form — is an accessibly-NAMED
+    // fieldset (a legend child, OR aria-label / aria-labelledby resolving to text: a fieldset carries an
+    // implicit group role, so an ARIA name groups exactly as a legend does — the mechanism set
+    // collectControlGroups recognizes; batch-2 soundness review), a role=radiogroup, or a role=group
+    // carrying an accessible name. Checked, not guessed.
+    const ariaNamed = (el) => {
+      if ((el.getAttribute('aria-label') || '').trim()) return true;
+      const refs = (el.getAttribute('aria-labelledby') || '').trim();
+      if (!refs) return false;
+      for (const id of refs.split(/\s+/).slice(0, 4)) {
+        let n = null;
+        try { n = document.getElementById(id); } catch (e) { n = null; }
+        if (n && norm(n.textContent)) return true;      // a dangling or empty reference names nothing
+      }
+      return false;
+    };
+    let grouped = false;
+    for (let p = anc, i = 0; p && p !== document.documentElement && i < 8; p = p.parentElement, i++) {
+      const tag = p.tagName.toLowerCase();
+      const role = String(p.getAttribute('role') || '').toLowerCase();
+      let hasLegend = false;
+      if (tag === 'fieldset') for (const c of p.children) if (c.tagName && c.tagName.toLowerCase() === 'legend') { hasLegend = true; break; }
+      if (tag === 'fieldset' && (hasLegend || ariaNamed(p))) { grouped = true; break; }
+      if (role === 'radiogroup') { grouped = true; break; }
+      if (role === 'group' && ((p.getAttribute('aria-label') || '').trim() || (p.getAttribute('aria-labelledby') || '').trim())) { grouped = true; break; }
+      if (tag === 'form') break;
+    }
+    if (grouped) continue;
+    // the visible text block immediately preceding the set, with its computed style (label-like styling is
+    // a fact the judge reads, never a verdict this collector makes). Scanned first at the set's own start
+    // position inside the common ancestor, then — because the question a set answers typically sits BEFORE
+    // its wrapper, not inside it — at the ancestor's own position, walking up a few levels (the same
+    // anchoring collectControlGroups uses).
+    const precedingOf = (from) => {
+      for (let sib = from, seen = 0; sib && seen < 6; sib = sib.previousElementSibling, seen++) {
+        if (!visible(sib)) continue;
+        if (sib.querySelector && sib.querySelector('input, select, textarea')) continue; // a block holding controls is not a label for these
+        const t = norm(sib.textContent);
+        if (t.length < 2) continue;
+        const cs = getComputedStyle(sib);
+        return { xpath: xpathOf(sib), tag: sib.tagName.toLowerCase(), text: clip(t, MAX_TEXT), fontWeight: cs.fontWeight, fontSizePx: parseFloat(cs.fontSize) || null };
+      }
+      return null;
+    };
+    let start = members[0];
+    while (start && start.parentElement && start.parentElement !== anc) start = start.parentElement;
+    let preceding = (start && start.parentElement === anc) ? precedingOf(start.previousElementSibling) : null;
+    for (let node = anc, lvl = 0; !preceding && node && node !== document.body && lvl < 4; node = node.parentElement, lvl++) {
+      preceding = precedingOf(node.previousElementSibling);
+    }
+    out.radioGroupsWithoutGrouping.push({
+      controlName: clip(members[0].getAttribute('name'), 40),
+      memberCount: members.length,
+      memberXpaths: members.slice(0, 12).map(xpathOf),
+      commonAncestorXpath: xpathOf(anc),
+      precedingText: preceding,
+    });
+  }
+
+  // (4) per-form required-state inventory. Counts, never a verdict; zero counts are measured absences.
+  const fieldSel = 'input:not([type="hidden" i]):not([type="submit" i]):not([type="button" i]):not([type="reset" i]), select, textarea';
+  const pseudoStar = (e) => {
+    try { return /\*/.test(String(getComputedStyle(e, '::before').content || '') + String(getComputedStyle(e, '::after').content || '')); }
+    catch (err) { return false; }
+  };
+  const inventory = (scopeEl, formXpath, outsideFormsOnly) => {
+    const keep = (n) => !outsideFormsOnly || !n.closest('form');
+    const fields = [];
+    for (const f of scopeEl.querySelectorAll(fieldSel)) if (keep(f)) fields.push(f);
+    const labels = [];
+    for (const l of scopeEl.querySelectorAll('label, legend')) if (keep(l)) labels.push(l);
+    const text = norm(scopeEl === document ? ((document.body && document.body.textContent) || '') : scopeEl.textContent);
+    return {
+      formXpath,
+      fieldCount: fields.length,
+      requiredAttrCount: fields.filter((f) => f.hasAttribute('required')).length,
+      ariaRequiredCount: fields.filter((f) => (f.getAttribute('aria-required') || '').toLowerCase() === 'true').length,
+      requiredTextTokens: (text.match(/\brequired\b/gi) || []).length,
+      asteriskMarkers: labels.filter((l) => /\*/.test(norm(l.textContent)) || pseudoStar(l)).length,
+    };
+  };
+  const forms = [];
+  for (const f of document.querySelectorAll('form')) { forms.push(f); if (forms.length >= MAX) break; }
+  for (const f of forms) out.requiredStateInventory.push(inventory(f, xpathOf(f), false));
+  let loose = false;
+  for (const f of document.querySelectorAll(fieldSel)) if (!f.closest('form') && visible(f)) { loose = true; break; }
+  if (loose) out.requiredStateInventory.push(inventory(document, 'document', true));
+  return out;
+}
+
 // Backfill any missing role fields (orchestrate's candidate generator reads sampledRole/axRole).
 function normalizeCollectRoles(collect) {
   for (const el of collect.elements || []) {
@@ -1863,4 +2170,4 @@ function normalizeCollectRoles(collect) {
   return collect;
 }
 
-module.exports = { collectActPage, normalizeCollectRoles, nativeRole, digestForUrl, collectControlGroups };
+module.exports = { collectActPage, normalizeCollectRoles, nativeRole, digestForUrl, collectControlGroups, collectStructuralMarkupFacts };

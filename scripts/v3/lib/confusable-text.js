@@ -46,6 +46,29 @@ const HOMOGLYPH = {
   // letterform; Cyrillic capital У (above) completes the already-mapped lowercase у→y pair.
   'ϲ': 'c', 'Ϲ': 'C',
 };
+// NUMERIC-HOMOGLYPH lane (RCA s10, 1.1.1 text-lookalike-glyph-substitution/case-05 '$ЗОО'; Tier 2 #21).
+// Cyrillic/Greek letters whose lookalike is an ASCII DIGIT, not a Latin letter. The letter↔letter HOMOGLYPH
+// map above cannot carry them (З resembles no Latin letter — its confusable twin is DIGIT THREE), and the
+// homoglyph-full lane's >=4-LETTER floor is tuned for wordmark spoofs ('СОВА'), not 3-char price spoofs.
+// SOURCED from Unicode UTS #39 confusables.txt (verified against the published data):
+//   direct letter→digit entries:  0417 З→3, 0431 б→6;
+//   via the Latin twin's digit class:  041E О→O / 039F Ο→O with entry 0030 '0→O' (capital O IS digit-zero's
+//   confusable class), 0406 І→l / 0399 Ι→l with entry 0031 '1→l' (small l IS digit-one's class);
+//   caller-specified extension:  0405 Ѕ→5 — folds to S per confusables.txt; S/5 is the classic price-spoof
+//   pair ('£1Ѕ0' reads £150) though NOT itself a UTS#39 pair. Kept deliberately, and it is the ONLY
+//   entry not fully grounded in the Unicode data.
+// AUDITED AND EXCLUDED, with reasons: з (confusables.txt maps it to ɜ U+025C, not 3), Ч/ч (no digit entry
+// at all), lowercase о/ο (digit-zero's class is CAPITAL O only — x-height o is visually distinct from 0),
+// Ӡ U+04E0→3 / Ꙅ U+A644→2 (archaic, not keyboard-reachable — spoofs are typed on real keyboards).
+const NUMERIC_HOMOGLYPH = {
+  'З': '3', 'О': '0', 'І': '1', 'Ѕ': '5', 'б': '6', // Cyrillic
+  'Ο': '0', 'Ι': '1', // Greek
+};
+// The numeric lane's CONTEXT CONJUNCT vocabulary: currency/percent glyphs, and a small vetted set of unit
+// words / ISO currency codes. Deliberately tiny — the conjunct is an FP gate, not a recall lane.
+const CURRENCY_OR_PERCENT = /[$€£¥₽₹¢₴₩%]/;
+const UNIT_WORDS = new Set(['kg', 'g', 'mg', 'km', 'm', 'cm', 'mm', 'mi', 'ml', 'l', 'lb', 'oz', 'pcs',
+  'usd', 'eur', 'gbp', 'jpy', 'rub', 'uah']);
 const isAsciiLetter = (ch) => /[A-Za-z]/.test(ch);
 const isCyrGreekLetter = (cp) => (cp >= 0x0370 && cp <= 0x03ff) || (cp >= 0x0400 && cp <= 0x04ff);
 const isLetter = (ch) => /\p{L}/u.test(ch);
@@ -86,7 +109,8 @@ function detectConfusableText(text, lang) {
   //      unaffected (any length still flags — 'Аpple' is never natural text).
   const words = s.split(/(\s+)/);
   let fold = '';
-  for (const w of words) {
+  for (let wi = 0; wi < words.length; wi++) {
+    const w = words[wi];
     if (/^\s+$/.test(w) || !w) { fold += w; continue; }
     const chars = [...w];
     const letters = chars.filter(isLetter);
@@ -98,6 +122,44 @@ function detectConfusableText(text, lang) {
       && [...wordScripts].every((sc) => SCRIPT_LANGS[sc] && SCRIPT_LANGS[sc].has(normLang));
     const homoglyphActive = hasAsciiLetter || (foldsFully && !langExempts);
     const homoglyphKind = hasAsciiLetter ? 'homoglyph-mix' : 'homoglyph-full';
+    // NUMERIC-HOMOGLYPH lane gate — per WORD, like foldsFully above. Fires when the token folds ENTIRELY to
+    // digits (every core char is an ASCII digit, a NUMERIC_HOMOGLYPH letter, or an interior price separator)
+    // AND sits in a currency/unit/quantity CONTEXT. FLOOR >= 2 digit-shaped chars, for THIS lane only (vs the
+    // letter lane's >=4 letters): price spoofs are short ('$ЗОО' is 3, '£1Ѕ0' substitutes 1), and the context
+    // conjunct below is the FP control this lane gets where the letter lane leans on length.
+    const core = w.replace(/^[^\p{L}\p{Nd}]+|[^\p{L}\p{Nd}]+$/gu, ''); // strip edge currency symbols / punctuation
+    const coreChars = [...core];
+    const mappedCount = coreChars.filter((ch) => NUMERIC_HOMOGLYPH[ch]).length;
+    const digitShaped = coreChars.filter((ch) => /[0-9]/.test(ch) || NUMERIC_HOMOGLYPH[ch]).length;
+    const foldsToDigits = mappedCount >= 1 && digitShaped >= 2
+      && coreChars.every((ch) => /[0-9.,]/.test(ch) || NUMERIC_HOMOGLYPH[ch]);
+    let numericActive = false;
+    if (foldsToDigits) {
+      // CONTEXT CONJUNCT — the gate that keeps ordinary Cyrillic/Greek words out of the numeric lane,
+      // SPLIT BY DECLARED LANG (batch-2 soundness review). When the candidate word's script IS the
+      // declared page/element lang's native writing system, ordinary prose in that language sits next to
+      // digits constantly (list markers, phone numbers, a brand name carrying a digit), so bare digit
+      // ADJACENCY is no evidence of a spoof — the lane then requires the STRONG conjunct only: a
+      // currency/percent glyph ON the token itself ('$ЗОО' renders as $300 whatever the page language),
+      // or an adjacent unit word. When the script MISMATCHES the declared lang, or no lang is declared
+      // (the spoof steer), the original wider conjunct stands: currency/percent on the token, real ASCII
+      // digits mixed INTO it ('£1Ѕ0' — no language mixes digits into a word), or an adjacent
+      // currency/unit/digit token. There is deliberately still NO blanket SCRIPT_LANGS exemption —
+      // langMatchesScript reaches the judge (flaggedScripts below), so the judge keeps the lang steer.
+      const neighbor = (dir) => {
+        for (let j = wi + dir; j >= 0 && j < words.length; j += dir) { const t = words[j]; if (t && !/^\s+$/.test(t)) return t; }
+        return null;
+      };
+      const unitTok = (t) => t != null && UNIT_WORDS.has(t.toLowerCase().replace(/[^a-z]/g, ''));
+      const contextTok = (t) => t != null && (CURRENCY_OR_PERCENT.test(t) || /[0-9]/.test(t) || unitTok(t));
+      const mappedScripts = new Set(coreChars.filter((ch) => NUMERIC_HOMOGLYPH[ch]).map((ch) => scriptOf(ch.codePointAt(0))).filter(Boolean));
+      const scriptMatchesLang = normLang != null && mappedScripts.size > 0
+        && [...mappedScripts].every((sc) => SCRIPT_LANGS[sc] && SCRIPT_LANGS[sc].has(normLang));
+      numericActive = scriptMatchesLang
+        ? (CURRENCY_OR_PERCENT.test(w) || unitTok(neighbor(-1)) || unitTok(neighbor(1)))
+        : (CURRENCY_OR_PERCENT.test(w) || /[0-9]/.test(core)
+          || contextTok(neighbor(-1)) || contextTok(neighbor(1)));
+    }
     let wordFold = '';
     for (const ch of chars) {
       const cp = ch.codePointAt(0);
@@ -105,6 +167,13 @@ function detectConfusableText(text, lang) {
       let kind = folded ? 'math-styled' : null;
       if (!folded) { folded = foldFullwidth(cp); kind = folded ? 'fullwidth' : null; }
       if (!folded) { folded = foldEnclosed(cp); kind = folded ? 'enclosed' : null; }
+      // Numeric lane BEFORE the letter lane: when a word is numericActive, the currency context makes DIGITS
+      // the seen reading — '$ОООО' is $0000, not a Latin wordmark — so the digit fold wins on the overlap
+      // keys (О/Ο/Ѕ/Ι live in both maps). Words that are not numericActive are untouched by this branch.
+      if (!folded && numericActive && NUMERIC_HOMOGLYPH[ch] && isCyrGreekLetter(cp)) {
+        folded = NUMERIC_HOMOGLYPH[ch]; kind = 'homoglyph-numeric';
+        flaggedScripts.add(scriptOf(cp));
+      }
       if (!folded && HOMOGLYPH[ch] && homoglyphActive && isCyrGreekLetter(cp)) {
         folded = HOMOGLYPH[ch]; kind = homoglyphKind;
         flaggedScripts.add(scriptOf(cp));

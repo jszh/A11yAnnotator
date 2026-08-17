@@ -1455,6 +1455,15 @@ async function runAxStateDiff(page, request) {
 // =====================================================================================
 // C9 — hover-content-tri → 1.4.13 (BARRIER-ONLY)
 // =====================================================================================
+// The timed-dismissal signature over the persistence samples: content GONE while the trigger state
+// DEMONSTRABLY survived. `held === true` on purpose (soundness probe 2026-08-17): `held` is null when the
+// hold-check evaluate itself FAILED, and the old `held !== false` counted that unknown as a proven hold —
+// a barrier-flavoured fact minted from a probe that could not answer. Fail-closed: only a POSITIVE hold
+// makes a vanished sample evidence. Pure — exported for unit tests.
+function vanishedWhileHeldFrom(samples) {
+  return (Array.isArray(samples) ? samples : []).some((s0) => s0 && s0.held === true && s0.present === false);
+}
+
 async function runHoverContentTri(page, request) {
   const marker = String(request.candidateId || request.targetXpath);
   const hydrationReady = await H.hydrate(page);
@@ -1549,6 +1558,9 @@ async function runHoverContentTri(page, request) {
   o.contentIsAdditional = (hovered > rest) && !nativeTitleOnly;
   o.measurementDeterministic = true;
 
+  // held-state persistence facts (see the probe below) — measurement-only, never folded into the outcome
+  // flags (typedOutcomes is a closed schema, and the timed-removal question is a judgment call anyway).
+  let persistenceSamples = null, vanishedWhileHeld = null;
   if (o.contentAppeared && o.contentIsAdditional) {
     // bind the ACTUAL appearing content region — the flipped element(s) themselves, found by the same rest-mark
     // delta (#2: the curated tooltip selectors only PRIORITIZE which flipped region binds as "the tip"; they
@@ -1600,6 +1612,40 @@ async function runHoverContentTri(page, request) {
     // Persistent: still present after a dwell while still hovered/focused?
     await H.settle(page, 1600);
     o.persistent = (await page.evaluate(appearedSig)) >= hovered;
+    // 1.4.13 PERSISTENCE PROBE (residual RCA S10 / Tier 3 — the "Persistent" clause is otherwise unmeasured
+    // past the dwell above). The single short dwell cannot see a TIMED dismissal: a page timer that hides
+    // revealed content after a few seconds while the trigger state is STILL HELD violates the Persistent
+    // condition, and no before/after pair can show it. So — ONLY when content was revealed AND the short
+    // dwell passed (a dwell that already failed needs no more evidence) — re-show once and SAMPLE the
+    // revealed state at fixed offsets from the fresh reveal while the trigger state is held. REPORTED as
+    // measurement facts, never folded into anyPropertyFails: a timed removal can also be the SC's own
+    // "information is no longer valid" exception, which only a judge reading the content can tell apart —
+    // and this runner's deterministic barrier channel has already been shown to over-fire on exactly that
+    // exception. Bounded: max(offsets) ≈ 7 s, inside the experiment's 30 s wall, spent only on the reveal-
+    // observed slice of triggers.
+    if (o.persistent === true && request.persistenceProbe !== false) {
+      const offsetsMs = Array.isArray(request.persistenceSampleOffsetsMs) && request.persistenceSampleOffsetsMs.length
+        ? request.persistenceSampleOffsetsMs.slice(0, 4).map(Number).filter((n) => Number.isFinite(n) && n > 0)
+        : [1000, 3000, 7000];
+      const reshown = await reshow();     // fresh reveal — the held-state clock is anchored HERE
+      if (reshown > rest) {
+        const t0 = Date.now();
+        persistenceSamples = [];
+        for (const offMs of offsetsMs) {
+          const wait = t0 + offMs - Date.now();
+          if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+          const sig = await page.evaluate(appearedSig);
+          // the hold is only evidence if the trigger state actually survived the wait: focus mode verifies
+          // document.activeElement is still the trigger; hover mode moves no pointer during the wait, so
+          // the hover is held by construction.
+          const held = revealMode === 'focus'
+            ? await page.evaluate((m) => document.activeElement === document.querySelector(`[data-v3-target="${m}"]`), marker).catch(() => null)
+            : true;
+          persistenceSamples.push({ atMs: offMs, present: sig >= reshown, held });
+        }
+        vanishedWhileHeld = vanishedWhileHeldFrom(persistenceSamples);
+      }
+    }
     // Hoverable: 1.4.13's Hoverable condition applies to POINTER-hover-triggered content only. In focus mode we
     // are here precisely BECAUSE hover revealed nothing, so pointer hover cannot trigger it ⇒ vacuously satisfied
     // (never a manufactured barrier — the lane is BARRIER-ONLY, so a vacuous pass only prevents a false positive).
@@ -1621,7 +1667,11 @@ async function runHoverContentTri(page, request) {
   // clean the rest-visibility marks (mirror the form-probe PRE cleanup — leave no probe residue on the page)
   await page.evaluate(() => { for (const el of document.querySelectorAll('body *')) { try { delete el.__v3HoverRestVis; } catch (e) {} } }).catch(() => {});
   const valid = o.contentAppeared && o.contentIsAdditional && o.measurementDeterministic;
-  return mk(request, 'hover-content-tri', '1.4.13', o, { hasHoverFocusTrigger: o.hasHoverFocusTrigger, triggerReachable: o.triggerReachable }, { action: 'hover-focus-tri', valid, measurement: { rest, hovered, nativeTitleOnly, revealMode } });
+  return mk(request, 'hover-content-tri', '1.4.13', o, { hasHoverFocusTrigger: o.hasHoverFocusTrigger, triggerReachable: o.triggerReachable }, { action: 'hover-focus-tri', valid, measurement: { rest, hovered, nativeTitleOnly, revealMode,
+    // held-state persistence facts (present only when the probe ran): each sample is the revealed state at
+    // atMs after a fresh reveal with the trigger state held. `vanishedWhileHeld` = some sample had the
+    // content gone while the hold demonstrably survived — the timed-dismissal signature the dwell cannot see.
+    ...(persistenceSamples ? { persistenceSamples, vanishedWhileHeld } : {}) } });
 }
 
 // =====================================================================================
@@ -2197,4 +2247,4 @@ const RUNNERS = {
   'bypass-blocks': runBypassBlocks,
 };
 
-module.exports = { RUNNERS, measureContrast, measureFieldLabel, measureReflow, measureObscured };
+module.exports = { RUNNERS, measureContrast, measureFieldLabel, measureReflow, measureObscured, vanishedWhileHeldFrom };

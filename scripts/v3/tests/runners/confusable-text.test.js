@@ -141,3 +141,104 @@ test('audit #7: nearestLang threads through precomputeSignals into confusableTex
   assert.ok(noLang.confusableText, 'older element records without nearestLang keep working (additive shape)');
   assert.ok(!('lang' in noLang.confusableText), 'no lang fields invented when none was declared');
 });
+
+// NUMERIC-HOMOGLYPH lane (RCA s10, Tier 2 #21): a short Cyrillic-lettered price renders as an ordinary
+// amount but hits NEITHER letter lane — too few letters for the homoglyph-full >=4 floor, and З has
+// no Latin-LETTER twin at all (its UTS#39 confusable is DIGIT THREE). The numeric lane maps digit-lookalike
+// letters and fires only when the token folds ENTIRELY to digits AND sits in currency/unit/quantity context.
+// Fixture is INVENTED (leak rule): three distinct map entries (З→3, І→1, б→6) in one currency token.
+test('numeric lane: "€ЗІб" folds to "€316" — homoglyph-numeric, all three substitutions counted', () => {
+  const r = detectConfusableText('€ЗІб', 'en');
+  assert.equal(r.hasConfusables, true, 'the 3-letter price spoof is caught');
+  assert.deepEqual(r.kinds, ['homoglyph-numeric']);
+  assert.equal(r.asciiFold, '€316', 'the judge sees the number a sighted user reads');
+  assert.equal(r.count, 3);
+  assert.equal(r.langMatchesScript, false, 'en does not write Cyrillic — the spoof steer is surfaced');
+
+  const bare = detectConfusableText('€ЗІб');
+  assert.equal(bare.hasConfusables, true, 'no declared lang needed: the context conjunct is this lane\'s gate');
+  assert.equal(bare.asciiFold, '€316');
+});
+
+test('numeric lane: digit-mix and adjacency variants fire, each folding to the seen number', () => {
+  const mix = detectConfusableText('£1Ѕ0'); // real digits mixed INTO the token — reads £150
+  assert.equal(mix.hasConfusables, true);
+  assert.deepEqual(mix.kinds, ['homoglyph-numeric']);
+  assert.equal(mix.asciiFold, '£150');
+  assert.equal(mix.count, 1, 'only the substituted Ѕ counts; the real digits pass through unflagged');
+
+  const unit = detectConfusableText('Зб kg'); // unit word as the NEXT token
+  assert.equal(unit.hasConfusables, true);
+  assert.equal(unit.asciiFold, '36 kg');
+
+  const digitsPrev = detectConfusableText('90 ЗОЅ'); // digits-adjacent position (previous token)
+  assert.equal(digitsPrev.hasConfusables, true);
+  assert.equal(digitsPrev.asciiFold, '90 305');
+
+  const symPrev = detectConfusableText('€ ЗОО'); // standalone currency symbol as the previous token
+  assert.equal(symPrev.hasConfusables, true);
+  assert.equal(symPrev.asciiFold, '€ 300');
+
+  const pct = detectConfusableText('ЗО%'); // percent glyph attached to the token
+  assert.equal(pct.hasConfusables, true);
+  assert.equal(pct.asciiFold, '30%');
+
+  const greek = detectConfusableText('$ΙΟ'); // Greek capitals Ι/Ο via the same twin-class route
+  assert.equal(greek.hasConfusables, true);
+  assert.equal(greek.asciiFold, '$10');
+});
+
+test('numeric lane FP guards: 2-char floor, digits-only, missing context — and the letter lanes untouched', () => {
+  assert.equal(detectConfusableText('$З').hasConfusables, false, 'floor: one digit-shaped char never fires');
+  assert.equal(detectConfusableText('$100').hasConfusables, false, 'digits-only: no substituted letter, nothing to flag');
+  assert.equal(detectConfusableText('ЗОО').hasConfusables, false, 'folds to 300 but sits in NO currency/unit/digit context');
+  assert.equal(detectConfusableText('ЗОО отдел', 'ru').hasConfusables, false, 'a Cyrillic neighbour is not quantity context');
+  assert.equal(detectConfusableText('100 рублей').hasConfusables, false, 'a real Cyrillic unit word next to digits does not fold entirely to digits (р,у,л,е,й unmapped)');
+  // the letter lanes are byte-identical: the audit #7 pair behaves exactly as before
+  assert.equal(detectConfusableText('СОВА', 'ru').hasConfusables, false, 'lang=ru exemption on the letter lane untouched');
+  assert.equal(detectConfusableText('СОВА', 'en').hasConfusables, true, 'lang=en flag on the letter lane untouched');
+});
+
+// Batch-2 soundness review: the context conjunct accepted ANY digit-bearing neighbour token, so ordinary
+// native-script prose next to digits fired — a legal-form prefix beside a digit-bearing brand name, a
+// numbered list marker, phone digits, Roman-numeral-style capitals, and a doubled real letter near a
+// number. When the candidate word's script IS the declared lang's native writing system, digit adjacency
+// is everyday prose, so the lane now requires the STRONG conjunct there: a currency/percent glyph ON the
+// token itself, or a unit-word neighbour. All strings invented/generic — verified against zero corpus hits.
+test('numeric lane script-vs-lang: ordinary native-script prose near digits stays quiet (reviewer FP shapes)', () => {
+  assert.equal(detectConfusableText('ООО 1С', 'ru').hasConfusables, false, 'legal prefix beside a digit-bearing brand name');
+  assert.equal(detectConfusableText('1. ООО Ромашка', 'ru').hasConfusables, false, 'a numbered-list marker token before the prefix');
+  assert.equal(detectConfusableText('тел. 555-11-22, ООО', 'ru').hasConfusables, false, 'phone digits immediately before the prefix');
+  assert.equal(detectConfusableText('ІІ 20', 'uk').hasConfusables, false, 'Roman-numeral-style capitals beside a number');
+  assert.equal(detectConfusableText('ЅЅЅ 10', 'mk').hasConfusables, false, 'a real letter of the declared alphabet doubled near a digit');
+});
+
+test('numeric lane script-vs-lang: the strong conjunct still fires under the matching lang; the mismatch path is untouched', () => {
+  // strong conjunct 1: currency ON the token — fires whatever the page language, with the lang steer surfaced
+  const cur = detectConfusableText('$ЗОО', 'ru');
+  assert.equal(cur.hasConfusables, true, 'a currency glyph on the token is the strong conjunct');
+  assert.equal(cur.asciiFold, '$300');
+  assert.equal(cur.langMatchesScript, true, 'the judge still sees that the declared lang writes this script');
+  // strong conjunct 2: a unit-word neighbour
+  const unit = detectConfusableText('Зб kg', 'ru');
+  assert.equal(unit.hasConfusables, true, 'a unit-word neighbour is the strong conjunct');
+  assert.equal(unit.asciiFold, '36 kg');
+  // script MISMATCHES the declared lang: the wider conjunct (bare digit adjacency) stands — the spoof steer
+  const mism = detectConfusableText('ІІ 20', 'en');
+  assert.equal(mism.hasConfusables, true, 'Cyrillic capitals on a declared-Latin page keep the wider gate');
+  assert.equal(mism.asciiFold, '11 20');
+  assert.equal(mism.langMatchesScript, false);
+  // no declared lang: no match is possible, so behaviour is the pre-fix gate unchanged
+  assert.equal(detectConfusableText('90 ЗОЅ').hasConfusables, true, 'lang-less digit adjacency unchanged');
+});
+
+test('numeric lane: precomputeSignals surfaces homoglyph-numeric through the EXISTING confusable block, no consumer change', () => {
+  const { precomputeSignals } = require('../../lib/llm-adjudicator.js');
+  const s = precomputeSignals({ text: '$ЗОО', nearestLang: 'en' }, 'name-role-state');
+  assert.ok(s.confusableText, 'the price spoof reaches the judge');
+  assert.deepEqual(s.confusableText.kinds, ['homoglyph-numeric']);
+  assert.equal(s.confusableText.asciiFold, '$300');
+  assert.equal(s.confusableText.langMatchesScript, false);
+  assert.match(s.confusableText.uncertainReason, /homoglyph-numeric/, 'the kind is named in the reason');
+  assert.match(s.confusableText.uncertainReason, /"\$300"/, 'the folded number is quoted for the judge');
+});

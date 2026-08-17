@@ -34,6 +34,15 @@ async function detectStatusMessages(page, opts = {}) {
   // while bounding a pathological page. The common case still costs ~one settleMs poll.
   const maxWaitMs = Number.isFinite(opts.maxWaitMs) ? opts.maxWaitMs : 2500;
   const minTextLen = Number.isFinite(opts.minTextLen) ? opts.minTextLen : 3;
+  // MULTI-STEP TIMELINE HORIZON (residual RCA S10, the removal-of-status / after-the-fact families). The
+  // legacy window above ends at quiescence-or-maxWaitMs and everything the current prompts read is computed
+  // there — but the outcome of a multi-phase flow (a progress message emptied, then an ordinary node filled;
+  // a control re-enabled by an attribute flip) can land seconds later. So an ACTIVE trigger's observation is
+  // EXTENDED to this horizon and everything that happens in it is RECORDED as a per-trigger `timeline`
+  // sidecar (a separate artifact — never a new field on the observation object, whose rows are embedded
+  // verbatim in a prompt and must stay byte-identical until the surfacing hunk lands). Inactive triggers
+  // never pay it, and the per-trigger effective horizon is clamped by the sweep budget (see the loop).
+  const timelineMs = Number.isFinite(opts.timelineMs) ? opts.timelineMs : 8000;
 
   // PASS 1 (Node-side list): enumerate the SAFE + AT-PERCEIVABLE trigger xpaths up front, so the driving
   // loop is one isolated evaluate per trigger (navigation-resilient). A trigger is excluded when it is
@@ -93,6 +102,7 @@ async function detectStatusMessages(page, opts = {}) {
   // PASS 2 (one isolated evaluate per trigger): drive it, observe the change, judge soundly.
   const findings = [];
   const observations = [];   // per-trigger RECORD of what activation did (never a verdict) — see the in-page comment
+  const timelines = [];      // per-trigger phase-B SIDECAR ({trigger, timeline:[{atMs,kind,…}], colourStateDeltas}) — separate from observations so those stay byte-identical
   // TOTAL WALL-CLOCK BUDGET for the sweep. The per-trigger observation window had to grow from a flat 300 ms
   // to a 2500 ms quiescence wait (multi-phase status flows settle at 1400-1800 ms and the short window was
   // recording phase 1 as the outcome). Left unbounded that is 25 triggers x 2.5 s, which pushed the whole
@@ -100,14 +110,29 @@ async function detectStatusMessages(page, opts = {}) {
   // its tab order salvaged and ZERO findings, because the lane never reached the trap detectors. So: bound
   // the sweep, and report the truncation rather than letting it eat the lanes that run after it.
   const sweepBudgetMs = Number.isFinite(opts.sweepBudgetMs) ? opts.sweepBudgetMs : LIMITS.instruments.statusSweepMs;
+  // PHASE-B SPEND POOL (soundness probe 2026-08-17). The old clamp reserved a flat 1000 ms, so on a page
+  // with several ACTIVE triggers the first one or two timelines legally spent the whole sweep budget and
+  // the LAST triggers were never probed at all — measured directly: 3 conformant triggers + 1 barrier
+  // trigger, default config probed 3/4 and MISSED the barrier (budgetExhausted:true) while timelineMs:0
+  // probed 4/4 and found it. A recorded-only enrichment must never cost a barrier the legacy sweep would
+  // have caught, so phase-B extensions across the WHOLE sweep may spend at most this pool (30% of the
+  // budget), and each trigger's clamp additionally reserves a worst-case LEGACY window (maxWaitMs) for
+  // every trigger still unprobed — see effectiveTimelineMs. Small pages keep their timelines (one active
+  // trigger still gets a multi-second horizon); large pages degrade to exactly the timelineMs:0 coverage.
+  const phaseBPoolTotalMs = Math.round(sweepBudgetMs * 0.3);
+  let phaseBSpentMs = 0;
   const sweepStart = Date.now();
   let budgetExhausted = false, probed = 0, sweepAborted = null;
   for (const xp of xpaths) {
     if (Date.now() - sweepStart > sweepBudgetMs) { budgetExhausted = true; break; }
     probed++;
     let res;
+    // effective phase-B horizon for THIS trigger: the configured horizon, clamped so the extension can never
+    // eat the remaining sweep budget (later triggers keep their legacy window instead of being starved).
+    const effTimelineMs = effectiveTimelineMs({ timelineMs, sweepBudgetMs, elapsedMs: Date.now() - sweepStart, maxWaitMs,
+      remainingTriggers: xpaths.length - probed, phaseBPoolMs: phaseBPoolTotalMs - phaseBSpentMs });
     try {
-      res = await page.evaluate(async (xp, settleMs, minTextLen, XPATH_SRC, maxWaitMs) => {
+      res = await page.evaluate(async (xp, settleMs, minTextLen, XPATH_SRC, maxWaitMs, timelineMs) => {
         eval(XPATH_SRC); // eslint-disable-line no-eval
         const LIVE = '[aria-live="polite"],[aria-live="assertive"],[role="status"],[role="alert"],[role="log"],[role="alertdialog"],output';
         const toEl = (n) => { while (n && n.nodeType !== 1) n = n.parentNode; return n; };
@@ -181,6 +206,61 @@ async function detectStatusMessages(page, opts = {}) {
           atomic: e.getAttribute('aria-atomic') === 'true',
         }));
         const liveBeforeSet = new Set(liveBefore.map((r) => r.el));
+        // ---- TIMELINE SCAFFOLDING (phase B — recorded only, never decides) ------------------------
+        // Per-region running text so the timeline can carry the ORDER of empties/refills, not just the
+        // net before/after that `updatedRegions` reports. `_last` is a working copy; `text` stays the
+        // pristine before-snapshot the legacy fields compare against.
+        for (const r of liveBefore) r._last = r.text;
+        // Pre-activation RENDERED-STATE SNAPSHOT (bounded): per element, visibility + computed colours,
+        // so a class/style-driven flip observed later can be reported as a DELTA (what it was → what it
+        // became) instead of a bare "something changed". Capped: past the cap the timeline still records
+        // content/attribute events, just no deltas for the uncovered tail (reported as truncation).
+        const SNAP_CAP = 3000;
+        const allSnapEls = document.body.querySelectorAll('*');
+        const snapTruncated = allSnapEls.length > SNAP_CAP;
+        const snap = new WeakMap();
+        {
+          let i = 0;
+          for (const el of allSnapEls) {
+            if (i++ >= SNAP_CAP) break;
+            const cs0 = getComputedStyle(el); const r0 = el.getBoundingClientRect();
+            snap.set(el, {
+              vis: cs0.display !== 'none' && cs0.visibility !== 'hidden' && parseFloat(cs0.opacity) > 0 && r0.width > 0 && r0.height > 0,
+              bg: cs0.backgroundColor, fg: cs0.color,
+            });
+          }
+        }
+        // WATCHED CONTROLS: state-bearing elements whose attribute/state flips can BE the outcome (a
+        // control re-enabled when an operation completes). Attribute flips arrive via the observer; the
+        // `value` PROPERTY does not reflect to an attribute, so it is polled instead.
+        const WATCH_SEL = 'button,input,select,textarea,[aria-expanded],[aria-busy],[aria-disabled],[role="button"],[role="switch"],[role="checkbox"],[role="radio"]';
+        const watched = [...document.querySelectorAll(WATCH_SEL)].slice(0, 40)
+          .map((el) => ({ el, value: ('value' in el) ? String(el.value == null ? '' : el.value) : '' }));
+        const stateEvents = [];   // attribute/state flips on any element (disabled, aria-busy, …)
+        const visFlips = [];      // class/style/hidden-driven rendered-visibility flips
+        const valueEvents = [];   // a watched control's value went non-empty → empty
+        const regionTrace = [];   // ordered live-region text transitions (emptied / refilled / updated)
+        const colourDeltaByEl = new Map(); // Task-3 colour deltas, keyed by element (first-before, last-after)
+        const rowTileLike = (el) => {
+          const tag = el.tagName ? el.tagName.toLowerCase() : '';
+          if (/^(tr|td|th|li|dt|dd)$/.test(tag)) return true;
+          const role = (el.getAttribute('role') || '').toLowerCase();
+          if (/^(row|listitem|gridcell|cell|option|article)$/.test(role)) return true;
+          // repeated-peer shape: ≥2 same-tag siblings — the generic card/tile arrangement
+          let n = 0;
+          if (el.parentElement) { for (const sib of el.parentElement.children) { if (sib !== el && sib.tagName === el.tagName) n++; if (n >= 2) return true; } }
+          return false;
+        };
+        const pollWatched = () => {
+          const at = Date.now();
+          for (const w of watched) {
+            if (!('value' in w.el)) continue;
+            const cur = String(w.el.value == null ? '' : w.el.value);
+            if (w.value && !cur && w.el !== trig && valueEvents.length < 12) valueEvents.push({ at, xpath: getXPath(w.el) });
+            if (cur !== w.value) w.value = cur;
+          }
+        };
+        // -------------------------------------------------------------------------------------------
         const added = [];
         const removedTexts = [];      // text that LEFT the page — a removal is a status change too
         // Every mutation is TIMESTAMPED because the two channels need different windows. The barrier
@@ -189,7 +269,7 @@ async function detectStatusMessages(page, opts = {}) {
         // a status message). The observation channel needs the whole multi-phase flow. One observer, two
         // views — so the barrier channel's behaviour is unchanged by this addition.
         const tClick = Date.now();
-        const obs = new MutationObserver((muts) => {
+        const onMuts = (muts) => {
           const at = Date.now();
           for (const m of muts) {
             if (m.type === 'childList') {
@@ -202,10 +282,47 @@ async function detectStatusMessages(page, opts = {}) {
               for (const n of m.removedNodes) { const parts = accParts(n); const t = parts.join(' ').replace(/\s+/g, ' ').trim(); if (t) removedTexts.push({ text: t, parts, at, fromLive: !!(m.target && m.target.closest && m.target.closest(LIVE)) }); }
             } else if (m.type === 'characterData') {
               const t = norm(m.target.textContent); if (t) added.push({ node: m.target, text: t, parts: [t], at, inLive: inLiveRegion(m.target) });
+            } else if (m.type === 'attributes') {
+              // TIMELINE-ONLY branch: attribute mutations never touch `added`/`removedTexts`, so every
+              // legacy field (and therefore every current prompt) is byte-identical with this observer on.
+              const el = m.target;
+              if (!el || el.nodeType !== 1) continue;
+              const attr = m.attributeName || '';
+              if (attr === 'class' || attr === 'style' || attr === 'hidden') {
+                const s = snap.get(el);
+                if (s) {
+                  const csn = getComputedStyle(el); const rn = el.getBoundingClientRect();
+                  const visNow = csn.display !== 'none' && csn.visibility !== 'hidden' && parseFloat(csn.opacity) > 0 && rn.width > 0 && rn.height > 0;
+                  if (s.vis !== visNow && visFlips.length < 20) {
+                    visFlips.push({ at, xpath: getXPath(el), nowVisible: visNow, text: norm(el.textContent).slice(0, 80) });
+                  }
+                  if (s.vis !== visNow) s.vis = visNow;
+                  // Task-3 colour delta: computed background/colour change on a row/tile-like element
+                  // (the "a row changes colour on activation" shape). First-before + last-after per element.
+                  if (rowTileLike(el) && (csn.backgroundColor !== s.bg || csn.color !== s.fg)) {
+                    const d = colourDeltaByEl.get(el) || { at, xpath: getXPath(el), tag: el.tagName.toLowerCase(), bgBefore: s.bg, fgBefore: s.fg };
+                    d.bgAfter = csn.backgroundColor; d.fgAfter = csn.color;
+                    if (colourDeltaByEl.size < 12 || colourDeltaByEl.has(el)) colourDeltaByEl.set(el, d);
+                  }
+                }
+                if (attr === 'hidden' && stateEvents.length < 30) {
+                  stateEvents.push({ at, xpath: getXPath(el), attribute: attr, from: m.oldValue, to: el.getAttribute(attr), onTrigger: el === trig });
+                }
+              } else if (stateEvents.length < 30) {
+                stateEvents.push({ at, xpath: getXPath(el), attribute: attr, from: m.oldValue, to: el.getAttribute(attr), onTrigger: el === trig });
+              }
             }
           }
-        });
-        obs.observe(document.body, { childList: true, subtree: true, characterData: true });
+          // ordered live-region transitions: after each batch, re-read every pre-existing region that a
+          // mutation may have touched. Regions are few, so this stays cheap; capped like the other lanes.
+          for (const r of liveBefore) {
+            if (regionTrace.length >= 20) break;
+            const t = accText(r.el);
+            if (t !== r._last) { regionTrace.push({ at, xpath: getXPath(r.el), from: r._last, to: t }); r._last = t; }
+          }
+        };
+        const obs = new MutationObserver(onMuts);
+        obs.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeOldValue: true, attributeFilter: ['disabled', 'aria-disabled', 'aria-busy', 'aria-expanded', 'aria-hidden', 'hidden', 'value', 'class', 'style'] });
         const focusBefore = document.activeElement;
         // NAVIGATION GUARD — capture-phase, one-shot, removed in `finally`. An explicit `type="submit"`
         // button is now in the trigger set (see isSafe), and most such buttons belong to a form whose own
@@ -232,13 +349,16 @@ async function detectStatusMessages(page, opts = {}) {
           let sawActivity = false;
           while (Date.now() - t0 < maxWaitMs) {
             await new Promise((r) => setTimeout(r, settleMs));
+            pollWatched(); // timeline-only: value-property diffs never feed the legacy stop condition
             if (added.length + removedTexts.length > 0) sawActivity = true;
             else if (!sawActivity && Date.now() - t0 >= settleMs * 2) break;
           }
         } finally {
           document.removeEventListener('submit', onSubmit, true);
         }
-        obs.disconnect();
+        // The observer stays CONNECTED here: every legacy field below is computed synchronously (no await
+        // between this point and the phase-B loop), so no new mutation can interleave into it — the legacy
+        // fields close over exactly the data the old code saw, and phase B then extends the same observer.
 
         // BARRIER-CHANNEL WINDOW — the original `settleMs` slice only. See the observer comment above.
         const inBarrierWindow = (a) => !Number.isFinite(a.at) || a.at - tClick <= settleMs;
@@ -351,32 +471,115 @@ async function detectStatusMessages(page, opts = {}) {
         const nothingHappened = !observation.addedOutsideLiveRegion.length && !observation.addedInsideLiveRegion.length
           && !bornWithContent.length && !updatedRegions.length && !removed.length;
 
-        if (!msgs.length) return { finding: null, observation: nothingHappened ? null : observation }; // nothing new appeared (or only disclosure/tab content) → not a status (sound)
-        if (msgs.some((a) => a.inLive === true)) return { finding: null, observation }; // announced via a live region (membership read AT MUTATION TIME — see the observer)
-        const focusEl = document.activeElement;
-        // `isRealEl` is load-bearing here, not a tidy-up. The third clause asks whether focus landed on a
-        // CONTAINER of the new message — and <body> contains every message on the page, so an activation that
-        // merely DROPPED focus (the focused control was hidden or removed, focus fell back to <body>) matched
-        // it for free and suppressed the barrier on the whole "trigger hides itself, plain <div> announces
-        // nothing" family. That is the exact page this criterion exists for: focus is nowhere, no live region
-        // was involved, and the AT is told nothing. A focus fallback to <body>/<html> announces nothing, so it
-        // can never be the reason a change is perceivable.
-        const focusMovedToMsg = isRealEl(focusEl) && focusEl !== focusBefore && msgs.some((a) => { const e = toEl(a.node); return e && (e === focusEl || e.contains(focusEl) || (focusEl.contains && focusEl.contains(e))); });
-        if (focusMovedToMsg) return { finding: null, observation }; // perceivable: focus moved into the new content
+        // BARRIER + LEGACY-OBSERVATION DECISIONS ARE FIXED HERE — before the phase-B extension — so the
+        // extra observation time can never change what the barrier channel or the current prompts see.
+        // The three early returns this replaces are preserved branch-for-branch as assignments.
+        let finding = null;
+        let observationOut = nothingHappened ? null : observation; // nothing new appeared (or only disclosure/tab content) → not a status (sound)
+        if (msgs.length) {
+          observationOut = observation;
+          // announced via a live region ⇒ no finding (membership read AT MUTATION TIME — see the observer)
+          if (!msgs.some((a) => a.inLive === true)) {
+            const focusEl = document.activeElement;
+            // `isRealEl` is load-bearing here, not a tidy-up. The third clause asks whether focus landed on a
+            // CONTAINER of the new message — and <body> contains every message on the page, so an activation that
+            // merely DROPPED focus (the focused control was hidden or removed, focus fell back to <body>) matched
+            // it for free and suppressed the barrier on the whole "trigger hides itself, plain <div> announces
+            // nothing" family. That is the exact page this criterion exists for: focus is nowhere, no live region
+            // was involved, and the AT is told nothing. A focus fallback to <body>/<html> announces nothing, so it
+            // can never be the reason a change is perceivable.
+            const focusMovedToMsg = isRealEl(focusEl) && focusEl !== focusBefore && msgs.some((a) => { const e = toEl(a.node); return e && (e === focusEl || e.contains(focusEl) || (focusEl.contains && focusEl.contains(e))); });
+            if (!focusMovedToMsg) { // otherwise perceivable: focus moved into the new content
+              const target = toEl(msgs[0].node) || trig;
+              finding = {
+                sc: '4.1.3', kind: 'status-not-announced',
+                xpath: getXPath(target), trigger: getXPath(trig),
+                detail: `activating ${JSON.stringify(norm(trig.innerText || trig.textContent).slice(0, 40))} added new visible text that is NOT in a live region and did NOT move focus — a screen-reader user is not notified (message: ${JSON.stringify(msgs[0].text.slice(0, 60))})`,
+              };
+            }
+          }
+        }
 
-        const target = toEl(msgs[0].node) || trig;
-        return { observation, finding: {
-          sc: '4.1.3', kind: 'status-not-announced',
-          xpath: getXPath(target), trigger: getXPath(trig),
-          detail: `activating ${JSON.stringify(norm(trig.innerText || trig.textContent).slice(0, 40))} added new visible text that is NOT in a live region and did NOT move focus — a screen-reader user is not notified (message: ${JSON.stringify(msgs[0].text.slice(0, 60))})`,
-        } };
-      }, xp, settleMs, minTextLen, XPATH_FN, maxWaitMs);
+        // ---- PHASE B: bounded multi-step timeline extension (recorded only) ------------------------
+        // Only a trigger that demonstrably DID something keeps the page open to the horizon; a silent
+        // trigger returns exactly as before. The one blind spot this leaves — a trigger whose FIRST effect
+        // of any kind lands after the legacy window closed — is accepted as the price of a bounded sweep.
+        const sawTimelineActivity = added.length + removedTexts.length + stateEvents.length + visFlips.length
+          + regionTrace.length + valueEvents.length + colourDeltaByEl.size > 0;
+        let phaseBMs = 0; // actual extension spend, reported so the caller can charge the sweep-wide pool
+        if (timelineMs > 0 && sawTimelineActivity) {
+          const tPhaseB = Date.now();
+          while (Date.now() - tClick < timelineMs) {
+            const step = Math.min(settleMs, timelineMs - (Date.now() - tClick));
+            if (step <= 0) break;
+            await new Promise((r) => setTimeout(r, step));
+            pollWatched();
+          }
+          phaseBMs = Date.now() - tPhaseB;
+        }
+        onMuts(obs.takeRecords()); // flush mutations delivered but not yet dispatched — timeline-only by construction
+        obs.disconnect();
+        pollWatched();
+
+        // ---- TIMELINE ASSEMBLY (a SIDECAR artifact — never a field on the observation object) ------
+        const clip80 = (s) => (s || '').slice(0, 80);
+        const tRel = (t) => Math.max(0, Math.round(t - tClick));
+        const timeline = [];
+        const addedSetFull = new Set(added.flatMap((a) => a.parts || [a.text]).map((p) => p.toLowerCase()));
+        for (const a of added) {
+          if (a.text.length < minTextLen) continue;
+          if (a.node === trig || (trig.contains && trig.contains(a.node))) continue;
+          if (!hasNewComponent(a)) continue;              // same identity filters as the observation channel
+          if (isDisclosureReveal(a.node)) continue;
+          timeline.push({ atMs: tRel(a.at), kind: 'content-added', text: clip80(a.text), inLiveRegion: a.inLive === true });
+        }
+        for (const r of removedTexts) {
+          if (r.text.length < minTextLen) continue;
+          if (!(r.parts || [r.text]).every((p) => beforeText.includes(p.toLowerCase()) || addedSetFull.has(p.toLowerCase()))) continue;
+          timeline.push({ atMs: tRel(r.at), kind: 'content-removed', text: clip80(r.text), fromLiveRegion: !!r.fromLive });
+        }
+        for (const rt of regionTrace) {
+          timeline.push({ atMs: tRel(rt.at), kind: rt.to.length === 0 ? 'live-region-emptied' : (rt.from.length === 0 ? 'live-region-refilled' : 'live-region-updated'), xpath: rt.xpath, textBefore: clip80(rt.from), textAfter: clip80(rt.to) });
+        }
+        for (const se of stateEvents) {
+          timeline.push({ atMs: tRel(se.at), kind: 'state-change', xpath: se.xpath, attribute: se.attribute, from: se.from == null ? null : String(se.from).slice(0, 40), to: se.to == null ? null : String(se.to).slice(0, 40), ...(se.onTrigger ? { onTrigger: true } : {}) });
+        }
+        for (const vf of visFlips) timeline.push({ atMs: tRel(vf.at), kind: 'visibility-flip', xpath: vf.xpath, nowVisible: vf.nowVisible, text: clip80(vf.text) });
+        for (const ve of valueEvents) timeline.push({ atMs: tRel(ve.at), kind: 'value-emptied', xpath: ve.xpath });
+        timeline.sort((x, y) => x.atMs - y.atMs);
+        const TIMELINE_CAP = 40;
+        const colourStateDeltas = [...colourDeltaByEl.entries()].map(([el, d]) => ({
+          atMs: tRel(d.at), xpath: d.xpath, tag: d.tag,
+          backgroundBefore: d.bgBefore, backgroundAfter: d.bgAfter,
+          colorBefore: d.fgBefore, colorAfter: d.fgAfter,
+          // did any TEXT also change in/around the element? (a colour-only state change is the 1.4.1 shape;
+          // a colour change accompanied by text is ordinarily fine)
+          textAlsoChangedNearby: added.some((a) => {
+            if (a.text.length < minTextLen) return false;
+            const e = toEl(a.node);
+            return !!(e && (el.contains(e) || e.contains(el) || (e.parentElement && e.parentElement === el.parentElement)));
+          }),
+        })).filter((d) => d.backgroundBefore !== d.backgroundAfter || d.colorBefore !== d.colorAfter);
+        const sidecar = (timeline.length || colourStateDeltas.length) ? {
+          trigger: getXPath(trig), triggerLabel: trigLabel,
+          timeline: timeline.slice(0, TIMELINE_CAP),
+          spanMs: Math.round(Date.now() - tClick),
+          ...(timeline.length > TIMELINE_CAP ? { truncated: true } : {}),
+          ...(snapTruncated ? { snapshotTruncated: true } : {}),
+          ...(colourStateDeltas.length ? { colourStateDeltas } : {}),
+        } : null;
+        return { finding, observation: observationOut, ...(sidecar ? { timeline: sidecar } : {}), phaseBMs };
+      }, xp, settleMs, minTextLen, XPATH_FN, maxWaitMs, effTimelineMs);
     // The page navigated / the context was destroyed — keep the findings gathered so far, but SAY that the
     // sweep ended early. `probed` counts this trigger as probed, so without the record an aborted sweep and a
     // complete one are the same artifact whenever the abort happened on the last trigger.
     } catch (e) { sweepAborted = String((e && e.message) || e).slice(0, 200); break; }
     if (res && res.finding) findings.push(res.finding);
     if (res && res.observation) observations.push(res.observation);
+    if (res && res.timeline) timelines.push(res.timeline);
+    // charge the ACTUAL extension time against the sweep-wide phase-B pool (granted horizon is an upper
+    // bound; a trigger that went quiet early must not debit budget it never spent).
+    if (res && Number.isFinite(res.phaseBMs) && res.phaseBMs > 0) phaseBSpentMs += res.phaseBMs;
   }
   // A4: report coverage honestly — how many triggers were probed, whether the cap truncated the sweep, and
   // that this instrument only sees INSERTED status (not hidden/display toggles on pre-rendered nodes).
@@ -386,8 +589,40 @@ async function detectStatusMessages(page, opts = {}) {
   // downstream "absence != pass" reader needs — not the length of the list we intended to drive.
   // `enumError` / `sweepAborted` are present ONLY on a run that failed, so a healthy page's shape is
   // byte-identical to before: their presence at all is the signal (same convention as collectorLiveness).
-  return { findings, observations, coverageMode: 'insertion-and-removal', triggersProbed: probed, triggersTotal: enumed.total, coverageTruncated, budgetExhausted, unprobedTriggers: Math.max(0, enumed.total - probed),
+  return { findings, observations, timelines, coverageMode: 'insertion-and-removal', triggersProbed: probed, triggersTotal: enumed.total, coverageTruncated, budgetExhausted, unprobedTriggers: Math.max(0, enumed.total - probed),
     ...(enumed.enumError ? { enumError: enumed.enumError } : {}), ...(sweepAborted ? { sweepAborted } : {}) };
 }
 
-module.exports = { detectStatusMessages };
+// Pure budget math for the phase-B horizon of ONE trigger. The extension may spend only what the sweep
+// budget has left (minus a reserve so the NEXT trigger can still be enumerated and driven with its legacy
+// window), and an extension that cannot exceed the legacy window buys nothing — return 0 so the trigger
+// runs exactly the pre-timeline shape. Exported for unit tests (pure — no DOM, no browser).
+//
+// STARVATION GUARD (soundness probe 2026-08-17). The flat 1000 ms reserve let one active trigger's
+// timeline spend budget that LATER triggers needed for their legacy windows — the sweep then broke off
+// before probing them at all, and a barrier on an unprobed trigger is a barrier the legacy (timelineMs:0)
+// sweep would have caught. Two levers restore the invariant "phase B never costs a trigger its legacy
+// window":
+//  · `remainingTriggers` scales the reserve to the WORST-CASE legacy window (maxWaitMs) of every trigger
+//    still unprobed, so an extension is granted only out of genuinely spare budget;
+//  · `phaseBPoolMs` is the sweep-wide pool the caller debits with each trigger's ACTUAL extension spend
+//    (30% of sweepBudgetMs at the call site), bounding total phase-B time even when the reserve math is
+//    optimistic (silent triggers cost far less than maxWaitMs, so spare budget can be real but shared).
+// Both default to the pre-guard behaviour so existing pure-math callers are unchanged.
+function effectiveTimelineMs({ timelineMs, sweepBudgetMs, elapsedMs, maxWaitMs, reserveMs, remainingTriggers = 0, phaseBPoolMs = Infinity }) {
+  const t = Number.isFinite(timelineMs) ? timelineMs : 0;
+  if (t <= 0) return 0;
+  const mw = Number.isFinite(maxWaitMs) ? maxWaitMs : 0;
+  const nRemaining = Number.isFinite(remainingTriggers) ? Math.max(0, remainingTriggers) : 0;
+  const perTriggerReserve = mw > 0 ? mw : 1000;
+  const reserve = Number.isFinite(reserveMs) ? reserveMs : Math.max(1000, nRemaining * perTriggerReserve);
+  const remaining = (Number.isFinite(sweepBudgetMs) ? sweepBudgetMs : 0) - (Number.isFinite(elapsedMs) ? elapsedMs : 0) - reserve;
+  let eff = Math.min(t, Math.max(0, remaining));
+  // the horizon runs from tClick, so only the part past the legacy window is phase-B spend — clamp that
+  // part to what the pool has left.
+  const pool = Number.isFinite(phaseBPoolMs) ? Math.max(0, phaseBPoolMs) : Infinity;
+  eff = Math.min(eff, mw + pool);
+  return eff > mw ? eff : 0;
+}
+
+module.exports = { detectStatusMessages, effectiveTimelineMs };

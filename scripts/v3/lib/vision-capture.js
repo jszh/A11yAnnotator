@@ -19,6 +19,51 @@
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const { nsXPath } = require('./xpath-ns.js'); // namespace-agnostic resolve (Tier-0 #1) — fixes SVG/MathML subjects
 
+// AREA CROPS (s11 wedged-run RCA). An `<area>` is display:none in the UA stylesheet and reports a 0×0 client
+// rect, so the generic probe below returned { box: null } for every image-map subject: the new `area[href]`
+// obligations minted (6 on an image-map page vs 1 before) and then produced ZERO judgments, because the
+// adjudicator's required-evidence gate silently abstains a crop-less subject. The area's real on-screen
+// geometry lives in its `coords` attribute, drawn ON the visible `img[usemap]` bound to its owning `<map>`.
+//
+// `areaCoordsToRect(shape, coords)` → the area's bounding box in IMAGE-LOCAL CSS pixels ({x, y, w, h}), or
+// null when the caller should fall back to the WHOLE image (shape="default", unparseable/insufficient/
+// degenerate coords). Image-map coords are CSS pixels of the image AS DISPLAYED (browsers do not rescale hit
+// regions when the img is resized — the classic responsive-image-map problem), so no natural-size scaling is
+// applied. Pure math, module-level, single-sourced: unit tests call it directly in Node, and
+// `safeInstallResolver` injects this same function into the page as `window.__v3AreaCoordsRect` for
+// `__v3AreaBox` — so the parser cannot drift between the tested copy and the in-page copy.
+function areaCoordsToRect(shape, coords) {
+  var s = String(shape == null ? '' : shape).trim().toLowerCase();
+  if (s === 'default') return null;                       // whole-image shape — caller crops the img itself
+  var toks = String(coords == null ? '' : coords).trim().split(/[\s,;]+/).filter(function (t) { return t.length > 0; });
+  var nums = [];
+  for (var i = 0; i < toks.length; i++) { var n = parseFloat(toks[i]); if (!isFinite(n)) return null; nums.push(n); }
+  if (s === '' || s === 'rect' || s === 'rectangle') {    // missing/empty shape defaults to the rect state
+    if (nums.length < 4) return null;
+    var w = Math.abs(nums[2] - nums[0]), h = Math.abs(nums[3] - nums[1]);
+    if (!(w > 0) || !(h > 0)) return null;                // zero-area rect — degenerate
+    return { x: Math.min(nums[0], nums[2]), y: Math.min(nums[1], nums[3]), w: w, h: h };
+  }
+  if (s === 'circle' || s === 'circ') {                   // cx,cy,r → bounding box
+    if (nums.length < 3) return null;
+    var r = nums[2];
+    if (!(r > 0)) return null;
+    return { x: nums[0] - r, y: nums[1] - r, w: 2 * r, h: 2 * r };
+  }
+  if (s === 'poly' || s === 'polygon') {                  // min/max of the coordinate pairs (odd trailing token dropped)
+    var pairs = Math.floor(nums.length / 2);
+    if (pairs < 3) return null;                           // fewer than 3 vertices is not a polygon
+    var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (var p = 0; p < pairs; p++) {
+      minX = Math.min(minX, nums[2 * p]); maxX = Math.max(maxX, nums[2 * p]);
+      minY = Math.min(minY, nums[2 * p + 1]); maxY = Math.max(maxY, nums[2 * p + 1]);
+    }
+    if (!(maxX > minX) || !(maxY > minY)) return null;
+    return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+  }
+  return null;                                            // unknown shape keyword — fall back to the whole img
+}
+
 // #10 fix: every `document.evaluate(x, document, ...)` call site in this file used the TOP-LEVEL `document`
 // only — but act-page-collect.js namespaces an in-frame subject's xpath as `<frameXpath>>/<in-frame xpath>`
 // (see its xpathOfInDoc/frame-traversal comments). A plain document.evaluate on a '>>'-bearing string throws
@@ -116,10 +161,64 @@ function installXpathResolver() {
     }
     return { x: offsetX, y: offsetY };
   };
+  // AREA CROPS (s11 RCA): an `<area>` renders nothing itself (UA display:none, 0×0 rect) — its on-screen
+  // geometry is its `coords` drawn on the visible `img[usemap]` bound to its owning `<map name>`. Resolve
+  // area → map → img here so BOTH the crop probe and the scroll step can target the pixels that exist.
+  var areaOwnerImg = function (el) {
+    var map = null;
+    try { map = el && el.closest ? el.closest('map') : null; } catch (e) { map = null; }
+    if (!map) return null;
+    var doc = el.ownerDocument || document;
+    var name = (map.getAttribute('name') || '').toLowerCase();
+    var id = (map.getAttribute('id') || '').toLowerCase();
+    var imgs = doc.querySelectorAll('img[usemap], object[usemap]');
+    for (var i = 0; i < imgs.length; i++) {
+      var u = (imgs[i].getAttribute('usemap') || '').trim().replace(/^#/, '').toLowerCase();
+      if (!u) continue;
+      if ((name && u === name) || (id && u === id)) { if (effectivelyVisible(imgs[i])) return imgs[i]; }
+    }
+    return null;                                           // no VISIBLE bound img ⇒ the area truly paints nothing
+  };
+  window.__v3AreaOwnerImg = areaOwnerImg;
+  // The area's crop geometry in TOP-PAGE coordinates: `box` = the area's own region on the img (element-crop),
+  // `imgBox` = the whole owning img (the area's surrounding-region — the region's meaning is the map around it).
+  // Coords parse via window.__v3AreaCoordsRect (the module-level areaCoordsToRect, injected by
+  // safeInstallResolver); a null parse (shape=default / garbage coords) falls back to the WHOLE img, as does a
+  // parsed region whose visible intersection with the img is degenerate (<6px — mirrors the generic min-dim guard).
+  window.__v3AreaBox = function (xpath) {
+    var el = window.__v3ResolveXpath(xpath);
+    if (!el || !el.tagName || el.tagName.toLowerCase() !== 'area') return null;
+    var img = areaOwnerImg(el);
+    if (!img) return null;
+    var off = window.__v3FrameOffset(xpath);               // #10b: img lives in the SAME document as the area
+    var ir = img.getBoundingClientRect();
+    if (!(ir.width >= 6) || !(ir.height >= 6)) return null;
+    var mk = function (x, y, w, h) {
+      return { x: x, y: y, w: w, h: h, vw: window.innerWidth, vh: window.innerHeight, scrollX: window.scrollX, scrollY: window.scrollY };
+    };
+    var imgBox = mk(ir.left + off.x, ir.top + off.y, ir.width, ir.height);
+    var local = (typeof window.__v3AreaCoordsRect === 'function')
+      ? window.__v3AreaCoordsRect(el.getAttribute('shape'), el.getAttribute('coords')) : null;
+    var box = imgBox;
+    if (local) {
+      // clamp the area region to the img's own box — coords can (legally) overhang the image edge
+      var x0 = Math.max(imgBox.x, imgBox.x + local.x);
+      var y0 = Math.max(imgBox.y, imgBox.y + local.y);
+      var x1 = Math.min(imgBox.x + imgBox.w, imgBox.x + local.x + local.w);
+      var y1 = Math.min(imgBox.y + imgBox.h, imgBox.y + local.y + local.h);
+      if (x1 - x0 >= 6 && y1 - y0 >= 6) box = mk(x0, y0, x1 - x0, y1 - y0);
+    }
+    return { box: box, imgBox: imgBox };
+  };
 }
 // try/catch, not .catch() — a page mock lacking .evaluate (unit tests exercising ONLY the setViewport path)
 // throws SYNCHRONOUSLY (`TypeError: page.evaluate is not a function`), which .catch() cannot intercept.
-async function safeInstallResolver(page) { try { await page.evaluate(installXpathResolver); } catch (e) {} }
+async function safeInstallResolver(page) {
+  try { await page.evaluate(installXpathResolver); } catch (e) {}
+  // AREA coords parser: the SAME module-level areaCoordsToRect that Node unit tests exercise, injected as the
+  // in-page window.__v3AreaCoordsRect that __v3AreaBox consumes — one source of truth, no in-page duplicate.
+  try { await page.evaluate('window.__v3AreaCoordsRect = ' + areaCoordsToRect.toString()); } catch (e) {}
+}
 
 // SC → the per-element transition whose before/after a rubric for that SC needs. Exported so the
 // orchestrator + a pure test share it. Form SCs drive a 'submit' (page-mutating ⇒ reload-isolated).
@@ -173,7 +272,8 @@ async function captureVision(page, xpaths, opts = {}) {
     // scroll the target into view first — on a real page most sampled elements are BELOW THE FOLD, so
     // without this their element-crop is skipped (off-viewport) and the LLM gets no pixels (probe finding
     // on the corpus). scrollIntoView centres it; getBoundingClientRect is then viewport-relative and clips.
-    await page.evaluate((x) => { const el = window.__v3ResolveXpath(x); if (el && el.scrollIntoView) try { el.scrollIntoView({ block: 'center', inline: 'center' }); } catch (e) { el.scrollIntoView(); } }, xp).catch(() => {});
+    // AREA (s11 RCA): scrollIntoView on a display:none `<area>` is a no-op — scroll its owning img instead.
+    await page.evaluate((x) => { let el = window.__v3ResolveXpath(x); if (el && el.tagName && el.tagName.toLowerCase() === 'area') { const img = window.__v3AreaOwnerImg(el); if (img) el = img; } if (el && el.scrollIntoView) try { el.scrollIntoView({ block: 'center', inline: 'center' }); } catch (e) { el.scrollIntoView(); } }, xp).catch(() => {});
     await require('./settle.js').awaitSettle(page); // gated V3_SETTLE_WAIT — settle the post-scroll reflow/repaint before the crop
     // probe returns { box } (box=null ⇒ the probe RAN and the element has no perceivable visual box); a THROW ⇒
     // .catch ⇒ null (the probe itself failed — a transient, NOT "non-visual"). This distinction lets the rubric gate
@@ -181,6 +281,15 @@ async function captureVision(page, xpaths, opts = {}) {
     const probe = await page.evaluate((x) => {
       const el = window.__v3ResolveXpath(x);
       if (!el || !el.getBoundingClientRect) return { box: null };
+      // AREA (s11 RCA): a 0×0 `<area>` used to fall through to the degenerate-box guard below and bail with
+      // { box: null } — every image-map obligation then abstained crop-less at the required-evidence gate.
+      // Its real geometry is its coords region ON the visible owning img: element-crop = that region,
+      // surrounding-region = the WHOLE owning img (returned as `surround`). A missing/hidden owning img keeps
+      // { box: null } — the area then genuinely paints nothing and the nonVisual flag below is the truth.
+      if (el.tagName && el.tagName.toLowerCase() === 'area') {
+        const a = window.__v3AreaBox(x);
+        return a ? { box: a.box, surround: a.imgBox } : { box: null };
+      }
       // an AT-imperceivable element (visibility:hidden / opacity:0, on the element OR an ancestor — #10e fix)
       // keeps a layout box but a crop of it is either blank or shows whatever renders BEHIND it — a misleading
       // signal to the agent either way. Skip it (adversarial).
@@ -196,6 +305,7 @@ async function captureVision(page, xpaths, opts = {}) {
       return { box: { x: r.left, y: r.top, w: r.width, h: r.height, vw: window.innerWidth, vh: window.innerHeight, scrollX: window.scrollX, scrollY: window.scrollY } };
     }, xp).catch(() => null);
     const rect = probe && probe.box;
+    const surround = probe && probe.surround; // AREA subjects only: the whole owning img (its surrounding-region)
     const frames = {};
     let inView = false;
     if (rect) {
@@ -213,16 +323,19 @@ async function captureVision(page, xpaths, opts = {}) {
       // — it was a coordinate-space mismatch. Clamp fully in VIEWPORT space (unaffected — clamping is about
       // what's currently visible on screen) but add the scroll offset ONLY when building the final clip handed
       // to `shot()`.
-      const clip = (p) => {
-        const x = Math.max(0, Math.min(rect.x - p, rect.vw - 1));
-        const y = Math.max(0, Math.min(rect.y - p, rect.vh - 1));
-        const width = Math.max(1, Math.min(rect.w + 2 * p, rect.vw - x));
-        const height = Math.max(1, Math.min(rect.h + 2 * p, rect.vh - y));
-        return { x: x + rect.scrollX, y: y + rect.scrollY, width, height };
+      const clipOf = (r, p) => {
+        const x = Math.max(0, Math.min(r.x - p, r.vw - 1));
+        const y = Math.max(0, Math.min(r.y - p, r.vh - 1));
+        const width = Math.max(1, Math.min(r.w + 2 * p, r.vw - x));
+        const height = Math.max(1, Math.min(r.h + 2 * p, r.vh - y));
+        return { x: x + (r.scrollX || 0), y: y + (r.scrollY || 0), width, height };
       };
+      const clip = (p) => clipOf(rect, p);
       inView = rect.x < rect.vw && rect.y < rect.vh && rect.x + rect.w > 0 && rect.y + rect.h > 0;
       if (inView && want.has('element-crop')) frames['element-crop'] = await shot(clip(2));
-      if (inView && want.has('surrounding-region')) frames['surrounding-region'] = await shot(clip(pad));
+      // AREA subjects: the surrounding-region is the WHOLE owning img (the map IS the area's context);
+      // everything else keeps the padded element rectangle.
+      if (inView && want.has('surrounding-region')) frames['surrounding-region'] = await shot(surround ? clipOf(surround, pad) : clip(pad));
     }
     if (viewport && want.has('viewport')) frames['viewport'] = viewport;
     if (viewport320 && want.has('viewport-320')) frames['viewport-320'] = viewport320;
@@ -552,4 +665,4 @@ async function captureVisionForUrl(url, xpaths, opts = {}) {
   });
 }
 
-module.exports = { captureVision, captureStateVision, captureVisionForUrl, mergeVision, buildStatePlan, STATE_TRANSITIONS };
+module.exports = { captureVision, captureStateVision, captureVisionForUrl, mergeVision, buildStatePlan, STATE_TRANSITIONS, areaCoordsToRect };

@@ -16,10 +16,37 @@
 // carrying information at all (a purely aesthetic palette is not a 1.4.1 failure) and whether a text
 // equivalent exists elsewhere.
 //
-// Self-contained so it serializes through page.evaluate.
-function collectColourPeers() {
+// TEXT-LESS COLOUR-TOKEN LANE (residual RCA s10 Tier 3) — DISABLED BY DEFAULT. A status-dot matrix (empty
+// spans coloured by class) can never form a peer group above: members must carry >= 2 chars of text and share
+// ONE parent, and a matrix's dots are text-less and live in different cells. The token lane buckets text-less,
+// background-painting elements by (tag, class token) ACROSS parents, and emits a group only when ALL of:
+//   1. >= 3 instances;  2. >= 2 distinct background colours;  3. >= 2 distinct parents;
+//   4. at least one instance of the same class signature sits inside a legend-like element that DOES carry
+//      text (its immediate parent has its own non-empty text — the labelled-key shape). This conjunct is what
+//      stops avatars / spacers / decorative bullets from flooding: a token class that never appears next to
+//      text anywhere has no legend and mints nothing.
+// Token groups ride the existing payload shape with an ADDITIVE `tokenLane: true` marker + `legendText`.
+//
+// GATING / WIRING. The lane runs ONLY when the caller passes `{ tokenLane: true }` as the evaluate
+// argument. (A former in-page window-global escape hatch is deliberately GONE: a global the page itself
+// can set is page-controlled activation of a quarantined lane — batch-2 soundness review.) Production
+// wiring is env-flagged:
+// act-page-collect.js must thread `{ tokenLane: process.env.V3_COLOUR_TOKEN_LANE === '1' }` as the evaluate
+// argument (see HUNKS-colour-token-lane.md) — the flag defaults OFF, and per the RCA the lane may not affect
+// any run until the held-out aperture measurement (scripts/v3/tools/measure-colour-token-aperture.js) has
+// been reviewed. With the flag off (or no argument at all — every current call site), the output is
+// byte-identical to the pre-lane collector.
+//
+// Self-contained so it serializes through page.evaluate (`opts` must be a plain serializable object).
+function collectColourPeers(opts) {
   const MAX_GROUPS = 8;
   const MAX_MEMBERS = 12;
+  // token lane flag — read from the evaluate argument ONLY (Node-side env is the CALLER's business).
+  // Default hard OFF. Never read from `window`: page content can set a window global, and a quarantined
+  // lane must not be activatable by the page under measurement.
+  const tokenLane = !!(opts && opts.tokenLane === true);
+  const MAX_TOKEN_INSTANCES = 48;   // per bucket — a matrix column can be long; the listing is capped later
+  const MAX_TOKEN_BUCKETS = 128;    // per page — bound the class-token fan-out on pathological pages
   // Never candidates: images (judged by the element-level lane), and anything inside a code/pre block —
   // syntax highlighting is the classic false positive and is not conveying page information.
   const SKIP_TAG = /^(img|svg|canvas|script|style|pre|code|kbd|samp|br|hr|option)$/;
@@ -47,12 +74,49 @@ function collectColourPeers() {
 
   // Bucket by (tag, role, parent) — the structural definition of "peer".
   const buckets = new Map();
+  const tokenBuckets = tokenLane ? new Map() : null; // (tag, class token) → text-less painted instances, cross-parent
   for (const el of document.querySelectorAll('body *')) {
     const tag = el.tagName.toLowerCase();
     if (SKIP_TAG.test(tag)) continue;
     if (el.closest('pre, code')) continue;
     if (!el.parentElement) continue;
     if (!visible(el)) continue;
+    // TOKEN LANE COLLECTION (flag-gated; zero cost when off). An instance is a class-carrying element with
+    // no visible text of its own (< 2 chars — exactly the members the main lane's label gate drops), which
+    // PAINTS its own background (a transparent token is a spacer, not a colour code) and has a real box
+    // (>= 4px both dims — hairlines and collapsed layout artifacts are not visual tokens). Bucketed per
+    // individual class token, because colour-variant classes (a base class plus a per-colour modifier) would
+    // make the FULL class list split every colour into its own bucket and hide the very set being looked for.
+    if (tokenLane) {
+      const classAttr = (el.getAttribute('class') || '').trim();
+      if (classAttr && ownText(el).length < 2) {
+        const cs = getComputedStyle(el);
+        const bg = cs.backgroundColor;
+        if (bg && bg !== 'transparent' && bg !== 'rgba(0, 0, 0, 0)') {
+          const r = el.getBoundingClientRect();
+          if (r.width >= 4 && r.height >= 4) {
+            const inst = {
+              xpath: xpathOf(el),
+              parentEl: el.parentElement,
+              parentXp: xpathOf(el.parentElement),
+              ariaLabel: (el.getAttribute('aria-label') || '').slice(0, 40),
+              color: cs.color,
+              background: bg,
+              borderStyle: cs.borderTopStyle + '/' + cs.borderTopWidth,
+              marker: (el.querySelector('img, svg, [role="img"]') ? 'child' : '')
+                + ((getComputedStyle(el, '::before').content || 'none') !== 'none' ? '+before' : '')
+                + ((getComputedStyle(el, '::after').content || 'none') !== 'none' ? '+after' : ''),
+            };
+            for (const cls of classAttr.split(/\s+/).slice(0, 6)) {
+              const tk = tag + '|.' + cls;
+              if (!tokenBuckets.has(tk)) { if (tokenBuckets.size >= MAX_TOKEN_BUCKETS) continue; tokenBuckets.set(tk, []); }
+              const tb = tokenBuckets.get(tk);
+              if (tb.length < MAX_TOKEN_INSTANCES) tb.push(inst);
+            }
+          }
+        }
+      }
+    }
     const key = tag + '|' + (el.getAttribute('role') || '') + '|' + xpathOf(el.parentElement);
     if (!buckets.has(key)) buckets.set(key, []);
     const b = buckets.get(key);
@@ -142,6 +206,56 @@ function collectColourPeers() {
       anchorCarriesColour: carries[anchorIdx] === true,
       members: ordered.map((x) => ({ xpath: x.xpath, label: x.label, color: x.color, background: x.background })),
     });
+  }
+
+  // ── TOKEN-LANE EMISSION (flag-gated) ──────────────────────────────────────────────────────────────────
+  if (tokenLane && tokenBuckets) {
+    const collapse = (s) => String(s || '').replace(/\s+/g, ' ').trim();
+    const emittedSets = new Set(); // two class tokens shared by the same instances must not emit twice
+    for (const [tkey, insts] of tokenBuckets) {
+      if (groups.length >= MAX_GROUPS) break;
+      if (insts.length < 3) continue;                                        // conjunct 1: >= 3 instances
+      const bgSet = new Set(insts.map((x) => x.background));
+      if (bgSet.size < 2) continue;                                          // conjunct 2: >= 2 distinct backgrounds
+      if (new Set(insts.map((x) => x.parentXp)).size < 2) continue;          // conjunct 3: >= 2 distinct parents
+      // A non-colour axis differing across instances means the distinction already survives colour loss —
+      // same rule as the main lane, on the axes a text-less token actually has.
+      if (new Set(insts.map((x) => x.marker)).size > 1) continue;
+      if (new Set(insts.map((x) => x.borderStyle)).size > 1) continue;
+      // conjunct 4 (the legend): at least one instance whose IMMEDIATE parent carries its own text — the
+      // labelled-key shape ("token, word, token, word"). A matrix cell holding only its dot has no text; a
+      // page-wide container is excluded by the length ceiling. The collected text is handed to the judge.
+      const legendTexts = [];
+      const seenLegendParents = new Set();
+      for (const x of insts) {
+        const t = x.parentEl ? collapse(x.parentEl.textContent) : '';
+        if (t.length >= 2 && t.length <= 200 && !seenLegendParents.has(x.parentXp)) {
+          seenLegendParents.add(x.parentXp);
+          legendTexts.push(t);
+        }
+      }
+      if (!legendTexts.length) continue;
+      const setSig = insts.map((x) => x.xpath).sort().join('§');
+      if (emittedSets.has(setSig)) continue;
+      emittedSets.add(setSig);
+      // ANCHOR: same modal rule as the main lane, on the background channel — with a strictly most-common
+      // background, the off-modal instances carry the distinction and one of them anchors; a tie keeps DOM order.
+      const counts = new Map();
+      for (const x of insts) counts.set(x.background, (counts.get(x.background) || 0) + 1);
+      let modal = null, best = 0, tied = false;
+      for (const [b, c] of counts) { if (c > best) { modal = b; best = c; tied = false; } else if (c === best) tied = true; }
+      const carries = tied ? insts.map(() => true) : insts.map((x) => x.background !== modal);
+      const aIdx = Math.max(0, carries.indexOf(true));
+      const ordered = aIdx === 0 ? insts : [insts[aIdx]].concat(insts.slice(0, aIdx), insts.slice(aIdx + 1));
+      groups.push({
+        key: 'token|' + tkey,
+        distinctColours: bgSet.size,
+        anchorCarriesColour: carries[aIdx] === true,
+        tokenLane: true,                                                     // ADDITIVE marker — main-lane groups untouched
+        legendText: legendTexts.join(' | ').slice(0, 120),
+        members: ordered.slice(0, MAX_MEMBERS).map((x) => ({ xpath: x.xpath, label: x.ariaLabel, color: x.color, background: x.background })),
+      });
+    }
   }
   return groups;
 }

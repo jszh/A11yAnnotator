@@ -31,7 +31,7 @@ const { collectColourPeers, collectFieldColourState, collectTextContrastFacts } 
 const { collectFauxColumns } = require('../../lib/collect-faux-columns.js');
 const { collectErrorSummary, collectAtRestErrorState } = require('../../lib/collect-error-summary.js');
 const { collectLinkTargetFacts } = require('../../lib/collect-link-facts.js');
-const { collectControlGroups } = require('../../lib/act-page-collect.js');
+const { collectControlGroups, collectStructuralMarkupFacts } = require('../../lib/act-page-collect.js');
 const { collectStylingOutliers } = require('../../lib/collect-styling-outliers.js');
 const { collectMotion } = require('../../lib/broad-scope-probes.js');
 const { captureInventory, measureReflow320, runReflow } = require('../../lib/reflow-runner.js');
@@ -107,6 +107,7 @@ const GUARDED_COLLECTORS = [
   ['collectAtRestErrorState', collectAtRestErrorState],
   ['collectLinkTargetFacts', collectLinkTargetFacts],
   ['collectControlGroups', collectControlGroups],
+  ['collectStructuralMarkupFacts', collectStructuralMarkupFacts],
   ['collectStylingOutliers', collectStylingOutliers],
   // broad-scope-probes.js — collectMotion (two guarded call sites)
   ['collectMotion', collectMotion],

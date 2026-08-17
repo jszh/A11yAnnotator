@@ -159,8 +159,10 @@ function buildV3(bundle, opts = {}) {
     // from the element's own facts, it comes from the element's RELATIONSHIP to its peers.
     if (colourGroupAnchors.has(xpath)) return fam === 'use-of-color';
     if (xpath === oracle.PAGE_STATUS_MESSAGE_XPATH) {
+      // `live-region-birth` joins the gate: a region born with its content is a status change the ACTIVATION
+      // sweep can never observe (nothing was activated), recorded by the document-start birth observer.
       return fam === 'status-message' && !!(bundle.instruments && Array.isArray(bundle.instruments.findings)
-        && bundle.instruments.findings.some((f) => f && f.sc === '4.1.3' && f.kind === 'status-change-observed'));
+        && bundle.instruments.findings.some((f) => f && f.sc === '4.1.3' && (f.kind === 'status-change-observed' || f.kind === 'live-region-birth')));
     }
     const el = collectByXpath[xpath];
     return !!el && oracle.familiesFor(el).includes(fam);
@@ -556,11 +558,22 @@ function buildV3(bundle, opts = {}) {
   // an exact positional comparison rather than a sample heuristic — and it is capped by asciiFold's own
   // 200-char slice, hence the min-length walk. Full-width DIGITS are deliberately not enough on their own:
   // they carry the Nd category and assistive technology reads them correctly.
+  //
+  // NUMERIC BRANCH (RCA s10, text-lookalike-glyph-substitution/case-05 '$ЗОО'; Tier 2 #21). The detector's
+  // homoglyph-numeric lane folds digit-lookalike LETTERS to digits ('$ЗОО' → '$300'), and the letter-only
+  // test above swallowed exactly that shape: every replacement lands on [0-9], so no obligation was minted
+  // and the barrier never reached a judge. A source LETTER folding to an ASCII DIGIT is a real substitution —
+  // AT reads "ze", the eye reads 3 — so count it. The source must be a LETTER (\p{L}) for the digit case,
+  // which keeps the full-width-digit exclusion above intact: '１' is Nd, not L, and still does not mint.
   const foldReplacesALetter = (src, cf) => {
     const a = [...String(src || '')];
     const b = [...String((cf && cf.asciiFold) || '')];
     const n = Math.min(a.length, b.length);
-    for (let i = 0; i < n; i++) if (a[i] !== b[i] && /^[A-Za-z]$/.test(b[i])) return true;
+    for (let i = 0; i < n; i++) {
+      if (a[i] === b[i]) continue;
+      if (/^[A-Za-z]$/.test(b[i])) return true;
+      if (/^[0-9]$/.test(b[i]) && /\p{L}/u.test(a[i])) return true;
+    }
     return false;
   };
   const confusableObligations = [];
@@ -601,7 +614,7 @@ function buildV3(bundle, opts = {}) {
   // and the rubric holds the Understanding's exceptions (tablist selection, survey questions, primary
   // content) so an observed change is not the same thing as an owed announcement.
   const statusObservedRows = (bundle.instruments && Array.isArray(bundle.instruments.findings))
-    ? bundle.instruments.findings.filter((f) => f && f.sc === '4.1.3' && f.kind === 'status-change-observed')
+    ? bundle.instruments.findings.filter((f) => f && f.sc === '4.1.3' && (f.kind === 'status-change-observed' || f.kind === 'live-region-birth'))
     : [];
   const statusObligations = [];
   if (statusObservedRows.length) {

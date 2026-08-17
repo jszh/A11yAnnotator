@@ -49,6 +49,19 @@ pixel-richness call. The ONLY question is: *does this image convey content the s
 - Do not infer information from the filename or your prior knowledge of a brand — judge only the rendered pixels
   in the `element-crop` against the `nearbyText`.
 
+**REDUNDANCY MUST BE QUOTED — text you cannot quote does not exist.** Clearing this image BECAUSE its
+information is available elsewhere is a factual claim about the page, and it carries a citation standard: QUOTE
+the specific `nearbyText` (or name the specific element and quote its text) that carries the equivalent
+information. If you cannot quote it from the evidence handed to you, the equivalent text does not exist — an
+unquoted "the same data appears in an adjacent table/caption" is a fabricated redundancy, and the image must
+then be judged as the only path by which that content reaches any user. A claim that a table or list exists is
+checkable — the signals/DOM excerpt handed to you would show such a structure; do not assert structures the
+evidence does not contain. If, however, the excerpt/signals handed to you are capped or plausibly incomplete
+for the specific place the equivalent text would live, you can verify neither its presence nor its absence —
+return PARTIAL (cannot verify from the provided excerpt) rather than treating the unquotable text as absent.
+(A flourish/spacer/mood photo that adds no information needs no such quote — this
+standard applies only when redundancy with on-page content is your ground for clearing.)
+
 **WCAG soundness caveats (do NOT manufacture a failure):**
 - An empty name on a genuinely decorative image is CORRECT — the mere fact it is removed from the tree, or
   renders visible pixels, is NOT a barrier.

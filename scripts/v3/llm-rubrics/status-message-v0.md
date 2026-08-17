@@ -30,7 +30,14 @@ screenshot, which cannot show any of it. Read them in this order:
 1. `regionsBornWithContent` NON-EMPTY ⇒ a live region was INSERTED already holding its message. An AT
    observes regions that were in the tree when the change happened, so a region born with its content
    announces NOTHING. **This is a barrier**, and it is invisible to "is the text inside a live region?" —
-   which is exactly why that question cleared these pages.
+   which is exactly why that question cleared these pages. When `signals.liveRegionBirths` is present it
+   extends this check to regions the ACTIVATION sweep could never see: a region with `mountedAfterLoad` and
+   `emptyAtBirth: false` — and WITHOUT `harnessInteraction: true` — was inserted already carrying its
+   message with no user action at all, and `removedAtMs` means it then removed itself — announced by
+   nothing and unreadable on demand. A row tagged `harnessInteraction: true` was born only AFTER the
+   harness itself started clicking controls: attribute it to that interaction (the activation sweep's own
+   observations already cover what a click produced), never read it as a spontaneous page-init birth.
+   `emptyAtBirth: true` with a later `firstContentAtMs` is the healthy shape and corroborates a clear.
 2. `removedText` NON-EMPTY ⇒ status text LEFT the page. A status message is content about "the success or
    results of an action… the waiting state… the progress of a process… the existence of errors", and its
    DISAPPEARANCE reports a change in that state just as its appearance did: when an in-progress message
@@ -41,11 +48,26 @@ screenshot, which cannot show any of it. Read them in this order:
    appeared, and its expiry adds none. Ask what the removal TELLS the user; if the answer is "nothing", it
    is not a status change.*
 3. `regionsUpdated[].emptied: true` ⇒ a pre-existing region was cleared. Same test as (2).
-4. `regionsUpdated[].politeness` / `.atomic` ⇒ judge the politeness against the URGENCY of the message (an
+4. **`signals.statusTimelines` present ⇒ judge the WHOLE flow, in order, and ask the outcome question:
+   after a busy/progress message is removed (a `content-removed` or `live-region-emptied` row), is the
+   OUTCOME of the operation conveyed to AT at any later `atMs`?** The outcome is conveyed only by a later
+   row INSIDE a live region (`content-added` with `inLiveRegion: true`, or a `live-region-updated`/
+   `live-region-refilled` row), or by focus moving into the new content (the observation's focus facts).
+   An outcome carried ONLY by a `content-added` row OUTSIDE any live region, or a `live-region-emptied`
+   with no announced follow-up, reaches no AT — **that is a barrier**, and it is invisible to a single
+   before/after observation, which is exactly why these pages were being cleared. A flow whose only outcome
+   rows are `state-change`s or `visibility-flip`s is NOT automatically that shape: an attribute flip IS
+   programmatically determinable, so decide instead whether any VISIBLE status message conveys the outcome
+   — if sighted users receive no status message either, there may be no status message in scope at all.
+   *Guards:* a removal that conveys
+   nothing new (a toast expiring after its message was announced) is NOT a barrier — same test as the
+   `removedText` item above; and judge the state at the END of the recorded flow, not an intermediate
+   phase.
+5. `regionsUpdated[].politeness` / `.atomic` ⇒ judge the politeness against the URGENCY of the message (an
    error or a time-critical warning delivered `polite` may be missed; a routine count delivered `assertive`
    interrupts), and `atomic: false` on a region where only part of a sentence changes means the AT reads
    the fragment, not the meaning.
-5. `addedOutsideLiveRegion` NON-EMPTY with nothing else ⇒ the plain-`<div>` case; the detector will normally
+6. `addedOutsideLiveRegion` NON-EMPTY with nothing else ⇒ the plain-`<div>` case; the detector will normally
    already have barriered it.
 
 **THE ANNOUNCED STRING MUST STAND ON ITS OWN — a SECOND, independent check, applied only AFTER the wiring

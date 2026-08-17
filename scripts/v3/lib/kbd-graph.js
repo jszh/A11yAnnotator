@@ -1220,6 +1220,36 @@ async function collectRevealedFocusOrder(page, url, opts = {}) {
 
 // Reload → click one opener → run the trap detectors. Returns the first CONFIRMED result, tagged with the
 // opener that revealed it, or null. The caller owns page lifetime; this never touches the shared lane page.
+//
+// REVEALED-STATE DETECTOR SET (2026-08-17, RCA-residual-s10 2.1.2 `modal-popover-…-vs-trap/case-06`).
+// This pass used to run ONLY detectKeyboardTraps + detectFocusRetentionTraps after the opener click, which
+// re-created for the revealed state exactly the structural blind spot detectEmbeddedFormatTraps documents for
+// the at-rest one: an F10 trap inside an <iframe>/srcdoc/shadow root is invisible to the region detectors
+// because its focusables live in ANOTHER document. Worse, the region detector can OBSERVE the confinement and
+// still clear it — probed on the case-06 shape (hard trap in a same-origin srcdoc iframe inside a hidden
+// modal): the revealed dialog IS nominated, probeDirectionalEscape tabs into the iframe and reads 'inside'
+// forever (both directions trapped), and then the Esc probe calls focusFirstIn — resetting focus to the
+// region's first focusable in the PARENT document — before pressing Escape. The parent's Escape handler
+// works from there, so escEscapes=true and `confirmed` is false; but the user trapped INSIDE the frame can
+// never deliver that keydown to the parent document. Escape-from-the-parent is the wrong question; only
+// detectEmbeddedFormatTraps presses Escape from INSIDE the boundary. So the revealed state now runs the
+// embedded-format detector, then the fixed-set confinement detector, after the two originals:
+//  · the revealed state is RE-OPENED (fresh load + the same opener) before the two new detectors run,
+//    because the Esc probe above legitimately CLOSES a conformant outer modal — the very page shape this
+//    fix targets — and a detector run against the re-closed page is the at-rest blindness all over again;
+//  · each detector re-collects focusables from the LIVE revealed DOM (the modal's controls are visible now,
+//    so tagFocusables keeps them), and the embedded detector counts same-origin iframe/srcdoc inner
+//    focusables via contentDocument / CDP contentFrame to size its walk — nothing at-rest is widened;
+//  · every internal guard travels with the detector unchanged: Tab AND Shift+Tab AND Escape must all fail,
+//    directional escapes stay review, cross-origin counts stay review, the confinement floor / observed-cycle
+//    / transient-reach / advisory guards all apply as at rest;
+//  · CONFIRMED-authority results (region trap, self-refocus, same-origin embed trap, lyingAdvisory
+//    confinement) return immediately; review-grade results (cross-origin/directional embed rows, advisory-
+//    possible confinement, one-way loops) are HELD and returned only if no opener yields anything confirmed,
+//    so a weaker signal from opener 1 never pre-empts a confirmed trap behind opener 2.
+// The caller emits these under the SAME kinds/review flags as the at-rest lane (keyboard-trap /
+// -directional / -confinement / -oneway) with the existing "(revealed by activating …)" provenance suffix —
+// no new provenance scheme, and build-v3's mint loops and S1 guards apply unchanged.
 async function detectTrapsAfterReveal(page, url, opts = {}) {
   const maxOpeners = Number.isFinite(opts.maxOpeners) ? opts.maxOpeners : 2;
   // RELOAD BEFORE LOOKING. This runs at the END of the instrument lane, by which point the page has been
@@ -1253,23 +1283,70 @@ async function detectTrapsAfterReveal(page, url, opts = {}) {
   }, TRAP_REGION_SEL, FOCUSABLE_SEL).catch(() => false);
   if (!hasHiddenRegion) return null;
   const openers = await findRevealOpeners(page, maxOpeners);
+  let firstReview = null;   // review-grade result held while a later opener may still yield a CONFIRMED one
   for (const op of openers) {
     try {
-      await page.goto(url, { waitUntil: 'load', timeout: opts.gotoTimeoutMs || 20000 });
-      await require('./settle.js').awaitSettle(page);
-      const clicked = await page.evaluate((xp) => {
-        const el = document.evaluate(xp, document, null, 9, null).singleNodeValue;
-        if (!el) return false; el.click(); return true;
-      }, op.xpath).catch(() => false);
-      if (!clicked) continue;
-      await page.evaluate(() => new Promise((r) => setTimeout(r, 250))).catch(() => {});
+      // OPEN (and, below, RE-OPEN) the revealed state. A closure because it is needed twice per opener:
+      // detectKeyboardTraps' own Escape probe is DESTRUCTIVE — on the very shape this pass exists for (a
+      // conformant outer modal whose parent-document Escape handler works), probing Esc from the region's
+      // first focusable CLOSES the modal. The two detectors added below would then run against a re-closed
+      // page and read it as boundary-free/floored — the at-rest blindness all over again, one reload later.
+      const openState = async () => {
+        await page.goto(url, { waitUntil: 'load', timeout: opts.gotoTimeoutMs || 20000 });
+        await require('./settle.js').awaitSettle(page);
+        const clicked = await page.evaluate((xp) => {
+          const el = document.evaluate(xp, document, null, 9, null).singleNodeValue;
+          if (!el) return false; el.click(); return true;
+        }, op.xpath).catch(() => false);
+        if (clicked) await page.evaluate(() => new Promise((r) => setTimeout(r, 250))).catch(() => {});
+        return clicked;
+      };
+      if (!(await openState())) continue;
       const traps = await detectKeyboardTraps(page, opts).catch(() => null);
       if (traps && Array.isArray(traps.traps) && traps.traps.length) return { opener: op, traps };
       const self = await detectFocusRetentionTraps(page, opts).catch(() => null);
       if (self && Array.isArray(self.traps) && self.traps.length) return { opener: op, selfTraps: self };
+      // RE-OPEN: the probes above may have dismissed the revealed state (see openState). Fresh load, same
+      // opener — the established per-opener hygiene — so the two detectors below see the state the user is in.
+      if (!(await openState())) continue;
+      // EMBEDDED-FORMAT (F10) in the revealed state — the detector whose Escape probe is pressed from INSIDE
+      // the embedded document, which is the only sound reading of "can the trapped user get out". A same-origin
+      // trap row is confirmed authority (return now); cross-origin rows and directional escapes are review by
+      // the detector's own contract and are held below.
+      const embed = await detectEmbeddedFormatTraps(page, opts).catch(() => null);
+      if (embed && Array.isArray(embed.traps) && embed.traps.length) {
+        if (embed.traps.some((t) => t.sameOrigin === true)) return { opener: op, embedTraps: embed };
+        if (!firstReview) firstReview = { opener: op, embedTraps: embed };
+      } else if (embed && Array.isArray(embed.directional) && embed.directional.length && !firstReview) {
+        firstReview = { opener: op, embedTraps: embed };
+      }
+      // RE-OPEN AGAIN whenever the embed detector actually DROVE the revealed state (it had boundaries to
+      // probe, or died where we cannot know). It is state-destructive on exactly the shape this pass exists
+      // for: its escape probe presses Escape with focus inside a boundary — which, for a shadow root,
+      // BUBBLES into the parent document — and its enter path blurs and walks up to 40 Tabs. On a
+      // conformant-closable modal that Escape CLOSES the dialog, so without a fresh open the confinement
+      // detector below ran against the re-closed page, floored out (< 3 rendered focusables), and its
+      // one-way/advisory lanes never saw the revealed set at all (soundness probe 2026-08-17). Mirrors the
+      // existing re-open between the region detectors and the embed detector. A boundary-free page skips
+      // the reload: the embed enumeration alone is read-only.
+      const embedDrove = !embed || !Number.isFinite(embed.boundaries) || embed.boundaries > 0;
+      if (embedDrove && !(await openState())) continue;
+      // FIXED-SET CONFINEMENT in the revealed state. At rest this page floored out (< 3 rendered focusables);
+      // with the modal open its members are rendered and the sweep can run. All of the detector's guards
+      // (floor, observed-cycle, transient-reach, backward mirror, Escape, advisory) apply unchanged. Only a
+      // LYING static advisory is confirmed authority; everything else — including one-way loops — is
+      // review-routed to the rubric, same as at rest. Runs LAST: it is the most expensive probe here, and a
+      // page decided by any detector above never pays for it.
+      const confine = await detectFixedSetConfinementTraps(page, opts).catch(() => null);
+      if (confine && Array.isArray(confine.traps) && confine.traps.length) {
+        if (confine.traps.some((t) => t.lyingAdvisory === true)) return { opener: op, confinement: confine };
+        if (!firstReview) firstReview = { opener: op, confinement: confine };
+      } else if (confine && Array.isArray(confine.onewayTraps) && confine.onewayTraps.length && !firstReview) {
+        firstReview = { opener: op, confinement: confine };
+      }
     } catch (e) { /* this opener did not work out — try the next */ }
   }
-  return null;
+  return firstReview;
 }
 
 

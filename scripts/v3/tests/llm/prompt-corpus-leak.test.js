@@ -129,6 +129,10 @@ const PROMPT_SOURCES = [
   // page-derived and clipped today, but an authored string added later must be visible to this gate), and
   // kbd-graph.js's sweep output composes into prompt-bound findings (labels are page text; same rationale).
   'collect-link-facts.js', 'kbd-graph.js',
+  // leak-audit coverage gap (2026-08-17, batch-2 review): broad-scope-probes.js became a per-case prompt
+  // contributor (visualHeadings entries + authored reason/note strings ride into the adjudicator note), and
+  // confusable-text.js kind tokens reach uncertainReason strings.
+  'broad-scope-probes.js', 'confusable-text.js',
 ];
 
 // Strip comments so a `// measured on case-03` note never trips the gate — only shipped strings count.

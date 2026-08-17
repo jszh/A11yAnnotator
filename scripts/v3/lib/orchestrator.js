@@ -165,6 +165,17 @@ async function orchestrate(collect, drive, opts = {}) {
     // PARTIAL rather than to nothing. Still fail-closed: instruments never clear, so partial output can
     // only forgo a catch, never assert a false one.
     const partialSink = { findings: [], tabOrder: null };
+    // Everything the lane has ALREADY measured when it dies or times out. The status-sweep artifacts ride
+    // here too: they land in partialSink the moment the sweep finishes, and losing them on a later phase's
+    // timeout re-created exactly the S5 shape this sink exists to prevent.
+    const salvage = () => ({
+      findings: partialSink.findings.slice(), tabOrder: partialSink.tabOrder,
+      ...(partialSink.statusObservations ? { statusObservations: partialSink.statusObservations } : {}),
+      ...(partialSink.statusTimelines ? { statusTimelines: partialSink.statusTimelines } : {}),
+      ...(partialSink.colourStateDeltas ? { colourStateDeltas: partialSink.colourStateDeltas } : {}),
+      ...(partialSink.liveRegionBirths ? { liveRegionBirths: partialSink.liveRegionBirths } : {}),
+      partial: partialSink.findings.length > 0 || !!partialSink.tabOrder,
+    });
     // CONCURRENCY GATE: when the caller passes a semaphore (run-telemetry makeSemaphore, .run(fn)), hold a slot for
     // the whole lane so only a few keyboard-driving lanes contend at once. The timeout starts only once we hold the
     // slot (inside run(fn)), so time spent queueing never burns the budget. No gate ⇒ run immediately (the timeout
@@ -173,13 +184,9 @@ async function orchestrate(collect, drive, opts = {}) {
       let timer;
       const run = require('./run-instruments.js')
         .runInstrumentsForUrl(url, { executablePath: opts.executablePath, browser, tabAllocator, file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest, partialSink })
-        .catch(() => ({ ...empty, findings: partialSink.findings.slice(), tabOrder: partialSink.tabOrder, partial: partialSink.findings.length > 0 || !!partialSink.tabOrder }));
+        .catch(() => ({ ...empty, ...salvage() }));
       const guard = new Promise((resolve) => {
-        timer = setTimeout(() => resolve({
-          ...empty, timedOut: true,
-          findings: partialSink.findings.slice(), tabOrder: partialSink.tabOrder,
-          partial: partialSink.findings.length > 0 || !!partialSink.tabOrder,
-        }), capMs);
+        timer = setTimeout(() => resolve({ ...empty, timedOut: true, ...salvage() }), capMs);
       });
       return Promise.race([run, guard]).finally(() => clearTimeout(timer));
     });
@@ -355,6 +362,15 @@ async function orchestrate(collect, drive, opts = {}) {
     const rawTabOrder = (bundle.instruments && bundle.instruments.tabOrder) || null;
     const focusOrder = rawTabOrder ? { ...rawTabOrder, partial: bundle.instruments.timedOut === true || bundle.instruments.partial === true } : null;
     const statusObservations = (bundle.instruments && Array.isArray(bundle.instruments.statusObservations)) ? bundle.instruments.statusObservations : null;
+    // 4.1.3 MULTI-STEP TIMELINES: the per-trigger phase-B record (every change to the ~8 s horizon, including
+    // attribute/state flips the text diff cannot see). Sidecar to statusObservations by design — see
+    // run-instruments.js — so the observation rows the prompt already embeds stay byte-identical.
+    const statusTimelines = (bundle.instruments && Array.isArray(bundle.instruments.statusTimelines) && bundle.instruments.statusTimelines.length) ? bundle.instruments.statusTimelines : null;
+    // 4.1.3 LIVE-REGION BIRTHS: document-start recorder facts (existed-empty-before-content vs born-filled).
+    const liveRegionBirths = (bundle.instruments && bundle.instruments.liveRegionBirths && Array.isArray(bundle.instruments.liveRegionBirths.regions) && bundle.instruments.liveRegionBirths.regions.length) ? bundle.instruments.liveRegionBirths : null;
+    // 1.4.1 POST-ACTIVATION COLOUR DELTAS: per changed row/tile-like element, before/after computed colours +
+    // whether any text changed with it. Routed to the use-of-color lane (HUNK D), not to status-message.
+    const colourStateDeltas = (bundle.instruments && Array.isArray(bundle.instruments.colourStateDeltas) && bundle.instruments.colourStateDeltas.length) ? bundle.instruments.colourStateDeltas : null;
     // 1.4.13 FACET EVIDENCE: the hover-content-tri probe's PER-FACET measurements, keyed by trigger xpath.
     // The experiment records dismissible / hoverable / persistent as separate typed outcomes and publishes a
     // barrier only when one of them FAILS — so the obligations that survive to the LLM lane are exactly the
@@ -379,11 +395,16 @@ async function orchestrate(collect, drive, opts = {}) {
           nativeTitleOnly: m.nativeTitleOnly === true,
           revealMode: typeof m.revealMode === 'string' ? m.revealMode : null,
           dwellMs: HOVER_PERSIST_DWELL_MS,
+          // HELD-STATE PERSISTENCE SAMPLES (when the probe ran): the revealed state at fixed offsets after a
+          // fresh reveal with the trigger state held. `vanishedWhileHeld: true` = the content went away while
+          // the hold demonstrably survived — a timed dismissal the dwell cannot see. NOT a verdict: the SC's
+          // own "information is no longer valid" exception is content-dependent and stays the rubric's call.
+          ...(Array.isArray(m.persistenceSamples) ? { persistenceSamples: m.persistenceSamples, vanishedWhileHeld: m.vanishedWhileHeld === true } : {}),
         };
       }
       return Object.keys(map).length ? map : null;
     })();
-    let rubricSubjects = llmAdj.selectRubricSubjects(collect, ledger, llmRubrics.rubrics, { onlyAutoPartial, confinement, contrastExempt, focusOrder, statusObservations, hoverFacets }); // llm-rubric:<id> (per SC)
+    let rubricSubjects = llmAdj.selectRubricSubjects(collect, ledger, llmRubrics.rubrics, { onlyAutoPartial, confinement, contrastExempt, focusOrder, statusObservations, statusTimelines, liveRegionBirths, colourStateDeltas, hoverFacets }); // llm-rubric:<id> (per SC)
     // EVAL SCOPE GATE (opt-in): restrict the LLM to the SC(s) we have ground truth for. ACT ground truth is
     // PER-SC — a testcase only tells us pass/fail/inapplicable for its OWN rule's SC, not the page's other SCs.
     // Judging off-target obligations is both unscoreable (no GT) and wasted LLM/tool/vision spend. A Set of SC

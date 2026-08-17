@@ -46,6 +46,188 @@ async function restoreLoadedPage(page, opts, installAriaNotifySpy) {
   return { ok: false, error };
 }
 
+// ── DOCUMENT-START LIVE-REGION BIRTH OBSERVER (residual RCA S10, the after-the-fact family) ────────────
+// Everything else in this file reads the page AFTER load, so it is structurally blind to the one fact the
+// after-the-fact 4.1.3 shapes turn on: whether a live region EXISTED (and was empty) BEFORE it received its
+// content. A region mounted after load with its message pre-filled — or an element wired live only after its
+// text was already set — announces nothing on many AT, and by collect time it can even have removed itself.
+// This recorder is installed via page.evaluateOnNewDocument (the same page-init channel the probe tooling
+// uses), runs from document-start on EVERY new document on the page (so the reveal pass's restore reload
+// re-arms it), and only ever RECORDS: per live region, when it entered the tree, whether it was empty at
+// birth, when it first received content, and when (if ever) it was removed.
+function liveRegionBirthInit() {
+  if (window.__v3LiveBirth) return;
+  // `harnessActiveAtMs` is the HARNESS-INTERACTION BOUNDARY (soundness probe 2026-08-17): the lane stamps
+  // it (earliest wins — see markLiveBirthHarnessActive) just before its first click-driving pass, so a
+  // birth recorded after the stamp is attributable to the harness's own activity, not to the page. Without
+  // it, a toast mounted by the status sweep's OWN click was recorded as a spontaneous post-load birth and
+  // reviewed as "appeared with no user action at all" — a fabricated 4.1.3 signal.
+  const rec = { regions: [], truncated: false, loadAtMs: null, harnessActiveAtMs: null };
+  window.__v3LiveBirth = rec;
+  const MAX = 40;
+  const LIVE = '[aria-live],[role="status"],[role="alert"],[role="log"],[role="alertdialog"],output';
+  const norm = (s) => (s || '').replace(/\s+/g, ' ').trim();
+  const now = () => Math.round(performance.now());
+  const xp = (e) => {
+    try {
+      if (!e || !e.tagName) return '';
+      if (e === document.body) return '/html/body';
+      if (e === document.documentElement) return '/html';
+      const t = e.tagName.toLowerCase();
+      let i = 1, s = e.previousElementSibling;
+      while (s) { if (s.tagName === e.tagName) i++; s = s.previousElementSibling; }
+      return xp(e.parentElement) + '/' + t + '[' + i + ']';
+    } catch (err) { return ''; }
+  };
+  const seen = new WeakSet();
+  const record = (el, via) => {
+    if (!el || seen.has(el)) return; seen.add(el);
+    if (rec.regions.length >= MAX) { rec.truncated = true; return; }
+    const text = norm(el.textContent);
+    const entry = {
+      xpath: xp(el), role: el.getAttribute('role') || null, ariaLive: el.getAttribute('aria-live') || null,
+      atMs: now(), via,
+      duringInitialParse: document.readyState === 'loading',
+      mountedAfterLoad: document.readyState === 'complete',
+      emptyAtBirth: text.length === 0, textAtBirth: text.slice(0, 80),
+      firstContentAtMs: text.length ? now() : null, removedAtMs: null,
+    };
+    // birth AFTER the harness started clicking ⇒ attributed to the harness, never to the page. The entry
+    // stays in the artifact (tagged) so the evidence is complete; birthFindingsFrom emits no row for it.
+    if (rec.harnessActiveAtMs != null) entry.harnessInteraction = true;
+    rec.regions.push(entry);
+    try { el.__v3BirthEntry = entry; } catch (err) {}
+  };
+  const scanIn = (n) => {
+    if (!n || n.nodeType !== 1) return;
+    try { if (n.matches && n.matches(LIVE)) record(n, 'mount'); } catch (err) {}
+    try { if (n.querySelectorAll) for (const e of n.querySelectorAll(LIVE)) record(e, 'mount'); } catch (err) {}
+  };
+  const scanOut = (n) => {
+    if (!n || n.nodeType !== 1) return;
+    const list = [];
+    try { if (n.matches && n.matches(LIVE)) list.push(n); } catch (err) {}
+    try { if (n.querySelectorAll) list.push(...n.querySelectorAll(LIVE)); } catch (err) {}
+    const t = now();
+    for (const e of list) { const en = e.__v3BirthEntry; if (en && en.removedAtMs == null) en.removedAtMs = t; }
+  };
+  const mo = new MutationObserver((muts) => {
+    for (const m of muts) {
+      if (m.type === 'childList') {
+        for (const n of m.addedNodes) scanIn(n);
+        for (const n of m.removedNodes) scanOut(n);
+      } else if (m.type === 'attributes') {
+        // an element WIRED live after the fact (role/aria-live added later) — recorded with its text state
+        // at wiring time, which is the whole point: live semantics added onto already-set content.
+        const el = m.target;
+        try { if (el && el.nodeType === 1 && el.matches && el.matches(LIVE) && !seen.has(el)) record(el, 'attribute-wired'); } catch (err) {}
+      }
+      if (m.type !== 'attributes') {
+        // first content into a recorded-empty region: the healthy existed-empty-then-filled shape.
+        const host = m.target && (m.target.nodeType === 1 ? m.target : m.target.parentElement);
+        try {
+          const r = host && host.closest ? host.closest(LIVE) : null;
+          const en = r && r.__v3BirthEntry;
+          if (en && en.firstContentAtMs == null) {
+            const t2 = norm(r.textContent);
+            if (t2) { en.firstContentAtMs = now(); en.firstContentText = t2.slice(0, 80); }
+          }
+        } catch (err) {}
+      }
+    }
+  });
+  try { mo.observe(document, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['aria-live', 'role'] }); } catch (err) {}
+  addEventListener('load', () => { rec.loadAtMs = now(); }, { once: true });
+  // regions in the initial markup stream in as parser childList additions; a UA that batched any before the
+  // observer attached is covered by one catch-up scan.
+  addEventListener('DOMContentLoaded', () => { try { scanIn(document.documentElement); } catch (err) {} }, { once: true });
+}
+
+// Register the recorder on the page. Returns the registration (for removeScriptToEvaluateOnNewDocument
+// cleanup where the Puppeteer build supports it) or null when registration failed — never throws.
+async function installLiveRegionBirthObserver(page) {
+  try { return await page.evaluateOnNewDocument(liveRegionBirthInit); } catch (e) { return null; }
+}
+
+// Stamp the HARNESS-INTERACTION BOUNDARY into the CURRENT document's recorder — earliest wins, so calling
+// it before every click-driving pass costs nothing and never moves an already-set mark. The lane calls it
+// immediately before the reveal-state focus pass activates an opener and immediately before the 4.1.3
+// status sweep starts clicking triggers; a navigation wipes the mark WITH the recorder, which is correct
+// (a freshly loaded document has seen no interaction yet, so its spontaneous births are genuine).
+// Never throws; a page without the recorder is a no-op.
+async function markLiveBirthHarnessActive(page) {
+  await page.evaluate(() => {
+    const rec = window.__v3LiveBirth;
+    if (rec && rec.harnessActiveAtMs == null) rec.harnessActiveAtMs = Math.round(performance.now());
+  }).catch(() => {});
+}
+
+// Read the recorder's state. Null when the recorder was never installed (a bare runInstruments() on an
+// already-loaded page cannot observe pre-load state, and null says so rather than claiming "no births").
+// BOUNDED TOP-UP: a page that has already mounted a live region after load may be mid-flow (the
+// mount-announce-self-remove shape), so the read holds open to the watch horizon — gated on an observed
+// post-load birth precisely so a static page never pays a millisecond for it.
+async function readLiveRegionBirths(page, opts = {}) {
+  const snap = () => page.evaluate(() => {
+    const rec = window.__v3LiveBirth;
+    if (!rec) return null;
+    return { installed: true, documentAgeMs: Math.round(performance.now()), loadAtMs: rec.loadAtMs, truncated: !!rec.truncated,
+      harnessActiveAtMs: rec.harnessActiveAtMs == null ? null : rec.harnessActiveAtMs,
+      regions: rec.regions.map((r) => ({ ...r })) };
+  }).catch(() => null);
+  let out = await snap();
+  if (!out) return null;
+  const watchMs = Number.isFinite(opts.birthWatchMs) ? opts.birthWatchMs : 8500;
+  // the top-up holds the page open ONLY for a birth the PAGE produced. A harnessInteraction-tagged birth is
+  // the lane's own click echoing back — paying up to 7 s to watch our own toast finish is budget spent on
+  // manufactured evidence (soundness probe 2026-08-17).
+  if (out.documentAgeMs < watchMs && out.regions.some((r) => r.mountedAfterLoad === true && r.harnessInteraction !== true)) {
+    await new Promise((r) => setTimeout(r, Math.min(watchMs - out.documentAgeMs, 7000)));
+    out = (await snap()) || out;
+  }
+  return out;
+}
+
+// Birth facts → REVIEW findings (never a barrier: whether anything was owed an announcement is the rubric's
+// call). Pure — exported for unit tests. Only the two suspicious shapes produce a row; the healthy
+// existed-empty-then-filled shape stays evidence-only on the liveRegionBirths artifact.
+function birthFindingsFrom(births) {
+  const rows = [];
+  for (const r of ((births && Array.isArray(births.regions)) ? births.regions : [])) {
+    if (rows.length >= 6) break;
+    // a birth the HARNESS caused (recorded after the interaction boundary — see markLiveBirthHarnessActive)
+    // is evidence about the lane's own clicks, not about the page at rest: it stays in the artifact,
+    // tagged, and never becomes a review row. The activation sweep's own observation channel already
+    // covers what a CLICK-triggered region does.
+    if (r.harnessInteraction === true) continue;
+    const bornFilled = r.mountedAfterLoad === true && r.emptyAtBirth === false;
+    const wiredOntoContent = r.via === 'attribute-wired' && r.emptyAtBirth === false;
+    if (!bornFilled && !wiredOntoContent) continue;
+    rows.push({
+      sc: '4.1.3', kind: 'live-region-birth', xpath: r.xpath || null, review: true,
+      detail: (bornFilled
+        ? 'a live region was INSERTED into the document after load already carrying its message'
+        : 'an element already carrying text was WIRED as a live region after load (live semantics added onto existing content)')
+        + ' — an AT observes live regions that existed BEFORE their content changed, so a region born (or wired) together with its message may announce nothing'
+        + (Number.isFinite(r.removedAtMs) ? '; it later REMOVED ITSELF from the document, so the message may also never be readable on demand' : '')
+        + '. This is a page-init OBSERVATION, not a verdict — whether an announcement was owed and delivered is the rubric\'s call.',
+    });
+  }
+  return rows;
+}
+
+// Flatten the detector's per-trigger colour deltas into the ONE instrument fact the use-of-color lane will
+// be routed (each delta stamped with the trigger that produced it). Pure — exported for unit tests.
+function colourDeltasFrom(statusTimelines) {
+  const out = [];
+  for (const t of (Array.isArray(statusTimelines) ? statusTimelines : [])) {
+    for (const d of (t && Array.isArray(t.colourStateDeltas) ? t.colourStateDeltas : [])) {
+      out.push({ trigger: (t && t.trigger) || null, ...d });
+    }
+  }
+  return out;
+}
+
 // Run every instrument against an already-loaded Puppeteer page. Returns { findings: [...] }.
 async function runInstruments(page, opts = {}) {
   const findings = [];
@@ -181,6 +363,11 @@ async function runInstruments(page, opts = {}) {
     // before each irreversible step, so it survives whatever the pass does next.
     const progress = {};
     let revealError = null;
+    // HARNESS-INTERACTION BOUNDARY: the reveal pass is the lane's FIRST click-driving step, so stamp the
+    // birth recorder before it — a live region its opener click mounts must read as harness-caused, not as
+    // a spontaneous post-load birth (this matters on the restore-failed path, where the clicked document is
+    // the one the births are later read from).
+    await markLiveBirthHarnessActive(page);
     const rev = await collectRevealedFocusOrder(page, opts.url, {
       restingXpaths: (tab.order || []).map((o) => o.xpath),
       maxOpeners: Number.isFinite(opts.maxRevealOpeners) ? opts.maxRevealOpeners : 2,
@@ -343,6 +530,10 @@ async function runInstruments(page, opts = {}) {
   // observation is a property of the PAGE, not of which detector happened to run last. (status-detector.js
   // separately hardens the fact itself, so a page that focuses something mid-sweep is still read correctly.)
   await page.evaluate(() => { const a = document.activeElement; if (a && a !== document.body && typeof a.blur === 'function') a.blur(); }).catch(() => {});
+  // HARNESS-INTERACTION BOUNDARY for the status sweep: everything it is about to click is harness activity,
+  // so births it causes must be tagged — the current document is a fresh restore (or the original load), so
+  // the earliest-wins stamp lands here and every sweep-caused mount reads harnessInteraction:true.
+  await markLiveBirthHarnessActive(page);
   const status = await guard('statusMessages', detectStatusMessages(page, opts));
   if (status) add('status-message', status.findings);
   // The sweep swallows two failures of its own and reports them as fields rather than throwing: a trigger
@@ -378,6 +569,26 @@ async function runInstruments(page, opts = {}) {
     })));
   }
   if (opts.partialSink) opts.partialSink.statusObservations = statusObs;
+  // MULTI-STEP TIMELINES + COLOUR DELTAS (residual RCA S10) — the detector's phase-B sidecars. Kept OFF the
+  // observation objects ON PURPOSE: `statusObservations` rows are embedded verbatim in the status-message
+  // prompt, so a new key on them would reach a judge the moment it exists. As separate artifacts they are
+  // collected and persisted now, and reach no prompt until the adjudicator/orchestrator hunks that surface
+  // them land — the same two-step the controlGroup/atRestErrorState lanes used.
+  const statusTimelines = (status && Array.isArray(status.timelines)) ? status.timelines : [];
+  const colourStateDeltas = colourDeltasFrom(statusTimelines);
+  if (opts.partialSink) { opts.partialSink.statusTimelines = statusTimelines; opts.partialSink.colourStateDeltas = colourStateDeltas; }
+  // LIVE-REGION BIRTH facts (document-start recorder — see liveRegionBirthInit above). Null whenever the
+  // recorder was never installed on this page: an already-loaded page cannot be observed from before its
+  // load, and null says that honestly instead of reading as "no births happened".
+  // BUDGET ORDER (2026-08-17): with `opts.deferBirthTopUp` the read here is an INSTANT snapshot (no
+  // up-to-7s hold) — runInstrumentsForUrl runs the bounded 2.1.2 reveal-trap pass first and performs the
+  // top-up only afterwards, so the hold can never displace trap detection under the orchestrator's 90 s
+  // lane cap. Direct callers (tests, page-only runs) keep the full read unchanged.
+  const liveRegionBirths = await readLiveRegionBirths(page, opts.deferBirthTopUp ? { ...opts, birthWatchMs: 0 } : opts).catch(() => null);
+  if (liveRegionBirths && Array.isArray(liveRegionBirths.regions) && liveRegionBirths.regions.length) {
+    add('live-region-birth', birthFindingsFrom(liveRegionBirths));
+  }
+  if (liveRegionBirths && opts.partialSink) opts.partialSink.liveRegionBirths = liveRegionBirths;
 
   // #21 emit: a native dialog raised during interaction delivers text outside the DOM/ARIA model (review).
   page.off('dialog', onDialog);
@@ -394,7 +605,9 @@ async function runInstruments(page, opts = {}) {
   // `collectorLiveness` records which `.catch()`-guarded in-page evaluate THREW on this page — empty on a
   // healthy page, so its presence at all is the signal. Not folded into `results.summary.collectorFailures`
   // here: that join lives in build-v3, which this change does not own.
-  return { findings, tabOrder, statusObservations: statusObs, collectorLiveness };
+  // `statusTimelines` / `colourStateDeltas` / `liveRegionBirths` are EVIDENCE artifacts on the same terms:
+  // persisted here, surfaced to prompts only by the (lead-applied) orchestrator/adjudicator hunks.
+  return { findings, tabOrder, statusObservations: statusObs, statusTimelines, colourStateDeltas, liveRegionBirths, collectorLiveness };
 }
 
 // Load a URL in a fresh browser and run the instruments. The instruments artifact carries the run
@@ -403,17 +616,31 @@ async function runInstrumentsForUrl(url, opts = {}) {
   // shares the run's ONE browser pool (opts.tabAllocator / opts.browser) when given; else launches its own.
   const { withLanePage } = require('./page-lease.js');
   return withLanePage(opts, async (page) => {
+    // DOCUMENT-START birth recorder, registered BEFORE the first navigation so it observes the page from the
+    // very first byte of every document this lane loads (including the reveal pass's restore reload). The
+    // registration is page-scoped, so it is REMOVED on the way out where the Puppeteer build allows — a
+    // pooled lane page must not keep observing other lanes' documents.
+    const birthReg = await installLiveRegionBirthObserver(page);
+    try {
     await page.goto(url, { waitUntil: 'load', timeout: opts.gotoTimeoutMs || 30000 }).catch(() => {});
     await require('./settle.js').awaitSettle(page); // gated V3_SETTLE_WAIT — settle before keyboard/VSR state reads
     // `url` rides in opts so the reveal-state pass (2.4.3) can reload THIS page mid-lane; runInstruments is
     // otherwise page-only and stays callable against an already-loaded page in the tests.
-    const res = await runInstruments(page, { ...opts, url });
+    // `deferBirthTopUp`: the births read inside runInstruments is an instant snapshot; the up-to-7s top-up
+    // hold runs BELOW, after the reveal-trap pass — see the BUDGET ORDER comments at both sites.
+    const res = await runInstruments(page, { ...opts, url, deferBirthTopUp: true });
     // BOUNDED REVEAL PASS (2.1.2, residual RCA S4/TOOL). The at-rest detectors can only see regions that
     // have visible focusables, so a CLOSED modal is invisible to them and the whole modal-trap family read
     // as clean. Run LAST, on this same lane page (every read-only instrument is already finished, and the
     // pass reloads before each probe anyway) and ONLY when nothing confirmed was found at rest.
+    //
+    // BUDGET ORDER (2026-08-17): this pass runs BEFORE the live-region-birth top-up. Both compete for the
+    // tail of the orchestrator's 90 s lane cap, and the top-up is an ENRICHMENT hold (it can only stamp
+    // removedAtMs/firstContentAtMs onto births already recorded) while this pass is the only detector that
+    // can CONFIRM the whole hidden-modal 2.1.2 trap family — an up-to-7s hold must never displace it.
     const alreadyConfirmed = res.findings.some((f) => f.sc === '2.1.2' && !f.review);
-    if (!alreadyConfirmed && opts.revealPass !== false) {
+    const revealTrapInvoked = !alreadyConfirmed && opts.revealPass !== false;
+    if (revealTrapInvoked) {
       const kbd = require('./kbd-graph.js');
       const revealed = await kbd.detectTrapsAfterReveal(page, url, opts).catch(() => null);
       if (revealed) {
@@ -426,13 +653,83 @@ async function runInstrumentsForUrl(url, opts = {}) {
           res.findings.push({ detector: 'keyboard-trap', sc: t.sc, kind: 'keyboard-trap-self-refocus', xpath: t.xpath, review: false,
             detail: 'confirmed keyboard trap: this focusable re-grabs its own focus on blur' + via });
         }
+        // EMBEDDED-FORMAT traps found in the REVEALED state (F10 — e.g. a KYC widget iframe inside a modal
+        // that is display:none at rest). Same kinds and review semantics as the at-rest embed emission above:
+        // a cross-origin embed cannot be counted, so its budget was a guess and the row stays review.
+        for (const t of ((revealed.embedTraps && revealed.embedTraps.traps) || [])) {
+          res.findings.push({ detector: 'keyboard-trap', sc: t.sc, kind: 'keyboard-trap', xpath: t.xpath,
+            review: t.sameOrigin !== true,
+            detail: `confirmed keyboard trap (WCAG F10): focus enters this ${t.kind} and cannot leave by Tab, Shift+Tab, or Escape`
+              + (Number.isFinite(t.innerFocusables) ? ` (${t.innerFocusables} focusable element(s) inside; the walk allowed for all of them)` : ' (cross-origin — inner focusables could not be counted, so this is a REVIEW signal)')
+              + via });
+        }
+        for (const t of ((revealed.embedTraps && revealed.embedTraps.directional) || [])) {
+          res.findings.push({ detector: 'keyboard-trap', sc: t.sc, kind: 'keyboard-trap-directional', xpath: t.xpath, review: true,
+            detail: `one-way keyboard trap: focus enters this ${t.kind} and escapes in only one Tab direction` + via });
+        }
+        // FIXED-SET CONFINEMENT found in the REVEALED state. Mirrors the at-rest fan-out exactly (kinds
+        // keyboard-trap-confinement / keyboard-trap-oneway, member fan-out, review: !lyingAdvisory) so the
+        // adjudicator's confinement gate and build-v3's mint loops treat these rows identically.
+        if (revealed.confinement) {
+          for (const t of (revealed.confinement.traps || [])) {
+            const members = (Array.isArray(t.memberXpaths) && t.memberXpaths.length) ? t.memberXpaths : [t.xpath];
+            const seenRc = new Set();
+            for (const xpath of members) {
+              if (!xpath || seenRc.has(xpath)) continue; seenRc.add(xpath);
+              res.findings.push({ detector: 'keyboard-trap', sc: t.sc, kind: 'keyboard-trap-confinement', review: !t.lyingAdvisory, xpath,
+                memberXpaths: t.memberXpaths, setSize: t.setSize, detail: (t.lyingAdvisory
+                  ? `confirmed keyboard trap: focus is confined to a fixed set of ${t.setSize} element(s) and cannot leave by Tab, Shift+Tab, or Escape, AND the page's documented escape key does NOT free focus (a lying advisory) — a 2.1.2 barrier.`
+                  : `focus is confined to a fixed set of ${t.setSize} element(s) and cannot leave by Tab, Shift+Tab, or Escape. A 2.1.2 barrier UNLESS the user is told how to exit (a non-standard key, possibly behind a help control) AND that key works — verify by revealing instructions and pressing the key.`) + via });
+            }
+          }
+          for (const t of (revealed.confinement.onewayTraps || [])) {
+            const members = (Array.isArray(t.memberXpaths) && t.memberXpaths.length) ? t.memberXpaths : [t.xpath];
+            const seenRo = new Set();
+            for (const xpath of members) {
+              if (!xpath || seenRo.has(xpath)) continue; seenRo.add(xpath);
+              res.findings.push({ detector: 'keyboard-trap', sc: t.sc, kind: 'keyboard-trap-oneway', review: true, xpath,
+                memberXpaths: t.memberXpaths, setSize: t.setSize, direction: t.direction || 'forward',
+                unreached: Array.isArray(t.unreached) ? t.unreached : [], unreachedCount: t.unreachedCount,
+                detail: `focus is confined to a fixed set of ${t.setSize} element(s) in the ${t.direction || 'forward'} Tab direction only: ${t.unreachedCount} rendered focusable(s) outside the set are never reached in that direction, though focus escapes the other way. A 2.1.2 barrier UNLESS the section genuinely requires input or interaction — completable by keyboard — before allowing focus to progress, or a documented exit key works; the keyboard-trap rubric decides which.` + via });
+            }
+          }
+        }
         if (opts.partialSink) opts.partialSink.findings = res.findings.slice();
       }
     }
+    // DEFERRED LIVE-REGION-BIRTH TOP-UP (the hold runInstruments skipped under deferBirthTopUp). Only when
+    // the reveal-trap pass was NOT invoked: that pass reloads the page at entry, so after it the document
+    // whose lifecycle the snapshot recorded is gone and there is nothing left to top up — losing the
+    // removedAtMs enrichment on exactly those pages is the deliberate trade (trap detection outranks it
+    // under the lane cap; the born-filled/wired review rows never depended on the hold). When the pass was
+    // skipped the document is untouched and the full read behaves exactly as before the reorder.
+    if (!revealTrapInvoked) {
+      const topped = await readLiveRegionBirths(page, opts).catch(() => null);
+      if (topped && Array.isArray(topped.regions)) {
+        res.liveRegionBirths = topped;
+        res.findings = res.findings.filter((f) => f.detector !== 'live-region-birth');
+        for (const f of birthFindingsFrom(topped)) {
+          res.findings.push({ detector: 'live-region-birth', sc: f.sc || '', kind: f.kind, xpath: f.xpath || null, detail: f.detail || '', review: !!f.review });
+        }
+        if (opts.partialSink) { opts.partialSink.findings = res.findings.slice(); opts.partialSink.liveRegionBirths = topped; }
+      }
+    }
     return { file: opts.file || url, runId: opts.runId || null, pageDigest: opts.pageDigest || null, ...res };
+    } finally {
+      // UNREGISTER the document-start recorder so a pooled lane page stops observing once this lane is done.
+      // Older Puppeteer builds return no identifier / lack the removal API — then the recorder stays and is
+      // inert-by-construction on the next lane (it only ever records into that document's own window object).
+      if (birthReg && birthReg.identifier && typeof page.removeScriptToEvaluateOnNewDocument === 'function') {
+        await page.removeScriptToEvaluateOnNewDocument(birthReg.identifier).catch(() => {});
+      }
+    }
   });
 }
 
 // `restoreLoadedPage` is exported for its OWN tests: its whole value is the failure path (a reload that did
 // not happen), which is unreachable through the lane on a healthy page.
-module.exports = { runInstruments, runInstrumentsForUrl, restoreLoadedPage, CHROME };
+// The birth-observer trio and `colourDeltasFrom` are exported for THEIR tests: install/read need a live
+// page, `birthFindingsFrom`/`colourDeltasFrom` are pure.
+module.exports = { runInstruments, runInstrumentsForUrl, restoreLoadedPage, CHROME,
+  installLiveRegionBirthObserver, readLiveRegionBirths, birthFindingsFrom, colourDeltasFrom,
+  markLiveBirthHarnessActive };
