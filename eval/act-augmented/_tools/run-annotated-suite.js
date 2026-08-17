@@ -285,10 +285,40 @@ async function main() {
   // browser: at PAGE_CONC 8 the allocator peaked at 40 live contexts and
   // Target.createBrowserContext began timing out on the default 180s, erroring
   // 126/405 cases (all in the alphabetical tail — pure resource exhaustion).
-  const browser = await puppeteer.launch({
+  const launchBrowser = () => puppeteer.launch({
     executablePath: CHROME, headless: 'new', args: BROWSER_ARGS, protocolTimeout: 300000,
   });
-  const alloc = createTabAllocator({ browser, maxTabs: MAX_TABS });
+  let browser = await launchBrowser();
+  let alloc = createTabAllocator({ browser, maxTabs: MAX_TABS });
+  // BROWSER SELF-HEAL (aug-annot-s11 post-mortem). The shared browser can wedge TERMINALLY — allocator
+  // telemetry from the wedged run: peak 24 contexts, then inUse 0 with 395 consecutive createBrowserContext
+  // timeouts — after which every remaining case (292 of 392) died at context creation and the run silently
+  // degenerated into a 60%-error artifact. The per-case retry cannot fix a dead browser; only a relaunch
+  // can. Trigger: >= 2 CONSECUTIVE transient browser failures across workers (a healthy run's flakes are
+  // isolated; consecutive ones mean the browser is gone). Single-flight + generation-guarded so concurrent
+  // failing workers trigger exactly one relaunch, and a worker whose failure predates the current
+  // generation never kills a fresh browser. Measurement-neutral: no scoring path changes.
+  let browserGen = 0;
+  let consecTransient = 0;
+  let healing = null;
+  const healBrowser = (genAtFailure) => {
+    if (genAtFailure !== browserGen) return healing || Promise.resolve(); // already healed past that browser
+    if (!healing) {
+      healing = (async () => {
+        tel.heals = (tel.heals || 0) + 1;
+        const old = browser;
+        browserGen += 1;
+        try { alloc.close(); } catch { /* noop */ }
+        try { await Promise.race([old.close(), new Promise((r) => setTimeout(r, 10000))]); } catch { /* noop */ }
+        try { const p = old.process && old.process(); if (p) p.kill('SIGKILL'); } catch { /* noop */ }
+        browser = await launchBrowser();
+        alloc = createTabAllocator({ browser, maxTabs: MAX_TABS });
+        consecTransient = 0;
+        writeStatus();
+      })().finally(() => { healing = null; });
+    }
+    return healing;
+  };
   const statusTimer = setInterval(() => {
     try { tel.tabs = alloc.stats ? alloc.stats() : {}; } catch { /* noop */ }
     try { tel.mem = sampleMemory ? sampleMemory() : {}; } catch { /* noop */ }
@@ -313,7 +343,9 @@ async function main() {
       // shrinks the eval instead of failing it — that must not happen silently.
       for (let attempt = 0; attempt < 2; attempt++) {
       rec = null;
+      const genAtStart = browserGen; // which browser this attempt ran on (for the self-heal guard)
       try {
+        if (healing) await healing;  // never start an attempt mid-relaunch
         const lease = await alloc.acquire();
         let collect;
         try {
@@ -328,7 +360,7 @@ async function main() {
         const caseTools = newCaseToolAcc();
         const drive = { file: collect.file, runId, pageDigest: collect.pageDigest, drivenAt: collect.collectedAt + 1, elements: [] };
         const out = await orchestrate(collect, drive, {
-          resolveUrl: () => tc.url, executablePath: CHROME, browser, tabAllocator: alloc, maxTabs: MAX_TABS,
+          resolveUrl: () => tc.url, executablePath: CHROME, browser, tabAllocator: alloc, maxTabs: MAX_TABS, // reads the CURRENT browser/alloc bindings (self-heal swaps them)
           runInstruments: true, instrumentsGate: instGate, instrumentsTimeoutMs: LIMITS.instruments.laneTimeoutMs, now: collect.collectedAt + 2,
           restrictScs: new Set(tc.sc || []), maxAutomatic: LIMITS.act.maxAuto,
           budgetOpts: { maxRunWallClockMs: LIMITS.act.runWallClockMs },
@@ -350,9 +382,15 @@ async function main() {
         // on a tools-ON case is a real finding (the judge chose not to look), not missing data — which is
         // exactly the distinction the previous run could not make.
         rec.toolUse = { ...caseTools, toolsEnabled: TOOLS };
+        consecTransient = 0; // a healthy completion ends any failure streak
       } catch (e) {
         const msg = String((e && e.message) || e);
         const transient = /createBrowserContext|Target closed|protocolTimeout|timed out|Session closed|Connection closed/i.test(msg);
+        if (transient) {
+          consecTransient += 1;
+          // two consecutive transient failures across the run = the browser is gone, not flaking
+          if (consecTransient >= 2) { tel.workers[wid].phase = 'browser-heal'; await healBrowser(genAtStart); }
+        }
         if (transient && attempt === 0) {
           tel.workers[wid].phase = 'retry-backoff';
           await new Promise((r) => setTimeout(r, 5000 + Math.min(i, 20) * 250));

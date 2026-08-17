@@ -630,4 +630,9 @@ async function main() {
   console.log(`wrote ${OUT}`);
 }
 
-main().catch((e) => { console.error(e.stack || e.message); process.exit(1); });
+// EXPLICIT exit on success: `qwServer.close()` stops new connections but keep-alive sockets (and any
+// qualweb cluster residue) keep the event loop alive, so the finished process LINGERED holding its whole
+// browser open — twice, and the second lingerer sat alongside an annotated-suite run whose shared browser
+// then wedged terminally at ~case 95 (aug-annot-s11 post-mortem: 151 createBrowserContext timeouts). All
+// outputs are flushed synchronously above, so exiting here drops nothing.
+main().then(() => process.exit(0), (e) => { console.error(e.stack || e.message); process.exit(1); });
