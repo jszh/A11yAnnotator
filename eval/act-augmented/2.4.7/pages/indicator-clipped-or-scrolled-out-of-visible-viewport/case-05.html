@@ -88,22 +88,6 @@
     </main>
   </div>
 
-  <p class="grader">
-    Why automated tools miss it: the drawer links have a valid, high-contrast 3px
-    <code>:focus-visible</code> ring (axe/WAVE/Lighthouse see conformant CSS),
-    and focusing one changes pixels, so ACT oj04fd is satisfied — it asks only
-    for a changed pixel "inside the scrolling area of the viewport," and the
-    drawer's layout box IS at left:0. But the drawer is closed by
-    <code>transform: translateX(-110%)</code> (not <code>display:none</code> /
-    <code>visibility:hidden</code> / <code>inert</code>), so its links remain in
-    the tab order while being PAINTED ~300px off the left edge of the screen.
-    Pressing Tab from the menu button moves focus to the first drawer link; the
-    browser does not scroll (the element's layout position is on-screen), so the
-    focus ring is drawn entirely off-screen and the keyboard user sees no focus
-    anywhere. Judging that the indicator is painted outside the visible viewport
-    — rather than simply that some pixel changed — is a layout/transform-aware
-    human visual judgment.
-  </p>
 
   <script>
     const btn = document.querySelector('.menu-btn');
