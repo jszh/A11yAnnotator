@@ -180,3 +180,48 @@ Still open for the user: the removal-of-status-06 label-vs-doctrine ruling.
 23. **Cross-cutting**: batch-2 page-level payloads ANCHOR the info-relationships judge (case-05's
     verdict transcribes the visualHeadings entries) — add one presence-framing line: "the facts
     are additive anchors, not the complete inventory; the crop remains in scope."
+
+## RCA-3 findings: keyboard/misc lane (merged 2026-08-17)
+
+24. **2.1.2 modal-popover case-05**: latent timing hole in ALL trees — the page self-opens its
+    popover at load+400ms; the at-rest kbd block starts ~235-300ms after load on fast hardware, so
+    the walk sees a popover-less page and both reveal lanes find openersFound:0 (no declared
+    opener). s10/s11 "catches" were PAGE_CONC-12 contention luck; batch-2 exonerated (delay-0
+    control catches; s10 tree on idle Mac misses identically). Fix: late-arrival re-pass — at lane
+    end, if the rendered-focusable set grew since walk time, run the at-rest trap block once
+    (bounded, mirrors births-top-up pattern). Validation: scratch driver both polarities + 2.1.2
+    family no-LLM at corpus concurrency + ACT byte-identity. ALSO: platform caveat must cover
+    SCHEDULING/TIMING, not just fonts/vision (speed itself changes recall on self-opening UI).
+
+25. **2.4.3 focus-not-contained case-03**: stable evidence gap — page force-focuses INTO a visible
+    overlay at load; elementFromPoint at the underlying stops returns the scrim; clause-C keys only
+    on dialog[open]/aria-modal so the fact never exists; fix #10 (opened-ring containmentLeak)
+    does NOT cover it. Fix: per-stop occlusion fact in probeActive (occludedBy xpath) + surface
+    the page-set initial-focus stop + one rubric sentence. Validation: driver + fixed-evidence
+    replay rep≥3 both polarities + 2.4.3 slice + ACT byte-identity.
+
+26. **1.4.1 scoping case-07**: (a) noObligation is DESIGNED — the covering widening is the
+    flag-OFF token lane (verified firing on this exact page); disposition: deliberately-out
+    pending the token-lane decision. (b) REAL defect found en route: on zero-focusable pages
+    collectTabOrder's sentinel-wrap requires sawNode first → 2000 no-op Tab presses per direction
+    (measured 67.6s) → chronic 90s lane cap-out. Fix: end walk after N consecutive boundary
+    sentinels with sawNode=false. Validation: driver pre/post (67.6s → <1s), ring byte-identity on
+    focusable pages, ACT byte-identity.
+
+27. **1.4.1 inline-links case-05**: judge noise on stable evidence + label-vs-doctrine conflict —
+    axe link-in-text-block PASSES all six links (bold = distinguishing styling) and the rubric
+    defers to an axe pass, so the misses are doctrine-correct; s11's lone "catch" violated two
+    rubric rules. Fix: add deterministic `linkCueParity` facts (platform-immune style math), then a
+    USER DOCTRINE DECISION: F73 cue-parity clause (with an axe-DEFER carve-out) OR file the label
+    as a doctrine dispute. Do not "fix" the judge. Validation: replay rep≥3 both polarities +
+    link-specific-bold control page.
+
+28. **2.1.2 input-gate case-05**: as labeled, mechanically indistinguishable from its PASSING
+    siblings (probe: typing the displayed suggestion + Tab completes the flow keyboard-only);
+    separating it requires the withdrawn-unsound C5 semantics. Disposition: RECOMMEND
+    needs-validation retag (USER APPROVAL NEEDED — new case, not covered by the earlier ruling);
+    sound alternatives noted (re-scope to its mouse-only control, or re-author).
+
+Infra note (RCA cost): the runner persists only results.json — no per-case obligation/instrument
+artifacts — so every evidence diff required probing frozen code trees. Cheap per-case artifact
+dumps would cut future RCA time substantially; candidate batch-3 infra item.
