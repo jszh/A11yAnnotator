@@ -84,6 +84,12 @@ const TOOLS = !!arg('tools', false);
 // --no-llm: deterministic phases only (collect/instruments/experiments/build; no judge).
 // A perf/stress probe, NOT comparable to any scored run — summary.json carries noLlm:true.
 const NO_LLM = !!arg('no-llm', false);
+// batch-3 #36 (infra, optional): per-case obligation/instrument artifact dumps. The runner persists only
+// results.json, so every evidence diff in an RCA has had to re-probe frozen code trees — hours of work a
+// cheap dump would have saved. OFF by default (scored-run output shape unchanged); when armed
+// (V3_DUMP_CASE_ARTIFACTS=1 or --dump-artifacts) each case additionally writes
+// results/<run>/case-artifacts/<testcaseId>.json with the obligation ledger + the instruments artifact.
+const DUMP_ARTIFACTS = process.env.V3_DUMP_CASE_ARTIFACTS === '1' || !!arg('dump-artifacts', false);
 
 // CLAUDE.md: do NOT override LLM_EVAL_STATUS_PATH unless running >1 experiment at once.
 const FIXED_STATUS_PATH = process.env.LLM_EVAL_STATUS_PATH || '/tmp/llm-eval-status.json';
@@ -381,6 +387,35 @@ async function main() {
         // on a tools-ON case is a real finding (the judge chose not to look), not missing data — which is
         // exactly the distinction the previous run could not make.
         rec.toolUse = { ...caseTools, toolsEnabled: TOOLS };
+        // batch-3 #36: optional per-case artifact dump (see the flag above). Best-effort by construction —
+        // a dump failure must never fail, slow, or reshape the scored run.
+        if (DUMP_ARTIFACTS) {
+          try {
+            const dir = path.join(OUT, 'case-artifacts');
+            fs.mkdirSync(dir, { recursive: true });
+            const b = (out && out.bundle) || {};
+            const built = out && out.built;
+            const inst = b.instruments || null;
+            fs.writeFileSync(path.join(dir, `${safe(tc.testcaseId)}.json`), JSON.stringify({
+              testcaseId: tc.testcaseId, key: tc.key, stratum: tc.stratum, expected: tc.expected, sc: tc.sc,
+              obligationLedger: (built && built.results && built.results.obligationLedger) || null,
+              shadowObservations: (built && built.results && built.results.shadowObservations) || null,
+              instruments: inst ? {
+                findings: inst.findings || null,
+                tabOrder: inst.tabOrder || null,
+                statusObservations: inst.statusObservations || null,
+                statusTimelines: inst.statusTimelines || null,
+                liveRegionBirths: inst.liveRegionBirths || null,
+                colourStateDeltas: inst.colourStateDeltas || null,
+                autoUpdateCadence: inst.autoUpdateCadence || null,
+                lateArrival: inst.lateArrival || null,
+                collectorLiveness: inst.collectorLiveness || null,
+                ...(inst.timedOut === true ? { timedOut: true } : {}),
+                ...(inst.partial === true ? { partial: true } : {}),
+              } : null,
+            }, null, 1));
+          } catch (e) { /* best-effort — see above */ }
+        }
         shard.consecTransient = 0; // a healthy completion ends this shard's failure streak
       } catch (e) {
         const msg = String((e && e.message) || e);
