@@ -886,8 +886,18 @@ function precomputeSignals(element, skill, sc) {
     }
   }
   if (skill === 'color-and-visual-text' && element.fieldColourState && typeof element.fieldColourState === 'object') {
+    // Leg (i) of the rubric's key/legend test, ANSWERED deterministically (iteration-2 replays measured
+    // judges reading a mixed "lighter X vs dark Y" key as hue-named 3/3 despite a prose tie-break): does
+    // the key's own phrasing hand the reader a lightness word to apply? Hue words alongside do not defeat
+    // it; only a key with NO lighter/darker language leaves hue as the sole handle. Generic English
+    // lightness vocabulary — no corpus phrasing involved.
+    const keyText = element.fieldColourState.colourKeyText;
+    const lightnessWorded = typeof keyText === 'string'
+      ? /\b(light(er|est)?|pale(r|st)?|dark(er|est)?|deep(er|est)?|bright(er|est)?|dim(mer|mest)?|shade[sd]?|greyed|grayed|faded|muted)\b/i.test(keyText)
+      : null;
     s.fieldColourState = {
       ...element.fieldColourState,
+      ...(lightnessWorded === null ? {} : { colourKeyLightnessWorded: lightnessWorded }),
       uncertainReason: 'these are THIS element\'s OWN computed values, read off its resolved style — they are '
         + 'AUTHORITATIVE over the crops for what colour it is and what state it is in. The surrounding-region '
         + 'crop is a rectangle and on a multi-column form it contains the EDGES OF NEIGHBOURING FIELDS, so a '
@@ -898,8 +908,55 @@ function precomputeSignals(element, skill, sc) {
         + '— a field matching the peers that carry no cue, and differing from the peers stated to be in a state, '
         + 'is in the DEFAULT state, which is not a colour-alone failure. `labelColourContrasts` is the MEASURED '
         + 'luminance separation from each other label colour in the set; use it instead of estimating a ratio. '
-        + 'These are FACTS, not a verdict: whether the colour carries INFORMATION, and whether a non-colour cue '
-        + 'exists where one is needed, is yours to judge.',
+        + '`borderColourContrasts` is the same measurement for uniform BORDER colours vs differently-bordered '
+        + 'peers — the number the rubric\'s lightness-escape clause requires; never derive a ratio yourself '
+        + 'from raw colour values. When `colourKeyLightnessWorded` is present it ANSWERS leg (i) of the '
+        + 'key/legend test: true = the key\'s own phrasing hands the reader a lightness word to apply (hue '
+        + 'words alongside do NOT defeat it); false = hue is the key\'s sole handle and leg (i) fails — do '
+        + 'not re-litigate the phrasing either way. These are FACTS, not a verdict: whether the colour '
+        + 'carries INFORMATION, and '
+        + 'whether a non-colour cue exists where one is needed, is yours to judge.',
+    };
+  }
+  // 1.4.1 F73 LINK CUE PARITY (item 27; user doctrine ruling 2026-08-18): deterministic style math for an
+  // in-prose link — collected by collect-link-facts.js, attached by act-page-collect.js as its own element
+  // key precisely so the 2.4.4 payload stayed byte-identical while the doctrine decision was pending. The
+  // key exists only on in-prose links with enough surrounding prose, so every other subject's prompt is
+  // untouched.
+  if (skill === 'color-and-visual-text' && element.linkCueParity && typeof element.linkCueParity === 'object') {
+    const cp = element.linkCueParity;
+    // The CLASS is computed HERE, deterministically, because iteration-1/2 replays measured judges
+    // fumbling the same boolean reads in prose: an identical-to-prose link maxes every intuition about
+    // "indistinguishable" while being exactly the shape the applicability precondition excludes, and two
+    // GT-inapplicable pages became stable FPs the moment the raw numbers were handed over. One token, one
+    // class-specific sentence, no judge-side arithmetic.
+    const identical = cp.linkColor === cp.proseColor && cp.linkWeight === cp.proseWeight;
+    const cueParityClass = identical ? 'identical-to-prose'
+      : (cp.nonLinkSameStyleCount > 0 ? 'distinct-shared' : 'distinct-unique');
+    const escapeMet = typeof cp.contrastLinkVsProse === 'number' ? cp.contrastLinkVsProse >= 3 : null;
+    const CLASS_NOTE = {
+      'identical-to-prose': 'CLASS identical-to-prose: the link\'s colour AND weight equal its prose '
+        + 'block\'s own (measured ratio ~1). Colour differentiates NOTHING here, so this is the '
+        + 'APPLICABILITY PRECONDITION\'s case, not a colour-alone failure: a zero difference is evidence '
+        + 'AGAINST 1.4.1 applying, never for a barrier. Do not flag the link\'s mere indistinguishability '
+        + 'under this SC.',
+      'distinct-shared': 'CLASS distinct-shared: the link\'s styling differs from its prose block, but '
+        + 'non-link text in the SAME block renders in that exact colour+weight signature '
+        + '(`nonLinkSameStyleSamples` quotes up to three) — the rubric\'s measured-parity exception: an '
+        + 'axe link-in-text-block PASS does not settle this link, judge it under the cue-parity clause.',
+      'distinct-unique': 'CLASS distinct-unique: the link\'s signature is unique inside its block — no '
+        + 'parity problem exists; the axe deferral and the ordinary second-cue analysis govern, and '
+        + '`f73LightnessEscapeMet` tells you whether the MEASURED separation already satisfies F73\'s '
+        + '>=3:1 lightness escape (true = it does; never re-derive it).',
+    };
+    s.linkCueParity = {
+      ...cp,
+      cueParityClass,
+      f73LightnessEscapeMet: escapeMet,
+      note: 'MEASURED style facts for this in-prose link, computed from resolved styles and AUTHORITATIVE '
+        + 'over the crop for what the styles are; `contrastLinkVsProse` is the measured link-vs-prose '
+        + 'luminance ratio (null = not soundly computable, never estimate it). '
+        + CLASS_NOTE[cueParityClass] + ' Facts and a computed class, not a verdict.',
     };
   }
   // 1.3.1 CONTROL-GROUP CORRESPONDENCE — collected per element by act-page-collect.js, present only on a
@@ -1153,7 +1210,12 @@ function precomputeSignals(element, skill, sc) {
         + 'announced. The hard failure shape is TEXTUAL status that reaches no AT: an outcome carried only '
         + 'by a content-added row OUTSIDE any live region, or a live-region-emptied with no announced '
         + 'follow-up. A flow whose only outcome rows are state-changes or visibility-flips is NOT that '
-        + 'shape: an attribute flip IS programmatically determinable, so decide instead whether any VISIBLE '
+        + 'shape ONLY IF no announced busy/progress message preceded them: a flow that earlier announced '
+        + 'interim status (a content-added inside a live region, or a live-region-updated/-refilled row '
+        + 'carrying interim text) and then removed or emptied it has established that this operation '
+        + 'reports status as announced text — an attribute flip is not that announced follow-up, so apply '
+        + 'the removal test to it. Only when no interim status was ever announced does the softer reading '
+        + 'hold: an attribute flip IS programmatically determinable, so decide instead whether any VISIBLE '
         + 'status message conveys the outcome — if sighted users receive no status message either, there '
         + 'may be no status message in scope at all. These are FACTS about what happened, '
         + 'never a verdict about what was owed.',

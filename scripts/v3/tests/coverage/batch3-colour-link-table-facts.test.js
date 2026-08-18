@@ -301,3 +301,38 @@ test('item 32: background-image tokens differ on the marker axis; single-char co
   assert.ok(cg, 'single-char tokens still bucket');
   assert.ok(cg.members.every((m) => m.char === '✚'), `the single character is surfaced as a field, got ${JSON.stringify(cg.members)}`);
 });
+
+// ── ruling follow-up 2026-08-18: measured border-pair separation (the F81-note lightness-escape number) ──
+// A state border vs the peers' default borders, reduced to a measured ratio — the judge is forbidden to
+// derive it from raw colour values, so the collector must hand it over. Uniform borders only: a per-side
+// accent names no single colour, and a pair minted off it would be a fabricated measurement.
+const FX_BORDER = writeFx('border-state-form.html', `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Glassblowing Workshop Signup</title>
+<style>input{border:2px solid #cdd3d9;padding:6px} input.flagged{border-color:#402028}
+textarea{border:0;border-left:4px solid #402028;padding:6px} label{display:block}</style></head><body>
+  <form>
+    <div><label for="gw-name">Participant name</label><input id="gw-name" value="Rowan Mistlethwaite"></div>
+    <div><label for="gw-kiln">Kiln slot</label><input class="flagged" id="gw-kiln" value=""></div>
+    <div><label for="gw-notes">Access notes</label><textarea id="gw-notes"></textarea></div>
+  </form>
+</body></html>`);
+
+test('ruling follow-up: borderColourContrasts measures the state-vs-default border pair; accent borders mint nothing', { skip: !chromeOK, concurrency: false }, async () => {
+  const recs = await onPage(FX_BORDER, collectFieldColourState);
+  assert.ok(recs.length >= 3, `all three fields recorded, got ${recs.length}`);
+  const flagged = recs.find((r) => r.xpath.includes('div[2]/input'));
+  const plain = recs.find((r) => r.xpath.includes('div[1]/input'));
+  const accent = recs.find((r) => r.xpath.includes('textarea'));
+  // the flagged field carries a measured pair vs the default border, well over the 3:1 escape bar
+  assert.equal(flagged.borderColor, 'rgb(64, 32, 40)', 'uniform border colour captured raw');
+  const pair = flagged.group.borderColourContrasts.find((c) => c.borderColor === 'rgb(205, 211, 217)');
+  assert.ok(pair, `the flagged field measures against the default border, got ${JSON.stringify(flagged.group.borderColourContrasts)}`);
+  assert.ok(typeof pair.contrastWithThisBorder === 'number' && pair.contrastWithThisBorder >= 3 && pair.contrastWithThisBorder <= 12,
+    `a real measured ratio (expected ~9.6), got ${pair.contrastWithThisBorder}`);
+  // symmetric from the default field's side
+  const rev = plain.group.borderColourContrasts.find((c) => c.borderColor === 'rgb(64, 32, 40)');
+  assert.ok(rev && rev.contrastWithThisBorder === pair.contrastWithThisBorder, 'the same number both ways');
+  // the accent textarea names no single border colour → no pair minted off it, in either direction
+  assert.equal(accent.borderColor, null, 'a one-sided accent has no uniform border colour');
+  assert.deepEqual(accent.group.borderColourContrasts, [], 'and mints no measured pair of its own');
+  assert.ok(!plain.group.borderColourContrasts.some((c) => c.borderColor == null), 'nor appears as a null peer in others');
+});

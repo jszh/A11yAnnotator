@@ -519,6 +519,9 @@ function collectFieldColourState(opts) {
       background: cs.backgroundColor,
       border: border.value,
       borderUniform: border.uniform,
+      // raw colour for the measured border-pair separation below; only meaningful when one colour IS the
+      // border (uniform, real) — otherwise null so no pair can be minted off an ambiguous accent.
+      borderColor: border.uniform && border.value !== 'none' ? cs.borderTopColor : null,
       outline: outlineOf(cs),
       labelColor: labCs ? labCs.color : null,
       labelGeneratedContent: lab ? genContent(lab) : null,
@@ -636,6 +639,17 @@ function collectFieldColourState(opts) {
         seen.add(p.labelColor);
         if (labelColourContrasts.length < 4) labelColourContrasts.push({ label: p.label || p.xpath, labelColor: p.labelColor, contrastWithThisLabel: ratioOf(f.labelColor, p.labelColor) });
       }
+      // Same measurement for the BORDER idiom (state border vs the peers' default borders) — the number the
+      // rubric's F81-note lightness escape requires. Uniform borders only: on a per-side accent, WHICH side
+      // carries the state is ambiguous, and a pair picked by code would be a fabricated measurement (the
+      // per-side `border` fact + crop still surface accents). ratioOf() already returns null through alpha.
+      const seenB = new Set();
+      const borderColourContrasts = [];
+      for (const p of group) {
+        if (p === f || !f.borderColor || !p.borderColor || p.borderColor === f.borderColor || seenB.has(p.borderColor)) continue;
+        seenB.add(p.borderColor);
+        if (borderColourContrasts.length < 4) borderColourContrasts.push({ label: p.label || p.xpath, borderColor: p.borderColor, contrastWithThisBorder: ratioOf(f.borderColor, p.borderColor) });
+      }
       out.push({
         xpath: f.xpath,
         label: f.label,
@@ -648,6 +662,7 @@ function collectFieldColourState(opts) {
         background: f.background,
         border: f.border,
         borderUniform: f.borderUniform,
+        borderColor: f.borderColor,
         outline: f.outline,
         labelColor: f.labelColor,
         labelGeneratedContent: f.labelGeneratedContent,
@@ -664,6 +679,7 @@ function collectFieldColourState(opts) {
           sameAppearanceAs: same,
           differentAppearanceFrom: diff,
           labelColourContrasts,
+          borderColourContrasts,
         },
       });
     }

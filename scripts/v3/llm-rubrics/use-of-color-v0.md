@@ -55,7 +55,13 @@ present) is the page's own key/instruction wording for this field SET's colour c
 member — apply the key/legend test below ONCE for the set. **The presence of the key text is NEVER itself a
 clear** — the same attached wording may BE the colour-only instruction (a key phrased in hue names is the
 F81 failure, not its remedy). The set's members are cleared ONLY when ALL THREE hold JOINTLY: **(i)** the
-key names its states by a LIGHTNESS/shade property rather than by hue; **(ii)** the stated separation is
+key names its states by a LIGHTNESS/shade property — alone, or ALONGSIDE hue words: a key phrased as a
+"lighter …" state against a "dark …" state QUALIFIES even though colour names appear in it, because the
+lightness words alone let a reader apply the key without recognising any hue; leg (i) fails only when hue
+is the key's SOLE discriminating handle (one colour name against another, no lighter/darker language).
+**When `colourKeyLightnessWorded` is handed, leg (i) is ANSWERED FOR YOU — `true` ⇒ leg (i) HOLDS,
+`false` ⇒ leg (i) fails; do not re-read the key's phrasing to overturn it**;
+**(ii)** the stated separation is
 MEASURED at ≥3:1 between the two used colours (`labelColourContrasts`, or the contrast tool); **(iii)** the
 coded set is the small, explicitly-contrasted two-state shape the key exception covers. When all three
 hold, the clearance covers the coded MEMBERS as well as the element that displays the key — a member field
@@ -214,17 +220,52 @@ abstain rather than clear.
   a 1.4.1 one. CARVE-OUT (F73): you MAY credit a visible link-vs-surrounding-text LIGHTNESS difference
   (≥3:1 luminance separation between the link color and the prose color) as the required non-color cue —
   that is the RELATIVE comparison F73's Procedure itself sanctions, not a contrast-adequacy judgment. When
+  a `linkCueParity` signal is handed, its `contrastLinkVsProse` IS that separation, measured — use it and
+  never estimate the ratio off the crop (null = not soundly computable; fall back to PARTIAL if the crop
+  cannot settle the question another way). When
   the handed axe `link-in-text-block` signal reports PASS, DEFER to it — axe measured exactly this
-  link-vs-surrounding-text separation.
-- CRITICAL GUARD — the ≥3:1 escape is F73-ONLY; do NOT extend it to F81 states whose meaning relies on
-  perceiving a SPECIFIC color (green=valid / red=invalid, red=required, color-keyed legend states): there
-  the user must recognize WHICH color, not merely that the element stands apart, so an additional non-color
-  indicator (icon, text, asterisk, shape, border) is required REGARDLESS of contrast ratio. The ONE situation
-  in which a lightness separation does resolve an F81 state is the key case above — where the page's own text
-  identifies its states by LIGHTNESS rather than by hue, so the reader never has to recognise WHICH colour,
-  AND you have measured that the stated separation is really there. A key that names its states by hue does
-  not qualify, however far apart those two colours happen to sit in luminance: knowing the two differ still
-  does not tell the reader which one the key was talking about.
+  link-vs-surrounding-text separation. MEASURED-PARITY EXCEPTION to that deferral (the only one), and it
+  is DISPATCHED FOR YOU: the handed `linkCueParity` signal carries a computed `cueParityClass`, and the
+  class — never your own re-derivation from the raw numbers — decides which rule governs.
+  · `identical-to-prose` ⇒ the APPLICABILITY PRECONDITION's case: the link's colour and weight equal the
+    prose block's own, colour differentiates NOTHING, and a measured ratio of ~1 is evidence AGAINST
+    1.4.1 applying — never reason "identical, therefore barrier"; the deferral (and the precondition)
+    stand. THIS IS NOT THE EXCEPTION.
+  · `distinct-shared` with `underlined: false` ⇒ THE EXCEPTION: the link's distinguishing signature is
+    shared by non-link text in the same block, so the styling axe credited does not, in fact, separate
+    the link from the non-link text beside it, and the PASS does not settle the question. Unless the
+    crop shows some OTHER visible cue on the link itself (an underline, an icon, a border, a shape
+    difference), the coded distinction fails exactly as colour-alone does.
+  · `distinct-unique` ⇒ no parity problem exists; the deferral and the ordinary second-cue analysis
+    govern, and `f73LightnessEscapeMet: true` means the measured separation ALREADY satisfies the ≥3:1
+    lightness escape above — credit it, do not re-litigate the ratio.
+  No `linkCueParity` signal, or `underlined: true` ⇒ the deferral stands untouched; the exception never
+  runs on eyeballed styling.
+- CRITICAL GUARD — outside F73, the lightness escape is MEASURED-ONLY, and hue alone never qualifies. For
+  F81 states (valid/invalid, required/optional, colour-keyed legend states) the DEFAULT remains: an
+  additional non-colour indicator (icon, text, asterisk, shape, border) is required, because the user must
+  recognize WHICH colour, not merely that the element stands apart. Two exceptions, both grounded in the
+  normative texts and both requiring a MEASURED number from the handed facts — never a ratio you estimated
+  from the crop or derived yourself from raw colour values:
+  (1) MEASURED STATE-LIGHTNESS — F81's own note: a colour with "sufficient luminosity difference
+      (lightness)" from its counterpart, one that would "easily be seen as different if viewed in black
+      and white", does not fail, with 3:1 considered sufficient. When the handed facts carry a measured
+      ≥3:1 luminance separation between the state styling and its default/peer styling ON THE SAME
+      PROPERTY — `borderColourContrasts` for a state border vs the peers' borders,
+      `labelColourContrasts` for a state label vs the other labels — the state survives grayscale: the
+      flagged element reads as the conspicuously darker (or lighter) one without the reader recognising
+      any hue, and that IS a non-hue visual distinction. This resolves a TWO-WAY distinction (state vs
+      default); a legend of three or more colour-coded states qualifies only if EVERY pairwise measured
+      separation clears 3:1 — otherwise at least one pair is hue-only and the escape fails. No measured
+      number on the matching property ⇒ the escape is UNAVAILABLE: judge as if it did not exist, and
+      abstain rather than eyeball if that is the whole question.
+  (2) STATED-LIGHTNESS KEY — the page's own text identifies its states by LIGHTNESS, so the reader never
+      has to recognise WHICH colour, AND the handed facts measure that the stated separation is really
+      there (≥3:1). TIE-BREAK for mixed phrasings: a key that names BOTH a hue and a lightness for its
+      states (a "lighter …" one vs a "dark …" one) QUALIFIES — the lightness words alone let the reader
+      apply the key without recognising any hue. A key is disqualified only when hue is its SOLE
+      discriminating handle (one colour name against another, with no lighter/darker language): knowing
+      the two differ still does not tell the reader which one the key was talking about.
 - When the crop cannot settle whether a second cue is present, return PARTIAL rather than guessing.
 
 **Output:** STRICT JSON `{verdict, confidence, summary, reasoning, evidenceRefs}` — summary = ONE sentence

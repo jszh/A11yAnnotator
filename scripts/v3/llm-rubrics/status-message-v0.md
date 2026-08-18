@@ -64,8 +64,14 @@ screenshot, which cannot show any of it. Read them in this order:
    An outcome carried ONLY by a `content-added` row OUTSIDE any live region, or a `live-region-emptied`
    with no announced follow-up, reaches no AT — **that is a barrier**, and it is invisible to a single
    before/after observation, which is exactly why these pages were being cleared. A flow whose only outcome
-   rows are `state-change`s or `visibility-flip`s is NOT automatically that shape: an attribute flip IS
-   programmatically determinable, so decide instead whether any VISIBLE status message conveys the outcome
+   rows are `state-change`s or `visibility-flip`s is NOT automatically that shape — **but that softer
+   reading is SCOPED: it applies ONLY when the flow never announced an interim busy/progress message.** A
+   flow that DID announce one (a `content-added` with `inLiveRegion: true`, or a `live-region-updated`/
+   `-refilled` row carrying interim text) and then removed or emptied it has itself established that this
+   operation reports status as announced text; the outcome must arrive on that same channel, and an
+   attribute flip — however programmatically determinable — is not the announced follow-up. That flow
+   keeps the barrier shape above. Only in a pure attribute-flip flow (no interim status ever announced)
+   decide instead whether any VISIBLE status message conveys the outcome
    — if sighted users receive no status message either, there may be no status message in scope at all.
    *Guards:* a removal that conveys
    nothing new (a toast expiring after its message was announced) is NOT a barrier — same test as the

@@ -48,19 +48,27 @@ test('#3 1.4.3 boundary KEPT: absolute contrast adequacy is still not judged her
   assert.match(t, /1\.4\.11\/1\.4\.3/, 'still names the owning SCs');
 });
 
-test('#3 CRITICAL F81 guard: the ≥3:1 escape does NOT extend to specific-color states (verifier clause)', () => {
+// 2026-08-18 ruling follow-up: the guard's CONTRACT changed from "F73-only, no escape for F81 states"
+// to F81's own note — a MEASURED ≥3:1 lightness separation is the one escape, failing closed without a
+// number. What this pin protects is unchanged: the judge may never clear an F81 state off an estimated
+// ratio or a bare hue difference.
+test('#3 CRITICAL F81 guard: specific-color states clear only on a MEASURED lightness separation (verifier clause)', () => {
   const t = R['use-of-color-v0'].text;
-  assert.match(t, phrase('do NOT extend it to F81 states'), 'the escape is explicitly F73-only');
-  assert.match(t, phrase('SPECIFIC color (green=valid / red=invalid'), 'names the shape: meaning rides on WHICH color');
-  assert.match(t, phrase('REGARDLESS of contrast ratio'), 'an additional indicator is required regardless of ratio');
+  assert.match(t, phrase('the lightness escape is MEASURED-ONLY'), 'the escape demands a measured number');
+  assert.match(t, phrase('recognize WHICH colour'), 'names the shape: meaning rides on WHICH color');
+  assert.match(t, phrase('never a ratio you estimated'), 'estimated ratios stay forbidden');
+  assert.match(t, phrase('No measured'), 'no handed number ⇒ the escape fails closed');
+  assert.match(t, phrase('non-colour indicator (icon, text, asterisk, shape, border) is required'),
+    'the default (an additional indicator) survives');
 });
 
-test('#3 skill: the chart-series clause carries the parallel ≥3:1 escape (and the F81 exception)', () => {
+test('#3 skill: the chart-series clause carries the parallel ≥3:1 escape (and the measured-only F81 exception)', () => {
   assert.match(SKILL_MD, phrase('≥3:1 luminance separation'), 'the lightness escape reached the skill');
   assert.match(SKILL_MD, phrase('`stroke` (no `stroke-dasharray`, no text label) at SIMILAR lightness (<3:1 between the series colors)'),
     'series-by-stroke is a barrier only at similar lightness — the chart-series clause has the escape');
   assert.match(SKILL_MD, phrase('EXCEPTION (F81)'), 'the F81 specific-color exception rides the skill too');
-  assert.match(SKILL_MD, phrase('REGARDLESS of contrast ratio'), 'skill: no ≥3:1 escape for specific-color states');
+  assert.match(SKILL_MD, phrase('UNLESS the signals hand you a MEASURED'), 'skill: the escape needs a handed measurement');
+  assert.match(SKILL_MD, phrase('with no measured number the escape is unavailable'), 'skill: fails closed without one');
 });
 
 // ─────────────────────────── #4 — 2.4.4 link-purpose: WHICH record a colspan header governs ───────────────────────────

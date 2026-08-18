@@ -45,7 +45,11 @@ crops. (Again: **not** 1.4.3 — the runner owns it.)
   or link colors separated by ≥3:1 luminance, or any non-color redundant cue →
   NOT REPRODUCED. EXCEPTION (F81): a state whose meaning relies on perceiving
   a SPECIFIC color (green=valid / red=invalid) needs an additional non-color
-  indicator REGARDLESS of contrast ratio — the ≥3:1 escape does NOT apply there.
+  indicator UNLESS the signals hand you a MEASURED ≥3:1 luminance separation
+  between the state colour and its counterpart (F81's own note: a lightness
+  difference plainly visible in black-and-white does not fail). Never estimate
+  that ratio from the crop; with no measured number the escape is unavailable
+  and the indicator is required.
 - **1.4.5 Images of Text (AA) — text-as-image.** The handed signal already tells
   you the node is an `<img>`/`<canvas>` (its "text" is not DOM text and cannot
   be zoomed or restyled). Judge the crop: does it bake **essential** text into
