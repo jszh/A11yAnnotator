@@ -378,7 +378,7 @@ gate (and neutralizing the rubric's "judge from the crop" wording) for the ablat
 LLM-lane from 0 → 6 (name/role) / 15 (signals) / 34 (HTML). **Ablations that vary one input can silently
 trip a downstream gate keyed on that input; the abstain path must be audited, not trusted.**
 
-## Table 1e — Full reaches-LLM run log (provider × concurrency; 2026-06-28–08-17)
+## Table 1e — Full reaches-LLM run log (provider × concurrency; 2026-06-28–08-18)
 
 Full-suite (458-case) runs as this round's fixes landed. Per-SC scoring, **raw ACT labels** *unless the row is
 marked* `*` (which applies the cross-rule GT override of Table 1d → denominators 68 / 390). `noVerd` = subjects
@@ -406,6 +406,37 @@ any row with `node eval/checker-comparison/ablation-table.js` (config = the run 
 | `skip-haiku-45` (07-01) | Claude Haiku 4.5 | tools, 16-par, ◊splice | `752d5468` ◊ | 89.4 (59/66) | 71.1 | 6.1 (24/392) | 0.792 | 2 |
 | `skip-haiku-45` **`*`** (07-01) | Claude Haiku 4.5 | tools, 16-par, ◊splice, `*`override | `752d5468` ◊ | 89.7 (61/68) | 73.5 | 5.6 (22/390) | 0.808 | 2 |
 | `fn-llm-gemini37-flash-server` **`*`** (08-17) | Gemini 3.7-flash | tools, 32-page/100-par, 144 tabs, GCE ¶ | `9b7d60c7` ¶ | **94.1** (64/68) | **90.1** | **1.8** (7/390) | **0.921** | 3 |
+| `fn-llm-gemini35-flash-lite-server` **`*`** (08-17) | Gemini 3.5-flash-lite | tools, 64-page/100-par, 200 tabs, 10 instruments, default MINIMAL, GCE ♠ | `9b7d60c7` ♠ | 85.3 (58/68) | 65.9 | 7.7 (30/390) | 0.744 | 4 |
+| `fn-llm-gemini35-flash-lite-medium-inst32-server` **`*`** (08-17–18) | Gemini 3.5-flash-lite | tools, 64-page/100-par, 200 tabs, 32 instruments, MEDIUM, GCE ♠ | `9b7d60c7` + `55781245` ♠ | **86.8** (59/68) | **78.7** | **4.1** (16/390) | **0.825** | 4 |
+| `fn-llm-gemini35-flash-lite-high-shards16-server` **`*`** (08-17–18) | Gemini 3.5-flash-lite | tools, 64-page/100-par, 256 tabs/16 browsers, 32 instruments/180s, HIGH, GCE ♠ | `9b7d60c7` + `55781245` + `1218b05c` ♠ | **91.2** (62/68) | **82.7** | **3.3** (13/390) | **0.867** | 3 |
+
+♠ **Gemini 3.5 Flash-Lite, current full 458-case reaches-LLM set, run on the c4-highcpu-16 GCE server.** All three
+runs executed all 458 cases live with vision and tools, a 64-page pool and 100-call global Gemini gate; none uses
+a splice. The first two used one browser and a 200-tab cap. The first used 10 instrument lanes and, because the Gemini transport did not yet
+send a thinking level, the model's default **MINIMAL** reasoning. It completed in 38.0 min with 0 case errors;
+observed peaks were 18 Gemini calls and 168 tabs. Usage was 490 model calls / 544 usage events, 5,167,401 input
+tokens + 61,886 output tokens (including thinking). At the 2026-08-18 Gemini API Standard rate ($0.30/M input,
+$2.50/M output), model spend was **$1.70** ($1.5502 input + $0.1547 output), before credits and excluding GCE.
+The second run overlaid the four-file, checksum-verified effort wire in `55781245` onto the same `9b7d60c7`
+server base, sent `generationConfig.thinkingConfig.thinkingLevel=MEDIUM`, and raised instrument concurrency to 32.
+It completed in 51.2 min with 0 case errors; observed peaks were 22 Gemini calls and 200 tabs. Usage was 481 model
+calls / 601 usage events, 5,786,910 input tokens + 357,938 output tokens (including thinking), for **$2.63**
+($1.7361 input + $0.8948 output). The MEDIUM row gained one TP and cut FPs 30→16 versus the MINIMAL row, but this
+is **not a clean reasoning-effort ablation**: instrument concurrency changed 10→32, the tab cap saturated and
+accumulated 2,948 waits, and model sampling is nondeterministic. Artifacts:
+`results/fn-llm-gemini35-flash-lite-server{,-run.log}` and
+`results/fn-llm-gemini35-flash-lite-medium-inst32-server{,-run.log}`.
+
+The third run sent `thinkingLevel=HIGH`, retained 64 pages / 32 instrument lanes, raised the lane timeout 90→180s,
+and used the `1218b05c` ACT-runner integration of the already-proven browser shard pool (`a583bec0`): 16 independent
+Chrome roots with 16 tabs each (256 aggregate). It completed in **13.7 min** with 0 case errors — **3.74× faster**
+than the one-browser MEDIUM run — while a sampled CPU interval was 97.7% busy (vs ≈29% in the one-browser run).
+Peak model concurrency rose 22→43; peak tabs were only 169/256, with **0 queued acquisitions, 0 open failures and
+0 shard heals**. Usage was 490 model calls / 759 usage events, 7,453,144 input + 577,444 output tokens (including
+thinking), for **$3.68** at Standard rates ($2.2359 input + $1.4436 output), before credits and excluding GCE.
+Against the MEDIUM row it gained 3 TPs and cut FPs 16→13, but this is **not a clean effort ablation** because browser
+sharding, tab budget and instrument timeout also changed. Artifact:
+`results/fn-llm-gemini35-flash-lite-high-shards16-server{,-run.log}`.
 
 ¶ **Gemini 3.7 Flash, current full 458-case reaches-LLM set, run on the c4-highcpu-16 GCE server.** No splice:
 all 458 cases ran live with vision and tools at 32 page workers, a 100-call global Gemini gate, 144-tab cap, and
@@ -1296,6 +1327,33 @@ therefore scored by per-case **stable transition** (a 10/10-flagged FP driven to
 ambiguity / debatable ground truth**, not a model error a better judge design removes. This is the controlled,
 cross-model confirmation of the Table-1b precision ceiling. (Full study: `docs/analysis/improvement-research-2026-06/
 FP-REDUCTION-CONTROLLED-ROUND2.md`.)
+
+## Saved-page sampled-element coverage run (2026-08-18)
+
+To select a tractable real-page review set, the server's existing harness first ran without an LLM over the
+existing random sample (`assets/samples-saved.json`): 56 pages, 1,101 requested random elements, 1,091 resolved,
+and zero page errors. Pages with 20 resolved random samples were eligible (46 of 56). A balanced greedy set-cover
+objective, followed by deterministic one-page swaps, selected 20 pages × 20 elements while weighting the ACT and
+supplementary-human SC sets equally. The selected pages reach the requested depth for every target SC that has an
+oracle candidate among those 46 eligible pages (22 of 32 target SCs). The ten target SCs with no eligible-page
+candidate are 1.3.2, 1.3.3, 1.4.10, 1.4.12, 1.4.4, 2.2.1, 2.2.2, 2.2.4, 2.4.1, and 3.2.5. (The later full builder
+still generated page-level 1.3.2 obligations; those were not element-level selection candidates.)
+
+The selected 400 elements then ran through the unchanged server harness with Gemini 3.5 Flash-Lite, high thinking,
+tools and vision enabled, 16 browser shards, 64 page slots, 256 tabs, 32 instrument lanes, a 180 s instrument
+timeout, and a global 100-call LLM cap. It completed all 20 pages and all 400 requested elements with zero page or
+model-call errors in 690,997 ms (11m31s): 2,782/2,782 Gemini calls, peak 90 calls in flight, peak 100 tabs,
+46,136,818 input tokens, and 4,013,626 output tokens. At the 2026-08-18 Gemini Developer API standard paid rates
+($0.30/M input, $2.50/M output), estimated model cost is $23.88; the transport recorded `$0` because it has no
+Gemini price table.
+
+This saved-page run has no gold labels, so its 2,538 raw judgments (2,036 `LIKELY_OK`, 426 `LIKELY_BARRIER`, 76
+`UNCERTAIN`) are triage outputs, not precision/recall measurements or confirmed violations. Ledger reconciliation
+produced 3,415 obligations: 546 provisional barrier outcomes, 2,482 provisional clears, and 387 `PARTIAL` rows
+(264 auto-partial). Instruments reached their timeout and retained partial evidence on 16 of 20 pages, which is the
+main completeness limitation. Canonical artifacts: `results/saved-elements-inventory-server/` and
+`results/saved-elements-gemini35-flash-lite-high-server/`; each manifest records source hashes because the server
+checkout has no usable Git metadata (`commit: null`).
 
 ## Main contributions
 

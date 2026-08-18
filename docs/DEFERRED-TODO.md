@@ -568,15 +568,13 @@ unless save/restored); the runners reload and drive the page (high mutationRisk)
 581 pre/post diff PLUS an in-scope geometry-fact diff (the specific corruption vector); (5) only after the R2
 must-fixes (multi-block skip-past; used-line-height measurement) are in.
 
-**Round 3 addition (1.3.3 sensory-characteristics, approved deferred 2026-07-07):** the `sensoryWordHint` collector
-fact (the requirement-sourced `sensory-lexicon.js` pre-filter over each element's OWN direct text) also lives ONLY
-in the eval collectForV3, so production runs do not enumerate the 1.3.3 obligation and the LLM rubric never fires
-outside the act-rest eval. Porting is CHEAP + non-mutating (a pure Node string scan over already-collected `ownText`
-— no browser pass), so it is the low-risk first candidate; the only requirement is collecting each element's direct
-text-node content (`ownText`) in act-page-collect.js / eval-page.js, then running `sensoryWordsIn` in the builder or
-collector. Also DEFERRED and FLAGGED: threading the sensory-term WHY + the instruction text explicitly into the
-rubric prompt needs a `precomputeSignals` branch (shared LLM prompt-assembly) — the Round-3 rubric relies on the
-`viewport` vision + `__pageStructure` instead, which the hard "don't touch shared LLM plumbing" constraint required.
+**Round 3 addition (1.3.3 sensory-characteristics; collector port resolved 2026-08-18):** the requirement-sourced
+`sensoryWordHint` pre-filter is now shared by `act-page-collect.js`, `eval-page.js`, and the ACT-rest evaluator.
+Each collector records the element's OWN direct text as `ownText`, and the shared `applySensoryHints` helper attaches
+the applicability fact before obligation derivation. Production and saved-page runs can therefore enumerate the
+existing 1.3.3 obligation and invoke its rubric. Still DEFERRED and FLAGGED: threading the sensory-term WHY + the
+instruction text explicitly into the rubric prompt needs a `precomputeSignals` branch (shared LLM prompt-assembly)
+— the rubric currently relies on the `viewport` vision + `__pageStructure` instead.
 
 ## K. 1.3.3 LLM-lane FP elimination — the three requirement-keyed paths (do NOT rubric-tune against the slice)
 **Approved deferred 2026-07-07** (act-rest Round 3 close-out). **Team-lead decision: accept fp = 3/17 (0.176) as the
@@ -664,3 +662,19 @@ The decision is defensible and the rationale is written down — this is a note 
 QUANTIFIED, not a claim that it is wrong. Promoting any of them to the ledger would create obligations on
 every page in the 581-case ACT corpus and could move the headline Table 1 numbers, so it must be run as a
 pre/post experiment on the full ACT corpus, not bundled with unrelated fixes.
+
+## L. Colour-token lane FULL-PAGE enable gate (approved deferred 2026-08-18 — run after s13)
+User enabled `V3_COLOUR_TOKEN_LANE=1` for SC-restricted runs (the annotated suite qualifies:
+run-annotated-suite.js:370 passes per-case restrictScs, so off-SC nominations can never score).
+Full-page enable (all-SC scans: real-site audits, broad-scope sweeps) stays OFF until measured
+sufficient. Protocol (BATCH3-RCA-FIX-PLAN.md item 32 + 2026-08-18 ruling 4):
+1. **Aperture census** (deterministic, no LLM): run the collector with tokenLane:true across the
+   full 904-page corpus; enumerate surviving firings (~14 pages expected post-narrowing). Verify
+   (a) the 9-10 interactive-chrome noise groups are gone, (b) the narrowing ADMITTED nothing new —
+   any firing not in the original 24-page review gets the same hand review.
+2. **1.4.1 slice** (LLM, n=3 replicates): off-SC firings = the would-be noise surface — every
+   barrier verdict hand-adjudicated (corpus has no 1.4.1 GT there; presumed-FP until confirmed);
+   on-SC firings = recall check (the status-dot-matrix catch must survive the narrowing).
+Pass bar: zero unsound off-SC barriers across replicates AND no on-SC recall loss. Fail → tighten
+the instance predicate, re-census, re-slice only the delta. Cost: collector sweep + tens of calls.
+Run at the post-ruling commit so the numbers attach to the enable-candidate tree.

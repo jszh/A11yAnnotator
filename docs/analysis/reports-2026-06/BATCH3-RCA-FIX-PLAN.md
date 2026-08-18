@@ -314,3 +314,71 @@ atomic-04/05 + wrong-politeness-02 pages were stripped, removal family never was
     verdicts leak-off/leak-on). s12 post-strip numbers are the honest baseline; the strip is
     vindicated as a measurement correction, and the "4.1.3 give-back" framing in Table 1k-post7
     should be softened accordingly.
+
+## Batch-3 commit gate (2026-08-18) — CLEAN
+
+ACT 581 (`upstream-evidence/v3-act-subset-b3-gate/` vs `v3-act-subset-b2-gate/`): tp 13, fn 101,
+fp 1, tn 262 — all identical; 580/581 rows byte-identical; the single delta (afw4f7/fd406bed,
+tnWithClear→error) completes cleanly on single-rule recheck (`flake-afw4f7-b3-recheck/`) —
+flake-class. Suite 1404 tests: 1403 pass (2 stale F5 dwell-adjacency pins re-expressed to the
+contract, not the code shape), 1 OCR env-skip. prompt-corpus-leak 5/5 (+exp-runners.js coverage).
+Soundness review: 16 findings, all remediated (4 predicate redesigns re-flooded target-only; 11
+wiring/guard fixes; 1 lead F4 shape fix). Leakage review: 3 findings, all remediated. Keystone
+evidence: results/b3-impl-212-post-kbd (region-loop oneway obligations minted at PAGE_CONC 12).
+
+## 2026-08-18 user rulings (the four open decisions)
+
+1. **removal-06 (item 36): Reading A** — the label stands. The state-change softening (rubric
+   status-message-v0 item 4 + the adjudicator statusTimelines note) is SCOPED to flows with NO
+   preceding announced busy/progress message; a flow that announced interim status and then
+   removed/emptied it keeps the barrier shape (an attribute flip is not the announced follow-up).
+   Pure attribute-flip flows keep their FP win (arm C: zero collateral).
+2. **inline-links-05 (item 27): F73 cue-parity clause** — use-of-color-v0 gains a measured-parity
+   carve-out to the axe link-in-text-block PASS deferral, fact-gated on the `linkCueParity` census
+   (surfaced to the judge via a new adjudicator signal block); `contrastLinkVsProse` becomes the
+   measured number for the existing >=3:1 lightness escape. Deferral untouched whenever the signal
+   is absent, census 0, or the link is underlined.
+3. **input-gate-05 (item 28): needs-validation retag APPROVED** — applied to
+   case-reliability-tags.json (key 2.1.2::input-gate-required-interaction-exception::case-05,
+   source user-ruling-2026-08-18); counts block recounted from the cases list (was stale by the
+   two 2026-08-17 retags).
+4. **Token lane (item 32): staged enable APPROVED for SC-restricted runs.** run-annotated-suite
+   passes restrictScs per case (run-annotated-suite.js:370), so the annotated suite IS
+   SC-restricted by construction -> V3_COLOUR_TOKEN_LANE=1 goes on the s13 launch env. Full-page
+   enable still gated on the post-narrowing aperture re-measure + one 1.4.1 slice.
+
+Validation protocol for 1+2 (rubric/prompt-only -> fixed-evidence per the holdout policy): fresh
+freeze of the FULL 4.1.3+1.4.1 aug slices (89 pages, batch-3 tree, instruments on) via
+freeze-heldout.js -> packs results/fp-packs-rulings (also discharges the queued "re-freeze status
+packs post-integration" follow-up for these families); baseline replay rep>=3 on PRE-ruling wording;
+apply edits; post replay rep=3. Expectations pre-registered: removal-06 + inline-links-05 flip to
+caught; pure attribute-flip status cases and non-parity 1.4.1 cases stable within the fixed-evidence
+noise floor (sd~1.06); control polarity (bold-unique link) stays cleared.
+
+## 2026-08-18 rulings — validation record (fixed evidence, packs results/fp-packs-rulings)
+
+Baseline x3 (pre-ruling wording, batch-3 tree): recall 59/56/60 of 66, FP 3/2/2 of 23.
+Pre-registered targets were 3/3-stable at baseline: removal-06 miss, inline-links-05 miss;
+plus two 3/3-stable 1.4.1 FPs on GT-pass pages surfaced by the baseline (required-field-06,
+error-validation-07) — the item-29 clause and the F81 CRITICAL GUARD were the causes.
+
+Iteration 1 (scoped softening + prose cue-parity + guard alignment; x3): both targets caught
+3/3, but two GT-INAPPLICABLE prose-identical-link pages became FP (census maxes out trivially;
+the precondition's own case) and required-field-06 stayed FP (tie-break in the guard, judges
+applied the three-leg test). Iteration 2 (differs-from-prose gate; tie-break moved into leg
+(i); x3): identical-link pages still FP 3/3 + 1/3 — prose logic did not converge.
+Iteration 3 (boolean logic moved INTO CODE: adjudicator computes cueParityClass +
+f73LightnessEscapeMet + colourKeyLightnessWorded; rubric dispatches on tokens; x1 per user's
+stop-after-one): recall 61/66, FP 2/23; every pre-registered case at its target — removal-06
+caught, inline-links-05 caught, required-field-06 clear, both identical-link pages clear,
+3.91:1 control clear; error-validation-07 FP unchanged BY CONSTRUCTION (its escape needs the
+new borderColourContrasts fact absent from these packs) -> validated on the 1.4.1 re-freeze
+(results/fp-packs-rulings-141, fp-rulings-refreeze141-base). Remaining non-preregistered
+majority deltas are the known 4.1.3 politeness drifters (baseline-unstable, sd~1.06 floor).
+
+Lesson recorded: two rounds of prose-only judge instructions failed to make the judge apply a
+boolean correctly; one round of computing the boolean deterministically and dispatching on it
+succeeded. Prefer code-side classification over rubric prose whenever the decision is a
+function of handed facts.
+
+Commits: fd8b22ef (batch-3 v3), 79f2daab (rulings), f132405e (eval evidence), + this doc.
