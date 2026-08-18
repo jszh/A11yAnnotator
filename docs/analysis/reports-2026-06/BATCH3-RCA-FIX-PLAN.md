@@ -225,3 +225,43 @@ Still open for the user: the removal-of-status-06 label-vs-doctrine ruling.
 Infra note (RCA cost): the runner persists only results.json — no per-case obligation/instrument
 artifacts — so every evidence diff required probing frozen code trees. Cheap per-case artifact
 dumps would cut future RCA time substantially; candidate batch-3 infra item.
+
+## RCA-3 findings: stable FPs + token lane (merged 2026-08-17)
+
+29. **FP 1.4.1 required-field case-06** (rubric split-brain, replay 3/3 sd=0): the legend subject
+    holds the shade-key text and the contrast measurement clears IT, but member fields never
+    receive the key text, so the F81 CRITICAL GUARD default fires on them. Fix: attach
+    `fieldColourState.colourKeyText` (lexicon-matched instruction, clipped) in
+    collect-colour-peers.js + one use-of-color-v0 sentence (stated-lightness key + measured >=3:1
+    + two-state set clears members). Recall-safe by precondition (fail siblings have none of the
+    three). Validation: re-freeze + replay n=3 (expect 0/3) + fail-sibling replays + 1.4.1 slice.
+
+30. **FP 1.4.13 hover-content case-05** (deterministic, C9 tri-probe): pointer-travel loses :hover
+    on a pointer-events:none bubble → true hoverable=false, but the revealed text is FULLY
+    redundant with rest-visible text. Fix: redundancy exemption at applicability in
+    runHoverContentTri (revealed text contained in rest-visible local text or equals trigger's
+    accessible name → contentIsAdditional=false). PRICED: adopts the corpus's redundancy-decisive
+    1.4.13 stance (mild label dispute recorded); a redundant-but-obscuring tooltip stops flagging
+    deterministically. Validation: deterministic 1.4.13 sweep pre/post + regression fixture +
+    one targeted 1.4.13 LLM slice.
+
+31. **FP 1.4.13 persistent-timeout case-06** (deterministic, proven geometry bug): facets probed
+    POST-expiry with stale tip coordinates — the reshow is an emptied husk, pointer lands outside
+    → false hoverable/dismissible fails. Fix: re-reveal-integrity guard (score facets only when
+    reshow signature >= original; else leave unmeasured and let persistenceSamples/
+    vanishedWhileHeld route to the LLM facet lane). Preserves case-04's true catch (animation
+    restarts at full strength). PRICED: a one-shot never-re-revealing true-fail would shift to the
+    LLM lane (no current corpus case has that shape). Validation: same 1.4.13 sweep + pinned
+    fixtures (c06 no-flag, c04 still-flag).
+
+32. **Colour-token lane review (24 pages)**: SOUND 15 (10 catch-potential incl. the UNIQUE win —
+    scoping case-07's status-dot matrix, a 3-run stable miss reachable by NO other route; +
+    ui-status c05 flake stabilization) / NOISE 9-10 groups (ALL switch/checkbox/radio chrome on
+    non-1.4.1 pages; the group framing is factually wrong for switches whose knob position the
+    collector cannot see). STAGED RECOMMENDATION (user decision): (1) enable V3_COLOUR_TOKEN_LANE=1
+    for SC-RESTRICTED runs now — +1 stable-FN recovery, zero FP surface under restrictScs;
+    (2) before ANY full-page enable, narrow the instance predicate (skip interactive controls:
+    native controls, tabIndex>=0, switch/checkbox/radio/button roles, aria-checked/pressed) —
+    removes all chrome groups; re-measure aperture (~24→~12), then one 1.4.1 slice. Plus two
+    predicate refinements: record background-image in instance marker; surface single-char content
+    as a field instead of silently text-less.
