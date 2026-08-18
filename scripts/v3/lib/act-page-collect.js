@@ -176,6 +176,18 @@ async function collectActPage(page, opts = {}) {
       if (!(al === 'polite' || al === 'assertive' || /^(status|alert|log|progressbar|marquee|timer)$/.test(ra))) return false;
       return el.getAttribute('aria-hidden') !== 'true';
     }
+    // 4.1.3 MUTED live-region wiring (batch-3 item 12, wrong-live-region-politeness case-01). The carve-out
+    // above admits only a GENUINELY live region; an element wired like one but silenced to AT — aria-live
+    // with any other value ("off"/invalid), or aria-atomic/aria-relevant with no live semantics — is the
+    // exact anti-pattern the oracle's mutedLiveRegionShape mints status-message for, and it shares the live
+    // region's resting geometry (empty, often opacity:0), so the visibility skip dropped it before the
+    // oracle could ever see its ariaAttrs. Admit the muted shape too; aria-hidden stays excluded (outside
+    // the a11y tree, it can never announce and its muteness is not the 4.1.3 question).
+    function mutedLiveRegionWiring(el) {
+      if (liveRegionShape(el)) return false;             // a real live region rides the carve-out above
+      if (el.getAttribute('aria-hidden') === 'true') return false;
+      return el.hasAttribute('aria-live') || el.hasAttribute('aria-atomic') || el.hasAttribute('aria-relevant');
+    }
     // 1.1.1/2.4.4 <area href> — an image-map area has a 0×0 client rect in Chrome, so the element-loop
     // visibility skip dropped every one before the oracle's area branch could enumerate it (RCA s10: an
     // image map's five region links scored no obligation at all). An area is RENDERED exactly when its
@@ -588,9 +600,10 @@ async function collectActPage(page, opts = {}) {
     for (const el of (_subset || document.querySelectorAll('body *'))) {
       if (!_subset) {
         if (els.length >= cap) { _cappedOut = true; break; }
-        // a live-region container is admitted even when empty/zero-sized at rest (see liveRegionShape), and a
-        // wired image-map area even though its client rect is 0×0 (see renderedAreaShape)
-        if (!visible(el) && !liveRegionShape(el) && !renderedAreaShape(el)) continue;
+        // a live-region container is admitted even when empty/zero-sized at rest (see liveRegionShape) — and
+        // so is the MUTED live-region shape (item 12: same resting geometry, and its muteness IS the 4.1.3
+        // defect); plus a wired image-map area even though its client rect is 0×0 (see renderedAreaShape)
+        if (!visible(el) && !liveRegionShape(el) && !mutedLiveRegionWiring(el) && !renderedAreaShape(el)) continue;
       }
       const tag = el.tagName.toLowerCase();
       const roleAttr = el.getAttribute('role') || '';
@@ -721,6 +734,21 @@ async function collectActPage(page, opts = {}) {
       // the LISTENER half is filled in the CDP pass (listenerTypes), which runs after this evaluate.
       const emulatedControlShape = _emulatedShape;
       const emulatedControlInline = _emulatedShape && _inlineActivation;
+      // F42's FOCUSABLE role-less sub-case (batch-3 item 18, emulated-controls case-05). `_emulatedShape`
+      // requires !focusable by construction, so a `<div tabindex="0" onclick>` tab — reachable by keyboard
+      // but announced as NOTHING (no role, so AT never says it is a control, and its selected state exists
+      // only visually) — matched no gate at all. Sibling shape: the SAME structural guards (no native
+      // interactive tag, no interactive role, no native-interactive descendant, not a delegation-root-sized
+      // container, rendered box) with the focusability inverted — an explicit tabindex >= 0. Like its
+      // sibling, the shape is only half the fact: activation is proven by an inline handler here or by the
+      // CDP listener pass (click/key*) after this evaluate. Same claim family (control-semantics, 1.3.1).
+      const _emulatedFocusableShape = !_nativeInteractiveTag && !_INTERACTIVE_ROLE_RE.test(roleAttr)
+        && (_tiAttr !== null && +_tiAttr >= 0)
+        && !el.querySelector(_NATIVE_INTERACTIVE)
+        && !(box.width >= (window.innerWidth || 1280) * 0.8 && box.height >= (window.innerHeight || 800) * 0.5)
+        && box.width > 0 && box.height > 0;
+      const emulatedControlFocusableShape = _emulatedFocusableShape;
+      const emulatedControlFocusableInline = _emulatedFocusableShape && _inlineActivation;
       // S7 (RCA R7, 0va7u6): an <svg> that renders LIVE <text>/<tspan> is NOT an image-of-text — that text is real
       // and accessible, so it owes NO 1.4.5 (images-of-text) obligation. Surfaced so the rubric clears it.
       // ...but ONLY when that text actually reaches the accessibility tree. An `aria-hidden="true"` svg (or
@@ -780,6 +808,13 @@ async function collectActPage(page, opts = {}) {
       // against and the test self-satisfied. Every rubric that asks "is this information ALSO available as
       // text" was judging against an inflated baseline — and worse, an aria-hidden <svg>'s text counted,
       // though no AT user ever receives it. Subtract the subject's own text before reporting.
+      // ANCESTOR CLIMB (batch-3 item 14, the keystone): a single-child wrapper — div>canvas, div>svg,
+      // span>svg — has a text-less parent and no siblings, so the old parent+direct-siblings read yielded
+      // nearbyText:null for exactly the badge/chart/QR shapes whose redundancy question the rubric most
+      // needs answered, starving both the redundancy baseline and the abstain valves' "can I verify"
+      // question. Climb: when one level holds no non-subject text, step to the parent and read ITS
+      // parent + siblings, until text is found or the walk reaches <body> (bounded). Level 0 is read
+      // exactly as before, so any element that already had nearbyText keeps it byte-identically.
       const nearbyText = !isImage ? undefined : (function () {
         const ownText = (el.textContent || '').replace(/\s+/g, ' ').trim();
         const strip = (s) => {
@@ -789,14 +824,33 @@ async function collectActPage(page, opts = {}) {
         };
         const bits = [];
         const fig = el.closest('figure'); if (fig) { const cap = fig.querySelector('figcaption'); if (cap) bits.push(strip(textOf(cap))); }
-        if (el.parentElement) bits.push(strip(textOf(el.parentElement)));
-        for (const sib of [el.previousElementSibling, el.nextElementSibling]) if (sib) bits.push(strip(textOf(sib)));
+        let node = el;
+        for (let hops = 0; node && node !== document.body && hops < 6; node = node.parentElement, hops++) {
+          if (node.parentElement) bits.push(strip(textOf(node.parentElement)));
+          for (const sib of [node.previousElementSibling, node.nextElementSibling]) if (sib) bits.push(strip(textOf(sib)));
+          if (bits.some(Boolean)) break;   // non-subject text found at this level — stop climbing
+        }
         return [...new Set(bits.filter(Boolean))].join(' | ').replace(/\s+/g, ' ').trim().slice(0, 300) || undefined;
       })();
       // COMPLEX-IMAGE hint (Item 7b): a genuinely data-bearing image (in a <figure>, role=figure, or carrying an
       // aria-describedby long-description pointer) owes the long-description-completeness rubric; a bare logo/icon
       // gets alt-adequacy only (long-desc on a simple logo is UNCERTAIN noise).
       const complexImageHint = isImage && (!!el.closest('figure') || roleAttr === 'figure' || el.hasAttribute('aria-describedby'));
+      // DEDICATED CAPTION/LONG-DESCRIPTION TEXT (batch-3 item 16b): the long-description rubric was reading
+      // the caption out of the 2800-cap `enclosingHtml`, which an inline SVG's own markup eats before the
+      // <figcaption> ever appears — truncating the caption mid-sentence (reproduced byte-identically at
+      // 7b379689). State the caption/described-by text DIRECTLY, with its own ~1200 budget, exactly for the
+      // complexImageHint images the long-description obligation gates on. Absent (undefined ⇒ dropped by
+      // JSON) on every other element, so untouched pages serialize byte-identically.
+      const captionText = !complexImageHint ? undefined : (function () {
+        const parts = [];
+        const fig = el.closest('figure'); if (fig) { const cap = fig.querySelector('figcaption'); if (cap) parts.push(textOf(cap)); }
+        const doc = el.ownerDocument || document;
+        for (const id of (el.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean).slice(0, 4)) {
+          const t = doc.getElementById(id); if (t) parts.push(textOf(t));
+        }
+        return [...new Set(parts.filter(Boolean))].join(' | ').replace(/\s+/g, ' ').trim().slice(0, 1200) || undefined;
+      })();
       // C8 small-signal predicates (parity with eval-page.js / the ACT inline collector).
       const tabindexEffective = (() => { const ti = el.getAttribute('tabindex'); return ti !== null ? +ti : (['a', 'button', 'input', 'select', 'textarea', 'summary'].includes(tag) && !el.disabled ? 0 : null); })();
       let _ownTxt = ''; for (const _n of childNodesOf(el)) if (_n.nodeType === 3) _ownTxt += _n.textContent;
@@ -916,7 +970,10 @@ async function collectActPage(page, opts = {}) {
       const nearestLang = (() => {
         try { const le = el.closest && el.closest('[lang],[xml\\:lang]'); return le ? (le.getAttribute('lang') || le.getAttribute('xml:lang') || null) : null; } catch (e) { return null; }
       })();
-      if (!_subset && !focusable && !isFormField && !sampledRole && !text && !isImage && !liveRegion && !isMedia && !autoMotion && !backgroundImageMeaningful && !isCaptcha && !iframeTabExcluded && !focusableInAriaHidden && !prohibitedAriaAttr) continue; // a pre-selected subset element is always included
+      // item 12: mutedLiveRegionWiring keeps the MUTED live-region shape (admitted by the visibility
+      // carve-out above) through this filter too — its ariaAttrs census is what the oracle's
+      // mutedLiveRegionShape gate reads to mint the status-message obligation.
+      if (!_subset && !focusable && !isFormField && !sampledRole && !text && !isImage && !liveRegion && !mutedLiveRegionWiring(el) && !isMedia && !autoMotion && !backgroundImageMeaningful && !isCaptcha && !iframeTabExcluded && !focusableInAriaHidden && !prohibitedAriaAttr) continue; // a pre-selected subset element is always included
       els.push({
         xpath: xpathOf(el),
         matchesTarget: matchesTarget(el), // #11 fix — see scorer precision comment above
@@ -950,8 +1007,10 @@ async function collectActPage(page, opts = {}) {
         renderedVisible, nearbyText, svgLiveText, svgNamedDescendant,
         ariaHiddenWithName, decorativeConflict,
         complexImageHint,
+        captionText, // item 16b: dedicated figcaption/aria-describedby text for the long-description rubric (not eaten by the enclosingHtml cap)
         tabindexEffective, hasGlyphText, splitFieldGroup, // C8 small-signal predicates (parity)
         emulatedControlShape, emulatedControl: emulatedControlInline, // F42 (residual RCA S6) — shape + the inline half; the listener half is added in the CDP pass
+        emulatedControlFocusableShape, emulatedControlFocusable: emulatedControlFocusableInline, // item 18 — the FOCUSABLE role-less F42 sub-case (same halves)
         // Item 13 (cheap scrutiny signals, parity with eval-page): a native control that overrides its role
         // (<button role=link>) → name-role scrutiny; a field's placeholder → field-label scrutiny (placeholder-as-label).
         roleOverridesNative: ['a', 'button', 'input', 'select', 'textarea', 'summary', 'details'].includes(tag) && !!roleAttr,
@@ -1264,6 +1323,12 @@ async function collectActPage(page, opts = {}) {
               && types.some((t) => t === 'click' || t === 'keydown' || t === 'keypress' || t === 'keyup')) {
             el.emulatedControl = true;
           }
+          // item 18: the FOCUSABLE role-less twin's listener half — same activation-type set. A focusable
+          // element is always listener-queried (wantsListeners above), so this half is never budget-capped.
+          if (el.emulatedControlFocusableShape === true && el.emulatedControlFocusable !== true
+              && types.some((t) => t === 'click' || t === 'keydown' || t === 'keypress' || t === 'keyup')) {
+            el.emulatedControlFocusable = true;
+          }
         }
         // ANCESTOR DELEGATION, one level up. The commonest real delegation is a container handling clicks
         // for its own rows/items (a <ul>, a <tbody>, a card grid), and that ancestor is exactly one hop
@@ -1343,7 +1408,15 @@ async function collectActPage(page, opts = {}) {
   // 1.4.1 PER-FIELD RESOLVED COLOUR + STATE (residual RCA S10). Attached per ELEMENT below, not to `structure`:
   // it answers "what colour is THIS field, and is it in the coded state or the default one" for the subject the
   // judge is actually looking at. See collect-colour-peers.js for why the crops alone cannot answer that.
-  const fieldColourStates = await liveEval('collectFieldColourState', collectFieldColourState, []);
+  // batch-3 item 29: the requirement-sourced colour-reference constructions ride along (as serializable regex
+  // sources — the lexicon module cannot cross page.evaluate) so the collector can attach `colourKeyText`: the
+  // page's own stated colour key (a legend stating which shade/lightness marks which state), which the member
+  // fields of the coded set never received — the F81 critical-guard default then fired on fields whose key text
+  // sat one element away. Fail-closed: no patterns ⇒ no key ⇒ byte-identical records.
+  const fieldColourStates = await liveEval('collectFieldColourState', collectFieldColourState, [], {
+    colourKeyPatterns: require('./color-reference-lexicon.js').PATTERNS.map((p) => ({ id: p.id, source: p.re.source })),
+    properNounGuard: require('./color-reference-lexicon.js').PROPER_NOUN_PAIR.source,
+  });
   // 1.4.3/1.4.1 RESOLVED FOREGROUND + EFFECTIVE BACKDROP. `precomputeSignals` builds the `contrast` signal —
   // the colour fact EVERY color-and-visual-text subject receives — from six element keys this collector never
   // emitted, so the signal degraded to a fixed stub asserting the backdrop was irreducible and telling the
@@ -1370,10 +1443,20 @@ async function collectActPage(page, opts = {}) {
   // per-form required-state inventory), each converting a previously coin-flip page-level 1.3.1 UNCERTAIN
   // into a stated, checked result. See collectStructuralMarkupFacts for the reading rules.
   const structuralMarkupFacts = await liveEval('collectStructuralMarkupFacts', collectStructuralMarkupFacts,
-    { blockquotesWithoutSource: [], dlOrderAnomalies: [], radioGroupsWithoutGrouping: [], requiredStateInventory: [] });
+    { blockquotesWithoutSource: [], dlOrderAnomalies: [], radioGroupsWithoutGrouping: [], requiredStateInventory: [], fieldsetsWithoutControls: [] });
   // 1.3.1 F2 — presentation used to convey meaning. Trigger set narrowed BY MEASUREMENT to strike-through
   // and small-caps (0.9% of pages); weight/size are how the web expresses hierarchy and were unusable.
   const stylingOutliers = await liveEval('collectStylingOutliers', collectStylingOutliers, { outlierGroups: [], inlineConventions: [] });
+  // 2.4.2 TITLE-INSTANCE CONFLICT (batch-3 item 22, stale-in-family case-02). When the <title> VOLUNTEERS a
+  // year token, check it against the page's identity surfaces (headings, named graphics, definition lists,
+  // footer). null on every page whose title carries no year — the anti-richness firewall: an ABSENT token
+  // can never fire this (foil case-06 is safe by construction), and body prose is deliberately NOT a
+  // surface (a "last year (March 2025)" retrospective must not corroborate a stale title).
+  const titleInstanceFacts = await liveEval('collectTitleInstanceFacts', collectTitleInstanceFacts, null);
+  const titleInstanceConflict = (titleInstanceFacts && titleInstanceFacts.conflict === true) ? titleInstanceFacts : undefined;
+  // 1.3.1 LABEL GEOMETRY vs PROGRAMMATIC ASSOCIATION (batch-3 item 20) — per-field records, attached below
+  // by xpath like every other per-subject fact; a form with no cross-pairing yields [] and adds nothing.
+  const labelGeometryMismatches = await liveEval('collectLabelGeometry', collectLabelGeometry, []);
   // 2.4.4 LINK-TARGET FACTS (residual RCA S10) — a same-document fragment href resolved to its target
   // element IN THE DOM (does it exist, what does its own heading/name say), plus per-link terminal path
   // segment / extension and the same-name-different-target flag. Replaces a stochastic resolve_destination
@@ -1655,8 +1738,27 @@ async function collectActPage(page, opts = {}) {
       if (!rec || typeof rec.xpath !== 'string') continue;
       const el = byXpath.get(rec.xpath);
       if (!el) continue;                    // collected under a cap / not in the inventory — never synthesize an element
-      const { xpath, ...facts } = rec;      // the element already carries its xpath
+      // item 27: `cueParity` is SPLIT OUT of linkTargetFacts before attachment. The adjudicator spreads the
+      // whole linkTargetFacts object into the 2.4.4 prompt, and the cue-parity facts belong to a 1.4.1
+      // rubric clause that is USER-PENDING — carried as a separate, currently-unread element key so the
+      // 2.4.4 payload stays byte-identical until that doctrine decision lands.
+      const { xpath, cueParity, ...facts } = rec; // the element already carries its xpath
       el.linkTargetFacts = facts;
+      if (cueParity) el.linkCueParity = cueParity;
+    }
+  }
+
+  // 1.3.1 LABEL-GEOMETRY MISMATCH ATTACHMENT (batch-3 item 20) — same xpath join; the key did not exist on
+  // any element before, so nothing that reads an element record changes until an adjudicator branch surfaces it.
+  if (Array.isArray(labelGeometryMismatches) && labelGeometryMismatches.length) {
+    const byXpath = new Map();
+    for (const el of (data.elements || [])) if (el && typeof el.xpath === 'string') byXpath.set(el.xpath, el);
+    for (const rec of labelGeometryMismatches) {
+      if (!rec || typeof rec.xpath !== 'string') continue;
+      const el = byXpath.get(rec.xpath);
+      if (!el) continue;                    // collected under a cap — never synthesize an element
+      const { xpath, ...facts } = rec;
+      el.labelGeometryMismatch = facts;
     }
   }
 
@@ -1682,6 +1784,8 @@ async function collectActPage(page, opts = {}) {
       dlOrderAnomalies: (structuralMarkupFacts && structuralMarkupFacts.dlOrderAnomalies) || [],
       radioGroupsWithoutGrouping: (structuralMarkupFacts && structuralMarkupFacts.radioGroupsWithoutGrouping) || [],
       requiredStateInventory: (structuralMarkupFacts && structuralMarkupFacts.requiredStateInventory) || [],
+      fieldsetsWithoutControls: (structuralMarkupFacts && structuralMarkupFacts.fieldsetsWithoutControls) || [], // item 19c
+      titleInstanceConflict, // item 22 — undefined (⇒ dropped by JSON) unless the title's own year token is contradicted by the page's identity surfaces
       visualHeadings,
       presentationOutliers: (stylingOutliers && stylingOutliers.outlierGroups) || [],
       presentationConventions: (stylingOutliers && stylingOutliers.inlineConventions) || [] },
@@ -1999,7 +2103,7 @@ function collectStructuralMarkupFacts() {
     const r = e.getBoundingClientRect();
     return r.width > 0 && r.height > 0;
   };
-  const out = { blockquotesWithoutSource: [], dlOrderAnomalies: [], radioGroupsWithoutGrouping: [], requiredStateInventory: [] };
+  const out = { blockquotesWithoutSource: [], dlOrderAnomalies: [], radioGroupsWithoutGrouping: [], requiredStateInventory: [], fieldsetsWithoutControls: [] };
 
   // (1) <blockquote> with no source anywhere the DOM can see.
   const attributionish = (e) => {
@@ -2130,6 +2234,23 @@ function collectStructuralMarkupFacts() {
     });
   }
 
+  // (3b, batch-3 item 19c) <fieldset> holding NO form control anywhere in its subtree. A fieldset+legend
+  // DECLARES a control-group relationship (the legend is announced as a group name); using the pair as a
+  // decorative call-out box around prose declares a grouping that does not exist — the structural-markup-
+  // misused-for-presentation shape, which previously had no fact at all (the labeled defect on case-04).
+  // DATA ONLY: the legend text and a content sample are reported; whether the misuse is a 1.3.1 barrier
+  // stays with the judge. A fieldset that merely has its controls elsewhere via form= association is out
+  // of reach of this DOM scan and simply not reported (fail-closed: absence of the fact claims nothing).
+  const CONTROL_SEL = 'input, select, textarea, button, output, [role="checkbox"], [role="radio"], [role="switch"], [role="textbox"], [role="combobox"], [role="listbox"], [role="slider"], [role="spinbutton"], [role="searchbox"], [role="button"]';
+  for (const fs of document.querySelectorAll('fieldset')) {
+    if (out.fieldsetsWithoutControls.length >= MAX) break;
+    if (!visible(fs)) continue;
+    if (fs.querySelector(CONTROL_SEL)) continue;
+    let legendText = null;
+    for (const c of fs.children) if (c.tagName && c.tagName.toLowerCase() === 'legend') { legendText = clip(c.textContent, MAX_TEXT); break; }
+    out.fieldsetsWithoutControls.push({ xpath: xpathOf(fs), legendText, textSample: clip(fs.textContent, MAX_TEXT) });
+  }
+
   // (4) per-form required-state inventory. Counts, never a verdict; zero counts are measured absences.
   const fieldSel = 'input:not([type="hidden" i]):not([type="submit" i]):not([type="button" i]):not([type="reset" i]), select, textarea';
   const pseudoStar = (e) => {
@@ -2161,6 +2282,198 @@ function collectStructuralMarkupFacts() {
   return out;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
+// SC 1.3.1 — LABEL GEOMETRY vs PROGRAMMATIC ASSOCIATION (batch-3 item 20, form-label case-01).
+//
+// WHY THIS EXISTS. A CSS-grid form can render every input under the WRONG label while the for=/id wiring is
+// textually perfect — the sighted user reads a cross-paired form, AT hears a correct one, and NO lane can see
+// it: the markup checks pass, and the per-field crop shows one label above one input with nothing to compare
+// against. The RCA probe's 15-line geometry predicate (scratchpad/rca3-rel/probe-form-label-01.js) separated
+// all four cross-paired fields deterministically; this is that predicate, ported with fail-closed guards.
+//
+// THE PREDICATE, per labelled field: the visually adjacent label is the nearest <label> rendered ABOVE the
+// field with column overlap (label centre horizontally WITHIN the field's span — flood-tightened, see below).
+// A record is emitted ONLY when ALL hold:
+//   · the field has its own programmatic label[for] (wrapping labels are skipped — geometry is trivially theirs);
+//   · the own label is SUBSTANTIALLY RENDERED (>=12x8px) — a clip-pattern/sr-only label (1x1) means the field
+//     has NO visual label at all; that is a visible-label-absence question (3.3.2's), not a cross-pairing,
+//     and reporting the nearest other label as "the visual label" would manufacture one (corpus flood:
+//     exactly the hidden-label boundary-cue pages fired this way);
+//   · the own label does NOT vertically overlap the field — a SIDE-LABELLED row pairs label→field by ROW, and
+//     the label of the row above is not that field's visual label (the corpus flood found exactly this false
+//     fire on every left-labelled form: own label beside the input, previous row's label "above" it);
+//   · a visually-adjacent label exists, is a DIFFERENT element with DIFFERENT text, and is itself for= a
+//     DIFFERENT control (a free-floating caption above a field is not a cross-pairing).
+// The column-overlap test is HORIZONTAL-INTERVAL overlap (>=12px) between label and field — the probe's
+// |Δcx|<width alone let ANY label left of a wide full-row input qualify (flood: 28 fires on 12 pages, 24 of
+// them side-label layouts whose label/field intervals are disjoint), while a centre-in-span test broke the
+// legitimate full-width block label above a narrower field (its centre sits past the field's right edge).
+// With interval overlap + the side-label guard, exactly the cross-paired grid remains on the corpus flood.
+// Absence of a record claims nothing (a left-labelled or unlabelled form simply yields no fact). DECIDES
+// NOTHING: whether the visual/programmatic disagreement is a 1.3.1 barrier stays with the rubric.
+//
+// Self-contained so it serializes through page.evaluate.
+function collectLabelGeometry() {
+  const MAX = 8;
+  const xpathOf = (e) => {
+    if (!e || !e.tagName) return '';
+    if (e === document.documentElement) return '/html';
+    if (e === document.body && e.tagName === 'BODY') return '/html/body';
+    const t = e.tagName.toLowerCase();
+    let i = 1; for (let s = e.previousElementSibling; s; s = s.previousElementSibling) if (s.tagName === e.tagName) i++;
+    return xpathOf(e.parentElement) + '/' + t + '[' + i + ']';
+  };
+  const norm = (s) => String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
+  const clip = (s, n) => norm(s).slice(0, n);
+  const visible = (e) => {
+    const cs = getComputedStyle(e);
+    if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity || '1') === 0) return false;
+    const r = e.getBoundingClientRect();
+    return r.width > 0 && r.height > 0;
+  };
+  const labels = [];
+  for (const l of document.querySelectorAll('label[for]')) {
+    if (!visible(l)) continue;
+    const text = norm(l.textContent);
+    if (!text) continue;
+    const r = l.getBoundingClientRect();
+    labels.push({ el: l, for: l.getAttribute('for'), text, top: r.top, bottom: r.bottom, x: r.x, right: r.x + r.width, rendered: r.width >= 12 && r.height >= 8 });
+  }
+  if (labels.length < 2) return [];                        // a cross-pairing needs at least two labelled columns
+  const out = [];
+  for (const inp of document.querySelectorAll('input, select, textarea')) {
+    if (out.length >= MAX) break;
+    if ((inp.getAttribute('type') || '').toLowerCase() === 'hidden') continue;
+    if (!visible(inp)) continue;
+    if (inp.closest('label')) continue;                    // wrapped label: geometry is trivially its own
+    if (!inp.id) continue;
+    const own = labels.find((l) => l.for === inp.id);
+    if (!own || !own.rendered) continue;                   // clipped/sr-only own label ⇒ a 3.3.2 question, not a cross-pairing
+    const r = inp.getBoundingClientRect();
+    // SIDE-LABEL GUARD (flood-tightening): the own label vertically overlaps the field ⇒ the layout pairs
+    // by ROW; the label rendered above belongs to the previous row, not to this field. No fact.
+    if (own.bottom > r.y + 4 && own.top < r.bottom - 4) continue;
+    // nearest label visually ABOVE whose horizontal interval overlaps the field's by >=12px (flood-tightened:
+    // side-label layouts have disjoint intervals; a full-width block label above a narrow field still counts).
+    const above = labels
+      .filter((l) => l.bottom <= r.y + 4 && (Math.min(l.right, r.x + r.width) - Math.max(l.x, r.x)) >= Math.min(12, r.width / 2))
+      .sort((a, b) => (r.y - a.bottom) - (r.y - b.bottom))[0] || null;
+    if (!above || above.el === own.el) continue;           // no adjacent label, or visual == programmatic: nothing to report
+    if (above.text === own.text) continue;                 // same text either way: the rendered pairing reads correctly
+    if (!above.for || above.for === inp.id) continue;      // the adjacent label must belong to a DIFFERENT control
+    out.push({
+      xpath: xpathOf(inp),
+      ownLabelText: clip(own.text, 80),
+      visuallyAdjacentLabelText: clip(above.text, 80),
+      visuallyAdjacentLabelFor: clip(above.for, 60),
+      gapPx: Math.round(r.y - above.bottom),
+    });
+  }
+  return out;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
+// SC 2.4.2 — TITLE-INSTANCE YEAR CONFLICT (batch-3 item 22, stale-in-family-wrong-instance-title case-02).
+//
+// WHY THIS EXISTS. Deciding whether a title identifies the RIGHT page instance usually needs richness the
+// page-title rubric is firewalled against demanding (the anti-richness firewall: a title is not failed for
+// omitting detail). But one sub-case is recoverable soundly: the title VOLUNTEERS an instance token — a year —
+// while every identity surface the page itself asserts (hero graphic label, headings, definition-list facts,
+// footer) carries a DIFFERENT year and never the title's. That is not an omission; it is a stated
+// contradiction, checkable deterministically.
+//
+// SURFACES, deliberately narrow: headings (h1-h6 / role=heading), named graphics (img[alt], aria-label on
+// svg/[role=img] — the hero banner case), <dl> name-value facts, and footer/contentinfo (with © years
+// stripped — a copyright year states when the site was published, not which instance this page is). Body
+// PROSE is NOT a surface: a retrospective sentence ("last year's gala (March 2025)…") legitimately carries
+// the stale year and must not corroborate a stale title.
+//
+// SOUNDNESS FIX (batch-3 adversarial review F3, 2026-08-17). The first cut fired whenever ANY surface year
+// differed from the title's, which made two everyday pages "contradictions":
+//   · an ordinary shop page titled "Spring Collection 2026" whose footer reads "established 1998" — a
+//     FOUNDING year, no more a page-instance assertion than the © year already stripped beside it; and
+//   · a correctly titled "Budget 2026" article with one sub-heading "How it compares with 2025" — a
+//     comparison reference, not a claim about which instance this page is.
+// Three narrowings, all structural:
+//   (a) CORROBORATION + MAJORITY. The conflicting year must be carried by ≥2 admitted surfaces, or by a
+//       PRIMARY identity surface (h1 / aria-level=1 heading / a hero-sized named graphic), AND it must be
+//       the year of a strict majority of the admitted surfaces. One lone surface never contradicts a title.
+//   (b) FOUNDING-YEAR STRIP, applied to every surface exactly like the © strip: established/est./founded/
+//       since constructions state when the ORGANISATION began, not which instance this page is.
+//   (c) NON-PRIMARY HEADINGS AND <dl> ARE CORROBORATING-ONLY. A sub-heading or a fact list is admitted as a
+//       surface only when it shares non-year wording with the title (so it is talking about THIS page's
+//       subject) or when one of its years is already asserted by an anchor surface (a primary surface or
+//       the footer). A lone "How it compares with 2025" is then not a surface at all.
+//
+// FIRES ONLY when: the title carries >=1 year token AND none of the title's years appears in any ADMITTED
+// surface AND a different year clears (a). Null whenever the title has no year (the ABSENT-token firewall)
+// — so the fact can never punish a title for not volunteering a year. DECIDES NOTHING: the record states
+// the years and where each was seen; whether the mismatch makes the title fail 2.4.2 stays with the rubric.
+//
+// Self-contained so it serializes through page.evaluate.
+function collectTitleInstanceFacts() {
+  const YEAR_RE = /\b(?:19|20)\d{2}\b/g;
+  const norm = (s) => String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
+  const clip = (s, n) => norm(s).slice(0, n);
+  const titleText = norm(document.title);
+  const titleYears = [...new Set((titleText.match(YEAR_RE) || []))];
+  if (!titleYears.length) return null;                      // absent token ⇒ never fires (anti-richness firewall)
+  const visible = (e) => {
+    if (!e || !e.tagName || !e.getBoundingClientRect) return false;
+    const cs = getComputedStyle(e);
+    if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity || '1') === 0) return false;
+    const r = e.getBoundingClientRect();
+    return r.width > 0 && r.height > 0;
+  };
+  // (b) + the original © strip. Both say "this year is not a claim about WHICH instance this page is".
+  const strip = (t) => norm(t)
+    .replace(/(?:©|\(c\)|copyright)[\s:]*(?:19|20)\d{2}(?:\s*[-–—]\s*(?:19|20)\d{2})?/gi, ' ')
+    .replace(/\b(?:established|est\.|founded|since)\b[^.;:|]{0,20}?\b(?:19|20)\d{2}\b/gi, ' ');
+  // non-year wording, for the (c) overlap test. Short/generic words identify nothing.
+  const STOP = new Set(['this', 'that', 'with', 'from', 'your', 'their', 'about', 'here', 'more', 'than', 'when', 'what', 'which', 'page', 'home', 'news', 'also', 'into', 'over', 'have', 'been', 'will', 'they', 'them', 'other', 'these', 'those']);
+  const words = (t) => new Set(norm(t).toLowerCase().replace(YEAR_RE, ' ').split(/[^\p{L}\p{N}]+/u).filter((w) => w.length >= 4 && !STOP.has(w)));
+  const titleWords = words(titleText);
+  const mk = (kind, text, primary) => {
+    const t = strip(text);
+    const ys = t ? t.match(YEAR_RE) : null;
+    return ys ? { kind, primary, text: clip(t, 120), years: [...new Set(ys)] } : null;
+  };
+  // ── anchors: PRIMARY identity surfaces + the footer (always admitted) ──────────────────────────────
+  const anchors = [];
+  const gated = [];
+  const HERO_AREA = 5000;                                   // a hero banner, not a 24px icon
+  for (const h of document.querySelectorAll('h1,h2,h3,h4,h5,h6,[role="heading"]')) {
+    if (!visible(h)) continue;
+    const lvl = h.tagName === 'H1' ? 1 : (h.getAttribute('aria-level') ? parseInt(h.getAttribute('aria-level'), 10) : (/^H[1-6]$/.test(h.tagName) ? +h.tagName[1] : 0));
+    const rec = mk('heading', h.textContent, lvl === 1);
+    if (rec) (lvl === 1 ? anchors : gated).push(rec);
+  }
+  for (const g of document.querySelectorAll('img[alt],svg[aria-label],[role="img"][aria-label]')) {
+    if (!visible(g)) continue;
+    const r = g.getBoundingClientRect();
+    const rec = mk('graphic-label', g.getAttribute('aria-label') || g.getAttribute('alt'), r.width * r.height >= HERO_AREA);
+    if (rec) (rec.primary ? anchors : gated).push(rec);
+  }
+  for (const dl of document.querySelectorAll('dl')) { if (visible(dl)) { const rec = mk('definition-list', dl.textContent, false); if (rec) gated.push(rec); } }
+  for (const f of document.querySelectorAll('footer,[role="contentinfo"]')) { if (visible(f)) { const rec = mk('footer', f.textContent, false); if (rec) anchors.push(rec); } }
+  // ── (c) admission: a gated surface must share wording with the title, or repeat an anchor's year ───
+  const anchorYears = new Set(anchors.reduce((a, s) => a.concat(s.years), []));
+  const overlapsTitle = (s) => { for (const w of words(s.text)) if (titleWords.has(w)) return true; return false; };
+  const surfaces = [...anchors, ...gated.filter((s) => overlapsTitle(s) || s.years.some((y) => anchorYears.has(y)))].slice(0, 12);
+  const surfaceYears = [...new Set(surfaces.reduce((a, s) => a.concat(s.years), []))];
+  // ── (a) corroboration + majority over the admitted surfaces ───────────────────────────────────────
+  const primaryYears = new Set(surfaces.filter((s) => s.primary).reduce((a, s) => a.concat(s.years), []));
+  const carriers = (y) => surfaces.filter((s) => s.years.indexOf(y) !== -1).length;
+  const conflictYear = surfaceYears
+    .filter((y) => titleYears.indexOf(y) === -1)
+    .filter((y) => (carriers(y) >= 2 || primaryYears.has(y)) && carriers(y) * 2 > surfaces.length)
+    .sort((a, b) => carriers(b) - carriers(a))[0] || null;
+  const conflict = surfaces.length > 0
+    && titleYears.every((y) => surfaceYears.indexOf(y) === -1)
+    && conflictYear !== null;
+  return { title: clip(titleText, 160), titleYears, surfaceYears, conflict, conflictYear, surfaces: surfaces.slice(0, 8) };
+}
+
 // Backfill any missing role fields (orchestrate's candidate generator reads sampledRole/axRole).
 function normalizeCollectRoles(collect) {
   for (const el of collect.elements || []) {
@@ -2170,4 +2483,4 @@ function normalizeCollectRoles(collect) {
   return collect;
 }
 
-module.exports = { collectActPage, normalizeCollectRoles, nativeRole, digestForUrl, collectControlGroups, collectStructuralMarkupFacts };
+module.exports = { collectActPage, normalizeCollectRoles, nativeRole, digestForUrl, collectControlGroups, collectStructuralMarkupFacts, collectTitleInstanceFacts, collectLabelGeometry };

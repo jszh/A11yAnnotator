@@ -57,6 +57,18 @@ captures what a sighted user reads — visually AND via table position — not t
 enclosing `<table>` grid), the field's role/type, its accessible name/description, and (when the field is a
 `grouping-and-reading-order` subject) `signals.structure.tables` if a table is present on the page.
 
+**A GEOMETRICALLY INVERTED PAIRING — `signals.labelGeometryMismatch` (when present).** The for/id wiring can
+be textually perfect while the RENDERED layout places this field directly under a DIFFERENT control's label:
+the signal is measured from geometry (`ownLabelText` = the programmatic label; `visuallyAdjacentLabelText` /
+`visuallyAdjacentLabelFor` = the other control's label sitting immediately above this field with horizontal
+overlap, `gapPx` away). A sighted user reads the adjacent label as this field's name while AT announces the
+programmatic one — a visually-conveyed pairing with a CONTRADICTING programmatic equivalent, which is this
+rubric's failure direction even though every association resolves. Do not reason "for/id resolves, therefore
+the association is correct" past this fact: confirm from the crops that the visual arrangement genuinely
+reads as the inverted pairing (not an ordinary side-by-side layout a sighted user parses correctly), then
+flag it, naming both labels. Absent the signal, do not derive cross-pairing from the crops alone — return
+PARTIAL if you suspect it but cannot measure it.
+
 **WCAG soundness caveats (do NOT manufacture a failure these don't support):**
 - A programmatic name that matches or supersets the visible label is correct — capitalization/punctuation/
   trailing-colon differences are NOT a barrier.

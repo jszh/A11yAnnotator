@@ -35,6 +35,19 @@ BOUNDED window, which is why this question reaches you even when the probe repor
   `contentAppeared: false` means the probe saw nothing, NOT that nothing appears: content drawn by a
   CSS pseudo-element, painted into a canvas, or hosted in a namespace the probe could not address is
   invisible to it. Never read it as a pass.
+- `persistenceSamples` / `vanishedWhileHeld` (when present) — the probe re-revealed the content and
+  re-read it at fixed offsets PAST the dwell, with the trigger state held. Each sample carries `atMs`
+  (the offset), `present` (the content was still there), and `held` (the hold was POSITIVELY verified
+  at that sample). **`vanishedWhileHeld: true` is a positive observation of SELF-WITHDRAWAL** — the
+  content left while the hold demonstrably survived — and it is refutable ONLY by a LONGER timing
+  measurement: a held dwell you drive yourself (via `interact_and_observe`) that exceeds the LAST
+  sample's `atMs` offset and still finds the content present. Nothing shorter, and no amount of
+  reasoning about the markup, can refute it; and `persistent: true` from the shorter dwell does not
+  contradict it — the samples simply looked further. The permitted-removal reasons stay yours to
+  weigh: if what the content reported stopped being true at the moment it vanished, that is the
+  information-invalid exception, not a timer. `vanishedWhileHeld: false` with samples present means
+  the content survived to the last sampled offset — persistence evidence out to that `atMs`, and
+  still silent about anything longer.
 
 **How to settle it.** The criterion is failed by content that removes itself on a timer while the user
 is still hovering or still focused. If an `interact_and_observe` tool is offered, that is the way to

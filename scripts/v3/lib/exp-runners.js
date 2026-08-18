@@ -1558,9 +1558,87 @@ async function runHoverContentTri(page, request) {
   o.contentIsAdditional = (hovered > rest) && !nativeTitleOnly;
   o.measurementDeterministic = true;
 
+  // #30 (batch-3 RCA): REDUNDANCY EXEMPTION at applicability. 1.4.13 owes Dismissible/Hoverable/Persistent
+  // only for content that becomes visible "to provide ADDITIONAL content" — a hover bubble whose entire
+  // text is already visible at rest right next to the trigger (the swatch-label pattern), or that merely
+  // repeats the trigger's own accessible name, deprives nobody of anything when it misbehaves, so probing
+  // its properties can only manufacture a barrier (measured FP: a pointer-events:none bubble that loses
+  // :hover on travel, flagged hoverable:false, while the same text sat printed under the trigger).
+  // DELIBERATELY CONSERVATIVE, both ways it can be: text-free (graphical) reveals are never exempt, and
+  // "contained" means the WHOLE revealed text as a contiguous token phrase inside the LOCAL (≤3 ancestor
+  // hops) rest-visible text — a bag-of-words overlap or a page-wide match exempts nothing, so a revealed
+  // sentence that adds one fact to a paragraph of context keeps its obligation (priced-risk note: this
+  // adopts the corpus's redundancy-decisive 1.4.13 stance; a redundant-but-obscuring tooltip stops
+  // flagging deterministically).
+  let redundantWithVisibleText = null;
+  if (o.contentIsAdditional) {
+    redundantWithVisibleText = await page.evaluate((m) => {
+      const norm = (s) => String(s == null ? '' : s).toLowerCase().replace(/\s+/g, ' ').trim();
+      const toks = (s) => norm(s).split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+      const trigger = document.querySelector(`[data-v3-target="${m}"]`);
+      if (!trigger) return null;
+      // the flipped (revealed) elements — same predicate as the appearing-content signature scan
+      const flipped = [];
+      for (const el of document.querySelectorAll('body *')) {
+        const cs = getComputedStyle(el); const r = el.getBoundingClientRect();
+        const vis = cs.display !== 'none' && cs.visibility !== 'hidden' && parseFloat(cs.opacity) > 0 && r.width > 1 && r.height > 1;
+        if (!vis || el.__v3HoverRestVis === true) continue;
+        const p = el.parentElement;
+        if (p && p !== document.body && p.__v3HoverRestPresent !== true) continue;
+        const txt = (el.textContent || '').replace(/\s+/g, ' ').trim();
+        if (!(txt.length > 0 || (r.width >= 16 && r.height >= 16))) continue;
+        flipped.push(el);
+      }
+      if (!flipped.length) return null;
+      const revealedText = norm(flipped.map((e) => e.textContent || '').join(' '));
+      if (!revealedText) return { redundant: false, reason: 'no-revealed-text' };
+      const revealedToks = toks(revealedText);
+      const inFlipped = (n) => flipped.some((f) => f === n || f.contains(n));
+      // (a) the trigger's ACCESSIBLE NAME (explicit channels only — own text is covered by (b))
+      const labelledBy = (trigger.getAttribute('aria-labelledby') || '').split(/\s+/).filter(Boolean)
+        .map((id) => { const n = document.getElementById(id); return n ? (n.innerText || n.textContent || '') : ''; }).join(' ');
+      let forLabel = '';
+      if (trigger.id) {
+        const l = document.querySelector('label[for="' + (window.CSS && CSS.escape ? CSS.escape(trigger.id) : trigger.id) + '"]');
+        if (l) forLabel = l.innerText || l.textContent || '';
+      }
+      const accName = norm(trigger.getAttribute('aria-label') || labelledBy || forLabel || trigger.getAttribute('alt') || '');
+      const equalsAccName = !!accName && accName === revealedText;
+      // (b) REST-VISIBLE LOCAL TEXT: own text nodes of elements that were visible AT REST (the pristine
+      // __v3HoverRestVis marks), within the trigger's local container, excluding every revealed subtree.
+      let scope = trigger;
+      for (let i = 0; i < 3 && scope.parentElement && scope.parentElement !== document.body; i++) scope = scope.parentElement;
+      const localParts = [];
+      const walk = (el) => {
+        if (inFlipped(el)) return;
+        if (el.__v3HoverRestVis === true) {
+          for (const n of el.childNodes) if (n.nodeType === 3 && n.textContent.trim()) localParts.push(n.textContent);
+        }
+        for (const c of el.children) walk(c);
+      };
+      walk(scope);
+      const localToks = toks(localParts.join(' '));
+      let containedInLocal = false;
+      if (revealedToks.length && localToks.length >= revealedToks.length) {
+        outer: for (let i = 0; i + revealedToks.length <= localToks.length; i++) {
+          for (let j = 0; j < revealedToks.length; j++) if (localToks[i + j] !== revealedToks[j]) continue outer;
+          containedInLocal = true; break;
+        }
+      }
+      return {
+        redundant: equalsAccName || containedInLocal,
+        matchedBy: equalsAccName ? 'trigger-accname' : (containedInLocal ? 'local-rest-text' : null),
+        revealedText: revealedText.slice(0, 160),
+        accName: accName ? accName.slice(0, 80) : null,
+        localTextSample: norm(localParts.join(' ')).slice(0, 160) || null,
+      };
+    }, marker).catch(() => null);
+    if (redundantWithVisibleText && redundantWithVisibleText.redundant === true) o.contentIsAdditional = false;
+  }
+
   // held-state persistence facts (see the probe below) — measurement-only, never folded into the outcome
   // flags (typedOutcomes is a closed schema, and the timed-removal question is a judgment call anyway).
-  let persistenceSamples = null, vanishedWhileHeld = null;
+  let persistenceSamples = null, vanishedWhileHeld = null, reshowIntegrity = null, hoverTravel = null;
   if (o.contentAppeared && o.contentIsAdditional) {
     // bind the ACTUAL appearing content region — the flipped element(s) themselves, found by the same rest-mark
     // delta (#2: the curated tooltip selectors only PRIORITIZE which flipped region binds as "the tip"; they
@@ -1582,6 +1660,7 @@ async function runHoverContentTri(page, request) {
       const PRIO = '[role="tooltip"],[role="status"],[popover],[data-tooltip],.tooltip,.tip';
       const tipEl = flipped.find((e) => { try { return e.matches(PRIO); } catch (err) { return false; } })
         || flipped.sort((a, b) => { const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect(); return rb.width * rb.height - ra.width * ra.height; })[0];
+      tipEl.__v3Tip = true;                              // #F5: mark the bound region so its OWN presence can be read later
       const tr = tipEl.getBoundingClientRect();
       let obscures = false;
       for (const el of document.body.querySelectorAll('*')) {
@@ -1609,21 +1688,66 @@ async function runHoverContentTri(page, request) {
       }
       return page.evaluate(appearedSig);
     };
+    // #F5 (batch-3 adversarial review): the BOUND TIP'S OWN PRESENCE, preferred over the document-wide
+    // scalar wherever it can be read. true = the marked region is still rendered, false = it is present but
+    // hidden/boxless, null = the mark is gone (removed, or re-created by a framework re-render) ⇒ unknown,
+    // fall back to the scalar. Cheap: one evaluate, no geometry.
+    const tipHeld = async () => (tip ? page.evaluate(() => {
+      let el = null;
+      for (const e of document.querySelectorAll('body *')) if (e.__v3Tip === true) { el = e; break; }
+      if (!el) return null;
+      const cs = getComputedStyle(el); const r = el.getBoundingClientRect();
+      return cs.display !== 'none' && cs.visibility !== 'hidden' && parseFloat(cs.opacity) > 0 && r.width > 1 && r.height > 1;
+    }).catch(() => null) : null);
+    const facetsUnmeasured = [];
+    let perReshowSig = null;
     // Persistent: still present after a dwell while still hovered/focused?
+    //
+    // #F5 SOUNDNESS FIX. This facet used to be a bare `appearedSig() >= hovered` — and appearedSig is
+    // `count*1e6 + totalTextLen`, so ANY text shrink inside the revealed region scores a Persistent
+    // FAILURE. The reviewer's probe minted a deterministic 1.4.13 barrier from a fully conformant tooltip
+    // whose only sin was a live "10 minutes left" counter ticking to "9 minutes left" — one character —
+    // while the very same lifecycle correctly left the other two facets UNMEASURED under the #31 guard.
+    // The facet now gets the #31 treatment plus the tip's own presence:
+    //   · dwell signature back at full strength ⇒ persistent (unchanged);
+    //   · else the BOUND TIP is still rendered ⇒ nothing was removed, the scalar was tracking the content's
+    //     own live text ⇒ UNMEASURED (flag deleted, never false) — the held-state samples below carry the
+    //     question to the LLM facet lane;
+    //   · else re-show once: only a re-reveal that restores at least the ORIGINAL signature proves the
+    //     dwell loss was a real removal and not a husk/one-shot artifact ⇒ scored false. Otherwise
+    //     UNMEASURED. A TIMED dismissal (the true catch) re-reveals at full strength and still scores.
+    // PRICED, same trade as #31: content that genuinely vanishes and never re-reveals at full strength
+    // (a one-shot) is a real Persistent failure that now shifts to the LLM facet lane instead of minting
+    // deterministically — bought to stop the far commoner portal/re-render case, where the mark is lost and
+    // the scalar is reading live text rather than a removal.
     await H.settle(page, 1600);
-    o.persistent = (await page.evaluate(appearedSig)) >= hovered;
+    const dwellSig = await page.evaluate(appearedSig);
+    if (dwellSig >= hovered) {
+      o.persistent = true;
+    } else if ((await tipHeld()) === true) {
+      delete o.persistent; facetsUnmeasured.push('persistent');
+    } else {
+      perReshowSig = await reshow();
+      if (perReshowSig >= hovered) o.persistent = false;
+      else { delete o.persistent; facetsUnmeasured.push('persistent'); }
+    }
     // 1.4.13 PERSISTENCE PROBE (residual RCA S10 / Tier 3 — the "Persistent" clause is otherwise unmeasured
     // past the dwell above). The single short dwell cannot see a TIMED dismissal: a page timer that hides
     // revealed content after a few seconds while the trigger state is STILL HELD violates the Persistent
-    // condition, and no before/after pair can show it. So — ONLY when content was revealed AND the short
-    // dwell passed (a dwell that already failed needs no more evidence) — re-show once and SAMPLE the
-    // revealed state at fixed offsets from the fresh reveal while the trigger state is held. REPORTED as
-    // measurement facts, never folded into anyPropertyFails: a timed removal can also be the SC's own
-    // "information is no longer valid" exception, which only a judge reading the content can tell apart —
-    // and this runner's deterministic barrier channel has already been shown to over-fire on exactly that
-    // exception. Bounded: max(offsets) ≈ 7 s, inside the experiment's 30 s wall, spent only on the reveal-
-    // observed slice of triggers.
-    if (o.persistent === true && request.persistenceProbe !== false) {
+    // condition, and no before/after pair can show it. So — whenever content was revealed — re-show once
+    // and SAMPLE the revealed state at fixed offsets from the fresh reveal while the trigger state is held.
+    // REPORTED as measurement facts, never folded into anyPropertyFails: a timed removal can also be the
+    // SC's own "information is no longer valid" exception, which only a judge reading the content can tell
+    // apart — and this runner's deterministic barrier channel has already been shown to over-fire on exactly
+    // that exception. Bounded: max(offsets) ≈ 7 s, inside the experiment's 30 s wall, spent only on the
+    // reveal-observed slice of triggers.
+    //
+    // #F5: the probe used to be gated on `o.persistent === true` ("a dwell that already failed needs no more
+    // evidence"). That gate is exactly backwards for the two cases the dwell CANNOT settle — a scalar drop
+    // with the tip still on screen, and a husk re-reveal — which now leave the facet UNMEASURED and so have
+    // no deterministic answer at all. Those are the cases the LLM facet lane needs samples for, so the probe
+    // runs on every observed reveal; `persistenceProbe: false` remains the opt-out.
+    if (request.persistenceProbe !== false) {
       const offsetsMs = Array.isArray(request.persistenceSampleOffsetsMs) && request.persistenceSampleOffsetsMs.length
         ? request.persistenceSampleOffsetsMs.slice(0, 4).map(Number).filter((n) => Number.isFinite(n) && n > 0)
         : [1000, 3000, 7000];
@@ -1635,13 +1759,17 @@ async function runHoverContentTri(page, request) {
           const wait = t0 + offMs - Date.now();
           if (wait > 0) await new Promise((r) => setTimeout(r, wait));
           const sig = await page.evaluate(appearedSig);
+          // #F5: presence is the BOUND TIP'S OWN presence wherever it can be read — the document-wide
+          // scalar answers "is every revealed character still there", which a live counter fails without
+          // anything being removed. The scalar remains the fallback when the mark cannot be found.
+          const held0 = await tipHeld();
           // the hold is only evidence if the trigger state actually survived the wait: focus mode verifies
           // document.activeElement is still the trigger; hover mode moves no pointer during the wait, so
           // the hover is held by construction.
           const held = revealMode === 'focus'
             ? await page.evaluate((m) => document.activeElement === document.querySelector(`[data-v3-target="${m}"]`), marker).catch(() => null)
             : true;
-          persistenceSamples.push({ atMs: offMs, present: sig >= reshown, held });
+          persistenceSamples.push({ atMs: offMs, present: held0 === null ? sig >= reshown : held0, held });
         }
         vanishedWhileHeld = vanishedWhileHeldFrom(persistenceSamples);
       }
@@ -1649,25 +1777,107 @@ async function runHoverContentTri(page, request) {
     // Hoverable: 1.4.13's Hoverable condition applies to POINTER-hover-triggered content only. In focus mode we
     // are here precisely BECAUSE hover revealed nothing, so pointer hover cannot trigger it ⇒ vacuously satisfied
     // (never a manufactured barrier — the lane is BARRIER-ONLY, so a vacuous pass only prevents a false positive).
+    // #31 (batch-3 RCA): RE-REVEAL INTEGRITY. The two facet probes below each re-show the content and then
+    // act on coordinates captured at the ORIGINAL reveal. On content with a lifecycle of its own (the
+    // measured case: a seat-hold countdown tooltip whose hold genuinely expired mid-probe), the re-shown
+    // state is an emptied husk — smaller signature, different geometry — so the pointer lands outside it
+    // and Escape is graded against content that was never really back: both facets then FAIL against a
+    // state the user could never be in (proven geometry bug, deterministic FP). A facet is SCORED only
+    // when its own re-reveal demonstrably restored at least the original signature; otherwise the facet
+    // is left UNMEASURED — its flag is DELETED, never set false — so anyPropertyFails cannot feed on it,
+    // and the held-state persistence facts (persistenceSamples / vanishedWhileHeld) remain the LLM facet
+    // lane's evidence for the timed-removal question. PRICED (fix-plan note): a one-shot reveal that
+    // never re-reveals at full strength shifts to the LLM lane; an animation that RESTARTS at full
+    // strength (the true-catch shape) re-reveals >= original and stays deterministically scored.
+    let hovReshowSig = null, disReshowSig = null;
     if (revealMode === 'focus') {
       o.hoverable = true;
     } else {
       // re-show, then move the pointer to the ACTUAL content region; it must survive.
       const shown1 = await reshow();
-      if (tip) { await page.mouse.move((box.x + tip.cx) / 2, (box.y + tip.cy) / 2); await page.mouse.move(tip.cx, tip.cy); } else { await page.mouse.move(box.x, box.y + 8); }
-      await H.settle(page, 150);
-      o.hoverable = shown1 > rest && (await page.evaluate(appearedSig)) >= shown1;
+      hovReshowSig = shown1;
+      // #8 (batch-3 RCA): CONTINUOUS travel first, never only a teleport. A default mouse.move dispatches
+      // ONE mousemove at the destination, so the pointer "arrives" at the content without ever crossing
+      // the space between trigger and tip — and crossing that space is the very thing the Hoverable
+      // condition is about (F95: a neighbouring trigger ON THE PATH steals/replaces the content; a dead
+      // gap on the path fires the trigger's mouseleave). `steps` interpolates real mousemoves ≈6px apart
+      // along each segment, so every element on the path receives its enter/leave events exactly as a
+      // slow, deliberate pointer travel would deliver them.
+      //
+      // …but the criterion is EXISTENTIAL — "the pointer CAN be moved over the additional content" — so a
+      // loss under the fine-grained profile alone must not decide it: a small gap between trigger and tip
+      // that a fine sampler always lands in is jumped clean by a faster hand (fewer hit-tests on the way),
+      // and content a fast travel keeps alive IS reachable. BARRIER-ONLY discipline: score hoverable false
+      // only when BOTH profiles lose the content — the coarse retry runs from a fresh full-strength
+      // re-reveal, and when the slow travel's loss cannot even be re-staged (the content never returns at
+      // full strength, e.g. a one-shot steal destroyed it), the measured loss stands: a travel that
+      // IRRECOVERABLY destroys the content is the F95 barrier in its strongest form.
+      //
+      // #F6 SOUNDNESS FIX (batch-3 adversarial review). The coarse profile was TWO bare mouse.moves —
+      // trigger → midpoint → tip — i.e. one hit-test per ~50-100 px, a pointer travelling at ~6000 px/s.
+      // No hand does that, and because it is UNBOUNDED it cleared real F95 gap barriers: the reviewer's
+      // sweep showed a 24 px dead band between trigger and tip (a pointer crossing it genuinely loses the
+      // content) scored hoverable:true, with the pass/fail line set by nothing but where the midpoint
+      // happened to land. The coarse profile is now a FAST HAND, not a teleport: samples at a fixed
+      // COARSE_STEP_PX spacing along the straight trigger→tip path — ≈2400 px/s at a 60 Hz pointer sample
+      // rate, the top of the plausible range for a short deliberate movement. A dead band WIDER than one
+      // step can no longer be jumped (it must contain a sample), while the small gaps a fast hand really
+      // does skip stay reachable, so the existential retry keeps doing its job without erasing F95.
+      const COARSE_STEP_PX = 40;
+      const travelToTip = async (profile) => {
+        if (tip) {
+          if (profile === 'continuous') {
+            const stepsFor = (x0, y0, x1, y1) => Math.max(2, Math.min(25, Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 6)));
+            const midX = (box.x + tip.cx) / 2, midY = (box.y + tip.cy) / 2;
+            await page.mouse.move(midX, midY, { steps: stepsFor(box.x, box.y, midX, midY) });
+            await page.mouse.move(tip.cx, tip.cy, { steps: stepsFor(midX, midY, tip.cx, tip.cy) });
+          } else {
+            const dx = tip.cx - box.x, dy = tip.cy - box.y, len = Math.hypot(dx, dy);
+            const n = Math.min(60, Math.max(1, Math.ceil(len / COARSE_STEP_PX)));   // capped: a long travel stays bounded work
+            for (let i = 1; i <= n; i++) {
+              const f = len > 0 ? Math.min(1, (i * COARSE_STEP_PX) / len) : 1;
+              await page.mouse.move(box.x + dx * f, box.y + dy * f);
+            }
+          }
+        } else { await page.mouse.move(box.x, box.y + 8); }
+        await H.settle(page, 150);
+        return page.evaluate(appearedSig);
+      };
+      if (shown1 >= hovered) {
+        const continuousKept = shown1 > rest && (await travelToTip('continuous')) >= shown1;
+        let kept = continuousKept, coarseKept = null;
+        if (!kept) {
+          const shown1b = await reshow();
+          if (shown1b >= hovered) { coarseKept = (await travelToTip('coarse')) >= shown1b; kept = coarseKept; }
+        }
+        o.hoverable = kept;
+        if (!continuousKept) hoverTravel = { continuousKept, coarseKept };
+      } else { delete o.hoverable; facetsUnmeasured.push('hoverable'); } // #31: husk re-reveal ⇒ unmeasured
     }
     // Dismissible LAST (it hides the content). Exempt when the content obscures nothing.
     const shown2 = await reshow();
+    disReshowSig = shown2;
     await page.keyboard.press('Escape'); await H.settle(page, 100);
-    o.dismissible = dismissExempt || (await page.evaluate(appearedSig)) < shown2;
+    const afterEsc = await page.evaluate(appearedSig);
+    if (dismissExempt) o.dismissible = true;                             // exemption needs no re-reveal
+    else if (shown2 >= hovered) o.dismissible = afterEsc < shown2;
+    else { delete o.dismissible; facetsUnmeasured.push('dismissible'); } // #31: husk re-reveal ⇒ unmeasured
+    if (facetsUnmeasured.length) reshowIntegrity = { originalSig: hovered, perReshowSig, hovReshowSig, disReshowSig, intact: false, facetsUnmeasured };
     o.anyPropertyFails = (o.persistent === false) || (o.hoverable === false) || (o.dismissible === false);
   }
   // clean the rest-visibility marks (mirror the form-probe PRE cleanup — leave no probe residue on the page)
-  await page.evaluate(() => { for (const el of document.querySelectorAll('body *')) { try { delete el.__v3HoverRestVis; } catch (e) {} } }).catch(() => {});
+  await page.evaluate(() => { for (const el of document.querySelectorAll('body *')) { try { delete el.__v3HoverRestVis; delete el.__v3Tip; } catch (e) {} } }).catch(() => {});
   const valid = o.contentAppeared && o.contentIsAdditional && o.measurementDeterministic;
   return mk(request, 'hover-content-tri', '1.4.13', o, { hasHoverFocusTrigger: o.hasHoverFocusTrigger, triggerReachable: o.triggerReachable }, { action: 'hover-focus-tri', valid, measurement: { rest, hovered, nativeTitleOnly, revealMode,
+    // #30: the redundancy-exemption facts (present whenever the check ran): revealed text vs the trigger's
+    // accessible name and the LOCAL rest-visible text. `redundant: true` is why contentIsAdditional is false.
+    ...(redundantWithVisibleText ? { redundantWithVisibleText } : {}),
+    // #31: present only when a facet re-reveal came back BELOW the original signature — the named facets
+    // were left unmeasured (flags absent), never scored false, and never fed anyPropertyFails.
+    ...(reshowIntegrity ? { reshowIntegrity } : {}),
+    // #8: present only when the fine-grained travel LOST the content — which profiles kept it. hoverable
+    // is false only when coarseKept is also false (or the loss could not be re-staged: coarseKept null).
+    ...(hoverTravel ? { hoverTravel } : {}),
     // held-state persistence facts (present only when the probe ran): each sample is the revealed state at
     // atMs after a fresh reveal with the trigger state held. `vanishedWhileHeld` = some sample had the
     // content gone while the hold demonstrably survived — the timed-dismissal signature the dwell cannot see.

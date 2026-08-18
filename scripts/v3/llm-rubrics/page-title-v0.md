@@ -102,6 +102,32 @@ NAMES the page, even when that page sits in an obvious multi-page set and even w
 specific data. A title that carries the discriminator in a suffix or prefix alongside a site or section name
 is fine — the requirement is that the information BE there, not where it sits.
 
+**A VOLUNTEERED instance token that CONTRADICTS the page — `signals.pageTitle.titleInstanceConflict`
+(present only when the collector detected it).** This clause is about a token the title CONTAINS — it can
+NEVER fire on an ABSENT token, and it adds no richness requirement on top of the steps above.
+
+The token is a **YEAR, and only a year** — the collector reads nothing else (no dates, numbers, editions or
+version markers). Read the fact for exactly what it measured, and no further:
+
+- `titleYears` are the year(s) the title volunteers; `conflictYear` is the year the page carries instead.
+- NONE of `titleYears` appears on any surface the collector admitted, and `conflictYear` is the majority
+  year among them — carried either by a PRIMARY identity surface (the `h1`, an `aria-level=1` heading, or a
+  hero-sized named graphic — `surfaces[].primary: true`) or by at least two admitted surfaces.
+- `surfaces[]` is the whole evidence base: headings, named graphics, `<dl>` fact lists and the footer, with
+  ©/copyright and "established/founded/since" constructions stripped out, and with body PROSE excluded
+  entirely. Sub-headings and fact lists were admitted only where they share wording with the title or
+  repeat a year already anchored elsewhere on the page.
+
+So the fact establishes a MAJORITY of the page's identity surfaces against the title — NOT unanimity, and
+not that any particular surface is right. Read `surfaces[]` before you use it: if the years there are about
+something other than which instance this page is (an archive index that legitimately lists several years, a
+year in a product name, a page whose subject really is the older year), the contradiction is not real and
+you must say so. When it IS real, this is the topic-CONTRADICTION case above in instance form: the title
+actively misdirects, claiming this page is one instance while the page's own identity surfaces say it is
+another ⇒ barrier. Quote both years and name the surface that contradicts the title. Absent this signal,
+draw no such inference yourself — a title that merely OMITS an instance token is governed by the
+heading-anchored steps above and by nothing else.
+
 **WCAG soundness caveats:**
 - 2.4.2 needs a DESCRIPTIVE title, not a unique-across-the-site one (that overlaps 2.4.x but is not the test).
   The instance-discriminator test above is NOT a uniqueness test, and you must not let it drift into one: it

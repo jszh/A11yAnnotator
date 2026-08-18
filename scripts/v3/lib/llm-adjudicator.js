@@ -20,6 +20,7 @@ const A = require('../../lib/a11y-eval.js');
 const oracle = require('./applicability-oracle.js');
 const { toolsForSubject, renderToolGuidance } = require('./cdp-tool-catalog.js');
 const { detectConfusableText } = require('./confusable-text.js');
+const { colorReferencesIn } = require('./color-reference-lexicon.js'); // F13 mint-reason signal (batch-3 #7)
 
 const MECHANISM = 'llm-agent';
 const V2_9_VERDICTS = ['REPRODUCED', 'NOT REPRODUCED', 'PARTIAL', 'N/A'];
@@ -176,7 +177,11 @@ const RUBRIC_GATE = {
   // recall regressions. The gate is the same fact the oracle used to mint the obligation, so the rubric now fires
   // ONLY where its premise holds. It cannot collide with the two gates above: `emulatedControl` requires a
   // non-focusable, non-native-tag element, so it is never a form field, and never the page-level pseudo-xpath.
-  'control-semantics-v0': (el) => !!el && el.emulatedControl === true,
+  // batch-3 #18 (defensive): `emulatedControlFocusable` is the SIBLING fact for the FOCUSABLE role-less
+  // variant (same handler guards, tabindex>=0 / natively focusable, no interactive role) — the collector-side
+  // fact is a sibling deliverable and may not be in the tree yet; feature-detected here so the lane opens the
+  // moment it lands, and the gate is byte-inert until then. The rubric carries the matching premise branch.
+  'control-semantics-v0': (el) => !!el && (el.emulatedControl === true || el.emulatedControlFocusable === true),
   // 7a: the complex-backdrop 1.4.3 rubric is for a NON-flat backdrop ONLY — a reliably COMPUTABLE ratio is owned
   // by the deterministic text-contrast-pixel runner (Tier-0 #2). Route only when the runner abstained.
   // `contrastReliable` was dead until the collector began emitting it, so this gate was unconditionally true in
@@ -530,6 +535,22 @@ function precomputeSignals(element, skill, sc) {
         uncertainReason: 'this image is REMOVED from the accessibility tree (' + (element.hiddenMechanism || 'aria-hidden') + '), so AT never announces it. Decide from the CROP + nearbyText whether the image carries INFORMATION a non-sighted user is DENIED: (a) if its content is REDUNDANT with the adjacent text (nearbyText), or it is purely decorative (a spacer / flourish / background / illustrative photo adding no information), then removing it is CORRECT — NOT a barrier; (b) if it conveys UNIQUE meaning absent from the surrounding text (a logo/wordmark identifying the page, a chart, an informative diagram, or text baked into the image), hiding it IS a barrier (REPRODUCED). `renderedVisible` only means the image has a non-trivial SIZE — it does NOT mean the image is meaningful; do not flag from size alone.',
       };
     }
+    // 1.1.1 DEDICATED CAPTION/LONG-DESCRIPTION TEXT (batch-3 #16b threading; collector fact `captionText`,
+    // complexImageHint-gated at collection). WHY: the 2800-cap `enclosingHtml` is eaten by SVG markup on
+    // exactly the images that own a long-description obligation, truncating the caption mid-sentence — so
+    // the completeness procedure's quoting standard failed on evidence defects, not on the page. This is the
+    // caption/aria-describedby text collected SEPARATELY, immune to that cap. Feature-detected: absent on
+    // every element the collector did not mark, so all other prompts stay byte-identical.
+    if (typeof element.captionText === 'string' && element.captionText) {
+      s.captionText = {
+        text: element.captionText,
+        note: 'the image\'s DEDICATED caption/long-description text — the enclosing figure caption plus every '
+          + 'aria-describedby target, collected separately so markup-cap truncation cannot eat it. QUOTE from '
+          + 'this when applying the completeness/redundancy procedures; it is the authoritative source for '
+          + '"what the caption actually says" when the enclosingHtml excerpt appears clipped. Its ABSENCE on '
+          + 'other subjects means nothing (it is collected only for complex images).',
+      };
+    }
     // TT gap G2 (TT 7.C, 1.1.1): a meaningful CSS background-image owes a text alternative. Unlike an <img> it has
     // NO `alt` — the equivalent must come from an accessible name (surfaced above) or adjacent text. Hand the rubric
     // the bg-image facts + the explicit decorative-default so it does not flag a decorative texture, but DOES flag an
@@ -716,8 +737,14 @@ function precomputeSignals(element, skill, sc) {
     if (Array.isArray(fo.forward)) {
       const CAP = 60;
       const trim = (list) => (Array.isArray(list) ? list.slice(0, CAP) : []);
+      // batch-3 #25 (defensive): per-stop `occludedBy` and the page-set `initialFocus` stop are SIBLING
+      // instrument facts (probeActive) that may not be in the tree yet. Stops are threaded whole, so a
+      // per-stop occludedBy rides automatically; the note documents both ONLY when at least one exists,
+      // keeping every current focus-order prompt byte-identical until the instrument emits them.
+      const occlusionFacts = [...trim(fo.forward), ...trim(fo.backward)].some((st) => st && st.occludedBy != null) || fo.initialFocus != null;
       s.focusOrder = {
         forward: trim(fo.forward), backward: trim(fo.backward),
+        ...(fo.initialFocus != null ? { initialFocus: fo.initialFocus } : {}),
         count: fo.count != null ? fo.count : fo.forward.length,
         wrapped: fo.wrapped === true, exhausted: fo.exhausted === true,
         truncated: (fo.forward.length > CAP) || ((fo.backward || []).length > CAP),
@@ -732,7 +759,17 @@ function precomputeSignals(element, skill, sc) {
           + 'backward = Shift+Tab); each stop carries its on-page rect, its accessible NAME (label), and — '
           + 'when a modal is open — modalOpen/insideOpenModal/modalXpath. The ring is UN-ROTATED at the '
           + 'document boundary, so index 0 is the true first stop WHEN startAnchored is true. This is the '
-          + 'SEQUENCE only — whether it preserves meaning is YOUR judgment. Empty/degenerate ⇒ PARTIAL.',
+          + 'SEQUENCE only — whether it preserves meaning is YOUR judgment. Empty/degenerate ⇒ PARTIAL.'
+          + (occlusionFacts
+            ? ' Stops may additionally carry `occludedBy` — the xpath of the element visually COVERING that '
+              + 'stop\'s rect when it was probed — plus, on the SAME stop, `occluderPosition` (that '
+              + 'element\'s CSS position), `occluderRect`, and `occluderViewportCoverage` (the fraction of '
+              + 'the VIEWPORT its own box covers, 0-1) — and the artifact may carry `initialFocus`, the stop '
+              + 'the PAGE ITSELF placed focus on at load, before any Tab. These are deterministic occlusion/'
+              + 'initial-focus FACTS for the visually-modal-overlay case (an overlay with no dialog '
+              + 'semantics); a bare `occludedBy` is NOT by itself that case — the rubric\'s scrim test on '
+              + 'position + coverage decides it. All are absent wherever the instrument observed neither.'
+            : ''),
       };
     }
   }
@@ -765,7 +802,18 @@ function precomputeSignals(element, skill, sc) {
         + 'showing on screen — read that as "the probe saw nothing", never as "nothing appears". Likewise '
         + '`nativeTitleOnly` is an ATTRIBUTE test: per the HTML spec an EMPTY `title=""` carries no advisory '
         + 'information and renders no UA tooltip, so the flag does not establish that what is on '
-        + 'screen is the browser\'s own tooltip. These are FACTS with stated limits, never a verdict.',
+        + 'screen is the browser\'s own tooltip. These are FACTS with stated limits, never a verdict.'
+        // batch-3 #9: document the held-state samples ONLY when the probe produced them, so every other
+        // hover prompt stays byte-identical. `vanishedWhileHeld: true` is a POSITIVE timed-dismissal
+        // observation; the sole refutation is a LONGER held dwell than the last sample's offset.
+        + (Array.isArray(f.persistenceSamples)
+          ? ' `persistenceSamples` are re-reads at fixed offsets after a fresh reveal with the trigger state '
+            + 'held (`held: true` = the hold was POSITIVELY verified at that sample; `atMs` = the offset). '
+            + '`vanishedWhileHeld: true` means the content went away WHILE the hold demonstrably survived — a '
+            + 'positive self-withdrawal observation, refutable only by a longer held dwell (one exceeding the '
+            + 'last sample\'s `atMs`) that still finds the content present, never by reasoning from the markup. '
+            + 'Whether the SC\'s information-no-longer-valid exception applies stays yours.'
+          : ''),
     };
   }
   // 1.4.1 COLOUR PEER GROUP — see selectRubricSubjects. Gated on the threaded evidence, so an ordinary
@@ -806,6 +854,37 @@ function precomputeSignals(element, skill, sc) {
   // no aria-invalid. The judge was not inventing a colour, it was ATTRIBUTING a real pixel to the wrong
   // element, and nothing in the prompt could contradict it. A rubric prohibition cannot fix that; the
   // element's own computed style can.
+  // 1.4.1/1.1.1 F13 MINT REASON (batch-3 #7) — the image's OWN text alternative declares colour coding.
+  // The oracle mints `use-of-color` on an image precisely because its alt/name/long-description states a
+  // STRONG colour construction (applicability-oracle.js F13 branch), but that reason reached no prompt: the
+  // judge saw an image subject with no stated ground for the colour question and could clear it on an
+  // unstated visual covariate. Same pattern as `deterministicAbstained`: a stated reason, never a verdict.
+  // The STRONG-patterns-only restriction is re-declared here exactly as coverage-registry.js re-declares it
+  // (the lexicon is the shared input contract; the surface→signal logic is local by design — Rule 16).
+  // Gated on sc 1.4.1 as well as the skill: `color-and-visual-text` is shared with the 1.4.3/1.4.13 rubrics,
+  // whose prompts must stay byte-identical (only use-of-color-v0 owns the F13 colour-coding question).
+  if (skill === 'color-and-visual-text' && sc === '1.4.1') {
+    const f13Role = String(element.roleAttr || element.role || element.axRole || element.sampledRole || '');
+    if ((oracle.IMG_ROLE.test(f13Role) || element.isImage === true) && element.removedFromA11yTree !== true) {
+      for (const f13Field of ['alt', 'axName', 'describedByText', 'longDescriptionText']) {
+        const t = element[f13Field];
+        if (typeof t !== 'string' || !t) continue;
+        const hits = colorReferencesIn(t).filter((h) => h.pattern === 'presented-in-colour' || h.pattern === 'ui-noun-in-colour' || h.pattern === 'colour-coding');
+        if (!hits.length) continue;
+        s.imageAltColorReferences = {
+          field: f13Field,
+          matchedText: t.replace(/\s+/g, ' ').trim().slice(0, 200),
+          constructions: hits,
+          uncertainReason: 'this image\'s OWN text alternative states a colour CONSTRUCTION — the author\'s own '
+            + 'declaration that the image encodes information BY COLOUR (the F13 shape), and the reason this '
+            + 'obligation exists at all. It settles applicability only, never the verdict: what stays yours is '
+            + 'whether the colour-RESOLVED information (which item/region is in which coded state) is available '
+            + 'IN TEXT — in the alternative itself or in on-page text you can point to.',
+        };
+        break;
+      }
+    }
+  }
   if (skill === 'color-and-visual-text' && element.fieldColourState && typeof element.fieldColourState === 'object') {
     s.fieldColourState = {
       ...element.fieldColourState,
@@ -838,6 +917,37 @@ function precomputeSignals(element, skill, sc) {
   if ((skill === 'grouping-and-reading-order' || skill === 'forms-instructions-errors')
       && element.controlGroup && typeof element.controlGroup === 'object') {
     s.controlGroup = element.controlGroup;
+  }
+  // 1.3.1 LABEL-GEOMETRY MISMATCH (batch-3 #20 threading; collector fact `labelGeometryMismatch` from
+  // collectLabelGeometry, landed with the batch-3 collectors work). WHY: for/id can be textually perfect
+  // while the layout renders every field under a DIFFERENT control's label — no lane saw geometry, so the
+  // inverted visible pairing reached no prompt. Element-level and flood-tightened at collection; gated on
+  // the grouping skill so only the per-field 1.3.1 association subject's prompt changes.
+  if (skill === 'grouping-and-reading-order' && element.labelGeometryMismatch && typeof element.labelGeometryMismatch === 'object') {
+    s.labelGeometryMismatch = {
+      ...element.labelGeometryMismatch,
+      uncertainReason: 'MEASURED from rendered geometry: this field\'s programmatic label (`ownLabelText`, a '
+        + 'resolving for/id) renders somewhere else, while the label visually adjacent ABOVE the field — '
+        + 'overlapping its column, `gapPx` away — is a DIFFERENT control\'s label (`visuallyAdjacentLabelText`, '
+        + 'whose for= names `visuallyAdjacentLabelFor`). A sighted user reads the adjacent label as this '
+        + 'field\'s name; AT announces the programmatic one. These are facts about the two pairings, never a '
+        + 'verdict: whether the visual arrangement genuinely conveys the inverted pairing (versus an obvious '
+        + 'columnar layout a sighted user reads correctly) is yours to judge from the crops.',
+    };
+  }
+  // 1.3.1 F42 FOCUSABLE ROLE-LESS VARIANT (batch-3 #18, defensive): the collector-side fact is a sibling
+  // deliverable (feature-detected — inert until it lands). control-semantics-v0's stated premise is the
+  // NON-focusable shape, so a subject admitted under the sibling premise must be told which branch it is on
+  // — otherwise the judge reads the element's focusability as refuting the rubric's "settled facts".
+  if (skill === 'grouping-and-reading-order' && element.emulatedControlFocusable === true) {
+    s.emulatedControlFocusable = {
+      uncertainReason: 'this element was admitted as the FOCUSABLE role-less variant of the emulated-control '
+        + 'shape: it carries a script activation handler and IS keyboard-focusable (tabindex >= 0 or native '
+        + 'focusability) while declaring no interactive role and containing no natively-interactive '
+        + 'descendant. Its focusability is the PREMISE of this variant, not a refutation of the rubric — a '
+        + 'keyboard user can reach it, but AT still announces it as ordinary content. Whether it visibly '
+        + 'presents as a control is yours to judge.',
+    };
   }
   // 1.3.1 PAGE-LEVEL CONTROL-GROUP SUMMARY — see selectRubricSubjects. The per-member record above answers
   // "which set is THIS field part of"; this one answers the page-level question — which sets exist, what
@@ -872,7 +982,10 @@ function precomputeSignals(element, skill, sc) {
     s.visualHeadings = {
       entries: element.__visualHeadings.slice(0, 8),
       note: 'Rendered text blocks that LOOK like headings — heading-scale font size/weight, short, '
-        + 'block-level — while being neither h1-h6 nor role=heading. The visual-heading PREMISE is '
+        + 'block-level — while being neither h1-h6 nor role=heading. Each ENTRY is deterministic; the LIST '
+        + 'is NOT exhaustive — these are additive anchors, not the complete inventory, so a heading-looking '
+        + 'line the probe did not list is still yours to judge from the viewport, and the absence of an '
+        + 'entry asserts nothing. The visual-heading PREMISE of a listed entry is '
         + 'established from computed style, deterministically: do not re-derive it from the crop and do '
         + 'not request a live accessibility-tree check to establish it. What stays yours: whether the text '
         + 'actually INTRODUCES the content below it as a section (text serving branding, emphasis, or '
@@ -937,6 +1050,20 @@ function precomputeSignals(element, skill, sc) {
           + 'marking needs no further required-state scrutiny.',
       };
     }
+    // batch-3 #19c threading (collector fact landed with the batch-3 collectors work): a fieldset+legend
+    // that contains NO form control anywhere in its subtree — declared grouping around plain content.
+    if (Array.isArray(smf.fieldsetsWithoutControls) && smf.fieldsetsWithoutControls.length) {
+      s.fieldsetsWithoutControls = {
+        entries: smf.fieldsetsWithoutControls.slice(0, 4),
+        note: 'Each entry is a visible fieldset (with its legend text and a content sample) whose subtree '
+          + 'contains NO form control of any kind — a CHECKED absence, not an unconfirmable one. The markup '
+          + 'declares a control-group relationship and announces the legend as a group name, while there is '
+          + 'no group of controls for it to name. Yours to judge from the content sample: markup asserting a '
+          + 'grouping the content does not have is the declared-structure-must-be-true direction of 1.3.1; a '
+          + 'container whose controls are merely associated from elsewhere is NOT reported here, so the '
+          + 'fact\'s absence claims nothing.',
+      };
+    }
   }
   // 3.3.1 THE ERROR STATE ALREADY PRESENT AT REST — collected per field by act-page-collect.js, present only
   // on a form that is not pristine as loaded (a field flagged at rest, or values already in the boxes).
@@ -997,6 +1124,18 @@ function precomputeSignals(element, skill, sc) {
   }
   // 4.1.3 MULTI-STEP TIMELINE — the phase-B sidecar to statusObservations (threaded by rubric id, same
   // gate). One entry per ACTIVE trigger; `timeline` is the complete ordered record of the activation.
+  if (Array.isArray(element.__autoUpdateCadence) && element.__autoUpdateCadence.length) {
+    s.autoUpdateCadence = {
+      regions: element.__autoUpdateCadence.slice(0, 6),
+      note: 'SPONTANEOUS auto-update cadence, observed with NO user action (harness interactions '
+        + 'excluded by boundary mark): updateCount changes at medianIntervalMs inside the named '
+        + 'region. Judge the politeness against the interruption frequency: an assertive region '
+        + 'that re-announces on a timer interrupts the user at every cycle; a polite region '
+        + 'updating faster than it can be read may never be heard at all. Cadence is evidence of '
+        + 'HOW OFTEN, never of whether the content is a status message — apply the scope '
+        + 'exclusions first.',
+    };
+  }
   if (element.__statusTimelines) {
     const tls = element.__statusTimelines;
     const CAPT = 8;
@@ -1025,8 +1164,9 @@ function precomputeSignals(element, skill, sc) {
   // its message already in place, and whether it later removed itself.
   if (element.__liveRegionBirths) {
     const b = element.__liveRegionBirths;
+    const birthRegions = (Array.isArray(b.regions) ? b.regions : []).slice(0, 6);
     s.liveRegionBirths = {
-      regions: (Array.isArray(b.regions) ? b.regions : []).slice(0, 6),
+      regions: birthRegions,
       documentAgeMs: b.documentAgeMs,
       note: 'Recorded from DOCUMENT-START, so unlike every other signal it can see state from before the '
         + 'page finished loading. mountedAfterLoad + emptyAtBirth:false = the region was INSERTED already '
@@ -1034,7 +1174,15 @@ function precomputeSignals(element, skill, sc) {
         + 'nothing on many AT); via:"attribute-wired" + emptyAtBirth:false = live semantics were added onto '
         + 'content that was already set (same problem); removedAtMs = the region later left the document, '
         + 'so the message may never be readable on demand. emptyAtBirth:true with a later firstContentAtMs '
-        + 'is the healthy shape and corroborates correct wiring. Facts, not a verdict.',
+        + 'is the healthy shape and corroborates correct WIRING — never, on its own, a clear: wiring says '
+        + 'the region COULD announce, not that any observed change WAS announced. Facts, not a verdict.'
+        // batch-3 #35: the emptied-transition facts ride only when the birth observer recorded them, so
+        // every other 4.1.3 prompt stays byte-identical until that instrument fact exists on a page.
+        + (birthRegions.some((r) => r && r.emptiedAtMs != null)
+          ? ' emptiedAtMs = the region\'s content was REMOVED at that offset; with no later refill/announced '
+            + 'follow-up that is a silent emptying — a state change delivered to no AT — and the region\'s '
+            + 'healthy birth earlier in its life says nothing about it.'
+          : ''),
     };
   }
   // 1.4.1 POST-ACTIVATION COLOUR DELTAS — see selectRubricSubjects (use-of-color only). Page-level
@@ -1073,7 +1221,12 @@ function precomputeSignals(element, skill, sc) {
         // the heading and the exact word-level difference. Absent whenever there is no usable heading or no
         // title — never a guess, and the rubric then falls back to reading the viewport as before.
         const hc = titleHeadingCorrespondence(t, struct.headings);
-        s.pageTitle = { value: t || null, present: t.trim().length > 0, ...(fts.length ? { frameTitles: fts } : {}), ...(hc ? { headingCorrespondence: hc } : {}) };
+        // batch-3 #22 (defensive): `titleInstanceConflict` is a SIBLING collector fact (a title-volunteered
+        // instance token that appears on NO page identity surface while a different same-kind token does).
+        // Feature-detected passthrough — byte-inert until the collector emits it; the page-title-v0 clause
+        // that consumes it fires only on a PRESENT, conflicting token, never on an absent one.
+        const tic = struct.titleInstanceConflict && typeof struct.titleInstanceConflict === 'object' ? struct.titleInstanceConflict : null;
+        s.pageTitle = { value: t || null, present: t.trim().length > 0, ...(fts.length ? { frameTitles: fts } : {}), ...(hc ? { headingCorrespondence: hc } : {}), ...(tic ? { titleInstanceConflict: tic } : {}) };
       }
       s.structure = {
         title: typeof struct.title === 'string' ? struct.title : null,
@@ -1801,8 +1954,12 @@ function focusClauseFacts(focusOrder) {
   const stops = (focusOrder && Array.isArray(focusOrder.forward)) ? focusOrder.forward : [];
   const rev = (s) => (s && s.reveal && typeof s.reveal === 'object') ? s.reveal : null;
   return {
-    // clause C — a stop was taken while a modal was RENDERED open (leak or not; the rubric decides which).
-    modal: stops.some((s) => s && s.modalOpen === true),
+    // clause C — a stop was taken while a modal was RENDERED open (leak or not; the rubric decides which),
+    // OR (batch-3 #10, the opened-ring feeder) a reveal state's containment aggregate measured stops
+    // tabbable OUTSIDE an open modal. leakedStops > 0 only: a contained modal (aggregate present, zero
+    // leaks) opens no containment question, and the aggregate's absence (null) claims nothing.
+    modal: stops.some((s) => s && s.modalOpen === true)
+      || stops.some((s) => { const r = rev(s); return !!r && r.containmentLeak && typeof r.containmentLeak === 'object' && Number(r.containmentLeak.leakedStops) > 0; }),
     // clause D, insertion half — the instrument could ASK where the revealed region sits. A `null` on both
     // fields means the question could not be asked, and the rubric is told never to argue from a null, so
     // routing it there would be a guaranteed abstain.
@@ -1814,7 +1971,7 @@ function focusClauseFacts(focusOrder) {
     redundant: stops.some((s) => s && (s.wrapsNextStop === true || s.genericContainerStop === true)),
   };
 }
-function selectRubricSubjects(collect, ledger, rubrics, { onlyAutoPartial = true, confinement = null, contrastExempt = null, focusOrder = null, statusObservations = null, statusTimelines = null, liveRegionBirths = null, colourStateDeltas = null, hoverFacets = null } = {}) {
+function selectRubricSubjects(collect, ledger, rubrics, { onlyAutoPartial = true, confinement = null, contrastExempt = null, focusOrder = null, statusObservations = null, statusTimelines = null, liveRegionBirths = null, colourStateDeltas = null, hoverFacets = null, autoUpdateCadence = null } = {}) {
   // 2.1.2 keyboard-trap: `confinement` maps each CONFINED element xpath → { members:[{xpath,label}], setSize } (built
   // from the deterministic confinement instrument's REVIEW findings — the lying-static-advisory ones were already
   // promoted to a barrier and are excluded). The keyboard-trap-v0 rubric fires ONLY on a confined member, carrying
@@ -1952,6 +2109,7 @@ function selectRubricSubjects(collect, ledger, rubrics, { onlyAutoPartial = true
     // byte-identical. Timelines/births can exist where observations do not (a state-only trigger, a
     // birth with no drivable trigger), so they are gated independently.
     if (rub.id === 'status-message-v0' && statusTimelines && statusTimelines.length) extra.__statusTimelines = statusTimelines;
+    if (rub.id === 'status-message-v0' && autoUpdateCadence) extra.__autoUpdateCadence = autoUpdateCadence;
     if (rub.id === 'status-message-v0' && liveRegionBirths) extra.__liveRegionBirths = liveRegionBirths;
     // 3.3.1 ERROR SUMMARY coherence — page-level evidence handed to every error-identification subject on
     // the page, because the summary is about the form as a whole and any field's judgment can turn on it.
@@ -1985,7 +2143,7 @@ function selectRubricSubjects(collect, ledger, rubrics, { onlyAutoPartial = true
       const vh = (st && Array.isArray(st.visualHeadings)) ? st.visualHeadings : [];
       if (vh.length) extra.__visualHeadings = vh;
       const smf = {};
-      for (const k of ['blockquotesWithoutSource', 'dlOrderAnomalies', 'radioGroupsWithoutGrouping', 'requiredStateInventory']) {
+      for (const k of ['blockquotesWithoutSource', 'dlOrderAnomalies', 'radioGroupsWithoutGrouping', 'requiredStateInventory', 'fieldsetsWithoutControls']) {
         if (st && Array.isArray(st[k]) && st[k].length) smf[k] = st[k];
       }
       if (Object.keys(smf).length) extra.__structuralMarkupFacts = smf;
@@ -2105,7 +2263,26 @@ async function runRubricJudgments(rubricSubjects, opts = {}) {
     // NO-VISION ablation fairness (V3_NO_VISION_RUBRIC): BYPASS the gate so the LLM is actually CALLED without the
     // crops — otherwise a no-vision run abstains here before the model ever runs, and its 0 recall is a gate
     // artifact, not a measurement of what the model can do from text. (Paired with the de-visioned rubric note.)
-    if (declaredVision.length && frames.length < declaredVision.length && !nonVisualUsable && process.env.V3_NO_VISION_RUBRIC !== '1') return null;
+    // batch-3 #19a: this abstain was the ONE noVerdict path with no durable diagnostic — it returns null
+    // BEFORE the agent is ever called, so llm-agent-adapter's emitNoVerdict (which fires on a null AGENT
+    // reply) never sees it, and a page whose single viewport shot failed lost its whole lane SILENTLY
+    // (three s12 drops). Emit one structured line per abstaining subject on the same grep-able
+    // `[v3:noVerdict]` channel, naming exactly which declared frame(s) are missing. Same opt-out env.
+    if (declaredVision.length && frames.length < declaredVision.length && !nonVisualUsable && process.env.V3_NO_VISION_RUBRIC !== '1') {
+      if (process.env.V3_NOVERDICT_LOG !== '0') {
+        const have = new Set(frames.map((f) => f.state));
+        const rec = {
+          reason: 'missing-declared-frame',
+          frame: declaredVision.filter((st) => !have.has(st)).join(','),
+          rubricId: subj.rubricId || null,
+          sc: subj.sc || null,
+          skill: subj.skill || null,
+          xpath: subj.xpath ? String(subj.xpath).slice(0, 70) : null,
+        };
+        try { process.stderr.write(`[v3:noVerdict] ${JSON.stringify(rec)}\n`); } catch (e) { /* logging must never throw */ }
+      }
+      return null;
+    }
     const checkerHint = (checkerHintsByXpath[subj.xpath] || []).find((h) => h.sc === subj.sc) || null;
     const messages = buildMessages({ xpath: subj.xpath, skill: subj.skill, sc: subj.sc, claimFamily: subj.claimFamily }, signals, transcriptByXpath[subj.xpath], frames, { rubric: rub.text, checkerHint, toolsEnabled: opts.toolsEnabled });
     let out; const t0 = Date.now();

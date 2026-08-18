@@ -58,7 +58,13 @@ unreliable; work these four steps instead:
    the evidence handed to you, treat the fact as ABSENT there too — text you cannot quote does not exist.
    When the `surrounding-region`/signals handed to you are capped or plausibly incomplete for the place the
    carrying text would live, the escape is unverifiable rather than refuted — return PARTIAL (cannot verify
-   from the provided excerpt) instead of treating the unquotable text as absent.
+   from the provided excerpt) instead of treating the unquotable text as absent. *That unverifiability
+   reading is constrained to CONTENT-BEARING locations:* "the place the carrying text would live" means
+   somewhere page content lives — a caption, adjacent prose, a description block, a data table or list. A
+   location that structurally cannot carry the image's information — a labelled user-entry control (its
+   label names what the USER enters, not what the image shows), a navigation link, button chrome — is not
+   such a place, so an excerpt truncated at form controls or widget chrome leaves nothing unverifiable and
+   does NOT trigger this PARTIAL.
    Name the missing fact and quote what the description says in its place. If every material fact has a
    quote, NOT REPRODUCED — "could say more" is not a barrier.
 
@@ -84,6 +90,11 @@ If the crop is blank/unrendered or too low-resolution to read the data, return P
 - The long description need not live in `alt` — an `aria-describedby` target, a caption, a `<details>`, or
   an adjacent accessible data table all satisfy the equivalent-information requirement. Look in the
   `surrounding-region` before flagging a missing long description.
+- **`signals.captionText` (when present) is the AUTHORITATIVE caption/description text** — the enclosing
+  figure caption plus every `aria-describedby` target, collected separately so markup-cap truncation cannot
+  clip it mid-sentence. Quote from IT when working the enumerate-and-cite steps; when it is present, do not
+  declare the caption unverifiable because the `enclosingHtml` excerpt looks cut off — the dedicated fact is
+  the full text. Its absence on a subject means only that the collector did not mark this image complex.
 - Equivalent does NOT mean exhaustive pixel-by-pixel transcription — it means the information and
   relationships a sighted user gets. Do not flag a faithful summary for omitting decorative detail.
 - A genuinely decorative/redundant complex image (the same data given in text right beside it) is not a

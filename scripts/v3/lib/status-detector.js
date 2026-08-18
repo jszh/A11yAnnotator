@@ -63,6 +63,13 @@ async function detectStatusMessages(page, opts = {}) {
       return true;
     };
     const isSafe = (el) => {
+      // batch-3 #33: a <select> is driven by CHANGING its value (PASS 2 'change' mode), never by click —
+      // the only navigation hazard is the classic jump-menu (onchange sets location), which NAV_RE catches.
+      // A select with fewer than two options has no OTHER value to change to, so there is nothing to drive.
+      if (el.tagName === 'SELECT') {
+        if (NAV_RE.test(el.getAttribute('onchange') || '')) return false;
+        if (el.options.length < 2) return false;
+      }
       // READ THE ATTRIBUTE, not the IDL property, for the submit/reset/image test. `el.type` on a
       // <button> DEFAULTS to 'submit' even with no type= attribute, so `<button>Add to cart</button>`
       // — the single most common status trigger there is — was classified as a submit and excluded
@@ -87,17 +94,39 @@ async function detectStatusMessages(page, opts = {}) {
       if (el.closest && el.closest('a[href]')) return false; // nested inside a link
       return true;
     };
-    const SEL = 'button,[role="button"],input[type="button"],input[type="checkbox"],input[type="radio"],[role="checkbox"],[role="radio"],[role="switch"],[role="tab"],[role="menuitem"],[role="menuitemcheckbox"],[role="menuitemradio"],[role="link"]';
+    const SEL = 'button,[role="button"],input[type="button"],input[type="checkbox"],input[type="radio"],[role="checkbox"],[role="radio"],[role="switch"],[role="tab"],[role="menuitem"],[role="menuitemcheckbox"],[role="menuitemradio"],[role="link"],select';
     const all = [...document.querySelectorAll(SEL)].filter((el) => isPerceivable(el) && isSafe(el));
-    return { xpaths: all.slice(0, maxTriggers).map((el) => getXPath(el)), total: all.length };
+    const triggers = all.slice(0, maxTriggers).map((el) => ({ xpath: getXPath(el), mode: el.tagName === 'SELECT' ? 'change' : 'click' }));
+    // batch-3 #34b: TYPE probes. Typing is a status trigger too (character counters, remaining-length
+    // warnings, autosave badges), and no click can reach those flows — an untyped-into page reads as "no
+    // status behaviour" about a flow that was never driven. Bounded (3 fields) and GATED on a live region
+    // near the field (the field's own form/section container, else the document), so a plain text page
+    // never pays. PASS 2 drives these in 'type' mode: append a GENERIC probe string (nothing
+    // corpus-derived) + dispatch input/keyup — never click.
+    const LIVE_NEAR = '[aria-live],[role="status"],[role="alert"],[role="log"],output';
+    const typeFields = [];
+    for (const el of document.querySelectorAll('textarea,[contenteditable="true"]')) {
+      if (typeFields.length >= 3) break;
+      if (!isPerceivable(el)) continue;
+      if (el.disabled || el.readOnly === true || el.getAttribute('aria-readonly') === 'true') continue;
+      const near = (el.closest && el.closest('form,fieldset,section,article,main,[role="group"]')) || document;
+      if (!near.querySelector(LIVE_NEAR)) continue;
+      // Leak guard (batch-3 review): never type-probe a field that sits INSIDE a live region — the
+      // appended probe text would become the region's own content and surface verbatim in
+      // regionsUpdated[].after / mutatedFragment, which are prompt-bound. (A field inside a live
+      // region is also the polluting topology: the probe would be measuring itself.)
+      if (el.closest && el.closest(LIVE_NEAR)) continue;
+      typeFields.push({ xpath: getXPath(el), mode: 'type' });
+    }
+    return { triggers: triggers.concat(typeFields), total: all.length + typeFields.length };
   }, maxTriggers, XPATH_FN)
     // `enumError` distinguishes "this page has no drivable trigger" from "the enumeration DIED". Both used
     // to produce `{ xpaths: [], total: 0 }`, and the caller then reported `triggersProbed: 0, triggersTotal: 0,
     // coverageTruncated: false` — a confident claim of complete coverage over a sweep that never ran. The
     // rubric is instructed that "absence ≠ pass"; it cannot honour that instruction if the artifact hides
     // the difference.
-    .catch((e) => ({ xpaths: [], total: 0, enumError: String((e && e.message) || e).slice(0, 200) }));
-  const xpaths = enumed.xpaths;
+    .catch((e) => ({ triggers: [], total: 0, enumError: String((e && e.message) || e).slice(0, 200) }));
+  const triggers = enumed.triggers;
 
   // PASS 2 (one isolated evaluate per trigger): drive it, observe the change, judge soundly.
   const findings = [];
@@ -123,16 +152,38 @@ async function detectStatusMessages(page, opts = {}) {
   let phaseBSpentMs = 0;
   const sweepStart = Date.now();
   let budgetExhausted = false, probed = 0, sweepAborted = null;
-  for (const xp of xpaths) {
+  // NAVIGATION-GUARD DIALOG DISMISSAL (soundness review F8, 2026-08-17). The in-page `onBeforeUnload`
+  // guard below (mirroring the existing `onSubmit` guard) is how a SELECT-driven jump menu — an
+  // addEventListener('change', …) handler that writes `location`/`location.href`, which fires no
+  // cancelable DOM event of its own and so cannot be preventDefault()'d directly — gets stopped: any
+  // navigation that would UNLOAD this document fires `beforeunload` first, and THAT is cancelable, but
+  // only by way of a native, SYNCHRONOUS/MODAL confirmation dialog. Nothing else on the page (or in this
+  // evaluate) runs again until that dialog is answered, so a caller that drives this sweep WITHOUT an
+  // ambient `page.on('dialog', …)` handler already installed — a direct/standalone call, exactly what the
+  // test suite does — would hang forever the instant a jump menu fires. This handler is scoped to the
+  // sweep's own lifetime and answers ONLY `beforeunload` prompts (dismiss = "stay on this page", the
+  // guard's whole point); any other dialog type is left for an ambient caller-installed handler (e.g.
+  // runInstruments' native-dialog capture) to record and answer, unchanged. Defensive against a caller
+  // handler racing to the SAME dialog first — Dialog#dismiss() asserts "not already handled" and throws
+  // on the loser, which is swallowed exactly like the existing native-dialog capture in run-instruments.js.
+  const onNavDialog = async (d) => {
+    if (d.type() !== 'beforeunload') return;
+    try { await d.dismiss(); } catch (e) {}
+  };
+  page.on('dialog', onNavDialog);
+  try {
+  for (const trigEntry of triggers) {
+    const xp = trigEntry.xpath;
+    const mode = trigEntry.mode || 'click';
     if (Date.now() - sweepStart > sweepBudgetMs) { budgetExhausted = true; break; }
     probed++;
     let res;
     // effective phase-B horizon for THIS trigger: the configured horizon, clamped so the extension can never
     // eat the remaining sweep budget (later triggers keep their legacy window instead of being starved).
     const effTimelineMs = effectiveTimelineMs({ timelineMs, sweepBudgetMs, elapsedMs: Date.now() - sweepStart, maxWaitMs,
-      remainingTriggers: xpaths.length - probed, phaseBPoolMs: phaseBPoolTotalMs - phaseBSpentMs });
+      remainingTriggers: triggers.length - probed, phaseBPoolMs: phaseBPoolTotalMs - phaseBSpentMs });
     try {
-      res = await page.evaluate(async (xp, settleMs, minTextLen, XPATH_SRC, maxWaitMs, timelineMs) => {
+      res = await page.evaluate(async (xp, mode, settleMs, minTextLen, XPATH_SRC, maxWaitMs, timelineMs) => {
         eval(XPATH_SRC); // eslint-disable-line no-eval
         const LIVE = '[aria-live="polite"],[aria-live="assertive"],[role="status"],[role="alert"],[role="log"],[role="alertdialog"],output';
         const toEl = (n) => { while (n && n.nodeType !== 1) n = n.parentNode; return n; };
@@ -165,19 +216,36 @@ async function detectStatusMessages(page, opts = {}) {
         // ("☁ Synced to cloud") that exists nowhere verbatim — so a merely RE-PARENTED node would read
         // as new and the barrier channel would fire on relocation, the exact unsoundness B-HIGH-3 exists
         // to prevent. Keeping the parts lets every filter ask its question per component.
-        const accParts = (n) => {
+        //
+        // PROVENANCE rides out of the same walk (batch-3 #17, non-textual-status-icon case-05): a voiced
+        // component whose carrier's own TEXT does not contain it is carried ONLY by markup (aria-label /
+        // alt / title) — the AT voices a bare symbol name ("check") the eye never reads, possibly in the
+        // wrong language. Record WHO carried it ({viaAccName, tag, role} + the carrier's nearest lang)
+        // so the rubric can distinguish an icon-accname announcement from an ordinary one-word outcome.
+        const accInfo = (n) => {
           const base = norm(n && n.textContent);
           // only an ELEMENT node widens: for a text node, toEl() would reach its PARENT and sweep in
           // sibling names that were never part of this mutation.
-          if (!n || n.nodeType !== 1 || !n.querySelectorAll) return base ? [base] : [];
+          if (!n || n.nodeType !== 1 || !n.querySelectorAll) return { parts: base ? [base] : [], prov: [] };
           const parts = base ? [base] : [];
+          const prov = [];
           const carriers = [n, ...n.querySelectorAll('[aria-label],[aria-labelledby],img[alt],[title]')];
           for (const el of carriers.slice(0, 12)) {
             const nm = accName1(el);
-            if (nm && !parts.some((p) => p.toLowerCase().indexOf(nm.toLowerCase()) !== -1)) parts.push(nm);
+            if (!nm) continue;
+            const ownText = norm(el.textContent);
+            if (prov.length < 4 && !(ownText && ownText.toLowerCase().indexOf(nm.toLowerCase()) !== -1)) {
+              let langEl = null; try { langEl = el.closest ? el.closest('[lang]') : null; } catch (e) {}
+              prov.push({ text: nm.slice(0, 80), viaAccName: true,
+                tag: el.tagName ? el.tagName.toLowerCase() : null,
+                role: (el.getAttribute && el.getAttribute('role')) || null,
+                lang: langEl ? (langEl.getAttribute('lang') || null) : null });
+            }
+            if (!parts.some((p) => p.toLowerCase().indexOf(nm.toLowerCase()) !== -1)) parts.push(nm);
           }
-          return parts;
+          return { parts, prov };
         };
+        const accParts = (n) => accInfo(n).parts;
         const accText = (n) => accParts(n).join(' ').replace(/\s+/g, ' ').trim();
         const trig = document.evaluate(xp, document, null, 9, null).singleNodeValue;
         if (!trig) return { finding: null };
@@ -278,7 +346,9 @@ async function detectStatusMessages(page, opts = {}) {
               // so `closest()` returns null and the message reads as "outside any live region" — a false
               // barrier on exactly the progress-message pattern that prompted the longer window.
               // accParts, not textContent — an accname-only insertion (svg[aria-label], img[alt]) IS the status.
-              for (const n of m.addedNodes) { const parts = accParts(n); const t = parts.join(' ').replace(/\s+/g, ' ').trim(); if (t) added.push({ node: n, text: t, parts, at, inLive: inLiveRegion(n) }); }
+              // Provenance is read HERE, while the node is attached (a later read of a detached node loses
+              // its lang ancestry) — batch-3 #17.
+              for (const n of m.addedNodes) { const info = accInfo(n); const parts = info.parts; const t = parts.join(' ').replace(/\s+/g, ' ').trim(); if (t) added.push({ node: n, text: t, parts, at, inLive: inLiveRegion(n), prov: info.prov }); }
               for (const n of m.removedNodes) { const parts = accParts(n); const t = parts.join(' ').replace(/\s+/g, ' ').trim(); if (t) removedTexts.push({ text: t, parts, at, fromLive: !!(m.target && m.target.closest && m.target.closest(LIVE)) }); }
             } else if (m.type === 'characterData') {
               const t = norm(m.target.textContent); if (t) added.push({ node: m.target, text: t, parts: [t], at, inLive: inLiveRegion(m.target) });
@@ -322,7 +392,12 @@ async function detectStatusMessages(page, opts = {}) {
           }
         };
         const obs = new MutationObserver(onMuts);
-        obs.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeOldValue: true, attributeFilter: ['disabled', 'aria-disabled', 'aria-busy', 'aria-expanded', 'aria-hidden', 'hidden', 'value', 'class', 'style'] });
+        const OBS_OPTS = { childList: true, subtree: true, characterData: true, attributes: true, attributeOldValue: true, attributeFilter: ['disabled', 'aria-disabled', 'aria-busy', 'aria-expanded', 'aria-hidden', 'hidden', 'value', 'class', 'style'] };
+        obs.observe(document.body, OBS_OPTS);
+        // batch-3 #34b: a TYPE probe types INTO the field, and a real typist has focus in the field first —
+        // so the focus() is the harness's own setup step, performed BEFORE the focus snapshot. Without this
+        // reorder, `focusMoved` would read the harness's own focus() as a page-caused change of context.
+        if (mode === 'type' && trig.focus) { try { trig.focus(); } catch (e) {} }
         const focusBefore = document.activeElement;
         // NAVIGATION GUARD — capture-phase, one-shot, removed in `finally`. An explicit `type="submit"`
         // button is now in the trigger set (see isSafe), and most such buttons belong to a form whose own
@@ -332,8 +407,62 @@ async function detectStatusMessages(page, opts = {}) {
         // writes whatever status it writes, which is precisely what we are here to observe.
         const onSubmit = (ev) => { ev.preventDefault(); };
         document.addEventListener('submit', onSubmit, true);
+        // NAVIGATION GUARD #2 (soundness review F8, 2026-08-17) — the submit guard above does not cover a
+        // SELECT-driven JUMP MENU: `isSafe()` in PASS 1 only rejects a select whose navigation lives in an
+        // INLINE `onchange="…"` attribute (a static text match); an `addEventListener('change', …)` handler
+        // that writes `location`/`location.href` is invisible to that check and fires no cancelable DOM
+        // event of its own for `change` mode to preventDefault(). But ANY navigation that would UNLOAD this
+        // document — however it was triggered — fires `beforeunload` FIRST, and that IS cancelable. Same
+        // shape as the submit guard: capture-phase, one-shot, removed in `finally`. The dialog it raises is
+        // answered by detectStatusMessages' own page.on('dialog') handler (dismiss = "stay on this page").
+        const onBeforeUnload = (ev) => { ev.preventDefault(); ev.returnValue = ''; return ''; };
+        window.addEventListener('beforeunload', onBeforeUnload, true);
+        // F15 (soundness review round 2): captured BEFORE the type-probe mutates the field, restored in
+        // the SAME evaluate's `finally` below — after the quiescence wait (so the page still gets to react
+        // to the probe, exactly as before), but unconditionally, so no probe residue (the harness's own
+        // invented "sample entry text") can outlive this trigger and contaminate every detector/screenshot
+        // that runs on this page for the rest of the lane. Set only by the `type` branch; every other mode
+        // leaves it null and pays nothing.
+        let restoreTypeProbe = null;
         try {
-          try { trig.click(); } catch (e) { /* a handler threw — no judgement */ }
+          try {
+            if (mode === 'change' && trig.tagName === 'SELECT') {
+              // batch-3 #33: drive a SELECT by CHANGING its value — pick the first enabled option that is
+              // not the current one and dispatch the events a real change fires (input then change). A
+              // click cannot open a native dropdown from script, so before this the single commonest
+              // save-on-change status flow was never driven at all.
+              const cur = trig.selectedIndex;
+              let nxt = -1;
+              for (let oi = 0; oi < trig.options.length; oi++) { if (!trig.options[oi].disabled && oi !== cur) { nxt = oi; break; } }
+              if (nxt >= 0) {
+                trig.selectedIndex = nxt;
+                trig.dispatchEvent(new Event('input', { bubbles: true }));
+                trig.dispatchEvent(new Event('change', { bubbles: true }));
+              }
+            } else if (mode === 'type') {
+              // batch-3 #34b: append a GENERIC probe string (nothing corpus-derived) and dispatch the
+              // input/keyup events a real keystroke fires. Value-property writes leave no DOM footprint;
+              // a contenteditable append is inside the trigger and is excluded by the trigger-identity
+              // filters below — only the PAGE's response (a counter, a warning) is ever observed.
+              const PROBE = 'sample entry text';
+              if (trig.isContentEditable) {
+                // exactly the node we added is exactly the node we remove — no risk of clobbering any
+                // OTHER child text the page itself wrote during the probe/quiescence window.
+                const probeNode = document.createTextNode(PROBE);
+                trig.appendChild(probeNode);
+                restoreTypeProbe = () => { try { probeNode.remove(); } catch (e4) {} };
+              } else if ('value' in trig) {
+                const beforeValue = trig.value;
+                trig.value = String(beforeValue == null ? '' : beforeValue) + PROBE;
+                restoreTypeProbe = () => { try { trig.value = beforeValue; } catch (e4) {} };
+              }
+              let ev;
+              try { ev = new InputEvent('input', { bubbles: true, data: PROBE, inputType: 'insertText' }); }
+              catch (e2) { ev = new Event('input', { bubbles: true }); }
+              trig.dispatchEvent(ev);
+              try { trig.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true })); } catch (e3) {}
+            } else { trig.click(); }
+          } catch (e) { /* a handler threw — no judgement */ }
           // QUIESCENCE, not a fixed sleep (residual RCA S4). A flat 300 ms window ended mid-sequence on
           // every multi-phase status flow in the corpus — the `removal-of-status` family settles at
           // 1400–1800 ms, so the observation stopped during phase 1 ("Checking…") and recorded a region
@@ -355,6 +484,14 @@ async function detectStatusMessages(page, opts = {}) {
           }
         } finally {
           document.removeEventListener('submit', onSubmit, true);
+          window.removeEventListener('beforeunload', onBeforeUnload, true);
+          // F15 (soundness review round 2) does NOT restore here — see the restoration right before this
+          // function's `return`, below. Restoring THIS early would remove `restoreTypeProbe`'s node/value
+          // BEFORE `obsMsgs`/`msgs` (just below) ever run their trig-containment exclusion
+          // (`trig.contains(a.node)`), and `Node.contains()` is a LIVE tree-membership check: once the
+          // probe node is detached, `trig.contains(it)` reads false and the harness's OWN probe text would
+          // leak straight into `addedOutsideLiveRegion` as a fabricated barrier — measured directly against
+          // the #34b contenteditable test the first time this restoration was placed here.
         }
         // The observer stays CONNECTED here: every legacy field below is computed synchronously (no await
         // between this point and the phase-B loop), so no new mutation can interleave into it — the legacy
@@ -384,7 +521,9 @@ async function detectStatusMessages(page, opts = {}) {
         msgs = msgs.filter((a) => !isDisclosureReveal(a.node));
 
         // ---- build the OBSERVATION first, so it is reported whatever the barrier channel decides ----
-        const trigLabel = norm(trig.getAttribute('aria-label') || trig.innerText || trig.textContent).slice(0, 40);
+        // placeholder is the last-resort label for a TYPE probe target (a bare textarea has no text content).
+        const trigLabel = norm(trig.getAttribute('aria-label') || trig.innerText || trig.textContent
+          || (trig.getAttribute && trig.getAttribute('placeholder')) || '').slice(0, 40);
         // The observation view spans the WHOLE window (no `inBarrierWindow` filter) and applies only the
         // noise filters that are about identity rather than timing: the trigger's own text, and text that
         // was already on the page. Disclosure/tab reveals stay excluded here too — they are primary
@@ -407,8 +546,21 @@ async function detectStatusMessages(page, opts = {}) {
         // receives an accname-only node has an unchanged textContent, which read as "nothing happened".
         const updatedRegions = liveBefore
           .filter((r) => accText(r.el) !== r.text)
-          .map((r) => ({ xpath: getXPath(r.el), before: r.text.slice(0, 80), after: accText(r.el).slice(0, 80), politeness: r.politeness, atomic: r.atomic,
-            emptied: r.text.length > 0 && accText(r.el).length === 0 }));
+          .map((r) => {
+            const row = { xpath: getXPath(r.el), before: r.text.slice(0, 80), after: accText(r.el).slice(0, 80), politeness: r.politeness, atomic: r.atomic,
+              emptied: r.text.length > 0 && accText(r.el).length === 0 };
+            // batch-3 #34a: on an atomic:false region (the aria-atomic DEFAULT) the AT re-voices only the
+            // MUTATED NODE, not the whole region — so `after` (the full region text) systematically
+            // OVERSTATES the announcement. Surface the mutated sub-node's own text so the rubric judges
+            // what was actually voiced. Only mutations that landed INSIDE this region qualify.
+            if (!r.atomic) {
+              const frag = added
+                .filter((a) => { const e = toEl(a.node); return !!(e && r.el.contains(e)); })
+                .map((a) => a.text).join(' ').replace(/\s+/g, ' ').trim();
+              if (frag) row.mutatedFragment = frag.slice(0, 80);
+            }
+            return row;
+          });
         // Text REMOVED from the page. WCAG's Understanding treats a status message as content that
         // "communicates a change in state" — the disappearance of "3 items in cart" or of an error is such
         // a change, and an AT is told nothing by a removal. Recorded, never decided: a self-dismissing toast
@@ -448,8 +600,18 @@ async function detectStatusMessages(page, opts = {}) {
           return el.offsetParent !== null || cs.position === 'fixed';
         };
         const focusRelocated = focusAfter !== focusBefore && isRealEl(focusAfter);
+        // batch-3 #17: accname-voiced provenance for the additions the observation reports. Present ONLY
+        // when some added component was carried by an attribute accname (see accInfo) — every other page's
+        // observation object stays byte-identical. `documentLang` rides alongside so the rubric can judge a
+        // symbol-name or language mismatch ("check" voiced into a page whose lang is not English).
+        const accNameVoiced = [];
+        for (const a of obsMsgs) for (const p of (a.prov || [])) { if (accNameVoiced.length < 4) accNameVoiced.push(p); }
         const observation = {
           trigger: getXPath(trig), triggerLabel: trigLabel,
+          // how the trigger was driven — present only for the batch-3 non-click modes ('change' = a select's
+          // value was changed, 'type' = a generic string was typed into the field), so every click-driven
+          // observation stays byte-identical to the pre-batch-3 artifact.
+          ...(mode !== 'click' ? { interaction: mode } : {}),
           addedOutsideLiveRegion: obsMsgs.filter((a) => a.inLive !== true).slice(0, 4).map((a) => a.text.slice(0, 80)),
           addedInsideLiveRegion: obsMsgs.filter((a) => a.inLive === true).slice(0, 4).map((a) => a.text.slice(0, 80)),
           regionsBornWithContent: bornWithContent.slice(0, 4),
@@ -467,6 +629,8 @@ async function detectStatusMessages(page, opts = {}) {
             const e = toEl(a.node);
             return !!(e && (e === focusAfter || e.contains(focusAfter) || (focusAfter.contains && focusAfter.contains(e))));
           }),
+          ...(accNameVoiced.length ? { accNameVoiced,
+            documentLang: (document.documentElement.getAttribute('lang') || null) } : {}),
         };
         const nothingHappened = !observation.addedOutsideLiveRegion.length && !observation.addedInsideLiveRegion.length
           && !bornWithContent.length && !updatedRegions.length && !removed.length;
@@ -568,8 +732,15 @@ async function detectStatusMessages(page, opts = {}) {
           ...(snapTruncated ? { snapshotTruncated: true } : {}),
           ...(colourStateDeltas.length ? { colourStateDeltas } : {}),
         } : null;
+        // F15 (soundness review round 2): restore the probed field's value/child text HERE — after every
+        // DOM-derived fact this trigger produces (`finding`/`observationOut`/`sidecar`, all already plain
+        // JS values by this point) has been computed, so the restoration's own mutation can never be
+        // misread as page-caused status text (the earlier `finally` above explains why doing this any
+        // earlier broke the trig-containment exclusion). Disconnect first so the mutation is never even
+        // queued — nothing reads from the observer past this point, so there is nothing to keep it live for.
+        if (restoreTypeProbe) { try { obs.disconnect(); } catch (eDisc) {} restoreTypeProbe(); }
         return { finding, observation: observationOut, ...(sidecar ? { timeline: sidecar } : {}), phaseBMs };
-      }, xp, settleMs, minTextLen, XPATH_FN, maxWaitMs, effTimelineMs);
+      }, xp, mode, settleMs, minTextLen, XPATH_FN, maxWaitMs, effTimelineMs);
     // The page navigated / the context was destroyed — keep the findings gathered so far, but SAY that the
     // sweep ended early. `probed` counts this trigger as probed, so without the record an aborted sweep and a
     // complete one are the same artifact whenever the abort happened on the last trigger.
@@ -581,6 +752,7 @@ async function detectStatusMessages(page, opts = {}) {
     // bound; a trigger that went quiet early must not debit budget it never spent).
     if (res && Number.isFinite(res.phaseBMs) && res.phaseBMs > 0) phaseBSpentMs += res.phaseBMs;
   }
+  } finally { page.off('dialog', onNavDialog); }
   // A4: report coverage honestly — how many triggers were probed, whether the cap truncated the sweep, and
   // that this instrument only sees INSERTED status (not hidden/display toggles on pre-rendered nodes).
   const coverageTruncated = enumed.total > probed;

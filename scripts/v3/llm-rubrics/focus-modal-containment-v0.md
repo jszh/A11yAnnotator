@@ -34,6 +34,14 @@ intent behind them.
 - **REPRODUCED** — at least one stop is `modalOpen: true, insideOpenModal: false`.
 - **NOT REPRODUCED** — every stop taken while the modal was open is inside it.
 
+**The OPENED-RING aggregate — `reveal.containmentLeak` on a stop (when present).** Some dialogs exist only
+after the instrument activates an opener, so the containment facts arrive as an aggregate on that stop's
+`reveal`: `{ modalXpath, openedStops, leakedStops, leakedSample }` measured over the walk taken WHILE that
+dialog was open. Read it with the same fact test: `leakedStops > 0` means stops were tabbable OUTSIDE the
+open dialog (the sample names them) — a barrier exactly as `modalOpen: true, insideOpenModal: false` is;
+`leakedStops: 0` with the aggregate present is measured containment — evidence FOR the page; a null/absent
+aggregate means no modal was rendered open during that walk and claims nothing.
+
 **WCAG soundness caveats (do NOT manufacture a failure these don't support):**
 - **Scope is MODAL dialogs only.** A NON-modal dialog or disclosure is explicitly ALLOWED to sit in the
   page's focus order — the Understanding's non-modal example runs button → dialog contents → the
@@ -45,6 +53,23 @@ intent behind them.
 - **The ABSENCE of `modalOpen` is not proof that nothing modal is happening.** A region made modal by
   purely visual means — an overlay or scrim with no dialog semantics — declares nothing to read. If the
   `viewport` shows stops sitting underneath such an overlay, judge that from the frame and say so.
+  When the occlusion facts are present (per-stop `occludedBy` — the xpath of the element visually
+  covering that stop — plus, on that SAME stop, `occluderPosition`/`occluderRect`/
+  `occluderViewportCoverage`, and `signals.focusOrder.initialFocus`, the stop the PAGE ITSELF focused at
+  load), read them as the deterministic form of this case ONLY WHEN THE OCCLUDER IS SCRIM-SHAPED — **a
+  bare `occludedBy` is NOT, by itself, evidence of a modal overlay.** A ROUTINE sticky header or pinned
+  toolbar occludes whatever scrolls underneath it on countless ordinary, non-modal pages, and a
+  centre-point hit-test reports that occlusion exactly the same way a real scrim does; treating any
+  occluder as a modal overlay manufactures a barrier out of a sticky header. The occluder counts as
+  scrim-shaped only when EITHER **(a)** `occluderPosition` is `fixed` or `absolute` AND
+  `occluderViewportCoverage` is large — roughly half the viewport or more, the element visually
+  DOMINATING the screen rather than pinning a strip to one edge — **OR (b)** the evidence shows everything
+  BEHIND it is `aria-hidden`/`inert` (an accessibility-tree declaration, not a geometry one). ONLY when
+  that test passes: a page that places initial focus INTO the scrim and whose later stops are
+  `occludedBy` that same scrim is presenting the overlay as modal, and the covered stops are OUTSIDE it —
+  judge containment exactly as if those stops carried `modalOpen: true, insideOpenModal: false`. A stop
+  merely `occludedBy` a header/toolbar/sidebar that fails BOTH tests is not this case — do not manufacture
+  a barrier from it (N/A absent any other modal fact).
 - **A focus TRAP is 2.1.2's**, owned by the trap detector. Containment is the opposite defect: focus
   ESCAPING a dialog that should hold it. Do not re-adjudicate a trap here.
 - If no stop carries the modal facts and the frame shows nothing modal, return N/A rather than

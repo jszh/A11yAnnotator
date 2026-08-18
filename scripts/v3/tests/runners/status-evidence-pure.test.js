@@ -137,7 +137,9 @@ test('the observation object literal carries no timeline/colour keys (prompt byt
 
 test('runInstruments returns the sidecar artifacts alongside statusObservations (source pin)', () => {
   const src = fs.readFileSync(path.join(__dirname, '..', '..', 'lib', 'run-instruments.js'), 'utf8');
-  assert.match(src, /return \{ findings, tabOrder, statusObservations: statusObs, statusTimelines, colourStateDeltas, liveRegionBirths, collectorLiveness \}/);
+  // batch-3 widened the artifact set: #37 autoUpdateCadence (evidence sidecar) and #24
+  // renderedFocusablesAtWalk (internal — runInstrumentsForUrl replaces it with `lateArrival`).
+  assert.match(src, /return \{ findings, tabOrder, statusObservations: statusObs, statusTimelines, colourStateDeltas, liveRegionBirths, autoUpdateCadence, renderedFocusablesAtWalk, collectorLiveness \}/);
 });
 
 // ── the hover persistence probe must stay OUT of the outcome flags (typedOutcomes is closed) ──
@@ -145,6 +147,7 @@ test('persistence facts ride in measurement, never in outcome flags', () => {
   const src = fs.readFileSync(path.join(__dirname, '..', '..', 'lib', 'exp-runners.js'), 'utf8');
   assert.match(src, /persistenceSamples, vanishedWhileHeld \} : \{\}\) \} \}\);/, 'measurement carries the probe facts');
   assert.ok(!/o\.persistenceSamples|o\.vanishedWhileHeld/.test(src), 'no new outcome flag — schemas.js validates outcome keys against catalog typedOutcomes');
-  // and the pinned dwell adjacency the facet-split regression test relies on must be intact
-  assert.match(src, /await H\.settle\(page, 1600\);\s*\n\s*o\.persistent =/);
+  // and the pinned dwell feeding the persistence decision must be intact (#F5 put the tip-presence
+  // branch between the settle and the assignment — the dwell constant is the contract, not adjacency)
+  assert.match(src, /await H\.settle\(page, 1600\);[\s\S]{0,500}?o\.persistent = true;/);
 });

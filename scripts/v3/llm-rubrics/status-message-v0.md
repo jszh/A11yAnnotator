@@ -37,7 +37,15 @@ screenshot, which cannot show any of it. Read them in this order:
    nothing and unreadable on demand. A row tagged `harnessInteraction: true` was born only AFTER the
    harness itself started clicking controls: attribute it to that interaction (the activation sweep's own
    observations already cover what a click produced), never read it as a spontaneous page-init birth.
-   `emptyAtBirth: true` with a later `firstContentAtMs` is the healthy shape and corroborates a clear.
+   `emptyAtBirth: true` with a later `firstContentAtMs` is the healthy shape — it corroborates correct
+   WIRING, and nothing more. **A birth record alone NEVER licenses a clear:** wiring says the region
+   COULD announce; whether what happened on this page WAS announced is settled only by the
+   observation/timeline/announcement evidence, and a healthy birth sitting beside an unresolved barrier
+   question does not soften it — the PARTIAL caveat below still governs when no announcement was
+   observed. Birth rows may also carry content-transition facts (when present: `emptiedAtMs`, or a
+   last-content transition): a region whose content was REMOVED (`emptiedAtMs`) with no announced
+   follow-up is the silent-empty shape — apply the removal test of items (2)/(3) to it, and note that
+   the region's healthy birth earlier in its life says nothing about the silent emptying.
 2. `removedText` NON-EMPTY ⇒ status text LEFT the page. A status message is content about "the success or
    results of an action… the waiting state… the progress of a process… the existence of errors", and its
    DISAPPEARANCE reports a change in that state just as its appearance did: when an in-progress message
@@ -66,7 +74,10 @@ screenshot, which cannot show any of it. Read them in this order:
 5. `regionsUpdated[].politeness` / `.atomic` ⇒ judge the politeness against the URGENCY of the message (an
    error or a time-critical warning delivered `polite` may be missed; a routine count delivered `assertive`
    interrupts), and `atomic: false` on a region where only part of a sentence changes means the AT reads
-   the fragment, not the meaning.
+   the fragment, not the meaning. When the entry carries `mutatedFragment` (present only on `atomic: false`
+   updates), that IS the exact text the AT reads for this update — apply the stand-alone check below to the
+   FRAGMENT, not to the region's full visible text: a fragment that drops the sentence's subject is the
+   truncated-announcement shape even though the full region text reads fine on screen.
 6. `addedOutsideLiveRegion` NON-EMPTY with nothing else ⇒ the plain-`<div>` case; the detector will normally
    already have barriered it.
 
@@ -82,11 +93,32 @@ string names no subject — it states an outcome, quantity, or state change with
 text or accessible name near the update; and **(iii)** that
 referent text sits OUTSIDE the announced region and is not re-announced with the update. You must POINT TO
 the specific on-screen text that carries the missing referent; if you cannot, there is no barrier under this
-check. *Guards — do NOT sweep up terse-but-complete statuses.* A one-word outcome ("Done") after a single
-unambiguous user action, where no on-screen text supplies a referent the string lacks, is COMPLETE. A
-count/value whose referent IS the announced region itself — the region's own persistent text or accessible
-name says what is being counted and travels with the update — is COMPLETE. Brevity alone is never the
-finding; the finding is a referent the sighted user gets and the announced string drops.
+check. **STRUCTURAL REQUIREMENT — a clear must CARRY this check's result.** Before returning NOT REPRODUCED
+over an OBSERVED announcement, your `reasoning` sentence MUST quote the exact announced string, AND EITHER
+name the subject/referent that makes it stand alone (the words inside the string, or the announced region's
+own persistent text/accessible name, that say WHAT it applies to) OR state WHICH GUARD BELOW APPLIES —
+`terse-outcome` or `region-carries-its-own-referent` — and why. Naming a guard is not an escape hatch from
+quoting the string; it is the alternative to inventing a referent that, by the guard's own logic, does not
+exist. A clear whose reasoning does NEITHER — quotes no referent AND names no guard — has not performed this
+check: return PARTIAL instead. (This requirement lives in the `reasoning` field; the verdict JSON's shape is
+unchanged.)
+*Guards — do NOT sweep up terse-but-complete statuses.* Guard `terse-outcome`: a one-word outcome ("Done")
+after a single unambiguous user action, where no on-screen text supplies a referent the string lacks, is
+COMPLETE. Guard `region-carries-its-own-referent`: a count/value whose referent IS the announced region
+itself — the region's own persistent text or accessible name says what is being counted and travels with
+the update — is COMPLETE. Brevity alone is never the finding; the finding is a referent the sighted user
+gets and the announced string drops.
+**The one-word-outcome guard covers a one-word OUTCOME STATEMENT only — a word that itself states what
+happened. It does NOT cover an announced string that is an icon's ACCESSIBLE NAME.** When the observation
+carries accessible-name provenance (when present: an `accNameVoiced` entry — `viaAccName: true` with the
+carrier's `tag`/`role`, a graphic source such as `svg`/`img`/`role="img"`, its nearest `lang`, and the
+observation's `documentLang`), the spoken word was carried ONLY by markup the eye never reads — it is the
+NAME OF A SYMBOL, not a composed status message. Ask whether that name, heard alone, states the outcome a
+sighted user takes from the symbol: a name that merely names the glyph or its shape, or a name whose
+language mismatches `documentLang` (announced with the wrong pronunciation and reading), leaves the AT
+user to guess what was reported and FAILS the stand-alone test exactly as a subject-less string does.
+Even without provenance fields, when the evidence shows a one-word announced string arising from a bare
+icon inside the region, give it the same scrutiny — the one-word-outcome guard does not apply to it.
 
 **NOT EVERY OBSERVED CHANGE IS A STATUS MESSAGE — check these exclusions FIRST.** This obligation now fires
 on any page where activation demonstrably changed content, so the scope test is yours to apply. Per the

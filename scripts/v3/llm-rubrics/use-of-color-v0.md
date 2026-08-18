@@ -50,7 +50,17 @@ peers that render exactly as this one does and `differentAppearanceFrom` the res
 stated to be in a state, is in the DEFAULT STATE — not a colour-alone failure but a field the coding does not
 apply to, and demanding an error/required indicator on it inverts the criterion. `labelColourContrasts` is the
 MEASURED luminance separation between this field's label colour and each other label colour in the set: it is
-the number the key/legend test below asks for, so use it rather than estimating one. Where no such signal is
+the number the key/legend test below asks for, so use it rather than estimating one. `colourKeyText` (when
+present) is the page's own key/instruction wording for this field SET's colour coding, attached to every
+member — apply the key/legend test below ONCE for the set. **The presence of the key text is NEVER itself a
+clear** — the same attached wording may BE the colour-only instruction (a key phrased in hue names is the
+F81 failure, not its remedy). The set's members are cleared ONLY when ALL THREE hold JOINTLY: **(i)** the
+key names its states by a LIGHTNESS/shade property rather than by hue; **(ii)** the stated separation is
+MEASURED at ≥3:1 between the two used colours (`labelColourContrasts`, or the contrast tool); **(iii)** the
+coded set is the small, explicitly-contrasted two-state shape the key exception covers. When all three
+hold, the clearance covers the coded MEMBERS as well as the element that displays the key — a member field
+is never failed for lacking its own private copy of the key text. When any leg fails, judge the key text
+under the instruction/key tests below exactly as if it were the subject's own prose. Where no such signal is
 present you still may not assert a colour, border or state you cannot point to — return PARTIAL instead.
 
 **A GRAYSCALE OR CVD RE-RENDER IS NOT EVIDENCE THAT A CUE SURVIVES.** `render_with_overrides(grayscale)`
@@ -84,6 +94,21 @@ individual member looks wrong — the information lives in the DIFFERENCE. Two q
 Only if colour carries information AND nothing else conveys it is this a barrier — and it stands even when
 the anchor happens to be the plainest member of the group. Colour-uniform groups, zebra striping, syntax
 highlighting, images and text-less swatches were already excluded before you saw it.
+
+**THE IMAGE'S OWN TEXT ALTERNATIVE DECLARES COLOUR CODING — `signals.imageAltColorReferences` (F13).**
+When this signal is present, the subject is an image whose OWN alt / accessible name / long description
+states a colour construction — the matched wording is quoted in the signal — and that declaration is why
+this obligation exists. It is the author's own statement that the image encodes information BY COLOUR, so
+do not re-litigate applicability: the declared coding IS the information at issue. What you judge is
+F13's question — is the colour-RESOLVED information (WHICH item/region/series is in WHICH coded state)
+stated IN TEXT: in the alternative itself, or in on-page text you can quote? A text alternative that
+announces the coding without resolving it has told the reader a distinction exists and then withheld it
+⇒ REPRODUCED. **An UNSTATED visual covariate never clears this:** that the coded items may also differ in
+lightness, size, position or pattern helps only a reader who is TOLD that the covariate carries the state
+— if no text says so, the information remains colour-alone for the reader the alternative addresses. NOT
+REPRODUCED only when you can quote the text that resolves the coding (or point to a per-item label/marker
+in the crop that carries it). *Guard:* if the quoted match reads as ordinary description of the depicted
+world rather than a statement of coding, say so and return N/A.
 
 **COLOUR REFERENCED IN INSTRUCTIONS (`signals.*colorReferences`, F81 / Understanding 1.4.1).**
 

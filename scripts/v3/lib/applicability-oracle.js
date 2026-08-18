@@ -432,6 +432,11 @@ function familiesFor(el) {
   // the rubric decides whether the reference identifies content and whether a non-colour alternative exists.
   if (el.colorWordHint === true) fams.push('use-of-color');
   if (el.emulatedControl === true) fams.push('control-semantics');                             // 1.3.1 (F42) — a script-activated element with no role and no focusability
+  // 1.3.1 F42's FOCUSABLE role-less sub-case (batch-3 item 18): a `<div tabindex="0" onclick>` control —
+  // keyboard-reachable but announced as NOTHING (no role ⇒ AT never says it is a control). The collector
+  // fact carries the same structural guards as emulatedControl with the focusability inverted; both are
+  // activation-proven (inline handler or CDP listener), so a bare tabindex'd scroll region never fires.
+  if (el.emulatedControlFocusable === true) fams.push('control-semantics');
   return [...new Set(fams)];
 }
 

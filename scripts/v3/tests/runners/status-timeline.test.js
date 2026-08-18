@@ -1,17 +1,15 @@
 // Residual RCA S10 — the 4.1.3 MULTI-STEP OBSERVATION TIMELINE (phase B), the Task-3 colour deltas,
 // and the DOCUMENT-START live-region birth observer, each against an invented inline fixture (nothing
 // corpus-derived). Gated on a local Chrome like the other instrument suites.
-//
-// PENDING (2026-08-17): written during a live measurement run under a no-browser-launch freeze — this
-// suite has NOT yet been executed. Run it (with the rest of the instrument suites) once the freeze lifts.
 'use strict';
 
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const path = require('node:path');
 const puppeteer = require('puppeteer');
 const { detectStatusMessages } = require('../../lib/status-detector.js');
-const { installLiveRegionBirthObserver, readLiveRegionBirths, birthFindingsFrom, markLiveBirthHarnessActive } = require('../../lib/run-instruments.js');
+const { installLiveRegionBirthObserver, readLiveRegionBirths, birthFindingsFrom, markLiveBirthHarnessActive, runInstrumentsForUrl } = require('../../lib/run-instruments.js');
 const { CHROME } = require('../../lib/run-experiments.js');
 
 const chromeOK = fs.existsSync(CHROME);
@@ -313,4 +311,32 @@ test('birth observer: the bounded top-up does NOT hold the page open for a harne
   assert.equal(out.births.regions[0].harnessInteraction, true);
   assert.deepEqual(birthFindingsFrom(out.births), [], 'no review row for the harness toast');
   assert.ok(out.readMs < 3000, `instant read despite the fresh mountedAfterLoad birth — took ${out.readMs}ms`);
+});
+
+// ===================================================================================
+// F7 (soundness review 2026-08-17) — END-TO-END through the REAL 4.1.3 sweep, not a hand-simulated click.
+// The tests above prove the primitive (arm/stamp); this proves the wiring: run the full lane
+// (runInstrumentsForUrl), and a toast the SWEEP itself clicks into existence must still come out tagged —
+// the lazy stamp must not have broken the very case the boundary exists for.
+// ===================================================================================
+test('F7 end-to-end: a toast the 4.1.3 sweep itself clicks into existence is tagged harness-caused', { skip: !chromeOK, concurrency: false }, async () => {
+  const html = `<!doctype html><html lang="en"><head><title>Notes</title></head><body>
+    <h1>Your notes</h1>
+    <button id="save" type="button">Save note</button>
+    <script>
+      document.getElementById('save').addEventListener('click', function () {
+        var d = document.createElement('div');
+        d.setAttribute('role', 'status');
+        d.textContent = 'Note saved';
+        document.body.appendChild(d);
+      });
+    </script>
+  </body></html>`;
+  const url = 'data:text/html;charset=utf-8,' + encodeURIComponent(html);
+  const res = await runInstrumentsForUrl(url, { file: 'f7-sweep-click' });
+  const born = (res.liveRegionBirths && res.liveRegionBirths.regions || []).find((r) => /Note saved/i.test(r.textAtBirth || ''));
+  assert.ok(born, `the sweep-caused mount is recorded — got ${JSON.stringify(res.liveRegionBirths)}`);
+  assert.equal(born.harnessInteraction, true, 'the sweep\'s own click tags the birth it causes');
+  assert.ok(!res.findings.some((f) => f.detector === 'live-region-birth' && f.xpath === born.xpath),
+    'a harness-caused birth never earns a live-region-birth review row');
 });

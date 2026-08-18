@@ -6,7 +6,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { collectTabOrder, tabOrderFindings, detectKeyboardTraps, detectFocusRetentionTraps, detectFocusRejection } = require('../../lib/kbd-graph.js');
+const { collectTabOrder, tabOrderFindings, detectKeyboardTraps, detectFocusRetentionTraps, detectFocusRejection, focusRejectionProbeOnce, tagFocusables, FOCUSABLE_SEL } = require('../../lib/kbd-graph.js');
 
 // ---- pure unit ----
 test('tab-order: a focusable element tabbed last but positioned visually first is flagged (2.4.3)', () => {
@@ -107,4 +107,45 @@ test('focus-rejection (#15): sync AND async onfocus→blur are flagged; a normal
   assert.ok(res.rejections.find((r) => r.xpath === '/html/body/a[1]').inlineHandler === true, 'the inline onfocus handler is noted');
   // negatives: ok-button, the redirect pair (focus lands on another control, not body), and ok-input are NOT flagged.
   assert.ok(!xpaths.includes('/html/body/button[1]') && !xpaths.includes('/html/body/input[2]'), 'a normal button and a benign focus redirect are not false-flagged');
+});
+
+// ---- F14 (soundness review round 2) — cross-candidate stale-timer interference in probeOnce ----
+// A page-JS timer left running by a PREVIOUS candidate's own async blur handler is not cancelled just
+// because the probe moved on to a fresh evaluate() call — it persists in the same document and can fire
+// DURING the next candidate's own measurement, stealing its focus and reading as that candidate's own
+// rejection. This pins the primitive DIRECTLY (`focusRejectionProbeOnce`, the literal function production
+// calls) against a deterministic stand-in for that shape: a "stale" timer, scheduled just before the
+// probe starts, that steals focus shortly after — gap=0 reproduces the pre-fix contamination; a real gap
+// (as production now always passes) absorbs it harmlessly before the candidate's own focus() call.
+test('F14: a stale cross-candidate timer contaminates an ungapped probe; the gap absorbs it before el.focus()', { skip: !chromeOK, concurrency: false }, async () => {
+  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  try {
+    const page = await browser.newPage();
+    await page.setContent(`<!doctype html><html><body>
+      <button id="stale">Stale (a prior candidate, not probed here)</button>
+      <button id="target">Target (an ordinary, non-rejecting control)</button>
+    </body></html>`, { waitUntil: 'load' });
+    await page.evaluate(tagFocusables, FOCUSABLE_SEL);
+    await page.evaluate(() => {
+      window.__fojInstalled = true; window.__fojLog = [];
+      document.addEventListener('focusout', (e) => {
+        const t = e.target; window.__fojLog.push((t && t.getAttribute && t.getAttribute('data-v3-foc')) || '');
+      }, true);
+    });
+    const targetId = await page.evaluate(() => document.getElementById('target').getAttribute('data-v3-foc'));
+
+    // pre-fix shape: gap=0 — the stale timer (firing at 15ms) lands DURING the 40ms measurement window,
+    // stealing focus from target after el.focus() already ran.
+    await page.evaluate(() => { setTimeout(() => document.getElementById('stale').focus(), 15); });
+    const contaminated = await page.evaluate(focusRejectionProbeOnce, targetId, 40, 0);
+    assert.equal(contaminated.took, false,
+      `an ungapped probe reads the ordinary target as NOT holding focus — stolen by the stale timer: ${JSON.stringify(contaminated)}`);
+
+    // F11-fixed shape: gap=30 — the stale timer (firing at 15ms, during the gap, before el.focus() at
+    // ~30ms) has ALREADY fired and resolved by the time the real measurement starts, so it cannot land
+    // inside this candidate's window at all.
+    await page.evaluate(() => { setTimeout(() => document.getElementById('stale').focus(), 15); });
+    const clean = await page.evaluate(focusRejectionProbeOnce, targetId, 40, 30);
+    assert.equal(clean.took, true, `the gap absorbs the stale timer before el.focus() — got ${JSON.stringify(clean)}`);
+  } finally { await browser.close(); }
 });

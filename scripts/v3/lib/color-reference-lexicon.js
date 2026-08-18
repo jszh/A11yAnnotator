@@ -117,4 +117,6 @@ function colorReferencesIn(text) {
 
 const hasColorReference = (text) => colorReferencesIn(text).length > 0;
 
-module.exports = { COLOR_WORDS, UI_NOUNS, PRESENT_VERBS, PATTERNS, colorReferencesIn, hasColorReference };
+// PROPER_NOUN_PAIR exported (batch-3 item 29) so a serialized in-page matcher can carry the SAME guard the
+// Node-side detector applies — the vocabulary stays single-sourced here either way.
+module.exports = { COLOR_WORDS, UI_NOUNS, PRESENT_VERBS, PATTERNS, PROPER_NOUN_PAIR, colorReferencesIn, hasColorReference };

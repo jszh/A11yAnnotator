@@ -174,6 +174,8 @@ async function orchestrate(collect, drive, opts = {}) {
       ...(partialSink.statusTimelines ? { statusTimelines: partialSink.statusTimelines } : {}),
       ...(partialSink.colourStateDeltas ? { colourStateDeltas: partialSink.colourStateDeltas } : {}),
       ...(partialSink.liveRegionBirths ? { liveRegionBirths: partialSink.liveRegionBirths } : {}),
+      ...(partialSink.autoUpdateCadence ? { autoUpdateCadence: partialSink.autoUpdateCadence } : {}),
+      ...(partialSink.lateArrival ? { lateArrival: partialSink.lateArrival } : {}),
       partial: partialSink.findings.length > 0 || !!partialSink.tabOrder,
     });
     // CONCURRENCY GATE: when the caller passes a semaphore (run-telemetry makeSemaphore, .run(fn)), hold a slot for
@@ -366,6 +368,8 @@ async function orchestrate(collect, drive, opts = {}) {
     // attribute/state flips the text diff cannot see). Sidecar to statusObservations by design — see
     // run-instruments.js — so the observation rows the prompt already embeds stay byte-identical.
     const statusTimelines = (bundle.instruments && Array.isArray(bundle.instruments.statusTimelines) && bundle.instruments.statusTimelines.length) ? bundle.instruments.statusTimelines : null;
+    // autoUpdateCadenceFrom returns an ARRAY of per-region rows (soundness review b3 F4).
+    const autoUpdateCadence = (bundle.instruments && Array.isArray(bundle.instruments.autoUpdateCadence) && bundle.instruments.autoUpdateCadence.length) ? bundle.instruments.autoUpdateCadence : null;
     // 4.1.3 LIVE-REGION BIRTHS: document-start recorder facts (existed-empty-before-content vs born-filled).
     const liveRegionBirths = (bundle.instruments && bundle.instruments.liveRegionBirths && Array.isArray(bundle.instruments.liveRegionBirths.regions) && bundle.instruments.liveRegionBirths.regions.length) ? bundle.instruments.liveRegionBirths : null;
     // 1.4.1 POST-ACTIVATION COLOUR DELTAS: per changed row/tile-like element, before/after computed colours +
@@ -391,7 +395,12 @@ async function orchestrate(collect, drive, opts = {}) {
           probeRan: o.measurementDeterministic === true,
           contentAppeared: o.contentAppeared === true,
           contentIsAdditional: o.contentIsAdditional === true,
-          dismissible: o.dismissible === true, hoverable: o.hoverable === true, persistent: o.persistent === true,
+          // A facet ABSENT from the outcome is UNMEASURED (batch-3 re-reveal-integrity guard deletes
+          // facets whose reshow was a husk) — propagate null, never coerce to false: `false` is a
+          // measured failure and feeds anyPropertyFails reasoning downstream.
+          dismissible: typeof o.dismissible === 'boolean' ? o.dismissible : null,
+          hoverable: typeof o.hoverable === 'boolean' ? o.hoverable : null,
+          persistent: typeof o.persistent === 'boolean' ? o.persistent : null,
           nativeTitleOnly: m.nativeTitleOnly === true,
           revealMode: typeof m.revealMode === 'string' ? m.revealMode : null,
           dwellMs: HOVER_PERSIST_DWELL_MS,
@@ -404,7 +413,7 @@ async function orchestrate(collect, drive, opts = {}) {
       }
       return Object.keys(map).length ? map : null;
     })();
-    let rubricSubjects = llmAdj.selectRubricSubjects(collect, ledger, llmRubrics.rubrics, { onlyAutoPartial, confinement, contrastExempt, focusOrder, statusObservations, statusTimelines, liveRegionBirths, colourStateDeltas, hoverFacets }); // llm-rubric:<id> (per SC)
+    let rubricSubjects = llmAdj.selectRubricSubjects(collect, ledger, llmRubrics.rubrics, { onlyAutoPartial, confinement, contrastExempt, focusOrder, statusObservations, statusTimelines, liveRegionBirths, colourStateDeltas, hoverFacets, autoUpdateCadence }); // llm-rubric:<id> (per SC)
     // EVAL SCOPE GATE (opt-in): restrict the LLM to the SC(s) we have ground truth for. ACT ground truth is
     // PER-SC — a testcase only tells us pass/fail/inapplicable for its OWN rule's SC, not the page's other SCs.
     // Judging off-target obligations is both unscoreable (no GT) and wasted LLM/tool/vision spend. A Set of SC

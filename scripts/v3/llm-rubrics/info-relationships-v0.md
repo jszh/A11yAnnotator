@@ -80,6 +80,23 @@ gets, with nothing programmatic behind it:
   failure. ASCII art, a monospaced banner, a code listing, and indented source are aligned and convey no
   row/column relationship; so is a single wide gap that just happens to repeat. Say which columns you see
   before flagging, and return NOT REPRODUCED when the alignment is decorative or incidental.
+  *The "code listing" exclusion means SOURCE CODE* — a program listing whose alignment comes from
+  indentation and syntax. Captured command/terminal OUTPUT is not source code, and a monospaced
+  transcript wrapper does not exempt it: when the first aligned line of the output is a run of column
+  labels with per-line values aligned beneath them — and above all when the surrounding prose directs
+  the reader to compare or look up those columns — the block IS tabular data conveyed by whitespace,
+  and the F34 reading above governs it.
+
+- **`signals.fieldsetsWithoutControls` — declared grouping around no controls.** Each entry is a visible
+  fieldset (its legend text and a content sample included) whose subtree contains NO form control of any
+  kind — a CHECKED absence. The markup declares a control-group relationship and announces the legend as a
+  group name, while there is no group of controls for it to name: a fieldset/legend wrapping plain prose or
+  a call-out is presentation dressed as structure, the declared-structure-must-be-true direction below.
+  Judge from the sample whether the content genuinely is a grouped set of inputs described by the legend;
+  if it is ordinary content, the declared grouping is false — flag it, naming what an AT user is told
+  (a group, with the legend as its name) that does not exist. *Guard:* the fact is not emitted for a
+  container whose controls are associated from elsewhere, so its absence claims nothing — and a legend that
+  truthfully introduces a grouped set of controls is correct markup, never a finding.
 
 - **`signals.structure.presentationOutliers` / `presentationConventions` — presentation as meaning (F2).**
   A minority of otherwise-comparable items is STRUCK THROUGH, or a run of inline text is set in SMALL CAPS,
@@ -93,6 +110,13 @@ gets, with nothing programmatic behind it:
   cannot be told apart from encoding by markup alone — a bolder item is not evidence of anything.
 
 This gate governs ONLY the table facet. Judge headings, lists, groups, and emphasis on their own merits below.
+
+**PAGE-LEVEL SIGNAL PAYLOADS ARE ADDITIVE ANCHORS, NOT THE COMPLETE INVENTORY.** Every deterministic
+list handed to you (`visualHeadings`, the grouping summaries, the declared-structure facts, the outline
+sequence) says only "these entries were found, deterministically". No such list is exhaustive, and the
+ABSENCE of an entry asserts nothing about the rest of the page. The viewport crop remains fully in
+scope: judge structure the payloads do not mention, and never limit your verdict to transcribing the
+entries you were handed — an anchored entry is a place to START, not the boundary of the question.
 
 **Interpreting the deterministic evidence.** `signals.structure` carries `headings[]` ({tag, role, level, text,
 offscreen}) and `tables[]` — each table has `{rowCount, thCount, tdCount, hasCaption, captionText, headers[] ({id,

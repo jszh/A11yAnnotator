@@ -169,8 +169,10 @@ test('the dwell the persistence rubric is told to rely on matches the dwell the 
   const lib = path.join(__dirname, '..', '..', 'lib');
   const runner = fs.readFileSync(path.join(lib, 'exp-runners.js'), 'utf8');
   const orch = fs.readFileSync(path.join(lib, 'orchestrator.js'), 'utf8');
-  const m = runner.match(/await H\.settle\(page, (\d+)\);\s*\n\s*o\.persistent =/);
-  assert.ok(m, 'the persistence dwell must still be a literal settle() immediately before o.persistent');
+  // #F5 moved the tip-presence branch between the settle and the assignment; the contract is the
+  // dwell CONSTANT feeding the persistence decision, so the pin allows the bounded branch body.
+  const m = runner.match(/await H\.settle\(page, (\d+)\);[\s\S]{0,500}?o\.persistent = true;/);
+  assert.ok(m, 'the persistence dwell must be a literal settle() feeding the o.persistent decision block');
   const declared = orch.match(/const HOVER_PERSIST_DWELL_MS = (\d+);/);
   assert.ok(declared, 'orchestrator must declare the dwell it reports to the judge');
   assert.equal(declared[1], m[1], `the reported dwell (${declared && declared[1]}ms) must equal the measured dwell (${m[1]}ms)`);

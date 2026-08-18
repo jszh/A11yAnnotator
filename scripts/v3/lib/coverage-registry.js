@@ -93,6 +93,9 @@ const SURFACES = Object.freeze([
   // Residual RCA S6 — re-declared to match the oracle's new colour-reference gate (Rule 16 parity).
   Object.freeze({ id: 'color-reference-text', when: (el) => el.colorWordHint === true, families: ['use-of-color'] }),                      // 1.4.1 (F81 / G14 / Understanding 1.4.1)
   Object.freeze({ id: 'emulated-control', when: (el) => el.emulatedControl === true, families: ['control-semantics'] }),                  // 1.3.1 (F42)
+  // batch-3 item 18 — F42's FOCUSABLE role-less sub-case (tabindex>=0, no interactive role, activation-proven);
+  // re-declared to match the oracle's new gate exactly (Rule 16).
+  Object.freeze({ id: 'emulated-control-focusable', when: (el) => el.emulatedControlFocusable === true, families: ['control-semantics'] }), // 1.3.1 (F42 focusable)
   // Residual RCA S10 aperture widenings — re-declared to match the oracle's four new branches (Rule 16).
   // <area href>: an image-map region link is a link with its own alt — 1.1.1 + 2.4.4; no href ⇒ nothing.
   Object.freeze({ id: 'image-map-area', when: (el) => el.tag === 'area' && typeof el.href === 'string' && el.href.length > 0, families: ['non-text-content', 'link-purpose'] }),

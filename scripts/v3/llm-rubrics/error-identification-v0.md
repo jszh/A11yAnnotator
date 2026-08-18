@@ -40,6 +40,14 @@ DESTROYS the evidence. So when the signal shows the page already presenting an e
   `adjacentErrorText`, or page-level error text naming the problem)? A field flagged at rest only by a
   border/colour/icon, with no associated or adjacent error text and `pageErrorTextPresent: false`, is
   exactly the barrier → REPRODUCED.
+- **Present error text is not the end of the check — it must be TRUE of the displayed error.** The
+  INCORRECT-MESSAGE failure mode below applies AT REST exactly as after a submit: read the
+  `associatedErrorText`/`adjacentErrorText` against THIS record's `retainedValue`, and for a RELATIONAL
+  message — one that constrains this field against another field's value (an ordering, a range spanning
+  two fields, a must-match pair) — against the OTHER at-rest records' retained values on the same form.
+  A message that is present, specific and associated but does not describe the error the retained
+  values actually show — it contradicts the value in the field, or blames the wrong side of a
+  relational constraint — identifies nothing ⇒ REPRODUCED, not a clear.
 - The "`noErrorSurfaced` after an invalid submit is INCONCLUSIVE" guard does NOT apply here — that guard
   protects a genuinely pristine form whose validation was never exercised, and it remains correct there.
   Applying it to a page whose error is already displayed converts the clearest failure shape into an

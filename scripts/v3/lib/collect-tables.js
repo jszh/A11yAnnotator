@@ -258,6 +258,82 @@ function collectTables() {
       // only (a header cell holding a sort <button> is ordinary and must not read as a region).
       const ARIA_BLOCK_SEL = 'h1,h2,h3,h4,h5,h6,ul,ol,dl,form,nav,section,article,aside,header,footer,figure,table,[role="heading"],[role="list"],[role="figure"],[role="region"],[role="group"],[role="table"],[role="grid"]';
       const blockDataCells = dataCells.filter((x) => x.querySelector(ARIA_BLOCK_SEL)).length;
+      // ---- HEADER-SIDE FABRICATION TELL (batch-3 item 5, layout-table-05) -----------------------------
+      // The cell-content check above reads DATA cells only, so a role=table dashboard whose "columnheader"
+      // cells are themselves full metric widgets — the same k/v/delta stack as the data cells — sailed
+      // through: its data cells hold plain <div> stacks (BLOCK_SEL deliberately excludes bare div), so
+      // blockDataCells stayed 0 and nothing fired. But a genuine columnheader is a LABEL — short text,
+      // maybe a sort control — not a value widget.
+      //
+      // SOUNDNESS FIX (batch-3 adversarial review F2, 2026-08-17). The first cut of this tell asked only
+      // for a STRUCTURAL mirror (the header's inner element stack equals/prefixes a data cell's ≥2-deep
+      // block stack) plus ≥2 text-bearing children — and structure alone is not fabrication evidence: the
+      // reviewer's probe fired it on an ORDINARY div-based ARIA data grid whose headers are the everyday
+      // two-line `name / unit` idiom (`Region`+`market`, `Revenue`+`USD m`) over two-line `value / delta`
+      // data cells, and on a SORTABLE grid whose headers are `label / sort-state`. Both are div>div over
+      // div>div: the mirror is a coincidence of markup depth, and the tell had no way to see that nothing
+      // in those headers is a measured VALUE.
+      //
+      // The tell now requires a POSITIVE value-ness signal — the header cell must reproduce the data
+      // cells' LABEL+VALUE pattern at the SAME block indexes, i.e. it is a self-describing metric widget
+      // (its own caption AND its own measured value) rather than a caption for the column beneath it:
+      //   (i)   ≥2-deep BLOCK stack that mirrors a data cell's (unchanged — an inline span>small header
+      //         stack yields '' and matches nothing; data cells holding bare text offer nothing to mirror);
+      //   (ii)  at some block index the header holds a VALUE where that data cell also holds a VALUE; and
+      //   (iii) at some block index the header holds a LABEL where that data cell also holds a LABEL.
+      // (ii) kills the ordinary/sortable idioms (their headers hold no value block at all); (iii) kills the
+      // converse idiom — a genuine PERIOD/units column header (`2024`+`actual`, `Q1 2024`+`forecast`) over
+      // value-only data cells, which has a value but no data-side label to mirror.
+      // Majority-and-≥2 over the header cells, same shape as the data-side rule. Flood-checked over the
+      // 927-page act-augmented corpus + official ACT + act-rest before adoption (see the batch-3 report).
+      const _MIRROR_BLOCK_RE = /^(div|p|section|article|ul|ol|dl|table|figure|h[1-6]|header|footer|aside|blockquote)$/;
+      const headerCells = allCells.filter((x) => roleOf(x) === 'columnheader' || roleOf(x) === 'rowheader');
+      const _stackOf = (cell) => {
+        const ks = elemKids(cell).slice(0, 8);
+        if (ks.length < 2) return '';
+        const tags = ks.map((k) => k.tagName.toLowerCase());
+        return tags.every((t) => _MIRROR_BLOCK_RE.test(t)) ? tags.join('>') : '';
+      };
+      // KIND of one block: a MEASURED VALUE (a number, optionally signed/prefixed/suffixed by a unit,
+      // currency or percent, with at most one stray word left over — `18,402`, `+2.1%`, `218 ms`, `4.2/day`,
+      // `0.4°`, `3m 12s`) vs a plausible LABEL (any other text-bearing block — `Region`, `USD m`,
+      // `sorted ascending`, `30-day uptime`, `▲ 9% vs. yesterday`). Text-free blocks (a sparkline div) are
+      // neither and match nothing.
+      const _NUMISH = /[+\-−▲▼△▽↑↓]?\s*[$£€¥₹]?\s*\d+(?:[.,:/]\d+)*\s*(?:%|°|[a-zA-Z]{1,6}|[$£€¥₹])?/g;
+      const _kindOf = (el) => {
+        const t = (el.textContent || '').replace(/\s+/g, ' ').trim();
+        if (!t) return '';
+        if (!/\d/.test(t)) return /\p{L}/u.test(t) ? 'label' : '';
+        const leftover = t.replace(_NUMISH, ' ').split(/[^\p{L}]+/u).filter((w) => w.length > 0);
+        return leftover.length <= 1 ? 'value' : 'label';
+      };
+      const _kindsCache = new Map();
+      const _kindsOf = (cell) => {
+        let k = _kindsCache.get(cell);
+        if (!k) { k = elemKids(cell).slice(0, 8).map(_kindOf); _kindsCache.set(cell, k); }
+        return k;
+      };
+      const _dataShapes = [];
+      for (const d of dataCells) { const s = _stackOf(d); if (s) _dataShapes.push({ stack: s, kinds: _kindsOf(d) }); }
+      const _stackMirrors = (hs, ds) => ds === hs || ds.indexOf(hs + '>') === 0 || hs.indexOf(ds + '>') === 0;
+      const _kindMirrors = (hk, dk) => {
+        let value = false, label = false;
+        for (let i = 0; i < hk.length && i < dk.length; i++) {
+          if (hk[i] === 'value' && dk[i] === 'value') value = true;
+          if (hk[i] === 'label' && dk[i] === 'label') label = true;
+        }
+        return value && label;                            // both halves, at data-cell block positions
+      };
+      const _isDataShapedHeader = (h) => {
+        const hs = _stackOf(h);
+        if (hs === '') return false;
+        const hk = _kindsOf(h);
+        if (hk.filter((k) => k !== '').length < 2) return false;
+        return _dataShapes.some((d) => _stackMirrors(hs, d.stack) && _kindMirrors(hk, d.kinds));
+      };
+      const dataShapedHeaderCells = headerCells.filter(_isDataShapedHeader).length;
+      const headerCellsMirrorData = headerCells.length >= 2 && dataCells.length >= 2
+        && dataShapedHeaderCells >= 2 && dataShapedHeaderCells * 2 >= headerCells.length;
       const interactiveDataCells = dataCells.filter((x) => x.querySelector('a[href],button,input,select,textarea,[role="button"],[role="link"]')).length;
       const cellTextLens = allCells.map((x) => clip(x.textContent, 4000).length);
       const ownedContractHolds = rowSet.length > 0 && allCells.length > 0 && cellsOutsideRows === 0 && rowCellCountsConsistent;
@@ -279,8 +355,12 @@ function collectTables() {
         cellsWithBlockContent: blockDataCells,
         cellsWithInteractiveContent: interactiveDataCells,
         maxCellTextLen: cellTextLens.length ? Math.max(...cellTextLens) : 0,
+        // header-side tell (batch-3 item 5): raw facts beside the fold, so the record shows WHY it fired.
+        dataShapedHeaderCells, headerCellsMirrorData,
+        // fires on EITHER independent fabrication tell — region-shaped DATA cells (the original majority
+        // rule) or value-widget-shaped HEADER cells (item 5) — always under a held owned-element contract.
         fabricatedTableSemantics: ownedContractHolds && dataCells.length >= 2
-          && blockDataCells >= 2 && blockDataCells * 2 >= dataCells.length,
+          && ((blockDataCells >= 2 && blockDataCells * 2 >= dataCells.length) || headerCellsMirrorData),
       });
     }
   }

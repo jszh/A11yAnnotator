@@ -220,6 +220,28 @@ async function safeInstallResolver(page) {
   try { await page.evaluate('window.__v3AreaCoordsRect = ' + areaCoordsToRect.toString()); } catch (e) {}
 }
 
+// ── PAGE-WIDE VIEWPORT SHOT, HARDENED (batch-3 #19b / RCA item 19) ───────────────────────────────────
+// The single page-wide viewport frame is captured ONCE and shared by EVERY subject on the page — and it is
+// REQUIRED EVIDENCE for any rubric that declares the 'viewport' state, so when this one capture fails the
+// adjudicator's required-evidence gate silently abstains every such subject on the page (3 silent lane
+// drops in s12, incl. structural-markup-04). robustScreenshot's 3×80 ms retry was tuned for per-element
+// crops, where a miss costs one crop; here a miss costs the whole page, and the extra patience AMORTIZES
+// over all its subjects. So: settle first (screenshot-under-reflow is the common transient trigger), then
+// retry with an ESCALATING backoff (each round is itself a 3-try robustScreenshot). Worst case ≈ 3.7 s
+// once per page, only ever paid on a page that is already failing to screenshot. Degrades to null — the
+// caller's shape is unchanged; the LOUD per-subject noVerdict for a still-missing frame is the
+// llm-adjudicator half (rubric agent).
+async function pageWideViewportShot(page, opts = {}) {
+  try { await require('./settle.js').awaitSettle(page); } catch (e) {}
+  const tries = Number.isFinite(opts.tries) ? opts.tries : 5;
+  for (let i = 0; i < tries; i++) {
+    const s = await require('./settle.js').robustScreenshot(page, { encoding: 'base64' });
+    if (typeof s === 'string' && s.length) return s;
+    if (i < tries - 1) await new Promise((r) => setTimeout(r, 250 * (i + 1)));
+  }
+  return null;
+}
+
 // SC → the per-element transition whose before/after a rubric for that SC needs. Exported so the
 // orchestrator + a pure test share it. Form SCs drive a 'submit' (page-mutating ⇒ reload-isolated).
 const STATE_TRANSITIONS = Object.freeze({ '2.4.7': 'focus', '2.4.11': 'focus', '1.4.13': 'hover', '3.3.1': 'submit', '3.3.3': 'submit' });
@@ -239,9 +261,11 @@ async function captureVision(page, xpaths, opts = {}) {
   const shot = (clip) => require('./settle.js').robustScreenshot(page, clip ? { clip, encoding: 'base64' } : { encoding: 'base64' }); // retry-on-null under contention
   const out = {};
 
-  // page-wide viewport crops are shared across all elements — capture once.
+  // page-wide viewport crops are shared across all elements — capture once. Hardened (batch-3 #19b): a
+  // failure here silently abstains EVERY viewport-declaring subject on the page, so this one shot gets a
+  // settle + escalating backoff (see pageWideViewportShot) instead of the per-crop 3×80 ms retry.
   let viewport = null, viewport320 = null;
-  if (want.has('viewport')) viewport = await shot(null);
+  if (want.has('viewport')) viewport = await pageWideViewportShot(page, { tries: opts.viewportShotTries });
   if (want.has('viewport-320')) {
     // `page.viewport()` is null under defaultViewport:null (a real browser window). Measure the live size
     // so we ALWAYS restore — otherwise the page is left at 320px and EVERY later crop is silently corrupted.
@@ -263,7 +287,9 @@ async function captureVision(page, xpaths, opts = {}) {
       try { await page.setViewport({ width: 320, height: (cur && cur.height) || 800 }); resized = true; } catch (e2) { resized = false; }
     }
     try {
-      if (resized) { await require('./settle.js').awaitSettle(page); viewport320 = await shot(null); }
+      // page-wide like the main viewport frame ⇒ same hardened capture (batch-3 #19b); the settle inside
+      // pageWideViewportShot doubles as the post-resize reflow settle.
+      if (resized) viewport320 = await pageWideViewportShot(page, { tries: opts.viewportShotTries });
     } finally { if (cur && cur.width) await page.setViewport(cur).catch(() => {}); }
   }
 
@@ -665,4 +691,4 @@ async function captureVisionForUrl(url, xpaths, opts = {}) {
   });
 }
 
-module.exports = { captureVision, captureStateVision, captureVisionForUrl, mergeVision, buildStatePlan, STATE_TRANSITIONS, areaCoordsToRect };
+module.exports = { captureVision, captureStateVision, captureVisionForUrl, mergeVision, buildStatePlan, STATE_TRANSITIONS, areaCoordsToRect, pageWideViewportShot };

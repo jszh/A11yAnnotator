@@ -13,6 +13,17 @@ interactive role**, has **no `tabindex`**, contains **no natively-interactive de
 page-sized delegation root. Those structural facts are settled — you do not need to re-derive them. What a
 checker cannot decide is whether the element genuinely FUNCTIONS as a control, which is your judgment.
 
+**A SECOND ADMITTED SHAPE — the FOCUSABLE role-less variant (`signals.emulatedControlFocusable`).** When
+this signal is present, the collector admitted the element under the SIBLING premise: the same
+activation-handler guards, but the element IS keyboard-focusable (a `tabindex` ≥ 0, or native
+focusability) while still declaring NO interactive role. Do not reject the premise because the element
+is focusable — that is this variant's definition, not a contradiction of the paragraph above. The
+mismatch to judge is the same, with one consequence shifted: a keyboard user CAN reach it, but assistive
+technology still announces it as ordinary content — no role, no control semantics, absent from the links
+and controls lists — so what the element visibly does remains programmatically undeclared, and a
+focus stop that announces as plain text is itself part of the confusion. Apply the same affordance test
+below, unchanged.
+
 **Judge:** does this element present itself to a sighted user as something to activate — a link, a button,
 a tab, a clickable row or card — while its markup says it is ordinary content? That mismatch is the 1.3.1
 failure (WCAG **F42**): the relationship between what the element looks like and what it does exists only

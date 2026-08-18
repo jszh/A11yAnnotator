@@ -490,17 +490,42 @@ function parseRGB(s) {
         const _authorName = ((r.getAttribute('alt') || '') + ' ' + (r.getAttribute('aria-label') || '') + ' ' + (r.getAttribute('title') || '')).trim();
         const decorativeConflict = (_ariaHidden || _presentational) && _authorName.length > 0 && renderedVisible === true;
         // S3 (RCA R3): nearby text for the REDUNDANCY judgment (parity). Redundant-with-adjacent-text ⇒ decorative; unique ⇒ barrier if removed.
+        // batch-3 item 14 (parity with act-page-collect): ANCESTOR CLIMB — a single-child wrapper
+        // (div>canvas / span>svg) has a text-less parent and no siblings, so the old one-level read yielded
+        // null for exactly the shapes whose redundancy question matters most; climb until non-subject text
+        // is found (bounded, stops at <body>). The subject's OWN text is subtracted at every level (an svg
+        // must not supply the "nearby text" it is compared against — see act-page-collect's rationale).
         const _txt = (e) => (e && (e.innerText || e.textContent) || '').replace(/\s+/g, ' ').trim();
         const nearbyText = !_isImg ? undefined : (function () {
+          const ownText = (r.textContent || '').replace(/\s+/g, ' ').trim();
+          const strip = (s) => {
+            let o = (s || '').replace(/\s+/g, ' ').trim();
+            if (ownText && o.includes(ownText)) o = o.split(ownText).join(' ').replace(/\s+/g, ' ').trim();
+            return o;
+          };
           const bits = [];
-          const fig = r.closest('figure'); if (fig) { const cap = fig.querySelector('figcaption'); if (cap) bits.push(_txt(cap)); }
-          if (r.parentElement) bits.push(_txt(r.parentElement));
-          for (const sib of [r.previousElementSibling, r.nextElementSibling]) if (sib) bits.push(_txt(sib));
+          const fig = r.closest('figure'); if (fig) { const cap = fig.querySelector('figcaption'); if (cap) bits.push(strip(_txt(cap))); }
+          let node = r;
+          for (let hops = 0; node && node !== document.body && hops < 6; node = node.parentElement, hops++) {
+            if (node.parentElement) bits.push(strip(_txt(node.parentElement)));
+            for (const sib of [node.previousElementSibling, node.nextElementSibling]) if (sib) bits.push(strip(_txt(sib)));
+            if (bits.some(Boolean)) break;   // non-subject text found at this level — stop climbing
+          }
           return [...new Set(bits.filter(Boolean))].join(' | ').replace(/\s+/g, ' ').trim().slice(0, 300) || undefined;
         })();
         // COMPLEX-IMAGE hint (Item 7b, parity): a data-bearing image (figure / role=figure / aria-describedby) owes
         // long-description-completeness; a bare logo/icon gets alt-adequacy only.
         const complexImageHint = (tag === 'img' || tag === 'svg' || tag === 'canvas' || roleAttr === 'img') && (!!r.closest('figure') || roleAttr === 'figure' || r.hasAttribute('aria-describedby'));
+        // batch-3 item 16b (parity with act-page-collect): dedicated figcaption/aria-describedby text for the
+        // long-description rubric — the enclosingHtml cap is eaten by inline-SVG markup before the caption.
+        const captionText = !complexImageHint ? undefined : (function () {
+          const parts = [];
+          const fig = r.closest('figure'); if (fig) { const cap = fig.querySelector('figcaption'); if (cap) parts.push(_txt(cap)); }
+          for (const id of (r.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean).slice(0, 4)) {
+            const t = document.getElementById(id); if (t) parts.push(_txt(t));
+          }
+          return [...new Set(parts.filter(Boolean))].join(' | ').replace(/\s+/g, ' ').trim().slice(0, 1200) || undefined;
+        })();
         // C8 glyph-substitution predicate: the element's OWN direct text (not descendants) carries an icon-font/PUA
         // codepoint or a Cyrillic/Greek-mixed-with-Latin homoglyph — the glyph-text-alternative family + runner.
         let _ownTxt = ''; for (const _n of r.childNodes) if (_n.nodeType === 3) _ownTxt += _n.textContent;
@@ -603,6 +628,7 @@ function parseRGB(s) {
           iframeSrc: (tag === 'iframe' || tag === 'frame') ? (r.getAttribute('src') || '') : undefined, // 4.1.2 (4b1c6c): same-name iframe purpose-equivalence (parity with act-page-collect)
           removedFromA11yTree, hiddenMechanism, ariaHiddenWithName, decorativeConflict, renderedVisible, nearbyText, svgLiveText, // Tier-0 #5 (e88epe) + S3 (R3) + S7 (R7)
           complexImageHint, // Item 7b: gate long-description-completeness to data-bearing images
+          captionText, // batch-3 item 16b: dedicated caption/described-by text (not eaten by markup caps)
           hasGlyphText, splitFieldGroup, // C8 small-signal applicability predicates (glyph-text-alternative / multipart-field-grouping)
           underOverlay, hasHoverContent, // Item 9: un-dead 2.4.11 focus-not-obscured + 1.4.13 content-on-hover
           liveRegion, // Item 11: 4.1.3 status-message family

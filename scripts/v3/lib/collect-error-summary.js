@@ -180,7 +180,11 @@ function collectAtRestErrorState() {
   // advance") and a checkout step header both matched. Saying "this page announces an error" when it does not
   // is the exact over-claim that would let a silent redisplay be read as a page that reports its errors.
   const ERROR_WORD = /\b(error|errors|invalid|not valid|isn't valid|incorrect|problem|problems|went wrong|failed|rejected|unable to|please (correct|fix|re-?enter)|try again)\b/i;
-  const ERROR_CLASS = /(^|[-_ ])(error|invalid|danger|warn|warning|has-error|is-invalid|field-error)([-_ ]|$)/i;
+  // `err` is in the list as its own TOKEN (batch-3 #1b): the abbreviated class (`err`, `err-msg`, `field_err`)
+  // is a common authoring shorthand, and missing it made this collector report "no error text" on a redisplay
+  // whose message block carried exactly that class. The token delimiters keep it a whole-token match — an
+  // unrelated word that merely CONTAINS the letters (an errand, a deferred flag) cannot fire it.
+  const ERROR_CLASS = /(^|[-_ ])(err|error|invalid|danger|warn|warning|has-error|is-invalid|field-error)([-_ ]|$)/i;
   const classesOf = (e) => (e && e.classList ? Array.prototype.slice.call(e.classList, 0, 8) : []);
   const anyErrorClass = (e) => classesOf(e).some((c) => ERROR_CLASS.test(c));
   const idsText = (e, attr) => {

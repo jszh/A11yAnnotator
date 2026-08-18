@@ -89,7 +89,18 @@ function collectColourPeers(opts) {
     // make the FULL class list split every colour into its own bucket and hide the very set being looked for.
     if (tokenLane) {
       const classAttr = (el.getAttribute('class') || '').trim();
-      if (classAttr && ownText(el).length < 2) {
+      const own = classAttr ? ownText(el) : '';
+      if (classAttr && own.length < 2) {
+        // item 32 NARROWING (24-page hand-review: ALL noise groups were switch/checkbox/radio chrome —
+        // knob/track spans inside interactive controls, whose knob POSITION this collector cannot see, so
+        // the "distinguished only by colour" framing was factually wrong for them). An instance that IS an
+        // interactive control, sits INSIDE one (native control, switch/checkbox/radio/button widget roles,
+        // aria-checked/aria-pressed), or is focusable via tabindex>=0 on self-or-ancestor, is control
+        // chrome — 1.4.1 state-rendering on controls is the STATE_BEARING_ROLE element lane's business,
+        // not a colour-token group. Flag still defaults OFF; this is aperture prep for any future enable.
+        const interactiveChrome = !!el.closest('input, select, textarea, button, a[href], summary, [role="switch"], [role="checkbox"], [role="radio"], [role="button"], [role="menuitemcheckbox"], [role="menuitemradio"], [aria-checked], [aria-pressed]')
+          || (() => { for (let p = el; p && p.getAttribute; p = p.parentElement) { const ti = p.getAttribute('tabindex'); if (ti !== null && +ti >= 0) return true; } return false; })();
+        if (interactiveChrome) { /* skip: control chrome never buckets */ } else {
         const cs = getComputedStyle(el);
         const bg = cs.backgroundColor;
         if (bg && bg !== 'transparent' && bg !== 'rgba(0, 0, 0, 0)') {
@@ -100,12 +111,18 @@ function collectColourPeers(opts) {
               parentEl: el.parentElement,
               parentXp: xpathOf(el.parentElement),
               ariaLabel: (el.getAttribute('aria-label') || '').slice(0, 40),
+              // item 32: a single-char token ("✓", "•") is CONTENT the judge must see — surfaced as its
+              // own field instead of silently text-less (admission unchanged: < 2 chars of own text).
+              ...(own ? { char: own } : {}),
               color: cs.color,
               background: bg,
               borderStyle: cs.borderTopStyle + '/' + cs.borderTopWidth,
+              // item 32: background-image recorded in the non-colour-axis marker — a sprite/icon-by-image
+              // token differs on a non-colour axis, and the marker uniformity conjunct now sees that.
               marker: (el.querySelector('img, svg, [role="img"]') ? 'child' : '')
                 + ((getComputedStyle(el, '::before').content || 'none') !== 'none' ? '+before' : '')
-                + ((getComputedStyle(el, '::after').content || 'none') !== 'none' ? '+after' : ''),
+                + ((getComputedStyle(el, '::after').content || 'none') !== 'none' ? '+after' : '')
+                + ((cs.backgroundImage && cs.backgroundImage !== 'none') ? '+bgimg' : ''),
             };
             for (const cls of classAttr.split(/\s+/).slice(0, 6)) {
               const tk = tag + '|.' + cls;
@@ -115,6 +132,7 @@ function collectColourPeers(opts) {
             }
           }
         }
+        } // end !interactiveChrome (item 32)
       }
     }
     const key = tag + '|' + (el.getAttribute('role') || '') + '|' + xpathOf(el.parentElement);
@@ -253,7 +271,7 @@ function collectColourPeers(opts) {
         anchorCarriesColour: carries[aIdx] === true,
         tokenLane: true,                                                     // ADDITIVE marker — main-lane groups untouched
         legendText: legendTexts.join(' | ').slice(0, 120),
-        members: ordered.slice(0, MAX_MEMBERS).map((x) => ({ xpath: x.xpath, label: x.ariaLabel, color: x.color, background: x.background })),
+        members: ordered.slice(0, MAX_MEMBERS).map((x) => ({ xpath: x.xpath, label: x.ariaLabel, ...(x.char ? { char: x.char } : {}), color: x.color, background: x.background })), // char: item 32 — single-char token content surfaced
       });
     }
   }
@@ -296,14 +314,78 @@ function collectColourPeers(opts) {
 // DECIDES NOTHING. Whether the colour carries information, and whether a non-colour cue is present where one is
 // needed, stays with the rubric.
 //
+// COLOUR-KEY TEXT (batch-3 item 29, required-field case-06 FP). The record set is relational by design, but
+// one relational fact was missing: the page's own STATED colour key. On the FP page the legend paragraph
+// (stating that mandatory labels render lighter than optional ones, differing in shade) sits immediately
+// before the form; the LEGEND subject received it (it is the legend's own text) and the contrast measurement
+// cleared it, while every MEMBER field's prompt carried only its colours — so the F81 critical-guard default
+// fired on fields whose key text sat one element away, a rubric split-brain the replay reproduced at sd=0.
+// `opts.colourKeyPatterns` carries the requirement-sourced colour-reference construction regex SOURCES (from
+// color-reference-lexicon.js — a Node module cannot cross page.evaluate, so the caller serializes the
+// patterns; the vocabulary stays single-sourced) plus the proper-noun guard. When a candidate instruction
+// block in the group's scope matches a construction, its text is attached to EVERY record of the group as
+// `colourKeyText` (clipped). Candidates are scope-anchored, not page-wide: <legend>s inside the scope, the
+// scope container's preceding sibling text blocks, and the scope's leading child text blocks before its
+// first field. Fail-closed twice over: no opts / no patterns ⇒ no key attached (byte-identical records), and
+// a group whose scope states no colour key gets nothing — the true-fail siblings (which state no key) are
+// untouched by construction.
+//
 // Self-contained so it serializes through page.evaluate — every helper is declared INSIDE the function body.
 // (A helper shared across two separately-serialized collectors threw a ReferenceError and silently killed a
 // whole lane earlier in this campaign; see the collector-liveness note in act-page-collect.js.)
-function collectFieldColourState() {
+function collectFieldColourState(opts) {
   const MAX_FIELDS = 12;        // fields considered per form group
   const MAX_PEERS = 4;          // differing peers reported per field
   const MAX_RECORDS = 24;       // records per page
   const MAX_TEXT = 140;
+  const KEY_TEXT_MAX = 220;     // colourKeyText clip (a key is a sentence or two, not a page)
+
+  // item 29 — colour-key construction matchers, rebuilt from serialized sources. Every failure mode degrades
+  // to "no matcher" (never a throw): the lane's output without opts is byte-identical to the pre-item-29 one.
+  const keyPatterns = [];
+  if (opts && Array.isArray(opts.colourKeyPatterns)) {
+    for (const p of opts.colourKeyPatterns) {
+      if (!p || typeof p.source !== 'string') continue;
+      try { keyPatterns.push(new RegExp(p.source, 'gi')); } catch (err) { /* bad source ⇒ skipped */ }
+    }
+  }
+  let properNoun = null;
+  if (opts && typeof opts.properNounGuard === 'string') {
+    try { properNoun = new RegExp(opts.properNounGuard); } catch (err) { properNoun = null; }
+  }
+  // F13 (soundness review round 2): split into SENTENCE spans so a match can be clipped to the sentence
+  // that actually states it, not the whole candidate block. A candidate is often a multi-sentence
+  // paragraph (an intro line, THEN the colour-key sentence, then something else); the old whole-block clip
+  // both buried the key inside irrelevant prose and — past KEY_TEXT_MAX — could truncate it away entirely
+  // if the key sentence did not happen to sit at the very start. Good enough for prose; a key with no
+  // terminal punctuation (a short phrase, a bullet) is its own one-span "sentence" — unchanged behavior.
+  const sentencesOf = (s) => {
+    const out = [];
+    let start = 0;
+    const re = /[.!?](?=\s|$)/g;
+    let m;
+    while ((m = re.exec(s)) !== null) { out.push({ start, end: m.index + 1 }); start = m.index + 1; }
+    if (start < s.length) out.push({ start, end: s.length });
+    return out.length ? out : [{ start: 0, end: s.length }];
+  };
+  const colourKeyIn = (text) => {
+    const s = String(text == null ? '' : text).replace(/\s+/g, ' ').trim();
+    if (!s || !keyPatterns.length) return null;
+    for (const re of keyPatterns) {
+      re.lastIndex = 0;
+      let m;
+      while ((m = re.exec(s)) !== null) {
+        // same proper-noun guard as colorReferencesIn: the word FOLLOWING the match matters too
+        const tail = (s.slice(m.index + m[0].length).match(/^\W+\w+/) || [''])[0];
+        if (properNoun && properNoun.test(m[0] + tail)) continue;
+        // F13: the MATCHED SENTENCE is the key, not the whole instruction block (still clipped by the
+        // caller as a final bound, but now against a candidate that is already the relevant sentence).
+        const sent = sentencesOf(s).find((sp) => m.index >= sp.start && m.index < sp.end);
+        return sent ? s.slice(sent.start, sent.end).trim() : s;
+      }
+    }
+    return null;
+  };
 
   const xpathOf = (e) => {
     if (!e || !e.tagName) return '';
@@ -479,6 +561,44 @@ function collectFieldColourState() {
     // THE GATE. A colour-uniform field set encodes nothing in colour: there is no coded state for a
     // neighbouring pixel to be mistaken for, and no shade key to verify. Add nothing to those prompts.
     if (appearances.size < 2 && labelColours.size < 2) continue;
+    // item 29 — the scope's own stated colour key, computed ONCE per group and attached to every record.
+    // Scope-anchored candidates only (never a page sweep): legends inside the scope, the form container's
+    // preceding sibling text blocks (the legend-paragraph-before-the-form shape), and the form's leading
+    // child text blocks before its first field. For the out-of-form 'document' scope only legends are
+    // read — a body-wide sibling walk would attribute arbitrary page prose to the field set.
+    //
+    // F13 (soundness review round 2): each candidate now carries its OWN source label
+    // (legend / preceding-sibling[n] / leading-child[n]) alongside its text, and the winning candidate's
+    // source rides out as `colourKeySource` next to `colourKeyText` — a legend is structurally bound to
+    // the scope; a preceding sibling 4 elements back is a much weaker positional claim, and a future
+    // proximity-weighing pass (or the rubric, unchanged here) needs to be able to tell them apart rather
+    // than reading every hit as equally authoritative.
+    const colourKeyHit = (() => {
+      if (!keyPatterns.length) return null;
+      const scopeEl = group[0].form || null;
+      const candidates = [];
+      const root = scopeEl || document.body;
+      if (root && root.querySelectorAll) for (const lg of root.querySelectorAll('legend')) candidates.push({ text: lg.textContent, source: 'legend' });
+      if (scopeEl) {
+        let sib = scopeEl.previousElementSibling;
+        for (let n = 0; sib && n < 4; sib = sib.previousElementSibling, n++) {
+          if (!(sib.querySelector && sib.querySelector('input, select, textarea'))) candidates.push({ text: sib.textContent, source: 'preceding-sibling[' + (n + 1) + ']' });
+        }
+        let leadIdx = 0;
+        for (const k of scopeEl.children) {
+          if (k.matches && (k.matches('input, select, textarea') || (k.querySelector && k.querySelector('input, select, textarea')))) break;
+          candidates.push({ text: k.textContent, source: 'leading-child[' + leadIdx + ']' });
+          leadIdx++;
+        }
+      }
+      for (const c of candidates) {
+        const hit = colourKeyIn(c.text);
+        if (hit) return { text: clip(hit, KEY_TEXT_MAX), source: c.source };
+      }
+      return null;
+    })();
+    const colourKeyText = colourKeyHit ? colourKeyHit.text : null;
+    const colourKeySource = colourKeyHit ? colourKeyHit.source : null;
     for (const f of group) {
       if (out.length >= MAX_RECORDS) break;
       const mySig = sigOf(f);
@@ -519,6 +639,11 @@ function collectFieldColourState() {
       out.push({
         xpath: f.xpath,
         label: f.label,
+        // item 29: present ONLY when the scope actually states a lexicon-matched colour key — the F81
+        // critical-guard question "is the coding explained anywhere?" answered with the page's own words.
+        // F13: `colourKeySource` rides alongside — additive-only, same gate, so every existing consumer
+        // that reads `colourKeyText` as a plain string is untouched.
+        ...(colourKeyText ? { colourKeyText, colourKeySource } : {}),
         color: f.color,
         background: f.background,
         border: f.border,

@@ -19,6 +19,15 @@ const REACH_SAFETY_CAP = LIMITS.instruments.reachSafetyCap; // anti-pathology on
 // incomplete, and calling it a completed ring is exactly the degenerate one-stop artifact this guard exists
 // to prevent.
 const SEGMENTED_PRESS_CAP = 10;
+// #26b (batch-3 RCA): ZERO-FOCUSABLE EARLY EXIT. On a page with no focusable element every Tab press
+// reads the document-boundary sentinel, and the wrap logic (which requires sawNode first) never fires —
+// so the walk burned the FULL safety cap in no-op presses: measured 67.6 s per page (2000 presses x two
+// directions) on zero-focusable pages, chronically capping out the 90 s instrument lane. Before the first
+// real stop is seen, N consecutive boundary sentinels are proof the ring is EMPTY (a single press from
+// the boundary always lands on the first focusable when one exists), so the walk ends there with the
+// byte-identical result the full-cap walk produced ({ order: [], wrapped: false, exhausted: false }).
+// N=5, not 2: generous slack for a settle hiccup or a focus-rejecting first element, at a cost of ~100 ms.
+const EMPTY_RING_SENTINEL_CAP = 5;
 
 // In-page: identify the active element with a stable per-call WeakSet (cycle detection), and read its
 // xpath + document-relative rect + a short label. Returns a sentinel for body/null (ring boundary).
@@ -94,6 +103,46 @@ function probeActive() {
   for (const m of document.querySelectorAll('dialog[open], [aria-modal="true"]')) { if (modalShowing(m)) { openModal = m; break; } }
   let ownModal = a.closest ? a.closest('dialog[open], [aria-modal="true"]') : null;
   if (ownModal && !modalShowing(ownModal)) ownModal = null;
+  // #25 (batch-3 RCA): PER-STOP OCCLUSION fact. A page can overlay content withOUT declaring a dialog —
+  // a plain fixed-position scrim div carries no dialog[open]/aria-modal, so the containment facts above
+  // never exist, while the underlying stops stay fully tabbable and focus visits elements the user cannot
+  // see (measured shape: the page force-focuses INTO the visible overlay at load and every underlying
+  // stop hit-tests to the scrim). Whether that occlusion breaks 2.4.3 meaning is the judge's call, so —
+  // exactly like the modal facts above — record the FACT per stop: the topmost element at the stop's own
+  // viewport centre, when that element is OUTSIDE the stop's subtree (neither ancestor nor descendant).
+  // null = not occluded OR unmeasurable (centre off-viewport) — fail-open, never a manufactured claim.
+  //
+  // SOUNDNESS FIX F10 (batch-3 adversarial review round 2): a bare centre-point hit-test cannot tell a
+  // scrim from a STICKY HEADER — a routine, non-modal pattern that occludes whatever scrolls under it and
+  // fires this exact same `occludedBy` shape on every ordinary page that has one. The rubric downstream
+  // used to treat ANY occluder as if it declared a modal overlay; that is unsound (measured: sticky
+  // headers/cookie bars fired it routinely). The fix is not to STOP recording the fact — it is to record
+  // enough about the OCCLUDER for the rubric to tell a scrim from a header: its `position` (a scrim is
+  // fixed/absolute; a normal in-flow element that merely happens to be tall enough to reach the point is
+  // not occluding by DESIGN) and how much of the VIEWPORT it actually covers (a scrim dominates the
+  // screen; a header is a thin strip). Both ride ALONGSIDE `occludedBy` — the xpath contract for existing
+  // consumers is untouched (still a bare string-or-null) — and are present only when `occludedBy` is.
+  let occludedBy = null, occluderPosition = null, occluderRect = null, occluderViewportCoverage = null;
+  try {
+    const cxv = r.left + r.width / 2, cyv = r.top + r.height / 2;
+    if (cxv >= 0 && cyv >= 0 && cxv < window.innerWidth && cyv < window.innerHeight) {
+      const top = document.elementFromPoint(cxv, cyv);
+      if (top && top !== a && !a.contains(top) && !top.contains(a)) {
+        occludedBy = getXPath(top);
+        const tcs = getComputedStyle(top);
+        occluderPosition = tcs.position || null;
+        const tr = top.getBoundingClientRect();
+        occluderRect = { x: Math.round(tr.left + window.scrollX), y: Math.round(tr.top + window.scrollY), w: Math.round(tr.width), h: Math.round(tr.height) };
+        // fraction of the VIEWPORT the occluder's own box actually covers, clamped to the viewport (a
+        // fixed element can extend off-screen) — a full-bleed scrim reads near 1.0; a header pinned to one
+        // edge reads small even when it spans the full width, because it is short.
+        const ix = Math.max(0, Math.min(tr.right, window.innerWidth) - Math.max(tr.left, 0));
+        const iy = Math.max(0, Math.min(tr.bottom, window.innerHeight) - Math.max(tr.top, 0));
+        const vpArea = window.innerWidth * window.innerHeight;
+        occluderViewportCoverage = vpArea > 0 ? Math.round(((ix * iy) / vpArea) * 1000) / 1000 : null;
+      }
+    }
+  } catch (e) { /* hit-test unavailable — no claim */ }
   return { sentinel: false, seen, xpath: getXPath(a), tag: a.tagName.toLowerCase(),
     rect: { x: Math.round(pinned ? r.left : r.left + window.scrollX), y: Math.round(pinned ? r.top : r.top + window.scrollY), w: Math.round(r.width), h: Math.round(r.height) },
     label,
@@ -106,8 +155,20 @@ function probeActive() {
     segmented: a.tagName === 'INPUT' && /^(time|date|datetime-local|month|week)$/.test(a.type || ''),
     modalOpen: !!openModal,
     insideOpenModal: !!ownModal,
-    modalXpath: ownModal ? getXPath(ownModal) : null };
+    modalXpath: ownModal ? getXPath(ownModal) : null,
+    occludedBy, occluderPosition, occluderRect, occluderViewportCoverage };
 }
+
+// Node-side (not evaluated in-page): the compact conditional-spread shape every stop-building call site
+// below uses to thread the F10 occlusion facts — `occludedBy` stays a bare xpath string for every existing
+// consumer, and the new position/rect/coverage facts ride ALONGSIDE it, present only when it is (a ring
+// with nothing occluded stays byte-identical, same contract `occludedBy` alone already had).
+const occlusionSpread = (o) => (o && o.occludedBy ? {
+  occludedBy: o.occludedBy,
+  occluderPosition: o.occluderPosition || null,
+  occluderRect: o.occluderRect || null,
+  occluderViewportCoverage: Number.isFinite(o.occluderViewportCoverage) ? o.occluderViewportCoverage : null,
+} : {});
 
 async function collectTabOrder(page, opts = {}) {
   const cap = Number.isFinite(opts.safetyCap) ? opts.safetyCap : REACH_SAFETY_CAP;
@@ -148,7 +209,7 @@ async function collectTabOrder(page, opts = {}) {
   // cycle-detection WeakSet, so returning to it still ends the ring.
   const entry = await page.evaluate(probeActive).catch((e) => { note('entry', e); return { sentinel: true }; });
   const order = [];
-  let wrapped = false, exhausted = false, sawNode = false, sentinelStreak = 0;
+  let wrapped = false, exhausted = false, sawNode = false, sentinelStreak = 0, emptySentinelStreak = 0;
   let boundaryAt = -1;   // index in `order` after which the document boundary was crossed
   // COMPOSITE-INPUT WRAP GUARD (2026-08-16). A segmented control (<input type=time|date|…>) consumes Tab for
   // its INTERNAL segments while document.activeElement stays the same element, so the plain revisit test
@@ -162,7 +223,10 @@ async function collectTabOrder(page, opts = {}) {
   let lastXpath = entry.sentinel ? null : entry.xpath;
   let segPresses = 0;
   if (!entry.sentinel) {
-    order.push({ index: 0, xpath: entry.xpath, tag: entry.tag, rect: entry.rect, label: entry.label, role: entry.role || null, tabindexAttr: entry.tabindexAttr || null, modalOpen: entry.modalOpen, insideOpenModal: entry.insideOpenModal, modalXpath: entry.modalXpath });
+    // #25: the seeded stop IS the page-set initial focus — surface that (the walk can never re-derive it),
+    // plus the occlusion fact. Both fields appear only when they say something, so every other ring stays
+    // byte-identical.
+    order.push({ index: 0, xpath: entry.xpath, tag: entry.tag, rect: entry.rect, label: entry.label, role: entry.role || null, tabindexAttr: entry.tabindexAttr || null, modalOpen: entry.modalOpen, insideOpenModal: entry.insideOpenModal, modalXpath: entry.modalXpath, initialFocus: true, ...occlusionSpread(entry) });
     sawNode = true;
   }
   for (let i = 0; i < cap; i++) {
@@ -178,6 +242,8 @@ async function collectTabOrder(page, opts = {}) {
       if (sawNode) {
         if (boundaryAt < 0) boundaryAt = order.length - 1;  // the cycle restarts after this stop
         if (++sentinelStreak >= 2) { wrapped = true; break; }
+      } else if (++emptySentinelStreak >= EMPTY_RING_SENTINEL_CAP) {
+        break; // #26b: N consecutive boundary reads before ANY stop ⇒ the ring is empty — stop pressing
       }
       continue;
     }
@@ -195,7 +261,7 @@ async function collectTabOrder(page, opts = {}) {
     segPresses = 0;
     lastXpath = info.xpath;
     sawNode = true;
-    order.push({ index: order.length, xpath: info.xpath, tag: info.tag, rect: info.rect, label: info.label, role: info.role || null, tabindexAttr: info.tabindexAttr || null, modalOpen: info.modalOpen, insideOpenModal: info.insideOpenModal, modalXpath: info.modalXpath });
+    order.push({ index: order.length, xpath: info.xpath, tag: info.tag, rect: info.rect, label: info.label, role: info.role || null, tabindexAttr: info.tabindexAttr || null, modalOpen: info.modalOpen, insideOpenModal: info.insideOpenModal, modalXpath: info.modalXpath, ...occlusionSpread(info) });
   }
   if (!wrapped && order.length >= cap) exhausted = true;
   // UN-ROTATE at the boundary so index 0 is the page's genuine first tab stop. A boundary at the very end
@@ -212,7 +278,13 @@ async function collectTabOrder(page, opts = {}) {
   // `liveness` is EMPTY on every healthy page (the common case), so it costs nothing to carry and its mere
   // presence in an artifact is the signal. A repeated 'probeActive@walk' entry means the recorded sequence
   // is short by that many stops AND may be anchored on a fabricated boundary — read it before the order.
-  return { order, wrapped, exhausted, count: order.length, backward, startAnchored, boundaryAt, liveness };
+  // #25: the page-set initial-focus STOP RECORD, surfaced at the top level too — after rotation its
+  // position in `order` moves, and a consumer that trims the ring would lose the per-stop flag. Shape is
+  // the CONTRACT with the rubric lane (impl-rubrics batch-3): `focusOrder.initialFocus` = the stop the
+  // PAGE focused at load (before any Tab), or null when load left focus at the document boundary.
+  const initialFocus = entry.sentinel ? null
+    : { xpath: entry.xpath, tag: entry.tag, label: entry.label, rect: entry.rect, ...occlusionSpread(entry) };
+  return { order, wrapped, exhausted, count: order.length, backward, startAnchored, boundaryAt, initialFocus, liveness };
 }
 
 // Tab-order check (2.4.3): the forward focus order vs the visual order.
@@ -522,16 +594,50 @@ async function detectFocusRetentionTraps(page, opts = {}) {
 
   // settled forward walk: an element that is the active focus for two CONSECUTIVE settled Tab steps has
   // retained focus across a Tab — a self-refocus candidate (cheap; surfaces the blocking trap).
-  await page.evaluate(() => { const b = document.body; if (b) { b.tabIndex = -1; b.focus(); } });
-  const candIds = new Set();
-  let prev = '';
-  for (let i = 0; i < scan.length + 4; i++) {
-    await page.keyboard.press('Tab');
-    await settleMs(page, REFOCUS_SETTLE_MS);
-    const cur = await page.evaluate(activeFocId).catch(() => '');
-    if (cur && cur === prev) candIds.add(cur);
-    prev = cur;
+  //
+  // ADAPTIVE SETTLE (batch-3, instrument-lane residual — same mechanism as the confinement sweep below,
+  // reusing the __frLog focusin recorder just installed): the flat REFOCUS_SETTLE_MS per press made this
+  // scan ~3.2 s of designed idle on an ordinary page. The full window is paid for the calibration presses
+  // and after ANY async focus signal (settled != immediate, or a between-press focusin none of the
+  // adjacent reads saw); the first signal after a short-window press RESTARTS the scan once with the full
+  // window — so an async-refocus page (the very thing this scan hunts) gets the byte-identical old walk,
+  // and only pages that demonstrably never async-refocus get the short window, on which the reads are
+  // identical by construction (a SYNC self-refocus lands before even the immediate read).
+  const scanPress = (winMs) => page.evaluate(async (w) => {
+    const carried = (window.__frLog || []).slice(); window.__frLog = [];
+    const read = () => { const a = document.activeElement; return a && a.getAttribute ? (a.getAttribute('data-v3-foc') || '') : ''; };
+    const t0 = Date.now(); const imm = read(); let cur = imm, changedAt = null;
+    while (Date.now() - t0 < w) {
+      await new Promise((r) => setTimeout(r, 16));
+      const now = read();
+      if (now !== cur) { cur = now; changedAt = (now !== imm) ? Date.now() : null; }
+      else if (changedAt != null && Date.now() - changedAt >= 64) break;
+    }
+    return { imm, cur, carried };
+  }, winMs);
+  let scanAsyncSeen = false;
+  async function scanWalk(forceFull) {
+    await page.evaluate(() => { const b = document.body; if (b) { b.tabIndex = -1; b.focus(); } });
+    await page.evaluate(() => { window.__frLog = []; }).catch(() => null);  // the body.focus() above is ours
+    const ids = new Set();
+    let prevRead = null, prevId = '', usedShort = false;
+    for (let i = 0; i < scan.length + 4; i++) {
+      await page.keyboard.press('Tab');
+      const full = forceFull || scanAsyncSeen || i < CONFINE_CALIBRATION_PRESSES;
+      if (!full) usedShort = true;
+      const r = await scanPress(full ? REFOCUS_SETTLE_MS : CONFINE_SHORT_SETTLE_MS).catch(() => null);
+      const cur = r ? r.cur : '';
+      const carriedForeign = r && prevRead ? r.carried.some((id) => id !== prevRead.imm && id !== prevRead.cur && id !== r.imm && id !== r.cur) : false;
+      if (r && (r.cur !== r.imm || carriedForeign) && !scanAsyncSeen) {
+        scanAsyncSeen = true;
+        if (usedShort) return scanWalk(true);       // short reads are unproven on an async page — rewalk in full
+      }
+      if (cur && cur === prevId) ids.add(cur);
+      prevId = cur; prevRead = r;
+    }
+    return ids;
   }
+  const candIds = await scanWalk(false);
 
   // confirm each candidate bidirectionally (drain pending timers via body between probes).
   const focusBody = () => page.evaluate(() => { const b = document.body; if (b) { b.tabIndex = -1; b.focus(); } });
@@ -600,7 +706,44 @@ async function detectFocusRetentionTraps(page, opts = {}) {
 // candidate (no false NO_BARRIER is ever asserted from here — the caller's other outcomes stand).
 const CONFINE_MULTIPLE = 4;    // a fixed set is "confined" only after Tab cycles through it >= this many times over
 const CONFINE_FLOOR = 16;      // …but never fewer than this many presses (a legit ring must get a fair chance to exit)
+const CONFINE_CALIBRATION_PRESSES = 4; // full-window presses at the head of every sweep before the short window may engage
+const CONFINE_SHORT_SETTLE_MS = 24;    // settle window on a page that has demonstrably shown zero async focus behavior
+                                       // (the window is NOT the guard — the focusin log catches anything that lands
+                                       // after it, at the next press, and triggers the full-window restart)
 const escSettle = REFOCUS_SETTLE_MS; // Escape may trigger an async close/refocus — settle before reading, like the rest
+
+// In-page: install the confinement sweep's focusin log (idempotent — a re-install between sweeps just
+// clears it). NAMED (not an inline closure) so cfPressSettleRead below is the literal function production
+// calls — a test that wants to pin the F11 early-exit fix evaluates the SAME function, never a
+// hand-duplicated copy that could silently drift from what ships.
+function installCfFocusinLog() {
+  if (window.__cfInstalled) { window.__cfLog = []; return; }
+  window.__cfInstalled = true; window.__cfLog = [];
+  document.addEventListener('focusin', (e) => {
+    const t = e.target; window.__cfLog.push((t && t.getAttribute && t.getAttribute('data-v3-foc')) || '');
+  }, true);
+}
+
+// In-page: one press's settle-and-read (see the ONE-ROUND-TRIP ADAPTIVE PRESS SETTLE comment above
+// detectFixedSetConfinementTraps for the full rationale, and the F11 note there for the early-exit fix
+// this function carries). `earlyExitOk` must be true ONLY for a genuine short-window (adaptive,
+// non-full) press — a full-window press always polls its entire `winMs`, so a CHAINED bounce (a first
+// hop that settles and holds >= 64 ms, then a SECOND hop later in the same window) is never truncated
+// away. Exported (module scope, not an inline closure) so it is independently testable.
+async function cfPressSettleRead(winMs, earlyExitOk) {
+  const carried = (window.__cfLog || []).slice(); window.__cfLog = []; // focus events since the LAST read (late bounces land here)
+  const read = () => { const a = document.activeElement; return a && a.getAttribute ? (a.getAttribute('data-v3-foc') || '') : ''; };
+  const t0 = Date.now();
+  const imm = read();
+  let cur = imm, changedAt = null;
+  while (Date.now() - t0 < winMs) {
+    await new Promise((r) => setTimeout(r, 16));
+    const now = read();
+    if (now !== cur) { cur = now; changedAt = (now !== imm) ? Date.now() : null; }
+    else if (earlyExitOk && changedAt != null && Date.now() - changedAt >= 64) break; // the bounce landed and held ⇒ settled
+  }
+  return { imm, cur, carried };
+}
 
 async function detectFixedSetConfinementTraps(page, opts = {}) {
   const focs = await page.evaluate(tagFocusables, FOCUSABLE_SEL).catch(() => []);
@@ -613,18 +756,79 @@ async function detectFixedSetConfinementTraps(page, opts = {}) {
   // forward sweep from <body> with handlers ACTIVE: record the SETTLED active id at each Tab (so an async
   // refocus has landed before we read). Bounded by CONFINE_WINDOW (and REACH_SAFETY_CAP) so a pathological
   // page cannot run away. The visited SEQUENCE is the evidence; the distinct set is the confinement candidate.
+  //
+  // ONE-ROUND-TRIP, ADAPTIVE PRESS SETTLE (batch-3, instrument-lane residual). The old per-press shape was
+  // THREE CDP round-trips (pre-settle read; a driver-side sleep-evaluate of REFOCUS_SETTLE_MS; settled
+  // read), so a region-loop page paid ~36-56 presses x 2 directions x (180 ms designed idle + 3 queued
+  // round-trips) ≈ 19-21 s IDLE in this detector alone — and under corpus concurrency (PAGE_CONC 12) the
+  // queued round-trips stretched that past the 90 s lane cap INSIDE the sweep, so the one-way rows this
+  // sweep itself emits could never land (measured: results/b3-impl-212-post, region-loop 01/02/04/06).
+  //
+  // Two changes, each verdict-preserving:
+  //  1. ONE evaluate per press does all three reads: the IMMEDIATE landing on entry (same pre-settle
+  //     semantics — the transient-reach guard's input), then an in-page poll of the active id every ~16 ms
+  //     across the settle window. Early exit only PAST-THE-BOUNCE: an async refocus was OBSERVED to land
+  //     and then hold stable >= 64 ms (a chained rAF/timer hop keeps resetting the clock — the 140→180
+  //     margin note above still holds; "hasn't bounced yet" never exits early). SOUNDNESS FIX F11 (batch-3
+  //     adversarial review round 2): that early exit is a SHORT-WINDOW-ONLY optimisation — it must never
+  //     fire on a FULL-window read. A full window is what "hold stable >= 64 ms" was tuned against in the
+  //     first place (a single bounce settling well inside 180 ms), but a CHAINED bounce — the first hop
+  //     settles, holds >= 64 ms, and only THEN a second hop fires later in the same window — is exactly
+  //     what the early exit would truncate away on a full read, and `opts.adaptiveSettle: false` promises
+  //     "the exact old timing envelope" (unconditional full-window wait, no early exit at all) below. Both
+  //     were false before this fix: every press, adaptive or not, could exit the instant ONE bounce settled,
+  //     so a full-window press silently stopped reading before its window elapsed and a second, later hop
+  //     read as if it never happened. `allowEarlyExit` is threaded from the caller and is true ONLY for a
+  //     genuine short-window (adaptive, non-full) press — never for a full-window one, whatever the reason
+  //     it needed the full window (calibration / async-seen / forceFull / `adaptiveSettle: false`).
+  //  2. ADAPTIVE WINDOW behind an event-driven guard. The full window exists to catch an ASYNC refocus —
+  //     but every press on a page that has shown ZERO async focus behavior reads the same id at 48 ms as
+  //     at 180 ms, so the full window is paid only while the page might still be an async page: the first
+  //     CONFINE_CALIBRATION_PRESSES presses of each sweep, and every press after ANY async signal. The
+  //     guard is a capture-phase focusin LOG (event-driven, so a bounce landing BETWEEN presses — the one
+  //     shape sampling could miss — is never lost): each press returns the ids that fired since the last
+  //     read, and an id outside that press's {immediate, settled} pair, or any settled≠immediate read, is
+  //     the async signal. On the FIRST signal after a short-window press was used, the CURRENT sweep is
+  //     RESTARTED ONCE with the full window — so any page with observable async focus behavior gets the
+  //     byte-identical old sweep, and only pages that demonstrably never async-refocus get the short
+  //     window (on which the reads are identical by construction). `opts.refocusSettleMs` remains the
+  //     caller's bounded full-window override (run-instruments' lane-budget knob); `opts.adaptiveSettle:
+  //     false` forces the full window on every press (the exact old timing envelope).
+  const settleWindowMs = Number.isFinite(opts.refocusSettleMs) ? opts.refocusSettleMs : REFOCUS_SETTLE_MS;
+  const adaptive = opts.adaptiveSettle !== false;
+  await page.evaluate(installCfFocusinLog).catch(() => null);
+  const pressSettleRead = (windowMs, allowEarlyExit) => page.evaluate(cfPressSettleRead, windowMs, allowEarlyExit === true);
   const window = Math.min(cap, Math.max(CONFINE_FLOOR, total * CONFINE_MULTIPLE));
-  async function sweep(backward, budget) {
+  let asyncSeen = false;                             // page-level: any async focus signal anywhere so far
+  async function sweep(backward, budget, forceFull) {
     await page.evaluate(() => { const b = document.body; if (b) { b.tabIndex = -1; b.focus(); } }).catch(() => null);
+    await page.evaluate(() => { window.__cfLog = []; }).catch(() => null); // the body.focus() above is ours, not the page's
     const seq = [], imm = [];
+    let usedShort = false, prev = null;
     for (let i = 0; i < budget; i++) {
       if (backward) { await page.keyboard.down('Shift'); await page.keyboard.press('Tab'); await page.keyboard.up('Shift'); }
       else { await page.keyboard.press('Tab'); }
-      const i0 = await page.evaluate(activeFocId).catch(() => null); // PRE-settle read: where the browser landed BEFORE any async refocus bounces it
-      await settleMs(page, REFOCUS_SETTLE_MS);
-      const cur = await page.evaluate(activeFocId).catch(() => null);
-      if (cur === null) return null;                 // probe failed mid-sweep ⇒ fail-closed (abandon candidate)
-      seq.push(cur); imm.push(i0);
+      const full = !adaptive || forceFull || asyncSeen || i < CONFINE_CALIBRATION_PRESSES;
+      // F11: early exit is permitted ONLY on the genuine short-window path (adaptive AND not full) — a
+      // full-window press (whatever made it full) always polls its entire window.
+      const r = await pressSettleRead(full ? settleWindowMs : CONFINE_SHORT_SETTLE_MS, !full).catch(() => null);
+      if (!r) return null;                           // probe failed mid-sweep ⇒ fail-closed (abandon candidate)
+      if (!full) usedShort = true;
+      // async signal: a settled id that differs from the immediate landing, or a focus event between reads
+      // whose id belongs to NEITHER of the previous press's reads NOR this press's own (the drained log
+      // naturally contains THIS press's landing focusin — that is the Tab itself, not an async event; a
+      // genuine between-press bounce is an id none of the four reads saw).
+      const carriedForeign = prev ? r.carried.some((id) => id !== prev.imm && id !== prev.cur && id !== r.imm && id !== r.cur) : false;
+      if (r.cur !== r.imm || carriedForeign) {
+        if (!asyncSeen) {
+          asyncSeen = true;
+          // a short-window read may already sit in seq — those reads are only PROVEN equal to the old
+          // shape's on never-async pages, which this page just stopped being: rewalk this sweep in full.
+          if (usedShort) return sweep(backward, budget, true);
+        }
+      }
+      prev = r;
+      seq.push(r.cur); imm.push(r.imm);
     }
     return { seq, imm };
   }
@@ -782,6 +986,28 @@ async function detectFixedSetConfinementTraps(page, opts = {}) {
   };
 }
 
+// In-page: one candidate's focus-rejection probe (see detectFocusRejection below for the full rationale).
+// NAMED (not an inline closure) so it is independently testable — a test can drive the exact function
+// production calls, never a hand-duplicated copy. `gap` is the F14 (soundness review round 2) fix: a
+// settle BETWEEN body.focus() and el.focus(), so a still-pending timer left over from a PREVIOUSLY probed
+// candidate (page-JS timers are not cancelled just because probeOnce moved on to a fresh evaluate call —
+// they persist across calls in the same document) gets a chance to fire and resolve harmlessly while body
+// (not this candidate) holds focus, rather than landing DURING this candidate's own measurement window and
+// reading as this candidate's own rejection.
+async function focusRejectionProbeOnce(i, w, gap) {
+  const b = document.body; if (b) { b.tabIndex = -1; b.focus(); }
+  if (gap > 0) await new Promise((r) => setTimeout(r, gap));
+  const el = document.querySelector(`[data-v3-foc="${i}"]`);
+  if (!el) return null;
+  if (el.disabled || el.getAttribute('aria-disabled') === 'true') return { skip: true };
+  const inlineHandler = !!(el.getAttribute('onfocus') || el.getAttribute('onblur') || el.getAttribute('onfocusout'));
+  window.__fojLog = [];                              // our own focusBody/focus churn is not a signal
+  el.focus();
+  await new Promise((r) => setTimeout(r, w));        // let a same-tick async blur land (setTimeout F55)
+  const lateBlur = (window.__fojLog || []).includes(i); // el lost focus at some point during the wait
+  return { skip: false, inlineHandler, lateBlur, took: document.activeElement === el || el.contains(document.activeElement), onBody: document.activeElement === document.body };
+}
+
 // F55 (coverage #15): the INVERSE of a self-refocus trap — an element that REMOVES its own focus the
 // instant it receives it (onfocus="this.blur()", or a script that blurs on focus). It "reads as
 // non-focusable": focus() never rests on it and focus lands back on <body>, so a keyboard user can never
@@ -794,34 +1020,44 @@ async function detectFocusRejection(page, opts = {}) {
   const focs = await page.evaluate(tagFocusables, FOCUSABLE_SEL).catch(() => []);
   if (!Array.isArray(focs) || !focs.length) return { rejections: [], focusableCount: (focs || []).length };
   const scan = focs.slice(0, RETENTION_CAP);
-  const focusBody = () => page.evaluate(() => { const b = document.body; if (b) { b.tabIndex = -1; b.focus(); } });
-  const tryFocus = (id) => page.evaluate((i) => {
-    const el = document.querySelector(`[data-v3-foc="${i}"]`);
-    if (!el) return null;
-    if (el.disabled || el.getAttribute('aria-disabled') === 'true') return { skip: true };
-    const inlineHandler = !!(el.getAttribute('onfocus') || el.getAttribute('onblur') || el.getAttribute('onfocusout'));
-    el.focus();
-    return { skip: false, inlineHandler };
-  }, id).catch(() => null);
-  const readFocus = (id) => page.evaluate((i) => {
-    const el = document.querySelector(`[data-v3-foc="${i}"]`);
-    if (!el) return null;
-    return { took: document.activeElement === el || el.contains(document.activeElement), onBody: document.activeElement === document.body };
-  }, id).catch(() => null);
+  // ONE round-trip per attempt, SHORT-WINDOW TRIAGE + EVENT-GUARDED full-window confirm (batch-3,
+  // instrument-lane residual). The old shape paid focusBody + focus + a flat REFOCUS_SETTLE_MS + read as
+  // FOUR CDP round-trips per candidate (~2.4 s idle on an ordinary page; x lane concurrency). The wait
+  // exists for ONE reason — an async F55 blur (setTimeout) landing after the read — and an async blur is
+  // an EVENT: a capture-phase focusout recorder sees it WHENEVER it fires, so the triage read can be
+  // short. Every candidate whose short read looks rejected, AND every candidate the recorder later shows
+  // a focusout for (the async blur the short read raced), is re-probed with the FULL window and the
+  // original two-attempt confirmation — so nothing is ever FLAGGED off a short read, and nothing async
+  // is MISSED by one: the flag path is byte-identical to the old detector's.
+  await page.evaluate(() => {
+    if (window.__fojInstalled) { window.__fojLog = []; return; }
+    window.__fojInstalled = true; window.__fojLog = [];
+    document.addEventListener('focusout', (e) => {
+      const t = e.target; window.__fojLog.push((t && t.getAttribute && t.getAttribute('data-v3-foc')) || '');
+    }, true);
+  }).catch(() => null);
+  const probeOnce = (id, winMs, interCandidateSettleMs) => page.evaluate(focusRejectionProbeOnce, id, winMs,
+    Number.isFinite(interCandidateSettleMs) ? interCandidateSettleMs : CONFINE_SHORT_SETTLE_MS).catch(() => null);
   const rejections = [];
+  const confirmFull = async (f, inlineHandler) => {
+    const s1 = await probeOnce(f.id, REFOCUS_SETTLE_MS);
+    if (!s1 || s1.skip || s1.took || !s1.onBody) return;
+    const s2 = await probeOnce(f.id, REFOCUS_SETTLE_MS);   // confirm with a second independent attempt
+    if (s2 && !s2.skip && !s2.took && s2.onBody) rejections.push({ sc: '2.1.1', xpath: f.xpath, tag: f.tag, label: f.label, inlineHandler: !!(inlineHandler != null ? inlineHandler : s1.inlineHandler) });
+  };
+  const suspects = [];
   for (const f of scan) {
-    await focusBody();
-    const a = await tryFocus(f.id);
-    if (!a || a.skip) continue;
-    await settleMs(page, REFOCUS_SETTLE_MS);          // let a same-tick async blur land (setTimeout F55)
-    const s1 = await readFocus(f.id);
-    if (!s1 || s1.took || !s1.onBody) continue;       // rests on element ⇒ fine; landed elsewhere ⇒ redirect, not F55
-    await focusBody();                                 // confirm with a second independent attempt
-    await tryFocus(f.id);
-    await settleMs(page, REFOCUS_SETTLE_MS);
-    const s2 = await readFocus(f.id);
-    if (s2 && !s2.took && s2.onBody) rejections.push({ sc: '2.1.1', xpath: f.xpath, tag: f.tag, label: f.label, inlineHandler: !!a.inlineHandler });
+    const q = await probeOnce(f.id, CONFINE_SHORT_SETTLE_MS);
+    if (!q || q.skip) continue;
+    // suspect = quick read already shows the rejection, OR the element demonstrably lost focus during
+    // the short wait (sync-blur-then-async-refocus shapes), OR it carries an inline focus handler (the
+    // static F55 tell — cheap to be generous, the full confirm still decides).
+    if ((!q.took && q.onBody) || q.lateBlur || q.inlineHandler) suspects.push({ f, inlineHandler: q.inlineHandler });
   }
+  // one final drain: an async blur from the LAST candidates may land after their loop iteration.
+  const lateIds = await page.evaluate(() => { const l = (window.__fojLog || []).slice(); window.__fojLog = []; return l; }).catch(() => []);
+  for (const f of scan) if (lateIds.includes(f.id) && !suspects.some((s) => s.f.id === f.id)) suspects.push({ f, inlineHandler: null });
+  for (const s of suspects) await confirmFull(s.f, s.inlineHandler);
   return { rejections, focusableCount: focs.length, coverageTruncated: focs.length > RETENTION_CAP };
 }
 
@@ -1018,12 +1254,30 @@ async function collectRevealedFocusOrder(page, url, opts = {}) {
   const hiddenRegions = await page.evaluate(tagHiddenRegionsInPage, FOCUSABLE_SEL, false).catch(() => 0);
   progress.hiddenRegions = hiddenRegions;
   if (!hiddenRegions) return { states: [], openers: 0, hiddenRegions: 0 };
-  // DECLARED-INTENT openers only. findRevealOpeners' rank 3 is "any other safe button" — good enough to
-  // speculatively hunt for a trap (where a false candidate simply finds nothing), but not good enough to
-  // ground a 2.4.3 evidence claim, because clicking an arbitrary button and reading the ring difference is
-  // exactly the shape that would manufacture one. Ranks 0-2 are aria-haspopup / aria-expanded=false /
-  // aria-controls-at-a-hidden-target / a reveal verb in the name.
-  const openers = (await findRevealOpeners(page, 8)).filter((o) => o && o.rank <= 2).slice(0, maxOpeners);
+  // DECLARED-INTENT openers first. findRevealOpeners' rank 3 is "any other safe button" — good enough to
+  // speculatively hunt for a trap (where a false candidate simply finds nothing), but not, ON ITS OWN,
+  // good enough to ground a 2.4.3 evidence claim, because clicking an arbitrary button and reading the
+  // ring difference is exactly the shape that would manufacture one. Ranks 0-2 are aria-haspopup /
+  // aria-expanded=false / aria-controls-at-a-hidden-target / a reveal verb in the name.
+  //
+  // #10 (batch-3 RCA): RANK-3 ADMISSION behind a structural gate. The measured corpus shape this pass
+  // starved on: a list of plain "Remove"/"Refill" action buttons (no ARIA declaration, no verb-list name)
+  // each opening a hidden aria-modal confirm dialog — openersFound: 0, and every reveal-order fact the
+  // clause lanes feed on never existed. The gate is the same fact detectTrapsAfterReveal already blesses
+  // rank-3 clicking with: the page demonstrably CONTAINS a closed DIALOG-shaped region holding >= 2
+  // focusables ("is there a closed dialog on this page" is a fact, not a guess about button names). A
+  // false candidate still manufactures nothing — guard 1 below requires the new stops to come from a
+  // formerly-HIDDEN region before any claim, and a click that reveals nothing yields no state at all.
+  const hiddenDialogShaped = await page.evaluate((focSel) => {
+    for (const reg of document.querySelectorAll('dialog,[role="dialog"],[role="alertdialog"],[aria-modal="true"]')) {
+      const hidden = reg.offsetParent === null || reg.hidden || getComputedStyle(reg).visibility === 'hidden'
+        || (reg.tagName === 'DIALOG' && !reg.hasAttribute('open'));
+      if (!hidden) continue;
+      if (reg.querySelectorAll(focSel).length >= 2) return true;
+    }
+    return false;
+  }, FOCUSABLE_SEL).catch(() => false);
+  const openers = (await findRevealOpeners(page, 8)).filter((o) => o && (o.rank <= 2 || hiddenDialogShaped)).slice(0, maxOpeners);
   progress.openersFound = openers.length;
   if (!openers.length) return { states: [], openers: 0, hiddenRegions };
 
@@ -1088,6 +1342,19 @@ async function collectRevealedFocusOrder(page, url, opts = {}) {
       const newStops = openedXpaths.map((x, i) => ({ x, i })).filter((s) => !restSet.has(s.x));
       const openerIndex = openedXpaths.indexOf(afterOpen.openerXpathNow || op.xpath);
       const firstNewStopIndex = newStops.length ? newStops[0].i : -1;
+      // #10 (batch-3 RCA): OPENED-RING CONTAINMENT aggregate. The walk above just recorded the per-stop
+      // modal-containment facts (modalOpen / insideOpenModal) for the OPENED state — the state clause C is
+      // actually about — and then this function reduced the ring to bare xpaths, dropping them. Keep them,
+      // aggregated: with a modal rendered open, every stop still tabbable OUTSIDE it is a containment
+      // leak. A FACT on the state (the rubric's clause-C gate opens on it), never a finding on its own.
+      const modalStops = (opened.order || []).filter((s) => s && s.modalOpen === true);
+      const leakedStops = modalStops.filter((s) => s.insideOpenModal !== true);
+      const containmentLeak = modalStops.length ? {
+        modalXpath: (modalStops.find((s) => s.modalXpath) || {}).modalXpath || null,
+        openedStops: openedXpaths.length,
+        leakedStops: leakedStops.length,
+        leakedSample: leakedStops.slice(0, 6).map((s) => ({ xpath: s.xpath, label: s.label || null })),
+      } : null;
 
       // GUARD 1: the first new stop must live inside a region that was HIDDEN at rest and is visible now.
       const region = newStops.length ? await page.evaluate((xp) => {
@@ -1125,6 +1392,9 @@ async function collectRevealedFocusOrder(page, url, opts = {}) {
         focusMovedIntoRevealed: null,
         focusAfterOpen: afterOpen.focusXpath || null,
         newStopLabels: newStops.slice(0, 6).map((s) => (opened.order[s.i] || {}).label || null),
+        // #10: null when no modal was rendered open during the opened-state walk (leakedStops: 0 with a
+        // modal open is itself evidence — a fully contained modal).
+        containmentLeak,
       };
       if (region) {
         st.focusMovedIntoRevealed = await page.evaluate(() => {
@@ -1512,4 +1782,10 @@ async function detectEmbeddedFormatTraps(page, opts = {}) {
   return { traps, directional, boundaries: boundaries.length };
 }
 
-module.exports = { collectTabOrder, tabOrderFindings, redundantStopFacts, detectKeyboardTraps, detectFocusRetentionTraps, detectFixedSetConfinementTraps, detectFocusRejection, detectFocusRestsInAriaHidden, findRevealOpeners, collectRevealedFocusOrder, detectTrapsAfterReveal, detectEmbeddedFormatTraps, REACH_SAFETY_CAP, REFOCUS_SETTLE_MS, TRAP_REGION_SEL, FOCUSABLE_SEL, OPENER_VERB_RE, REVEAL_MARKER_SEL };
+module.exports = { collectTabOrder, tabOrderFindings, redundantStopFacts, detectKeyboardTraps, detectFocusRetentionTraps, detectFixedSetConfinementTraps, detectFocusRejection, detectFocusRestsInAriaHidden, findRevealOpeners, collectRevealedFocusOrder, detectTrapsAfterReveal, detectEmbeddedFormatTraps, REACH_SAFETY_CAP, REFOCUS_SETTLE_MS, TRAP_REGION_SEL, FOCUSABLE_SEL, OPENER_VERB_RE, REVEAL_MARKER_SEL,
+  // F11 (soundness review round 2): the confinement sweep's in-page settle-read primitive + its focusin-log
+  // installer + the tagger it reads `data-v3-foc` from, exported so a test can pin the early-exit fix by
+  // calling the LITERAL function production runs, never a hand-duplicated copy.
+  cfPressSettleRead, installCfFocusinLog, tagFocusables,
+  // F14 (soundness review round 2): the focus-rejection probe primitive, exported for the same reason.
+  focusRejectionProbeOnce };

@@ -9,7 +9,7 @@
 // keyboard traps (2.1.2), and VSR navigation traps. All were adversarially hardened for soundness.
 const { collectVsrTranscript } = require('./vsr-collect.js');
 const { analyzeTranscript } = require('./vsr-analysis.js');
-const { collectTabOrder, tabOrderFindings, redundantStopFacts, collectRevealedFocusOrder, detectKeyboardTraps, detectFocusRetentionTraps, detectFixedSetConfinementTraps, detectFocusRejection, detectFocusRestsInAriaHidden, detectEmbeddedFormatTraps } = require('./kbd-graph.js');
+const { collectTabOrder, tabOrderFindings, redundantStopFacts, collectRevealedFocusOrder, detectKeyboardTraps, detectFocusRetentionTraps, detectFixedSetConfinementTraps, detectFocusRejection, detectFocusRestsInAriaHidden, detectEmbeddedFormatTraps, FOCUSABLE_SEL, TRAP_REGION_SEL } = require('./kbd-graph.js');
 const { vsrNavigationIntegrity } = require('./vsr-graph.js');
 const { detectStatusMessages } = require('./status-detector.js');
 
@@ -57,17 +57,47 @@ async function restoreLoadedPage(page, opts, installAriaNotifySpy) {
 // birth, when it first received content, and when (if ever) it was removed.
 function liveRegionBirthInit() {
   if (window.__v3LiveBirth) return;
-  // `harnessActiveAtMs` is the HARNESS-INTERACTION BOUNDARY (soundness probe 2026-08-17): the lane stamps
-  // it (earliest wins — see markLiveBirthHarnessActive) just before its first click-driving pass, so a
-  // birth recorded after the stamp is attributable to the harness's own activity, not to the page. Without
-  // it, a toast mounted by the status sweep's OWN click was recorded as a spontaneous post-load birth and
-  // reviewed as "appeared with no user action at all" — a fabricated 4.1.3 signal.
-  const rec = { regions: [], truncated: false, loadAtMs: null, harnessActiveAtMs: null };
+  // `harnessActiveAtMs` is the HARNESS-INTERACTION BOUNDARY: a birth recorded after it is attributable to
+  // the harness's own activity, not to the page. Without it, a toast mounted by the status sweep's OWN
+  // click was recorded as a spontaneous post-load birth and reviewed as "appeared with no user action at
+  // all" — a fabricated 4.1.3 signal.
+  //
+  // LAZY STAMP (soundness review F7, 2026-08-17): this used to be an EAGER out-of-page stamp fired just
+  // before a click-driving block STARTED — which tagged every birth from that moment on as harness-caused
+  // even when the block spent its whole run (the fixed-set confinement sweep alone measures ~20s) merely
+  // SCANNING before it clicked anything, or never clicked anything at all (no candidate region on the
+  // page). A spontaneous birth in that dead-air window was misattributed and its 4.1.3 evidence silently
+  // suppressed (birthFindingsFrom / autoUpdateCadenceFrom both key off harnessActiveAtMs). The boundary is
+  // now set IN-PAGE, by the FIRST REAL click/keydown/input the watch observes once armed — never merely
+  // because a block started running. `window.__v3ArmHarnessWatch()` (called by markLiveBirthHarnessActive,
+  // immediately before each click-driving block — trap block / reveal-state pass / status sweep) only
+  // starts listening from the moment it is called, so Tab presses from the earlier READ-ONLY VSR/tab-order
+  // walk are never caught — exactly the "not before the block runs" the review asked for.
+  //
+  // `interactionCount` is monotonic and never reset by arming (only a navigation, which recreates this
+  // whole recorder, resets it). Sampling it at two points and comparing lets a caller PROVE "no harness
+  // interaction happened in this window" — the late-arrival re-pass (batch-3 #24 / soundness review F1)
+  // uses exactly that to decide whether new content can honestly be called the PAGE's own doing rather
+  // than an echo of the harness's own click.
+  const rec = { regions: [], truncated: false, loadAtMs: null, harnessActiveAtMs: null, interactionCount: 0 };
   window.__v3LiveBirth = rec;
   const MAX = 40;
   const LIVE = '[aria-live],[role="status"],[role="alert"],[role="log"],[role="alertdialog"],output';
   const norm = (s) => (s || '').replace(/\s+/g, ' ').trim();
   const now = () => Math.round(performance.now());
+  const stampInteraction = () => {
+    if (rec.harnessActiveAtMs == null) rec.harnessActiveAtMs = now();
+    rec.interactionCount++;
+  };
+  window.__v3ArmHarnessWatch = () => {
+    if (rec.__armed) return;
+    rec.__armed = true;
+    // capture phase: fires before any in-page handler the click/keypress/input itself triggers, so the
+    // stamp always precedes whatever content change the interaction goes on to cause.
+    document.addEventListener('click', stampInteraction, true);
+    document.addEventListener('keydown', stampInteraction, true);
+    document.addEventListener('input', stampInteraction, true);
+  };
   const xp = (e) => {
     try {
       if (!e || !e.tagName) return '';
@@ -91,6 +121,14 @@ function liveRegionBirthInit() {
       mountedAfterLoad: document.readyState === 'complete',
       emptyAtBirth: text.length === 0, textAtBirth: text.slice(0, 80),
       firstContentAtMs: text.length ? now() : null, removedAtMs: null,
+      // batch-3 #35 (removal-of-status case-02): the SILENT-EMPTY transition. A region that carried a
+      // message and then went empty told the user nothing — and before these fields the artifact could not
+      // even represent it: a healthy-looking birth was all the rubric ever saw. `lastContentText`/`AtMs`
+      // track the most recent NON-EMPTY text (clipped like textAtBirth); `emptiedAtMs` stamps the FIRST
+      // non-empty→empty transition and is never moved by a later refill/re-empty.
+      emptiedAtMs: null,
+      lastContentText: text.length ? text.slice(0, 80) : null,
+      lastContentAtMs: text.length ? now() : null,
     };
     // birth AFTER the harness started clicking ⇒ attributed to the harness, never to the page. The entry
     // stays in the artifact (tagged) so the evidence is complete; birthFindingsFrom emits no row for it.
@@ -128,9 +166,25 @@ function liveRegionBirthInit() {
         try {
           const r = host && host.closest ? host.closest(LIVE) : null;
           const en = r && r.__v3BirthEntry;
-          if (en && en.firstContentAtMs == null) {
+          if (en) {
             const t2 = norm(r.textContent);
-            if (t2) { en.firstContentAtMs = now(); en.firstContentText = t2.slice(0, 80); }
+            if (t2) {
+              if (en.firstContentAtMs == null) { en.firstContentAtMs = now(); en.firstContentText = t2.slice(0, 80); }
+              // batch-3 #35 last-content transition + #37 bounded change trace. The clipped compare (80
+              // chars, same clip textAtBirth uses) is deliberate: tickers and status lines change within
+              // their first line. `contentChangesAtMs` is the raw material the auto-update CADENCE
+              // derivation reads (autoUpdateCadenceFrom) — capped, truncation reported, and each stamp is
+              // attributable against harnessActiveAtMs (a change after the boundary is the lane's own click).
+              const clipped = t2.slice(0, 80);
+              if (clipped !== en.lastContentText) {
+                en.lastContentText = clipped; en.lastContentAtMs = now();
+                if (!en.contentChangesAtMs) en.contentChangesAtMs = [];
+                if (en.contentChangesAtMs.length < 12) en.contentChangesAtMs.push(now());
+                else en.contentChangesTruncated = true;
+              }
+            } else if (en.lastContentText != null && en.emptiedAtMs == null) {
+              en.emptiedAtMs = now(); // batch-3 #35: the region SILENTLY EMPTIED (first such transition)
+            }
           }
         } catch (err) {}
       }
@@ -149,17 +203,28 @@ async function installLiveRegionBirthObserver(page) {
   try { return await page.evaluateOnNewDocument(liveRegionBirthInit); } catch (e) { return null; }
 }
 
-// Stamp the HARNESS-INTERACTION BOUNDARY into the CURRENT document's recorder — earliest wins, so calling
-// it before every click-driving pass costs nothing and never moves an already-set mark. The lane calls it
-// immediately before the reveal-state focus pass activates an opener and immediately before the 4.1.3
-// status sweep starts clicking triggers; a navigation wipes the mark WITH the recorder, which is correct
-// (a freshly loaded document has seen no interaction yet, so its spontaneous births are genuine).
-// Never throws; a page without the recorder is a no-op.
+// ARM the HARNESS-INTERACTION watch on the CURRENT document's recorder (soundness review F7). Idempotent
+// — calling it before every click-driving pass costs nothing once armed. The lane calls it immediately
+// before the at-rest trap block, the reveal-state focus pass, and the 4.1.3 status sweep; a navigation
+// wipes the recorder (and the arm flag) entirely, which is correct — a freshly loaded document has seen no
+// interaction yet, so its spontaneous births are genuine. This no longer stamps the boundary itself: the
+// boundary is set lazily, in-page, by the first real click/keydown/input the armed watch observes (see
+// liveRegionBirthInit). Never throws; a page without the recorder is a no-op.
 async function markLiveBirthHarnessActive(page) {
   await page.evaluate(() => {
-    const rec = window.__v3LiveBirth;
-    if (rec && rec.harnessActiveAtMs == null) rec.harnessActiveAtMs = Math.round(performance.now());
+    if (typeof window.__v3ArmHarnessWatch === 'function') window.__v3ArmHarnessWatch();
   }).catch(() => {});
+}
+
+// Read the recorder's monotonic interaction counter (soundness review F1/F7) — never reset by arming or
+// by re-arming, only by a navigation (which recreates the whole recorder). A caller samples this at two
+// points; an unchanged count PROVES no click/keydown/input landed on the page in between. Null when the
+// recorder was never installed (fails closed: "cannot prove" rather than a fabricated 0).
+async function readHarnessInteractionCount(page) {
+  return page.evaluate(() => {
+    const rec = window.__v3LiveBirth;
+    return rec ? (Number.isFinite(rec.interactionCount) ? rec.interactionCount : 0) : null;
+  }).catch(() => null);
 }
 
 // Read the recorder's state. Null when the recorder was never installed (a bare runInstruments() on an
@@ -216,6 +281,36 @@ function birthFindingsFrom(births) {
   return rows;
 }
 
+// ── AUTO-UPDATE CADENCE (batch-3 #37, wrong-live-region-politeness case-02) ───────────────────────────
+// Derive, from the birth recorder's bounded content-change trace, which live regions update THEMSELVES on a
+// cadence — the fact the 4.1.3 politeness question turns on (an assertive region interrupting every N
+// seconds, or a polite one hiding urgent updates). Zero extra wall-clock: the document-start observer was
+// already watching; this only reads its stamps. SPONTANEOUS only — changes at/after the harness-interaction
+// boundary are the lane's own clicks and never count. ≥3 spontaneous changes ⇒ ≥2 intervals ⇒ a cadence.
+// Pure — exported for unit tests. EVIDENCE artifact on the instruments result; prompt threading is the
+// (lead-applied) orchestrator/adjudicator hunk, same two-step as statusTimelines.
+function autoUpdateCadenceFrom(births) {
+  const rows = [];
+  if (!births || !Array.isArray(births.regions)) return rows;
+  const boundary = Number.isFinite(births.harnessActiveAtMs) ? births.harnessActiveAtMs : null;
+  for (const r of births.regions) {
+    if (rows.length >= 6) break;
+    const ts = (Array.isArray(r.contentChangesAtMs) ? r.contentChangesAtMs : [])
+      .filter((t) => Number.isFinite(t) && (boundary == null || t < boundary));
+    if (ts.length < 3) continue;
+    const iv = [];
+    for (let i = 1; i < ts.length; i++) iv.push(ts[i] - ts[i - 1]);
+    iv.sort((a, b) => a - b);
+    rows.push({
+      xpath: r.xpath || null, role: r.role || null, ariaLive: r.ariaLive || null,
+      updateCount: ts.length, spanMs: ts[ts.length - 1] - ts[0],
+      medianIntervalMs: iv[Math.floor(iv.length / 2)],
+      ...(r.contentChangesTruncated === true ? { truncated: true } : {}),
+    });
+  }
+  return rows;
+}
+
 // Flatten the detector's per-trigger colour deltas into the ONE instrument fact the use-of-color lane will
 // be routed (each delta stamped with the trigger that produced it). Pure — exported for unit tests.
 function colourDeltasFrom(statusTimelines) {
@@ -226,6 +321,86 @@ function colourDeltasFrom(statusTimelines) {
     }
   }
   return out;
+}
+
+// ── AT-REST TRAP ROWS (batch-3 #11) — the ONE place the three at-rest trap detectors' outputs become
+// finding rows, so the at-rest lane and the late-arrival re-pass (#24) can never drift apart. Pure —
+// exported for unit tests. Row shapes and detail strings are byte-identical to the pre-hoist inline code.
+function trapFindingRowsFrom(traps, selfTraps, confine) {
+  const rows = [];
+  if (traps) {
+    for (const t of (traps.traps || [])) rows.push({ sc: t.sc, kind: 'keyboard-trap', xpath: t.regionXpath, detail: 'confirmed keyboard trap: focus cannot escape by Tab, Shift+Tab, Esc, or a Close control' });
+    for (const t of (traps.directionalTraps || [])) rows.push({ sc: t.sc, kind: 'keyboard-trap-directional', xpath: t.regionXpath, detail: 'one-way keyboard trap: focus escapes in only one Tab direction', review: true });
+  }
+  if (selfTraps) {
+    for (const t of (selfTraps.traps || [])) rows.push({ sc: t.sc, kind: 'keyboard-trap-self-refocus', xpath: t.xpath, detail: 'confirmed keyboard trap: this focusable re-grabs its own focus on blur, so Tab and Shift+Tab cannot move focus off it' });
+  }
+  if (confine) {
+    for (const t of (confine.traps || [])) {
+      const members = (Array.isArray(t.memberXpaths) && t.memberXpaths.length) ? t.memberXpaths : [t.xpath];
+      const seen = new Set();
+      for (const xpath of members) {
+        if (!xpath || seen.has(xpath)) continue; seen.add(xpath);
+        rows.push({ sc: t.sc, kind: 'keyboard-trap-confinement', detector: 'confinement', review: !t.lyingAdvisory, xpath, memberXpaths: t.memberXpaths, setSize: t.setSize, detail: t.lyingAdvisory
+          ? `confirmed keyboard trap: focus is confined to a fixed set of ${t.setSize} element(s) and cannot leave by Tab, Shift+Tab, or Escape, AND the page's documented escape key does NOT free focus (a lying advisory) — a 2.1.2 barrier.`
+          : `focus is confined to a fixed set of ${t.setSize} element(s) and cannot leave by Tab, Shift+Tab, or Escape. A 2.1.2 barrier UNLESS the user is told how to exit (a non-standard key, possibly behind a help control) AND that key works — verify by revealing instructions and pressing the key.` });
+      }
+    }
+    for (const t of (confine.onewayTraps || [])) {
+      const members = (Array.isArray(t.memberXpaths) && t.memberXpaths.length) ? t.memberXpaths : [t.xpath];
+      const seenOw = new Set();
+      for (const xpath of members) {
+        if (!xpath || seenOw.has(xpath)) continue; seenOw.add(xpath);
+        rows.push({ sc: t.sc, kind: 'keyboard-trap-oneway', detector: 'confinement', review: true, xpath,
+          memberXpaths: t.memberXpaths, setSize: t.setSize, direction: t.direction || 'forward',
+          unreached: Array.isArray(t.unreached) ? t.unreached : [], unreachedCount: t.unreachedCount,
+          detail: `focus is confined to a fixed set of ${t.setSize} element(s) in the ${t.direction || 'forward'} Tab direction only: ${t.unreachedCount} rendered focusable(s) outside the set are never reached in that direction, though focus escapes the other way. A 2.1.2 barrier UNLESS the section genuinely requires input or interaction — completable by keyboard — before allowing focus to progress, or a documented exit key works; the keyboard-trap rubric decides which.` });
+      }
+    }
+  }
+  return rows;
+}
+
+// ── RENDERED-FOCUSABLE SNAPSHOT (batch-3 #24) — the walk-time and lane-end reads whose difference gates
+// the late-arrival re-pass. Same rendered/tab-reachable predicate kbd-graph's tagFocusables applies
+// (tabindex<0 out, display:none out), returned as positional xpaths so two documents of the same URL
+// compare exactly. Bounded; null when the page cannot be asked (fail-closed: no re-pass).
+//
+// SOUNDNESS FIX F12 (batch-3 adversarial review round 2): the hidden predicate here (offsetParent-only)
+// disagreed with the OTHER hidden check this same late-arrival machinery uses (`hasHiddenTrapRegion`
+// below, which also reads `visibility`) — and BOTH missed `opacity:0`. `offsetParent` tracks LAYOUT
+// (display:none / detached), not PAINT: a `visibility:hidden` or `opacity:0` element still occupies box
+// space and keeps a non-null offsetParent, so it was already counted as "rendered" at walk time despite
+// being invisible to everyone. The practical cost: a page whose self-opening content is a VISIBILITY FLIP
+// (a panel that starts `visibility:hidden`, not `display:none`, and later flips to `visibility:visible` —
+// or an `opacity:0`-to-`1` reveal) never registered as growth at all, because its xpath was in the walk-time
+// snapshot from the very first read — the diff this function exists to compute saw no new xpath, ever.
+// Unify on the STRICTER predicate: also exclude `visibility:hidden`/`collapse` and `opacity:0`, so a stop
+// genuinely invisible at walk time is absent from the baseline and its later reveal reads as real growth.
+async function renderedFocusableXpaths(page, cap = 400) {
+  return page.evaluate((focSel, cap2) => {
+    const getXPath = (e) => {
+      if (!e || !e.tagName) return '';
+      if (e === document.body) return '/html/body';
+      const ns = e.namespaceURI; const isHtml = !ns || ns === 'http://www.w3.org/1999/xhtml';
+      const t = isHtml ? e.tagName.toLowerCase() : e.tagName;
+      let i = 1, s = e.previousElementSibling;
+      while (s) { if (s.tagName === e.tagName) i++; s = s.previousElementSibling; }
+      return getXPath(e.parentElement) + (isHtml ? '/' + t + '[' + i + ']' : "/*[local-name()='" + t + "'][" + i + "]");
+    };
+    const out = [];
+    for (const el of document.querySelectorAll(focSel)) {
+      const ti = el.getAttribute('tabindex');
+      if (ti !== null && parseInt(ti, 10) < 0) continue;
+      const cs = getComputedStyle(el);
+      if (!(el.offsetParent !== null || cs.position === 'fixed')) continue;
+      if (cs.visibility === 'hidden' || cs.visibility === 'collapse') continue; // F12: paint-hidden, not just layout-hidden
+      if (parseFloat(cs.opacity) === 0) continue;                              // F12: fully transparent reads as absent too
+      out.push(getXPath(el));
+      if (out.length >= cap2) break;
+    }
+    return out;
+  }, FOCUSABLE_SEL, cap).catch(() => null);
 }
 
 // Run every instrument against an already-loaded Puppeteer page. Returns { findings: [...] }.
@@ -325,6 +500,15 @@ async function runInstruments(page, opts = {}) {
     // modal-containment facts (2.4.3 clause C): a stop with modalOpen but insideOpenModal:false is a
     // tab stop OUTSIDE an open modal — a containment leak, decidable without rect geometry.
     ...(o.modalOpen ? { modalOpen: true, insideOpenModal: o.insideOpenModal === true, modalXpath: o.modalXpath || null } : {}),
+    // batch-3 #25 (kbd lane): per-stop occlusion (the stop hit-tests to an element OUTSIDE its own
+    // subtree — the undeclared-scrim shape) + the page-set initial-focus marker. Additive-only: absent
+    // on every stop without the condition, so ordinary rings stay byte-identical. F10 (soundness review
+    // round 2): `occluderPosition`/`occluderRect`/`occluderViewportCoverage` ride alongside the xpath —
+    // the facts the rubric needs to tell a scrim from a routine sticky header, never a claim on their own.
+    ...(o.occludedBy ? { occludedBy: o.occludedBy, occluderPosition: o.occluderPosition || null,
+      occluderRect: o.occluderRect || null,
+      occluderViewportCoverage: Number.isFinite(o.occluderViewportCoverage) ? o.occluderViewportCoverage : null } : {}),
+    ...(o.initialFocus === true ? { initialFocus: true } : {}),
     ...(decorate && divergenceByXpath[o.xpath] ? { visualOrderDivergence: divergenceByXpath[o.xpath] } : {}),
     ...(decorate && redundant[o.xpath] ? redundant[o.xpath] : {}),
   })) : []);
@@ -332,6 +516,9 @@ async function runInstruments(page, opts = {}) {
     forward: seq(tab, true), backward: seq(tabBack, false),
     wrapped: !!tab.wrapped, exhausted: !!tab.exhausted, count: tab.count || seq(tab).length,
     backwardWrapped: tabBack ? !!tabBack.wrapped : null,
+    // batch-3 #25 (kbd lane): the stop the PAGE ITSELF focused at load ({xpath, tag, label, rect,
+    // occludedBy?} | null) — the adjudicator reads focusOrder.initialFocus (feature-detected).
+    initialFocus: tab.initialFocus || null,
     // whether index 0 is genuinely the FIRST tab stop, or merely where the ring happened to be entered
     // (an open modal makes body.focus() inert — see collectTabOrder). The rubric must not read an
     // unanchored index 0 as "focus starts here".
@@ -343,18 +530,60 @@ async function runInstruments(page, opts = {}) {
   // on timed-out pages against 54% elsewhere. Hand each artifact to the sink the moment it exists so the
   // timeout downgrades the stage to PARTIAL instead of to NOTHING.
   if (opts.partialSink) { opts.partialSink.tabOrder = tabOrder; opts.partialSink.findings = findings.slice(); if (collectorLiveness.length) opts.partialSink.collectorLiveness = collectorLiveness.slice(); }
+  // WALK-TIME RENDERED-FOCUSABLE SNAPSHOT (batch-3 #24): what the ring walk could SEE. The late-arrival
+  // re-pass at lane end compares against this — a page that renders new focusables after the walk (a
+  // self-opening popover on a load+N ms timer) gets the at-rest trap block once more, bounded.
+  const renderedFocusablesAtWalk = await renderedFocusableXpaths(page);
+  // ── AT-REST TRAP DETECTORS (2.1.2) — HOISTED ABOVE THE 2.4.3 REVEAL PASS (batch-3 #11, the s12
+  // region-loop-01/04 keystone). These three used to run AFTER the reveal pass, and under corpus
+  // concurrency the reveal pass's reload+restore stretched past the orchestrator's 90 s lane cap — the cap
+  // then cut EXACTLY the only detectors that can see the at-rest trap family (single-page replays never
+  // showed it; the cap only binds under contention). The 2.1.2 keystone signal now lands in the partial
+  // sink before the reveal pass spends anything. Trade accepted and documented: the reveal pass now runs
+  // on a page these detectors have DRIVEN (focus moves; Escape/close-probes fire only inside trap-shaped
+  // regions) — `trapPerturbed` below tells the pass when its "only Tab presses touched this load"
+  // assumption no longer holds, so it reloads first instead of diffing against a perturbed state.
+  //
+  // HARNESS-INTERACTION BOUNDARY moves up with the block: probeCloseEscape can CLICK a Close control
+  // inside a trap-shaped region, so births from here on are the lane's own doing (earliest-wins stamp —
+  // the later stamps before the reveal pass and the status sweep cost nothing).
+  await markLiveBirthHarnessActive(page);
+  // INCREMENTAL PUBLISH, one add() per detector (measured at corpus concurrency 2026-08-17): the
+  // confinement sweep is the block's long pole (~20 s idle, ~4x under PAGE_CONC 12), so when the lane cap
+  // fires inside it, a batched add would ALSO discard the region/self-refocus rows already in hand —
+  // exactly the S5 shape the partial sink exists to prevent. Each detector's rows land the moment it
+  // returns.
+  const traps = await guard('keyboardTraps', detectKeyboardTraps(page));
+  add('keyboard-trap', trapFindingRowsFrom(traps, null, null));
+  // self-refocus traps (2.1.2): a LONE focusable that re-grabs its own focus on blur — the region
+  // detector above cannot see these (no region; its escape probe runs before the async refocus fires).
+  const selfTraps = await guard('focusRetentionTraps', detectFocusRetentionTraps(page));
+  add('keyboard-trap', trapFindingRowsFrom(null, selfTraps, null));
+  // fixed-set CONFINEMENT traps (2.1.2): focus mutual-bounces among a small fixed set it can never LEAVE by
+  // Tab/Shift+Tab/Esc — the region + self-refocus detectors miss these (no region; focus DOES move, just never out).
+  // DEMOTED to a REVIEW signal unless a LYING STATIC advisory was confirmed — see trapFindingRowsFrom, which
+  // carries the full soundness rationale for every row shape (fan-out, review flags, oneway lane).
+  const confine = await guard('confinementTraps', detectFixedSetConfinementTraps(page));
+  add('keyboard-trap', trapFindingRowsFrom(null, null, confine));
+  // Did the trap block PERTURB the page beyond focus movement? Escape is pressed (and close controls
+  // clicked) only when a region LOOKED trapped, and the confinement detector presses Escape only once a
+  // confined set was found — approximated here by the outputs in hand. (A both-direction-confined set that
+  // Escape then RELEASED is invisible in the return value and slips this test; the consequence is bounded —
+  // the reveal pass then diffs against a state whose adjacency question degrades to null, never to a
+  // fabricated barrier.)
+  const trapPerturbed = !!(traps && Array.isArray(traps.candidates) && traps.candidates.some((c) => c.forwardTrapped || c.backwardTrapped))
+    || !!(confine && (((confine.traps || []).length) || ((confine.onewayTraps || []).length)));
   // ── REVEAL-STATE FOCUS ORDER (2.4.3 / F85). The resting ring above is the only state anything measured,
   // and a panel that is display:none at rest contributes no stops to it — so every reveal-order failure was
   // structurally invisible. `collectRevealedFocusOrder` activates the page's DECLARED reveal openers and
   // records the opened-state ring plus what happens on dismissal.
   //
-  // PLACEMENT is deliberate and load-bearing. This sits immediately after the tab-order publish and BEFORE
-  // the trap detectors and the 4.1.3 sweep, for two reasons: the lane's wall-clock cap fires on ~17% of a
-  // corpus run, and it cuts whatever is at the END (the existing bounded reveal pass for 2.1.2 lives there
-  // and is duly cut); and the resting ring this pass diffs against has just been collected on this same
-  // load, so it can be handed over instead of re-walked. The pass RELOADS, so the ariaNotify spy is
-  // re-installed and the page is returned to a clean load before the read-only detectors below continue —
-  // which is the state they used to see anyway (nothing before this point activates anything).
+  // PLACEMENT (re-cut by batch-3 #11): after the at-rest trap block — the lane's wall-clock cap fires on
+  // ~17% of a corpus run and cuts from the END, and the 2.1.2 trap signal outranks reveal-order evidence
+  // under that cap — and BEFORE the read-only detectors and the 4.1.3 sweep. The resting ring this pass
+  // diffs against was collected on this same load (the trap detectors move focus but never add/remove
+  // stops), so it is handed over instead of re-walked. The pass RELOADS, so the ariaNotify spy is
+  // re-installed and the page is returned to a clean load before the read-only detectors below continue.
   if (tab && tabOrder && opts.url && opts.revealFocusPass !== false) {
     const before = Date.now();
     // PROGRESS SINK, not the return value, is what decides the restore. `rev` is null on a rejection, and the
@@ -372,7 +601,10 @@ async function runInstruments(page, opts = {}) {
       restingXpaths: (tab.order || []).map((o) => o.xpath),
       maxOpeners: Number.isFinite(opts.maxRevealOpeners) ? opts.maxRevealOpeners : 2,
       gotoTimeoutMs: opts.gotoTimeoutMs,
-      pageIsFresh: true,           // only Tab presses have touched this load
+      // batch-3 #11: with the trap block hoisted above, "only Tab presses have touched this load" holds
+      // only when the trap detectors demonstrably fired no Escape/close probe — otherwise the pass reloads
+      // before its first opener instead of diffing against a perturbed state.
+      pageIsFresh: trapPerturbed !== true,
       progress,
     }).catch((e) => { revealError = String((e && e.message) || e).slice(0, 200); return null; });
     if (rev && rev.states && rev.states.length) {
@@ -422,64 +654,8 @@ async function runInstruments(page, opts = {}) {
     }
     tabOrder.revealPassMs = Date.now() - before;
   }
-  // keyboard traps (2.1.2): confirmed (authoritative-candidate) + directional (review)
-  const traps = await guard('keyboardTraps', detectKeyboardTraps(page));
-  if (traps) {
-    add('keyboard-trap', traps.traps.map((t) => ({ sc: t.sc, kind: 'keyboard-trap', xpath: t.regionXpath, detail: 'confirmed keyboard trap: focus cannot escape by Tab, Shift+Tab, Esc, or a Close control' })));
-    add('keyboard-trap', traps.directionalTraps.map((t) => ({ sc: t.sc, kind: 'keyboard-trap-directional', xpath: t.regionXpath, detail: 'one-way keyboard trap: focus escapes in only one Tab direction', review: true })));
-  }
-  // self-refocus traps (2.1.2): a LONE focusable that re-grabs its own focus on blur — the region
-  // detector above cannot see these (no region; its escape probe runs before the async refocus fires).
-  const selfTraps = await guard('focusRetentionTraps', detectFocusRetentionTraps(page));
-  if (selfTraps) add('keyboard-trap', selfTraps.traps.map((t) => ({ sc: t.sc, kind: 'keyboard-trap-self-refocus', xpath: t.xpath, detail: 'confirmed keyboard trap: this focusable re-grabs its own focus on blur, so Tab and Shift+Tab cannot move focus off it' })));
-  // fixed-set CONFINEMENT traps (2.1.2): focus mutual-bounces among a small fixed set it can never LEAVE by
-  // Tab/Shift+Tab/Esc — the region + self-refocus detectors miss these (no region; focus DOES move, just never out).
-  const confine = await guard('confinementTraps', detectFixedSetConfinementTraps(page));
-  // DEMOTED to a REVIEW signal — NOT an authoritative deterministic barrier. The held-out adversarial sweep over the
-  // full 80af7b rule proved the mutual-bounce confinement detector over-fires on 4/7 PASSED cases: a trap whose only
-  // exit is a NON-STANDARD key (e.g. Alt+F6) is a 2.1.2 PASS *iff the page ADVISES the user of that method*, and a
-  // FAIL otherwise — yet the two are MECHANICALLY IDENTICAL (Tab/Shift+Tab/Escape all fail to exit in both). The
-  // advisory is semantic; keyboard-driving cannot see it. So confinement routes to the 2.1.2 rubric (which can read
-  // the page for the escape advisory), and never mints a barrier on its own. The SOUND deterministic catch is the
-  // self-refocus detector above (focus returns to the SAME element ⇒ inescapable regardless of any advisory).
-  // FAN OUT over the WHOLE confined set so each member carries the review signal (de-duped; lone-anchor fallback).
-  if (confine) {
-    const confineRows = [];
-    for (const t of (confine.traps || [])) {
-      const members = (Array.isArray(t.memberXpaths) && t.memberXpaths.length) ? t.memberXpaths : [t.xpath];
-      const seen = new Set();
-      for (const xpath of members) {
-        if (!xpath || seen.has(xpath)) continue; seen.add(xpath);
-        // PROMOTABLE only when the detector confirmed a LYING STATIC advisory (the page advertises a Ctrl+key exit that
-        // does NOT free focus) — an unambiguous 2.1.2 barrier the keyboard driver verified. Otherwise the confinement
-        // stays a REVIEW finding and ROUTES to the keyboard-trap-v0 rubric, where the REGULAR LLM judge investigates a
-        // buried / non-canonical advisory (observe_state_after_activation + interact_and_observe, fresh clones).
-        confineRows.push({ sc: t.sc, kind: 'keyboard-trap-confinement', detector: 'confinement', review: !t.lyingAdvisory, xpath, memberXpaths: t.memberXpaths, setSize: t.setSize, detail: t.lyingAdvisory
-          ? `confirmed keyboard trap: focus is confined to a fixed set of ${t.setSize} element(s) and cannot leave by Tab, Shift+Tab, or Escape, AND the page's documented escape key does NOT free focus (a lying advisory) — a 2.1.2 barrier.`
-          : `focus is confined to a fixed set of ${t.setSize} element(s) and cannot leave by Tab, Shift+Tab, or Escape. A 2.1.2 barrier UNLESS the user is told how to exit (a non-standard key, possibly behind a help control) AND that key works — verify by revealing instructions and pressing the key.` });
-      }
-    }
-    add('keyboard-trap', confineRows);
-    // ONE-WAY confinement (REVIEW, never a barrier): a forward loop that walls off later content while the
-    // other direction still escapes. TT 4.C counts "restricted to a small section … no way to navigate out of
-    // the loop" as a failure and lists backward navigation only as a tester workaround — but 4.C's
-    // required-interaction exception (a section that genuinely requires input before releasing focus) is
-    // semantic, so this routes to keyboard-trap-v0 and never mints on its own. Fan out over the members like
-    // the full confinement above so the rubric gate can key on any member xpath.
-    const onewayRows = [];
-    for (const t of (confine.onewayTraps || [])) {
-      const members = (Array.isArray(t.memberXpaths) && t.memberXpaths.length) ? t.memberXpaths : [t.xpath];
-      const seenOw = new Set();
-      for (const xpath of members) {
-        if (!xpath || seenOw.has(xpath)) continue; seenOw.add(xpath);
-        onewayRows.push({ sc: t.sc, kind: 'keyboard-trap-oneway', detector: 'confinement', review: true, xpath,
-          memberXpaths: t.memberXpaths, setSize: t.setSize, direction: t.direction || 'forward',
-          unreached: Array.isArray(t.unreached) ? t.unreached : [], unreachedCount: t.unreachedCount,
-          detail: `focus is confined to a fixed set of ${t.setSize} element(s) in the ${t.direction || 'forward'} Tab direction only: ${t.unreachedCount} rendered focusable(s) outside the set are never reached in that direction, though focus escapes the other way. A 2.1.2 barrier UNLESS the section genuinely requires input or interaction — completable by keyboard — before allowing focus to progress, or a documented exit key works; the keyboard-trap rubric decides which.` });
-      }
-    }
-    add('keyboard-trap', onewayRows);
-  }
+  // (the three at-rest trap detectors formerly here were HOISTED above the reveal pass — batch-3 #11; the
+  // full soundness rationale for every row shape now lives on trapFindingRowsFrom.)
   // EMBEDDED-FORMAT traps (2.1.2 / F10): focus enters an <iframe>/<object>/<embed> or a shadow root and
   // cannot leave. Structurally invisible to every region detector above — their candidate regions come
   // from focusables in THIS document, and the trapping content lives in another one. Runs after the
@@ -553,7 +729,10 @@ async function runInstruments(page, opts = {}) {
   if (statusObs.length) {
     add('status-message', statusObs.map((o) => ({
       sc: '4.1.3', kind: 'status-change-observed', xpath: o.trigger || null, review: true,
-      detail: 'activating ' + JSON.stringify(o.triggerLabel || '(unlabelled control)') + ' changed page content: '
+      // batch-3 #33/#34b: name the interaction honestly — a select was CHANGED and a field was TYPED INTO,
+      // not "activated"; click-driven rows keep the byte-identical legacy verb.
+      detail: (o.interaction === 'change' ? 'changing the value of ' : o.interaction === 'type' ? 'typing into ' : 'activating ')
+        + JSON.stringify(o.triggerLabel || '(unlabelled control)') + ' changed page content: '
         + [
           o.addedInsideLiveRegion.length ? `${o.addedInsideLiveRegion.length} text change(s) INSIDE a live region` : null,
           o.addedOutsideLiveRegion.length ? `${o.addedOutsideLiveRegion.length} OUTSIDE any live region` : null,
@@ -589,6 +768,10 @@ async function runInstruments(page, opts = {}) {
     add('live-region-birth', birthFindingsFrom(liveRegionBirths));
   }
   if (liveRegionBirths && opts.partialSink) opts.partialSink.liveRegionBirths = liveRegionBirths;
+  // AUTO-UPDATE CADENCE (batch-3 #37): derived from the birth recorder's spontaneous content-change stamps
+  // — zero extra wall-clock. Evidence artifact like statusTimelines; prompt threading is the lead's hunk.
+  const autoUpdateCadence = autoUpdateCadenceFrom(liveRegionBirths);
+  if (opts.partialSink && autoUpdateCadence.length) opts.partialSink.autoUpdateCadence = autoUpdateCadence;
 
   // #21 emit: a native dialog raised during interaction delivers text outside the DOM/ARIA model (review).
   page.off('dialog', onDialog);
@@ -605,9 +788,12 @@ async function runInstruments(page, opts = {}) {
   // `collectorLiveness` records which `.catch()`-guarded in-page evaluate THREW on this page — empty on a
   // healthy page, so its presence at all is the signal. Not folded into `results.summary.collectorFailures`
   // here: that join lives in build-v3, which this change does not own.
-  // `statusTimelines` / `colourStateDeltas` / `liveRegionBirths` are EVIDENCE artifacts on the same terms:
-  // persisted here, surfaced to prompts only by the (lead-applied) orchestrator/adjudicator hunks.
-  return { findings, tabOrder, statusObservations: statusObs, statusTimelines, colourStateDeltas, liveRegionBirths, collectorLiveness };
+  // `statusTimelines` / `colourStateDeltas` / `liveRegionBirths` / `autoUpdateCadence` are EVIDENCE
+  // artifacts on the same terms: persisted here, surfaced to prompts only by the (lead-applied)
+  // orchestrator/adjudicator hunks. `renderedFocusablesAtWalk` is INTERNAL raw material for the
+  // late-arrival re-pass (batch-3 #24) — runInstrumentsForUrl consumes it and replaces it with the compact
+  // `lateArrival` summary before the artifact is returned.
+  return { findings, tabOrder, statusObservations: statusObs, statusTimelines, colourStateDeltas, liveRegionBirths, autoUpdateCadence, renderedFocusablesAtWalk, collectorLiveness };
 }
 
 // Load a URL in a fresh browser and run the instruments. The instruments artifact carries the run
@@ -697,6 +883,24 @@ async function runInstrumentsForUrl(url, opts = {}) {
         if (opts.partialSink) opts.partialSink.findings = res.findings.slice();
       }
     }
+    // ── LATE-ARRIVAL BASELINE (soundness review F1, 2026-08-17) — captured HERE, immediately AFTER the
+    // LAST harness-driving pass (the BOUNDED REVEAL PASS above when it ran; the in-lane 4.1.3 status sweep
+    // otherwise — both already finished by this line). The late-arrival gate below used to diff against
+    // `renderedFocusablesAtWalk`, a snapshot taken back at line ~476 BEFORE the at-rest trap block, the
+    // reveal-state pass, the status sweep, AND the BOUNDED REVEAL PASS above ever touched the page — so
+    // EVERY one of those passes' own clicks read as "growth since the walk". Measured: a status-sweep click
+    // on a real trigger that opened a genuine (harness-caused) confirm dialog with a real trap minted a
+    // `review:false` "confirmed keyboard trap" here whose detail claimed "the page changed itself after
+    // load" — false; the sweep changed it. Diffing from the post-harness baseline instead means only growth
+    // that happens AFTER every click the lane itself was going to make can even be CANDIDATE page-caused
+    // growth. `harnessBaselineUrl` rides alongside so the diff below can refuse to run (loudly, via
+    // `lateArrival.skipped`) if the page ever stops being the one this baseline was taken on — compared
+    // against what the browser ACTUALLY reports (`page.url()`), the same discipline
+    // collectRevealedFocusOrder uses for its own post-click identity check, not the raw requested string
+    // (which can differ from Chrome's normalized report even with zero navigation).
+    const harnessBaselineUrl = page.url();
+    const harnessBaselineXps = await renderedFocusableXpaths(page);
+    const harnessBaselineInteractions = await readHarnessInteractionCount(page);
     // DEFERRED LIVE-REGION-BIRTH TOP-UP (the hold runInstruments skipped under deferBirthTopUp). Only when
     // the reveal-trap pass was NOT invoked: that pass reloads the page at entry, so after it the document
     // whose lifecycle the snapshot recorded is gone and there is nothing left to top up — losing the
@@ -707,13 +911,118 @@ async function runInstrumentsForUrl(url, opts = {}) {
       const topped = await readLiveRegionBirths(page, opts).catch(() => null);
       if (topped && Array.isArray(topped.regions)) {
         res.liveRegionBirths = topped;
+        res.autoUpdateCadence = autoUpdateCadenceFrom(topped); // batch-3 #37: the top-up may have added stamps
         res.findings = res.findings.filter((f) => f.detector !== 'live-region-birth');
         for (const f of birthFindingsFrom(topped)) {
           res.findings.push({ detector: 'live-region-birth', sc: f.sc || '', kind: f.kind, xpath: f.xpath || null, detail: f.detail || '', review: !!f.review });
         }
-        if (opts.partialSink) { opts.partialSink.findings = res.findings.slice(); opts.partialSink.liveRegionBirths = topped; }
+        if (opts.partialSink) { opts.partialSink.findings = res.findings.slice(); opts.partialSink.liveRegionBirths = topped; if (res.autoUpdateCadence.length) opts.partialSink.autoUpdateCadence = res.autoUpdateCadence; }
       }
     }
+    // ── LATE-ARRIVAL RE-PASS (batch-3 #24, modal-popover case-05 — the latent timing hole in ALL trees).
+    // A page that OPENS ITSELF on a load+N ms timer renders its trap only after the at-rest walk has been
+    // and gone: the walk sees a popover-less page, both reveal lanes find no declared opener (the popover's
+    // own controls are excluded as opener candidates), and every tree misses identically on idle hardware —
+    // the s10/s11 "catches" were concurrency-contention luck. So, at lane end: if the RENDERED-FOCUSABLE
+    // set grew since walk time, run the at-rest trap block ONCE (bounded, mirroring the births-top-up
+    // pattern: gated on an observed condition so a static page never pays).
+    //   · GATE 1 — no confirmed 2.1.2 finding yet (a decided page never pays; mirrors the reveal-trap gate);
+    //   · GATE 2 — growth means a NEW xpath, not a count (replacement UIs still qualify);
+    //   · HOLD — the current document is usually a FRESH reload (the reveal-trap pass reloads at entry), so
+    //     a self-open timer may not have fired at sample time. When the document is younger than the watch
+    //     horizon AND carries a hidden trap-shaped region (the same precondition detectTrapsAfterReveal
+    //     keys on), hold once to the horizon and resample — a page with nothing to reveal never waits;
+    //   · BOUND — the region detector (the keystone shape) always runs; the two sweep-heavy detectors run
+    //     only inside the remaining cap, and a skip is RECORDED, never silent.
+    const lateArrival = { walkFocusables: Array.isArray(harnessBaselineXps) ? harnessBaselineXps.length : null,
+      laneEndFocusables: null, grew: false, held: false, rePassRan: false, addedFindings: 0, skipped: [] };
+    const confirmed212 = res.findings.some((f) => f.sc === '2.1.2' && !f.review);
+    if (harnessBaselineXps && !confirmed212 && opts.lateArrivalRePass !== false) {
+      // SKIP LOUDLY rather than diff blind: a page that is no longer at the baseline URL (a click navigated
+      // it, a reload we cannot see landed elsewhere, …) has no honest "growth since baseline" answer — the
+      // rendered-focusable sets being compared would not even describe the same document.
+      const curUrlAtGate = page.url();
+      if (curUrlAtGate !== harnessBaselineUrl) {
+        lateArrival.skipped.push(`late-arrival diff skipped: page.url() no longer matches the harness baseline (${harnessBaselineUrl} -> ${curUrlAtGate}) — growth cannot be safely attributed`);
+      } else {
+      const baseSet = new Set(harnessBaselineXps);
+      const grewIn = (xs) => Array.isArray(xs) && xs.some((x) => !baseSet.has(x));
+      let nowXps = await renderedFocusableXpaths(page);
+      let grew = grewIn(nowXps);
+      if (!grew) {
+        const watchMs = Number.isFinite(opts.lateArrivalWatchMs) ? opts.lateArrivalWatchMs : 1800;
+        const age = await page.evaluate(() => Math.round(performance.now())).catch(() => null);
+        if (watchMs > 0 && age != null && age < watchMs) {
+          const hasHiddenTrapRegion = await page.evaluate((regSel, focSel) => {
+            for (const reg of document.querySelectorAll(regSel)) {
+              const hidden = reg.offsetParent === null || reg.hidden || getComputedStyle(reg).visibility === 'hidden'
+                || (reg.tagName === 'DIALOG' && !reg.hasAttribute('open'));
+              if (!hidden) continue;
+              if (reg.querySelectorAll(focSel).length >= 2) return true;
+            }
+            return false;
+          }, TRAP_REGION_SEL, FOCUSABLE_SEL).catch(() => false);
+          if (hasHiddenTrapRegion) {
+            lateArrival.held = true;
+            await new Promise((r) => setTimeout(r, watchMs - age));
+            nowXps = await renderedFocusableXpaths(page);
+            grew = grewIn(nowXps);
+          }
+        }
+      }
+      lateArrival.laneEndFocusables = Array.isArray(nowXps) ? nowXps.length : null;
+      lateArrival.grew = grew === true;
+      if (grew && page.url() !== harnessBaselineUrl) {
+        // the hold above can itself cross a navigation — re-check before spending the re-pass.
+        lateArrival.grew = false;
+        lateArrival.skipped.push(`late-arrival re-pass skipped: page.url() changed during the growth watch (baseline ${harnessBaselineUrl})`);
+      } else if (grew) {
+        // PROVE (or fail to prove) self-mutation: no harness interaction (click/keydown/input) recorded
+        // between the baseline above and now ⇒ the growth cannot be the harness's OWN doing, so the
+        // confirmed-trap causal claim and its review:false are safe to keep. Anything else — an
+        // interaction demonstrably DID land in the window, or the recorder could not be read at all —
+        // must NOT claim "the page changed itself", and must not leave the row anything less than
+        // review:true (soundness review F1: absence of proof is not proof of absence).
+        const interactionsNow = await readHarnessInteractionCount(page);
+        const selfMutationProven = harnessBaselineInteractions != null && interactionsNow != null
+          && interactionsNow === harnessBaselineInteractions;
+        lateArrival.selfMutationProven = selfMutationProven;
+        lateArrival.rePassRan = true;
+        const kbd = require('./kbd-graph.js');
+        const capMs = Number.isFinite(opts.lateArrivalCapMs) ? opts.lateArrivalCapMs : 20000;
+        const deadline = Date.now() + capMs;
+        const traps2 = await kbd.detectKeyboardTraps(page, opts).catch(() => null);
+        let selfTraps2 = null, confine2 = null;
+        if (Date.now() < deadline) selfTraps2 = await kbd.detectFocusRetentionTraps(page, opts).catch(() => null);
+        else lateArrival.skipped.push('focusRetentionTraps');
+        if (Date.now() < deadline) confine2 = await kbd.detectFixedSetConfinementTraps(page, opts).catch(() => null);
+        else lateArrival.skipped.push('confinementTraps');
+        const suffix = selfMutationProven
+          ? ' (late-arrival re-pass: this content rendered only after the harness finished interacting with the page, and no harness click/keypress/input landed while it appeared — the page changed itself after load)'
+          : ' (late-arrival re-pass: this content rendered only after the harness finished interacting with the page — but a harness interaction (or an unreadable interaction record) cannot be ruled out in that window, so this may be the harness\'s OWN doing rather than the page\'s; UNCONFIRMED)';
+        // same rows, same shapes as the at-rest block (trapFindingRowsFrom is the single source) —
+        // de-duped against what the lane already found, provenance-suffixed so a reader can tell a
+        // late-arrival catch from an at-rest one. review is FORCED true unless self-mutation is proven —
+        // never merely inherited from trapFindingRowsFrom's own (walk-time-appropriate) determination.
+        const have = new Set(res.findings.filter((f) => f.detector === 'keyboard-trap').map((f) => f.kind + '|' + (f.xpath || '')));
+        for (const f of trapFindingRowsFrom(traps2, selfTraps2, confine2)) {
+          const key = f.kind + '|' + (f.xpath || '');
+          if (have.has(key)) continue; have.add(key);
+          const row = { detector: 'keyboard-trap', sc: f.sc || '', kind: f.kind, xpath: f.xpath || null,
+            detail: (f.detail || '') + suffix,
+            review: selfMutationProven ? !!f.review : true };
+          if (Array.isArray(f.memberXpaths)) row.memberXpaths = f.memberXpaths;
+          if (Number.isFinite(f.setSize)) row.setSize = f.setSize;
+          res.findings.push(row);
+          lateArrival.addedFindings++;
+        }
+        if (lateArrival.addedFindings && opts.partialSink) opts.partialSink.findings = res.findings.slice();
+      }
+      }
+    }
+    res.lateArrival = lateArrival;
+    delete res.renderedFocusablesAtWalk; // internal raw material — the compact summary above replaces it
+    if (opts.partialSink) opts.partialSink.lateArrival = lateArrival;
     return { file: opts.file || url, runId: opts.runId || null, pageDigest: opts.pageDigest || null, ...res };
     } finally {
       // UNREGISTER the document-start recorder so a pooled lane page stops observing once this lane is done.
@@ -732,4 +1041,6 @@ async function runInstrumentsForUrl(url, opts = {}) {
 // page, `birthFindingsFrom`/`colourDeltasFrom` are pure.
 module.exports = { runInstruments, runInstrumentsForUrl, restoreLoadedPage, CHROME,
   installLiveRegionBirthObserver, readLiveRegionBirths, birthFindingsFrom, colourDeltasFrom,
-  markLiveBirthHarnessActive };
+  markLiveBirthHarnessActive, readHarnessInteractionCount,
+  // batch-3: pure builders + snapshot helper (11/24/37) — exported for their unit tests
+  trapFindingRowsFrom, renderedFocusableXpaths, autoUpdateCadenceFrom };

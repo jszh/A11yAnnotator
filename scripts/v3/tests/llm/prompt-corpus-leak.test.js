@@ -133,6 +133,11 @@ const PROMPT_SOURCES = [
   // contributor (visualHeadings entries + authored reason/note strings ride into the adjudicator note), and
   // confusable-text.js kind tokens reach uncertainReason strings.
   'broad-scope-probes.js', 'confusable-text.js',
+  // leak-audit coverage gap (2026-08-18, batch-3 review): exp-runners.js now emits prose-adjacent
+  // measurement fields (redundantWithVisibleText.localTextSample/.matchedBy, reshowIntegrity,
+  // hoverTravel) — not prompt-bound today, but one wiring change away; same defensive rationale
+  // as every entry above.
+  'exp-runners.js',
 ];
 
 // Strip comments so a `// measured on case-03` note never trips the gate — only shipped strings count.

@@ -94,12 +94,17 @@ test('C9 persistence probe: a genuinely persistent reveal samples present throug
   assert.equal(m.vanishedWhileHeld, false);
 });
 
-test('C9 persistence probe: never runs when the short dwell already failed, and is opt-out-able', { skip: !chromeOK, concurrency: false }, async () => {
+// PIN UPDATED for #F5 (batch-3 adversarial review): the probe is no longer gated on the dwell PASSING —
+// a dwell-failing page is exactly where the held-state samples carry the timed-dismissal question to the
+// LLM facet lane, so the probe now runs whenever content was revealed. The old "a failed dwell needs no
+// samples" bound is deliberately gone; the opt-out contract is unchanged.
+test('C9 persistence probe: runs on a dwell-failing reveal too (#F5), and stays opt-out-able', { skip: !chromeOK, concurrency: false }, async () => {
   // dwell-failing fixture: the tip hides 800 ms after reveal, inside the 1600 ms dwell
   const fast = VANISHING.replace('2200', '800');
   const r1 = await runTri(fast, { targetXpath: '/html/body/div/a', persistenceSampleOffsetsMs: [400, 900] });
-  assert.equal(r1.outcome.persistent, false, 'the dwell itself fails');
-  assert.equal(r1.measurement.persistenceSamples, undefined, 'a failed dwell needs no samples — bounded');
+  assert.equal(r1.outcome.persistent, false, 'a full-strength re-reveal proves the dwell loss was a real removal');
+  assert.ok(Array.isArray(r1.measurement.persistenceSamples), 'the held-state samples are recorded even when the dwell failed (#F5)');
+  assert.equal(r1.measurement.vanishedWhileHeld, true, 'the timed dismissal is measured for the LLM facet lane');
   const r2 = await runTri(VANISHING, { targetXpath: '/html/body/div/a', persistenceProbe: false });
   assert.equal(r2.measurement.persistenceSamples, undefined, 'persistenceProbe:false keeps the runner byte-identical to the pre-probe shape');
 });

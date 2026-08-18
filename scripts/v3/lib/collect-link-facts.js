@@ -30,6 +30,74 @@
 function collectLinkTargetFacts() {
   const MAX_LINKS = 300;   // records per page — a TOC-heavy page stays bounded
   const MAX_TEXT = 200;    // every reported string is clipped to this
+  const MAX_CUE_PARITY = 40; // item 27: style-math records are computed for the first N links only (getComputedStyle cost)
+
+  // ── item 27: LINK-CUE PARITY (1.4.1 F73 surface — deterministic, platform-immune style math) ─────────
+  // WHY. On the inline-links FP/doctrine case, axe's link-in-text-block PASSES because the links are bold —
+  // but the page styles NON-link emphasis (<strong>) with the IDENTICAL colour+weight, so bold
+  // distinguishes nothing: the only signals separating a link from emphasized prose are shared. Whether
+  // that is an F73 failure is a USER-PENDING doctrine decision; these are the FACTS that decision needs,
+  // computed here (not eyeballed from a crop, not platform-dependent OCR): the link's own style, the
+  // enclosing prose block's style, the WCAG contrast between link colour and prose colour (null when
+  // either is non-opaque — never a fabricated ratio), and the parity census — how many NON-link elements
+  // in the same block share the link's colour+weight signature. DECIDES NOTHING; no rubric reads it yet.
+  const rgbaOf = (s) => {
+    const m = /rgba?\(([^)]+)\)/i.exec(String(s || ''));
+    if (!m) return null;
+    const p = m[1].split(/[\s,/]+/).map((x) => parseFloat(x)).filter((n) => !Number.isNaN(n));
+    if (p.length < 3) return null;
+    return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 };
+  };
+  const lumOf = (c) => {
+    const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+    return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b);
+  };
+  const contrastOf = (x, y) => {
+    const a = rgbaOf(x), b = rgbaOf(y);
+    if (!a || !b || a.a !== 1 || b.a !== 1) return null;   // through-alpha ratios are fabrications — abstain
+    const la = lumOf(a), lb = lumOf(b);
+    return Math.round(((Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05)) * 100) / 100;
+  };
+  const PROSE_BLOCK_SEL = 'p, li, td, th, dd, dt, figcaption, blockquote, caption';
+  const cueParityOf = (el) => {
+    let block = null;
+    try { block = el.closest(PROSE_BLOCK_SEL); } catch (err) { block = null; }
+    if (!block) return undefined;                          // not an in-prose link — cue parity is not its question
+    const flat = (s) => String(s || '').replace(/\s+/g, ' ').trim();
+    const ownText = flat(el.textContent);
+    const blockText = flat(block.textContent);
+    if (!ownText || blockText.length - ownText.length < 20) return undefined; // no surrounding prose to blend into
+    const cs = getComputedStyle(el);
+    const bcs = getComputedStyle(block);
+    const linkDecoration = flat(cs.textDecorationLine) || 'none';
+    // parity census: non-link, text-bearing elements of the SAME block sharing the link's colour+weight.
+    let nonLinkSameStyleCount = 0;
+    const nonLinkSameStyleSamples = [];
+    for (const n of block.querySelectorAll('*')) {
+      if (n === el || el.contains(n) || n.contains(el)) continue;
+      let inLink = null;
+      try { inLink = n.closest('a[href], area[href], [role="link"]'); } catch (err) { inLink = null; }
+      if (inLink) continue;
+      const t = flat(n.textContent);
+      if (!t) continue;
+      const ncs = getComputedStyle(n);
+      if (ncs.color === cs.color && ncs.fontWeight === cs.fontWeight) {
+        nonLinkSameStyleCount++;
+        if (nonLinkSameStyleSamples.length < 3) nonLinkSameStyleSamples.push(t.slice(0, 60));
+      }
+    }
+    return {
+      linkColor: cs.color,
+      linkWeight: cs.fontWeight,
+      linkDecoration,
+      underlined: /underline/.test(linkDecoration),
+      proseColor: bcs.color,
+      proseWeight: bcs.fontWeight,
+      contrastLinkVsProse: contrastOf(cs.color, bcs.color), // the F73 3:1 question, as a number (null = not soundly computable)
+      nonLinkSameStyleCount,
+      nonLinkSameStyleSamples,
+    };
+  };
 
   const xpathOf = (e) => {
     if (!e || !e.tagName) return '';
@@ -90,6 +158,14 @@ function collectLinkTargetFacts() {
   for (const el of links) {
     const raw = String(el.getAttribute('href') || '');
     const rec = { xpath: xpathOf(el), href: clip(raw) };
+
+    // item 27 — cue-parity style facts for in-prose links (bounded; undefined for non-prose links). The
+    // CALLER (act-page-collect) splits this key OFF the linkTargetFacts attachment so the 2.4.4 prompt
+    // payload stays byte-identical; it rides a separate element key until the F73 doctrine decision lands.
+    if (out.length < MAX_CUE_PARITY) {
+      const cp = cueParityOf(el);
+      if (cp) rec.cueParity = cp;
+    }
 
     let u = null;
     try { u = new URL(raw, location.href); } catch (err) { u = null; }
