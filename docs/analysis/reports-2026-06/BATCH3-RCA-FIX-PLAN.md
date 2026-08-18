@@ -276,3 +276,41 @@ remediation regression. Arm A (per-case attribution vs the status-lane remediati
 removal-06 doctrine brief still owed by the resumed agent. If confirmed, the paper's s10/s11
 numbers on leak-carrying families are inflated relative to s12 — a corpus-integrity note, and
 further vindication of the strip.
+
+## RCA-3 findings: 4.1.3 loss cluster COMPLETE (merged 2026-08-17; supersedes the partial note)
+
+Four-arm replay matrix (n=3/case/arm) attributes all six + wrong-politeness-02; platform
+exonerated (Mac arm-A reproduces every s12 outcome); strip manifest confirms announced-02/03 +
+atomic-04/05 + wrong-politeness-02 pages were stripped, removal family never was.
+
+33. **announced-02 (leak-assisted s11 catch)** + **announced-03 (leak inflation + s12
+    subject-emission luck; fixed evidence catches 3/3 in EVERY arm)**: fix = make the stand-alone
+    check STRUCTURAL (verdict JSON must name the announced string AND its subject/referent before
+    any clear on an observed announcement) + drive select-change in the activation sweep so the
+    string reaches deterministic evidence. announced-03 expected to return with no revert.
+
+34. **atomic-04 (leak primary)**: when atomic:false, status-detector emits the mutated sub-node's
+    text as `mutatedFragment` in regionsUpdated — item 5 applies mechanically. **atomic-05 (leak +
+    standing gap — typing never driven)**: deterministic type-probe into textareas/contenteditables
+    near live regions; wording: births alone never license a clear (the rubric's own PARTIAL caveat
+    was violated by the s12 clear).
+
+35. **removal-02 (NOT a flip — missed both runs; births remediation clears on healthy wiring while
+    the silent-empty barrier is invisible)**: record `emptiedAtMs`/last-content transitions in the
+    birth observer; item-1 sentence: a healthy birth corroborates WIRING, never a clear.
+
+36. **removal-06**: attributed to the state-change softening (adjudicator NOTE > rubric item 4;
+    arm D suppresses at least as hard as A), enabled by the timeline surfacing the disabled-flip.
+    Budget pool did NOT truncate. USER RULING PENDING (decision brief in the agent report):
+    Reading A (label stands) → scope the softening to flows with NO preceding announced
+    busy/progress message (pure attribute-flip flows keep their FP win; arm C shows zero collateral);
+    Reading B (softening stands) → relabel removal-06 + audit the family. DO NOT IMPLEMENT until ruled.
+
+37. **wrong-politeness-02 (leak)**: honest s12 UNCERTAIN; sound-catch path = surface auto-update
+    cadence (the efbfc7 watcher) to the 4.1.3 lane.
+
+38. **Corpus-integrity note for the paper**: s10/s11 recall on leak-carrying families was inflated
+    by in-page answer prose legible in judge evidence (announced-02: 0/12 vs 12/12 barrier
+    verdicts leak-off/leak-on). s12 post-strip numbers are the honest baseline; the strip is
+    vindicated as a measurement correction, and the "4.1.3 give-back" framing in Table 1k-post7
+    should be softened accordingly.

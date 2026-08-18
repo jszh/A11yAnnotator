@@ -1131,9 +1131,13 @@ lane-cap RCA confirmed from the other side: on server hardware the instrument la
 and the oneway mint fires — the batch-3 hoist remains the fix for constrained hardware); 4.1.3
 wrong-politeness-01 caught (pre-batch-3, likely via the timeline lane); text-lookalike-05 caught
 (numeric lane live post-tightening); 2.4.4 generic-link FP cleared (supports the primed-noise read).
-Losses cluster in 4.1.3 (6 of 14: announced-text-02/03, partial-update-04/05, removal-06,
-wrong-politeness-02) — plausibly the status-lane remediations (phase-B budget pool, state-change
-softening) plus platform noise; the batch-3 replay validations must cover these families. NOTE
+Losses cluster in 4.1.3 (6 of 14) — RESOLVED by four-arm fixed-evidence replay (RCA-3):
+four of the six (+wrong-politeness-02) were LEAK-ASSISTED s11 catches — the prose-leak strip
+(32ad4d3a, in the s12 tree) removed in-evidence answer notes, and restoring them flips all four
+back to caught (announced-02: 0/12 vs 12/12 barrier verdicts). s12 is the honest post-strip
+baseline; s10/s11 recall on leak-carrying families was inflated (corpus-integrity note).
+Platform exonerated; removal-02 was never a flip; removal-06 alone traces to the state-change
+softening and awaits a doctrine ruling. NOTE
 removal-06 is the disabled-flip shape: its GT (failed) now tensions with the soundness-review
 position that a state-change-only outcome may have no status message in scope — label-vs-doctrine
 dispute to resolve, not silently re-tune.
