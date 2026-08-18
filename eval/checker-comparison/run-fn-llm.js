@@ -25,6 +25,7 @@ require('../../scripts/v3/lib/load-env.js').loadEnv(REPO_ROOT);
 
 const { orchestrate, BROWSER_ARGS } = require('../../scripts/v3/lib/orchestrator.js');
 const { createTabAllocator } = require('../../scripts/v3/lib/tab-allocator.js');
+const { createBrowserShardPool } = require('../../scripts/v3/lib/browser-shard-pool.js');
 const { makeRunAgent, makeClaudeSdkTransport, makeGeminiTransport, makeCodexTransport, makeOpenAITransport } = require('../../scripts/v3/lib/llm-agent-adapter.js');
 const { collectActPage, normalizeCollectRoles } = require('../../scripts/v3/lib/act-page-collect.js');
 const { makeSemaphore, sampleMemory } = require('../../scripts/v3/lib/run-telemetry.js');
@@ -70,6 +71,12 @@ const LLM_CAP = PROVIDER === 'gemini' ? Number(process.env.GEMINI_LLM_CAP || 64)
 const GLOBAL_LLM = Math.min(LLM_CAP, Math.max(1, Number(arg('global-llm', LIMITS.concurrency.llm))));
 const LLM_CONC = Math.min(LIMITS.concurrency.llm, Math.max(1, Number(arg('llm-concurrency', LIMITS.concurrency.llm)))); // per-page subjects; the global gate enforces the true cap
 const MAX_TABS = Math.min(LIMITS.concurrency.maxTabs, Math.max(1, Number(arg('max-tabs', LIMITS.concurrency.maxTabs))));
+// Keep maxTabs as the aggregate run-wide budget. Independent Chromium shards split that budget evenly and each
+// page worker stays pinned to one shard, avoiding a single browser control process as the CPU/CDP bottleneck.
+// `--shards` is accepted as an alias because this runner historically had no browser-count flag; the sibling
+// annotated-suite runner calls the same setting `--browsers`.
+const BROWSER_SHARDS = Math.max(1, Math.min(PAGE_CONC, MAX_TABS,
+  Math.floor(Number(arg('browsers', arg('shards', 1))) || 1)));
 const MAX_AUTO = Number(arg('max-auto', LIMITS.act.maxAuto));
 const ELEMENT_CAP = Number(arg('element-cap', LIMITS.act.elementCap));
 const RUN_WALL = Number(arg('run-wall-ms', LIMITS.act.runWallClockMs)); // experiment-lane wall-clock budget per page (defers the tail by TIME, not count)
@@ -148,7 +155,7 @@ const startedAt = Date.now();
 const tel = {
   startedAt,
   runName: RUN_NAME,
-  config: { fnTotal: 0, pageConc: PAGE_CONC, globalLlm: GLOBAL_LLM, perPageLlm: LLM_CONC, maxTabs: MAX_TABS, vision: VISION, tools: TOOLS, evidence: EVIDENCE_MODE, noVisionRubric: NO_VISION_RUBRIC, baselineVision: BASELINE_VISION, model: MODEL },
+  config: { fnTotal: 0, pageConc: PAGE_CONC, globalLlm: GLOBAL_LLM, perPageLlm: LLM_CONC, maxTabs: MAX_TABS, browserShards: BROWSER_SHARDS, instrumentsConc: INSTRUMENTS_CONC, instrumentsTimeoutMs: INSTRUMENTS_TIMEOUT, effort: TRANSPORT_CONFIG.effort, vision: VISION, tools: TOOLS, evidence: EVIDENCE_MODE, noVisionRubric: NO_VISION_RUBRIC, baselineVision: BASELINE_VISION, model: MODEL },
   phase: 'init',
   done: 0,
   total: 0,
@@ -428,7 +435,7 @@ async function main() {
   tel.config.spliced = spliceRecords.length;
   tel.phase = 'launching';
   writeStatus();
-  console.log(`FN×LLM run: ${cases.length} cases | provider=${PROVIDER} model=${MODEL} effort=${TRANSPORT_CONFIG.effort} | pages=${PAGE_CONC} globalLLM=${GLOBAL_LLM} maxTabs=${MAX_TABS} vision=${VISION} tools=${TOOLS}`);
+  console.log(`FN×LLM run: ${cases.length} cases | provider=${PROVIDER} model=${MODEL} effort=${TRANSPORT_CONFIG.effort} | pages=${PAGE_CONC} globalLLM=${GLOBAL_LLM} maxTabs=${MAX_TABS} browsers=${BROWSER_SHARDS} instruments=${INSTRUMENTS_CONC}/${INSTRUMENTS_TIMEOUT}ms vision=${VISION} tools=${TOOLS}`);
   console.log(`status → ${path.join(OUT, 'status.json')}  (run: node ${path.relative(process.cwd(), path.join(__dirname, 'fn-llm-monitor.js'))})`);
 
   if (!RUN_LLM) { /* deterministic-only pass (e.g. --derive-independent / --no-llm): no LLM auth required */ }
@@ -439,16 +446,24 @@ async function main() {
   // without it, file:// frameset pages silently yield zero elements from any <frame>/<iframe> (contentDocument
   // is null under Chrome's opaque-origin policy for file:// documents), which orchestrate()'s own internal
   // fallback launch already avoided but this caller-launched browser previously did not.
-  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: BROWSER_ARGS });
-  const browserPid = browser.process() && browser.process().pid;
-  const alloc = createTabAllocator({ browser, maxTabs: MAX_TABS });
+  const launchBrowser = () => puppeteer.launch({
+    executablePath: CHROME, headless: 'new', args: BROWSER_ARGS, protocolTimeout: 300000,
+  });
+  const pool = await createBrowserShardPool({
+    browserCount: BROWSER_SHARDS,
+    totalTabs: MAX_TABS,
+    launchBrowser,
+    createAllocator: (browser, cap) => createTabAllocator({ browser, maxTabs: cap }),
+  });
   tel.phase = 'running';
 
   // status writer (+ memory sampler) on a timer
   let sampling = false;
   const statusTimer = setInterval(async () => {
-    tel.tabs = alloc.stats();
-    if (!sampling) { sampling = true; try { tel.mem = await sampleMemory(browserPid); } catch (e) {} finally { sampling = false; } }
+    tel.tabs = pool.stats();
+    // Every shard is a child of this Node process. Sampling this process tree captures all Chromium roots in one
+    // `ps` pass (plus the comparatively tiny runner itself), rather than reporting only the first browser shard.
+    if (!sampling) { sampling = true; try { tel.mem = await sampleMemory(process.pid); } catch (e) {} finally { sampling = false; } }
     writeStatus();
   }, STATUS_EVERY_MS);
   if (statusTimer.unref) statusTimer.unref();
@@ -470,7 +485,8 @@ async function main() {
   };
 
   let cursor = 0;
-  const worker = async (wid) => {
+  const worker = async (wid, workerIndex) => {
+    const shard = pool.shardFor(workerIndex);
     while (true) {
       const i = cursor++;
       if (i >= cases.length) { delete tel.workers[wid]; return; }
@@ -480,7 +496,7 @@ async function main() {
       let rec;
       try {
         // COLLECT: borrow a tab from the shared allocator, navigate + extract, release.
-        const lease = await alloc.acquire();
+        const lease = await shard.alloc.acquire();
         let collect;
         try {
           collect = normalizeCollectRoles(await collectActPage(lease.page, {
@@ -492,7 +508,7 @@ async function main() {
         const drive = { file: collect.file, runId, pageDigest: collect.pageDigest, drivenAt: collect.collectedAt + 1, elements: [] };
         const out = await orchestrate(collect, drive, {
           resolveUrl: () => urlFor(tc),
-          executablePath: CHROME, browser, tabAllocator: alloc, maxTabs: MAX_TABS,
+          executablePath: CHROME, browser: shard.browser, tabAllocator: shard.alloc, maxTabs: shard.cap,
           // INSTRUMENTS lane (VSR + keyboard-trap + focus-rests-in-aria-hidden) — was NEVER enabled here, so the kbd
           // 2.1.2 + 6cfa84 4.1.2 deterministic catches silently never ran (those cases read as noObligation). Enable it,
           // gated to a LOWER concurrency than the page pool (the lane DRIVES the keyboard and thrashes a contended
@@ -531,12 +547,11 @@ async function main() {
   };
 
   const nWorkers = Math.min(PAGE_CONC, cases.length || 1);
-  await Promise.all(Array.from({ length: nWorkers }, (_, w) => worker(`w${w + 1}`)));
+  await Promise.all(Array.from({ length: nWorkers }, (_, w) => worker(`w${w + 1}`, w)));
 
   clearInterval(statusTimer);
-  tel.tabs = alloc.stats();
-  alloc.close();
-  await browser.close().catch(() => {});
+  tel.tabs = pool.stats();
+  await pool.close();
   fs.writeFileSync(path.join(OUT, 'llm-trace.json'), JSON.stringify(allTraces, null, 2));
   persist();
   tel.phase = 'done';
