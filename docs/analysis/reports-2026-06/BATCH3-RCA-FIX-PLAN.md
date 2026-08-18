@@ -107,3 +107,76 @@ Batch 3 now covers the FULL s12 residual, not just the s11-regression RCA set. F
 launched over the ~15 never-root-caused FNs, the 3 stable FPs, and the 4.1.3 loss cluster
 (fixed-evidence replays). Findings merge into the fix list above before implementation begins.
 Still open for the user: the removal-of-status-06 label-vs-doctrine ruling.
+
+## RCA-3 findings: images lane (merged 2026-08-17)
+
+13. **1.1.1 decor case-01** (miss ×3): badge SVG (22×22, removed from a11y tree) fails
+    decorativeSuspect()'s 24px gate — no obligation ever mints on the barrier element.
+    Fix: measured gate experiment (V3_DECORATIVE_MIN_DIM=20 verified to flip it in-lane) with
+    flood scan BEFORE adoption; label itself is annotator-split (Mengqi no / Ajit yes) so
+    "accept as documented gate residual" is defensible. Validation: det pre/post + flood + slice.
+
+14. **nearbyText null on single-child wrappers** (keystone: decor-01/02/06 all affected):
+    act-page-collect.js:783-794 (+ scripts/eval-page.js:494) reads only parent+direct siblings, so
+    div>canvas / div>svg / span>svg all yield nearbyText:null — starving the redundancy baseline
+    AND the abstain valves' "can I verify" question. Fix: climb ancestors until non-subject text.
+    Validation: det pre/post + re-freeze + family replay.
+
+15. **decor case-02** (stable wrong-reason miss ×3): judge cites "adjacent HTML comparison table"
+    that is the candidate canvas's OWN pixels. Fix: decorative-image-verification-v0 — redundancy
+    quote must come from TEXTUAL evidence (nearbyText/DOM/tool text), never pixels inside the
+    candidate's crop. Validation: fixed-evidence replay (packs in scratchpad/rca3-images/packs/).
+
+16. **decor case-06 + longdesc case-03 flips = batch-2 abstain valves over defective evidence**
+    (NOT platform, NOT noise; the abstains are epistemically more honest than the old catches).
+    Fixes: (a) constrain both valves' "place the text would live" to content-bearing locations
+    (a labeled user-entry field is not one); (b) longdesc: dedicated captionText fact
+    (figcaption + aria-describedby target, ~1200 cap) for complexImageHint images — the 2800-cap
+    enclosingHtml is eaten by SVG markup, truncating the caption mid-sentence (reproduced
+    byte-identically on Mac at 7b379689). Do NOT revert the valves. Validation: replay packs.
+
+17. **4.1.3 non-textual case-05** (miss ×3; old "accname diff" RCA was wrong): the detector
+    deliberately voices svg[role=img][aria-label=check] but flattens icon-ness/role/lang into
+    addedInsideLiveRegion:["check"], and the rubric's "one-word outcome is COMPLETE" guard then
+    actively clears it. Fix: provenance on accname-voiced additions ({viaAccName, tag, role} +
+    document lang) in status-detector.js:149-190,280,454; symbol-name/lang-mismatch clause in
+    status-message-v0.md:83-89 with the one-word guard carved to exclude icon-accname
+    announcements. Validation: detector unit tests + fixed-evidence replay on the family.
+
+## RCA-3 findings: relationships lane (merged 2026-08-17)
+
+18. **1.3.1 emulated-controls case-05**: F42 detector excludes the FOCUSABLE role-less sub-case by
+    construction (act-page-collect.js ~:715 `_emulatedShape` requires !focusable && no tabindex>=0)
+    — the page's own ruleName targets exactly that shape; s10/s11 catches were free-scan luck.
+    Fix: sibling fact `emulatedControlFocusable` (same guards, tabindex>=0, non-interactive role) →
+    control-semantics routing + rubric premise branch. Validation: unit + ACT-581 FP gate + slice.
+
+19. **INFRA (caused 3 silent s12 lane drops incl. structural-markup-04)**: required-evidence gate
+    abstains SILENTLY when the single page-wide viewport shot fails (vision-capture.js:244, 3×80ms
+    tries) — llm-adjudicator.js:2103-2107 returns null untraced. Fix: (a) loud per-subject
+    noVerdict {reason:'missing-declared-frame'}; (b) harden the page-wide shot (settle + backoff —
+    it amortizes over the whole page); (c) optional fieldset-with-no-controls structural fact (the
+    case's LABELED defect has no fact at all). Validation: captureVision unit test w/ failing mock;
+    re-run the 3 pages. PAPER-TABLES 1k-post7 corrected ("0 errors" was wrong at lane granularity).
+
+20. **1.3.1 form-label case-01** (miss ×3, stable): CSS-grid cross-pairing — all four inputs render
+    under the WRONG label while for/id is textually perfect; no lane sees geometry. Fix:
+    deterministic `labelGeometryMismatch` fact (nearest label above/left w/ column overlap ≠ own
+    label; agent's 15-line predicate found 4/4). Validation: unit + FP sweep over all form pages +
+    ACT + targeted slice. NOTE corpus metadata drift: manifest ruleName describes a different page.
+
+21. **1.3.1 special-status case-01**: ACCEPT — the measured F2 veto (collect-styling-outliers.js
+    documents this exact shape as inseparable from ordinary design; weight/size sweep = 28.6% of
+    pages). Tag deliberately-out/F2-veto in corpus notes.
+
+22. **2.4.2 stale-in-family case-02**: recoverable soundly post-uniqueness-deletion — title
+    VOLUNTEERS "2025" while every page identity surface (hero aria-label, h2, dl, footer) asserts
+    2026. Fix: deterministic `titleInstanceConflict` fact (title year token appears in NO
+    heading/hero surface and a different year does) + one page-title-v0 contradiction clause
+    (never fires on an ABSENT token — anti-richness firewall preserved; foil case-06 safe by
+    construction). Validation: unit on all 6 fixtures + targeted 2.4.2 slice incl. the families
+    that motivated the deletion.
+
+23. **Cross-cutting**: batch-2 page-level payloads ANCHOR the info-relationships judge (case-05's
+    verdict transcribes the visualHeadings entries) — add one presence-framing line: "the facts
+    are additive anchors, not the complete inventory; the crop remains in scope."

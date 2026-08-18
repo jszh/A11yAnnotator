@@ -1107,6 +1107,12 @@ cases.** Sonnet 4.6, tools ON, 390 pages (2 label-dispute cases retagged needs-v
 | ALL | 276/311 = 88.7% | 5/79 = 6.3% | 0.932 | 88.5% · 7.6% · 0.930 |
 | fixed | **6/6 = 100%** | 0/1 | 1.000 | 66.7% · 0.800 |
 
+**CORRECTION (RCA-3, same day): "0 errors" is wrong at lane granularity** — 3 of 53 1.3.1 cases
+(structural-markup-04, layout-table-01, emulated-controls-02) silently LOST their info-relationships
+LLM call: the one page-wide viewport shot failed under server load and the required-evidence gate
+abstained with no trace (llmCalls 6→4, llm-rubric phase 13s vs 56-92s; subject/signals/messages all
+build cleanly on replay — pure vision-frame starvation). ≥1 of the 3 cost a recall point, so s12's
+true recall is ≥277/311. Fix queued (loud noVerdict + hardened viewport shot).
 Aggregate flat vs s11 (within noise floor + platform shift); churn 13 gains / 14 losses / 1 FP
 cleared / 0 new FPs. Mechanism confirmations: **area-map case-03 CAUGHT** (proves the s11 miss was
 run-state skew — the area-crop lane simply hadn't run); **2.1.2 region-loop 01+04 CAUGHT** (the
