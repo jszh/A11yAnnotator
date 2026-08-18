@@ -488,7 +488,7 @@ async function orchestrate(collect, drive, opts = {}) {
           const runTimeoutMs = opts.llmToolRunTimeoutMs || LIMITS.llm.toolRunTimeoutMs;
           const maxTurns = opts.llmToolMaxTurns || LIMITS.llm.toolMaxTurns;
           const transport = provider === 'gemini'
-            ? adapter.makeGeminiToolTransport({ apiKey: opts.geminiKey, model: opts.llmTransportConfig.model, dispatch, maxTurns, runTimeoutMs, getExtraDeadlineMs: toolSession.extraDeadlineMs, onTraceSink: opts.llmTransportConfig.onTraceSink })
+            ? adapter.makeGeminiToolTransport({ apiKey: opts.geminiKey, model: opts.llmTransportConfig.model, effort: opts.llmTransportConfig.effort, dispatch, maxTurns, runTimeoutMs, getExtraDeadlineMs: toolSession.extraDeadlineMs, onTraceSink: opts.llmTransportConfig.onTraceSink })
             : provider === 'openai'
               ? adapter.makeOpenAITransport({ apiKey: opts.openaiKey, model: opts.llmTransportConfig.model, effort: opts.llmTransportConfig.effort, dispatch, maxTurns, runTimeoutMs, getExtraDeadlineMs: toolSession.extraDeadlineMs, onTraceSink: opts.llmTransportConfig.onTraceSink })
               : provider === 'codex'

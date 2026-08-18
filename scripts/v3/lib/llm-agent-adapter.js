@@ -259,7 +259,15 @@ function looksDegenerate(text) {
 // Gemini" comparison experiment (single-shot judge; no tools). NOTE: gemini-3.5-flash is a THINKING model that spends
 // ~600-900 output tokens on internal reasoning BEFORE the verdict — a small maxOutputTokens truncates to MAX_TOKENS
 // (empty output), so the default budget is generous. fetchImpl injectable for tests.
-function makeGeminiTransport({ apiKey, model = 'gemini-3.5-flash', fetchImpl, maxOutputTokens = 4096, temperature = 0,
+const GEMINI_THINKING_LEVEL = Object.freeze({ minimal: 'MINIMAL', low: 'LOW', medium: 'MEDIUM', high: 'HIGH', xhigh: 'HIGH', max: 'HIGH' });
+const geminiGenerationConfig = ({ temperature, maxOutputTokens, effort }) => {
+  const config = { temperature, maxOutputTokens };
+  const thinkingLevel = GEMINI_THINKING_LEVEL[String(effort || '').toLowerCase()];
+  if (thinkingLevel) config.thinkingConfig = { thinkingLevel };
+  return config;
+};
+
+function makeGeminiTransport({ apiKey, model = 'gemini-3.5-flash', fetchImpl, maxOutputTokens = 4096, temperature = 0, effort = null,
   baseUrl = 'https://generativelanguage.googleapis.com/v1beta', timeoutMs = LIMITS.llm.httpTimeoutMs,
   maxRetries = LIMITS.llm.maxRetries, baseBackoffMs = LIMITS.llm.baseBackoffMs, onTraceSink = null } = {}) {
   const f = fetchImpl || (typeof fetch === 'function' ? fetch : null);
@@ -271,7 +279,7 @@ function makeGeminiTransport({ apiKey, model = 'gemini-3.5-flash', fetchImpl, ma
   return async function transport(request, callOpts = {}) {
     const msg = (request.messages && request.messages[0]) || { content: [] };
     const temp = request.temperatureOverride != null ? request.temperatureOverride : temperature; // degeneration-retry perturbation
-    const body = { contents: [{ role: 'user', parts: toParts(msg.content) }], generationConfig: { temperature: temp, maxOutputTokens } };
+    const body = { contents: [{ role: 'user', parts: toParts(msg.content) }], generationConfig: geminiGenerationConfig({ temperature: temp, maxOutputTokens, effort }) };
     // failTrace records WHY this transport degraded to null (lifted by emitNoVerdict into the durable noVerdict log).
     const failTrace = (mode, finishReason) => { if (typeof callOpts.onTrace === 'function') callOpts.onTrace({ type: 'transportFail', provider: 'gemini', mode, finishReason: finishReason || null }); };
     let doubled = false;
@@ -315,7 +323,7 @@ function makeGeminiTransport({ apiKey, model = 'gemini-3.5-flash', fetchImpl, ma
 // verdict from the gathered evidence, mirroring the Claude path's maxTurns cap). Deadline mirrors the Claude SDK path:
 // runTimeoutMs minus queue-wait (getExtraDeadlineMs) plus backoff credit. Degrades to null on timeout/exhaustion.
 function makeGeminiToolTransport({ apiKey, model = 'gemini-3.5-flash', dispatch, fetchImpl, maxOutputTokens = 8192,
-  temperature = 0, baseUrl = 'https://generativelanguage.googleapis.com/v1beta',
+  temperature = 0, effort = null, baseUrl = 'https://generativelanguage.googleapis.com/v1beta',
   runTimeoutMs = LIMITS.llm.toolRunTimeoutMs, maxTurns = LIMITS.llm.toolMaxTurns,
   maxRetries = LIMITS.llm.maxRetries, baseBackoffMs = LIMITS.llm.baseBackoffMs, maxBackoffMs = LIMITS.llm.maxBackoffMs,
   getExtraDeadlineMs = null, onTraceSink = null } = {}) {
@@ -343,7 +351,7 @@ function makeGeminiToolTransport({ apiKey, model = 'gemini-3.5-flash', dispatch,
     const temp = request.temperatureOverride != null ? request.temperatureOverride : temperature; // degeneration-retry perturbation
     // ONE generateContent round with 429/5xx backoff (parked wall-clock credited back to the deadline). null ⇒ degrade.
     const postOnce = async (useTools, outTokens = maxOutputTokens, doubled = false) => {
-      const body = { contents, generationConfig: { temperature: temp, maxOutputTokens: outTokens } };
+      const body = { contents, generationConfig: geminiGenerationConfig({ temperature: temp, maxOutputTokens: outTokens, effort }) };
       if (useTools) body.tools = tools;
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
         if (dueAt() - Date.now() <= 0) return null;

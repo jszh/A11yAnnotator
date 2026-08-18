@@ -28,6 +28,16 @@ const REQ = { messages: [{ content: [{ type: 'text', text: 'judge this' }] }] };
 const DISPATCH = { declarations: [{ name: 'noop', description: 'x', parameters: { type: 'object', properties: {} } }], call: async () => ({ ok: true }) };
 const run = (t) => t(REQ, {});
 
+test('Gemini effort is sent as generationConfig.thinkingConfig.thinkingLevel on both transports', async () => {
+  const singleFetch = fakeFetch([cand([{ text: textJson() }])]);
+  await run(makeGeminiTransport({ apiKey: 'k', fetchImpl: singleFetch, effort: 'medium' }));
+  assert.deepEqual(singleFetch.requests[0].generationConfig.thinkingConfig, { thinkingLevel: 'MEDIUM' });
+
+  const toolFetch = fakeFetch([cand([{ text: textJson() }])]);
+  await run(makeGeminiToolTransport({ apiKey: 'k', fetchImpl: toolFetch, dispatch: DISPATCH, effort: 'medium' }));
+  assert.deepEqual(toolFetch.requests[0].generationConfig.thinkingConfig, { thinkingLevel: 'MEDIUM' });
+});
+
 test('single-shot: MAX_TOKENS with empty output DOUBLES the budget once and re-issues', async () => {
   const f = fakeFetch([cand([], 'MAX_TOKENS'), cand([{ text: textJson() }], 'STOP')]);
   const t = makeGeminiTransport({ apiKey: 'k', fetchImpl: f, maxOutputTokens: 4096 });

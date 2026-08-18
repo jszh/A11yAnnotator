@@ -193,7 +193,7 @@ function recordTrace(e) {
 const TRANSPORT_WITH_SINK = { ...TRANSPORT_CONFIG, onTraceSink: recordTrace };
 // PROVIDER switch: gemini ⇒ cross-family single-shot transport (no tools, no OAuth), else the subscription SDK.
 const baseTransport = PROVIDER === 'gemini'
-  ? makeGeminiTransport({ apiKey: GEMINI_KEY, model: MODEL, onTraceSink: recordTrace }) // onTraceSink ⇒ Gemini tokens now hit the persistent telemetry
+  ? makeGeminiTransport({ apiKey: GEMINI_KEY, model: MODEL, effort: TRANSPORT_CONFIG.effort, onTraceSink: recordTrace }) // onTraceSink ⇒ Gemini tokens now hit the persistent telemetry
   : PROVIDER === 'codex'
     ? makeCodexTransport({ apiKey: CODEX_KEY, model: MODEL, effort: TRANSPORT_CONFIG.effort, onTraceSink: recordTrace, runTimeoutMs: TRANSPORT_CONFIG.runTimeoutMs }) // GPT-5.4 via the Codex SDK (vision; agent won't tool-call)
     : PROVIDER === 'openai'
