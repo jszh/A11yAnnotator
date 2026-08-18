@@ -378,7 +378,7 @@ gate (and neutralizing the rubric's "judge from the crop" wording) for the ablat
 LLM-lane from 0 → 6 (name/role) / 15 (signals) / 34 (HTML). **Ablations that vary one input can silently
 trip a downstream gate keyed on that input; the abstain path must be audited, not trusted.**
 
-## Table 1e — Full reaches-LLM run log (provider × concurrency; 2026-06-28/29)
+## Table 1e — Full reaches-LLM run log (provider × concurrency; 2026-06-28–08-17)
 
 Full-suite (458-case) runs as this round's fixes landed. Per-SC scoring, **raw ACT labels** *unless the row is
 marked* `*` (which applies the cross-rule GT override of Table 1d → denominators 68 / 390). `noVerd` = subjects
@@ -405,6 +405,17 @@ any row with `node eval/checker-comparison/ablation-table.js` (config = the run 
 | `skip-gemini-35` **`*`** (07-01) | Gemini 3.5-flash | tools, 50-par, ◊splice, `*`override | `752d5468` ◊ | 92.6 (63/68) | 81.8 | 3.6 (14/390) | 0.869 | 3 |
 | `skip-haiku-45` (07-01) | Claude Haiku 4.5 | tools, 16-par, ◊splice | `752d5468` ◊ | 89.4 (59/66) | 71.1 | 6.1 (24/392) | 0.792 | 2 |
 | `skip-haiku-45` **`*`** (07-01) | Claude Haiku 4.5 | tools, 16-par, ◊splice, `*`override | `752d5468` ◊ | 89.7 (61/68) | 73.5 | 5.6 (22/390) | 0.808 | 2 |
+| `fn-llm-gemini37-flash-server` **`*`** (08-17) | Gemini 3.7-flash | tools, 32-page/100-par, 144 tabs, GCE ¶ | `9b7d60c7` ¶ | **94.1** (64/68) | **90.1** | **1.8** (7/390) | **0.921** | 3 |
+
+¶ **Gemini 3.7 Flash, current full 458-case reaches-LLM set, run on the c4-highcpu-16 GCE server.** No splice:
+all 458 cases ran live with vision and tools at 32 page workers, a 100-call global Gemini gate, 144-tab cap, and
+10 instrument lanes; observed peaks were 35 parallel Gemini calls and 101 tabs. Completed in 38.4 min with 0 case
+errors. Usage: 492 model calls / 1,182 usage events, 11,965,630 input tokens + 338,274 output tokens (including
+thinking), no cache tokens. The harness records `$0` because its static pricing map predates 3.7; at the Gemini API
+Standard introductory rate in force through 2026-12-31 ($0.75/M input, $3.75/M output), actual model spend is
+**$10.24** ($8.9742 input + $1.2685 output), before any account credits and excluding GCE compute. **Not a clean
+model-only comparison:** this rides the much later `9b7d60c7` pipeline and Linux/Chrome 151 server platform; compare
+the absolute row as a current-system measurement, not as a controlled delta from the June/July model rows.
 
 ‡ **Sonnet 5.0 (`claude-sonnet-5`), default config, first full run on the new code (`21518a5f`).** Starred
 **82.4 / 75.7 / 0.789** (un-modified 84.8 / 75.7 / 0.800), noVerdict 2; **179 tool calls / 121 cases** (incl. the

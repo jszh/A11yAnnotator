@@ -265,3 +265,14 @@ dumps would cut future RCA time substantially; candidate batch-3 infra item.
     removes all chrome groups; re-measure aperture (~24→~12), then one 1.4.1 slice. Plus two
     predicate refinements: record background-image in instance marker; surface single-char content
     as a field instead of silently text-less.
+
+## RCA-3, 4.1.3 loss cluster — PARTIAL (agent hit session limit; resumed)
+
+Arm B rep1 (leak-restored pages, full s12 code+rubric): ALL FOUR announced-text/partial-update
+losses flip back to caught — the corpus prose-leak STRIP (32ad4d3a, in the s12 tree; s11 ran
+pre-strip) recovers them alone. Implication: those s11 catches were LEAK-ASSISTED — in-page answer
+prose was steering the judge, and the s12 "losses" are the honest post-strip baseline, not a
+remediation regression. Arm A (per-case attribution vs the status-lane remediations) + the
+removal-06 doctrine brief still owed by the resumed agent. If confirmed, the paper's s10/s11
+numbers on leak-carrying families are inflated relative to s12 — a corpus-integrity note, and
+further vindication of the strip.
