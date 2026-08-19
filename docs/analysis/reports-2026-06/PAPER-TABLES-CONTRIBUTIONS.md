@@ -1233,6 +1233,64 @@ Gemini-marginal case that flips `caught`/`uncertain` across reps on UNCHANGED co
 re-run clean at 0 errors — and one shadow-lane 2.4.7 focus measurement that the pristine tree flips on too).
 Artifact `upstream-evidence/v3-act-subset-r4-gate/`.
 
+## Table 1k-post9 — FN round 1: the four low-recall SCs (2026-08-19, server)
+
+**Commit before the experiment: `842aad09`.** Working tree = `842aad09` + the FN-round-1 changes ONLY
+(isolated worktrees, so a second agent's concurrent edits cannot contaminate the measurement). c4-highcpu-16
+server, `gemini-3.7-flash` provider-default thinking, tools + vision ON,
+`--pages=32 --browsers=8 --max-tabs=256 --inst-gate=32`, 156 cases, 0 errors, ~8.3 min per run.
+Root cause: `FN-ROOTCAUSE-4SC-2026-08-19.md`; implementation + validation: `FN-FIX-ROUND1-2026-08-19.md`.
+
+Baseline `fn-r1-pre-rep1` = pristine `842aad09`. Final tree measured over **three replicates**
+(`fn-r1-post4-rep1..3`), because one replicate cannot state a rate on a slice this size.
+
+| SC | recall before | recall after (3 reps) | FPR before | FPR after |
+|---|---|---|---|---|
+| 1.4.1 | 26/28 = 92.9% | 26/28, 26/28, 26/28 — **unchanged** | 0/14 | 0/14 in all 3 |
+| 1.4.13 | 24/25 = 96.0% | 25/25, 24/25, 25/25 | 0/6 | 1/6, 0/6, 0/6 |
+| 2.4.3 | 28/30 = 93.3% | **30/30 in all 3** | 0/16 | 0/16 in all 3 |
+| 4.1.3 | 27/32 = 84.4% | 29/32, 28/32, 28/32 | 0/5 | 0/5 in all 3 |
+| **all 156** | **105/115 = 91.3%** | **110, 108, 109 /115 — mean 94.8%** | **0/41 = 0%** | **1, 0, 0 /41 — mean 0.8%** |
+
+**Recall 91.3% → ~94.8% (range 93.9–95.7%) at an FP rate of 0–1 case in 41; precision 100% → 99.1–100%.**
+Read per SC, only **2.4.3 is unambiguous** (+2, stable 3/3). 4.1.3 gains 1–2 of 5; 1.4.13's gain is inside
+its own noise except the deterministic `case-03` catch, which is stable. **1.4.1 gained nothing in any
+replicate** — the delta-subject change is routed but not earning its keep.
+
+Shipped: 4.1.3 stand-alone-check enforcement + rubric referents; 2.4.3 geometric-modal containment routing
+and declared-ordinal precedence; 1.4.13 scroll-held probe + applicability-observer widening (SVG `<title>`
+children, inline hover handlers); 1.4.1 delta subjects; provider-agnostic tool-call telemetry.
+
+**A false positive was created and removed before shipping, and it is the methodological finding.** The first
+cut scored ANY vanish-while-held as a deterministic 1.4.13 barrier, flagging a GT-`passed` page whose popup
+ends because its information genuinely expired — the SC's own information-no-longer-valid exception (FPR
+1/6, precision 99.1%, reproduced in 2/2 replicates). "Removed by an arbitrary timer" and "removed because the
+information expired" are the SAME measurement, so only a SCROLL-attributed vanish now scores; a time vanish
+is left unmeasured for the LLM lane. **Generalisable rule: a deterministic lane may only score a cause it can
+attribute; where the SC's exception is a claim about MEANING, delete the facet and hand the measurement on.**
+
+**Stability is not a quality signal here.** The two replicates of the DEFECTIVE build agreed on all 156
+cases; the three replicates of the CORRECT build do not (108/109/110). A deterministic verdict never wobbles,
+even when wrong — so the over-claiming build looked *more* reproducible. Any metric that rewards run-to-run
+stability without a paired specificity check points the wrong way.
+
+*Three evaluation lessons.* (i) The 140-page deterministic pre/post sweep reported **zero over-fires and was
+wrong to reassure**: the FP page did not fire in the sweep and fired in both scored runs on the identical
+tree, because the verdict raced the page's own countdown. A deterministic sweep bounds *stable* over-fire
+only. (ii) Comparing a gate against a reference produced on a DIFFERENT OS manufactures deltas that look
+stable and therefore look like code — run the pristine baseline on the machine that runs the gate.
+(iii) `run-annotated-suite.js` defaults `MODEL` to `claude-sonnet-4-6` regardless of `--provider`, so
+`--provider=gemini` without `V3_LLM_MODEL` silently yields 394 `transport-null`s, exit 0, and a
+plausible-looking recall of 25/105. One such run was produced and discarded here.
+
+**ACT 581 gate: PASS**, against a same-machine pristine `842aad09` baseline
+(`upstream-evidence/v3-act-subset-fn-r1-pregate/` vs `…-fn-r1-gate2/`): **every v3 count identical** — tp 13,
+fn 101, fp 1, tn 262, error 0 — and only 2 of 581 rows differ, both `80af7b` 2.1.2 shadow counts that wobble
+in every run of every tree, `barriersObserved` 0 in both. The 5–7 rows that differ from the older macOS
+`v3-act-subset-r4-gate` reference reproduce in the PRISTINE Linux run too, i.e. platform, not code. Note the
+581 corpus carries NO 1.4.1 / 1.4.13 / 2.4.3 / 4.1.3 case, so the gate is a collateral-damage clearance for
+the shared collectors and instruments, not evidence about the four detectors. Unit suite 1464, 0 fail.
+
 ## Table 2 — Held-out generalization gate (581-case full corpus)
 
 Each new deterministic detector evaluated over its **entire** ACT rule, not its tuned examples. Over-fire =

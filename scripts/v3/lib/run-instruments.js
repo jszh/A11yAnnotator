@@ -12,6 +12,7 @@ const { analyzeTranscript } = require('./vsr-analysis.js');
 const { collectTabOrder, tabOrderFindings, redundantStopFacts, collectRevealedFocusOrder, detectKeyboardTraps, detectFocusRetentionTraps, detectFixedSetConfinementTraps, detectFocusRejection, detectFocusRestsInAriaHidden, detectEmbeddedFormatTraps, FOCUSABLE_SEL, TRAP_REGION_SEL } = require('./kbd-graph.js');
 const { vsrNavigationIntegrity } = require('./vsr-graph.js');
 const { detectStatusMessages } = require('./status-detector.js');
+const orderCheck = require('./order-check.js');
 
 const CHROME = process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_PATH
   || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
@@ -523,6 +524,13 @@ async function runInstruments(page, opts = {}) {
     // (an open modal makes body.focus() inert — see collectTabOrder). The rubric must not read an
     // unanchored index 0 as "focus starts here".
     startAnchored: tab.startAnchored !== false,
+    // 2.4.3 INTRINSIC ORDINALS (FN round 1, 2026-08-19): when the stops themselves are numbered and those
+    // numbers ascend in the page's visual reading order, the SET has declared what its order means. Rides
+    // as a page-level fact next to the ring so the rubric's systematic-traversal guard — written for
+    // ORDERLESS 2-D sets, where column-major and row-major are equally meaningful — can tell that case
+    // from a set whose own labels say otherwise. `violated: false` claims nothing (see order-check.js).
+    intrinsicOrdinals: orderCheck.intrinsicOrdinalViolation(
+      (tab.order || []).map((s) => ({ xpath: s.xpath, rect: s.rect, label: s.label })), { rowBand: opts.rowBand }),
   } : null;
   // PUBLISH-AS-YOU-GO (residual RCA S5): the orchestrator races this whole stage against a 90 s wall-clock
   // cap and, on expiry, substitutes an EMPTY bundle — discarding a tab order that was already in hand.

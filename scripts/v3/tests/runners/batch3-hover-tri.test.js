@@ -206,7 +206,16 @@ test('#31 pinned restart analog (case-04 shape): full-strength re-reveals stay s
   assert.equal(res.outcome.contentAppeared, true);
   assert.equal(res.outcome.dismissible, false, 'Escape does not dismiss the obscuring content — scored, not shielded');
   assert.equal(res.outcome.anyPropertyFails, true, 'the true catch is preserved');
-  assert.ok(!res.measurement.reshowIntegrity, 'no integrity fact when every re-reveal was full strength');
+  // PIN UPDATED (FN round 1, 2026-08-19). `reshowIntegrity` is now also the place a DECLARED facet deletion
+  // is published, and this fixture's 2.5 s auto-hide is a TIME vanish — which no longer scores the persistent
+  // facet, because "arbitrary timer" and "the information expired" are one measurement. So the artifact does
+  // appear here; what the original pin was really protecting is that the HUSK shield did not fire, i.e. that
+  // `hoverable`/`dismissible` stayed SCORED. Assert that directly instead of asserting the artifact's absence.
+  const ri = res.measurement.reshowIntegrity;
+  assert.deepEqual((ri && ri.facetsUnmeasured) || [], ['persistent'],
+    'only the time-vanish facet is unmeasured — the husk shield did not fire on the other two');
+  assert.ok('hoverable' in res.outcome && 'dismissible' in res.outcome,
+    'both remain SCORED (present, whatever their value) — that is what the husk shield would have removed');
   assert.equal(res.measurement.vanishedWhileHeld, true, 'the held-state vanish is still recorded for the LLM facet lane');
 });
 

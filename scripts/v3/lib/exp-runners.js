@@ -1526,6 +1526,44 @@ async function runAxStateDiff(page, request) {
 function vanishedWhileHeldFrom(samples) {
   return (Array.isArray(samples) ? samples : []).some((s0) => s0 && s0.held === true && s0.present === false);
 }
+// #F6/#F7 (FN round 1, 2026-08-19) — how a VANISH observed by the long persistence probe or the scroll-held
+// probe revises the `persistent` facet the 1600 ms dwell already assigned. Pure, and exported, because this
+// is the whole of the decision to mint a DETERMINISTIC 1.4.13 barrier from a timed removal and it has to be
+// readable and testable on its own.
+// WHAT SEPARATES THE TWO VANISH KINDS (scored FN-round-1 A/B; this is the correction to the first cut of
+// #F6, which scored BOTH kinds `false` and produced the round's only false positive). The Persistent
+// condition ends on exactly three licensed events: hover/focus removed, the user dismissed, or THE
+// INFORMATION BECAME INVALID. The third is a claim about MEANING, so:
+//   * a TIME-attributed vanish is not decidable here. "Removed by an arbitrary timer" and "removed the
+//     instant a genuine hold/save/busy state ended" are the same measurement — a live region and a
+//     setInterval — and the measured false positive was precisely that: a seat-hold countdown whose hold
+//     really did expire mid-probe. Worse, whether the expiry lands inside the 1–7 s sample window is a
+//     RACE, so scoring it would make a deterministic barrier depend on run timing (it fired in the scored
+//     run and not in the 140-page sweep of the same tree). Time vanishes therefore go 'unmeasured'.
+//   * a SCROLL-attributed vanish IS decidable: scrolling is none of the three licensed events, the removal
+//     is attributable to the scroll the probe itself dispatched, and the probe re-verifies the trigger is
+//     still held and still on screen first. Nothing semantic is left to settle, so it scores.
+//   'false'      — a SCROLL vanish, corroborated three ways: the probe's re-reveal came back at FULL
+//                  original signature (the #31 husk bar), every absent held sample was authored by the
+//                  BOUND TIP's own presence rather than the document-wide scalar (which a live counter
+//                  moves without anything being removed), and the trigger was verified still held.
+//   'unmeasured' — a time vanish (always), or a scroll vanish failing one of those bars. Delete the facet
+//                  rather than keep a `true` the samples contradict: the samples stay in evidence and the
+//                  LLM lane decides the info-invalidation question, which is where it belongs.
+//   null         — no vanish; nothing to revise.
+function persistentFacetFromVanish({ vanishedWhileHeld = null, vanishedOnScrollWhileHeld = null,
+  persistReshowSig = null, hoveredSig = null, persistenceSamples = null, scrollHeld = null } = {}) {
+  if (vanishedWhileHeld !== true && vanishedOnScrollWhileHeld !== true) return null;
+  if (vanishedOnScrollWhileHeld !== true) return 'unmeasured';   // time-attributed ⇒ semantic ⇒ LLM lane
+  const reshowIntact = persistReshowSig != null && hoveredSig != null && persistReshowSig >= hoveredSig;
+  const absencesFromTip = (Array.isArray(persistenceSamples) ? persistenceSamples : [])
+    .every((s0) => !(s0 && s0.held === true && s0.present === false) || s0.via === 'tip');
+  //  triggerStillHeld — the scroll did not simply break the hover/focus (that would end the condition legally)
+  //  reshowIntact     — the content can still be summoned at FULL strength from the restored position, which
+  //                     is what separates "the scroll hid it" from "its information became invalid"
+  const scrollVerified = !!(scrollHeld && scrollHeld.triggerStillHeld === true && scrollHeld.reshowIntact === true);
+  return (reshowIntact && absencesFromTip && scrollVerified) ? 'false' : 'unmeasured';
+}
 
 async function runHoverContentTri(page, request) {
   const marker = String(request.candidateId || request.targetXpath);
@@ -1718,6 +1756,9 @@ async function runHoverContentTri(page, request) {
   // held-state persistence facts (see the probe below) — measurement-only, never folded into the outcome
   // flags (typedOutcomes is a closed schema, and the timed-removal question is a judgment call anyway).
   let persistenceSamples = null, vanishedWhileHeld = null, reshowIntegrity = null, hoverTravel = null;
+  // #F6/#F7: the persistence re-reveal's own signature (the integrity bar for scoring a vanish onto the
+  // facet), and the scroll-held probe's record + verdict.
+  let persistReshowSig = null, vanishedOnScrollWhileHeld = null, scrollHeldRecord = null;
   if (o.contentAppeared && o.contentIsAdditional) {
     // bind the ACTUAL appearing content region — the flipped element(s) themselves, found by the same rest-mark
     // delta (#2: the curated tooltip selectors only PRIORITIZE which flipped region binds as "the tip"; they
@@ -1831,6 +1872,7 @@ async function runHoverContentTri(page, request) {
         ? request.persistenceSampleOffsetsMs.slice(0, 4).map(Number).filter((n) => Number.isFinite(n) && n > 0)
         : [1000, 3000, 7000];
       const reshown = await reshow();     // fresh reveal — the held-state clock is anchored HERE
+      persistReshowSig = reshown;
       if (reshown > rest) {
         const t0 = Date.now();
         persistenceSamples = [];
@@ -1848,11 +1890,112 @@ async function runHoverContentTri(page, request) {
           const held = revealMode === 'focus'
             ? await page.evaluate((m) => document.activeElement === document.querySelector(`[data-v3-target="${m}"]`), marker).catch(() => null)
             : true;
-          persistenceSamples.push({ atMs: offMs, present: held0 === null ? sig >= reshown : held0, held });
+          // #F6: WHICH authority answered `present` on this sample. The bound tip's own presence is a
+          // direct reading of the revealed node; the document-wide scalar is a whole-page character count
+          // that a live counter can move on its own. Only tip-authored absences are strong enough to score
+          // the facet below, so the distinction has to survive into the record.
+          persistenceSamples.push({ atMs: offMs, present: held0 === null ? sig >= reshown : held0, held, via: held0 === null ? 'scalar' : 'tip' });
         }
         vanishedWhileHeld = vanishedWhileHeldFrom(persistenceSamples);
+        // #F7 (FN round 1, 2026-08-19) SCROLL-HELD PROBE. The Persistent condition ends only when hover or
+        // focus is REMOVED, the user dismisses the content, or the information becomes invalid. Scrolling is
+        // none of those, so a page whose own `scroll` listener hides revealed content fails the condition
+        // while the trigger is still held — and neither the dwell nor the timed samples above can see it,
+        // because both keep the viewport perfectly still (measured: a grid whose scroll handler hides the
+        // definition popup the moment the user nudges it to read a lower row; every facet measured clean).
+        // SELF-VERIFYING, because scrolling can carry content off screen WITHOUT anything being hidden: the
+        // probe nudges a SMALL amount, then requires the trigger to STILL BE HELD and STILL BE RENDERED IN
+        // THE VIEWPORT before it reads the tip at all. Failing either check leaves the fact NULL — the probe
+        // could not stage the question — never false.
+        const lastSample = persistenceSamples[persistenceSamples.length - 1] || null;
+        if (request.scrollHeldProbe !== false && lastSample && lastSample.present === true && vanishedWhileHeld === false) {
+          const scrolled = await page.evaluate((m) => {
+            const el = document.querySelector(`[data-v3-target="${m}"]`);
+            if (!el) return null;
+            const SCROLL_BY = 40;
+            let node = null;
+            for (let q = el.parentElement; q; q = q.parentElement) {
+              const cs = getComputedStyle(q);
+              if (/(auto|scroll)/.test(cs.overflowY) && q.scrollHeight > q.clientHeight + 4) { node = q; break; }
+            }
+            if (node) {
+              const before = node.scrollTop;
+              node.scrollTop = before + (before + node.clientHeight + 4 < node.scrollHeight ? SCROLL_BY : -SCROLL_BY);
+              return { via: 'container', delta: node.scrollTop - before };
+            }
+            const doc = document.scrollingElement || document.documentElement;
+            if (!doc || doc.scrollHeight <= doc.clientHeight + 4) return { via: 'none', delta: 0 };
+            const before = doc.scrollTop;
+            window.scrollBy(0, before + doc.clientHeight + 4 < doc.scrollHeight ? SCROLL_BY : -SCROLL_BY);
+            return { via: 'window', delta: (document.scrollingElement || document.documentElement).scrollTop - before };
+          }, marker).catch(() => null);
+          if (scrolled && scrolled.delta) {
+            await H.settle(page, 260);
+            // the hold must have SURVIVED the scroll: in hover mode the pointer never moved, so the question
+            // is whether the trigger is still the element under it (a scroll re-hit-tests); in focus mode the
+            // trigger must still be document.activeElement. And the trigger must still be on screen, so a tip
+            // that merely scrolled out of view with its anchor cannot be read as hidden.
+            const stillHeld = await page.evaluate((m, mode, px, py) => {
+              const el = document.querySelector(`[data-v3-target="${m}"]`);
+              if (!el) return null;
+              const r = el.getBoundingClientRect();
+              const onScreen = r.width >= 1 && r.height >= 1 && r.bottom > 0 && r.right > 0
+                && r.top < innerHeight && r.left < innerWidth;
+              if (!onScreen) return null;
+              if (mode === 'focus') return document.activeElement === el;
+              const under = document.elementFromPoint(px, py);
+              return !!under && (under === el || el.contains(under) || under.contains(el));
+            }, marker, revealMode, box ? box.x : 0, box ? box.y : 0).catch(() => null);
+            const presentAfter = stillHeld === true ? await tipHeld() : null;
+            vanishedOnScrollWhileHeld = (stillHeld === true && presentAfter === false) ? true
+              : (stillHeld === true && presentAfter === true) ? false : null;
+            scrollHeldRecord = { via: scrolled.via, deltaPx: scrolled.delta, triggerStillHeld: stillHeld, presentAfter };
+            // RESTORE THE SCROLL BEFORE ANYTHING ELSE RUNS (adversarial self-review of this hunk). The two
+            // facet probes below re-show the content and then act on COORDINATES CAPTURED AT THE ORIGINAL
+            // REVEAL — the pointer travel walks to the tip's recorded box, and Escape is graded against it.
+            // Leaving the viewport 40px displaced would make every one of those coordinates stale, so a probe
+            // that fired here would silently corrupt `hoverable`/`dismissible` on the same trigger. This is
+            // the #31 stale-geometry defect class exactly; the nudge has to be undone the moment it has been
+            // read. The settle lets a scroll-driven re-render land before the next probe re-reveals.
+            await page.evaluate((m, via, delta) => {
+              if (via === 'container') {
+                const el = document.querySelector(`[data-v3-target="${m}"]`);
+                for (let q = el && el.parentElement; q; q = q.parentElement) {
+                  const cs = getComputedStyle(q);
+                  if (/(auto|scroll)/.test(cs.overflowY) && q.scrollHeight > q.clientHeight + 4) { q.scrollTop -= delta; return; }
+                }
+              } else if (via === 'window') window.scrollBy(0, -delta);
+            }, marker, scrolled.via, scrolled.delta).catch(() => {});
+            await H.settle(page, 160);
+            // ADVERSARIAL BAR on the scroll attribution itself (added with the §7a correction, because the
+            // defect that correction fixed was exactly an unattributable cause scored as a real one). The
+            // samples ran for seconds and the content survived all of them; the scroll then hid it inside a
+            // ~400 ms window. A page timer firing in THAT window would be misread as scroll-caused. The
+            // discriminator is re-revealing at the RESTORED scroll position: content hidden BY the scroll
+            // comes back at full strength on a fresh hover/focus, whereas content whose information became
+            // invalid cannot — the hold expired, the save finished, the thing it described is gone. So the
+            // scroll vanish scores only if the trigger can still summon the full original content.
+            if (vanishedOnScrollWhileHeld === true) {
+              scrollHeldRecord.reshowSig = await reshow().catch(() => null);
+              scrollHeldRecord.reshowIntact = scrollHeldRecord.reshowSig != null && scrollHeldRecord.reshowSig >= hovered;
+            }
+          }
+        }
       }
     }
+    // #F6 (FN round 1, 2026-08-19). `o.persistent` is assigned from the 1600 ms dwell ABOVE, before this
+    // longer probe runs, and was never revised by it — so a page timer that removes the content at 3–7 s with
+    // the trigger STILL HELD shipped as `persistent: true` alongside `vanishedWhileHeld: true`, the facet
+    // contradicting its own samples in the same payload. The rubric note warns that a timer longer than the
+    // dwell "measures true and still fails", but a judge handed a named facet follows the facet: measured, an
+    // every-5-seconds global sweep of focus bubbles cleared at high confidence. The remedy is to DELETE the
+    // contradicted facet, not to invert it: a time vanish goes UNMEASURED and the samples become the LLM
+    // lane's evidence, while only the scroll-attributed vanish — whose cause is mechanical, not semantic —
+    // scores. See persistentFacetFromVanish for why that split is the whole of the decision.
+    const revision = persistentFacetFromVanish({ vanishedWhileHeld, vanishedOnScrollWhileHeld,
+      persistReshowSig, hoveredSig: hovered, persistenceSamples, scrollHeld: scrollHeldRecord });
+    if (revision === 'false') o.persistent = false;
+    else if (revision === 'unmeasured' && o.persistent === true) { delete o.persistent; facetsUnmeasured.push('persistent'); }
     // Hoverable: 1.4.13's Hoverable condition applies to POINTER-hover-triggered content only. In focus mode we
     // are here precisely BECAUSE hover revealed nothing, so pointer hover cannot trigger it ⇒ vacuously satisfied
     // (never a manufactured barrier — the lane is BARRIER-ONLY, so a vacuous pass only prevents a false positive).
@@ -1969,7 +2112,12 @@ async function runHoverContentTri(page, request) {
     // held-state persistence facts (present only when the probe ran): each sample is the revealed state at
     // atMs after a fresh reveal with the trigger state held. `vanishedWhileHeld` = some sample had the
     // content gone while the hold demonstrably survived — the timed-dismissal signature the dwell cannot see.
-    ...(persistenceSamples ? { persistenceSamples, vanishedWhileHeld } : {}) } });
+    ...(persistenceSamples ? { persistenceSamples, vanishedWhileHeld } : {}),
+    // #F7: present only when the scroll-held probe could be staged. `vanishedOnScrollWhileHeld: true` = the
+    // page hid revealed content on its own scroll while the trigger was demonstrably still held and still on
+    // screen; `null` = the probe could not stage the question (nothing scrollable, the scroll moved the
+    // trigger off screen, or the hold did not survive) and claims nothing.
+    ...(scrollHeldRecord ? { vanishedOnScrollWhileHeld, scrollHeld: scrollHeldRecord } : {}) } });
 }
 
 // =====================================================================================
@@ -2545,4 +2693,4 @@ const RUNNERS = {
   'bypass-blocks': runBypassBlocks,
 };
 
-module.exports = { RUNNERS, measureContrast, measureFieldLabel, measureReflow, measureObscured, vanishedWhileHeldFrom };
+module.exports = { RUNNERS, measureContrast, measureFieldLabel, measureReflow, measureObscured, vanishedWhileHeldFrom, persistentFacetFromVanish };

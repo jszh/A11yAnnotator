@@ -343,7 +343,14 @@ function makeGeminiToolTransport({ apiKey, model = 'gemini-3.5-flash', dispatch,
     let backoffCreditMs = 0;
     const dueAt = () => deadline + (getExtraDeadlineMs ? (Number(getExtraDeadlineMs()) || 0) : 0) + backoffCreditMs;
     // token telemetry per turn → BOTH the verdict trace AND the persistent sink (recordTrace sums across the loop's turns); output INCLUDES thinking tokens
-    const trace = (j) => { if (j && j.usageMetadata) { const um = j.usageMetadata; const ev = { type: 'result', usage: { input_tokens: um.promptTokenCount || 0, output_tokens: (um.candidatesTokenCount || 0) + (um.thoughtsTokenCount || 0) } }; if (typeof callOpts.onTrace === 'function') callOpts.onTrace(ev); if (typeof onTraceSink === 'function') try { onTraceSink(ev); } catch (e) {} } };
+    // `turnNo` (1-based) rides the SAME event rather than a separate one: the consumer counts an llmCall per
+    // `result`, and each loop turn IS one API call, so emitting an extra terminal event to carry the turn count
+    // would inflate that metric by one per subject. `maxTurns` therefore reads the true final turn count. NOTE
+    // the one semantic difference from the Claude path, which emits ONE result per run: `multiTurnResults`
+    // increments per turn beyond the first rather than once per multi-turn run, so read it as "extra turns
+    // taken", not "subjects that used more than one turn".
+    let turnNo = 0;
+    const trace = (j) => { if (j && j.usageMetadata) { const um = j.usageMetadata; const ev = { type: 'result', numTurns: turnNo, usage: { input_tokens: um.promptTokenCount || 0, output_tokens: (um.candidatesTokenCount || 0) + (um.thoughtsTokenCount || 0) } }; if (typeof callOpts.onTrace === 'function') callOpts.onTrace(ev); if (typeof onTraceSink === 'function') try { onTraceSink(ev); } catch (e) {} } };
     // failTrace records WHY this transport degraded to null (lifted by emitNoVerdict into the durable noVerdict log).
     // lastFinish carries the most recent turn's finishReason so a terminal degrade reports MAX_TOKENS vs STOP etc.
     const failTrace = (mode, finishReason) => { if (typeof callOpts.onTrace === 'function') callOpts.onTrace({ type: 'transportFail', provider: 'gemini', mode, finishReason: finishReason || null }); };
@@ -376,6 +383,7 @@ function makeGeminiToolTransport({ apiKey, model = 'gemini-3.5-flash', dispatch,
       return null;
     };
     for (let turn = 0; turn < maxTurns; turn++) {
+      turnNo = turn + 1;
       if (dueAt() - Date.now() <= 0) { failTrace('deadline', lastFinish); return null; }
       const lastTurn = turn === maxTurns - 1; // final turn: disable tools so the model MUST conclude with a text verdict
       const j = await postOnce(!lastTurn && !request.disableTools); // disableTools (envelope-repair retry) ⇒ plain text completion
@@ -386,6 +394,20 @@ function makeGeminiToolTransport({ apiKey, model = 'gemini-3.5-flash', dispatch,
       if (process.env.V3_GEMINI_TURN_DEBUG === '1') { // per-turn observability for the empty-loop diagnosis (default off)
         const tl = parts.map((p) => (p && p.text) || '').join('').length;
         try { process.stderr.write(`[v3:geminiTurn] ${JSON.stringify({ turn, lastTurn, candNull: !cand, finishReason: (cand && cand.finishReason) || null, calls: calls.map((c) => c.functionCall.name), parts: parts.length, textLen: tl, thinking: parts.some((p) => p && p.thought) })}\n`); } catch (e) { /* never throw */ }
+      }
+      // TOOL-CALL TELEMETRY (2026-08-19). The run-level counter reads ONE shape — a trace event carrying
+      // `blocks` with `kind: 'tool_use'` entries — and that shape was produced only by the Claude Agent-SDK
+      // message normaliser. This hand-rolled loop emitted token usage and nothing else, so every Gemini
+      // tools-ON run reported `0 calls` and tripped the runner's "ENABLED but ZERO tool calls … mislabelled
+      // as tools-ON" warning REGARDLESS of what the model actually did. That is a blind counter, not a
+      // finding, and it made a real regression (a genuinely tool-less run) indistinguishable from normal
+      // operation on this provider. Emit the same shape the counter already understands, so one contract
+      // serves every provider.
+      if (calls.length) {
+        const ev = { type: 'assistant', role: 'assistant',
+          blocks: calls.map((p) => ({ kind: 'tool_use', name: p.functionCall.name, input: p.functionCall.args || {} })) };
+        if (typeof callOpts.onTrace === 'function') callOpts.onTrace(ev);
+        if (typeof onTraceSink === 'function') try { onTraceSink(ev); } catch (e) { /* telemetry must never throw */ }
       }
       if (calls.length && !lastTurn) {
         contents.push({ role: 'model', parts }); // echo the model's turn (functionCall(s) + any thinking) into history

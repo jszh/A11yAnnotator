@@ -755,11 +755,22 @@ function precomputeSignals(element, skill, sc) {
         // Did the instrument lane hit its wall-clock cap? A SALVAGED sequence is still sound evidence about
         // order; it is only a warning that later instruments (traps, status) may be missing.
         partial: fo.partial === true,
+        // 2.4.3 INTRINSIC ORDINALS (FN round 1). Present ONLY on the unambiguous violation, so every other
+        // page's focus-order prompt stays byte-identical: the stops carry distinct numbers, those numbers
+        // ascend under row-major reading geometry, and the recorded ring does not follow them.
+        ...(fo.intrinsicOrdinals && fo.intrinsicOrdinals.violated === true ? { intrinsicOrdinals: fo.intrinsicOrdinals } : {}),
         note: 'ORDERED tab stops recorded by the deterministic keyboard instrument (forward = Tab, '
           + 'backward = Shift+Tab); each stop carries its on-page rect, its accessible NAME (label), and — '
           + 'when a modal is open — modalOpen/insideOpenModal/modalXpath. The ring is UN-ROTATED at the '
           + 'document boundary, so index 0 is the true first stop WHEN startAnchored is true. This is the '
           + 'SEQUENCE only — whether it preserves meaning is YOUR judgment. Empty/degenerate ⇒ PARTIAL.'
+          + (fo.intrinsicOrdinals && fo.intrinsicOrdinals.violated === true
+            ? ' `intrinsicOrdinals` is present, which means the stops are NUMBERED and their numbers ascend '
+              + 'in the page\'s visual reading order (`visualOrdinals`) but NOT in the recorded ring '
+              + '(`navOrdinals`). That is the page declaring its own sequence and the ring departing from '
+              + 'it — the numbers are printed for the reader. A FACT about the labels and the geometry, '
+              + 'never a verdict: whether departing from it destroys meaning or operability is still yours.'
+            : '')
           + (occlusionFacts
             ? ' Stops may additionally carry `occludedBy` — the xpath of the element visually COVERING that '
               + 'stop\'s rect when it was probed — plus, on the SAME stop, `occluderPosition` (that '
@@ -920,7 +931,14 @@ function precomputeSignals(element, skill, sc) {
         + 'luminance separation from each other label colour in the set; use it instead of estimating a ratio. '
         + '`borderColourContrasts` is the same measurement for uniform BORDER colours vs differently-bordered '
         + 'peers — the number the rubric\'s lightness-escape clause requires; never derive a ratio yourself '
-        + 'from raw colour values. When `colourKeyLightnessWorded` is present it ANSWERS leg (i) of the '
+        + 'from raw colour values. `boxShadow` is this field\'s own shadow declaration (\'none\' when unset), '
+        + 'reported so the state styling is described COMPLETELY: a coloured ring drawn with a shadow spread '
+        + 'moves no layout and so used to be invisible here, leaving a field whose coded state is a halo '
+        + 'described as carrying only its border. Raw styling, never a verdict, and it cuts both ways — a '
+        + 'shadow that merely restates the border\'s colour is one more COLOUR cue, while a ring the peer '
+        + 'fields do not have AT ALL is a difference in visual presentation. Decide which from the peer rows '
+        + '(`differentAppearanceFrom[].boxShadow` is present only where a peer\'s shadow differs from this '
+        + 'one\'s); its mere presence is never a cue. When `colourKeyLightnessWorded` is present it ANSWERS leg (i) of the '
         + 'key/legend test: true = the key\'s own phrasing hands the reader a lightness word to apply (hue '
         + 'words alongside do NOT defeat it); false = hue is the key\'s sole handle and leg (i) fails — do '
         + 'not re-litigate the phrasing either way. These are FACTS, not a verdict: whether the colour '
@@ -1682,6 +1700,88 @@ async function applyRefute(runAgent, messages, subj, out) {
   return out; // refuter produced nothing usable → keep the original barrier (do not silently drop recall)
 }
 
+// 4.1.3 STAND-ALONE CHECK — ENFORCEMENT (FN round 1, 2026-08-19). `status-message-v0` carries TWO checks: the
+// WIRING check (a pre-existing region, sane politeness, no change of context) and the STAND-ALONE check (does
+// the announced string say WHAT it happened to). The rubric ALREADY requires that a clear CARRY the second
+// check's result — quote the announced string, and name either the referent or one of its two guards — and
+// says to return PARTIAL when it does not. Prose cannot enforce itself: measured on the annotated corpus,
+// EVERY 4.1.3 miss was a high-confidence clear whose reasoning cited the wiring half alone, while the referent
+// the announcement dropped sat in the SAME prompt (the activated control's own accessible name, the section
+// heading, or — on a non-atomic update — the mutated fragment). This is the enforcement, and it fires ONLY on
+// a clear that skipped the check: the second question is then asked ALONE, decomposed, exactly the way the
+// applicability gate asks its own. A clear that DID the work is never re-asked and never costs a call.
+// FAIL-CLOSED ON FP: anything other than a REPRODUCED from the focused pass keeps the original clear, so the
+// gate can only recover a check that was owed and skipped — it can never overturn a performed one.
+const STANDALONE_GUARD_RE = /terse-outcome|region-carries-its-own-referent/i;
+const normQuote = (s) => String(s == null ? '' : s).toLowerCase().replace(/\s+/g, ' ').trim();
+// The announced strings + the referents a sighted user has, read off the SAME threaded evidence the rubric
+// receives. `atomic:false` announces only the mutated fragment, so that — not the region's full text — is what
+// the AT speaks and what the check must be applied to.
+function announcedFactsOf(subj) {
+  const el = subj && subj.element;
+  const obs = (el && Array.isArray(el.__statusObservations)) ? el.__statusObservations : null;
+  if (!obs) return null;
+  // PAIRED, not two flat lists (adversarial self-review of this hunk). A page with many triggers would
+  // otherwise hand the judge every label on the page next to every string, inviting it to pair an
+  // announcement with a referent from an unrelated control. Each spoken string travels with the accessible
+  // name of the control that ACTUALLY caused it; the section heading is page-level and rides once.
+  const pairs = [];
+  for (const t of obs) {
+    if (!t || typeof t !== 'object') continue;
+    const lab = typeof t.triggerLabel === 'string' ? t.triggerLabel.trim() : '';
+    const push = (s0) => { const v = typeof s0 === 'string' ? s0.trim() : ''; if (v) pairs.push({ spoken: v, byControl: lab || null }); };
+    for (const r of (Array.isArray(t.regionsUpdated) ? t.regionsUpdated : [])) {
+      if (!r || typeof r !== 'object') continue;
+      const frag = typeof r.mutatedFragment === 'string' ? r.mutatedFragment.trim() : '';
+      if (r.atomic === false && frag) push(frag);
+      else push(r.after);
+    }
+    for (const a of (Array.isArray(t.addedInsideLiveRegion) ? t.addedInsideLiveRegion : [])) push(a);
+  }
+  const seenPair = new Set();
+  const announcements = pairs.filter((p) => { const k = `${p.spoken}\u0000${p.byControl}`; return !seenPair.has(k) && seenPair.add(k); });
+  const head = (el && typeof el.sectionHeading === 'string') ? el.sectionHeading.trim() : '';
+  return { announcements, announced: [...new Set(announcements.map((p) => p.spoken))], sectionHeading: head || null };
+}
+// Did the clear carry the second check? Either it named one of the rubric's two guards, or it quoted the
+// string it was asked to read alone. Deliberately generous — a clear that shows ANY trace of the check is
+// left alone, so the gate spends calls only where the check demonstrably did not happen.
+function standaloneCheckPerformed(out, announced) {
+  const text = normQuote(`${(out && out.reasoning) || ''} ${(out && out.summary) || ''}`);
+  if (!text) return false;
+  if (STANDALONE_GUARD_RE.test(text)) return true;
+  // >= 3 chars: a one- or two-character announcement (a bare numeral on a non-atomic update) would otherwise
+  // be "quoted" by any sentence that happens to contain those characters, waving through the very clears the
+  // gate exists to catch. Such a string simply cannot satisfy this test, so it is always re-asked — the right
+  // default, since a subject-less numeral is the hardest case here, and the cost is one call.
+  return announced.some((a) => { const n = normQuote(a); return n.length >= 3 && text.includes(n); });
+}
+async function applyStandaloneCheck(runAgent, messages, subj, out) {
+  if (process.env.V3_413_STANDALONE === '0') return out;                       // opt-out for ablation
+  if (!subj || subj.rubricId !== 'status-message-v0') return out;
+  if (!out || out.verdict !== 'NOT REPRODUCED') return out;
+  // a clear a SKEPTIC produced by overturning a barrier is not an unperformed check — it is a decision this
+  // gate has no business re-opening (adversarial self-review: without this, the refutation cascade and this
+  // gate could hand the same subject back and forth).
+  if (out._refutedFrom) return out;
+  const facts = announcedFactsOf(subj);
+  if (!facts || !facts.announced.length) return out;                           // nothing announced ⇒ not owed
+  if (standaloneCheckPerformed(out, facts.announced)) return out;              // the clear carried it
+  const block = { type: 'text', text: [
+    '--- STEP 2 of 2: THE STAND-ALONE CHECK, ASKED ALONE (the delivery question is SETTLED — do not re-open it) ---',
+    'A first-pass judge cleared this element on DELIVERY: the live region is correctly wired. Correct delivery settles HOW the message reaches assistive technology, never WHAT it says, and that second question has not been answered. Answer ONLY it.',
+    `The exact string(s) an AT would speak, each paired with the accessible name of the control whose activation CAUSED it (\`byControl\`, null when the instrument could not name it): ${JSON.stringify(facts.announcements.slice(0, 8))}.`,
+    `The heading of the section these updates belong to: ${JSON.stringify(facts.sectionHeading)}.`,
+    'Those two — the causing control\'s own name and the section heading — are referents this page\'s evidence shows a sighted user HAS at the moment of the update. Pair a string only with ITS OWN control; another control\'s name is not a referent the user had for this update.',
+    'Read the announced string ALONE, with no screen. Return REPRODUCED only when ALL THREE hold: (i) the string names no subject — it states an outcome, quantity or state change without saying what it applies to; (ii) one of the referents above IS on screen for a sighted user at that moment and identifies what the update is about; and (iii) that referent text sits OUTSIDE the announced region and is not re-announced with the update. Quote the announced string in your reasoning.',
+    'Return NOT REPRODUCED when the string stands on its own, or when a guard applies: `terse-outcome` (a one-word outcome after a single unambiguous action, where no on-screen text supplies a referent the string lacks) or `region-carries-its-own-referent` (the announced region\'s own persistent text or accessible name says what is being reported and travels with the update). Brevity alone is never the finding; the finding is a referent the sighted user gets and the announced string drops.',
+    'Return STRICT JSON {"verdict":"REPRODUCED"|"NOT REPRODUCED"|"PARTIAL","confidence":"low"|"medium"|"high","summary":string,"reasoning":string,"evidenceRefs":string[]}.',
+  ].join('\n') };
+  let r; try { r = await runAgent([...messages, block], subj); } catch (e) { r = null; }
+  if (r && r.verdict === 'REPRODUCED') return { ...r, _standaloneEnforced: true };
+  return out;
+}
+
 // DECOMPOSED APPLICABILITY GATE (V3_FP_APPLY_GATE=1): a FOCUSED step-1 judgment on applicability/exemption BEFORE
 // the barrier framing primes over-flagging (FLASK-style decomposition, NOT the refuted in-rubric prose — the
 // exemption clause is asked as its OWN narrow decision). Returns a NOT-REPRODUCED verdict to short-circuit when the
@@ -1708,6 +1808,7 @@ async function judgeWithMethod(runAgent, messages, subj) {
   if (!out) return out;
   out = await applyVotes(runAgent, messages, subj, out);
   out = await applyRefute(runAgent, messages, subj, out);
+  out = await applyStandaloneCheck(runAgent, messages, subj, out);
   out = applyAbstain(out);
   return out;
 }
@@ -2029,6 +2130,26 @@ const FOCUS_CLAUSE_OF = {
   'focus-return-after-dismissal-v0': 'revealReturn',
   'focus-redundant-stop-v0': 'redundant',
 };
+// UNDECLARED-MODAL SHAPE (FN round 1, 2026-08-19). Returns the tab stops that are (a) fully occluded by a
+// positioned overlay that covers essentially the whole viewport, while (b) at least one OTHER stop lies
+// INSIDE that same overlay — i.e. the ring walks controls the user cannot see, and the thing hiding them has
+// focusable content of its own. That pair is what an ARIA-declared modal leak looks like measured
+// geometrically; neither half alone is it (a full-page cookie banner with nothing focusable behind it, or an
+// overlay with no stops of its own, produce an empty list). Deliberately strict on coverage: a dropdown or a
+// sticky header occludes a little, a modal scrim occludes the viewport.
+const OVERLAY_MIN_VIEWPORT_COVERAGE = 0.8;
+function occludedStopsUnderOverlay(stops) {
+  const rows = Array.isArray(stops) ? stops : [];
+  const out = [];
+  for (const s of rows) {
+    if (!s || typeof s.occludedBy !== 'string' || !s.occludedBy) continue;
+    if (s.occluderPosition !== 'fixed' && s.occluderPosition !== 'absolute') continue;
+    if (!(Number(s.occluderViewportCoverage) >= OVERLAY_MIN_VIEWPORT_COVERAGE)) continue;
+    const inside = rows.some((t) => t && typeof t.xpath === 'string' && t.xpath.startsWith(`${s.occludedBy}/`));
+    if (inside) out.push(s);
+  }
+  return out;
+}
 // Which clause facts this page's recorded ring actually carries. Computed ONCE per page from the same
 // artifact the rubrics read, so a gate can never disagree with the evidence its rubric is handed.
 function focusClauseFacts(focusOrder) {
@@ -2040,7 +2161,19 @@ function focusClauseFacts(focusOrder) {
     // tabbable OUTSIDE an open modal. leakedStops > 0 only: a contained modal (aggregate present, zero
     // leaks) opens no containment question, and the aggregate's absence (null) claims nothing.
     modal: stops.some((s) => s && s.modalOpen === true)
-      || stops.some((s) => { const r = rev(s); return !!r && r.containmentLeak && typeof r.containmentLeak === 'object' && Number(r.containmentLeak.leakedStops) > 0; }),
+      || stops.some((s) => { const r = rev(s); return !!r && r.containmentLeak && typeof r.containmentLeak === 'object' && Number(r.containmentLeak.leakedStops) > 0; })
+      // ...OR (FN round 1, 2026-08-19) the UNDECLARED modal, recognised from GEOMETRY instead of ARIA. Both
+      // facts above require the page to SAY it opened a modal — `modalOpen` is `dialog[open]`/`aria-modal`
+      // and `containmentLeak` is computed from the opened-state ring of one of those. A promo/consent card
+      // over a full-viewport scrim declares neither, so the containment clause never opened and the case
+      // fell to focus-order-meaning-v0, which asks whether the sequence is MEANINGFUL and has no containment
+      // doctrine to apply — measured, it answered "logical, unbroken order" while five background controls
+      // were tabbable underneath an opaque overlay. The per-stop occlusion facts recording exactly this
+      // shape were added for it (kbd-graph #25) and no gate consumed them. `occludedStopsUnderOverlay`
+      // below is the geometric analogue of `leakedStops > 0`: stops the user CANNOT SEE are in the ring
+      // while other stops sit INSIDE the thing covering them. It only ROUTES a rubric — the rubric still
+      // decides whether the overlay is modal in intent and whether the order breaks meaning.
+      || occludedStopsUnderOverlay(stops).length > 0,
     // clause D, insertion half — the instrument could ASK where the revealed region sits. A `null` on both
     // fields means the question could not be asked, and the rubric is told never to argue from a null, so
     // routing it there would be a guaranteed abstain.
@@ -2283,6 +2416,45 @@ function selectRubricSubjects(collect, ledger, rubrics, { onlyAutoPartial = true
     subjects.push(subject);
     byKey.set(key, subject);
   }
+  // 1.4.1 POST-ACTIVATION DELTA SUBJECTS (FN round 1, 2026-08-19). `colourStateDeltas` records that activating
+  // some trigger flipped ANOTHER element's computed colours with no text added in or around it — 1.4.1's
+  // state-conveyed-by-colour-alone shape, measured. The rows were already broadcast to every `use-of-color-v0`
+  // subject on the page, and the signal's own note (correctly) tells the judge to match the row's xpath against
+  // its subject before attributing a delta to it. Measured consequence: on a page whose only 1.4.1 subjects were
+  // the form fields inside the changed rows, the delta named an element that was NOT any subject, the judge
+  // matched, found nothing, and cleared — the harness measured the barrier and then instructed the judge to
+  // ignore it. The delta's OWN element becomes a subject here, so the match it is told to perform succeeds.
+  //
+  // The oracle cannot mint this: it runs on collected at-rest facts, and this fact only exists after an
+  // activation the instrument performs later. The subject therefore carries no ledger row, which is exactly
+  // right for this lane — the judgment rides as a non-authoritative shadow annotation and can never fill an
+  // obligation (the 3.2 PROVISIONAL fill only touches ENUMERATED auto-PARTIAL rows).
+  //
+  // Bounded four ways: `textAlsoChangedNearby === false` only (a delta accompanied by text is not the
+  // colour-alone shape and there is nothing to ask); the element must be a REAL collected element, so the
+  // rubric gets the same facts any other subject gets; never duplicates an (xpath, rubric) the loop already
+  // produced; and capped, since one activation can tint many peers.
+  const ucRubric = (bySc['1.4.1'] || []).find((r) => r && r.id === 'use-of-color-v0');
+  if (ucRubric && Array.isArray(colourStateDeltas) && colourStateDeltas.length) {
+    const DELTA_SUBJECT_CAP = 6;
+    let minted = 0;
+    for (const d of colourStateDeltas) {
+      if (minted >= DELTA_SUBJECT_CAP) break;
+      if (!d || typeof d !== 'object' || d.textAlsoChangedNearby !== false) continue;
+      const xp = typeof d.xpath === 'string' ? d.xpath : '';
+      if (!xp) continue;
+      const key = `${xp}::${ucRubric.id}`;
+      if (seen.has(key)) continue;
+      const baseEl = elByXpath[xp];
+      if (!baseEl) continue;                                   // no collected facts ⇒ nothing to judge on
+      seen.add(key);
+      const element = { ...baseEl, __colourStateDeltas: colourStateDeltas };
+      const subject = { xpath: xp, sc: '1.4.1', claimFamily: 'use-of-color', rubricId: ucRubric.id, rubric: ucRubric, skill: ucRubric.skill || null, element };
+      subjects.push(subject);
+      byKey.set(key, subject);
+      minted += 1;
+    }
+  }
   return subjects;
 }
 
@@ -2401,4 +2573,7 @@ module.exports = {
   selectSubjects, selectRubricSubjects, precomputeSignals, buildPrompt, buildMessages,
   runAdjudication, runRubricJudgments, scrubRefs, isLegacyToken, computeLinkPeerGroups,
   runPool, // the one audited order-preserving worker pool — shared by the deterministic experiment lane
+  // FN round 1 (2026-08-19) — exported for direct test: the 4.1.3 stand-alone-check enforcement helpers and
+  // the 2.4.3 clause facts (whose undeclared-modal disjunct is new).
+  announcedFactsOf, standaloneCheckPerformed, applyStandaloneCheck, focusClauseFacts, occludedStopsUnderOverlay,
 };

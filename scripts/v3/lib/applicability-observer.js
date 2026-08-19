@@ -43,9 +43,28 @@ function observeFacts(xpath) {
   //  (a) declarative popup/description attributes, and
   //  (b) a CSS rule keyed on :hover/:focus that MATCHES this element (`li:hover > .submenu`), read from
   //      the live stylesheets — the shape the collector generalization was built for.
+  //  (c) FN round 1 (2026-08-19): two more DECLARATIVE shapes the two axes above still missed, each read
+  //      off this element's own markup and neither copied from the runner. Measured: on a bar chart whose
+  //      rects carry an SVG <title> child and a JS-wired author overlay, the runner PROVED the barrier
+  //      (anyPropertyFails + !hoverable, valid + completed) and Rule-15 binding rejected it on
+  //      `hasHoverFocusTrigger: runner=true observer=false`, so a fully measured 1.4.13 barrier degraded to
+  //      a deterministic PARTIAL and never reached the shadow lane — the same "the runner SUCCEEDING is
+  //      what caused the miss" shape the widening above was written for, one layer down.
+  //        · an SVG <title>/<desc> CHILD is the SVG-native tooltip — the exact analogue of the `title`
+  //          ATTRIBUTE tested above, which `hasAttribute('title')` cannot see because in SVG it is an
+  //          element, not an attribute. Whether that native tooltip is IN SCOPE for 1.4.13 is a different
+  //          question and stays the runner's (`nativeTitleOnly`) — this flag only asks whether the element
+  //          is plausibly a hover trigger at all.
+  //        · an INLINE hover/focus handler attribute. `addEventListener`-wired reveals remain outside every
+  //          in-page axis (listeners are not readable from script) and stay a documented residual.
+  const svgTooltipChild = (el.namespaceURI === 'http://www.w3.org/2000/svg' || el.ownerSVGElement != null)
+    && !!el.querySelector && !!el.querySelector(':scope > title, :scope > desc');
+  const inlineHoverHandler = ['onmouseenter', 'onmouseover', 'onmousemove', 'onpointerenter', 'onpointerover', 'onfocus', 'onfocusin']
+    .some((a) => el.hasAttribute(a));
   const hasTriggerAttr = el.hasAttribute('title') || el.hasAttribute('aria-describedby')
     || el.hasAttribute('aria-controls') || el.hasAttribute('aria-haspopup')
-    || el.hasAttribute('aria-expanded') || el.hasAttribute('data-tooltip');
+    || el.hasAttribute('aria-expanded') || el.hasAttribute('data-tooltip')
+    || svgTooltipChild || inlineHoverHandler;
   let cssTrigger = false;
   try {
     for (const sheet of document.styleSheets) {

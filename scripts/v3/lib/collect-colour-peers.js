@@ -523,6 +523,13 @@ function collectFieldColourState(opts) {
       // border (uniform, real) — otherwise null so no pair can be minted off an ambiguous accent.
       borderColor: border.uniform && border.value !== 'none' ? cs.borderTopColor : null,
       outline: outlineOf(cs),
+      // FN round 1 (2026-08-19): `border` + `outline` are not the whole of a field's state styling. The
+      // commonest way to draw a validation ring without moving layout is a `box-shadow` spread, and it was
+      // invisible here — so a field whose coded state is a coloured HALO was described to the judge as
+      // carrying only its 1px border, and the F81 lightness escape below was applied to a partial picture
+      // of the styling. Reported raw ('none' when unset): a shadow is both a colour and a PRESENTATION
+      // difference (a ring the peers do not have), and which of those it is matters to F81.
+      boxShadow: cs.boxShadow && cs.boxShadow !== 'none' ? cs.boxShadow : 'none',
       labelColor: labCs ? labCs.color : null,
       labelGeneratedContent: lab ? genContent(lab) : null,
       labelHasIcon: lab ? hasIcon(lab) : false,
@@ -618,7 +625,8 @@ function collectFieldColourState(opts) {
         diff.push({
           label: p.label || p.xpath,
           background: p.background !== f.background ? p.background : undefined,
-          border: p.border, labelColor: p.labelColor !== f.labelColor ? p.labelColor : undefined,
+          border: p.border, boxShadow: p.boxShadow !== f.boxShadow ? p.boxShadow : undefined,
+          labelColor: p.labelColor !== f.labelColor ? p.labelColor : undefined,
           errorStated: p.state.ariaInvalid === 'true' || !!p.cue.errorMessageText,
           requiredStated: p.state.required === true || p.state.ariaRequired === 'true',
           classes: p.state.classes.length ? p.state.classes : undefined,
@@ -664,6 +672,7 @@ function collectFieldColourState(opts) {
         borderUniform: f.borderUniform,
         borderColor: f.borderColor,
         outline: f.outline,
+        boxShadow: f.boxShadow,
         labelColor: f.labelColor,
         labelGeneratedContent: f.labelGeneratedContent,
         labelHasIcon: f.labelHasIcon,

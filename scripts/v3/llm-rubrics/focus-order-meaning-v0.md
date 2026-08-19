@@ -74,6 +74,19 @@ positives this rubric produces are these shapes, argued purely from x/y coordina
   destroys the arrangement's meaning even though no two individual members depend on each other. The
   same applies when each member carries its own position marker — a printed index, a coordinate, a step
   number: the order those markers state is the page's own declared order.
+  **PRECEDENCE — a declared order OUTRANKS the systematic-traversal licence, it is not weighed against
+  it.** The licence exists because an ORDERLESS 2-D set has no preferred traversal, so no traversal of it
+  can be wrong. A set whose members are numbered has a preferred traversal and prints it, so "the walk was
+  systematic" answers a question that set is not asking: a consistent walk that contradicts the printed
+  sequence is out of order BY THE PAGE'S OWN DECLARATION, and being consistent about it does not repair
+  the mismatch — it only makes the mismatch uniform. Decide the markers FIRST; reach for the licence only
+  once you have established the set carries none.
+  When `signals.focusOrder.intrinsicOrdinals` is present this is ANSWERED FOR YOU and you do not have to
+  read the numbers off the labels yourself: it means the stops carry DISTINCT numbers, `visualOrdinals`
+  shows those numbers ascending in the page's visual reading order, and `navOrdinals` shows the recorded
+  ring departing from them. Do not re-derive it, and do not clear such a page on the licence above. It is
+  still a fact and not a verdict — the judgment left to you is whether departing from the page's own
+  declared sequence destroys meaning or operability for a keyboard user here.
 - **A tree/grid/toolbar with roving tabindex** — one Tab stop, arrows inside. The backward ring
   legitimately differs from the forward one (TT 4.F); that asymmetry alone is not a failure.
 - **Positive `tabindex` that REPAIRS an order.** A page whose CSS paints controls out of DOM order and
@@ -95,7 +108,9 @@ that sits below it in the same column. It is UNCALIBRATED TRIAGE, not a verdict,
 evidence in both directions: a systematic column-by-column or row-by-row traversal of a 2-D
 arrangement produces **none** of these, so their ABSENCE supports the systematic-traversal reading in
 Clause A, while several of them spread across a set is the fingerprint of the scatter that clause
-excludes. Never fail a page on this field alone — the column model cannot resolve right-to-left,
+excludes. That absence supports the traversal reading ONLY where the licence itself applies: on a set
+carrying its own position markers a transposed-but-systematic walk also produces none of these, so read
+the markers, not the silence. Never fail a page on this field alone — the column model cannot resolve right-to-left,
 masonry, or z-ordered layouts from geometry.
 
 **CLAUSE B — THE SEQUENCE IS A RING.** The instrument walks a cycle and un-rotates it at the document

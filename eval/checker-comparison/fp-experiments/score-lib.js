@@ -56,7 +56,11 @@ function scoreCase(tc, out) {
   const ratById = {}; for (const r of rats) ratById[r.verdictId] = r;
   rec.agentVerdicts = agentInScope.map((v) => ({ sc: v.sc, verdict: v.agentVerdict, confidence: v.confidence, claimFamily: v.claimFamily, xpath: v.targetXpath,
     summary: (ratById[v.verdictId] && ratById[v.verdictId].summary) || null }));
-  rec.rubricVerdicts = rubricInScope.map((j) => ({ sc: j.sc, verdict: j.verdict, confidence: j.confidence, rubric: j.rubricRef, xpath: j.targetXpath, summary: j.summary || null }));
+  // `reasoning` is the judge's evidence-citing sentence. It was dropped here, which made the rubrics that
+  // demand a clear CARRY a named check (4.1.3's stand-alone check) unauditable after the fact — the scored
+  // artifact showed only the one-sentence summary. Persisted so a post-hoc pass can tell a clear that
+  // performed the check from one that skipped it.
+  rec.rubricVerdicts = rubricInScope.map((j) => ({ sc: j.sc, verdict: j.verdict, confidence: j.confidence, rubric: j.rubricRef, xpath: j.targetXpath, summary: j.summary || null, reasoning: j.reasoning || null }));
   rec.otherBarriers = [
     ...agentV.filter((v) => !inScope.has(v.sc) && v.agentVerdict === 'REPRODUCED').map((v) => ({ kind: 'agent', sc: v.sc, xpath: v.targetXpath })),
     ...rubricV.filter((j) => !inScope.has(j.sc) && j.verdict === 'LIKELY_BARRIER').map((j) => ({ kind: 'rubric', sc: j.sc, rubric: j.rubricRef, xpath: j.targetXpath })),

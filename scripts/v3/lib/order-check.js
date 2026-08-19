@@ -81,4 +81,59 @@ function visualOrderDivergence(items, opts = {}) {
   return { findings, comparable: leaves.length };
 }
 
-module.exports = { visualOrderDivergence, assignColumns };
+// ── INTRINSIC-ORDINAL VIOLATION (2.4.3, FN round 1 2026-08-19) ─────────────────────────────────────
+// The column model above is deliberately agnostic about which 2-D traversal is "right", because for an
+// ORDERLESS set — a photo grid, a card wall — column-major and row-major are equally meaningful and
+// flagging either manufactures a barrier. That agnosticism is wrong for a set that carries its OWN
+// sequence and PRINTS it: when every item is labelled with a number and those numbers ascend in the
+// page's visual reading order, the page has stated what its order means, and a traversal that violates
+// it is not "an alternative systematic traversal" — it is out of order, by the set's own declaration.
+//
+// DOCUMENTED BOUND (adversarial self-review): the visual sort is row-major LEFT-TO-RIGHT, so on an RTL page
+// a CORRECTLY ordered set reads as descending within each row and the check returns `violated: false`. That
+// is the safe direction — it costs recall on RTL, never a false firing — and it is why the visual-ascending
+// precondition is a precondition rather than a tie-break. Same for any layout whose reading order is not
+// row-major (masonry, z-ordered): the ordinals will not ascend under this sort either, and nothing fires.
+//
+// This returns a fact, not a verdict, and only for the unambiguous case: nearly every stop carries a
+// DISTINCT ordinal, those ordinals ascend under row-major reading geometry, and they do NOT ascend under
+// the recorded navigation order. Any softening of those conditions — a few unlabelled stops, repeated
+// numbers (a row/seat pair where the first integer is the row), ordinals that are not sorted visually
+// either — yields `violated: false` and claims nothing, so an orderless grid of numbered thumbnails whose
+// numbers do not follow the layout cannot fire it.
+const ORDINAL_RE = /-?\d+/;
+const ORDINAL_MIN_STOPS = 6;
+const ORDINAL_MIN_COVERAGE = 0.8;
+function intrinsicOrdinalViolation(items, opts = {}) {
+  const band = Number.isFinite(opts.rowBand) ? opts.rowBand : 12;
+  const seenXp = new Set();
+  const seq = (items || []).filter((s) => s && s.rect && s.rect.w > 0 && s.rect.h > 0 && s.xpath
+    && !seenXp.has(s.xpath) && seenXp.add(s.xpath));
+  if (seq.length < ORDINAL_MIN_STOPS) return { violated: false, reason: 'too few stops' };
+  const withN = [];
+  for (const s of seq) {
+    const m = ORDINAL_RE.exec(String(s.label == null ? '' : s.label));
+    if (m) withN.push({ ...s, n: Number(m[0]) });
+  }
+  if (withN.length < ORDINAL_MIN_STOPS || withN.length / seq.length < ORDINAL_MIN_COVERAGE) {
+    return { violated: false, reason: 'stops do not carry ordinals' };
+  }
+  if (new Set(withN.map((s) => s.n)).size !== withN.length) return { violated: false, reason: 'ordinals are not distinct' };
+  const ascending = (arr) => arr.every((v, i) => i === 0 || v > arr[i - 1]);
+  const navSeq = withN.map((s) => s.n);
+  const visSeq = [...withN]
+    .sort((a, b) => (Math.abs(a.rect.y - b.rect.y) > band ? a.rect.y - b.rect.y : a.rect.x - b.rect.x))
+    .map((s) => s.n);
+  if (!ascending(visSeq)) return { violated: false, reason: 'ordinals do not follow the visual reading order either' };
+  if (ascending(navSeq)) return { violated: false, reason: 'navigation order follows the ordinals' };
+  const CAP = 24;
+  return {
+    violated: true,
+    stops: withN.length,
+    navOrdinals: navSeq.slice(0, CAP),
+    visualOrdinals: visSeq.slice(0, CAP),
+    truncated: navSeq.length > CAP,
+  };
+}
+
+module.exports = { visualOrderDivergence, assignColumns, intrinsicOrdinalViolation };

@@ -86,6 +86,14 @@ screenshot, which cannot show any of it. Read them in this order:
    truncated-announcement shape even though the full region text reads fine on screen.
 6. `addedOutsideLiveRegion` NON-EMPTY with nothing else ⇒ the plain-`<div>` case; the detector will normally
    already have barriered it.
+7. `triggers[].triggerLabel` is the ACCESSIBLE NAME of the control the user activated to cause this update,
+   and `sectionHeading` is the heading of the section the update belongs to. These are the two referents a
+   sighted user demonstrably HAS at the moment of the change, handed to you as facts — you do not have to
+   find them in a screenshot. They are the raw material of the stand-alone check below: when the control's
+   own name identifies the object acted on and the announced string does not, the announcement dropped a
+   referent the sighted user was given. They are FACTS about the page, never a verdict: a trigger whose name
+   is itself generic supplies no referent, and a referent that already appears inside the announced string
+   was not dropped.
 
 **THE ANNOUNCED STRING MUST STAND ON ITS OWN — a SECOND, independent check, applied only AFTER the wiring
 checks above pass.** Correct delivery (a pre-existing region, sane politeness, updated in place) settles HOW
@@ -96,7 +104,8 @@ it happened? A sighted user reads the update inside its visual context — the r
 it, the control it decorates; an AT user gets ONLY the string. Barrier ONLY when ALL THREE hold: **(i)** the
 string names no subject — it states an outcome, quantity, or state change without saying what it applies to;
 **(ii)** that referent IS on screen for a sighted user at the moment of the update, carried by some visible
-text or accessible name near the update; and **(iii)** that
+text or accessible name near the update — `triggerLabel` and `sectionHeading` are exactly that, already
+measured, so CHECK THEM BEFORE concluding no referent exists; and **(iii)** that
 referent text sits OUTSIDE the announced region and is not re-announced with the update. You must POINT TO
 the specific on-screen text that carries the missing referent; if you cannot, there is no barrier under this
 check. **STRUCTURAL REQUIREMENT — a clear must CARRY this check's result.** Before returning NOT REPRODUCED

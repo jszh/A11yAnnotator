@@ -679,6 +679,16 @@ Pass bar: zero unsound off-SC barriers across replicates AND no on-SC recall los
 the instance predicate, re-census, re-slice only the delta. Cost: collector sweep + tens of calls.
 Run at the post-ruling commit so the numbers attach to the enable-candidate tree.
 
+**2026-08-19 (FN round 1): this item is now load-bearing for a KNOWN miss, not just a coverage idea.**
+The four-SC FN root-cause found a 1.4.1 case scoring `noObligation` with zero subjects — a region-health
+matrix whose status is carried by empty, name-less, non-interactive spans distinguished only by
+`background-color`, with a hue-keyed legend. That is the canonical F81 shape and the element-level 1.4.1
+aperture (link / form field / graphic surface) structurally cannot see it. Measured directly against that
+page: flag OFF ⇒ 0 groups; flag ON ⇒ exactly 1 token group, 12 members, legend text captured. So the
+channel the root-cause report asked for ALREADY EXISTS and works — no code is owed, and none was written.
+What is owed is this item's census + slice, unchanged. Until it runs, that miss stays open by choice.
+See docs/analysis/reports-2026-06/FN-FIX-ROUND1-2026-08-19.md §2.
+
 ## M. 1.4.13 redundancy exemption vs the SC's obscuring clause (raised by the FP-round-4 adversarial review, 2026-08-18)
 
 **Status: deliberately NOT changed — a priced risk, recorded so the next reader does not rediscover it.**

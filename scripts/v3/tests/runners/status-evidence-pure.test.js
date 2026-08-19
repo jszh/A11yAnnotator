@@ -145,8 +145,13 @@ test('runInstruments returns the sidecar artifacts alongside statusObservations 
 // ── the hover persistence probe must stay OUT of the outcome flags (typedOutcomes is closed) ──
 test('persistence facts ride in measurement, never in outcome flags', () => {
   const src = fs.readFileSync(path.join(__dirname, '..', '..', 'lib', 'exp-runners.js'), 'utf8');
-  assert.match(src, /persistenceSamples, vanishedWhileHeld \} : \{\}\) \} \}\);/, 'measurement carries the probe facts');
-  assert.ok(!/o\.persistenceSamples|o\.vanishedWhileHeld/.test(src), 'no new outcome flag — schemas.js validates outcome keys against catalog typedOutcomes');
+  assert.match(src, /persistenceSamples, vanishedWhileHeld \} : \{\}\),/, 'measurement carries the probe facts');
+  // FN round 1 (2026-08-19) added the scroll-held probe alongside them — same rule, same place.
+  assert.match(src, /vanishedOnScrollWhileHeld, scrollHeld: scrollHeldRecord \} : \{\}\) \} \}\);/, 'measurement carries the scroll-held facts');
+  assert.ok(!/o\.persistenceSamples|o\.vanishedWhileHeld|o\.vanishedOnScrollWhileHeld|o\.scrollHeld/.test(src),
+    'no new outcome flag — schemas.js validates outcome keys against catalog typedOutcomes. NOTE the invariant this'
+    + ' pins is "no NEW key on the closed typedOutcomes schema", NOT "the probes may not speak": FN round 1 lets a'
+    + ' corroborated vanish revise the EXISTING `persistent` flag (persistentFacetFromVanish), which adds no key.');
   // and the pinned dwell feeding the persistence decision must be intact (#F5 put the tip-presence
   // branch between the settle and the assignment — the dwell constant is the contract, not adjacency)
   assert.match(src, /await H\.settle\(page, 1600\);[\s\S]{0,500}?o\.persistent = true;/);
