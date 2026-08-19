@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Paired counterfactual PASS for case-01: added an Escape handler that hides the unchanged tooltip while focus remains on the trigger, resetting only after the hover/focus state ends -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -27,6 +28,7 @@
         display: none; }
   .info-btn:focus + .tip, .info-btn:hover + .tip,
   .limit-row.pointer-active .tip { display: block; }
+  .tip.dismissed { display: none !important; }
   .tip::after { content: ""; position: absolute; top: -7px; left: 6px;
         border: 7px solid transparent; border-bottom-color: #1c2733; border-top: 0; }
   .helptext { color: #4a5763; font-size: 14px; margin: 10px 0 18px; }
@@ -66,11 +68,9 @@
     <button type="button">Continue</button>
   </div>
 
-  <p class="note">Tooltip appears on hover AND on keyboard focus of the round
-     "i" button, and it overlaps the help paragraph plus the Continue button.
-     There is no keyboard mechanism (no Esc, no documented shortcut, and
-     activating the button does not toggle it) to clear it. The only way to
-     hide it is to move focus or the pointer off the trigger.</p>
+  <p class="note">Tooltip appears on hover and keyboard focus of the round
+     "i" button. Pressing Escape hides it immediately without moving focus;
+     leaving and returning to the trigger makes the help available again.</p>
 </main>
 
 <script>
@@ -82,6 +82,10 @@
     clearTimeout(pointerExitTimer);
     row.classList.add('pointer-active');
   }
+  function beginInteraction() {
+    tip.classList.remove('dismissed');
+    keepTooltipOpen();
+  }
   function closeAfterPointerTransit() {
     clearTimeout(pointerExitTimer);
     pointerExitTimer = setTimeout(function () {
@@ -89,14 +93,21 @@
     }, 500);
   }
   btn.addEventListener('click', function () {
+    beginInteraction();
     this.focus();
   });
-  btn.addEventListener('mouseenter', keepTooltipOpen);
+  btn.addEventListener('mouseenter', beginInteraction);
   btn.addEventListener('mouseleave', closeAfterPointerTransit);
-  btn.addEventListener('focus', keepTooltipOpen);
+  btn.addEventListener('focus', beginInteraction);
   btn.addEventListener('blur', closeAfterPointerTransit);
   tip.addEventListener('mouseenter', keepTooltipOpen);
   tip.addEventListener('mouseleave', closeAfterPointerTransit);
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape' && !tip.classList.contains('dismissed')) {
+      tip.classList.add('dismissed');
+      event.preventDefault();
+    }
+  });
 </script>
 </body>
 </html>
