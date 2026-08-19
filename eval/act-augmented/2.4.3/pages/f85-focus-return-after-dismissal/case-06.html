@@ -141,10 +141,30 @@
     if (first) first.focus();
   }
 
+  var wizard = document.getElementById('wizard');
+
+  function tabbablesIn(root) {
+    var sel = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    return Array.prototype.filter.call(root.querySelectorAll(sel), function (el) {
+      return el.getClientRects().length > 0 && getComputedStyle(el).visibility !== 'hidden';
+    });
+  }
+  function trapTab(e) {
+    if (e.key !== 'Tab') return;
+    var list = tabbablesIn(wizard);
+    if (!list.length) return;
+    var first = list[0], last = list[list.length - 1];
+    var a = document.activeElement;
+    if (e.shiftKey) {
+      if (a === first || !wizard.contains(a)) { e.preventDefault(); last.focus(); }
+    } else if (a === last || !wizard.contains(a)) { e.preventDefault(); first.focus(); }
+  }
+
   function openWizard() {
     scrim.classList.add('open');
     showStep(1);
     document.addEventListener('keydown', escClose);
+    document.addEventListener('keydown', trapTab, true);
   }
 
   function escClose(e) { if (e.key === 'Escape') closeWizard(); }
@@ -152,6 +172,7 @@
   function closeWizard() {
     scrim.classList.remove('open');
     document.removeEventListener('keydown', escClose);
+    document.removeEventListener('keydown', trapTab, true);
     editBtn.focus();                       
   }
 

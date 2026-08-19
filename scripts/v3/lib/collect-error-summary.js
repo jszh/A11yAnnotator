@@ -187,6 +187,23 @@ function collectAtRestErrorState() {
   const ERROR_CLASS = /(^|[-_ ])(err|error|invalid|danger|warn|warning|has-error|is-invalid|field-error)([-_ ]|$)/i;
   const classesOf = (e) => (e && e.classList ? Array.prototype.slice.call(e.classList, 0, 8) : []);
   const anyErrorClass = (e) => classesOf(e).some((c) => ERROR_CLASS.test(c));
+  // The text a node contributes, with an image's text alternative counted ONLY WHEN THE NODE HAS NO TEXT OF
+  // ITS OWN. `textContent` alone returns '' for `aria-describedby` pointing at an `<img alt="…">` beside the
+  // field — a real 3.3.1 idiom (the SC expressly allows a text alternative) — so the referenced message
+  // vanished from `associatedErrorText` and the judge was told the field had no text. But a node that DOES have
+  // its own text must be judged on that text: folding a decorative descendant icon's alt into a hint
+  // ("<img alt='error icon'> Must be 8 characters") would let the ICON's alt promote a hint through the
+  // ERROR_WORD gate into `associatedErrorText` (adversarial review). alt / aria-label only — this is not full
+  // accessible-name computation (no aria-labelledby on the image, no <svg><title>).
+  const IMG_SEL = 'img[alt], img[aria-label], svg[aria-label], [role="img"][aria-label]';
+  const textAltOf = (n) => {
+    const t = (n.textContent || '');
+    if (t.trim()) return t;
+    let alt = '';
+    if (n.matches && n.matches(IMG_SEL)) alt += ' ' + (n.getAttribute('alt') || n.getAttribute('aria-label') || '');
+    for (const im of (n.querySelectorAll ? n.querySelectorAll(IMG_SEL) : [])) alt += ' ' + (im.getAttribute('alt') || im.getAttribute('aria-label') || '');
+    return alt;
+  };
   const idsText = (e, attr) => {
     const v = e.getAttribute(attr);
     if (!v) return null;
@@ -194,7 +211,7 @@ function collectAtRestErrorState() {
     for (const id of v.trim().split(/\s+/).slice(0, 4)) {
       let n = null;
       try { n = document.getElementById(id); } catch (err) { n = null; }
-      if (n) { ok = true; t += ' ' + (n.textContent || ''); }
+      if (n) { ok = true; t += ' ' + textAltOf(n); }
     }
     return ok ? clip(t, MAX_TEXT) : null;
   };
@@ -229,13 +246,56 @@ function collectAtRestErrorState() {
     const errMsg = idsText(el, 'aria-errormessage');
     const describedBy = idsText(el, 'aria-describedby');
     let adjacentText = null, adjacentXpath = null;
+    // OTHER visible text in the field's own block — neither its label, nor another field, nor the lexicon/class
+    // match above. The error lexicon is TIGHT on purpose (see ERROR_WORD), so a message that names the problem
+    // without an error word (a "…is incomplete, add …"-style sentence) matched nothing and the judge was told a
+    // flagged field carried NO text at all, when the message sat directly beneath it. This is that text as a
+    // FACT: it may be a hint, a unit, or the message — the judge reads it against the retained value. Reported
+    // only when the lexicon channels found nothing, so the two never disagree. SELECTION (adversarial review):
+    // the reported one is the first candidate AFTER the control in document order (where a message sits; a
+    // hint/format line usually precedes), falling back to the first before it; up to three candidates ride
+    // alongside so the judge is never shown a hint while the message goes unreported. Labels are excluded via
+    // BOTH `el.labels` and `aria-labelledby` targets.
+    let blockOtherText = null, blockOtherTextXpath = null, blockOtherTexts = null;
     if (block) {
       for (const n of block.querySelectorAll('*')) {
         if (n === el || n.matches(FIELD_SEL)) continue;
-        const t = norm(n.textContent);
-        if (!t || t.length < 3 || t.length > 200) continue;
         if (!visible(n)) continue;
+        // an image nested in a container that has text of its own is that container's decoration — the
+        // container is judged on its text (its icon's alt still rides as blockIconAlt); only a text-less
+        // node (an icon-only message) contributes its alt here
+        if (n.matches(IMG_SEL) && n.parentElement && n.parentElement !== block && norm(n.parentElement.textContent)) continue;
+        const t = norm(textAltOf(n));                       // alt-aware exactly like the referenced channel
+        if (!t || t.length < 3 || t.length > 200) continue;
         if (anyErrorClass(n) || ERROR_WORD.test(t)) { adjacentText = clip(t, MAX_TEXT); adjacentXpath = xpathOf(n); break; }
+      }
+      if (!adjacentText) {
+        const labelEls = [];
+        try { if (el.labels) for (const l of el.labels) labelEls.push(l); } catch (err) { /* noop */ }
+        for (const id of (el.getAttribute('aria-labelledby') || '').trim().split(/\s+/).filter(Boolean)) {
+          let ln = null; try { ln = document.getElementById(id); } catch (err) { ln = null; }
+          if (ln) labelEls.push(ln);
+        }
+        const isLabelish = (n) => labelEls.some((l) => l === n || l.contains(n) || n.contains(l));
+        const cands = [];
+        for (const n of block.querySelectorAll('*')) {
+          if (n === el || n.matches(FIELD_SEL) || n.contains(el)) continue;
+          if (isLabelish(n)) continue;
+          if (n.querySelector && n.querySelector(FIELD_SEL)) continue;            // a wrapper around fields, not a message
+          if (!visible(n)) continue;
+          const t = norm(textAltOf(n));
+          if (!t || t.length < 3 || t.length > 200) continue;
+          // skip a node whose text is entirely contained in an already-collected ancestor candidate
+          if (cands.some((c) => c.node.contains(n) && c.text.indexOf(t) >= 0)) continue;
+          const after = !!(el.compareDocumentPosition(n) & Node.DOCUMENT_POSITION_FOLLOWING);
+          cands.push({ node: n, text: clip(t, MAX_TEXT), xpath: xpathOf(n), after });
+          if (cands.length >= 6) break;
+        }
+        const pick = cands.find((c) => c.after) || cands[0] || null;
+        if (pick) {
+          blockOtherText = pick.text; blockOtherTextXpath = pick.xpath;
+          blockOtherTexts = cands.slice(0, 3).map((c) => c.text);
+        }
       }
     }
     const associatedErrorText = (errMsg && ERROR_WORD.test(errMsg) ? errMsg : null)
@@ -273,6 +333,9 @@ function collectAtRestErrorState() {
       associatedErrorText,
       adjacentErrorText: associatedErrorText ? null : adjacentText,
       adjacentErrorTextXpath: associatedErrorText ? null : adjacentXpath,
+      blockOtherText: (associatedErrorText || adjacentText) ? null : blockOtherText,
+      blockOtherTextXpath: (associatedErrorText || adjacentText) ? null : blockOtherTextXpath,
+      blockOtherTexts: (associatedErrorText || adjacentText) ? null : blockOtherTexts,
       indicators,
       flagged: indicators.length > 0,
     };
@@ -366,6 +429,8 @@ function collectAtRestErrorState() {
         associatedErrorText: f.associatedErrorText,
         adjacentErrorText: f.adjacentErrorText,
         adjacentErrorTextXpath: f.adjacentErrorTextXpath,
+        // present only when BOTH lexicon channels are empty — see the block scan above
+        ...(f.blockOtherText ? { blockOtherText: f.blockOtherText, blockOtherTextXpath: f.blockOtherTextXpath, ...(f.blockOtherTexts && f.blockOtherTexts.length > 1 ? { blockOtherTexts: f.blockOtherTexts } : {}) } : {}),
         formFieldCount: group.length,
         flaggedFieldCount: group.filter((x) => x.flagged).length,
         prefilledFieldCount: prefilled,
@@ -382,7 +447,15 @@ function collectAtRestErrorState() {
           + 'whether client-side validation could exist here at all. `flaggedAtRest`/`indicators` is what marks THIS '
           + 'field; `peerFieldAppearance`/`appearanceDiffersFromPeers` is the measured comparison with the other fields of the '
           + 'same form; `associatedErrorText` vs `adjacentErrorText` separates a message the control points at from one '
-          + 'merely sitting beside it. `prefilledFieldCount` > 0 with nothing flagged and `pageErrorTextPresent` false '
+          + 'merely sitting beside it (in both, a node with no text of its own contributes its image\'s alt / aria-label; '
+          + 'a node with its own text is read on that text). `blockOtherText`, when present, is OTHER visible text '
+          + 'sitting in the field\'s own block that is neither its label nor a lexicon match — it may be a hint or it '
+          + 'may be the message; read it against `retainedValue` rather than treating its absence from the lexicon '
+          + 'channels as "no text". It is the first such text AFTER the control (falling back to the first before it); '
+          + 'when `blockOtherTexts` is present it lists up to three candidates in document order, so a hint that '
+          + 'precedes the message does not hide it. `blockIconAlt` is the text alternative of an image sitting with the field: a text '
+          + 'alternative that names the problem IS text, while one that only signals that some error exists '
+          + 'describes nothing. `prefilledFieldCount` > 0 with nothing flagged and `pageErrorTextPresent` false '
           + 'is a form carrying values with no indication of any kind — which is what a silent redisplay looks like AND '
           + 'what an ordinary pre-filled form looks like, so it is not on its own evidence that anything was rejected. '
           + 'These are facts, not a verdict: whether an error occurred and is adequately IDENTIFIED is yours to judge.',

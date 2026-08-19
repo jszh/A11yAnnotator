@@ -796,13 +796,23 @@ function precomputeSignals(element, skill, sc) {
         + 'survived a real pointer travel from the trigger onto it — also sufficient. `persistent` is the ONE '
         + 'field whose true is NOT sufficient: it means only "still present after `dwellMs`", so content on a '
         + 'timer longer than that dwell measures true and still fails. `revealMode` is which channel revealed '
-        + 'it (hover / focus). THE NEGATIVES ARE WEAK: the probe finds revealed content by diffing the '
+        + 'it (hover / focus). A facet reported as `null` was NOT MEASURED on this trigger — the probe could not '
+        + 'stage it — so it is neither a pass nor a failure; do not read an unmeasured facet as either. '
+        + 'THE NEGATIVES ARE WEAK: the probe finds revealed content by diffing the '
         + 'visibility of real ELEMENTS, so a tooltip drawn by a CSS pseudo-element, painted into a canvas, or '
         + 'hosted in a namespace the probe could not address reports `contentAppeared: false` while plainly '
         + 'showing on screen — read that as "the probe saw nothing", never as "nothing appears". Likewise '
         + '`nativeTitleOnly` is an ATTRIBUTE test: per the HTML spec an EMPTY `title=""` carries no advisory '
         + 'information and renders no UA tooltip, so the flag does not establish that what is on '
         + 'screen is the browser\'s own tooltip. These are FACTS with stated limits, never a verdict.'
+        + (f.redundantWithVisibleText && typeof f.redundantWithVisibleText === 'object'
+          ? ' `redundantWithVisibleText` is the runner\'s check of whether the revealed text was ALREADY visible at '
+            + 'rest in the trigger\'s local container (or equals the trigger\'s accessible name): `redundant: false` '
+            + (f.redundantWithVisibleText.revealedText
+              ? 'means the reveal adds text that was not on screen — it is additional content and every facet is owed.'
+              : 'with no `revealedText` means the check found no rest-visible duplicate to compare (a text-free, '
+                + 'graphical reveal) — the content is additional and every facet is owed.')
+          : '')
         // batch-3 #9: document the held-state samples ONLY when the probe produced them, so every other
         // hover prompt stays byte-identical. `vanishedWhileHeld: true` is a POSITIVE timed-dismissal
         // observation; the sole refutation is a LONGER held dwell than the last sample's offset.
@@ -1985,6 +1995,15 @@ const HOVER_FACET_RUBRICS = new Set(['hover-dismissable-v0', 'hover-hoverable-v0
 // `f` is the hover-content-tri observation for this trigger, or null when the probe never produced one.
 function hoverFacetOpen(rubricId, f) {
   if (!f) return true;                                   // unmeasured ⇒ every facet is open
+  // NOT ADDITIONAL BY MEASURED REDUNDANCY (#30) — the runner found the reveal's whole text already visible at
+  // rest beside the trigger (or equal to its accessible name), and on that finding the deterministic lane
+  // treats the SC as not reaching this content. Every facet is a property OF additional content, so none is
+  // owed; keeping them open only let the LLM lane re-open an applicability question the measurement closed
+  // (measured: a redundant name bubble flagged on all three facets, on two judges). Closed on the
+  // POSITIVE redundancy fact only — `contentIsAdditional:false` for any other reason (native title, nothing
+  // appeared) leaves the facets open exactly as before, and the runner's own conservatism (whole-text,
+  // local, contiguous) is the width of this gate.
+  if (f.contentIsAdditional === false && f.redundantWithVisibleText && f.redundantWithVisibleText.redundant === true) return false;
   // DISMISSABLE — the probe pressed Escape with the trigger still held, and separately checked whether the
   // content obscures anything at all (the criterion only owes dismissability when it does). Either outcome is
   // a SUFFICIENT condition under WCAG, so a `true` genuinely closes the question.

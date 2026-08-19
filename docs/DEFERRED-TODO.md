@@ -678,3 +678,24 @@ sufficient. Protocol (BATCH3-RCA-FIX-PLAN.md item 32 + 2026-08-18 ruling 4):
 Pass bar: zero unsound off-SC barriers across replicates AND no on-SC recall loss. Fail → tighten
 the instance predicate, re-census, re-slice only the delta. Cost: collector sweep + tens of calls.
 Run at the post-ruling commit so the numbers attach to the enable-candidate tree.
+
+## M. 1.4.13 redundancy exemption vs the SC's obscuring clause (raised by the FP-round-4 adversarial review, 2026-08-18)
+
+**Status: deliberately NOT changed — a priced risk, recorded so the next reader does not rediscover it.**
+The deterministic `#30` redundancy exemption (a hover reveal whose whole text is already visible at rest in
+the trigger's local container, or equals the trigger's accessible name, is not "additional content") was
+extended in FP round 4 to the LLM lane: `hoverFacetOpen` now closes on the POSITIVE redundancy fact, and
+because `hover-dismissable-v0` / `hover-hoverable-v0` / `hover-persistent-v0` are the ENTIRE 1.4.13 rubric
+set, such a trigger is then judged by no lane at all.
+
+WCAG 1.4.13's own text carries no redundancy exemption; what it does carry is a Dismissible carve-out for
+content that "does not obscure or replace other content". So a duplicate-text bubble that DOES obscure its
+neighbour and ignores Escape is, read literally, still a failure — and it now flags nowhere.
+
+The cheap refinement, if the SC-literal reading is wanted: `runHoverContentTri` already computes the tip
+binding and its `obscures` flag, but only INSIDE the `contentIsAdditional` branch (exp-runners.js). Hoist
+the tip binding above that branch, thread `obscures` into `hoverFacets`, and keep `hover-dismissable-v0`
+open when a redundant reveal obscures something — leaving Hoverable/Persistent closed (which is where the
+measured FPs came from). Cost: one runner refactor + a 1.4.13 slice to confirm no FP regression.
+Blocking consideration: the corpus's own 1.4.13 doctrine is redundancy-decisive, so this may re-open the
+exact FP the round closed — it must be measured, not argued.

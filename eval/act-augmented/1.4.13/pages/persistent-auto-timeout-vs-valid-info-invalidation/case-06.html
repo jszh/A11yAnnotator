@@ -24,10 +24,11 @@
   .seat.taken { background:#cdd6dc; color:#8a98a2; cursor:not-allowed; }
   .seat.held  { background:#fde9b8; border-color:#e0a800; }
   .hold-pop {
-    position:absolute; top:115%; right:50%; transform:translateX(50%);
+    position:absolute; top:100%; right:50%; transform:translateX(50%);
     width:230px; background:#1f2933; color:#f4f7fa; padding:11px 13px; border-radius:9px;
     font-size:13px; line-height:1.55; box-shadow:0 10px 24px rgba(0,0,0,.3);
     z-index:30; opacity:0; visibility:hidden; transition:opacity .12s;
+    border-top:8px solid transparent; background-clip:padding-box;
   }
   .hold-pop.show { opacity:1; visibility:visible; }
   .hold-pop strong { color:#ffd86b; }
@@ -84,14 +85,16 @@
   var payBtn = document.getElementById('pay');
   seat.classList.add('held');
 
-  function show(){ pop.classList.add('show'); }
+  var hideTimer = null;
+  function show(){ if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; } pop.classList.add('show'); }
   function hide(){ pop.classList.remove('show'); }
+  function hideSoon(){ if (hideTimer) clearTimeout(hideTimer); hideTimer = setTimeout(hide, 400); }
   seat.addEventListener('mouseenter', show);
-  seat.addEventListener('mouseleave', hide);
+  seat.addEventListener('mouseleave', hideSoon);
   seat.addEventListener('focus', show);
-  seat.addEventListener('blur', hide);
+  seat.addEventListener('blur', hideSoon);
   pop.addEventListener('mouseenter', show);
-  pop.addEventListener('mouseleave', hide);
+  pop.addEventListener('mouseleave', hideSoon);
   document.addEventListener('keydown', function(e){ if(e.key==='Escape') hide(); });
 
   function ar(n){ return String(n).replace(/[0-9]/g, function(d){ return '٠١٢٣٤٥٦٧٨٩'[+d]; }); }

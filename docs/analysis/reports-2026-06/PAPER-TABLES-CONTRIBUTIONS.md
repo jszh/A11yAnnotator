@@ -1173,6 +1173,66 @@ removal-06 is the disabled-flip shape: its GT (failed) now tensions with the sou
 position that a state-change-only outcome may have no status message in scope — label-vs-doctrine
 dispute to resolve, not silently re-tune.
 
+## Table 1k-post8 — Gemini 3.7 Flash annotated run (2026-08-18, server) + FP round 4
+
+**Base run: `results/annot-overlap6-gemini37-current-48fa8580/` (233 cases, 6 SCs) +
+`results/annot-rest4-gemini37-current-48fa8580/` (156 cases, 4 SCs) — the same reliable 389-case set as
+the GenA11y/AccessGuru comparisons, repo at `48fa8580` (clean tree), c4-highcpu-16 server, `gemini-3.7-flash`
+provider-default thinking, tools + vision ON, `--pages 64 --max-tabs 256 --browsers 16 --inst-gate 32`,
+0 errors, 11.3 + 9.1 min.** (The runner's tool-call counter is Claude-shaped and reads 0 for Gemini; the
+tool agent was built for all 389 cases.)
+
+| slice | recall | FP | precision | F1 |
+|---|---|---|---|---|
+| ALL 389 | 291/310 = **93.9%** | 6/79 = **7.6%** | 98.0% | **0.959** |
+| overlap-6 (1.1.1 1.3.1 2.1.2 2.4.2 2.4.4 3.3.1) | 188/195 = 96.4% | 2/38 = 5.3% | | 0.977 |
+| rest-4 (1.4.1 1.4.13 2.4.3 4.1.3) | 103/115 = 89.6% | 4/41 = 9.8% | | 0.928 |
+
+**FP round 4 (this session — `docs/analysis/reports-2026-06/FP-ROUND4-GEMINI-2026-08-18.md`).** All six FPs
+root-caused with local deterministic reproduction + stability across every prior artifact: **3 harness
+defects** (3.3.1 form-error-probe: an `<img alt>` referenced surface read as empty, and an author-declared
+at-rest error state probed as if pristine — both cross-model-stable deterministic FPs; 1.4.13: the hover
+runner's unmeasured facets leaked to the judge as measured `false`, and the LLM facet lane ignored the #30
+redundancy exemption the deterministic lane had already applied) and **3 corpus defects where the harness
+verdict was factually right about the page** (1.4.13 persistent-auto-timeout-06: a 7 px dead band made the
+tooltip genuinely un-hoverable, contradicting the page's own doc; 2.4.3 f85-focus-return-03/06: `aria-modal`
+dialogs with no focus containment, instrument-measured 5-stop leaks). The three pages were **repaired**
+(labels, scenarios and documented mechanisms preserved; every repair verified by deterministic before/after
+probe and by scenario-regression probes), not retagged. Harness fixes adversarially reviewed (12 findings
+acted on, incl. one HIGH: the declaration lexicon had to be the collector's token-anchored one, not the
+loose surface regex).
+
+Targeted LLM slice (holdout policy — 3.3.1 + 1.4.13, 66 cases, same server/config, 3 reps at 48fa8580 + the
+fixes; base = the same 66 cases from the run above):
+
+| slice | base | rep1 | rep2 | rep3 (final code) |
+|---|---|---|---|---|
+| 3.3.1 recall / FP | 28/29 · 2/6 | 28/29 · **0/6** | 27/29 · **0/6** | 28/29 · **0/6** |
+| 1.4.13 recall / FP | 22/25 · 2/6 | 24/25 · 1/6 | 24/25 · 2/6 | 23/25 · **1/6** |
+| 66-case totals | 50/54 · 4/12 | 52/54 · 1/12 | 51/54 · 2/12 | 51/54 · 1/12 |
+
+The two 3.3.1 FPs clear in 3/3 reps with the right reasons (LLM: "identified in text via the error summary
+and programmatic description" / "described in text directly adjacent"), and the recall-exposed icon-01/05
+are caught in 3/3. Deterministic pre/post sweeps: 3.3.1 exactly the 4 expected page-level flips (2 FPs
+cleared, icon-01/05 → LLM lane); 1.4.13 identical on all 31.
+
+**Post-repair slice (harness fixes + the three corpus repairs), all three affected SCs, 112 cases
+(`results/annot-r4-slice-3sc-rep1/`):**
+
+| SC | base recall / FP | post recall / FP |
+|---|---|---|
+| 3.3.1 | 28/29 · 2/6 | 27/29 · **0/6** |
+| 1.4.13 | 22/25 · 2/6 | 24/25 · **0/6** |
+| 2.4.3 | 28/30 · 2/16 | 28/30 · **0/16** |
+| total | 78/84 · **6/28** | **79/84 · 0/28** (rep2: 78/84 · **0/28**) |
+
+**Projected on the full 389: FP 6 → 0 (7.6% → 0%), recall 291/310 → 292/310 (93.9% → 94.2%).** Churn is
+exactly 9 rows: the 6 FPs, 2 recall gains, and 1 loss on `non-text-only-error-indicator-06` — the known
+Gemini-marginal case that flips `caught`/`uncertain` across reps on UNCHANGED code. **ACT 581 gate: PASS** — every v3 decision identical to `v3-act-subset-b3-gate` (tp 13, fn 101, fp 1); 3 of
+575 rows differ, all flake-class and individually rechecked (two error-flakes swapping places — both rules
+re-run clean at 0 errors — and one shadow-lane 2.4.7 focus measurement that the pristine tree flips on too).
+Artifact `upstream-evidence/v3-act-subset-r4-gate/`.
+
 ## Table 2 — Held-out generalization gate (581-case full corpus)
 
 Each new deterministic detector evaluated over its **entire** ACT rule, not its tuned examples. Over-fire =

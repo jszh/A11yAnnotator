@@ -404,6 +404,14 @@ async function orchestrate(collect, drive, opts = {}) {
           nativeTitleOnly: m.nativeTitleOnly === true,
           revealMode: typeof m.revealMode === 'string' ? m.revealMode : null,
           dwellMs: HOVER_PERSIST_DWELL_MS,
+          // #30 REDUNDANCY (present only when the runner's check ran): the reveal's WHOLE text was already
+          // visible at rest in the trigger's local container, or equals the trigger's accessible name — the
+          // measured reason `contentIsAdditional` is false. Threaded so the facet gate (hoverFacetOpen) and
+          // the judge see the SAME applicability decision the deterministic lane already made, instead of
+          // the LLM lane re-litigating facets on content the SC does not reach.
+          ...(m.redundantWithVisibleText && typeof m.redundantWithVisibleText === 'object'
+            ? { redundantWithVisibleText: { redundant: m.redundantWithVisibleText.redundant === true, matchedBy: m.redundantWithVisibleText.matchedBy || null, revealedText: m.redundantWithVisibleText.revealedText || null, localTextSample: m.redundantWithVisibleText.localTextSample || null, accName: m.redundantWithVisibleText.accName || null, ...(m.redundantWithVisibleText.reason ? { reason: m.redundantWithVisibleText.reason } : {}) } }
+            : {}),
           // HELD-STATE PERSISTENCE SAMPLES (when the probe ran): the revealed state at fixed offsets after a
           // fresh reveal with the trigger state held. `vanishedWhileHeld: true` = the content went away while
           // the hold demonstrably survived — a timed dismissal the dwell cannot see. NOT a verdict: the SC's

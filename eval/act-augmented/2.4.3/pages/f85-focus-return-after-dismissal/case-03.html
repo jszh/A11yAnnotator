@@ -109,6 +109,25 @@
   var nameEl = document.getElementById('rm-name');
   var pendingChip = null, triggerX = null;
 
+  var confirmBox = scrim.querySelector('.confirm');
+
+  function tabbablesIn(root) {
+    var sel = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    return Array.prototype.filter.call(root.querySelectorAll(sel), function (el) {
+      return el.getClientRects().length > 0 && getComputedStyle(el).visibility !== 'hidden';
+    });
+  }
+  function trapTab(e) {
+    if (e.key !== 'Tab') return;
+    var list = tabbablesIn(confirmBox);
+    if (!list.length) return;
+    var first = list[0], last = list[list.length - 1];
+    var a = document.activeElement;
+    if (e.shiftKey) {
+      if (a === first || !confirmBox.contains(a)) { e.preventDefault(); last.focus(); }
+    } else if (a === last || !confirmBox.contains(a)) { e.preventDefault(); first.focus(); }
+  }
+
   list.addEventListener('click', function (e) {
     var x = e.target.closest('.chip .x');
     if (!x) return;
@@ -118,13 +137,19 @@
     scrim.classList.add('open');
     document.getElementById('rm-cancel').focus();
     document.addEventListener('keydown', escClose);
-  });
+    document.addEventListener('keydown', trapTab, true);
+  }); 
 
   function escClose(e) { if (e.key === 'Escape') cancel(); }
 
-  function cancel() {
+  function closeBox() {
     scrim.classList.remove('open');
     document.removeEventListener('keydown', escClose);
+    document.removeEventListener('keydown', trapTab, true);
+  }
+
+  function cancel() {
+    closeBox();
     if (triggerX) triggerX.focus();
     pendingChip = null; triggerX = null;
   }
@@ -133,8 +158,7 @@
     var next = pendingChip.nextElementSibling;       
     var prev = pendingChip.previousElementSibling;   
     pendingChip.parentNode.removeChild(pendingChip);
-    scrim.classList.remove('open');
-    document.removeEventListener('keydown', escClose);
+    closeBox();
 
     var target = null;
     if (next && next.classList.contains('chip')) target = next.querySelector('.x');

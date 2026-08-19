@@ -36,7 +36,9 @@ remove control — the natural continuation point for pruning labels — and can
 leaving the label region. This satisfies F85 step 2: when "the trigger control itself was removed as a
 result of the activation," focus is "put on the interactive element immediately preceding or following
 the removed trigger control, or wherever is logical." The cancel path independently satisfies the
-return-to-trigger requirement because the chip is preserved.
+return-to-trigger requirement because the chip is preserved. The `alertdialog` declares `aria-modal="true"`
+and backs that declaration up: while it is open, Tab and Shift+Tab cycle between its own two controls, so the
+background chips and **+ Add label** are not reachable until it closes.
 
 ## Expected ACT-style outcome
 **passed** (SC 2.4.3 — on dismissal, focus is placed on the trigger when it survives, and on a logical

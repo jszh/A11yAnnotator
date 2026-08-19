@@ -37,9 +37,18 @@ rejected values IS the error event — it already happened, there is nothing lef
 DESTROYS the evidence. So when the signal shows the page already presenting an error state (a field
 `flaggedAtRest`, or retained values with visual flagging):
 - Judge the displayed state directly: is THIS error identified IN TEXT (`associatedErrorText`,
-  `adjacentErrorText`, or page-level error text naming the problem)? A field flagged at rest only by a
-  border/colour/icon, with no associated or adjacent error text and `pageErrorTextPresent: false`, is
-  exactly the barrier → REPRODUCED.
+  `adjacentErrorText`, `blockOtherText`, `blockIconAlt`, or page-level error text naming the problem)? A
+  field flagged at rest only by a border/colour/icon — no associated or adjacent error text, no
+  `blockOtherText` that names the problem, no `blockIconAlt` that names it, and `pageErrorTextPresent: false`
+  — is exactly the barrier → REPRODUCED.
+  - `blockOtherText` is visible text sitting in the field's own block that matched neither the error
+    lexicon nor an error class — the collector does not know whether it is a hint or the message, so its
+    presence under the lexicon channels' `null` is NOT "no text". Read it against `retainedValue`: text
+    that names what is wrong with THIS value identifies the error; a unit or a generic hint does not.
+  - `blockIconAlt` is the text alternative of an image sitting with the field. 3.3.1 accepts a text
+    alternative as text: an alt that names the problem is identification (also when it is what
+    `aria-describedby` resolves to). An alt that only signals that some error exists — a bare category word
+    or symbol, with no other text describing the problem — identifies nothing → REPRODUCED.
 - **Present error text is not the end of the check — it must be TRUE of the displayed error.** The
   INCORRECT-MESSAGE failure mode below applies AT REST exactly as after a submit: read the
   `associatedErrorText`/`adjacentErrorText` against THIS record's `retainedValue`, and for a RELATIONAL

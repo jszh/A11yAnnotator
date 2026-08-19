@@ -629,6 +629,19 @@ function probeFormError(marker) {
       const a = (im.getAttribute('alt') || im.getAttribute('aria-label') || '').trim();
       if (a) t += ' ' + a;
     }
+    // …and the surface node's OWN text alternative. `querySelectorAll` walks DESCENDANTS only, so a surface that
+    // IS the image — `aria-describedby` pointing straight at an `<img alt="…">` beside the field, the very
+    // shape 3.3.1's "text alternative" allowance describes — read as EMPTY and the whole diff skipped it
+    // (`if (!now) continue`), scoring a correctly identified error as `errorNotIdentified` (measured FP, two
+    // stable cross-model cases). Same alt/aria-label rule as the descendant fold (alt / aria-label only — NOT
+    // full accessible-name computation: aria-labelledby on the image and <svg><title> are not read); `alt=""`
+    // still counts nothing, and so does a bare symbol: an alt with fewer than two letters (`!`, `*`) can only
+    // signal that SOME error exists, which the rubric lane treats as identifying nothing — the barrier-only
+    // credit here must not out-run it.
+    if (n.matches && n.matches('img[alt], img[aria-label], svg[aria-label], [role="img"][aria-label]')) {
+      const a = (n.getAttribute('alt') || n.getAttribute('aria-label') || '').trim();
+      if (a && /\p{L}{2,}/u.test(a)) t += ' ' + a;
+    }
     return t.replace(/\s+/g, ' ').trim();
   };
   const ERR_CLASS = /(error|invalid|warn|danger|fail|required|alert|toast|snackbar|notif|flash)/i;
@@ -669,6 +682,51 @@ function probeFormError(marker) {
     if (fieldId) { try { for (const a of document.querySelectorAll(`a[href="#${esc(fieldId)}"]`)) { let p = a; for (let k = 0; k < 5 && p; k++) { set.add(p); p = p.parentElement; } } } catch (e) {} }
     return [...set];
   };
+
+  // AT-REST DECLARED ERROR STATE ⇒ CREDIT OR ABSTAIN, NEVER BARRIER. This probe's barrier is "given invalid
+  // input and submitted, NOTHING identifies the error". That reading presumes the page was NOT already showing
+  // this field's error when it loaded. When the AUTHOR has declared the field to be in error as loaded —
+  // `aria-invalid="true"` on the control, or an error-lexicon class token on the control itself (ERR_CLASS) —
+  // the page is a rendered error state (a server redisplay, or a fixture built in that state): its message is
+  // already in the DOM, its submit handler (if any) has nothing new to say, and the probe's synthetic
+  // invalid-submit is a DIFFERENT error condition than the one on screen. Static pages in that state surface
+  // nothing new by construction, so the before/after diff read "nothing surfaced" and minted a BARRIER for an
+  // error that is, in fact, identified right there (measured: 2 stable cross-model FPs). So, before touching
+  // the page:
+  //   · a REFERENCED visible surface (aria-describedby / aria-errormessage → text or a text alternative) is the
+  //     already-identified case the unchanged-surface credit below was written for — credit it here, without
+  //     the mutation (`customIdentifies`, same as before; P9 pin);
+  //   · otherwise ABSTAIN. Whether the rendered identification is adequate — text vs icon-only, specific vs
+  //     generic, on the right field — is a MEANING question the LLM lane already holds the facts for
+  //     (`atRestErrorState`, collected per field before any interaction). errorNotIdentified stays FALSE.
+  //   DELIBERATELY NARROW — keyed on the author's DECLARATION only. `:invalid` with a retained value is NOT a
+  //   trigger: a form redisplayed with rejected values and NO indication of any kind (the silent-redisplay
+  //   shape) must stay probeable, and so must every pristine field — the ACT 36b590 failed examples (empty or
+  //   valid-at-rest fields beside a generic/hidden message) carry no declaration and are unaffected.
+  //   Deliberately NOT reading the containing block's class either: a `.row.bad` wrapper marks the ROW; the
+  //   control's own class/aria-invalid marks the FIELD, which is what this probe is about.
+  //   The class test is NOT the loose surface-scan ERR_CLASS below (an unanchored substring list that also
+  //   matches `required`, `alert`, `toast`, …): `class="required"` is jQuery-Validate's / Drupal's REQUIRED marker
+  //   on a pristine field, and treating it as a declared error state would silence this probe on a form with no
+  //   error state at all — while the at-rest collector (whose lexicon is token-anchored and error-only) would
+  //   emit no compensating record, a two-lane blackout the ACT gate cannot see (adversarial review, HIGH). So the
+  //   declaration lexicon is the collector's own (collect-error-summary.js ERROR_CLASS), token-anchored, and the
+  //   collector's gate opens exactly when this probe abstains.
+  const DECLARED_ERR_TOKEN = /(^|[-_ ])(err|error|invalid|danger|warn|warning|has-error|is-invalid|field-error)([-_ ]|$)/i;
+  const declaredInvalidAtRest = el.getAttribute('aria-invalid') === 'true'
+    || (el.getAttribute('class') || '').split(/\s+/).some((c) => c && DECLARED_ERR_TOKEN.test(c));
+  if (declaredInvalidAtRest) {
+    let referencedText = '';
+    for (const id of refSet) { const n = document.getElementById(id); if (n) { const t = visibleText(n); if (t) { referencedText = t; break; } } }
+    return {
+      isUserInputField, fieldRendered, fieldConstrained: true, applicable: true,
+      // NOTHING below the declaration was measured (no snapshot, no mutation, no submit): nativeWouldBlock is
+      // unmeasured ⇒ null, never a phantom false; customIdentifies is a PROOF flag (false = not proven here).
+      errorNotIdentified: false, nativeWouldBlock: null, customIdentifies: !!referencedText,
+      unassociatedSurface: null, errorSample: referencedText.slice(0, 80), atRestDeclaredInvalid: true,
+      abstainReason: referencedText ? null : 'the field is ALREADY declared to be in an error state as loaded (aria-invalid="true" or an error-class token on the control) and references no visible message: the page is showing a rendered error state, so a before/after invalid-submit diff cannot separate "no identification" from "identification already rendered" — the adequacy of the rendered identification is judged from the at-rest facts, not measured here',
+    };
+  }
 
   // BEFORE the error condition: snapshot the PRISTINE visible text of every candidate surface, so an
   // error that surfaces on EITHER blur (below) or submit registers as a CHANGE — and a pre-existing,
@@ -810,7 +868,12 @@ async function runFormErrorProbe(page, request) {
   // #16: `unassociatedSurface` (the abstain sample — an in-form message with NO error-association markup)
   // rides the measurement so the LLM lane can judge its MEANING; it is deliberately NOT an outcome flag
   // (never barrier evidence) and customIdentifies stays false for it.
-  return mk(request, 'form-error-probe', '3.3.1', o, { isUserInputField: o.isUserInputField, fieldRendered: o.fieldRendered, fieldConstrained: o.fieldConstrained }, { action: 'submit-invalid', valid, measurement: m ? { nativeWouldBlock: m.nativeWouldBlock, customIdentifies: m.customIdentifies, unassociatedSurface: m.unassociatedSurface || null } : {} });
+  // The at-rest ABSTAIN rides the measurement too (atRestDeclaredInvalid + abstainReason), so an artifact can
+  // tell "abstained on a rendered error state" from "probed and found no barrier" — they used to be byte-identical.
+  // The judge's evidence for the abstained field is the collector's `atRestErrorState` (same declaration lexicon).
+  return mk(request, 'form-error-probe', '3.3.1', o, { isUserInputField: o.isUserInputField, fieldRendered: o.fieldRendered, fieldConstrained: o.fieldConstrained }, { action: 'submit-invalid', valid, measurement: m ? { nativeWouldBlock: m.nativeWouldBlock, customIdentifies: m.customIdentifies, unassociatedSurface: m.unassociatedSurface || null,
+    ...(m.atRestDeclaredInvalid === true ? { atRestDeclaredInvalid: true, ...(m.abstainReason ? { abstainReason: m.abstainReason } : {}) } : {}),
+    ...(m.abstainReason && m.atRestDeclaredInvalid !== true ? { abstainReason: m.abstainReason } : {}) } : {} });
 }
 
 // =====================================================================================
@@ -1468,8 +1531,11 @@ async function runHoverContentTri(page, request) {
   const marker = String(request.candidateId || request.targetXpath);
   const hydrationReady = await H.hydrate(page);
   const o = { hasHoverFocusTrigger: false, triggerReachable: false, appearingContentDetected: false, contentIsAdditional: false, contentAppeared: false, anyPropertyFails: false, measurementDeterministic: false, dismissible: false, hoverable: false, persistent: false };
+  // the per-facet flags are set ONLY by the measurement branch below; on every other path they are deleted
+  // before return (unmeasured ⇒ absent ⇒ null downstream) — see the `else` after that branch.
+  const unmeasuredFacets = (obj) => { delete obj.dismissible; delete obj.hoverable; delete obj.persistent; return obj; };
   const tagged = await page.evaluate(H.tagByXpath, request.targetXpath, marker).catch(() => false);
-  if (!tagged) return mk(request, 'hover-content-tri', '1.4.13', o, {}, { action: 'hover-focus-tri' });
+  if (!tagged) return mk(request, 'hover-content-tri', '1.4.13', unmeasuredFacets(o), {}, { action: 'hover-focus-tri' });
 
   // STATIC focusability check — never call el.focus() here: a focus listener that reveals content
   // would pollute the pristine "rest" baseline we capture next (audit follow-up).
@@ -1491,7 +1557,7 @@ async function runHoverContentTri(page, request) {
     // as a live condition to the next reader.
     return { hasNativeTitleOnly: hasTitle && !hasDesc, hasTrigger: true, inView: r.top >= 0 && r.left >= 0 && r.bottom <= innerHeight && r.right <= innerWidth, focusable };
   }, marker).catch(() => null);
-  if (!trig) return mk(request, 'hover-content-tri', '1.4.13', o, {}, { action: 'hover-focus-tri' });
+  if (!trig) return mk(request, 'hover-content-tri', '1.4.13', unmeasuredFacets(o), {}, { action: 'hover-focus-tri' });
   o.hasHoverFocusTrigger = trig.hasTrigger;
   o.triggerReachable = trig.inView;
   // native title= is UA-exempt
@@ -1541,6 +1607,13 @@ async function runHoverContentTri(page, request) {
   const box = await page.evaluate((m) => { const el = document.querySelector(`[data-v3-target="${m}"]`); const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }, marker);
   await page.mouse.move(box.x, box.y); await H.settle(page, 200);
   let shown = await page.evaluate(appearedSig);
+  // SLOW-REVEAL RETRY (round-4 slice, server under 16-shard load): a bubble that opens through a CSS transition
+  // was read BEFORE it had any box on 1 of 3 identical triggers, so `contentAppeared` came back false for that
+  // one — and on the fail-open path every facet then went to the judge as unmeasured (measured: the same page
+  // read redundant on all three triggers 12/12 unloaded). One more read after a longer settle, pointer still
+  // held: content that shows within ~half a second of hover is still hover-revealed content, and a page that
+  // truly reveals nothing reads the same twice.
+  if (!(shown > rest)) { await H.settle(page, 300); shown = await page.evaluate(appearedSig); }
   let revealMode = shown > rest ? 'hover' : null;
   // #2 FOCUS PATH: SC 1.4.13 is content on hover OR FOCUS — mirror the hover probe with a real focus + settle
   // when hovering revealed nothing and the trigger is focusable. Focus is applied only AFTER the rest baseline
@@ -1549,7 +1622,8 @@ async function runHoverContentTri(page, request) {
     await page.mouse.move(2, 2); await H.settle(page, 100); // park the pointer away: isolate the focus channel
     await page.evaluate((m) => { const el = document.querySelector(`[data-v3-target="${m}"]`); el && el.focus(); }, marker).catch(() => {});
     await H.settle(page, 200);
-    const focused = await page.evaluate(appearedSig);
+    let focused = await page.evaluate(appearedSig);
+    if (!(focused > rest)) { await H.settle(page, 300); focused = await page.evaluate(appearedSig); } // same slow-reveal retry
     if (focused > rest) { revealMode = 'focus'; shown = focused; }
   }
   const hovered = shown; // the revealed-state signature (hover- or focus-triggered)
@@ -1609,9 +1683,14 @@ async function runHoverContentTri(page, request) {
       let scope = trigger;
       for (let i = 0; i < 3 && scope.parentElement && scope.parentElement !== document.body; i++) scope = scope.parentElement;
       const localParts = [];
+      // rest-VISIBLE means visible to a sighted user: the rest marks are a display/visibility/opacity/size test,
+      // which the legacy screen-reader idiom (`position:absolute; left:-9999px`, natural box) passes. Text parked
+      // off-canvas must not make a visual bubble "redundant" for a user who has never seen it (adversarial
+      // review): exclude elements whose box lies entirely at negative coordinates.
+      const onCanvas = (el) => { const r = el.getBoundingClientRect(); return r.right > 0 && r.bottom > 0; };
       const walk = (el) => {
         if (inFlipped(el)) return;
-        if (el.__v3HoverRestVis === true) {
+        if (el.__v3HoverRestVis === true && onCanvas(el)) {
           for (const n of el.childNodes) if (n.nodeType === 3 && n.textContent.trim()) localParts.push(n.textContent);
         }
         for (const c of el.children) walk(c);
@@ -1864,6 +1943,15 @@ async function runHoverContentTri(page, request) {
     else { delete o.dismissible; facetsUnmeasured.push('dismissible'); } // #31: husk re-reveal ⇒ unmeasured
     if (facetsUnmeasured.length) reshowIntegrity = { originalSig: hovered, perReshowSig, hovReshowSig, disReshowSig, intact: false, facetsUnmeasured };
     o.anyPropertyFails = (o.persistent === false) || (o.hoverable === false) || (o.dismissible === false);
+  } else {
+    // FACETS NOT MEASURED ⇒ ABSENT, never `false`. `o` is initialised with boolean defaults for the closed
+    // typed-outcome schema, but when this branch is skipped (nothing appeared, or the reveal is not
+    // additional — e.g. #30 redundancy) the three facets were never probed. Left in place, the defaults
+    // reached the judge as `dismissible:false, hoverable:false, persistent:false` — three MEASURED FAILURES
+    // that never happened (measured: a redundant name bubble judged "disappears on a timer" and
+    // "cannot be hovered" from facts the probe never took). Same rule as #31 (husk re-reveal): delete, so
+    // the orchestrator propagates `null` (unmeasured) and no reasoning can feed on a phantom false.
+    unmeasuredFacets(o);
   }
   // clean the rest-visibility marks (mirror the form-probe PRE cleanup — leave no probe residue on the page)
   await page.evaluate(() => { for (const el of document.querySelectorAll('body *')) { try { delete el.__v3HoverRestVis; delete el.__v3Tip; } catch (e) {} } }).catch(() => {});

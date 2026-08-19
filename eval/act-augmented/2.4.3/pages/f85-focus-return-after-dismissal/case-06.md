@@ -34,7 +34,9 @@ The wizard manages focus throughout: `showStep(n)` moves focus to the first fiel
 stable, meaningful anchor adjacent to the just-updated details — rather than being dropped at
 `document.body`. This satisfies F85 step 2 ("Check whether keyboard focus is put back on the trigger
 control") and the Understanding's modal example ("When the dialog is dismissed, focus returns to the
-button or the element following the button").
+button or the element following the button"). The wizard declares `aria-modal="true"` and backs that
+declaration up: while it is open, Tab and Shift+Tab cycle within its own fields and footer controls, so
+the header navigation and *Edit profile* are not reachable until it closes.
 
 ## Expected ACT-style outcome
 **passed** (SC 2.4.3 — on dismissal of the multi-step dialog, including via the final Done control,
