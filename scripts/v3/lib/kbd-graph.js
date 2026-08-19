@@ -436,35 +436,44 @@ async function probeDirectionalEscape(page, regId, budget, backward) {
 }
 
 // Is the region dismissed or has focus left it?
-async function regionEscaped(page, regId) {
-  return page.evaluate((id) => {
-    const reg = document.querySelector(`[data-v3-trapreg="${id}"]`);
+// `attr` is parameterised (default = this module's own tag) so runKeyboardTrapEscape in exp-runners.js can
+// reuse the LITERAL close-control probe below against its `data-v3-region` tag — a second hand-written copy
+// is exactly how the two 2.1.2 lanes drifted apart in the first place — without clobbering a tag this
+// module may already have written on the same element.
+async function regionEscaped(page, regId, attr = 'data-v3-trapreg') {
+  return page.evaluate((id, a2) => {
+    const reg = document.querySelector(`[${a2}="${id}"]`);
     const a = document.activeElement;
-    const gone = !reg || !reg.isConnected || reg.hidden || getComputedStyle(reg).display === 'none';
+    // A `<dialog>` whose `open` attribute is gone is dismissed even if author CSS still paints it: the UA
+    // sheet's display:none is easy to override (`dialog[open]{display:flex}` leaves a stale rule behind on
+    // some sheets), and a dismissed dialog is the single most common way a keyboard user leaves a region.
+    // Mirrors the same test exp-runners' Esc branch already applies.
+    const dialogClosed = !!reg && reg.tagName === 'DIALOG' && !reg.hasAttribute('open');
+    const gone = !reg || !reg.isConnected || reg.hidden || dialogClosed || getComputedStyle(reg).display === 'none';
     return gone || !(reg && a && reg.contains(a));
-  }, regId);
+  }, regId, attr);
 }
 
 // LOTUS dismissability: a region with a keyboard-operable Close control IS escapable even if Tab cycles
 // within it (the APG-required modal pattern). Activate each candidate close control and see if focus
 // leaves / the region is dismissed. Destructive (it closes the dialog), so the caller runs it last.
-async function probeCloseEscape(page, regId, closeRe) {
-  const closeIds = await page.evaluate((id, reSrc) => {
+async function probeCloseEscape(page, regId, closeRe, attr = 'data-v3-trapreg') {
+  const closeIds = await page.evaluate((id, reSrc, a2) => {
     const re = new RegExp(reSrc, 'i');
-    const reg = document.querySelector(`[data-v3-trapreg="${id}"]`);
+    const reg = document.querySelector(`[${a2}="${id}"]`);
     if (!reg) return [];
     const cands = [...reg.querySelectorAll('button,a[href],[role=button],[tabindex]')].filter((el) => {
       const t = (el.getAttribute('aria-label') || '') + ' ' + (el.getAttribute('title') || '') + ' ' + (el.textContent || '');
       return re.test(t) || el.hasAttribute('data-dismiss');
     });
     return cands.map((el, i) => { const cid = id + '-c' + i; el.setAttribute('data-v3-close', cid); return cid; });
-  }, regId, closeRe.source);
+  }, regId, closeRe.source, attr);
   for (const cid of closeIds) {
     const focused = await page.evaluate((cid2) => { const el = document.querySelector(`[data-v3-close="${cid2}"]`); if (el) { el.focus(); return document.activeElement === el; } return false; }, cid);
     if (!focused) continue;
     await page.keyboard.press('Enter');
     await page.evaluate(() => new Promise((r) => setTimeout(r, 60)));
-    if (await regionEscaped(page, regId)) return true;
+    if (await regionEscaped(page, regId, attr)) return true;
   }
   return false;
 }
@@ -1787,5 +1796,8 @@ module.exports = { collectTabOrder, tabOrderFindings, redundantStopFacts, detect
   // installer + the tagger it reads `data-v3-foc` from, exported so a test can pin the early-exit fix by
   // calling the LITERAL function production runs, never a hand-duplicated copy.
   cfPressSettleRead, installCfFocusinLog, tagFocusables,
+  // 2.1.2 close-control escape (LOTUS dismissability), exported so the experiment runner shares the one
+  // implementation rather than re-deriving the rule: see runKeyboardTrapEscape in exp-runners.js.
+  probeCloseEscape, regionEscaped, CLOSE_RE,
   // F14 (soundness review round 2): the focus-rejection probe primitive, exported for the same reason.
   focusRejectionProbeOnce };

@@ -758,15 +758,48 @@ function probeFormError(marker) {
       abstainReason: 'optional field with no synthesizable invalid value (e.g. type=tel with no pattern): an empty value is VALID here, so probing with one would fabricate the error condition',
     };
   }
+  // DID THE PAGE REACT AT ALL? (2026-08-19) — see the `detectionUnproven` gate at the return. Records every
+  // DOM change the page makes in response to the invalid input + submit below. Our own probe contributes
+  // none: setting `.value` is a property write (no mutation record), the PRE snapshot is an expando, and
+  // `addEventListener` mutates nothing — so anything captured here is the PAGE's doing. `data-v3-*` is
+  // filtered defensively in case another instrument tags concurrently.
+  // Was the field VALID as loaded? Decided BEFORE the injection below, because "did the probe fabricate this
+  // condition" means "did the probe move the field from valid to invalid" — see the gate at the return.
+  // checkValidity() reflects the element's OWN constraints; `novalidate` suppresses form submission
+  // validation, not element validity.
+  const validAtRest = (typeof el.checkValidity === 'function') ? el.checkValidity() : true;
+  let _mo = null;
+  try {
+    _mo = new MutationObserver(() => {});
+    _mo.observe(document.documentElement, { subtree: true, childList: true, attributes: true, characterData: true });
+  } catch (e) { _mo = null; }
   if ('value' in el) {
     el.value = invalidValue;
     for (const ev of ['input', 'change', 'blur']) el.dispatchEvent(new Event(ev, { bubbles: true }));
   }
+  // …and is it invalid NOW? Read the ACHIEVED state, never the intended one: `type=number` runs the value
+  // sanitization algorithm on a programmatic set, so `el.value = 'abc'` silently leaves '' behind and the
+  // field is still valid. Comparing against the value we MEANT to write called that a fabricated condition
+  // and abstained on a pin that must stay a barrier.
+  const invalidAfterInject = (typeof el.checkValidity === 'function') ? !el.checkValidity() : true;
   // native: would the browser BLOCK submit and show a message? (off when the form is novalidate)
   const willValidate = (typeof el.willValidate === 'boolean') ? el.willValidate : true;
   const nativeWouldBlock = !form.noValidate && willValidate && typeof el.checkValidity === 'function' && !el.checkValidity() && !!(el.validationMessage && el.validationMessage.length);
-  // attempt submit WITHOUT navigating — the page's own submit handler shows errors by ANY mechanism
-  const onSubmit = (e) => { e.preventDefault(); };
+  // attempt submit WITHOUT navigating — the page's own submit handler shows errors by ANY mechanism.
+  // DID THE PAGE INTERCEPT THE SUBMISSION? (2026-08-19) Second half of the `detectionUnproven` evidence,
+  // and the one that separates "inert page" from "processes the submit but says nothing". This capture-phase
+  // listener runs BEFORE any page handler on the form, so it can swap in a preventDefault that records the
+  // caller and still guarantee we never navigate: we call the ORIGINAL immediately (our own guarantee), and
+  // any LATER call — necessarily the page's — trips the flag. A page that preventDefaults its own submit is
+  // handling submission client-side; a page with no submit handler at all (the measured false positive) is
+  // not. Patching the event rather than reading `defaultPrevented` in a bubble listener is deliberate: a page
+  // handler calling stopPropagation() would strand a bubble listener and let the form navigate.
+  let pageIntercepted = false;
+  const onSubmit = (e) => {
+    const orig = e.preventDefault.bind(e);
+    try { Object.defineProperty(e, 'preventDefault', { configurable: true, value: () => { pageIntercepted = true; orig(); } }); } catch (e2) {}
+    orig();
+  };
   form.addEventListener('submit', onSubmit, true);
   try {
     // R2 G5-F1: a native submit control fires the form's submit handler; but many SPA/JS forms validate on a
@@ -779,6 +812,16 @@ function probeFormError(marker) {
     else form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
   } catch (e) { /* ignore */ }
   form.removeEventListener('submit', onSubmit, true);
+  // takeRecords() is SYNCHRONOUS — MutationObserver callbacks are microtasks and would never run inside this
+  // serialized in-page function, but the pending queue is readable right here.
+  let pageReacted = false;
+  if (_mo) {
+    try {
+      pageReacted = _mo.takeRecords().some((r) => !(r.type === 'attributes' && String(r.attributeName || '').startsWith('data-v3-')));
+    } catch (e) { pageReacted = true; }   // unreadable ⇒ assume it reacted (never ABSTAIN on our own failure)
+    try { _mo.disconnect(); } catch (e) {}
+  } else pageReacted = true;              // observer unavailable ⇒ same fail-open
+  const ariaInvalidAppeared = el.getAttribute('aria-invalid') === 'true' && origAriaInvalid !== 'true';
 
   // AFTER: a freshly-SURFACED (new / shown / populated), visible, error-ASSOCIATED message identifies the
   // error — LANGUAGE-AGNOSTIC (A2/#16). Association is judged from MARKUP ONLY: the field references it
@@ -840,9 +883,51 @@ function probeFormError(marker) {
   // R2 G5-F4: undo any aria-invalid the page's validation set in reaction to the probe, so two fields probed on
   // one un-reloaded page (only the test harness does this; production reloads per attempt) can't contaminate.
   try { if (origAriaInvalid === null) el.removeAttribute('aria-invalid'); else el.setAttribute('aria-invalid', origAriaInvalid); } catch (e) {}
-  // errorNotIdentified (the BARRIER flag) is true only when NOTHING plausibly surfaced: no native block, no
-  // markup-associated message, AND no unassociated in-form surface (the abstain case must not read as barrier).
-  return { isUserInputField, fieldRendered, fieldConstrained: true, applicable: true, errorNotIdentified: !(nativeWouldBlock || customIdentifies || unassociatedSurface), nativeWouldBlock, customIdentifies, unassociatedSurface: unassociatedSurface || null, errorSample };
+  // NO AUTOMATIC DETECTION ⇒ NO OBLIGATION (2026-08-19). 3.3.1 is conditional: "IF an input error is
+  // AUTOMATICALLY DETECTED, the item that is in error is identified and the error is described to the user
+  // in text." The absence of a message is AMBIGUOUS between "the page never detected it" (not applicable)
+  // and "the page detected it and failed to describe it" (barrier), and this probe resolved that ambiguity
+  // toward barrier every time. Measured false positive: a council form carrying `novalidate` and ZERO
+  // scripts, whose real (telephone) error is correctly identified — the probe wrote an invalid EMAIL into a
+  // field holding a valid address, saw no email message, and reported a barrier for an error condition the
+  // page can never detect.
+  //
+  // `novalidate` is the discriminator, and it is scoped deliberately. Without it the UA performs constraint
+  // validation itself, so a natively-constrained field HAS automatic detection and the obligation stands —
+  // that path is untouched, which is what keeps the validated ACT 36b590 failures firing (all four are plain
+  // `<form>`s with no scripts and a pre-rendered generic message, and they react to nothing). WITH it the
+  // author has switched the UA's detection OFF, so `required`/`pattern`/`type=email` prove only that a rule
+  // was AUTHORED — exactly the distinction this function already draws for framework soft markers ("PROVE a
+  // rule was AUTHORED, not that a client validator is RUNNING") and for bare `type=password` (server-side
+  // validation is invisible to a probe that never navigates).
+  //
+  // So on a `novalidate` form a barrier needs POSITIVE evidence that detection happened — the page mutated
+  // the DOM, declared the field invalid, INTERCEPTED the submission, or ships a detectable client validator —
+  // rather than the mere absence of a message. The interception clause is what keeps this a narrow fix and
+  // not a doctrinal change: a form whose own handler preventDefaults IS processing the submission client-side
+  // and remains on the hook for identifying what it found, which is the contract seven existing pins encode
+  // (silent-swallow shapes across C6b/C6b2/#16/A1-A2/B6/P9/review-1). Only a page that does nothing whatsoever
+  // — no handler, no mutation, no validator, as measured — abstains. A hand-rolled vanilla-JS validator still qualifies (reacting IS what validating
+  // does), so this does not collapse to the framework allow-list. Fails OPEN in every direction: if the
+  // observer is unavailable or unreadable we treat the page as having reacted, so a harness failure can
+  // never manufacture an abstain.
+  // …AND the error condition must be one the PROBE MANUFACTURED. If the field was already in its error
+  // state as loaded — the empty `required` field, or one redisplaying a value that still violates its own
+  // constraint — then the user meets this error by simply pressing submit, and the page's silence is a real
+  // 3.3.1 failure however inert it looks. A field the probe could not actually invalidate (the sanitized
+  // `type=number` case) is likewise NOT fabricated: nothing was moved, so the pre-existing reading stands. That is the shape every existing contract pin encodes
+  // (C6b/C6b2/A1-A2/B6/P9), and it stays a barrier. The measured false positive is the opposite shape: a
+  // field holding a VALID value that the probe overwrote to invent a condition the page has no way to
+  // detect. Same principle the `type=tel` abstain above already states — "probing with one would fabricate
+  // the error condition" — applied to the detection question rather than the validity question.
+  const conditionFabricated = validAtRest && invalidAfterInject;
+  const detectionUnproven = !!form.noValidate && conditionFabricated && !pageReacted && !ariaInvalidAppeared
+    && !pageIntercepted && !_clientValidatorActive;
+  return { isUserInputField, fieldRendered, fieldConstrained: true, applicable: true,
+    errorNotIdentified: !(nativeWouldBlock || customIdentifies || unassociatedSurface) && !detectionUnproven,
+    nativeWouldBlock, customIdentifies, unassociatedSurface: unassociatedSurface || null, errorSample,
+    pageReacted, pageIntercepted, ...(detectionUnproven ? { detectionUnproven: true,
+      abstainReason: 'the probe MANUFACTURED this error condition by overwriting a value the page treats as valid, on a form that declares novalidate (so the UA performs no constraint validation), and the page did not react to the input, did not intercept the submission, and ships no detectable client-side validator: nothing here automatically detects this error condition, and 3.3.1 attaches only to errors that ARE automatically detected' } : {}) };
 }
 
 async function runFormErrorProbe(page, request) {
@@ -872,6 +957,8 @@ async function runFormErrorProbe(page, request) {
   // tell "abstained on a rendered error state" from "probed and found no barrier" — they used to be byte-identical.
   // The judge's evidence for the abstained field is the collector's `atRestErrorState` (same declaration lexicon).
   return mk(request, 'form-error-probe', '3.3.1', o, { isUserInputField: o.isUserInputField, fieldRendered: o.fieldRendered, fieldConstrained: o.fieldConstrained }, { action: 'submit-invalid', valid, measurement: m ? { nativeWouldBlock: m.nativeWouldBlock, customIdentifies: m.customIdentifies, unassociatedSurface: m.unassociatedSurface || null,
+    ...(m.pageReacted !== undefined ? { pageReacted: m.pageReacted, pageIntercepted: m.pageIntercepted } : {}),
+    ...(m.detectionUnproven === true ? { detectionUnproven: true } : {}),
     ...(m.atRestDeclaredInvalid === true ? { atRestDeclaredInvalid: true, ...(m.abstainReason ? { abstainReason: m.abstainReason } : {}) } : {}),
     ...(m.abstainReason && m.atRestDeclaredInvalid !== true ? { abstainReason: m.abstainReason } : {}) } : {} });
 }
@@ -1273,15 +1360,30 @@ async function runKeyboardTrapEscape(page, request) {
     advisedKeyEscapes = a.ok; if (!a.inDoc) lost = true;
   }
 
+  // A KEYBOARD-OPERABLE CLOSE CONTROL IS AN ESCAPE (2026-08-19). 2.1.2 asks whether focus can be moved away
+  // USING ONLY A KEYBOARD — Tab/Shift+Tab/Esc are not the only keyboard means, and the APG-required modal
+  // pattern deliberately CYCLES Tab and exits through a reachable dismiss control instead. Without this the
+  // runner asserted a trap on exactly that pattern: measured on a non-modal `<dialog open>` with a Tab cycle
+  // and a "Close" button that closes it on Enter — five BARRIER_OBSERVED on a conformant page, one per
+  // focusable, because Esc does nothing to a NON-modal dialog and there was no advisory text.
+  // The sibling instrument (kbd-graph.detectKeyboardTraps) already had this rule and already exempted the
+  // pattern; the two 2.1.2 lanes simply answered the same question with different contracts. So this calls
+  // the LITERAL kbd-graph probe rather than re-deriving it — a second hand-written copy is how they drifted.
+  // Runs LAST and only when nothing else escaped: it is DESTRUCTIVE (it dismisses the region).
+  let closeEscapes = false;
+  if (!tabEscapes && !shiftEscapes && !escClosesOrEscapes && !advisedKeyEscapes && !lost) {
+    closeEscapes = await kg.probeCloseEscape(page, marker, kg.CLOSE_RE, 'data-v3-region').catch(() => false);
+  }
+
   o.focusStaysInDocument = !lost;
-  const anyEscapes = tabEscapes || shiftEscapes || escClosesOrEscapes || advisedKeyEscapes;
+  const anyEscapes = tabEscapes || shiftEscapes || escClosesOrEscapes || advisedKeyEscapes || closeEscapes;
   // one-way / disagreement ⇒ INCONCLUSIVE (neither set)
-  const oneWayConflict = (tabEscapes !== shiftEscapes) && !escClosesOrEscapes && !advisedKeyEscapes;
+  const oneWayConflict = (tabEscapes !== shiftEscapes) && !escClosesOrEscapes && !advisedKeyEscapes && !closeEscapes;
   o.escapeProvenForWidget = anyEscapes && o.focusStaysInDocument && !oneWayConflict;
   // a trap is asserted ONLY when no mechanism escaped AND there is no advised alternative exit.
   o.trapProven = !anyEscapes && !advice.advised && o.focusStaysInDocument && cycledBackToStart;
   const valid = o.focusStaysInDocument && reached;
-  return mk(request, 'keyboard-trap-escape', '2.1.2', o, { targetIsFocusable: o.targetIsFocusable, keyboardReachableInState: o.keyboardReachableInState }, { action: 'tab-into-then-escape', valid, measurement: { tabEscapes, shiftEscapes, escClosesOrEscapes, advisedKeyEscapes, advised: advice.advised, cycledBackToStart, oneWayConflict } });
+  return mk(request, 'keyboard-trap-escape', '2.1.2', o, { targetIsFocusable: o.targetIsFocusable, keyboardReachableInState: o.keyboardReachableInState }, { action: 'tab-into-then-escape', valid, measurement: { tabEscapes, shiftEscapes, escClosesOrEscapes, advisedKeyEscapes, closeEscapes, advised: advice.advised, cycledBackToStart, oneWayConflict } });
 }
 
 // =====================================================================================
