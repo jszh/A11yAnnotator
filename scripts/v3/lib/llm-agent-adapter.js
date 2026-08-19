@@ -281,7 +281,11 @@ function makeGeminiTransport({ apiKey, model = 'gemini-3.5-flash', fetchImpl, ma
     const temp = request.temperatureOverride != null ? request.temperatureOverride : temperature; // degeneration-retry perturbation
     const body = { contents: [{ role: 'user', parts: toParts(msg.content) }], generationConfig: geminiGenerationConfig({ temperature: temp, maxOutputTokens, effort }) };
     // failTrace records WHY this transport degraded to null (lifted by emitNoVerdict into the durable noVerdict log).
-    const failTrace = (mode, finishReason) => { if (typeof callOpts.onTrace === 'function') callOpts.onTrace({ type: 'transportFail', provider: 'gemini', mode, finishReason: finishReason || null }); };
+    const failTrace = (mode, finishReason) => {
+      const ev = { type: 'transportFail', provider: 'gemini', mode, finishReason: finishReason || null };
+      if (typeof callOpts.onTrace === 'function') callOpts.onTrace(ev);
+      if (typeof onTraceSink === 'function') try { onTraceSink(ev); } catch (e) { /* telemetry must never throw */ }
+    };
     let doubled = false;
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       const ctrl = new AbortController();
@@ -353,7 +357,11 @@ function makeGeminiToolTransport({ apiKey, model = 'gemini-3.5-flash', dispatch,
     const trace = (j) => { if (j && j.usageMetadata) { const um = j.usageMetadata; const ev = { type: 'result', numTurns: turnNo, usage: { input_tokens: um.promptTokenCount || 0, output_tokens: (um.candidatesTokenCount || 0) + (um.thoughtsTokenCount || 0) } }; if (typeof callOpts.onTrace === 'function') callOpts.onTrace(ev); if (typeof onTraceSink === 'function') try { onTraceSink(ev); } catch (e) {} } };
     // failTrace records WHY this transport degraded to null (lifted by emitNoVerdict into the durable noVerdict log).
     // lastFinish carries the most recent turn's finishReason so a terminal degrade reports MAX_TOKENS vs STOP etc.
-    const failTrace = (mode, finishReason) => { if (typeof callOpts.onTrace === 'function') callOpts.onTrace({ type: 'transportFail', provider: 'gemini', mode, finishReason: finishReason || null }); };
+    const failTrace = (mode, finishReason) => {
+      const ev = { type: 'transportFail', provider: 'gemini', mode, finishReason: finishReason || null };
+      if (typeof callOpts.onTrace === 'function') callOpts.onTrace(ev);
+      if (typeof onTraceSink === 'function') try { onTraceSink(ev); } catch (e) { /* telemetry must never throw */ }
+    };
     let lastFinish = null;
     const temp = request.temperatureOverride != null ? request.temperatureOverride : temperature; // degeneration-retry perturbation
     // ONE generateContent round with 429/5xx backoff (parked wall-clock credited back to the deadline). null ⇒ degrade.

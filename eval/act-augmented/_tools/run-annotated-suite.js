@@ -37,7 +37,7 @@ require('../../../scripts/v3/lib/load-env.js').loadEnv(REPO_ROOT);
 const { orchestrate, BROWSER_ARGS } = require('../../../scripts/v3/lib/orchestrator.js');
 const { createTabAllocator } = require('../../../scripts/v3/lib/tab-allocator.js');
 const { createBrowserShardPool } = require('../../../scripts/v3/lib/browser-shard-pool.js');
-const { makeRunAgent, makeClaudeSdkTransport } = require('../../../scripts/v3/lib/llm-agent-adapter.js');
+const { makeRunAgent, makeClaudeSdkTransport, makeGeminiTransport } = require('../../../scripts/v3/lib/llm-agent-adapter.js');
 const { collectActPage, normalizeCollectRoles } = require('../../../scripts/v3/lib/act-page-collect.js');
 const { makeSemaphore, sampleMemory } = require('../../../scripts/v3/lib/run-telemetry.js');
 const LIMITS = require('../../../scripts/v3/lib/limits.js');
@@ -69,15 +69,27 @@ const LIMIT = Number(arg('limit', 0));
 // knobs together, stays under LIMITS.concurrency.maxTabs=50, and relies on the
 // 300s protocolTimeout + browser self-heal below as the wedge backstop.
 const PAGE_CONC = Number(arg('pages', 12));
-const MAX_TABS = Math.min(LIMITS.concurrency.maxTabs, Number(arg('max-tabs', 36)));
+// An explicit CLI value is an intentional run-level override. Previously it was
+// silently clamped to LIMITS.concurrency.maxTabs, so `--max-tabs 256` actually
+// launched with 50 unless V3_MAX_TABS was also set. Defaults remain conservative;
+// explicit launch parameters are now reflected exactly in execution + provenance.
+const MAX_TABS_RAW = Number(arg('max-tabs', Math.min(LIMITS.concurrency.maxTabs, 36)));
+if (!Number.isFinite(MAX_TABS_RAW) || MAX_TABS_RAW < 1) throw new Error(`invalid --max-tabs value: ${MAX_TABS_RAW}`);
+const MAX_TABS = Math.floor(MAX_TABS_RAW);
 // Keep --max-tabs as the aggregate run-wide budget. --browsers partitions that
 // budget across independent Chromium processes (e.g. 4 browsers + 144 tabs =
 // four 36-tab allocators) so browser-context/CDP work can use multiple cores.
 const BROWSER_SHARDS = Math.max(1, Math.min(PAGE_CONC, MAX_TABS, Math.floor(Number(arg('browsers', 1)) || 1)));
-const GLOBAL_LLM = Math.min(LIMITS.concurrency.llm, Number(arg('global-llm', LIMITS.concurrency.llm)));
-const MODEL = process.env.V3_LLM_MODEL || 'claude-sonnet-4-6';
+const PROVIDER = String(arg('provider', 'claude')).toLowerCase();
+if (!['claude', 'gemini'].includes(PROVIDER)) throw new Error(`unsupported --provider: ${PROVIDER}`);
+const LLM_CAP = PROVIDER === 'gemini' ? Number(process.env.GEMINI_LLM_CAP || 100) : LIMITS.concurrency.llm;
+const GLOBAL_LLM = Math.min(LLM_CAP, Math.max(1, Number(arg('global-llm', LIMITS.concurrency.llm))));
+const MODEL = process.env.V3_LLM_MODEL || (PROVIDER === 'gemini' ? 'gemini-3.7-flash' : 'claude-sonnet-4-6');
+const EFFORT = arg('effort', process.env.V3_LLM_EFFORT || null);
 const INCLUDE = String(arg('include', 'unflagged,clear,fixed'));
-const SC_FILTER = arg('sc', null);
+const CASE_LIST_RAW = arg('case-list', null);
+const SC_FILTER_RAW = arg('sc', null);
+const SC_FILTER = SC_FILTER_RAW ? new Set(String(SC_FILTER_RAW).split(',').map((s) => s.trim()).filter(Boolean)) : null;
 // --tools: live in-process CDP tools (multi-turn judge). The deployed harness
 // baselines all run tools=ON, so a tools-OFF run here is NOT comparable to them.
 const TOOLS = !!arg('tools', false);
@@ -90,6 +102,7 @@ const NO_LLM = !!arg('no-llm', false);
 // (V3_DUMP_CASE_ARTIFACTS=1 or --dump-artifacts) each case additionally writes
 // results/<run>/case-artifacts/<testcaseId>.json with the obligation ledger + the instruments artifact.
 const DUMP_ARTIFACTS = process.env.V3_DUMP_CASE_ARTIFACTS === '1' || !!arg('dump-artifacts', false);
+const INSTRUMENTS_TIMEOUT = Math.max(1, Number(arg('instruments-timeout-ms', LIMITS.instruments.laneTimeoutMs || 90000)) || 90000);
 
 // CLAUDE.md: do NOT override LLM_EVAL_STATUS_PATH unless running >1 experiment at once.
 const FIXED_STATUS_PATH = process.env.LLM_EVAL_STATUS_PATH || '/tmp/llm-eval-status.json';
@@ -97,8 +110,9 @@ const STATUS_EVERY_MS = 500;
 
 const TRANSPORT = {
   oauthToken: process.env.CLAUDE_CODE_OAUTH_TOKEN,
+  apiKey: process.env.GEMINI_API_KEY,
   model: MODEL,
-  effort: process.env.V3_LLM_EFFORT || 'medium',
+  effort: EFFORT,
   perTurnTimeoutMs: +(process.env.V3_LLM_TURN_TIMEOUT_MS || LIMITS.llm.perTurnTimeoutMs),
   runTimeoutMs: +(process.env.V3_LLM_RUN_TIMEOUT_MS || LIMITS.llm.runTimeoutMs),
 };
@@ -133,6 +147,23 @@ function annotatedKeys() {
 }
 
 function loadCases() {
+  if (CASE_LIST_RAW) {
+    const listPath = path.isAbsolute(String(CASE_LIST_RAW))
+      ? String(CASE_LIST_RAW) : path.join(REPO_ROOT, String(CASE_LIST_RAW));
+    const rows = JSON.parse(fs.readFileSync(listPath, 'utf8'));
+    const cases = rows.map((row) => {
+      const abs = path.join(REPO_ROOT, row.file);
+      if (!fs.existsSync(abs)) throw new Error(`case-list fixture missing: ${row.file}`);
+      return {
+        testcaseId: `aug-${row.sc}-${safe(row.aspect)}-${safe(row.id)}`,
+        key: row.key || `${row.sc}::${row.aspect}::${row.id}`,
+        stratum: 'initial-79', ruleId: safe(row.aspect), ruleName: row.aspect,
+        sc: [row.sc], expected: row.expected, localAbs: abs, url: 'file://' + abs,
+        draft: false, humanVotes: [],
+      };
+    });
+    return { cases, availableByStratum: { 'initial-79': cases.length } };
+  }
   const tag = strata();
   const annotated = annotatedKeys();
   const include = new Set(INCLUDE === 'all'
@@ -144,7 +175,7 @@ function loadCases() {
   for (const sc of fs.readdirSync(AUG_DIR).sort()) {
     const rp = path.join(AUG_DIR, sc, 'result.json');
     if (!fs.existsSync(rp)) continue;
-    if (SC_FILTER && sc !== SC_FILTER) continue;
+    if (SC_FILTER && !SC_FILTER.has(sc)) continue;
     const r = JSON.parse(fs.readFileSync(rp, 'utf8'));
     for (const ar of (r.aspectResults || [])) {
       const aspect = (ar.built && ar.built.aspectSlug) || ar.aspect || 'aspect';
@@ -173,9 +204,9 @@ function loadCases() {
 const startedAt = Date.now();
 const tel = {
   startedAt, runName: RUN_NAME, phase: 'init', done: 0, total: 0,
-  config: { model: MODEL, include: INCLUDE, pageConc: PAGE_CONC, globalLlm: GLOBAL_LLM, maxTabs: MAX_TABS, browserShards: BROWSER_SHARDS, vision: true, tools: TOOLS, noLlm: NO_LLM },
+  config: { provider: PROVIDER, model: MODEL, effort: EFFORT, include: INCLUDE, caseList: CASE_LIST_RAW, sc: SC_FILTER ? [...SC_FILTER] : null, pageConc: PAGE_CONC, globalLlm: GLOBAL_LLM, maxTabs: MAX_TABS, browserShards: BROWSER_SHARDS, instruments: Number(arg('inst-gate', 6)), instrumentsTimeoutMs: INSTRUMENTS_TIMEOUT, vision: true, tools: TOOLS, noLlm: NO_LLM },
   workers: {}, inflight: {},
-  llm: { calls: 0, done: 0, results: 0, peakInFlight: 0, inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheCreateTokens: 0, costUsd: 0 },
+  llm: { calls: 0, done: 0, results: 0, transportFailures: 0, failuresByMode: {}, peakInFlight: 0, inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheCreateTokens: 0, costUsd: 0 },
   // A tools-ON run that makes zero tool calls has happened before (prompting gap
   // + a built-in-tool leak). Count them so the failure is visible in the first
   // minutes rather than discovered after the run.
@@ -224,6 +255,17 @@ function makeTraceSink(caseAcc) {
       }
       return;
     }
+    if (e.type === 'transportFail') {
+      const mode = e.mode || 'unknown';
+      tel.llm.transportFailures++;
+      tel.llm.failuresByMode[mode] = (tel.llm.failuresByMode[mode] || 0) + 1;
+      if (caseAcc) {
+        caseAcc.transportFailures = (caseAcc.transportFailures || 0) + 1;
+        caseAcc.failuresByMode = caseAcc.failuresByMode || {};
+        caseAcc.failuresByMode[mode] = (caseAcc.failuresByMode[mode] || 0) + 1;
+      }
+      return;
+    }
     if (e.type !== 'result') return;
     if (e.numTurns > 1) tel.tools.multiTurnResults++;
     tel.tools.maxTurns = Math.max(tel.tools.maxTurns, e.numTurns || 0);
@@ -243,7 +285,10 @@ function makeTraceSink(caseAcc) {
 }
 const newCaseToolAcc = () => ({ calls: 0, byName: {}, multiTurnResults: 0, maxTurns: 0, llmCalls: 0 });
 const recordTrace = makeTraceSink(null);   // run-level only (the non-tool base agent)
-const baseAgent = makeRunAgent({ transport: makeClaudeSdkTransport({ ...TRANSPORT, onTraceSink: recordTrace }), model: MODEL });
+const baseTransport = PROVIDER === 'gemini'
+  ? makeGeminiTransport({ apiKey: TRANSPORT.apiKey, model: MODEL, effort: EFFORT, onTraceSink: recordTrace })
+  : makeClaudeSdkTransport({ ...TRANSPORT, onTraceSink: recordTrace });
+const baseAgent = makeRunAgent({ transport: baseTransport, model: MODEL });
 
 let callSeq = 0;
 // One wrapper applied to BOTH the single-shot agent and (via orchestrate's
@@ -270,7 +315,11 @@ async function main() {
   const { cases: all, availableByStratum } = loadCases();
   let cases = all;
   if (LIMIT > 0) cases = cases.slice(0, LIMIT);
-  if (!NO_LLM && !process.env.CLAUDE_CODE_OAUTH_TOKEN) { console.error('FATAL: CLAUDE_CODE_OAUTH_TOKEN not set (.env)'); process.exit(1); }
+  if (!NO_LLM && PROVIDER === 'gemini' && !/^gemini-/i.test(MODEL)) {
+    throw new Error(`provider/model mismatch: --provider=gemini requires a Gemini model, got ${JSON.stringify(MODEL)}. Set V3_LLM_MODEL=gemini-3.7-flash (or another gemini-* model).`);
+  }
+  if (!NO_LLM && PROVIDER === 'gemini' && !process.env.GEMINI_API_KEY) { console.error('FATAL: GEMINI_API_KEY not set (.env)'); process.exit(1); }
+  if (!NO_LLM && PROVIDER !== 'gemini' && !process.env.CLAUDE_CODE_OAUTH_TOKEN) { console.error('FATAL: CLAUDE_CODE_OAUTH_TOKEN not set (.env)'); process.exit(1); }
 
   fs.mkdirSync(OUT, { recursive: true });
   tel.total = cases.length;
@@ -280,7 +329,7 @@ async function main() {
   const excluded = Object.entries(availableByStratum)
     .filter(([s]) => !new Set(cases.map((c) => c.stratum)).has(s))
     .map(([s, n]) => `${s}=${n}`).join(' ');
-  console.log(`\nact-augmented ANNOTATED suite — ${cases.length} pages | model=${MODEL} | include=${INCLUDE} | tools=${TOOLS ? 'ON' : 'OFF'} vision=ON`);
+  console.log(`\nact-augmented ANNOTATED suite — ${cases.length} pages | provider=${PROVIDER} model=${MODEL} effort=${EFFORT || 'provider-default'} | include=${INCLUDE} | tools=${TOOLS ? 'ON' : 'OFF'} vision=ON`);
   console.log(`  strata in run : ${JSON.stringify(tel.byStratum)}`);
   console.log(`  excluded      : ${excluded || '(none)'}`);
   console.log(`  out           : results/${RUN_NAME}`);
@@ -288,9 +337,9 @@ async function main() {
   console.log(`                  node eval/checker-comparison/fn-llm-monitor.js\n`);
 
   fs.writeFileSync(path.join(OUT, 'manifest.json'), JSON.stringify({
-    runName: RUN_NAME, startedAt: new Date(startedAt).toISOString(), model: MODEL, include: INCLUDE, tools: TOOLS, vision: true,
-    concurrency: { pageConc: PAGE_CONC, maxTabs: MAX_TABS, browserShards: BROWSER_SHARDS },
-    commit: (() => { try { return require('child_process').execSync('git rev-parse HEAD', { cwd: REPO_ROOT }).toString().trim(); } catch { return null; } })(),
+    runName: RUN_NAME, startedAt: new Date(startedAt).toISOString(), provider: PROVIDER, model: MODEL, effort: EFFORT, include: INCLUDE, caseList: CASE_LIST_RAW, sc: SC_FILTER ? [...SC_FILTER] : null, tools: TOOLS, vision: true,
+    concurrency: { pageConc: PAGE_CONC, globalLlm: GLOBAL_LLM, maxTabs: MAX_TABS, browserShards: BROWSER_SHARDS, instruments: Number(arg('inst-gate', 6)), instrumentsTimeoutMs: INSTRUMENTS_TIMEOUT },
+    commit: process.env.HARNESS_COMMIT || (() => { try { return require('child_process').execSync('git rev-parse HEAD', { cwd: REPO_ROOT }).toString().trim(); } catch { return null; } })(),
     availableByStratum, runningByStratum: tel.byStratum,
     cases: cases.map((c) => ({ testcaseId: c.testcaseId, key: c.key, stratum: c.stratum, expected: c.expected, sc: c.sc })),
   }, null, 2));
@@ -366,7 +415,7 @@ async function main() {
         const drive = { file: collect.file, runId, pageDigest: collect.pageDigest, drivenAt: collect.collectedAt + 1, elements: [] };
         const out = await orchestrate(collect, drive, {
           resolveUrl: () => tc.url, executablePath: CHROME, browser: shard.browser, tabAllocator: shard.alloc, maxTabs: shard.cap, // reads the CURRENT shard bindings (self-heal swaps them)
-          runInstruments: true, instrumentsGate: instGate, instrumentsTimeoutMs: LIMITS.instruments.laneTimeoutMs, now: collect.collectedAt + 2,
+          runInstruments: true, instrumentsGate: instGate, instrumentsTimeoutMs: INSTRUMENTS_TIMEOUT, now: collect.collectedAt + 2,
           restrictScs: new Set(tc.sc || []), maxAutomatic: LIMITS.act.maxAuto,
           budgetOpts: { maxRunWallClockMs: LIMITS.act.runWallClockMs },
           experimentConcurrency: Math.min(LIMITS.concurrency.experimentCap, LIMITS.concurrency.experiment),
@@ -378,6 +427,8 @@ async function main() {
           // the tool agent and silently falls back to the single-shot judge.
           llmTools: TOOLS,
           llmTransportConfig: TOOLS ? { ...TRANSPORT, onTraceSink: makeTraceSink(caseTools) } : undefined,
+          llmProvider: PROVIDER,
+          geminiKey: process.env.GEMINI_API_KEY,
           llmToolConcurrency: LIMITS.concurrency.llmTool,
           llmToolMaxTurns: LIMITS.llm.toolMaxTurns,
           llmToolRunTimeoutMs: LIMITS.llm.toolRunTimeoutMs,
@@ -467,7 +518,8 @@ async function main() {
   clearInterval(statusTimer);
   await pool.close();
   try { tel.tabs = pool.stats(); tel.heals = tel.tabs.heals; } catch { /* noop */ }
-  tel.phase = 'done';
+  const systemicLlmFailure = !NO_LLM && tel.llm.calls > 0 && tel.llm.results === 0;
+  tel.phase = systemicLlmFailure ? 'failed' : 'done';
   writeStatus();
 
   fs.writeFileSync(path.join(OUT, 'results.json'), JSON.stringify(results, null, 2));
@@ -475,6 +527,10 @@ async function main() {
   s.model = MODEL; s.include = INCLUDE; s.runName = RUN_NAME;
   s.llm = tel.llm;
   s.tools = { enabled: TOOLS, ...tel.tools };
+  s.valid = !systemicLlmFailure;
+  s.fatalReason = systemicLlmFailure
+    ? `all ${tel.llm.calls} LLM calls failed before producing provider usage/results`
+    : null;
   s.elapsedMs = Date.now() - startedAt;
   fs.writeFileSync(path.join(OUT, 'summary.json'), JSON.stringify(s, null, 2));
   printSummary(results, `act-augmented annotated (${RUN_NAME}, ${MODEL}, tools ${TOOLS ? 'ON' : 'OFF'})`);
@@ -487,6 +543,10 @@ async function main() {
   if (TOOLS) {
     console.log(`  tools:    ${tel.tools.calls} calls, maxTurns ${tel.tools.maxTurns}, ${JSON.stringify(tel.tools.byName)}`);
     if (!tel.tools.calls) console.log(`  *** WARNING: tools were ENABLED but ZERO tool calls were made — this is a single-shot run mislabelled as tools-ON. ***`);
+  }
+  if (systemicLlmFailure) {
+    console.error(`\nFATAL: ${s.fatalReason}. Artifacts were preserved, but this run is invalid and exits nonzero.`);
+    process.exitCode = 1;
   }
   console.log(`\nresults → results/${RUN_NAME}/results.json`);
   console.log(`slice it → node eval/act-augmented/_tools/score-annotated-run.js ${RUN_NAME}`);
