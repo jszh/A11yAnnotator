@@ -1291,6 +1291,48 @@ in every run of every tree, `barriersObserved` 0 in both. The 5–7 rows that di
 581 corpus carries NO 1.4.1 / 1.4.13 / 2.4.3 / 4.1.3 case, so the gate is a collateral-damage clearance for
 the shared collectors and instruments, not evidence about the four detectors. Unit suite 1464, 0 fail.
 
+## Table 1k-post10 — detector FP fixes + element-attribution audit (2026-08-19)
+
+Commit `1b0cef86` (base `fedaabb8`). Report: `HARNESS-FIXES-212-331-2026-08-19.md`.
+
+Two user-reported detector false positives fixed. **2.1.2**: a non-modal `<dialog open>` with a Tab cycle and
+a working Close button produced 5 BARRIER_OBSERVED — Esc is inert on a non-modal dialog, so all four of the
+runner's exits legitimately failed on a conformant page. The sibling instrument already exempted this shape;
+the runner now calls that same probe. **3.3.1**: on a `novalidate`, script-free page the probe overwrote a
+VALID email and faulted the page for not describing an error it can never detect. A barrier is now withheld
+only when the form is `novalidate` AND the probe FABRICATED the condition AND the page neither mutated the
+DOM, intercepted the submit, nor ships a validator. Both reported pages: barriers → 0.
+
+Rechecks — ACT 581 gate **0 of 581 rows differ**; ACT-REST (197) identical to a same-machine pristine
+baseline (tp 53, fn 0, fp 0); a 114-page act-augmented 2.1.2+3.3.1 deterministic sweep lost 9 barriers and
+**no true positive** (1 correct FP removal, 4 wrong-element removals, 2 off-SC, 1 page proven flaky on both
+trees). NEITHER held-out corpus carries a case labelled 2.1.2 or 3.3.1, so both gates are collateral-damage
+clearances only. Tests 1468, 0 fail.
+
+**Element-attribution audit (no new runs — artifacts already on disk).** Prompted by the discovery that four
+pages counted as 3.3.1 recall were caught on an element unrelated to their defect. Every flagged xpath was
+resolved and its ancestor chain compared against the case's declared "Element / selector carrying the issue";
+every flag and a sample of matches were hand-checked, because the automated screen errs in both directions.
+
+| lane | caught GT-failed | wrong-element |
+|---|---|---|
+| deterministic — 1.4.13 | 21 | **0** |
+| deterministic — 2.1.2 | 15 | **0** |
+| deterministic — 3.3.1 | 5 | **4 (80%)** — all removed by this commit |
+| rubric lane (1.4.1 / 1.4.13 / 2.4.3 / 4.1.3) | 86 | **0–1 (~1%)** |
+
+**The wrong-element problem was one broken detector, not a systemic scoring flaw**, and it does not
+generalise. Element attribution is therefore NOT being added to `scoreCase`.
+
+Two facts for the methods section, both from this audit. (i) **No deterministic experiment publishes an
+authoritative claim**: `authority.js`'s registry holds two entries, both `shadow`, so every other mechanism
+fails closed to `default-shadow` and `summary.authoritative` is 0 on every page. `scoreCase` collapses
+authoritative claim / PROVISIONAL fill / deterministic shadow / LLM rubric into one `caught` bit; decomposed
+retrospectively, the FN-round-1 headline is **0/115 authoritative, 84–87 PROVISIONAL fill, ~21 deterministic
+shadow, 1–2 LLM rubric**. (ii) **38 of 86 rubric-lane catches (44%) are PAGE-LEVEL claims** (`focus-order`,
+`status-message`), correct for 2.4.3/4.1.3 but making "found the defect" a different assertion on those SCs,
+with element-level precision undefined for them by construction.
+
 ## Table 2 — Held-out generalization gate (581-case full corpus)
 
 Each new deterministic detector evaluated over its **entire** ACT rule, not its tuned examples. Over-fire =
