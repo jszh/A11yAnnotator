@@ -1592,6 +1592,61 @@ checkout has no usable Git metadata (`commit: null`).
   assistive-service interaction. We borrow behavior-driving for *verification* (keyboard/focus probes) and
   couple it to LLM adjudication.
 
+
+### Table 1k-post11 — FP root-cause on the 585-case supplementary corpus, and the two detector repairs (2026-08-19)
+
+Pre-experiment commit: **`00381e4b`**. Analysis subject: `results/supplementary585-gemini35-flash-lite-97d00f4`
+(Gemini 3.5 Flash Lite, 585 cases, tools+vision on, 0 transport failures).
+
+**Where the 49 false positives come from.** The same 585 pages under **Gemini 3.7 Flash** give 21 FP; under
+**3.5 Flash Lite**, 49. Joining case-by-case (585/585 keys matched):
+
+| slice | n | 3.5 Flash Lite | 3.7 Flash |
+| --- | ---: | ---: | ---: |
+| generated-negative (all `passed`) | 196 | FP 41 (20.9%) | FP 15 (7.7%) |
+| human-annotated non-failures | 79 | FP 8 (10.1%) | FP 6 (7.6%) |
+| human-annotated failures (recall) | 310 | TP 242 (78.1%) | TP 291 (93.9%) |
+
+On human-annotated negatives the models are indistinguishable (8 vs 6 on n=79); the whole blow-up is on the
+paired-pass *generated* negatives, 15 → 41. **47 of 49 are LLM-lane**; only 2 were deterministic. Of 18 stable
+FPs whose frozen evidence was inspected, **17 carried a correctly resolved accessible name and 18/18 carried
+vision** — these are judgment failures, not plumbing (a change from the earlier synthetic-corpus RCA, whose
+plumbing share has since been fixed). Confidence is inert: 76/76 wrong barrier verdicts are `high`.
+
+**Deterministic repairs shipped** (2 FPs, model-independent, recurring every run): 3.3.1 `form-error-probe`
+abstains when it could not put the field in an error state at all, and injects an out-of-range number where a
+range exists; 2.1.2 advisory grammar shared with `kbd-graph`, advice must be *verified* rather than merely
+present, and the advisory stays readable when trap-region identification collapses onto the control.
+
+**ACT 581 held-out gate** (macOS, baseline and proposed on the same machine, deterministic lane):
+
+| | tp | fn | fp | tn | err |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| baseline `00381e4b` | 13 | 101 | 1 | 262 | 0 |
+| proposed | 13 | 101 | 1 | 262 | 0 |
+| **delta** | **0** | **0** | **0** | **0** | **0** |
+
+Artifacts `upstream-evidence/v3-act-subset-r5-gate-base` and `-r5-gate-prop2`. Three rows show ±1 shadow-count
+movement on `80af7b`, inside a noise floor measured beforehand on two unrelated same-machine artifacts (6 such
+rows with no code change). The gate's first attempt **failed**, losing 4 true positives on ACT `36b590`
+because the repair dropped a `novalidate` qualifier the pre-existing comment named those four cases to
+protect; the unit suite could not see it because every fixture there was written `novalidate`. Fixed, pinned,
+re-gated.
+
+**Rubric edits: measured and REVERTED.** Fixed-evidence replay (176 packs, 88 failed / 88 passed, 3
+replicates/arm, `gemini-3.5-flash-lite`, byte-identical evidence, only two `.md` files differing):
+
+| arm | FP / 88 | recall / 88 |
+| --- | ---: | ---: |
+| HEAD rubrics | 19.3 (19, 19, 20) | 68.3 (68, 69, 68) |
+| edited rubrics | 18.7 (20, 17, 19) | 69.0 (68, 69, 70) |
+
+Inside the sd≈1.06 replay noise floor with fully overlapping ranges. `alt-text-adequacy-v0` is tested and
+ineffective; `field-programmatic-association-v0` is untested — its whole target family fails to reproduce
+tools-OFF (replay fidelity 14/23). Both reverted rather than shipped on a story.
+
+Full analysis: `docs/analysis/reports-2026-06/FP-RCA-SUPPLEMENTARY585-GEM35-FLASH-LITE.md`.
+
 ## Limitations (state these honestly)
 
 - The eval is the **reaches-LLM hard subset** (458 of 581), so recall is over the cases the deterministic stack

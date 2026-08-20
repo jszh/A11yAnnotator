@@ -384,6 +384,104 @@ const FOCUSABLE_SEL = 'a[href],button,input:not([type=hidden]),select,textarea,[
 const TRAP_REGION_SEL = '[role=dialog],dialog,[aria-modal=true],[role=menu],[role=listbox],[role=grid],[role=tablist],[class*=modal i],[class*=overlay i],[class*=dialog i],[class*=popup i],[class*=lightbox i]';
 const CLOSE_RE = /close|dismiss|cancel|done|\bok\b|×|✕|✖|⨉/i;
 
+// =====================================================================================
+// SHARED 2.1.2 ADVISORY GRAMMAR — parsed in Node, never re-derived per lane.
+// =====================================================================================
+// WCAG 2.1.2 permits a NON-STANDARD keyboard exit when the user is ADVISED of it. Two lanes ask that
+// question — this instrument (`tryAdvised`) and the `keyboard-trap-escape` experiment runner — and they had
+// drifted into two different hand-written grammars, both too narrow, in the same way the close-control
+// escape had drifted before it. So the grammar lives HERE, once, as a PURE function over already-extracted
+// text: each lane decides its own scope (whole page vs the trapping region) and its own focus model, but
+// they read the same sentence the same way.
+//
+// Three defects the old patterns shared, all measured on real advisory prose:
+//   1. VERB SET. Both required the advisory to say "to leave/exit/close/escape/dismiss". Authors write the
+//      thing the key DOES — "to move focus back out to the rest of the page", "to return focus to the page".
+//      Neither parsed, so a documented exit read as no exit at all.
+//   2. WORD ORDER. The runner's pattern accepted only "press X to VERB"; prose overwhelmingly leads with the
+//      goal ("To VERB …, press X"). The instrument already handled both — the runner did not.
+//   4. GAP BOUND. The instrument's verb-first form allowed ten words between the goal and "press". Advisories
+//      that name the destination as well as the region ("To move focus back out to the rest of the page using
+//      only the keyboard, press Ctrl+M") run longer than that. The bound exists only to stop the two halves
+//      being stitched across sentences, and the token class already forbids crossing `.`/`!`/`?`, so it is
+//      widened to sixteen rather than removed.
+//   3. KEY SHAPE. Both matched a SINGLE alphanumeric character, so no modifier chord (Ctrl+M, Alt+0) and no
+//      function key could ever be named. The instrument's own documentation example — "press Alt+F6 to exit"
+//      — did not parse under the instrument's own grammar: `F6` fails a one-char match.
+//
+// Deliberately still conservative: an explicit "press", a bounded word gap in the verb-first form so the two
+// halves cannot be stitched across sentences, and a key that is a single character, a function key, or a
+// named editing key — never a bare word.
+const ADVISORY_MODS = '(?:ctrl|control|alt|option|shift|cmd|command|meta)';
+// The verb set is WIDER than an exit vocabulary because the advisory names the EFFECT, not the SC. That is
+// safe only because a parsed advisory no longer EXCUSES a confinement on its own — both lanes now PRESS the
+// named key and require focus to actually leave (see `pressAdvised`). An over-match therefore costs one
+// keystroke and can only clear when the key genuinely frees focus, which IS the criterion's test.
+const ADVISORY_VERB = '(?:leave|exit|close|escape|dismiss|continue|return|go|move|get|jump|step)';
+const ADVISORY_KEY = '["\']?(F(?:1[0-2]|[1-9])|Esc(?:ape)?|Enter|Spacebar|Space|Tab|[A-Za-z0-9])["\']?(?![A-Za-z0-9])';
+const ADVISORY_COMBO = '((?:' + ADVISORY_MODS + '\\s*\\+\\s*)*)';
+// A presence test, kept separate from the key parse AND deliberately NARROWER than it: text that clearly
+// ADVISES an exit but whose key we cannot extract is INCONCLUSIVE, not "no advice" (audit V3R2-H4) — the
+// caller must not assert a trap on it. That suppression is the one place a loose match costs a MISSED trap
+// rather than a keystroke, so this side keeps an unambiguous exit vocabulary while `ADVISORY_VERB` above
+// stays wide: "To move the slider, press the arrow keys" is an interaction instruction, not an exit advisory,
+// and must not silence a real confinement.
+const ADVISORY_HINT_RE = /\bto\s+(?:leave|exit|escape|dismiss|close|get\s+out|(?:move|return|take|send|put)\s+(?:the\s+)?focus)\b/i;
+
+// Chords the USER AGENT owns. The page may name one, but the browser intercepts it before the document sees
+// it, so it cannot move focus in practice — WCAG's exception asks for a method that WORKS. We must not press
+// these (Ctrl+W closes the tab out from under the probe) and we must not treat them as a working exit.
+const ADVISORY_RESERVED = new Set(['ctrl+w', 'meta+w', 'ctrl+t', 'meta+t', 'ctrl+n', 'meta+n', 'ctrl+q', 'meta+q', 'alt+f4', 'ctrl+shift+q']);
+
+// Parse an exit advisory out of already-extracted text.
+//   → null                                  no advisory phrasing at all
+//   → { advised:true, key:null }            advice is present but no key could be extracted ⇒ INCONCLUSIVE
+//   → { advised:true, key, mods, reserved } a testable keystroke (reserved ⇒ known-unusable, do not press)
+function parseAdvisory(text) {
+  const t = String(text || '');
+  if (!t) return null;
+  const hinted = ADVISORY_HINT_RE.test(t);
+  let m = t.match(new RegExp('press\\s+(?:the\\s+)?' + ADVISORY_COMBO + ADVISORY_KEY + '\\s+(?:key\\s+)?to\\s+' + ADVISORY_VERB, 'i'));
+  if (!m) m = t.match(new RegExp('to\\s+' + ADVISORY_VERB + '(?:\\s+[^\\s.!?]+){0,16}?[,:]?\\s+press(?:ing)?\\s+(?:the\\s+)?' + ADVISORY_COMBO + ADVISORY_KEY, 'i'));
+  if (!m) return hinted ? { advised: true, key: null, mods: [], reserved: false } : null;
+  const mods = (m[1] || '').split('+').map((x) => x.trim().toLowerCase()).filter(Boolean);
+  // "press a key to leave", "to leave, press a button" — the ARTICLE, not a keystroke. Without this the
+  // parser extracts `a`, presses it, watches nothing happen, and reports a TESTED-AND-FAILED advisory, which
+  // ASSERTS a trap. Vague advice must land on the untestable side instead, where it suppresses: that is the
+  // conservative direction, and the asymmetry is the whole point of separating `advised` from `key`. The cost
+  // is failing to verify a genuine unmodified "press A to leave", which then suppresses rather than asserts —
+  // a missed trap, never a manufactured one. Only bare `a` is affected; any modifier makes it a real chord.
+  if (!mods.length && /^a$/i.test(m[2])) return { advised: true, key: null, mods: [], reserved: false };
+  const key = normalizeAdvisedKey(m[2]);
+  const canon = mods.map((x) => ({ control: 'ctrl', option: 'alt', command: 'meta', cmd: 'meta' }[x] || x)).sort().concat(String(m[2]).toLowerCase()).join('+');
+  return { advised: true, key, mods, reserved: ADVISORY_RESERVED.has(canon) };
+}
+
+// Written key name → the name Puppeteer's keyboard understands.
+function normalizeAdvisedKey(raw) {
+  const k = String(raw || '');
+  if (/^f\d+$/i.test(k)) return 'F' + k.toUpperCase().slice(1);
+  const named = { esc: 'Escape', escape: 'Escape', enter: 'Enter', space: 'Space', spacebar: 'Space', tab: 'Tab' };
+  if (named[k.toLowerCase()]) return named[k.toLowerCase()];
+  // Single characters are LOWERCASED — an advisory writes "Ctrl+M" for readability, but pressing the capital
+  // sends a shifted keystroke, and a page listening for `e.key === 'm' && e.ctrlKey` would never see it. Any
+  // genuine Shift is carried explicitly in `mods` and held around the press, so lowercasing the base key is
+  // the faithful reading of the chord, not a loss of information. (This is what the pre-shared grammar did.)
+  return k.length === 1 ? k.toLowerCase() : k;
+}
+
+// Press a parsed advisory chord, holding every named modifier in written order. Returns false without
+// touching the keyboard for a user-agent-reserved chord or an unparsed key.
+async function pressAdvised(page, advised) {
+  if (!advised || !advised.key || advised.reserved) return false;
+  const MOD = { ctrl: 'Control', control: 'Control', alt: 'Alt', option: 'Alt', shift: 'Shift', cmd: 'Meta', command: 'Meta', meta: 'Meta' };
+  const mods = (advised.mods || []).map((k) => MOD[k]).filter(Boolean);
+  for (const mod of mods) await page.keyboard.down(mod);
+  try { await page.keyboard.press(advised.key); }
+  finally { for (const mod of mods.slice().reverse()) await page.keyboard.up(mod); }
+  return true;
+}
+
 async function focusFirstIn(page, regId) {
   return page.evaluate((id, sel) => {
     const reg = document.querySelector(`[data-v3-trapreg="${id}"]`);
@@ -932,40 +1030,43 @@ async function detectFixedSetConfinementTraps(page, opts = {}) {
   if (escEscapes) return { traps: [], focusableCount: total };       // escapable ⇒ not a barrier
 
   // ADVISED-KEY escape (80af7b advisory exception): 2.1.2 PERMITS a non-standard exit IF the page ADVISES the user
-  // of it AND that key actually works. `tryAdvised` parses an advisory ("Press Alt+F6 to exit") from the CURRENT page
-  // text, drives focus into S, presses the combo, and reports: 'clear' (the advised key freed focus ⇒ documented exit
-  // works ⇒ NOT a barrier), 'lying' (the page advises a key that does NOT move focus ⇒ a 2.1.2 barrier), 'none' (no
-  // advisory in the current text), or 'undetermined' (probe failed ⇒ fail-closed).
+  // of it AND that key actually works. `tryAdvised` parses an advisory ("press Alt+F6 to exit") from the CURRENT page
+  // text via the shared `parseAdvisory` grammar, drives focus into S, presses the combo, and reports: 'clear' (the
+  // advised key freed focus ⇒ documented exit works ⇒ NOT a barrier), 'lying' (the page advises a key that does NOT
+  // move focus ⇒ a 2.1.2 barrier), 'none' (no advisory, or none we can test), or
+  // 'undetermined' (probe failed ⇒ fail-closed).
   const tryAdvised = async () => {
-    const advised = await page.evaluate(() => {
-      const t = (document.body && (document.body.innerText || document.body.textContent)) || '';
-      // Advisory grammar (2026-08-16): the old single pattern matched ONLY "press X to VERB" word order with
-      // at most ONE modifier, so a verb-first advisory ("To VERB …, press Ctrl+Alt+X") or any multi-modifier
-      // combo was invisible and the advisory fast-path could not fire. Both are now covered, still
-      // conservatively: an explicit "press", a SINGLE key character (quoted or bare, never a bare word), a
-      // known exit verb, and a bounded word gap in the verb-first form.
-      const MODS = "(?:ctrl|control|alt|option|shift|cmd|command|meta)";
-      const COMBO = "((?:" + MODS + "\\s*\\+\\s*)*)";                       // zero or more "Mod+" prefixes
-      const KEY = "[\"']?([A-Za-z0-9])[\"']?(?![A-Za-z0-9])";               // one key char, never a word prefix
-      const VERB = "(?:leave|exit|close|escape|dismiss|continue|go)";
-      // press-first: "press Alt+F6 to exit", "press the Ctrl+Alt+D key to leave the editor"
-      let m = t.match(new RegExp("press\\s+(?:the\\s+)?" + COMBO + KEY + "\\s+(?:key\\s+)?to\\s+" + VERB, 'i'));
-      // verb-first: "To leave the editor and return to the article list, press Ctrl+Alt+D" — the gap between
-      // the verb and "press" is bounded (≤10 words, none crossing a sentence end) so the two halves cannot be
-      // stitched across sentences. Real advisories routinely name both the region left AND the destination
-      // ("to leave X and return to Y"), which is why a short gap under-matches.
-      if (!m) m = t.match(new RegExp("to\\s+" + VERB + "(?:\\s+[^\\s.!?]+){0,10}?[,:]?\\s+press(?:ing)?\\s+(?:the\\s+)?" + COMBO + KEY, 'i'));
-      if (!m) return null;
-      const mods = (m[1] || '').split('+').map((s) => s.trim().toLowerCase()).filter(Boolean);
-      return { mods, key: m[2].toLowerCase() };
-    }).catch(() => null);
-    if (!advised || !advised.key) return 'none';
+    // Grammar and chord-pressing live in `parseAdvisory`/`pressAdvised` at the top of this module — shared
+    // verbatim with the `keyboard-trap-escape` experiment runner, which asks the same question against a
+    // different scope. Text is extracted here, parsed in Node: keeping the regexes out of `page.evaluate`
+    // is what makes one grammar servable to both lanes (and unit-testable without a browser).
+    const text = await page.evaluate(() => (document.body && (document.body.innerText || document.body.textContent)) || '').catch(() => null);
+    if (text === null) return 'undetermined';
+    const advised = parseAdvisory(text);
+    if (!advised) return 'none';
+    // Advice we can SEE but cannot TEST — no extractable key, or a chord the user agent owns — is not a
+    // documented working exit. It is also not "no advisory": the caller must treat it as advertised-but-
+    // unverified rather than silently clearing. `lying` is the honest report for a reserved chord: the page
+    // names a method that cannot move focus in this user agent.
+    // No extractable key ⇒ we cannot test the claim. This lane keeps its PRE-EXISTING disposition for that
+    // case (fall through as if unadvised, i.e. confirm on the confinement evidence alone) — only the GRAMMAR
+    // changed here, not the contract. The runner lane treats the same input as inconclusive because audit
+    // V3R2-H4 imposed that rule on the runner specifically; the two are deliberately not unified beyond the
+    // parse, and unifying them is a behaviour change that needs its own measurement.
+    // UNTESTABLE advice — no extractable key, or a chord the user agent owns and we must not press (Ctrl+W
+    // would close the tab out from under the probe). Both lanes classify testability the same way; each then
+    // applies its OWN established policy for it, and those policies differ deliberately. Here that policy is
+    // the pre-existing one: fall through as if unadvised and confirm on the confinement evidence alone. Only
+    // the GRAMMAR changed in this lane, not the contract.
+    //
+    // Reserved chords are NOT reported as `lying` even though the criterion's exception plainly is not met by
+    // a method the user agent intercepts. `lying` is promoted to a deterministic barrier downstream, and this
+    // lane would be asserting that from a hard-coded list rather than from a measurement — the same
+    // over-claim the deterministic lanes are elsewhere forbidden from making. Naming a cause we did not
+    // observe is how a detector earns a false positive.
+    if (!advised.key || advised.reserved) return 'none';
     await page.evaluate((id) => { const el = document.querySelector(`[data-v3-foc="${id}"]`); if (el) el.focus(); }, [...S][0]).catch(() => null);
-    const MOD = { ctrl: 'Control', control: 'Control', alt: 'Alt', option: 'Alt', shift: 'Shift', cmd: 'Meta', command: 'Meta', meta: 'Meta' };
-    const mods = (advised.mods || []).map((k) => MOD[k]).filter(Boolean);   // hold EVERY advised modifier, in written order
-    for (const mod of mods) await page.keyboard.down(mod);
-    await page.keyboard.press(advised.key);
-    for (const mod of mods.slice().reverse()) await page.keyboard.up(mod);
+    await pressAdvised(page, advised);
     await settleMs(page, escSettle);
     const after = await page.evaluate(activeFocId).catch(() => null);
     if (after === null) return 'undetermined';
@@ -1791,7 +1892,7 @@ async function detectEmbeddedFormatTraps(page, opts = {}) {
   return { traps, directional, boundaries: boundaries.length };
 }
 
-module.exports = { collectTabOrder, tabOrderFindings, redundantStopFacts, detectKeyboardTraps, detectFocusRetentionTraps, detectFixedSetConfinementTraps, detectFocusRejection, detectFocusRestsInAriaHidden, findRevealOpeners, collectRevealedFocusOrder, detectTrapsAfterReveal, detectEmbeddedFormatTraps, REACH_SAFETY_CAP, REFOCUS_SETTLE_MS, TRAP_REGION_SEL, FOCUSABLE_SEL, OPENER_VERB_RE, REVEAL_MARKER_SEL,
+module.exports = { parseAdvisory, normalizeAdvisedKey, pressAdvised, ADVISORY_RESERVED, collectTabOrder, tabOrderFindings, redundantStopFacts, detectKeyboardTraps, detectFocusRetentionTraps, detectFixedSetConfinementTraps, detectFocusRejection, detectFocusRestsInAriaHidden, findRevealOpeners, collectRevealedFocusOrder, detectTrapsAfterReveal, detectEmbeddedFormatTraps, REACH_SAFETY_CAP, REFOCUS_SETTLE_MS, TRAP_REGION_SEL, FOCUSABLE_SEL, OPENER_VERB_RE, REVEAL_MARKER_SEL,
   // F11 (soundness review round 2): the confinement sweep's in-page settle-read primitive + its focusin-log
   // installer + the tagger it reads `data-v3-foc` from, exported so a test can pin the early-exit fix by
   // calling the LITERAL function production runs, never a hand-duplicated copy.

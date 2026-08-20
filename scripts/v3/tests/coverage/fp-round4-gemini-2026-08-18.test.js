@@ -49,8 +49,16 @@ const probe = (page, targetXpath) => RUNNERS['form-error-probe'](page, { candida
 // ── 3.3.1 A1/A2 ─────────────────────────────────────────────────────────────────────────────────────
 // A static form (no script, novalidate) rendered in its error state: field 1 is declared invalid and its
 // message is an <img alt> the field points at; field 2 is declared invalid by CLASS with a plain sibling
-// message; field 3 is pristine + constrained (the probe's own error condition applies); field 4 carries a
-// retained `:invalid` value with NO declaration (silent-redisplay shape — stays probeable).
+// message; field 3 is pristine + genuinely constrained (`required` and empty — the probe's own error
+// condition applies); field 4 carries a retained `:invalid` value with NO declaration (silent-redisplay
+// shape — stays probeable); field 5 is a BARE optional `type=number`, which carries no rule the probe can
+// violate at all.
+//
+// Field 3 used to be that bare number and was asserted a BARRIER, which encoded the over-claim this suite
+// now guards against: an empty optional number is a perfectly valid state, `el.value='abc'` sanitizes back
+// to '', and reporting "the page failed to identify an error" where no error exists is a measured false
+// positive. `required` restores what the pin was actually for — a pristine constrained field on a page that
+// surfaces nothing — and field 5 pins the corrected semantics beside it, so neither reading is lost.
 const RENDERED = `<!doctype html><html><body>
   <form action="#" novalidate>
     <div class="f"><label for="a">Contact address</label>
@@ -60,28 +68,35 @@ const RENDERED = `<!doctype html><html><body>
       <input id="b" type="text" value="12" class="is-invalid" pattern="[0-9]{5}">
       <p class="note">Enter all five digits of the postcode.</p></div>
     <div class="f"><label for="c">Reference number</label>
-      <input id="c" type="number" value=""></div>
+      <input id="c" type="number" value="" required></div>
     <div class="f"><label for="d">Backup address</label>
       <input id="d" type="email" value="nobody-here"></div>
+    <div class="f"><label for="e">Meter reading</label>
+      <input id="e" type="number" value=""></div>
     <button type="submit">Send</button>
   </form></body></html>`;
 
 test('A1/A2 declared-invalid-at-rest fields ABSTAIN (never barrier); an <img alt> surface counts as text', { skip: !chromeOK, concurrency: false }, async () => {
-  const [ra, rb, rc, rd] = await withPage(RENDERED, async (page) => [
+  const [ra, rb, rc, rd, re] = await withPage(RENDERED, async (page) => [
     await probe(page, '/html/body/form[1]/div[1]/input[1]'),
     await probe(page, '/html/body/form[1]/div[2]/input[1]'),
     await probe(page, '/html/body/form[1]/div[3]/input[1]'),
     await probe(page, '/html/body/form[1]/div[4]/input[1]'),
+    await probe(page, '/html/body/form[1]/div[5]/input[1]'),
   ]);
   // A2 — aria-invalid="true": rendered error state ⇒ abstain, applicable, no barrier
   assert.equal(ra.outcome.errorNotIdentified, false, 'aria-invalid at rest ⇒ never errorNotIdentified');
   assert.equal(ra.valid, true, 'the field IS applicable (constrained) — this is an abstain, not an applicability failure');
   // A2 — error-class token on the CONTROL ⇒ same
   assert.equal(rb.outcome.errorNotIdentified, false, 'error-class token on the control at rest ⇒ never errorNotIdentified');
-  // pristine + constrained (number, empty): the probe's own condition applies; static page surfaces nothing ⇒ barrier
+  // pristine + genuinely constrained (required, empty): the probe's own condition applies; nothing surfaces ⇒ barrier
   assert.equal(rc.outcome.errorNotIdentified, true, 'a pristine constrained field on a page that identifies nothing on submit is still the barrier');
   // `:invalid` retained value with NO declaration: NOT an at-rest declaration ⇒ still probed ⇒ barrier
   assert.equal(rd.outcome.errorNotIdentified, true, 'a retained invalid value with no author declaration is the silent-redisplay shape and stays probeable');
+  // bare optional `type=number`: nothing the probe writes can make it invalid, so there is no automatically
+  // detected error for 3.3.1 to attach to — abstain, never barrier (the measured false positive).
+  assert.equal(re.measurement.conditionAbsent, true, 'an empty optional number stays valid however it is written to');
+  assert.equal(re.outcome.errorNotIdentified, false, 'and a field with no error condition is not an unidentified error');
 });
 
 // A1 in isolation: a DYNAMICALLY surfaced <img alt> referenced by the field must be credited as identification.

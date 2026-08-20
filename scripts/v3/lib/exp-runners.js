@@ -745,7 +745,18 @@ function probeFormError(marker) {
   // NO native validation at all, so every optional tel field was probed with a valid value and then
   // reported `errorNotIdentified` when no error appeared. That fabricated error condition produced
   // false positives on pages that were correct.
-  const invalidValue = required ? '' : (softEmail || /^(email|url)$/.test(type)) ? 'x' : /number/.test(type) ? 'abc' : null;
+  // For a RANGE-constrained number, violate the range rather than the type. `el.value = 'abc'` on a
+  // `type=number` runs the value-sanitization algorithm and silently leaves '' behind, which for an OPTIONAL
+  // field is still VALID — so the probe would submit a perfectly acceptable value and read the page's silence
+  // as a failure to identify an error. Where `min`/`max` exist there IS a violable rule, so name a number
+  // that breaks it and the probe measures what it meant to measure.
+  // `Number(null)` is 0 and `Number('')` is 0, so an ABSENT bound must be rejected before parsing — reading it
+  // as a real limit would synthesise a bound-adjacent value (1) for every rangeless number field and inject a
+  // perfectly VALID number, which is the opposite of the intent.
+  const numAttr = (v) => (v === null || String(v).trim() === '' ? NaN : Number(v));
+  const numMin = numAttr(el.getAttribute('min')); const numMax = numAttr(el.getAttribute('max'));
+  const outOfRange = Number.isFinite(numMax) ? String(numMax + 1) : Number.isFinite(numMin) ? String(numMin - 1) : null;
+  const invalidValue = required ? '' : (softEmail || /^(email|url)$/.test(type)) ? 'x' : /number/.test(type) ? (outOfRange || 'abc') : null;
   if (invalidValue === null) {
     // Nothing invalid can be synthesized ⇒ this constraint is NOT probeable. Report NOT-APPLICABLE in the
     // same shape the rest of this in-page probe returns (this function is serialized into the browser, so
@@ -920,14 +931,45 @@ function probeFormError(marker) {
   // field holding a VALID value that the probe overwrote to invent a condition the page has no way to
   // detect. Same principle the `type=tel` abstain above already states — "probing with one would fabricate
   // the error condition" — applied to the detection question rather than the validity question.
+  //
+  // …AND SECOND, THE ERROR CONDITION MUST EXIST AT ALL (2026-08-19). The clause above asks whether the probe
+  // MANUFACTURED the condition; it cannot fire when the probe manufactured NOTHING. A field that was valid as
+  // loaded and is STILL valid after the injection is in no error state whatsoever — the injected value was
+  // sanitized away, or the type carries no rule this value can break. The measured false positive: an
+  // optional `type=number` with the permitted range stated only in prose, which counts as CONSTRAINED at the
+  // applicability gate (bare `number` is a constrained type there) but which `el.value='abc'` leaves holding
+  // '' — a valid value. The probe then submitted an acceptable number, saw no message, and reported a barrier
+  // on a field with no error, while the page's REAL error one field over was correctly identified.
+  //
+  // This branch keeps the SAME `novalidate` qualifier as the one above, and the held-out gate is why. The
+  // first cut dropped it, reasoning that "a field the browser considers valid has no automatically detected
+  // error, with or without novalidate". That is wrong, and the paragraph above already said so: WITHOUT
+  // `novalidate` the user agent performs constraint validation itself, so the page HAS automatic detection —
+  // it simply is not this field's own constraint doing the detecting. The error a user meets can sit
+  // elsewhere in the form and be reported by a pre-rendered generic message, which is exactly the shape the
+  // four validated ACT 36b590 failures encode: a plain `<form>`, no scripts, a bare `type=number`, and a
+  // message that never says what is wrong. Dropping the qualifier abstained on all four and cost 4 true
+  // positives on the 581-case gate — a silent recall loss the unit fixtures could not see, because they were
+  // all written `novalidate`.
+  //
+  // Every positive detection channel still overrides on top of that: a page that mutates the DOM, declares
+  // the field invalid, intercepts the submission, or ships a client validator is reacting to SOMETHING and
+  // stays on the hook. That is what keeps the soft-required frameworks working, where native
+  // `checkValidity()` is irrelevant by construction.
   const conditionFabricated = validAtRest && invalidAfterInject;
-  const detectionUnproven = !!form.noValidate && conditionFabricated && !pageReacted && !ariaInvalidAppeared
+  const conditionAbsent = validAtRest && !invalidAfterInject;
+  // `conditionFabricated || conditionAbsent` is just `validAtRest`; both are kept named because the abstain
+  // REASON differs and the artifact has to say which one fired.
+  const noDetectableCondition = !!form.noValidate && (conditionAbsent || conditionFabricated);
+  const detectionUnproven = noDetectableCondition && !pageReacted && !ariaInvalidAppeared
     && !pageIntercepted && !_clientValidatorActive;
   return { isUserInputField, fieldRendered, fieldConstrained: true, applicable: true,
     errorNotIdentified: !(nativeWouldBlock || customIdentifies || unassociatedSurface) && !detectionUnproven,
     nativeWouldBlock, customIdentifies, unassociatedSurface: unassociatedSurface || null, errorSample,
-    pageReacted, pageIntercepted, ...(detectionUnproven ? { detectionUnproven: true,
-      abstainReason: 'the probe MANUFACTURED this error condition by overwriting a value the page treats as valid, on a form that declares novalidate (so the UA performs no constraint validation), and the page did not react to the input, did not intercept the submission, and ships no detectable client-side validator: nothing here automatically detects this error condition, and 3.3.1 attaches only to errors that ARE automatically detected' } : {}) };
+    pageReacted, pageIntercepted, conditionAbsent, ...(detectionUnproven ? { detectionUnproven: true,
+      abstainReason: conditionAbsent
+        ? 'the probe could not put this field into an error state at all: it was valid as loaded and is still valid after the injected value (a type=number sanitizes a non-numeric write to an empty string, which is valid for an optional field), and the page did not react to the input, did not intercept the submission, and ships no detectable client-side validator — there is no automatically detected error here for 3.3.1 to attach to'
+        : 'the probe MANUFACTURED this error condition by overwriting a value the page treats as valid, on a form that declares novalidate (so the UA performs no constraint validation), and the page did not react to the input, did not intercept the submission, and ships no detectable client-side validator: nothing here automatically detects this error condition, and 3.3.1 attaches only to errors that ARE automatically detected' } : {}) };
 }
 
 async function runFormErrorProbe(page, request) {
@@ -957,7 +999,7 @@ async function runFormErrorProbe(page, request) {
   // tell "abstained on a rendered error state" from "probed and found no barrier" — they used to be byte-identical.
   // The judge's evidence for the abstained field is the collector's `atRestErrorState` (same declaration lexicon).
   return mk(request, 'form-error-probe', '3.3.1', o, { isUserInputField: o.isUserInputField, fieldRendered: o.fieldRendered, fieldConstrained: o.fieldConstrained }, { action: 'submit-invalid', valid, measurement: m ? { nativeWouldBlock: m.nativeWouldBlock, customIdentifies: m.customIdentifies, unassociatedSurface: m.unassociatedSurface || null,
-    ...(m.pageReacted !== undefined ? { pageReacted: m.pageReacted, pageIntercepted: m.pageIntercepted } : {}),
+    ...(m.pageReacted !== undefined ? { pageReacted: m.pageReacted, pageIntercepted: m.pageIntercepted, conditionAbsent: !!m.conditionAbsent } : {}),
     ...(m.detectionUnproven === true ? { detectionUnproven: true } : {}),
     ...(m.atRestDeclaredInvalid === true ? { atRestDeclaredInvalid: true, ...(m.abstainReason ? { abstainReason: m.abstainReason } : {}) } : {}),
     ...(m.abstainReason && m.atRestDeclaredInvalid !== true ? { abstainReason: m.abstainReason } : {}) } : {} });
@@ -1269,6 +1311,11 @@ async function runFocusObscuredBarrier(page, request) {
 // =====================================================================================
 // C5 — keyboard-trap-escape → 2.1.2 (CLEAR per-component)
 // =====================================================================================
+// Grouping ancestors an advisory can plausibly belong to, used ONLY to re-scope the 2.1.2 advisory read when
+// trap-region identification collapsed onto the control (see runKeyboardTrapEscape). Sectioning elements plus
+// anything the author gave a name or a role — the same evidence that makes a container announceable at all.
+const ADVISORY_GROUP_SEL = 'section,fieldset,form,dialog,article,aside,nav,main,[role],[aria-label],[aria-labelledby]';
+
 async function runKeyboardTrapEscape(page, request) {
   const marker = String(request.candidateId || request.targetXpath);
   const hydrationReady = await H.hydrate(page);
@@ -1343,19 +1390,53 @@ async function runKeyboardTrapEscape(page, request) {
   if (!escResult.inDoc) lost = true;
   const escClosesOrEscapes = escResult.escClosesOrEscapes;
 
-  // WCAG 2.1.2 permits ANOTHER keyboard exit method WHEN the user is advised of it. Detect advisory
-  // text in the region ("press Z to leave"), try the advised key, and never assert a trap when an
-  // advised exit exists but we couldn't confirm it (audit V3R2-H4).
-  const advice = await page.evaluate((m) => {
+  // WCAG 2.1.2 permits ANOTHER keyboard exit method WHEN the user is advised of it. The advisory is read from
+  // the REGION's own text — deliberately narrower than the instrument lane's whole-page read, because advice a
+  // trapped keyboard user cannot reach is not advice: `textContent` excludes `title` tooltips and prose sitting
+  // outside the confinement, which is exactly the distinction the criterion draws.
+  //
+  // THE GRAMMAR IS NO LONGER WRITTEN HERE (2026-08-19). It lives in `kbd-graph.parseAdvisory`, shared verbatim
+  // with the instrument lane. The copy that used to sit here recognised ONE phrasing — `press <single-char> to
+  // leave|exit|close|escape|dismiss` — so it matched no real advisory prose at all: not the verb-first order
+  // authors actually write ("To move focus back out …, press Ctrl+M"), not any modifier chord, not a function
+  // key. `advice.advised` was therefore false on every documented-exit page, and since the trap assertion below
+  // was `!anyEscapes && !advice.advised`, a page that correctly documents its exit was scored a trap. Measured
+  // as a cross-model false positive; the two 2.1.2 lanes had drifted apart in the same way the close-control
+  // escape had, so this calls the instrument's parser rather than repairing a second private copy.
+  const adviceText = await page.evaluate((m, focSel, groupSel) => {
     const region = document.querySelector(`[data-v3-region="${m}"]`);
-    const t = region ? region.textContent || '' : '';
-    const mm = t.match(/press\s+(?:the\s+)?["']?([A-Za-z])["']?\s+(?:key\s+)?to\s+(?:leave|exit|close|escape|dismiss|continue)/i);
-    return { advised: /\bto\s+(leave|exit|close|escape|dismiss)\b/i.test(t), key: mm ? mm[1].toLowerCase() : null };
-  }, marker).catch(() => ({ advised: false, key: null }));
+    if (!region) return '';
+    // WIDEN THE ADVISORY SCOPE WHEN REGION IDENTIFICATION COLLAPSED. `TRAP_REGION_SEL` recognises dialog-ish
+    // roles and modal-ish class names; a plain named `<section>` that confines focus matches none of them, so
+    // `closest()` above returned nothing and `region` is the CONTROL ITSELF — whose `textContent` is empty.
+    // On such a page no advisory can ever be in scope, and the grammar repair below would never get a chance
+    // to matter: this was the second half of the measured false positive, and the half that actually bit.
+    //
+    // Widened for the ADVISORY READ ONLY, never for focus tracking. That containment is the point: the
+    // advisory can only add an escape or suppress an assertion, so a scope that is too generous costs at
+    // worst a missed trap, while widening the focus-tracking region would make "focus never left" easier to
+    // satisfy and could MANUFACTURE traps across every form on the corpus. The narrow region identification
+    // is a real and separate defect; it is not repaired here because it changes trap mechanics.
+    let scope = region;
+    if (region.matches(focSel) && region.parentElement) scope = region.parentElement.closest(groupSel) || region;
+    // The advisory may be attached by reference rather than nested inside — a description is announced to
+    // exactly the user this exception is written for, so it counts as advice they receive.
+    let t = scope.textContent || '';
+    for (const el of [scope, region]) {
+      for (const attr of ['aria-describedby', 'aria-labelledby']) {
+        for (const id of (el.getAttribute(attr) || '').split(/\s+/).filter(Boolean)) {
+          const ref = document.getElementById(id);
+          if (ref && !scope.contains(ref)) t += ' ' + (ref.textContent || '');
+        }
+      }
+    }
+    return t;
+  }, marker, kg.FOCUSABLE_SEL, ADVISORY_GROUP_SEL).catch(() => '');
+  const advice = kg.parseAdvisory(adviceText) || { advised: false, key: null, mods: [], reserved: false };
   let advisedKeyEscapes = false;
-  if (!escClosesOrEscapes && advice.key) {
+  if (!escClosesOrEscapes && advice.key && !advice.reserved) {
     await H.realKeyboardReach(page, marker);
-    await page.keyboard.press(advice.key); await H.settle(page, 60);
+    await kg.pressAdvised(page, advice); await H.settle(page, 60);
     const a = await page.evaluate((m) => { const region = document.querySelector(`[data-v3-region="${m}"]`); const el = document.activeElement; const inDoc = !!(el && el !== document.body && document.hasFocus()); const removed = !region || !region.isConnected || region.hidden; const movedOut = !(el && region && region.contains(el)); return { ok: (removed || movedOut), inDoc }; }, marker).catch(() => ({ ok: false, inDoc: true }));
     advisedKeyEscapes = a.ok; if (!a.inDoc) lost = true;
   }
@@ -1380,10 +1461,19 @@ async function runKeyboardTrapEscape(page, request) {
   // one-way / disagreement ⇒ INCONCLUSIVE (neither set)
   const oneWayConflict = (tabEscapes !== shiftEscapes) && !escClosesOrEscapes && !advisedKeyEscapes && !closeEscapes;
   o.escapeProvenForWidget = anyEscapes && o.focusStaysInDocument && !oneWayConflict;
-  // a trap is asserted ONLY when no mechanism escaped AND there is no advised alternative exit.
-  o.trapProven = !anyEscapes && !advice.advised && o.focusStaysInDocument && cycledBackToStart;
+  // A trap is asserted ONLY when no mechanism escaped AND no advised alternative exit is left UNTESTED.
+  //
+  // The old form suppressed on `advice.advised` alone. That was safe only while the grammar was so narrow it
+  // never fired; widening it would have converted every "advertises a key that does nothing" page into a
+  // silent pass, because 2.1.2's exception is CONJUNCTIVE — the user must be advised AND the documented method
+  // must actually work. So a PARSED key is now tested (`advisedKeyEscapes`, which feeds `anyEscapes` above)
+  // and only an UNTESTABLE advisory suppresses: advice we can read but whose keystroke we cannot extract, or
+  // one the user agent reserves and we must not press. That is the audit V3R2-H4 rule — never assert a trap
+  // when an advised exit exists but we could not confirm it — applied to the cases where it still bites.
+  const adviceUnverifiable = !!advice.advised && (!advice.key || !!advice.reserved);
+  o.trapProven = !anyEscapes && !adviceUnverifiable && o.focusStaysInDocument && cycledBackToStart;
   const valid = o.focusStaysInDocument && reached;
-  return mk(request, 'keyboard-trap-escape', '2.1.2', o, { targetIsFocusable: o.targetIsFocusable, keyboardReachableInState: o.keyboardReachableInState }, { action: 'tab-into-then-escape', valid, measurement: { tabEscapes, shiftEscapes, escClosesOrEscapes, advisedKeyEscapes, closeEscapes, advised: advice.advised, cycledBackToStart, oneWayConflict } });
+  return mk(request, 'keyboard-trap-escape', '2.1.2', o, { targetIsFocusable: o.targetIsFocusable, keyboardReachableInState: o.keyboardReachableInState }, { action: 'tab-into-then-escape', valid, measurement: { tabEscapes, shiftEscapes, escClosesOrEscapes, advisedKeyEscapes, closeEscapes, advised: !!advice.advised, advisedKey: advice.key || null, advisedKeyReserved: !!advice.reserved, adviceUnverifiable, cycledBackToStart, oneWayConflict } });
 }
 
 // =====================================================================================
