@@ -417,16 +417,24 @@ const ADVISORY_MODS = '(?:ctrl|control|alt|option|shift|cmd|command|meta)';
 // safe only because a parsed advisory no longer EXCUSES a confinement on its own — both lanes now PRESS the
 // named key and require focus to actually leave (see `pressAdvised`). An over-match therefore costs one
 // keystroke and can only clear when the key genuinely frees focus, which IS the criterion's test.
-const ADVISORY_VERB = '(?:leave|exit|close|escape|dismiss|continue|return|go|move|get|jump|step)';
+const ADVISORY_VERB = '(?:leave|exit|close|escape|dismiss|continue|return|go|move|get|jump|step|skip|bypass|advance)';
 const ADVISORY_KEY = '["\']?(F(?:1[0-2]|[1-9])|Esc(?:ape)?|Enter|Spacebar|Space|Tab|[A-Za-z0-9])["\']?(?![A-Za-z0-9])';
 const ADVISORY_COMBO = '((?:' + ADVISORY_MODS + '\\s*\\+\\s*)*)';
+// The advertised key and the purpose clause are not always adjacent: authors write "press Ctrl+M AT ANY TIME
+// to skip past the panel". The old pattern allowed only an optional literal "key" between them, so that
+// sentence did not parse — and an unparsed advisory ASSERTS a trap, which made a page with a genuinely bound
+// and genuinely working exit read as a keyboard trap (measured: 2.1.2 multi-element-region-loop case-06,
+// surfaced once region identification was repaired and stopped clearing every such page trivially).
+// Bounded and lazy, and `[^\s.!?]` keeps it inside one sentence — the same guard the verb-first pattern uses,
+// for the same reason: an advisory stitched across a full stop is not an advisory.
+const ADVISORY_GAP = '(?:\\s+[^\\s.!?]+){0,4}?\\s+';
 // A presence test, kept separate from the key parse AND deliberately NARROWER than it: text that clearly
 // ADVISES an exit but whose key we cannot extract is INCONCLUSIVE, not "no advice" (audit V3R2-H4) — the
 // caller must not assert a trap on it. That suppression is the one place a loose match costs a MISSED trap
 // rather than a keystroke, so this side keeps an unambiguous exit vocabulary while `ADVISORY_VERB` above
 // stays wide: "To move the slider, press the arrow keys" is an interaction instruction, not an exit advisory,
 // and must not silence a real confinement.
-const ADVISORY_HINT_RE = /\bto\s+(?:leave|exit|escape|dismiss|close|get\s+out|(?:move|return|take|send|put)\s+(?:the\s+)?focus)\b/i;
+const ADVISORY_HINT_RE = /\bto\s+(?:leave|exit|escape|dismiss|close|get\s+out|skip\s+(?:past|over|ahead)|bypass|(?:move|return|take|send|put)\s+(?:the\s+)?focus)\b/i;
 
 // Chords the USER AGENT owns. The page may name one, but the browser intercepts it before the document sees
 // it, so it cannot move focus in practice — WCAG's exception asks for a method that WORKS. We must not press
@@ -441,7 +449,7 @@ function parseAdvisory(text) {
   const t = String(text || '');
   if (!t) return null;
   const hinted = ADVISORY_HINT_RE.test(t);
-  let m = t.match(new RegExp('press\\s+(?:the\\s+)?' + ADVISORY_COMBO + ADVISORY_KEY + '\\s+(?:key\\s+)?to\\s+' + ADVISORY_VERB, 'i'));
+  let m = t.match(new RegExp('press\\s+(?:the\\s+)?' + ADVISORY_COMBO + ADVISORY_KEY + ADVISORY_GAP + 'to\\s+' + ADVISORY_VERB, 'i'));
   if (!m) m = t.match(new RegExp('to\\s+' + ADVISORY_VERB + '(?:\\s+[^\\s.!?]+){0,16}?[,:]?\\s+press(?:ing)?\\s+(?:the\\s+)?' + ADVISORY_COMBO + ADVISORY_KEY, 'i'));
   if (!m) return hinted ? { advised: true, key: null, mods: [], reserved: false } : null;
   const mods = (m[1] || '').split('+').map((x) => x.trim().toLowerCase()).filter(Boolean);

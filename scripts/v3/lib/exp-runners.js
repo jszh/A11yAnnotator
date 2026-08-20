@@ -1324,18 +1324,71 @@ async function runKeyboardTrapEscape(page, request) {
   if (!tagged) return mk(request, 'keyboard-trap-escape', '2.1.2', o, {}, { action: 'tab-into-then-escape' });
   o.targetIsFocusable = await page.evaluate((m) => { const el = document.querySelector(`[data-v3-target="${m}"]`); if (!el) return false; el.focus(); const ok = document.activeElement === el; el.blur(); return ok; }, marker).catch(() => false);
 
-  // tag the containing region so we can detect "focus left the region". A3 (Harness 3.3): use the SHARED
-  // class-aware selector from kbd-graph (TRAP_REGION_SEL) so a role-LESS `<div class=modal>` trap anchors
-  // to the overlay, not collapsing to the input itself — which false-CLEARED the role-less trap the
-  // detector catches (audit §D / L5). Also read the in-region focusable count to size the escape budget.
+  // TAG THE CONTAINING REGION so we can detect "focus left the region". A3 (Harness 3.3): prefer the SHARED
+  // class-aware selector from kbd-graph (TRAP_REGION_SEL) so a role-LESS `<div class=modal>` trap anchors to
+  // the overlay, not collapsing to the input itself — which false-CLEARED the role-less trap the detector
+  // catches (audit §D / L5). Also read the in-region focusable count to size the escape budget.
+  //
+  // WHEN NOTHING MATCHES, THE REGION IS INFERRED — IT NO LONGER COLLAPSES ONTO THE CONTROL (2026-08-19).
+  // `TRAP_REGION_SEL` answers "is this container worth ENUMERATING as a trap candidate"; it was also being
+  // used as the region RESOLVER, via `closest(...) || el`, which is a different question — and that form had
+  // no fallback at all. On a page whose confining container is a plain `<section class=filters>` or
+  // `<div class=carousel>` — role-less, and carrying none of the modal-ish class words — `closest()` returned
+  // null and the region became the CONTROL ITSELF, so the very first Tab onto a sibling read as "focus left
+  // the region" and the experiment CLEARED a component that demonstrably loops. Root-caused twice on the
+  // corpus (residual RCA 2026-08-15) and deferred out of the 2026-08-19 FP batch because, unlike the advisory
+  // repair shipped alongside it, this changes trap MECHANICS and so needs its own held-out measurement.
+  //
+  // The inferred anchor is the nearest ancestor that is a USABLE TRAP BOUNDARY, under two invariants:
+  //   (1) it holds >= 2 visible focusables — a one-control "region" makes every sibling move an escape,
+  //       which is the collapse bug restated one level up;
+  //   (2) it leaves >= 1 visible focusable OUTSIDE it — otherwise "focus left the region" is unobservable BY
+  //       CONSTRUCTION, and a document-wide tab ring that wraps at its end would satisfy `cycledBackToStart`
+  //       with no escape on literally every page. (2) is also what bounds the walk: <body> holds every
+  //       focusable in the document, so it can never qualify, and no explicit stop-list is needed.
+  // No bounded ancestor ⇒ FALL BACK TO THE CONTROL, which is the old behaviour and, there, the RIGHT one:
+  // a control that belongs to no bounded component IS the component, and "focus can be moved away from this
+  // control" is exactly the per-control claim this experiment is asked to settle. Measured before choosing —
+  // across the 55 corpus 2.1.2 pages, 383 visible focusables resolve as 66 declared / 257 inferred /
+  // 60 (15.7%) neither, and those 60 are overwhelmingly lone controls (a skip link, a lone submit) sitting
+  // outside every group. Abstaining on them would have bought no soundness and cost a sixth of the lane.
+  // The group-scale question on such a page belongs to the kbd-graph INSTRUMENTS, which scan regions
+  // directly rather than climbing from one control. The anchor is reported either way, so a control-scale
+  // clear is distinguishable downstream from a region-scale one instead of silently reading the same.
+  //
+  // Invariant (2) is deliberately NOT applied to the `closest()` hit. There the author declared a boundary,
+  // and that path is already validated; requiring escape-observability of it would abstain on a full-screen
+  // modal over inert background content — a real trap — so it is asked only of a boundary WE inferred.
   const kg = require('./kbd-graph.js');
   const regionInfo = await page.evaluate((m, regSel, focSel) => {
-    const el = document.querySelector(`[data-v3-target="${m}"]`); if (!el) return { focusableCount: 0 };
-    const region = el.closest(regSel) || el;
+    const el = document.querySelector(`[data-v3-target="${m}"]`);
+    if (!el) return { resolved: false, reason: 'target-not-found', focusableCount: 0, docFocusableCount: 0, regionAnchor: null };
+    const visible = (f) => f.offsetParent !== null || getComputedStyle(f).position === 'fixed';
+    const countIn = (root) => [...root.querySelectorAll(focSel)].filter(visible).length;
+    const docFocusableCount = countIn(document);
+    // `closest()` starts AT the element, so a control whose own class carries a modal-ish word
+    // (`<input class="popup-search">`) matched itself and re-created the collapse this repair exists to
+    // remove. A region can never be the control whose escape is under test — search from the parent.
+    let region = el.parentElement ? el.parentElement.closest(regSel) : null;
+    let regionAnchor = region ? 'trap-region-selector' : null;
+    if (!region) {
+      for (let a = el.parentElement; a && a !== document.documentElement; a = a.parentElement) {
+        const n = countIn(a);
+        if (n >= 2 && n < docFocusableCount) { region = a; regionAnchor = 'focusable-group-ancestor'; break; }
+      }
+    }
+    if (!region) { region = el; regionAnchor = 'control-fallback'; }
     region.setAttribute('data-v3-region', m);
-    const fs = [...region.querySelectorAll(focSel)].filter((f) => f.offsetParent !== null || getComputedStyle(f).position === 'fixed');
-    return { focusableCount: fs.length };
-  }, marker, kg.TRAP_REGION_SEL, kg.FOCUSABLE_SEL).catch(() => ({ focusableCount: 0 }));
+    return { resolved: true, reason: null, regionAnchor, focusableCount: countIn(region), docFocusableCount };
+  }, marker, kg.TRAP_REGION_SEL, kg.FOCUSABLE_SEL).catch(() => ({ resolved: false, reason: 'region-probe-failed', focusableCount: 0, docFocusableCount: 0, regionAnchor: null }));
+
+  // The target itself vanished between tagging and the region probe — nothing to drive keys against. Both
+  // `escapeProvenForWidget` and `trapProven` stay false, which the catalog reads as INCONCLUSIVE; the 2.1.2
+  // precedence rule in build-v3 then lets a CONFIRMED instrument barrier fill the obligation in its place.
+  if (!regionInfo.resolved) {
+    return mk(request, 'keyboard-trap-escape', '2.1.2', o, { targetIsFocusable: o.targetIsFocusable, keyboardReachableInState: o.keyboardReachableInState },
+      { action: 'tab-into-then-escape', measurement: { regionResolved: false, regionAnchor: null, abstainReason: regionInfo.reason, docFocusableCount: regionInfo.docFocusableCount } });
+  }
 
   const reach = await H.realKeyboardReach(page, marker); const reached = reach.reached; // V3R6-MAXTAB
   o.keyboardReachableInState = reached; o.focusEnteredRegion = reached;
@@ -1473,7 +1526,7 @@ async function runKeyboardTrapEscape(page, request) {
   const adviceUnverifiable = !!advice.advised && (!advice.key || !!advice.reserved);
   o.trapProven = !anyEscapes && !adviceUnverifiable && o.focusStaysInDocument && cycledBackToStart;
   const valid = o.focusStaysInDocument && reached;
-  return mk(request, 'keyboard-trap-escape', '2.1.2', o, { targetIsFocusable: o.targetIsFocusable, keyboardReachableInState: o.keyboardReachableInState }, { action: 'tab-into-then-escape', valid, measurement: { tabEscapes, shiftEscapes, escClosesOrEscapes, advisedKeyEscapes, closeEscapes, advised: !!advice.advised, advisedKey: advice.key || null, advisedKeyReserved: !!advice.reserved, adviceUnverifiable, cycledBackToStart, oneWayConflict } });
+  return mk(request, 'keyboard-trap-escape', '2.1.2', o, { targetIsFocusable: o.targetIsFocusable, keyboardReachableInState: o.keyboardReachableInState }, { action: 'tab-into-then-escape', valid, measurement: { regionResolved: true, regionAnchor: regionInfo.regionAnchor, regionFocusableCount: regionInfo.focusableCount, docFocusableCount: regionInfo.docFocusableCount, tabEscapes, shiftEscapes, escClosesOrEscapes, advisedKeyEscapes, closeEscapes, advised: !!advice.advised, advisedKey: advice.key || null, advisedKeyReserved: !!advice.reserved, adviceUnverifiable, cycledBackToStart, oneWayConflict } });
 }
 
 // =====================================================================================

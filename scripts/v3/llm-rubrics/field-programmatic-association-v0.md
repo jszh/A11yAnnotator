@@ -53,6 +53,27 @@ captures what a sighted user reads — visually AND via table position — not t
    genuinely unreachable (an icon, a separate legend, styling alone) or just plain text you would expect a
    correctly-associated label to carry.
 
+**A COMPOSITE INPUT GROUP CARRIES THE RELATIONSHIP FOR ITS PARTS — check the wrapper before judging a part.**
+Some single pieces of information are collected through several adjacent controls: a date split into day /
+month / year boxes, a phone number split into country code and subscriber number, an amount split into units
+and fractions, an address split into lines. The label a sighted user reads belongs to the GROUP; each box
+carries only a short part-name, often as `title`, and often duplicated in `placeholder` so the hint survives
+on screen. That is a CORRECT structure, not a broken one, when the wrapper is a `<fieldset>` with a
+`<legend>` or an element with a group role named by `aria-labelledby` (and often described by
+`aria-describedby` pointing at the format hint). 1.3.1 asks whether the relationship a sighted user perceives
+is programmatically determinable, and here it is: the group announces the field's meaning and each part
+announces which part it is.
+
+So before flagging any member of such a group, look UP from the field: if an enclosing group is named, and
+the part's own accessible name distinguishes it within that group, the relationship is exposed → NOT
+REPRODUCED. Judge the group's naming, not the part's, and do not flag every box in the group individually
+for "no label" when the label is one level up. Failure mode 1's warning about a name that silently falls back
+to a `title` or `placeholder` is about a field whose VISIBLE label was never wired to it — a label the user
+can see, sitting next to a control that does not claim it. It does not describe a part-name inside a properly
+named group, where no separate visible per-part label was ever intended. Flag the group instead when the
+wrapper is genuinely unnamed — a bare `<div>` holding the parts, with the question sitting in loose text no
+element references — because then the parts really are announced without the thing they are parts of.
+
 **Evidence handed to you:** `element-crop` (the field), `surrounding-region` (wider context — including any
 enclosing `<table>` grid), the field's role/type, its accessible name/description, and (when the field is a
 `grouping-and-reading-order` subject) `signals.structure.tables` if a table is present on the page.

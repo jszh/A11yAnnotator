@@ -49,6 +49,22 @@ test('2.1.2 advisory grammar reads verb-first prose, chords and function keys', 
   assert.equal(p('When you are done, press Esc to close this drawer.').key, 'Escape');
   // a user-agent-reserved chord is parsed but flagged: it cannot move focus, so it must never clear
   assert.equal(p('To move focus back out to the page, press Ctrl+W.').reserved, true);
+  // THE KEY AND ITS PURPOSE CLAUSE NEED NOT BE ADJACENT (2026-08-20). "press Ctrl+M AT ANY TIME to skip
+  // past the panel" is ordinary advisory prose and did not parse, because the pattern allowed only an
+  // optional literal "key" between the two. An unparsed advisory ASSERTS a trap, so this scored a page
+  // whose Ctrl+M exit is bound and demonstrably works as a keyboard trap. Found on a real corpus page
+  // (2.1.2 multi-element-region-loop case-06) only after region identification was repaired — until then
+  // the collapsed region cleared every such page trivially and the grammar gap could not be reached.
+  assert.deepEqual(p('Press Ctrl+M at any time to skip past the panel and continue down the page.'),
+    { advised: true, key: 'm', mods: ['ctrl'], reserved: false });
+  assert.equal(p('Press Escape whenever you are finished to close this dialog.').key, 'Escape',
+    'the gap is a general allowance, not a special case for one sentence');
+  // …but it stays inside ONE sentence, or it would stitch an unrelated keystroke onto a later purpose
+  // clause. Here an unbounded gap would read "press F2 … to leave" straight across the full stop and
+  // advertise a key the page never bound to leaving — which SUPPRESSES a trap assertion, so the failure
+  // would be a missed trap rather than a noisy one.
+  assert.equal(p('Press F2 at the top of the list. Use the menu to leave the panel.').key, null,
+    'F2 is not stitched onto the next sentence — advice with no readable key, not a false key');
 });
 
 test('2.1.2 advisory grammar separates ABSENT advice from UNTESTABLE advice', () => {
@@ -151,22 +167,63 @@ test('2.1.2 an advisory naming NO keystroke is inconclusive, never a confirmed t
   assert.equal(r.outcome.trapProven, false, 'audit V3R2-H4: never assert a trap against an exit we could not confirm');
 });
 
-test('2.1.2 the advisory is found even when region identification COLLAPSES onto the control', { skip: !chromeOK, concurrency: false }, async () => {
+test('2.1.2 the advisory is found when no trap-region selector matches', { skip: !chromeOK, concurrency: false }, async () => {
   // Same page, same working chord — only the container's class is gone, so it matches no trap-region
-  // selector and `closest()` returns the input itself. Before the scope repair the advisory could not be
-  // read on ANY such page: `textContent` of an `<input>` is empty, so a correctly documented exit was
-  // invisible however good the grammar was. That was the half of the measured false positive that actually
-  // bit — the grammar repair alone would not have moved it.
+  // selector. Before the scope repair the advisory could not be read on ANY such page: `closest()` returned
+  // the input, and the `textContent` of an `<input>` is empty, so a correctly documented exit was invisible
+  // however good the grammar was. That was the half of the measured false positive that actually bit.
   //
-  // This pins the READ and the PRESS, not the disposition: with the region collapsed onto one control, Tab
-  // trivially "leaves the region", so `trapProven` is already false here for an unrelated reason (the narrow
-  // region identification, deliberately left alone — it changes trap mechanics). The disposition half of
-  // this fix is pinned on the identified-region fixtures above.
+  // Region identification itself was repaired afterwards (kbd-trap-region-anchor.test.js), so on THIS page
+  // the region now resolves to the section by the focusable-group rule and the advisory sits inside it. The
+  // page is kept because it is the shape the bug was measured on, and because the two repairs must agree:
+  // whichever one supplies the scope, a documented exit has to be read.
   const r = await runTrap(PANEL('works', true), FIRST_INPUT);
   const m = r.measurement;
-  assert.equal(m.advised, true, 'the advisory is read from the naming ancestor, not the collapsed region');
+  assert.equal(m.regionAnchor, 'focusable-group-ancestor', 'no selector matched — the anchor was inferred');
+  assert.equal(m.advised, true, 'the advisory is read');
   assert.equal(m.advisedKey, 'b', 'and the chord still parses');
   assert.equal(m.advisedKeyEscapes, true, 'and pressing it still frees focus — the escape is measured, not assumed');
+});
+
+test('2.1.2 the advisory is read from a naming ancestor when the region falls back to the control', { skip: !chromeOK, concurrency: false }, async () => {
+  // The case that keeps the widened advisory scope alive. Strip the two page links and every focusable in
+  // the document sits inside the panel, so no bounded group exists and region resolution falls back to the
+  // control — `textContent` empty, exactly as before. The advisory must still be found by climbing to the
+  // naming ancestor, or a documented exit is invisible on this shape and the page reads as a trap.
+  const html = PANEL('works', true)
+    .replace('<button id="before">Seed catalogue</button>', '')
+    .replace('<a href="#done" id="after">Back to catalogue</a>', '');
+  const r = await runTrap(html, FIRST_INPUT);
+  const m = r.measurement;
+  assert.equal(m.regionAnchor, 'control-fallback', 'nothing bounded to anchor on');
+  assert.equal(m.regionFocusableCount, 0, 'so the region really is the input itself');
+  assert.equal(m.advised, true, 'and the advisory is STILL read, from the ancestor that names the panel');
+  assert.equal(m.advisedKey, 'b');
+});
+
+test('2.1.2 a real confinement with a GAPPED advisory clears end-to-end', { skip: !chromeOK, concurrency: false }, async () => {
+  // The conjunction, as it actually appeared on a corpus page (2.1.2 multi-element-region-loop case-06):
+  // a role-less container that genuinely cycles Tab in both directions, advertising its exit as
+  // "press <chord> at any time to skip past…", with the chord really bound.
+  //
+  // Each repair alone gets this WRONG, in opposite directions. Region identification alone reads the
+  // confinement and cannot parse the advisory, so it asserts a trap on a conformant page. Grammar alone
+  // never sees the confinement, because the collapsed region cleared it before any advisory mattered —
+  // which is exactly why this gap survived the previous batch undetected. Only together do they land on
+  // the right answer, and for the right reason: the chord is PRESSED and observed to free focus.
+  const html = PANEL('works', true).replace(
+    /<p id="stock-help">[\s\S]*?<\/p>/,
+    '<p id="stock-help">This panel keeps keyboard focus while you adjust counts. Press Ctrl+B at any time to skip past the panel and continue down the page.</p>');
+  const r = await runTrap(html, FIRST_INPUT);
+  const m = r.measurement;
+  assert.equal(m.regionAnchor, 'focusable-group-ancestor', 'the confinement is visible at all');
+  assert.equal(m.tabEscapes, false, 'and it is real — Tab does not leave');
+  assert.equal(m.shiftEscapes, false, 'nor does Shift+Tab');
+  assert.equal(m.advised, true, 'the gapped advisory is read');
+  assert.equal(m.advisedKey, 'b', 'and its chord extracted');
+  assert.equal(m.advisedKeyEscapes, true, 'pressing it genuinely frees focus');
+  assert.equal(r.outcome.trapProven, false, 'so a documented, working exit is not a trap');
+  assert.equal(r.outcome.escapeProvenForWidget, true);
 });
 
 test('2.1.2 the widened advisory scope does not INVENT advice that is not there', { skip: !chromeOK, concurrency: false }, async () => {

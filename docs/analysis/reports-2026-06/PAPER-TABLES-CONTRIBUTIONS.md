@@ -1647,6 +1647,89 @@ tools-OFF (replay fidelity 14/23). Both reverted rather than shipped on a story.
 
 Full analysis: `docs/analysis/reports-2026-06/FP-RCA-SUPPLEMENTARY585-GEM35-FLASH-LITE.md`.
 
+### Table 1k-post12 — 2.1.2 region identification, and the live-pipeline test of the composite-group rubric clause (2026-08-20)
+
+Pre-experiment commit: **`8f964d9e`**. Both items were deferred from Table 1k-post11 as "needs its own
+measurement"; this is that measurement. Full write-up:
+`docs/analysis/reports-2026-06/REGION-ANCHOR-AND-TOOLS-ON-RUBRIC-TEST.md`.
+
+**A. Region identification (deterministic).** `runKeyboardTrapEscape` resolved its region as
+`el.closest(TRAP_REGION_SEL) || el`. That selector answers "is this container worth *enumerating* as a trap
+candidate"; used as a *resolver* it has no fallback, so on a page whose confining container is role-less the
+region collapsed onto the control and the first Tab onto a sibling read as "focus left the region". The
+replacement takes the nearest ancestor holding ≥ 2 visible focusables **and leaving ≥ 1 outside** (the second
+invariant is what stops the walk reaching `<body>`, where a wrapping tab ring would read as a confirmed trap
+on every page), and otherwise keeps the control fallback. Keeping it was measured, not assumed: across the 55
+corpus 2.1.2 pages, 60 of 383 visible focusables (15.7%) have no bounded group and are lone controls, for
+which the control *is* the component.
+
+**B. The repair exposed a second, unreachable defect.** On the human-annotated 2.1.2 slice (39 cases,
+deterministic, 3 reps per arm, every rep byte-identical):
+
+| arm | tp | fn | fp | tn |
+| --- | ---: | ---: | ---: | ---: |
+| HEAD `8f964d9e` | 25 | 2 | 1 | 11 |
+| + region anchor | 25 | 2 | **2** | 10 |
+| + region anchor + widened advisory grammar | 25 | 2 | 1 | 11 |
+
+The new FP was root-caused, not absorbed: a live-commentary panel that cycles Tab both ways but advertises
+"Press Ctrl+M **at any time** to skip past the panel", with Ctrl+M genuinely bound and working — a legitimate
+pass. `parseAdvisory` returned `null` (no `skip` verb; nothing allowed between the key and its purpose
+clause), and an unparsed advisory *asserts* a trap. The gap pre-dated this batch and was **unreachable**: the
+collapsed region cleared every such page before any advisory was consulted. Each fix alone gets that page
+wrong in opposite directions; the conjunction is now pinned end-to-end.
+
+Net on the scored corpus the combined change is **identical to HEAD** — stated plainly, it buys no recall
+there. The cases that exercise it are the six excluded as `needs-validation`, one of which is a page this
+defect was root-caused on; run as a directional probe it moves `noObligation` → `noVerdict`, i.e. from
+blindness to a correct one-way-conflict abstention (forward Tab escapes, so ACT `a1b64e` is satisfied).
+
+**ACT 581 held-out gate** (same machine, both arms run fresh this session, serial):
+
+| | tp | fn | fp | tn | err |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| base (pristine HEAD `8f964d9e`) | 13 | 101 | 1 | 262 | 0 |
+| proposed | 13 | 101 | 1 | 262 | 0 |
+| **delta** | **0** | **0** | **0** | **0** | **0** |
+
+Zero delta on every field **and zero deltas across all 581 rows** (compared row-by-row, so no offsetting pair
+hides inside an unchanged total). The base arm reproduces `v3-act-subset-r5-gate-prop2` field-for-field.
+Artifacts `upstream-evidence/r6-region-base` and `-r6-region-prop`.
+
+**C. The composite-group rubric clause — reversed verdict.** Table 1k-post11 reverted this clause as
+*untested*, because its five target FPs did not reproduce in the fixed-evidence replay. Re-run live on the
+full 90-case 1.3.1 slice (the only SC this rubric is routed for), Gemini 3.5 Flash Lite, 3 reps per arm,
+arms alternating, trees differing in exactly one file:
+
+| arm | FP per rep | TP per rep |
+| --- | --- | --- |
+| HEAD rubric | 5.7 (5, 6, 6) | 28.3 (30, 29, 26) |
+| + composite-group clause | **2.7** (4, 3, 1) | 28.3 (29, 28, 28) |
+| + clause, escape-hatch sentence trimmed | **2.7** (3, 3, 2) | 30.0 (29, 29, 32) |
+
+The five target FPs reproduce 14/15 case-reps live against **0/5** in the replay, and go to **0** under the
+clause — every target case moving the same way in every rep. Recall is neutral. Three reps do **not**
+separate the two clause variants.
+
+**Correction to Table 1k-post11's stated cause.** That table attributed the replay's non-reproduction to
+tools being off. The conclusion (the evidence differs) held; the mechanism named did not. With tools
+genuinely enabled this slice makes **3, 0, 1** tool calls across three reps — the runner's own "tools were
+ENABLED but ZERO tool calls were made" guard fires twice. SC 1.3.1 barely touches the tool lane; the 585
+run's 119 calls were mostly `resolve_destination` (2.4.4). The operative difference is **live evidence
+collection vs frozen packs**, which means a frozen-pack replay is not a safe stand-in for a live run on
+structural SCs at any tool setting.
+
+**Shipped: the full clause** (byte-identical to the measured arm; the `head` arm was verified byte-identical
+to the repo file, so the A/B compared what it claimed to). The trim was measured and **rejected**: it leaves
+one of the five target FPs back at 3/3, it was chosen after seeing which cases the clause broke, and its
+recall edge is a single rep of 32 against 29/29 at an identical FP mean.
+
+**Cost of the clause, and the overfit status.** It introduces a stable new FP on a `role="presentation"`
+layout table holding two ordinary labelled fields — present in *both* variants and unchanged by trimming, so
+it comes from the clause's premise (teaching the judge to look for composite groups makes it find them where
+none exist), not from its qualifiers. Both the clause and the trim were written from, and measured on, the
+cases that motivated them: this is confirmation that the diagnosis was right, not a held-out result.
+
 ## Limitations (state these honestly)
 
 - The eval is the **reaches-LLM hard subset** (458 of 581), so recall is over the cases the deterministic stack
