@@ -79,15 +79,31 @@ def aggregate_responses(responses):
 
     if not verdicts:
         return {
-            'verdict': 'NOT REPRODUCED',
+            'verdict': 'NO VERDICT',
             'confidence': 'low',
             'violations': [],
             'summary': 'No analysis available.',
         }
 
+    # 'NO VERDICT' chunks are transport/parse FAILURES, not findings. They must never be merged in
+    # as if the model had said "nothing here": drop them, and only if EVERY chunk failed does the
+    # page as a whole have no verdict. A partially-failed page keeps the verdicts it did get, with
+    # the failure recorded in the summary so it is not mistaken for complete coverage.
+    failed = sum(1 for v in verdicts if v == 'NO VERDICT')
+    real = [v for v in verdicts if v != 'NO VERDICT']
+    if not real:
+        return {
+            'verdict': 'NO VERDICT',
+            'confidence': 'low',
+            'violations': violations,
+            'summary': ' '.join(s for s in summaries if s) or 'No analysis available.',
+        }
+    if failed:
+        summaries.append(f'[{failed} of {len(verdicts)} chunks returned no verdict]')
+
     # Verdict precedence: REPRODUCED > PARTIAL > NOT REPRODUCED
     order = {'REPRODUCED': 2, 'PARTIAL': 1, 'NOT REPRODUCED': 0}
-    final_verdict = max(verdicts, key=lambda v: order.get(v, 0))
+    final_verdict = max(real, key=lambda v: order.get(v, 0))
 
     conf_order = {'high': 2, 'medium': 1, 'low': 0}
     final_conf = min(confidences, key=lambda c: conf_order.get(c, 0))

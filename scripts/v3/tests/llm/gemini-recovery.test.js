@@ -7,35 +7,69 @@
 //       tool transport makes ONE forced tools-off call demanding ONLY the JSON verdict from the gathered evidence.
 const test = require('node:test');
 const assert = require('node:assert');
-const { makeGeminiTransport, makeGeminiToolTransport, makeRunAgent, looksDegenerate } = require('../../lib/llm-agent-adapter.js');
+const { makeGeminiTransport, makeGeminiToolTransport, makeGeminiCacheManager, makeRunAgent, looksDegenerate } = require('../../lib/llm-agent-adapter.js');
 
 // a fake fetch driven by a queue of Gemini response objects (`j`). Records the PARSED request body of every call so
 // tests can assert maxOutputTokens doubling and tools-on/off. status 200 unless the queued item carries {__status}.
 function fakeFetch(queue) {
   const requests = [];
-  const f = async (_url, opts) => {
-    requests.push(JSON.parse(opts.body));
+  const calls = [];
+  const f = async (url, opts) => {
+    calls.push({ url, headers: opts.headers });
+    requests.push(opts.body ? JSON.parse(opts.body) : null);
     const item = queue[requests.length - 1];
     if (item && item.__status) return { status: item.__status, ok: false, json: async () => ({}) };
     return { status: 200, ok: true, json: async () => item };
   };
   f.requests = requests;
+  f.calls = calls;
   return f;
 }
 const cand = (parts, finishReason = 'STOP') => ({ candidates: [{ content: { parts }, finishReason }], usageMetadata: { promptTokenCount: 1, candidatesTokenCount: 1 } });
+const ixUsage = (input = 1, output = 1, thought = 0, cached = 0) => ({
+  total_input_tokens: input, total_output_tokens: output, total_thought_tokens: thought, total_cached_tokens: cached
+});
+const interaction = (id, steps, status = 'completed', usage = ixUsage()) => ({ id, status, steps, usage });
+const functionCall = (name, args = {}, id = `call-${name}`) => ({ type: 'function_call', name, arguments: args, id });
+const modelOutput = (text) => ({ type: 'model_output', content: text ? [{ type: 'text', text }] : [] });
+const finishCall = (id = 'call-finish') => functionCall('finish_evidence_collection', {}, id);
 const textJson = (v = 'REPRODUCED') => JSON.stringify({ verdict: v, confidence: 'high', summary: 's', reasoning: 'r', evidenceRefs: [] });
 const REQ = { messages: [{ content: [{ type: 'text', text: 'judge this' }] }] };
+const HYBRID_REQ = { subject: { sc: '2.4.4', rubricId: 'link-purpose-v0', toolMode: 'auto' }, messages: [{ content: [
+  { type: 'text', text: 'stable rubric prefix\n--- case-specific evidence (not part of the reusable prefix) ---\ndynamic xpath and signals' }
+] }] };
 const DISPATCH = { declarations: [{ name: 'noop', description: 'x', parameters: { type: 'object', properties: {} } }], call: async () => ({ ok: true }) };
 const run = (t) => t(REQ, {});
 
-test('Gemini effort is sent as generationConfig.thinkingConfig.thinkingLevel on both transports', async () => {
+test('Gemini effort uses provider-native thinking fields; Interactions splits low selection from medium final', async () => {
   const singleFetch = fakeFetch([cand([{ text: textJson() }])]);
   await run(makeGeminiTransport({ apiKey: 'k', fetchImpl: singleFetch, effort: 'medium' }));
   assert.deepEqual(singleFetch.requests[0].generationConfig.thinkingConfig, { thinkingLevel: 'MEDIUM' });
 
-  const toolFetch = fakeFetch([cand([{ text: textJson() }])]);
+  const toolFetch = fakeFetch([
+    interaction('select-1', [finishCall()]),
+    interaction('final-1', [modelOutput(textJson())])
+  ]);
   await run(makeGeminiToolTransport({ apiKey: 'k', fetchImpl: toolFetch, dispatch: DISPATCH, effort: 'medium' }));
-  assert.deepEqual(toolFetch.requests[0].generationConfig.thinkingConfig, { thinkingLevel: 'MEDIUM' });
+  assert.equal(toolFetch.requests[0].generation_config.thinking_level, 'low', 'tool selection is intentionally low-thinking');
+  assert.equal(toolFetch.requests[1].generation_config.thinking_level, 'medium', 'the tools-off verdict uses configured effort');
+  assert.equal(toolFetch.requests[0].generation_config.tool_choice, 'any');
+  assert.ok(!toolFetch.requests[1].tools, 'the verdict phase cannot call tools');
+  assert.match(toolFetch.calls[0].url, /\/v1beta\/interactions$/, 'tool loop uses the stateful Interactions endpoint');
+  assert.equal(toolFetch.calls[0].headers['x-goog-api-key'], 'k');
+  assert.equal(toolFetch.requests[0].store, true);
+  assert.equal(toolFetch.requests[1].previous_interaction_id, 'select-1');
+});
+
+test('Gemini uses provider sampling defaults unless a retry explicitly perturbs temperature', async () => {
+  const singleFetch = fakeFetch([cand([{ text: textJson() }])]);
+  await run(makeGeminiTransport({ apiKey: 'k', fetchImpl: singleFetch }));
+  assert.equal(Object.hasOwn(singleFetch.requests[0].generationConfig, 'temperature'), false);
+
+  const toolFetch = fakeFetch([interaction('selection', [finishCall()]), interaction('final', [modelOutput(textJson())])]);
+  await run(makeGeminiToolTransport({ apiKey: 'k', fetchImpl: toolFetch, dispatch: DISPATCH }));
+  assert.equal(Object.hasOwn(toolFetch.requests[0].generation_config, 'temperature'), false);
+  assert.equal(Object.hasOwn(toolFetch.requests[1].generation_config, 'temperature'), false);
 });
 
 test('single-shot: MAX_TOKENS with empty output DOUBLES the budget once and re-issues', async () => {
@@ -70,74 +104,123 @@ test('single-shot: V3_GEMINI_MAXTOK_DOUBLE=0 opts out of doubling', async () => 
 });
 
 test('tool transport: MAX_TOKENS on a tool turn DOUBLES the budget and re-issues', async () => {
-  const f = fakeFetch([cand([], 'MAX_TOKENS'), cand([{ text: textJson('NOT REPRODUCED') }])]);
+  const f = fakeFetch([
+    interaction('incomplete-1', [], 'incomplete'),
+    interaction('select-2', [finishCall()]),
+    interaction('final-2', [modelOutput(textJson('NOT REPRODUCED'))])
+  ]);
   const t = makeGeminiToolTransport({ apiKey: 'k', fetchImpl: f, dispatch: DISPATCH, maxOutputTokens: 8192 });
   const out = await run(t);
-  assert.equal(f.requests[0].generationConfig.maxOutputTokens, 8192);
-  assert.equal(f.requests[1].generationConfig.maxOutputTokens, 16384, 'doubled');
+  assert.equal(f.requests[0].generation_config.max_output_tokens, 8192);
+  assert.equal(f.requests[1].generation_config.max_output_tokens, 16384, 'doubled');
   assert.match(out.content[0].text, /NOT REPRODUCED/);
 });
 
 test('tool transport: empty final answer triggers a forced TOOLS-OFF conclusion (not a null/noVerdict)', async () => {
-  // turn 0 returns empty text with a normal finishReason (no tool call) ⇒ forced-conclude fires.
-  const f = fakeFetch([cand([], 'STOP'), cand([{ text: textJson('PARTIAL') }])]);
+  const f = fakeFetch([
+    interaction('select-empty', []),
+    interaction('final-partial', [modelOutput(textJson('PARTIAL'))])
+  ]);
   const t = makeGeminiToolTransport({ apiKey: 'k', fetchImpl: f, dispatch: DISPATCH });
   const out = await run(t);
-  assert.equal(f.requests.length, 2, 'one tool turn + one forced conclusion');
+  assert.equal(f.requests.length, 2, 'one tool-selection turn + one forced conclusion');
   assert.ok(!f.requests[1].tools, 'the conclusion call disables tools');
-  const concludeText = JSON.stringify(f.requests[1].contents);
+  assert.equal(f.requests[1].previous_interaction_id, 'select-empty');
+  const concludeText = JSON.stringify(f.requests[1].input);
   assert.match(concludeText, /ONLY the final JSON verdict/, 'the conclusion prompt demands ONLY the JSON');
   assert.match(out.content[0].text, /PARTIAL/, 'returns the concluded verdict');
 });
 
 test('tool transport: a base64 screenshot in a tool result is lifted to an inlineData image part (not boxed in the Struct)', async () => {
-  // a long base64 string simulates capture_full_page's `screenshot`. The fix must (a) NOT send it inside the
-  // functionResponse Struct, (b) attach it as an inlineData image part on the same user turn so the model sees it.
+  // A long base64 string simulates capture_full_page's `screenshot`. It must leave the JSON result text and ride as
+  // a native Interactions image block in the matching function_result so the model sees pixels rather than base64.
   const bigB64 = 'iVBORw0KGgo' + 'A'.repeat(2000);
-  const fc = [{ functionCall: { name: 'capture_full_page', args: {} } }];
-  const f = fakeFetch([cand(fc, 'STOP'), cand([{ text: textJson() }])]);
+  const f = fakeFetch([
+    interaction('capture-turn', [functionCall('capture_full_page', {}, 'capture-1')]),
+    interaction('finish-turn', [finishCall('finish-1')]),
+    interaction('final-turn', [modelOutput(textJson())])
+  ]);
   const dispatch = { declarations: DISPATCH.declarations, call: async () => ({ screenshot: bigB64, scaleUsed: 2, note: 'ok' }) };
   const t = makeGeminiToolTransport({ apiKey: 'k', fetchImpl: f, dispatch });
   const out = await run(t);
   assert.match(out.content[0].text, /REPRODUCED/, 'concludes normally after seeing the image');
-  const toolTurn = f.requests[1].contents.find((c) => c.role === 'user' && Array.isArray(c.parts) && c.parts.some((p) => p.functionResponse));
-  assert.ok(toolTurn, 'the second request echoes a user turn carrying the functionResponse');
-  const fr = toolTurn.parts.find((p) => p.functionResponse);
-  assert.ok(!/iVBORw0KGgo/.test(JSON.stringify(fr.functionResponse)), 'the base64 is NOT boxed in the functionResponse Struct');
-  assert.match(JSON.stringify(fr.functionResponse.response.screenshot), /attached as an image part/, 'replaced with a placeholder note');
-  const img = toolTurn.parts.find((p) => p.inlineData);
-  assert.ok(img && img.inlineData.data === bigB64, 'the screenshot rides as an inlineData image part');
-  assert.equal(img.inlineData.mimeType, 'image/png');
+  const fr = f.requests[1].input.find((s) => s.type === 'function_result');
+  assert.equal(fr.call_id, 'capture-1', 'the exact function call ID is returned');
+  assert.equal(fr.name, 'capture_full_page');
+  assert.ok(!/iVBORw0KGgo/.test(JSON.stringify(fr.result.find((c) => c.type === 'text'))), 'base64 is not boxed in result text');
+  assert.match(fr.result.find((c) => c.type === 'text').text, /attached as an image part/, 'replaced with a placeholder note');
+  const img = fr.result.find((c) => c.type === 'image');
+  assert.ok(img && img.data === bigB64, 'the screenshot rides as a native image result block');
+  assert.equal(img.mime_type, 'image/png');
 });
 
-test('tool transport: V3_GEMINI_TOOL_IMAGES=0 opts out (legacy string-boxed behavior)', async () => {
+test('tool transport: V3_GEMINI_TOOL_IMAGES=0 opts out (string-boxed behavior)', async () => {
   const prev = process.env.V3_GEMINI_TOOL_IMAGES; process.env.V3_GEMINI_TOOL_IMAGES = '0';
   try {
     const bigB64 = 'iVBORw0KGgo' + 'B'.repeat(2000);
-    const fc = [{ functionCall: { name: 'capture_full_page', args: {} } }];
-    const f = fakeFetch([cand(fc, 'STOP'), cand([{ text: textJson() }])]);
+    const f = fakeFetch([
+      interaction('capture-turn', [functionCall('capture_full_page', {}, 'capture-1')]),
+      interaction('finish-turn', [finishCall()]),
+      interaction('final-turn', [modelOutput(textJson())])
+    ]);
     const dispatch = { declarations: DISPATCH.declarations, call: async () => ({ screenshot: bigB64 }) };
     await run(makeGeminiToolTransport({ apiKey: 'k', fetchImpl: f, dispatch }));
-    const toolTurn = f.requests[1].contents.find((c) => c.role === 'user' && Array.isArray(c.parts) && c.parts.some((p) => p.functionResponse));
-    assert.ok(/iVBORw0KGgo/.test(JSON.stringify(toolTurn)), 'opted out ⇒ base64 stays boxed in the Struct');
-    assert.ok(!toolTurn.parts.some((p) => p.inlineData), 'no inlineData part when opted out');
+    const result = f.requests[1].input[0].result;
+    assert.ok(/iVBORw0KGgo/.test(JSON.stringify(result)), 'opted out ⇒ base64 stays boxed in result text');
+    assert.ok(!result.some((p) => p.type === 'image'), 'no image result block when opted out');
   } finally { if (prev === undefined) delete process.env.V3_GEMINI_TOOL_IMAGES; else process.env.V3_GEMINI_TOOL_IMAGES = prev; }
 });
 
 test('tool transport: a normal tool call still flows (recovery does not disturb the happy path)', async () => {
-  const fc = [{ functionCall: { name: 'noop', args: {} } }];
-  const f = fakeFetch([cand(fc, 'STOP'), cand([{ text: textJson() }])]);
+  const f = fakeFetch([
+    interaction('tool-turn', [functionCall('noop', {}, 'noop-1')]),
+    interaction('finish-turn', [finishCall()]),
+    interaction('final-turn', [modelOutput(textJson())])
+  ]);
   const t = makeGeminiToolTransport({ apiKey: 'k', fetchImpl: f, dispatch: DISPATCH });
   const out = await run(t);
-  assert.equal(f.requests.length, 2, 'tool call executed, then the model answered');
+  assert.equal(f.requests.length, 3, 'tool call, finish selection, then medium final verdict');
   assert.ok(f.requests[0].tools, 'tools offered on the first turn');
+  assert.equal(f.requests[1].previous_interaction_id, 'tool-turn');
+  assert.equal(f.requests[2].previous_interaction_id, 'finish-turn');
+  assert.match(out.content[0].text, /REPRODUCED/);
+});
+
+test('tool transport: parallel function results preserve count, order, IDs, and names exactly', async () => {
+  const f = fakeFetch([
+    interaction('parallel-turn', [
+      functionCall('noop', { n: 1 }, 'parallel-1'),
+      functionCall('noop', { n: 2 }, 'parallel-2'),
+      finishCall('parallel-finish')
+    ]),
+    interaction('parallel-final', [modelOutput(textJson())])
+  ]);
+  await run(makeGeminiToolTransport({ apiKey: 'k', fetchImpl: f, dispatch: DISPATCH }));
+  assert.deepEqual(f.requests[1].input.map((r) => [r.call_id, r.name]), [
+    ['parallel-1', 'noop'], ['parallel-2', 'noop'], ['parallel-finish', 'finish_evidence_collection']
+  ]);
+  assert.equal(f.requests[1].input.length, 3, 'one result is returned for every parallel call');
+});
+
+test('tool transport: the evidence-call budget forces a medium conclusion without another exploratory turn', async () => {
+  let dispatched = 0;
+  const f = fakeFetch([
+    interaction('tool-turn', [functionCall('noop', {}, 'noop-budget')]),
+    interaction('final-turn', [modelOutput(textJson())])
+  ]);
+  const dispatch = { declarations: DISPATCH.declarations, call: async () => { dispatched++; return { ok: true }; } };
+  const out = await run(makeGeminiToolTransport({ apiKey: 'k', fetchImpl: f, dispatch, toolCallBudget: 1 }));
+  assert.equal(dispatched, 1);
+  assert.equal(f.requests.length, 2);
+  assert.ok(!f.requests[1].tools, 'budget exhaustion forces tools off');
+  assert.equal(f.requests[1].generation_config.thinking_level, 'medium');
   assert.match(out.content[0].text, /REPRODUCED/);
 });
 
 test('tool transport: V3_GEMINI_FORCE_CONCLUDE=0 opts out (empty ⇒ null)', async () => {
   const prev = process.env.V3_GEMINI_FORCE_CONCLUDE; process.env.V3_GEMINI_FORCE_CONCLUDE = '0';
   try {
-    const f = fakeFetch([cand([], 'STOP')]);
+    const f = fakeFetch([interaction('empty-selection', [])]);
     const t = makeGeminiToolTransport({ apiKey: 'k', fetchImpl: f, dispatch: DISPATCH });
     const out = await run(t);
     assert.equal(out, null, 'no forced conclusion when opted out');
@@ -249,16 +332,123 @@ test('degeneration retry: a STILL-degenerate retry ⇒ null logged as degenerate
   assert.equal(rec.degenRetried, true);
 });
 
-// Token telemetry: Gemini usage now reaches the PERSISTENT sink (onTraceSink), not just the per-verdict trace — and
-// the output count INCLUDES thinking tokens (gemini-flash spends most of its output budget reasoning).
-test('gemini token usage → onTraceSink (persistent telemetry); output INCLUDES thinking tokens', async () => {
-  const j = { candidates: [{ content: { parts: [{ text: textJson() }] }, finishReason: 'STOP' }], usageMetadata: { promptTokenCount: 200, candidatesTokenCount: 50, thoughtsTokenCount: 80 } };
+// Token telemetry: Gemini usage now reaches the PERSISTENT sink (onTraceSink), not just the per-verdict trace. Output
+// INCLUDES thinking tokens, and cachedContentTokenCount is mapped to the cache-read field consumed by run telemetry.
+test('gemini token usage → onTraceSink; output includes thinking and cached input is tallied', async () => {
+  const j = { candidates: [{ content: { parts: [{ text: textJson() }] }, finishReason: 'STOP' }], usageMetadata: { promptTokenCount: 200, candidatesTokenCount: 50, thoughtsTokenCount: 80, cachedContentTokenCount: 120 } };
   const f = fakeFetch([j]);
   const sink = []; const tr = [];
   const t = makeGeminiTransport({ apiKey: 'k', fetchImpl: f, onTraceSink: (e) => sink.push(e) });
   await t(REQ, { onTrace: (e) => tr.push(e) });
   const s = sink.find((e) => e.type === 'result');
   assert.ok(s, 'persistent token sink received a usage event (was previously dropped)');
-  assert.deepEqual(s.usage, { input_tokens: 200, output_tokens: 130 }, 'output = candidates(50) + thoughts(80)');
+  assert.deepEqual(s.usage, { input_tokens: 200, output_tokens: 130, cache_read_input_tokens: 120 }, 'output = candidates(50) + thoughts(80); cached input is preserved');
   assert.ok(tr.some((e) => e.type === 'result'), 'the per-verdict trace still gets usage too');
+});
+
+test('gemini tool transport tallies cached input independently on every API turn', async () => {
+  const toolTurn = interaction('selection', [finishCall()], 'completed', ixUsage(100, 10, 5, 60));
+  const finalTurn = interaction('final', [modelOutput(textJson())], 'completed', ixUsage(150, 20, 10, 110));
+  const sink = [];
+  await run(makeGeminiToolTransport({ apiKey: 'k', fetchImpl: fakeFetch([toolTurn, finalTurn]), dispatch: DISPATCH, onTraceSink: (e) => sink.push(e) }));
+  const usage = sink.filter((e) => e.type === 'result').map((e) => e.usage);
+  assert.deepEqual(usage, [
+    { input_tokens: 100, output_tokens: 15, cache_read_input_tokens: 60 },
+    { input_tokens: 150, output_tokens: 30, cache_read_input_tokens: 110 }
+  ], 'persistent telemetry can sum cache reads across all multi-turn calls');
+});
+
+test('Gemini explicit cache creation is single-flight and resources are deleted eagerly', async () => {
+  const calls = [];
+  const f = async (url, opts) => {
+    calls.push({ url, method: opts.method, body: opts.body ? JSON.parse(opts.body) : null });
+    if (opts.method === 'DELETE') return { ok: true, status: 200, json: async () => ({}) };
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    return { ok: true, status: 200, json: async () => ({ name: 'cachedContents/shared-1', usageMetadata: { totalTokenCount: 4321 } }) };
+  };
+  const manager = makeGeminiCacheManager({ apiKey: 'k', model: 'gemini-test', fetchImpl: f });
+  const args = { prefix: 'same stable prefix', tools: [{ functionDeclarations: DISPATCH.declarations }] };
+  const [a, b] = await Promise.all([manager.getOrCreate(args), manager.getOrCreate(args)]);
+  assert.equal(calls.filter((c) => c.method === 'POST').length, 1, 'parallel callers create exactly one cache');
+  assert.equal(a.name, 'cachedContents/shared-1');
+  assert.equal(b.name, a.name);
+  assert.equal(a.creationTokens + b.creationTokens, 4321, 'creation tokens are charged once');
+  assert.equal(manager.snapshot().reused, 1);
+  await manager.close();
+  assert.equal(calls.filter((c) => c.method === 'DELETE').length, 1);
+  assert.equal(manager.snapshot().deleted, 1);
+});
+
+test('hybrid auto route accepts a cached GenerateContent final without starting Interactions', async () => {
+  const f = fakeFetch([{ candidates: [{ content: { parts: [{ text: textJson('NOT REPRODUCED') }] } }],
+    usageMetadata: { promptTokenCount: 5100, candidatesTokenCount: 40, thoughtsTokenCount: 10, cachedContentTokenCount: 4800 } }]);
+  const routes = [];
+  const cacheManager = { getOrCreate: async () => ({ name: 'cachedContents/rubric-1', creationTokens: 4096 }), recordRoute: (x) => routes.push(x) };
+  const sink = [];
+  const out = await makeGeminiToolTransport({ apiKey: 'k', fetchImpl: f, dispatch: DISPATCH, cacheManager, onTraceSink: (e) => sink.push(e) })(HYBRID_REQ, {});
+  assert.match(f.calls[0].url, /:generateContent$/);
+  assert.equal(f.requests.length, 1, 'no Interactions request was needed');
+  assert.equal(f.requests[0].cachedContent, 'cachedContents/rubric-1');
+  assert.doesNotMatch(JSON.stringify(f.requests[0].contents), /stable rubric prefix/, 'cached prefix is not resent');
+  assert.match(JSON.stringify(f.requests[0].contents), /dynamic xpath and signals/);
+  assert.deepEqual(routes, ['final']);
+  assert.match(out.content[0].text, /NOT REPRODUCED/);
+  assert.deepEqual(sink[0].usage, { input_tokens: 5100, output_tokens: 50, cache_read_input_tokens: 4800, cache_creation_input_tokens: 4096 });
+});
+
+test('hybrid auto route treats a GenerateContent function call as escalation and starts a fresh Interactions chain', async () => {
+  const f = fakeFetch([
+    cand([{ functionCall: { name: 'noop', args: { routeOnly: true } } }]),
+    interaction('ix-tool', [functionCall('noop', { live: true }, 'ix-call-1')]),
+    interaction('ix-finish', [finishCall('ix-finish-1')]),
+    interaction('ix-final', [modelOutput(textJson())])
+  ]);
+  const dispatched = [];
+  const dispatch = { declarations: DISPATCH.declarations, call: async (name, args) => { dispatched.push([name, args]); return { ok: true }; } };
+  const routes = [];
+  const cacheManager = { getOrCreate: async () => ({ name: 'cachedContents/rubric-2', creationTokens: 0 }), recordRoute: (x) => routes.push(x) };
+  const out = await makeGeminiToolTransport({ apiKey: 'k', fetchImpl: f, dispatch, cacheManager })(HYBRID_REQ, {});
+  assert.match(f.calls[0].url, /:generateContent$/);
+  assert.match(f.calls[1].url, /\/interactions$/);
+  assert.equal(f.requests[1].previous_interaction_id, undefined, 'the first Interaction is fresh, not linked across APIs');
+  assert.match(JSON.stringify(f.requests[1].input), /stable rubric prefix/, 'fresh chain receives the complete original prompt');
+  assert.deepEqual(dispatched, [['noop', { live: true }]], 'the routing function call is never executed');
+  assert.equal(f.requests[2].input[0].call_id, 'ix-call-1', 'only the Interaction call id is returned');
+  assert.deepEqual(routes, ['escalated']);
+  assert.match(out.content[0].text, /REPRODUCED/);
+});
+
+test('hybrid auto route escalates positive/partial/low-confidence text instead of trusting a cheap final', async () => {
+  const f = fakeFetch([
+    cand([{ text: textJson('REPRODUCED') }]),
+    interaction('ix-finish', [finishCall()]),
+    interaction('ix-final', [modelOutput(textJson('NOT REPRODUCED'))])
+  ]);
+  const routes = [];
+  const cacheManager = { getOrCreate: async () => ({ name: 'cachedContents/rubric-guard', creationTokens: 0 }), recordRoute: (x) => routes.push(x) };
+  const out = await makeGeminiToolTransport({ apiKey: 'k', fetchImpl: f, dispatch: DISPATCH, cacheManager })(HYBRID_REQ, {});
+  assert.match(f.calls[1].url, /\/interactions$/, 'a claimed barrier receives full Interactions adjudication');
+  assert.deepEqual(routes, ['verdictEscalated']);
+  assert.match(out.content[0].text, /NOT REPRODUCED/, 'the Interactions verdict, not the cheap positive, is returned');
+});
+
+test('declarative toolMode required bypasses the cached first pass', async () => {
+  const f = fakeFetch([interaction('required-select', [finishCall()]), interaction('required-final', [modelOutput(textJson())])]);
+  const routes = [];
+  const cacheManager = { getOrCreate: async () => { throw new Error('must not create a cache'); }, recordRoute: (x) => routes.push(x) };
+  const req = { ...HYBRID_REQ, subject: { ...HYBRID_REQ.subject, toolMode: 'required' } };
+  await makeGeminiToolTransport({ apiKey: 'k', fetchImpl: f, dispatch: DISPATCH, cacheManager })(req, {});
+  assert.match(f.calls[0].url, /\/interactions$/);
+  assert.deepEqual(routes, ['requiredBypass']);
+});
+
+test('a rejected explicit cache fails open to uncached GenerateContent with the full prompt and tools', async () => {
+  const f = fakeFetch([cand([{ text: textJson('NOT REPRODUCED') }])]);
+  const routes = [];
+  const cacheManager = { getOrCreate: async () => ({ name: null, reason: 'http-400', creationTokens: 0 }), recordRoute: (x) => routes.push(x) };
+  await makeGeminiToolTransport({ apiKey: 'k', fetchImpl: f, dispatch: DISPATCH, cacheManager })(HYBRID_REQ, {});
+  assert.equal(f.requests[0].cachedContent, undefined);
+  assert.match(JSON.stringify(f.requests[0].contents), /stable rubric prefix/);
+  assert.ok(f.requests[0].tools && f.requests[0].toolConfig, 'native AUTO function calling remains available');
+  assert.deepEqual(routes, ['final']);
 });

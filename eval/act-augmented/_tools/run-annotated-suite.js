@@ -37,7 +37,7 @@ require('../../../scripts/v3/lib/load-env.js').loadEnv(REPO_ROOT);
 const { orchestrate, BROWSER_ARGS } = require('../../../scripts/v3/lib/orchestrator.js');
 const { createTabAllocator } = require('../../../scripts/v3/lib/tab-allocator.js');
 const { createBrowserShardPool } = require('../../../scripts/v3/lib/browser-shard-pool.js');
-const { makeRunAgent, makeClaudeSdkTransport, makeGeminiTransport } = require('../../../scripts/v3/lib/llm-agent-adapter.js');
+const { makeRunAgent, makeClaudeSdkTransport, makeGeminiTransport, makeGeminiCacheManager } = require('../../../scripts/v3/lib/llm-agent-adapter.js');
 const { collectActPage, normalizeCollectRoles } = require('../../../scripts/v3/lib/act-page-collect.js');
 const { makeSemaphore, sampleMemory } = require('../../../scripts/v3/lib/run-telemetry.js');
 const LIMITS = require('../../../scripts/v3/lib/limits.js');
@@ -116,6 +116,7 @@ const TRANSPORT = {
   perTurnTimeoutMs: +(process.env.V3_LLM_TURN_TIMEOUT_MS || LIMITS.llm.perTurnTimeoutMs),
   runTimeoutMs: +(process.env.V3_LLM_RUN_TIMEOUT_MS || LIMITS.llm.runTimeoutMs),
 };
+let geminiCacheManager = null;
 
 const safe = (s) => String(s).replace(/[^a-z0-9_]+/gi, '-').slice(0, 80);
 
@@ -211,6 +212,7 @@ const tel = {
   // + a built-in-tool leak). Count them so the failure is visible in the first
   // minutes rather than discovered after the run.
   tools: { calls: 0, byName: {}, multiTurnResults: 0, maxTurns: 0 },
+  cache: null,
   tabs: {}, mem: {},
   tally: { caught: 0, missedAgree: 0, uncertain: 0, noVerdict: 0, noObligation: 0, error: 0 },
   byStratum: {},
@@ -320,6 +322,15 @@ async function main() {
   }
   if (!NO_LLM && PROVIDER === 'gemini' && !process.env.GEMINI_API_KEY) { console.error('FATAL: GEMINI_API_KEY not set (.env)'); process.exit(1); }
   if (!NO_LLM && PROVIDER !== 'gemini' && !process.env.CLAUDE_CODE_OAUTH_TOKEN) { console.error('FATAL: CLAUDE_CODE_OAUTH_TOKEN not set (.env)'); process.exit(1); }
+
+  // One run-scoped cache registry is shared by every page/shard. It single-flights creation per exact rubric prefix
+  // and tool schema, so high concurrency cannot stampede the CachedContent API. Explicit caches are GenerateContent-
+  // only; an AUTO function call routes that subject to a fresh stateful Interactions chain. TTL handles crashes and
+  // normal completion deletes all cache resources eagerly.
+  if (!NO_LLM && TOOLS && PROVIDER === 'gemini' && process.env.V3_GEMINI_HYBRID !== '0') {
+    geminiCacheManager = makeGeminiCacheManager({ apiKey: process.env.GEMINI_API_KEY, model: MODEL });
+    TRANSPORT.cacheManager = geminiCacheManager;
+  }
 
   fs.mkdirSync(OUT, { recursive: true });
   tel.total = cases.length;
@@ -517,6 +528,11 @@ async function main() {
 
   clearInterval(statusTimer);
   await pool.close();
+  if (geminiCacheManager) {
+    const beforeCleanup = geminiCacheManager.snapshot();
+    await geminiCacheManager.close();
+    tel.cache = { ...beforeCleanup, cleanup: geminiCacheManager.snapshot() };
+  }
   try { tel.tabs = pool.stats(); tel.heals = tel.tabs.heals; } catch { /* noop */ }
   const systemicLlmFailure = !NO_LLM && tel.llm.calls > 0 && tel.llm.results === 0;
   tel.phase = systemicLlmFailure ? 'failed' : 'done';
@@ -527,6 +543,7 @@ async function main() {
   s.model = MODEL; s.include = INCLUDE; s.runName = RUN_NAME;
   s.llm = tel.llm;
   s.tools = { enabled: TOOLS, ...tel.tools };
+  s.cache = tel.cache;
   s.valid = !systemicLlmFailure;
   s.fatalReason = systemicLlmFailure
     ? `all ${tel.llm.calls} LLM calls failed before producing provider usage/results`
@@ -544,6 +561,7 @@ async function main() {
     console.log(`  tools:    ${tel.tools.calls} calls, maxTurns ${tel.tools.maxTurns}, ${JSON.stringify(tel.tools.byName)}`);
     if (!tel.tools.calls) console.log(`  *** WARNING: tools were ENABLED but ZERO tool calls were made — this is a single-shot run mislabelled as tools-ON. ***`);
   }
+  if (tel.cache) console.log(`  cache:    ${tel.cache.created} created, ${tel.cache.reused} reused; routes ${JSON.stringify(tel.cache.routes)}; deleted ${tel.cache.cleanup.deleted}`);
   if (systemicLlmFailure) {
     console.error(`\nFATAL: ${s.fatalReason}. Artifacts were preserved, but this run is invalid and exits nonzero.`);
     process.exitCode = 1;

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<!-- Paired counterfactual PASS for case-02: replaced role=presentation on the unchanged tariff canvas with role=img and a complete accessible name containing every tariff value -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Compare energy tariffs | Brightwater Energy</title>
+  <style>
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Segoe UI",Arial,sans-serif; color:#1f2933;
+           background:#f3f6f8; line-height:1.55; }
+    header { background:#0b5a64; color:#fff; padding:.85rem 1.2rem; font-weight:700;
+             letter-spacing:.04em; font-size:1.05rem; }
+    main { max-width:52rem; margin:1.6rem auto; padding:0 1rem; }
+    h1 { font-size:1.5rem; font-weight:700; margin:.2rem 0 .1rem; }
+    .lede { color:#52606d; margin:0 0 1.4rem; }
+    .panel { background:#fff; border:1px solid #d9e2ec; border-radius:8px; padding:1.4rem; }
+    h2 { font-size:1.05rem; margin:0 0 .9rem; }
+    .chart-wrap { text-align:center; }
+    canvas { max-width:100%; height:auto; }
+    .blurb { font-size:.9rem; color:#52606d; margin-top:1rem; }
+    .cta { margin-top:1.6rem; display:flex; gap:.8rem; align-items:center; flex-wrap:wrap; }
+    label { font-weight:600; }
+    select { padding:.55rem .7rem; border:1px solid #bcccdc; border-radius:6px; font-size:1rem; }
+    button { background:#0b5a64; color:#fff; border:none; padding:.65rem 1.5rem;
+             border-radius:6px; font-size:1rem; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <header>Brightwater Energy</header>
+  <main>
+    <h1>Compare our tariffs</h1>
+    <p class="lede">Pick the plan that fits how you use energy, then switch in minutes.</p>
+
+    <section class="panel" aria-labelledby="rateh">
+      <h2 id="rateh">Tariff comparison (prices include VAT)</h2>
+      <div class="chart-wrap">
+        <canvas id="rateChart" role="img" width="640" height="280" aria-label="Tariff comparison. Standard Saver: peak 28.4 pence, off-peak 28.4 pence, standing charge 54.8 pence per day, average annual bill £1,184. Day and Night: peak 38.9 pence, off-peak 11.5 pence, standing charge 49.0 pence per day, average annual bill £1,062. Green Fixed: peak 29.7 pence, off-peak 27.2 pence, standing charge 61.3 pence per day, average annual bill £1,247."></canvas>
+      </div>
+      <p class="blurb">All tariffs are fixed for 12 months with no exit fees. Prices shown are for a typical home in the South East region.</p>
+
+      <div class="cta">
+        <label for="plan">Choose a tariff:</label>
+        <select id="plan" name="plan">
+          <option value="">Select a tariff…</option>
+          <option>Standard Saver</option>
+          <option>Day &amp; Night</option>
+          <option>Green Fixed</option>
+        </select>
+        <button type="button">Continue to switch</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      var c = document.getElementById('rateChart');
+      var ctx = c.getContext('2d');
+      var W = c.width, H = c.height;
+
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+      ctx.strokeStyle = '#d9e2ec'; ctx.lineWidth = 1; ctx.strokeRect(0.5, 0.5, W - 1, H - 1);
+
+      var cols = [40, 250, 400, 540];          
+      var headerY = 38, rowH = 44, firstRow = 78;
+
+      ctx.fillStyle = '#eef4f5'; ctx.fillRect(1, 1, W - 2, 54);
+      ctx.fillStyle = '#0b5a64';
+      ctx.font = 'bold 16px Segoe UI, Arial, sans-serif';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('Standard Saver', cols[1], headerY);
+      ctx.fillText('Day & Night', cols[2], headerY);
+      ctx.fillText('Green Fixed', cols[3], headerY);
+
+      ctx.strokeStyle = '#e4ebf1';
+      [232, 384, 524].forEach(function (x) {
+        ctx.beginPath(); ctx.moveTo(x, 56); ctx.lineTo(x, H - 1); ctx.stroke();
+      });
+
+      var rows = [
+        ['Peak unit price',      '28.4p',  '38.9p',  '29.7p'],
+        ['Off-peak unit price',  '28.4p',  '11.5p',  '27.2p'],
+        ['Standing charge / day','54.8p',  '49.0p',  '61.3p'],
+        ['Avg. annual bill',     '£1,184', '£1,062', '£1,247']
+      ];
+
+      rows.forEach(function (r, i) {
+        var y = firstRow + i * rowH;
+        if (i % 2 === 0) { ctx.fillStyle = '#f7fafc'; ctx.fillRect(1, y - rowH / 2 + 6, W - 2, rowH); }
+        ctx.fillStyle = '#52606d';
+        ctx.font = '14px Segoe UI, Arial, sans-serif';
+        ctx.fillText(r[0], cols[0], y);
+        ctx.fillStyle = '#1f2933';
+        ctx.font = 'bold 15px Segoe UI, Arial, sans-serif';
+        ctx.fillText(r[1], cols[1], y);
+        ctx.fillText(r[2], cols[2], y);
+        ctx.fillText(r[3], cols[3], y);
+      });
+    })();
+  </script>
+</body>
+</html>
+

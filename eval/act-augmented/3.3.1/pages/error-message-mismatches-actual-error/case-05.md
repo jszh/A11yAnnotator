@@ -1,7 +1,7 @@
 # case-05 — Hotel date range: check-out IS after check-in, error claims "must be after check-in" (false relation; real >30-night-max error undescribed)
 
 ## Scenario
-A hotel booking review page in its **post-submit error state**. Check-in is `2026-08-01`, check-out is `2026-09-25` — i.e. check-out is 55 nights AFTER check-in. The check-out field shows a visible, associated error: *"Check-out date must be after your check-in date."* But check-out **is** after check-in, so the asserted relational cause is false. The form's own visible policy reads *"Maximum stay: 30 nights."* The real, undescribed error is that a 55-night stay exceeds that 30-night cap.
+A hotel booking review page in its **post-submit error state**. Check-in is `2099-08-01`, check-out is `2099-09-25` — i.e. check-out is 55 nights AFTER check-in. The durable future dates prevent an unrelated past-date error while preserving the original 55-night relation. The check-out field shows a visible, associated error: *"Check-out date must be after your check-in date."* But check-out **is** after check-in, so the asserted relational cause is false. The form's own visible policy reads *"Maximum stay: 30 nights."* The real, undescribed error is that a 55-night stay exceeds that 30-night cap.
 
 ## Attribute tuple
 - **content-domain:** travel / hotel booking
@@ -14,7 +14,7 @@ A hotel booking review page in its **post-submit error state**. Check-in is `202
 A developer wired the date-range validator with two rules — "check-out after check-in" and "stay ≤ 30 nights" — but reused a single generic message, *"Check-out date must be after your check-in date,"* for every date-validation failure (it was the first rule they wrote). They tested by setting check-out before check-in (message correct) and shipped. They never tested a valid-order range that simply exceeds the maximum stay, so the wrong-message-for-the-real-rule case never surfaced. The message names the field and "describes a cause," so it passed review and an axe scan.
 
 ## Element / selector carrying the issue
-`#out-err` ("Check-out date must be after your check-in date") asserting a false ordering defect, while the real violated constraint is `#stay-policy`'s "Maximum stay: 30 nights" against a 55-night range (`#checkin`=2026-08-01, `#checkout`=2026-09-25).
+`#out-err` ("Check-out date must be after your check-in date") asserting a false ordering defect, while the real violated constraint is `#stay-policy`'s "Maximum stay: 30 nights" against a 55-night range (`#checkin`=2099-08-01, `#checkout`=2099-09-25).
 
 ## Exact accessibility mechanism (what AT experiences / why it fails)
 - **Screen-reader user:** focusing check-out hears the policy text and *"Check-out date must be after your check-in date."* Their check-out (Sep 25) is plainly after their check-in (Aug 1); the instruction is nonsensical for their input. Acting on it (pushing check-out later) makes the real problem worse. They cannot determine what is actually wrong — the true constraint (30-night max) is never spoken.

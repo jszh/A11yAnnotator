@@ -8,6 +8,7 @@
 // Anthropic Messages API, keyed from the environment (the key lives in .env — never committed).
 const { V2_9_VERDICTS } = require('./llm-adjudicator.js');
 const LIMITS = require('./limits.js'); // LLM-lane budget DEFAULTS (tier C)
+const crypto = require('crypto');
 
 // Extract the FIRST BALANCED top-level {...} JSON object (respecting string literals + escapes). A greedy
 // /\{[\s\S]*\}/ over-captures to the LAST '}', so any trailing brace (a markdown fence, a CSS snippet, a
@@ -143,7 +144,12 @@ function makeRunAgent({ transport, model = 'claude-opus-4-8', maxTokens = LIMITS
   if (typeof transport !== 'function') throw new Error('makeRunAgent: a transport function is required');
   const reformatRetry = process.env.V3_LLM_REFORMAT_RETRY !== '0'; // default ON; opt-out for ablation/determinism studies
   return async function runAgent(messages, _subject) {
-    const request = { model, max_tokens: maxTokens, messages: [{ role: 'user', content: toAnthropicContent(messages) }] };
+    // `subject` is transport-local routing metadata; provider request serializers never send it. The Gemini hybrid
+    // uses the declarative rubric toolMode without parsing prose or maintaining a second SC routing table.
+    const toolMode = (_subject && (_subject.toolMode || (_subject.rubric && _subject.rubric.toolMode))) || 'auto';
+    const request = { model, max_tokens: maxTokens,
+      subject: _subject ? { sc: _subject.sc || null, skill: _subject.skill || null, rubricId: _subject.rubricId || null, toolMode } : null,
+      messages: [{ role: 'user', content: toAnthropicContent(messages) }] };
     const trace = [];
     const runOnce = async (req) => {
       let res;
@@ -210,12 +216,10 @@ const CONCLUDE_INSTRUCTION = 'You have gathered sufficient evidence from the too
 
 // TOOL-RESULT IMAGE EXTRACTION (the capture_full_page noVerdict fix). Several cdp tools return a base64 PNG
 // (capture_full_page/_element → `screenshot`, render_under_transform → `screenshot`, observe_state_after_activation →
-// `screenshots.{before,after}`). Gemini's functionResponse is a JSON Struct: a multi-MB base64 string boxed there is
-// rejected by the API (the next turn comes back null → noVerdict) AND, even if accepted, is an opaque string the model
-// cannot SEE as an image. Pull every image-keyed base64 field OUT of the Struct (replace with a short placeholder note)
-// and return them as Gemini `inlineData` image parts to ride alongside the functionResponse — so the model actually
-// sees the pixels, mirroring the Claude MCP tool-result image-block path. Walks nested objects/arrays (the before/after
-// pair). Opt out with V3_GEMINI_TOOL_IMAGES=0 (degrades to the old string-boxed behavior).
+// `screenshots.{before,after}`). A multi-MB base64 string boxed in function-result JSON is opaque text the model cannot
+// SEE. Pull every image-keyed base64 field out (replace with a short placeholder note) and return it as an Interactions
+// `image` content block beside the result text, mirroring the Claude MCP image-block path. Walks nested objects/arrays
+// (the before/after pair). Opt out with V3_GEMINI_TOOL_IMAGES=0 (degrades to string-boxed behavior).
 const GEMINI_IMG_KEY = /screenshot|image|before|after|render|crop/i;
 const looksBase64Png = (s) => typeof s === 'string' && s.length > 256 && /^[A-Za-z0-9+/=\s]*$/.test(s.slice(0, 4096));
 function extractToolImages(obj, images, depth = 0) {
@@ -261,13 +265,14 @@ function looksDegenerate(text) {
 // (empty output), so the default budget is generous. fetchImpl injectable for tests.
 const GEMINI_THINKING_LEVEL = Object.freeze({ minimal: 'MINIMAL', low: 'LOW', medium: 'MEDIUM', high: 'HIGH', xhigh: 'HIGH', max: 'HIGH' });
 const geminiGenerationConfig = ({ temperature, maxOutputTokens, effort }) => {
-  const config = { temperature, maxOutputTokens };
+  const config = { maxOutputTokens };
+  if (Number.isFinite(temperature)) config.temperature = temperature;
   const thinkingLevel = GEMINI_THINKING_LEVEL[String(effort || '').toLowerCase()];
   if (thinkingLevel) config.thinkingConfig = { thinkingLevel };
   return config;
 };
 
-function makeGeminiTransport({ apiKey, model = 'gemini-3.5-flash', fetchImpl, maxOutputTokens = 4096, temperature = 0, effort = null,
+function makeGeminiTransport({ apiKey, model = 'gemini-3.5-flash', fetchImpl, maxOutputTokens = 4096, temperature = null, effort = null,
   baseUrl = 'https://generativelanguage.googleapis.com/v1beta', timeoutMs = LIMITS.llm.httpTimeoutMs,
   maxRetries = LIMITS.llm.maxRetries, baseBackoffMs = LIMITS.llm.baseBackoffMs, onTraceSink = null } = {}) {
   const f = fetchImpl || (typeof fetch === 'function' ? fetch : null);
@@ -298,7 +303,11 @@ function makeGeminiTransport({ apiKey, model = 'gemini-3.5-flash', fetchImpl, ma
         const cand = j && j.candidates && j.candidates[0];
         const text = cand && cand.content && Array.isArray(cand.content.parts) ? cand.content.parts.map((p) => p.text || '').join('') : null;
         if (j.usageMetadata) { // token telemetry → BOTH the verdict trace (onTrace) AND the persistent token sink (onTraceSink); output INCLUDES thinking tokens
-          const um = j.usageMetadata; const ev = { type: 'result', usage: { input_tokens: um.promptTokenCount || 0, output_tokens: (um.candidatesTokenCount || 0) + (um.thoughtsTokenCount || 0) } };
+          const um = j.usageMetadata; const ev = { type: 'result', usage: {
+            input_tokens: um.promptTokenCount || 0,
+            output_tokens: (um.candidatesTokenCount || 0) + (um.thoughtsTokenCount || 0),
+            cache_read_input_tokens: um.cachedContentTokenCount || 0
+          } };
           if (typeof callOpts.onTrace === 'function') callOpts.onTrace(ev); if (typeof onTraceSink === 'function') try { onTraceSink(ev); } catch (e) {}
         }
         // MAX_TOKENS with empty output ⇒ thinking starved the verdict ⇒ DOUBLE the budget once and re-issue.
@@ -316,18 +325,102 @@ function makeGeminiTransport({ apiKey, model = 'gemini-3.5-flash', fetchImpl, ma
   };
 }
 
-// CROSS-FAMILY MULTI-TURN transport: Google Gemini WITH FUNCTION CALLING — the tool-path analog of makeGeminiTransport,
-// so the cross-family comparison can run the FULL config (tools on), not just single-shot. Drives a hand-rolled
-// function-calling loop (generateContent + `tools.functionDeclarations`): send → if the model emits functionCall
-// part(s), execute them via `dispatch.call(name,args)`, echo the model turn + append a user Content carrying the
-// `functionResponse`(s), loop until the model returns text or maxTurns. `dispatch` is cdp-tools.buildCdpToolDispatch
-// (session) → {declarations, call}. Tool results ride back as the native functionResponse object (same INFORMATION the
-// Claude MCP path JSON-stringifies into text content). generativelanguage v1beta Content.role is ONLY 'user'/'model',
-// so a functionResponse rides a role:'user' Content. On the FINAL allowed turn tools are disabled (forces a text
-// verdict from the gathered evidence, mirroring the Claude path's maxTurns cap). Deadline mirrors the Claude SDK path:
-// runTimeoutMs minus queue-wait (getExtraDeadlineMs) plus backoff credit. Degrades to null on timeout/exhaustion.
+// EXPLICIT-CACHE MANAGER for the cached-first Gemini hybrid. Interactions cannot reference explicit cache objects,
+// so only the GenerateContent first pass uses these resources. Cache creation is single-flight by the immutable
+// (model + exact prefix + tool schema) hash: 100 parallel judgments sharing a rubric create ONE cache and all await
+// it. A rejected/undersized prefix is negatively memoized for the run and falls back to uncached GenerateContent.
+// `close()` deletes resources eagerly; TTL is the crash-safe cleanup backstop.
+const GEMINI_CACHE_MARKER = '--- case-specific evidence (not part of the reusable prefix) ---';
+const sha256Hex = (value) => crypto.createHash('sha256').update(String(value), 'utf8').digest('hex');
+
+function makeGeminiCacheManager({ apiKey, model = 'gemini-3.5-flash', fetchImpl,
+  baseUrl = 'https://generativelanguage.googleapis.com/v1beta', ttlSeconds = Number(process.env.V3_GEMINI_CACHE_TTL_SECONDS || 3600) } = {}) {
+  const f = fetchImpl || (typeof fetch === 'function' ? fetch : null);
+  if (!apiKey) throw new Error('makeGeminiCacheManager: apiKey required');
+  if (!f) throw new Error('makeGeminiCacheManager: no fetch available');
+  const ready = new Map();
+  const pending = new Map();
+  const stats = { createAttempts: 0, created: 0, reused: 0, rejected: 0, createTokens: 0, deleted: 0, deleteFailures: 0,
+    routes: { final: 0, escalated: 0, verdictEscalated: 0, requiredBypass: 0, markerMissing: 0, failed: 0 }, byReason: {} };
+  const modelName = String(model).startsWith('models/') ? String(model) : `models/${model}`;
+  const ttl = `${Math.max(60, Math.floor(Number(ttlSeconds) || 3600))}s`;
+
+  const create = async (key, prefix, tools) => {
+    stats.createAttempts++;
+    const body = {
+      model: modelName,
+      contents: [{ role: 'user', parts: [{ text: prefix }] }],
+      ttl,
+      displayName: `a11y-${key.slice(0, 20)}`,
+    };
+    if (Array.isArray(tools) && tools.length) {
+      body.tools = tools;
+      body.toolConfig = { functionCallingConfig: { mode: 'AUTO' } };
+    }
+    try {
+      const r = await f(`${baseUrl}/cachedContents`, { method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey }, body: JSON.stringify(body) });
+      if (!r.ok) {
+        const reason = `http-${r.status}`;
+        stats.rejected++; stats.byReason[reason] = (stats.byReason[reason] || 0) + 1;
+        return { key, name: null, reason, creationTokens: 0 };
+      }
+      const j = await r.json();
+      if (!j || !j.name) {
+        const reason = 'missing-name';
+        stats.rejected++; stats.byReason[reason] = (stats.byReason[reason] || 0) + 1;
+        return { key, name: null, reason, creationTokens: 0 };
+      }
+      const creationTokens = Number((j.usageMetadata && (j.usageMetadata.totalTokenCount || j.usageMetadata.total_token_count)) || 0) || 0;
+      stats.created++; stats.createTokens += creationTokens;
+      return { key, name: j.name, reason: null, creationTokens };
+    } catch (e) {
+      const reason = 'network-error';
+      stats.rejected++; stats.byReason[reason] = (stats.byReason[reason] || 0) + 1;
+      return { key, name: null, reason, creationTokens: 0 };
+    }
+  };
+
+  const getOrCreate = async ({ prefix, tools }) => {
+    const key = sha256Hex(JSON.stringify({ model: modelName, prefix, tools }));
+    if (ready.has(key)) { stats.reused++; return { ...ready.get(key), creationTokens: 0, reused: true }; }
+    if (pending.has(key)) { stats.reused++; const x = await pending.get(key); return { ...x, creationTokens: 0, reused: true }; }
+    const p = create(key, prefix, tools);
+    pending.set(key, p);
+    try {
+      const x = await p;
+      ready.set(key, x);
+      return { ...x, reused: false };
+    } finally { pending.delete(key); }
+  };
+
+  const close = async () => {
+    await Promise.all([...ready.values()].filter((x) => x && x.name).map(async (x) => {
+      try {
+        const r = await f(`${baseUrl}/${x.name}`, { method: 'DELETE', headers: { 'x-goog-api-key': apiKey } });
+        if (r.ok) stats.deleted++; else stats.deleteFailures++;
+      } catch (e) { stats.deleteFailures++; }
+    }));
+    ready.clear();
+  };
+  const snapshot = () => ({ ...stats, active: [...ready.values()].filter((x) => x && x.name).length, pending: pending.size, ttlSeconds: Number(ttl.slice(0, -1)) });
+  const recordRoute = (outcome) => { if (Object.prototype.hasOwnProperty.call(stats.routes, outcome)) stats.routes[outcome]++; };
+  return { getOrCreate, close, snapshot, recordRoute };
+}
+
+// CROSS-FAMILY MULTI-TURN transport: Google Gemini Interactions API WITH FUNCTION CALLING. Each harness judgment is
+// one isolated, server-stored interaction chain. `previous_interaction_id` continues that chain without resending the
+// complete prompt/tool history, so the service preserves thought state and can cache the stable prefix across turns.
+//
+// The chain is deliberately two-phase: LOW-thinking selection turns MUST either call an evidence tool or the local
+// `finish_evidence_collection` sentinel; the final, tools-off turn uses the run's requested effort (MEDIUM by default)
+// to produce the verdict. This keeps expensive reasoning out of tool selection while retaining it for adjudication.
+// `toolCallBudget` bounds actual evidence calls independently of maxTurns; reaching either bound forces conclusion.
+// Every FunctionResult includes the exact call_id/name pair returned by Gemini, including parallel calls.
 function makeGeminiToolTransport({ apiKey, model = 'gemini-3.5-flash', dispatch, fetchImpl, maxOutputTokens = 8192,
-  temperature = 0, effort = null, baseUrl = 'https://generativelanguage.googleapis.com/v1beta',
+  temperature = null, effort = null, toolEffort = 'low', toolCallBudget = Number(process.env.V3_GEMINI_TOOL_CALL_BUDGET || 6),
+  cacheManager = null,
+  baseUrl = 'https://generativelanguage.googleapis.com/v1beta',
   runTimeoutMs = LIMITS.llm.toolRunTimeoutMs, maxTurns = LIMITS.llm.toolMaxTurns,
   maxRetries = LIMITS.llm.maxRetries, baseBackoffMs = LIMITS.llm.baseBackoffMs, maxBackoffMs = LIMITS.llm.maxBackoffMs,
   getExtraDeadlineMs = null, onTraceSink = null } = {}) {
@@ -335,73 +428,178 @@ function makeGeminiToolTransport({ apiKey, model = 'gemini-3.5-flash', dispatch,
   if (!apiKey) throw new Error('makeGeminiToolTransport: apiKey required (set GEMINI_API_KEY in .env)');
   if (!f) throw new Error('makeGeminiToolTransport: no fetch available');
   if (!dispatch || !Array.isArray(dispatch.declarations) || typeof dispatch.call !== 'function') throw new Error('makeGeminiToolTransport: dispatch {declarations, call} required');
-  const toParts = (content) => (content || []).map((b) => (b && b.type === 'image' && b.source)
+  const toInteractionContent = (content) => (content || []).map((b) => (b && b.type === 'image' && b.source)
+    ? { type: 'image', mime_type: b.source.media_type || 'image/png', data: b.source.data }
+    : { type: 'text', text: (b && b.text) || '' });
+  const toGenerateParts = (content) => (content || []).map((b) => (b && b.type === 'image' && b.source)
     ? { inlineData: { mimeType: b.source.media_type || 'image/png', data: b.source.data } }
     : { text: (b && b.text) || '' });
+  const tools = dispatch.declarations.map((d) => ({ type: 'function', ...d }));
+  const generateTools = [{ functionDeclarations: dispatch.declarations }];
+  const FINISH_TOOL = 'finish_evidence_collection';
+  const normalizedToolBudget = Number.isFinite(Number(toolCallBudget)) ? Math.max(0, Number(toolCallBudget)) : 6;
+  const interactionThinkingLevel = (value, fallback) => {
+    const level = String(value || fallback).toLowerCase();
+    return level === 'xhigh' || level === 'max' ? 'high' : (['minimal', 'low', 'medium', 'high'].includes(level) ? level : fallback);
+  };
+  tools.push({
+    type: 'function', name: FINISH_TOOL,
+    description: 'Call this when the supplied evidence is already sufficient and no additional browser evidence tool is needed. The harness will then request the final accessibility verdict at the configured judgment thinking level.',
+    parameters: { type: 'object', properties: {} }
+  });
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   return async function transport(request, callOpts = {}) {
     const msg = (request.messages && request.messages[0]) || { content: [] };
-    const contents = [{ role: 'user', parts: toParts(msg.content) }];
-    const tools = [{ functionDeclarations: dispatch.declarations }];
     const deadline = Date.now() + runTimeoutMs;
     let backoffCreditMs = 0;
     const dueAt = () => deadline + (getExtraDeadlineMs ? (Number(getExtraDeadlineMs()) || 0) : 0) + backoffCreditMs;
-    // token telemetry per turn → BOTH the verdict trace AND the persistent sink (recordTrace sums across the loop's turns); output INCLUDES thinking tokens
+    // Token telemetry is per Interaction/API call. Interactions reports generated output and thought tokens
+    // separately, so combine them to retain the harness's existing billed-output convention.
     // `turnNo` (1-based) rides the SAME event rather than a separate one: the consumer counts an llmCall per
     // `result`, and each loop turn IS one API call, so emitting an extra terminal event to carry the turn count
-    // would inflate that metric by one per subject. `maxTurns` therefore reads the true final turn count. NOTE
-    // the one semantic difference from the Claude path, which emits ONE result per run: `multiTurnResults`
-    // increments per turn beyond the first rather than once per multi-turn run, so read it as "extra turns
-    // taken", not "subjects that used more than one turn".
+    // would inflate that metric by one per subject.
     let turnNo = 0;
-    const trace = (j) => { if (j && j.usageMetadata) { const um = j.usageMetadata; const ev = { type: 'result', numTurns: turnNo, usage: { input_tokens: um.promptTokenCount || 0, output_tokens: (um.candidatesTokenCount || 0) + (um.thoughtsTokenCount || 0) } }; if (typeof callOpts.onTrace === 'function') callOpts.onTrace(ev); if (typeof onTraceSink === 'function') try { onTraceSink(ev); } catch (e) {} } };
+    const trace = (j) => { if (j && j.usage) { const u = j.usage; const ev = { type: 'result', numTurns: turnNo, usage: {
+      input_tokens: u.total_input_tokens || 0,
+      output_tokens: (u.total_output_tokens || 0) + (u.total_thought_tokens || 0),
+      cache_read_input_tokens: u.total_cached_tokens || 0
+    } }; if (typeof callOpts.onTrace === 'function') callOpts.onTrace(ev); if (typeof onTraceSink === 'function') try { onTraceSink(ev); } catch (e) {} } };
     // failTrace records WHY this transport degraded to null (lifted by emitNoVerdict into the durable noVerdict log).
-    // lastFinish carries the most recent turn's finishReason so a terminal degrade reports MAX_TOKENS vs STOP etc.
-    const failTrace = (mode, finishReason) => {
-      const ev = { type: 'transportFail', provider: 'gemini', mode, finishReason: finishReason || null };
+    // Keep the existing finishReason trace key for consumer compatibility; on Interactions it carries status.
+    const failTrace = (mode, interactionStatus) => {
+      const ev = { type: 'transportFail', provider: 'gemini', mode, finishReason: interactionStatus || null };
       if (typeof callOpts.onTrace === 'function') callOpts.onTrace(ev);
       if (typeof onTraceSink === 'function') try { onTraceSink(ev); } catch (e) { /* telemetry must never throw */ }
     };
-    let lastFinish = null;
-    const temp = request.temperatureOverride != null ? request.temperatureOverride : temperature; // degeneration-retry perturbation
-    // ONE generateContent round with 429/5xx backoff (parked wall-clock credited back to the deadline). null ⇒ degrade.
-    const postOnce = async (useTools, outTokens = maxOutputTokens, doubled = false) => {
-      const body = { contents, generationConfig: geminiGenerationConfig({ temperature: temp, maxOutputTokens: outTokens, effort }) };
+    let lastStatus = null;
+    const temp = request.temperatureOverride != null ? request.temperatureOverride : temperature;
+    const finalEffort = effort || 'medium';
+    const emitGenerateUsage = (j, creationTokens = 0) => {
+      if (!j || !j.usageMetadata) return;
+      const u = j.usageMetadata;
+      const ev = { type: 'result', numTurns: ++turnNo, phase: 'cached-first-pass', usage: {
+        input_tokens: u.promptTokenCount || 0,
+        output_tokens: (u.candidatesTokenCount || 0) + (u.thoughtsTokenCount || 0),
+        cache_read_input_tokens: u.cachedContentTokenCount || 0,
+        cache_creation_input_tokens: creationTokens || 0,
+      } };
+      if (typeof callOpts.onTrace === 'function') callOpts.onTrace(ev);
+      if (typeof onTraceSink === 'function') try { onTraceSink(ev); } catch (e) { /* telemetry must never throw */ }
+    };
+    // AUTO hybrid: cache the immutable prefix + native tool declarations. Gemini may answer immediately or request
+    // evidence. A function call is only a ROUTING decision: execute nothing here and begin a fresh Interactions chain
+    // with the complete prompt. That avoids carrying incompatible GenerateContent call ids/thought state across APIs.
+    // `toolMode: required` skips this phase declaratively; repair retries (`disableTools`) also stay single-shot.
+    const toolMode = request && request.subject && request.subject.toolMode || 'auto';
+    const hybridEnabled = cacheManager && process.env.V3_GEMINI_HYBRID !== '0' && !request.disableTools;
+    if (hybridEnabled && toolMode === 'required') {
+      if (typeof cacheManager.recordRoute === 'function') cacheManager.recordRoute('requiredBypass');
+    } else if (hybridEnabled) {
+      const content = Array.isArray(msg.content) ? msg.content : [];
+      const textIndex = content.findIndex((b) => b && b.type === 'text' && typeof b.text === 'string' && b.text.includes(GEMINI_CACHE_MARKER));
+      if (textIndex < 0) {
+        if (typeof cacheManager.recordRoute === 'function') cacheManager.recordRoute('markerMissing');
+      } else {
+        const markerEnd = content[textIndex].text.indexOf(GEMINI_CACHE_MARKER) + GEMINI_CACHE_MARKER.length;
+        const prefix = content[textIndex].text.slice(0, markerEnd);
+        const dynamic = content.map((b, i) => i === textIndex ? { ...b, text: b.text.slice(markerEnd) } : b)
+          .filter((b) => b && (b.type === 'image' || (typeof b.text === 'string' && b.text.length)));
+        const routeTools = toolMode === 'none' ? [] : generateTools;
+        const cache = await cacheManager.getOrCreate({ prefix, tools: routeTools });
+        const body = {
+          contents: [{ role: 'user', parts: toGenerateParts(cache.name ? dynamic : content) }],
+          generationConfig: geminiGenerationConfig({ temperature: temp, maxOutputTokens, effort: finalEffort }),
+        };
+        if (cache.name) body.cachedContent = cache.name;
+        else if (routeTools.length) { body.tools = routeTools; body.toolConfig = { functionCallingConfig: { mode: 'AUTO' } }; }
+        let routed = null;
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+          if (dueAt() - Date.now() <= 0) break;
+          const ctrl = new AbortController();
+          const timer = setTimeout(() => ctrl.abort(), Math.max(1, dueAt() - Date.now()));
+          try {
+            const r = await f(`${baseUrl}/models/${model}:generateContent`, { method: 'POST', signal: ctrl.signal,
+              headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey }, body: JSON.stringify(body) });
+            clearTimeout(timer);
+            if (r.status === 429 || r.status >= 500) {
+              if (attempt < maxRetries) { const b = Math.min(maxBackoffMs, baseBackoffMs * (2 ** attempt)); backoffCreditMs += b; await sleep(b); continue; }
+              break;
+            }
+            if (!r.ok) break;
+            routed = await r.json();
+            emitGenerateUsage(routed, cache.creationTokens || 0);
+            break;
+          } catch (e) {
+            clearTimeout(timer);
+            if (ctrl.signal.aborted) break;
+            if (attempt < maxRetries) { const b = Math.min(maxBackoffMs, baseBackoffMs * (2 ** attempt)); backoffCreditMs += b; await sleep(b); continue; }
+          }
+        }
+        const parts = routed && routed.candidates && routed.candidates[0] && routed.candidates[0].content && routed.candidates[0].content.parts;
+        const calls = Array.isArray(parts) ? parts.filter((p) => p && p.functionCall) : [];
+        const routeText = Array.isArray(parts) ? parts.map((p) => p && p.text || '').join('') : '';
+        const routeVerdict = routeText.trim() ? parseAgentReply(routeText) : null;
+        // Precision-safe early exit: AUTO may cheaply clear only a HIGH-confidence non-barrier. A claimed barrier,
+        // abstention, weak confidence, or malformed envelope gets the full Interactions deliberation even when the
+        // model did not explicitly call a tool. `none` is the declarative exception: that rubric forbids tools.
+        const clearWithoutInteraction = routeVerdict && routeVerdict.verdict === 'NOT REPRODUCED' && routeVerdict.confidence === 'high';
+        if (!calls.length && routeText.trim() && (toolMode === 'none' || clearWithoutInteraction)) {
+          if (typeof cacheManager.recordRoute === 'function') cacheManager.recordRoute('final');
+          return { content: [{ type: 'text', text: routeText }] };
+        }
+        if (typeof cacheManager.recordRoute === 'function') cacheManager.recordRoute(calls.length ? 'escalated' : (routeText.trim() ? 'verdictEscalated' : 'failed'));
+      }
+    }
+    // ONE Interactions round with 429/5xx backoff. An incomplete, output-less interaction gets one doubled-budget
+    // re-issue of the same request, matching the single-shot MAX_TOKENS recovery without linking the failed resource.
+    const postOnce = async (input, previousInteractionId, useTools, outTokens = maxOutputTokens, doubled = false) => {
+      const chosenEffort = useTools ? interactionThinkingLevel(toolEffort, 'low') : interactionThinkingLevel(finalEffort, 'medium');
+      const generationConfig = { max_output_tokens: outTokens, thinking_level: chosenEffort };
+      if (Number.isFinite(temp)) generationConfig.temperature = temp;
+      if (useTools) generationConfig.tool_choice = 'any';
+      const body = { model, input, store: true, generation_config: generationConfig };
+      if (previousInteractionId) body.previous_interaction_id = previousInteractionId;
       if (useTools) body.tools = tools;
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
         if (dueAt() - Date.now() <= 0) return null;
         const ctrl = new AbortController();
         const t = setTimeout(() => ctrl.abort(), Math.max(1, dueAt() - Date.now()));
         try {
-          const r = await f(`${baseUrl}/models/${model}:generateContent?key=${apiKey}`, { method: 'POST', signal: ctrl.signal, headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+          const r = await f(`${baseUrl}/interactions`, { method: 'POST', signal: ctrl.signal,
+            headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey }, body: JSON.stringify(body) });
           if (r.status === 429 || r.status >= 500) { clearTimeout(t); const b = Math.min(maxBackoffMs, baseBackoffMs * (attempt + 1)); backoffCreditMs += b; await sleep(b); continue; }
           if (!r.ok) { clearTimeout(t); return null; }
           const j = await r.json(); clearTimeout(t); trace(j);
-          // MAX_TOKENS with NO usable output (no text, no tool call) ⇒ thinking starved the turn ⇒ DOUBLE the budget
-          // once and re-issue the SAME request before handing back. A turn that DID emit text or a functionCall is fine.
-          const cand0 = j && j.candidates && j.candidates[0];
-          const cps = (cand0 && cand0.content && Array.isArray(cand0.content.parts)) ? cand0.content.parts : [];
-          const usable = cps.some((p) => p && (p.text || (p.functionCall && p.functionCall.name)));
-          if (!doubled && !usable && cand0 && cand0.finishReason === 'MAX_TOKENS' && process.env.V3_GEMINI_MAXTOK_DOUBLE !== '0') {
-            return postOnce(useTools, Math.min(outTokens * 2, GEMINI_MAXTOK_CEIL), true);
+          const steps = Array.isArray(j && j.steps) ? j.steps : [];
+          const usable = steps.some((s) => s && (s.type === 'function_call' || (s.type === 'model_output' && Array.isArray(s.content) && s.content.some((c) => c && c.text))));
+          if (!doubled && !usable && j && j.status === 'incomplete' && process.env.V3_GEMINI_MAXTOK_DOUBLE !== '0') {
+            return postOnce(input, previousInteractionId, useTools, Math.min(outTokens * 2, GEMINI_MAXTOK_CEIL), true);
           }
           return j;
         } catch (e) { clearTimeout(t); if (ctrl.signal.aborted) return null; const b = Math.min(maxBackoffMs, baseBackoffMs * (attempt + 1)); backoffCreditMs += b; await sleep(b); }
       }
       return null;
     };
+    let previousInteractionId = null;
+    let input = toInteractionContent(msg.content);
+    let evidenceCalls = 0;
+    let readyToConclude = !!request.disableTools || toolMode === 'none';
+    let pendingFunctionResults = false;
     for (let turn = 0; turn < maxTurns; turn++) {
-      turnNo = turn + 1;
-      if (dueAt() - Date.now() <= 0) { failTrace('deadline', lastFinish); return null; }
-      const lastTurn = turn === maxTurns - 1; // final turn: disable tools so the model MUST conclude with a text verdict
-      const j = await postOnce(!lastTurn && !request.disableTools); // disableTools (envelope-repair retry) ⇒ plain text completion
-      const cand = j && j.candidates && j.candidates[0];
-      if (cand && cand.finishReason) lastFinish = cand.finishReason;
-      const parts = (cand && cand.content && Array.isArray(cand.content.parts)) ? cand.content.parts : [];
-      const calls = parts.filter((p) => p && p.functionCall && p.functionCall.name);
+      turnNo++;
+      if (dueAt() - Date.now() <= 0) { failTrace('deadline', lastStatus); return null; }
+      const useTools = !readyToConclude && evidenceCalls < normalizedToolBudget && turn < maxTurns - 1;
+      if (!useTools && previousInteractionId && !pendingFunctionResults) input = [{ type: 'text', text: CONCLUDE_INSTRUCTION }];
+      const j = await postOnce(input, previousInteractionId, useTools);
+      pendingFunctionResults = false;
+      if (!j) { failTrace('interaction-null', lastStatus); return null; }
+      if (j.status) lastStatus = j.status;
+      if (j.id) previousInteractionId = j.id;
+      const steps = Array.isArray(j.steps) ? j.steps : [];
+      const calls = steps.filter((s) => s && s.type === 'function_call' && s.name);
       if (process.env.V3_GEMINI_TURN_DEBUG === '1') { // per-turn observability for the empty-loop diagnosis (default off)
-        const tl = parts.map((p) => (p && p.text) || '').join('').length;
-        try { process.stderr.write(`[v3:geminiTurn] ${JSON.stringify({ turn, lastTurn, candNull: !cand, finishReason: (cand && cand.finishReason) || null, calls: calls.map((c) => c.functionCall.name), parts: parts.length, textLen: tl, thinking: parts.some((p) => p && p.thought) })}\n`); } catch (e) { /* never throw */ }
+        const tl = steps.filter((s) => s && s.type === 'model_output').flatMap((s) => s.content || []).map((c) => (c && c.text) || '').join('').length;
+        try { process.stderr.write(`[v3:geminiTurn] ${JSON.stringify({ turn, useTools, status: j.status || null, calls: calls.map((c) => c.name), steps: steps.length, textLen: tl })}\n`); } catch (e) { /* never throw */ }
       }
       // TOOL-CALL TELEMETRY (2026-08-19). The run-level counter reads ONE shape — a trace event carrying
       // `blocks` with `kind: 'tool_use'` entries — and that shape was produced only by the Claude Agent-SDK
@@ -411,55 +609,54 @@ function makeGeminiToolTransport({ apiKey, model = 'gemini-3.5-flash', dispatch,
       // finding, and it made a real regression (a genuinely tool-less run) indistinguishable from normal
       // operation on this provider. Emit the same shape the counter already understands, so one contract
       // serves every provider.
-      if (calls.length) {
+      const tracedCalls = calls.filter((c) => c.name !== FINISH_TOOL);
+      if (tracedCalls.length) {
         const ev = { type: 'assistant', role: 'assistant',
-          blocks: calls.map((p) => ({ kind: 'tool_use', name: p.functionCall.name, input: p.functionCall.args || {} })) };
+          blocks: tracedCalls.map((c) => ({ kind: 'tool_use', id: c.id, name: c.name, input: c.arguments || {} })) };
         if (typeof callOpts.onTrace === 'function') callOpts.onTrace(ev);
         if (typeof onTraceSink === 'function') try { onTraceSink(ev); } catch (e) { /* telemetry must never throw */ }
       }
-      if (calls.length && !lastTurn) {
-        contents.push({ role: 'model', parts }); // echo the model's turn (functionCall(s) + any thinking) into history
-        const responses = [];
-        const images = []; // base64 screenshots pulled out of the function results → ride as inlineData parts
+      if (useTools && calls.length) {
+        if (!j.id) { failTrace('missing-interaction-id', lastStatus); return null; }
+        const results = [];
         const extractImages = process.env.V3_GEMINI_TOOL_IMAGES !== '0';
-        for (const p of calls) {
-          const fc = p.functionCall;
+        let finishRequested = false;
+        for (const fc of calls) {
+          if (!fc.id) { failTrace('missing-call-id', lastStatus); return null; }
+          if (fc.name === FINISH_TOOL) {
+            finishRequested = true;
+            results.push({ type: 'function_result', call_id: fc.id, name: fc.name,
+              result: [{ type: 'text', text: 'Evidence collection is complete. Produce the final verdict next.' }] });
+            continue;
+          }
           let resultObj;
-          try { resultObj = await dispatch.call(fc.name, fc.args || {}); }
+          try { resultObj = await dispatch.call(fc.name, fc.arguments || {}); }
           catch (e) { resultObj = { error: String((e && e.message) || e) }; }
-          // functionResponse.response must be a JSON object (Struct); a non-object handler return is boxed under `result`.
           let response = (resultObj && typeof resultObj === 'object' && !Array.isArray(resultObj)) ? resultObj : { result: resultObj };
-          if (extractImages) response = extractToolImages(response, images); // lift base64 screenshots out of the Struct
-          responses.push({ functionResponse: { name: fc.name, response } });
+          const images = [];
+          if (extractImages) response = extractToolImages(response, images);
+          const result = [{ type: 'text', text: JSON.stringify(response) }];
+          for (const img of images) result.push({ type: 'image', mime_type: img.inlineData.mimeType, data: img.inlineData.data });
+          results.push({ type: 'function_result', call_id: fc.id, name: fc.name, result });
+          evidenceCalls++;
         }
-        // v1beta: a functionResponse rides a 'user' Content. Any lifted screenshots ride the SAME user turn as
-        // inlineData image parts (after the functionResponse), so the model SEES the pixels instead of an opaque string.
-        const userParts = responses.slice();
-        if (images.length) { userParts.push({ text: `${images.length} tool screenshot(s) attached as image part(s) below — judge from those pixels.` }, ...images); }
-        contents.push({ role: 'user', parts: userParts });
+        input = results;
+        pendingFunctionResults = true;
+        readyToConclude = finishRequested || evidenceCalls >= normalizedToolBudget;
         continue;
       }
-      const text = parts.map((p) => (p && p.text) || '').join('');
-      if (text) return { content: [{ type: 'text', text }] }; // got the verdict text
-      // EMPTY answer (no tool call, no text — even after any MAX_TOKENS doubling). Rather than degrade to null (a
-      // noVerdict — the dominant Gemini tool-loop failure: the model never committed to a final answer, or emitted a
-      // stray functionCall on the tools-off final turn), make ONE forced tools-off conclusion: echo the empty turn so
-      // roles still alternate, then demand ONLY the JSON verdict from the evidence already gathered. Opt out with
-      // V3_GEMINI_FORCE_CONCLUDE=0. Past-deadline still degrades (no time for another round).
-      if (process.env.V3_GEMINI_FORCE_CONCLUDE === '0' || dueAt() - Date.now() <= 0) {
-        failTrace(process.env.V3_GEMINI_FORCE_CONCLUDE === '0' ? 'force-conclude-optout' : 'deadline-preconclude', lastFinish); return null;
+      const text = steps.filter((s) => s && s.type === 'model_output').flatMap((s) => s.content || []).map((c) => (c && c.text) || '').join('');
+      if (!useTools && text) return { content: [{ type: 'text', text }] };
+      // A provider that ignores tool_choice=any or emits no function call still advances to the explicit final phase.
+      if (useTools && process.env.V3_GEMINI_FORCE_CONCLUDE !== '0' && turn < maxTurns - 1) {
+        readyToConclude = true;
+        input = [{ type: 'text', text: CONCLUDE_INSTRUCTION }];
+        continue;
       }
-      contents.push({ role: 'model', parts: parts.length ? parts : [{ text: '(no answer emitted)' }] });
-      contents.push({ role: 'user', parts: [{ text: CONCLUDE_INSTRUCTION }] });
-      const cj = await postOnce(false);
-      const cFinish = cj && cj.candidates && cj.candidates[0] && cj.candidates[0].finishReason;
-      const cparts = (cj && cj.candidates && cj.candidates[0] && cj.candidates[0].content && Array.isArray(cj.candidates[0].content.parts)) ? cj.candidates[0].content.parts : [];
-      const ctext = cparts.map((p) => (p && p.text) || '').join('');
-      if (ctext) return { content: [{ type: 'text', text: ctext }] };
-      failTrace('force-conclude-empty', cFinish || lastFinish);
+      failTrace(useTools ? 'selection-empty' : 'conclusion-empty', lastStatus);
       return null;
     }
-    failTrace('maxturns-exhausted', lastFinish);
+    failTrace('maxturns-exhausted', lastStatus);
     return null;
   };
 }
@@ -798,4 +995,4 @@ function makeOpenAITransport(opts = {}) {
   };
 }
 
-module.exports = { makeRunAgent, makeAnthropicTransport, makeClaudeSdkTransport, makeGeminiTransport, makeGeminiToolTransport, makeCodexTransport, makeOpenAITransport, parseAgentReply, toAnthropicContent, looksDegenerate };
+module.exports = { makeRunAgent, makeAnthropicTransport, makeClaudeSdkTransport, makeGeminiTransport, makeGeminiToolTransport, makeGeminiCacheManager, makeCodexTransport, makeOpenAITransport, parseAgentReply, toAnthropicContent, looksDegenerate };

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<!-- Paired counterfactual PASS for case-01: made the unchanged-looking info trigger a native button and added focus, activation, pointer-travel, popup-hover, and Escape handling -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Open a high-yield savings account — Banco Aurora</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: #f4f6f9;
+    color: #16202b;
+    line-height: 1.5;
+  }
+  header {
+    background: #0b3d62;
+    color: #fff;
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  header .mark { width: 28px; height: 28px; border-radius: 50%; background: #f2b134; }
+  header strong { font-size: 17px; letter-spacing: .2px; }
+  main { max-width: 660px; margin: 32px auto; padding: 0 22px; }
+  h1 { font-size: 24px; margin: 0 0 6px; }
+  .lede { color: #4c5663; margin: 0 0 26px; }
+  .card {
+    background: #fff;
+    border: 1px solid #dde3ea;
+    border-radius: 12px;
+    padding: 26px 28px;
+  }
+  .rate {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin: 0 0 4px;
+  }
+  .rate .pct { font-size: 40px; font-weight: 800; color: #0b3d62; }
+  .rate .label { font-size: 15px; color: #4c5663; }
+
+  .info {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px; height: 18px;
+    margin-left: 6px;
+    border-radius: 50%;
+    background: #0b3d62;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    font-style: normal;
+    border: 0;
+    padding: 0;
+    font-family: inherit;
+    cursor: help;
+    position: relative;
+    top: -1px;
+    user-select: none;
+  }
+  .apy-popup {
+    position: absolute;
+    z-index: 20;
+    max-width: 300px;
+    background: #16202b;
+    color: #fff;
+    font-size: 13px;
+    line-height: 1.45;
+    padding: 12px 14px;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.22);
+    display: none;
+  }
+  .apy-popup::after {
+    content: "";
+    position: absolute;
+    top: -7px; left: 18px;
+    border: 7px solid transparent;
+    border-top: 0;
+    border-bottom: 7px solid #16202b;
+  }
+  .terms { margin: 22px 0 0; font-size: 13px; color: #6b7280; }
+  .terms li { margin-bottom: 6px; }
+  .btn {
+    margin-top: 22px;
+    background: #0b3d62; color: #fff; border: 0;
+    border-radius: 8px; padding: 12px 22px; font-size: 15px; font-weight: 600;
+    cursor: pointer;
+  }
+  footer { max-width: 660px; margin: 18px auto 60px; padding: 0 22px; color: #6b7280; font-size: 12px; }
+</style>
+</head>
+<body>
+  <header>
+    <span class="mark" aria-hidden="true"></span>
+    <strong>Banco Aurora</strong>
+  </header>
+
+  <main>
+    <h1>Premier high-yield savings</h1>
+    <p class="lede">Grow your balance with one of our most competitive rates. No monthly fees, no minimum to open.</p>
+
+    <section class="card" aria-labelledby="offer-h">
+      <h2 id="offer-h" style="margin:0 0 14px; font-size:16px;">Your offer</h2>
+      <p class="rate">
+        <span class="pct">4.35%</span>
+        <span class="label">APY<button type="button" class="info" id="apy-info" aria-label="APY details" aria-describedby="apy-popup">i</button></span>
+      </p>
+      <div class="apy-popup" id="apy-popup" role="tooltip">
+        <strong>APY (Annual Percentage Yield)</strong> reflects compounding and is
+        variable. This 4.35% rate applies only to the portion of your balance up to
+        $250,000; balances above that earn 0.50% APY. The rate may change at any time
+        after account opening.
+      </div>
+      <ul class="terms">
+        <li>FDIC insured up to applicable limits.</li>
+        <li>Interest compounds daily and is credited monthly.</li>
+        <li>External transfers may take 1–3 business days to settle.</li>
+      </ul>
+      <button type="button" class="btn">Continue to application</button>
+    </section>
+  </main>
+
+  <footer>
+    Banco Aurora, N.A. Member FDIC. Rates current as of today and subject to change.
+  </footer>
+
+  <script>
+    (function () {
+      var icon = document.getElementById('apy-info');
+      var popup = document.getElementById('apy-popup');
+      function place() {
+        var r = icon.getBoundingClientRect();
+        popup.style.left = (window.scrollX + r.left - 8) + 'px';
+        popup.style.top = (window.scrollY + r.bottom + 10) + 'px';
+      }
+      var hideTimer = null;
+      function showPopup() {
+        clearTimeout(hideTimer);
+        place();
+        popup.style.display = 'block';
+      }
+      function hidePopup() {
+        clearTimeout(hideTimer);
+        popup.style.display = 'none';
+      }
+      function scheduleHide() {
+        clearTimeout(hideTimer);
+        hideTimer = setTimeout(hidePopup, 500);
+      }
+      icon.addEventListener('mouseenter', showPopup);
+      icon.addEventListener('mouseleave', scheduleHide);
+      icon.addEventListener('focus', showPopup);
+      icon.addEventListener('click', showPopup);
+      icon.addEventListener('blur', scheduleHide);
+      popup.addEventListener('mouseenter', showPopup);
+      popup.addEventListener('mouseleave', scheduleHide);
+      document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') hidePopup();
+      });
+    })();
+  </script>
+
+</body>
+</html>

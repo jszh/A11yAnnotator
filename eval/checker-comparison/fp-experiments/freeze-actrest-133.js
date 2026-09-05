@@ -4,10 +4,10 @@
 // (replay-judge.js) can re-run ONLY the judge over byte-identical evidence and separate the rubric effect from
 // the judge's own sampling noise (full-pipeline noise floor is ±3; the frozen-evidence replay floor is sd≈1.06).
 //
-// Unlike freeze-and-baseline.js (which uses the PRODUCTION collectActPage over the paper's act-subset), this
-// freezer reuses the EVAL collector `collectForV3` from run-v3-act-rest-suite.js — the only collector that runs
-// the 1.3.3 sensory pre-filter (mints the sensoryWordHint obligation) AND the FIX-1 headings/landmarks structure
-// threading the rubric depends on. Production port of both stays DEFERRED-TODO J.
+// Unlike freeze-and-baseline.js (which uses the production collector over the paper's act-subset), this freezer
+// reuses the ACT-rest `collectForV3` path so its evidence stays byte-identical to the benchmark. The 1.3.3 sensory
+// pre-filter is now shared with production; ACT-rest's separate headings/landmarks threading remains specific to
+// this frozen-evidence workflow.
 //
 // Output: <packsDir>/<testcaseId>.json  (one evidence pack per 9bd38c case; shape identical to freeze-and-baseline)
 //

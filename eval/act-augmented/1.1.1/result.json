@@ -644,6 +644,96 @@
               "doc": "refs/trusted-tester/sc-1.1.1-non-text-content.md",
               "quote": "The meaning of the background image is also available without the background image."
             }
+          },
+          {
+            "id": "case-08",
+            "file": "eval/act-augmented/1.1.1/pages/informative-css-background-image/case-08.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/informative-css-background-image/case-08.md",
+            "scenario": "Paired counterfactual repair of case-01. The page preserves the source’s realistic context and complexity: Building-society loan card whose headline rate '19.3% APR Typical Variable' lives only as pixels in a stylesheet background-image SVG; the visible DOM prose says only 'Where else would you find a better interest rate?' (verbatim F3 example 1). The only target-SC change is: Added the exact APR and rate type as real DOM text beside the unchanged CSS rate flag. No unrelated target-SC condition was removed.",
+            "expected": "passed",
+            "mechanism": "The CSS background flag is unchanged, but the paragraph now contains “Representative rate: 19.3% APR Typical Variable” as ordinary text. The rate therefore survives the accessibility tree, CSS-background suppression, and forced-colors use.",
+            "primarySelector": "p#bestinterest",
+            "whyAutomatedToolsMiss": "This hard-negative control is intentionally near-identical to failing case-01. Presence-only or static heuristics can easily treat the pair alike; the correct pass depends on verifying the precise repaired boundary: added the exact APR and rate type as real DOM text beside the unchanged CSS rate flag.",
+            "citation": {
+              "doc": "wcag-techniques/failures/F3.html",
+              "quote": "In this example, the image TopRate.png is a 180 by 200 pixel image that contains the text, \"19.3% APR Typical Variable.\""
+            },
+            "balanceBatch": "initial-79-actlike-v2",
+            "hardNegativeType": "paired-specificity",
+            "pairedWith": "case-01"
+          },
+          {
+            "id": "case-09",
+            "file": "eval/act-augmented/1.1.1/pages/informative-css-background-image/case-09.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/informative-css-background-image/case-09.md",
+            "scenario": "Paired counterfactual repair of case-02. The page preserves the source’s realistic context and complexity: Record-shop catalogue table where each row's stock status (In stock / Last copy / Pre-order / Sold out) is shown ONLY by a CSS-class background-image glyph in a text-empty leading cell; row text is just artist/title/format/price (F3 example 2 mechanism). The only target-SC change is: Added visually hidden status text to every unchanged CSS stock glyph. No unrelated target-SC condition was removed.",
+            "expected": "passed",
+            "mechanism": "Each status cell now contains an accessible text equivalent—In stock, Last copy, Pre-order, or Sold out—while the original CSS glyph remains visual reinforcement. Every inventory state is available without the background image.",
+            "primarySelector": "td.stock.sold",
+            "whyAutomatedToolsMiss": "This hard-negative control is intentionally near-identical to failing case-02. Presence-only or static heuristics can easily treat the pair alike; the correct pass depends on verifying the precise repaired boundary: added visually hidden status text to every unchanged CSS stock glyph.",
+            "citation": {
+              "doc": "wcag-techniques/failures/F3.html",
+              "quote": "A book distributor uses background images to provide icons against a list of book titles to indicate whether they are new, limited, in-stock, or out of stock."
+            },
+            "balanceBatch": "initial-79-actlike-v2",
+            "hardNegativeType": "paired-specificity",
+            "pairedWith": "case-02"
+          },
+          {
+            "id": "case-10",
+            "file": "eval/act-augmented/1.1.1/pages/informative-css-background-image/case-10.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/informative-css-background-image/case-10.md",
+            "scenario": "Paired decorative-graphic hard negative for source case-03: the same volunteer form preserves CSS background asterisks, while each affected label and control now independently exposes required state.",
+            "expected": "passed",
+            "mechanism": "Exact repair from source case-03: add native `required` to first name, last name, email, and preferred role and append visually hidden `(required)` text to their labels. The background-image asterisks are therefore redundant rather than informative-only graphics.",
+            "primarySelector": "#fname[required]",
+            "whyAutomatedToolsMiss": "A background-image detector may continue flagging asterisks. Passing requires associating every affected graphic with both label text and native required state.",
+            "citation": {
+              "doc": "wcag-techniques/failures/F3.html",
+              "quote": "This failure would apply equally in a case where the background image was declared in the HTML style attribute, as well as in a case where the background image declaration was created dynamically in a client script (see example 3 below)."
+            }
+          },
+          {
+            "id": "case-11",
+            "file": "eval/act-augmented/1.1.1/pages/informative-css-background-image/case-11.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/informative-css-background-image/case-11.md",
+            "scenario": "Paired decorative-graphic hard negative for source case-04: the same menu and JavaScript-painted chili backgrounds remain, while every heat marker now contains a textual spice level and scale.",
+            "expected": "passed",
+            "mechanism": "Exact repair from source case-04: insert visually hidden `Spice level: Mild/Medium/Hot, n of 3` text into each matching heat span. The repeated chili graphic is retained but carries no unique information.",
+            "primarySelector": "span.heat[data-heat=\"3\"] .sr-only",
+            "whyAutomatedToolsMiss": "A scanner that finds dynamic CSS images can over-report without comparing their inferred chili count to accessible text. Correctness requires checking all five generated markers.",
+            "citation": {
+              "doc": "wcag-techniques/failures/F3.html",
+              "quote": "In the following code, the background image declaration is created in a client script:"
+            }
+          },
+          {
+            "id": "case-12",
+            "file": "eval/act-augmented/1.1.1/pages/informative-css-background-image/case-12.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/informative-css-background-image/case-12.md",
+            "scenario": "Paired decorative-graphic hard negative for source case-05: the same coastal dashboard retains every dynamically painted weather background, while current and hourly conditions are also stated as visible words.",
+            "expected": "passed",
+            "mechanism": "Exact repair from source case-05: add visible Rain, Cloudy, or Sunny text next to the current icon and each hourly icon. The backgrounds remain decorative reinforcement because their complete meaning survives when backgrounds are removed.",
+            "primarySelector": "#nowGlyph + div .condition",
+            "whyAutomatedToolsMiss": "Image/CSS heuristics can find the data-driven backgrounds but must compare each of six icons with its neighboring condition word.",
+            "citation": {
+              "doc": "wcag-techniques/failures/F3.html",
+              "quote": "Text alternatives are necessary for people who cannot see images that convey information that is required to understand the content of the page."
+            }
+          },
+          {
+            "id": "case-13",
+            "file": "eval/act-augmented/1.1.1/pages/informative-css-background-image/case-13.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/informative-css-background-image/case-13.md",
+            "scenario": "Paired decorative-graphic hard negative for source case-06: the same aircraft seat picker retains green CSS exit-row pictograms, while all four affected seat buttons now state the row property in text.",
+            "expected": "passed",
+            "mechanism": "Exact repair from source case-06: add exact `aria-label` values naming the seat and `exit row` to buttons 12A, 12B, 12C, and 12D. The pictogram remains visually present but is redundant with each control’s accessible name.",
+            "primarySelector": "button.seat.exit[aria-label$=\"exit row\"]",
+            "whyAutomatedToolsMiss": "A background-image detector may flag every green pictogram, while a name check must verify all four interactive seats expose the exit-row meaning.",
+            "citation": {
+              "doc": "refs/trusted-tester/sc-1.1.1-non-text-content.md",
+              "quote": "For each background image, determine whether important information provided by it is available without it."
+            }
           }
         ]
       },
@@ -860,6 +950,157 @@
             "citation": {
               "doc": "wcag-understanding/non-text-content.html",
               "quote": "a swirl in the corner that conveys no information but just fills up a blank space to create an aesthetic effect... Putting alternative text on such items just distracts people using screen readers from the content on the page... This type of non-text content, therefore, is marked or implemented in a way that assistive technologies (AT) will ignore it and not present anything to the user."
+            }
+          },
+          {
+            "id": "case-08",
+            "file": "eval/act-augmented/1.1.1/pages/meaningful-image-suppressed-as-decorative/case-08.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/meaningful-image-suppressed-as-decorative/case-08.md",
+            "scenario": "Paired counterfactual repair of case-01. The page preserves the source’s realistic context and complexity: Marketplace listing whose 'Verified seller' green-check badge — the only per-listing signal that this seller passed identity verification — is an inline SVG suppressed from AT via role=presentation + aria-hidden. Unverified sellers render the same row without the check, so the badge's presence is the data; no text states this seller is verified. The only target-SC change is: Removed the decorative suppression and exposed the unchanged check badge as role=img with the equivalent name “Verified seller”. No unrelated target-SC condition was removed.",
+            "expected": "passed",
+            "mechanism": "The badge’s pixels and marketplace context are unchanged. Removing role=presentation/aria-hidden and supplying role=img plus aria-label=\"Verified seller\" places the trust fact in the accessibility tree.",
+            "primarySelector": ".seller-row .badge > svg[role=\"img\"][aria-label=\"Verified seller\"]",
+            "whyAutomatedToolsMiss": "This hard-negative control is intentionally near-identical to failing case-01. Presence-only or static heuristics can easily treat the pair alike; the correct pass depends on verifying the precise repaired boundary: removed the decorative suppression and exposed the unchanged check badge as role=img with the equivalent name “Verified seller”.",
+            "citation": {
+              "doc": "wcag-understanding/non-text-content.html",
+              "quote": "a swirl in the corner that conveys no information but just fills up a blank space to create an aesthetic effect are all examples of this... This type of non-text content, therefore, is marked or implemented in a way that assistive technologies (AT) will ignore it and not present anything to the user."
+            },
+            "balanceBatch": "initial-79-actlike-v2",
+            "hardNegativeType": "paired-specificity",
+            "pairedWith": "case-01"
+          },
+          {
+            "id": "case-09",
+            "file": "eval/act-augmented/1.1.1/pages/meaningful-image-suppressed-as-decorative/case-09.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/meaningful-image-suppressed-as-decorative/case-09.md",
+            "scenario": "Paired counterfactual repair of case-02. The page preserves the source’s Brightwater Energy tariff comparison, including the same canvas-painted peak price, off-peak price, standing charge, and average annual bill for all three plans. The only target-SC change is replacing role=presentation on the unchanged tariff canvas with role=img and a complete accessible name containing every tariff value.",
+            "expected": "passed",
+            "mechanism": "The canvas still paints the same comparison, but it is no longer declared decorative. Its accessible name enumerates every plan, unit price, standing charge, and annual bill, so no pricing datum is lost.",
+            "primarySelector": "canvas#rateChart[role=\"img\"][aria-label]",
+            "whyAutomatedToolsMiss": "This hard-negative control is intentionally near-identical to failing case-02. Presence-only or static heuristics can easily treat the pair alike; the correct pass depends on verifying the precise repaired boundary: replaced role=presentation on the unchanged tariff canvas with role=img and a complete accessible name containing every tariff value.",
+            "citation": {
+              "doc": "wcag-understanding/non-text-content.html",
+              "quote": "The intent of this success criterion is to make information conveyed by non-text content accessible through the use of a text alternative. Text alternatives are a primary way for making information accessible because they can be rendered through any sensory modality (for example, visual, auditory or tactile) to match the needs of the user."
+            },
+            "balanceBatch": "initial-79-actlike-v2",
+            "hardNegativeType": "paired-specificity",
+            "pairedWith": "case-02"
+          },
+          {
+            "id": "case-10",
+            "file": "eval/act-augmented/1.1.1/pages/meaningful-image-suppressed-as-decorative/case-10.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/meaningful-image-suppressed-as-decorative/case-10.md",
+            "scenario": "Paired external-reference hard negative for source case-06: the same bank two-factor setup keeps the QR payload and workflow, but the SVG is exposed as an image with externally referenced purpose text and an equivalent manual setup key.",
+            "expected": "passed",
+            "mechanism": "Exact repair from source case-06: replace `role=\"presentation\"` with `role=\"img\"`, reference the visible QR heading through `aria-labelledby`, reference the visible manual-key instruction through `aria-describedby`, and provide that key as the non-scanning equivalent.",
+            "primarySelector": "svg[role=\"img\"][aria-labelledby][aria-describedby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "wcag-understanding/non-text-content.html",
+              "quote": "For non-text content that is a control or accepts user input, such as images used as submit buttons, image maps or complex animations, a name is provided to describe the purpose of the non-text content so that the person at least knows what the non-text content is and why it is there."
+            },
+            "balanceBatch": "initial-79-context-v3",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-06",
+            "gena11yExtraction": {
+              "extractor": "extract_visual_elements",
+              "targetSelector": "svg[role=\"img\"][aria-labelledby][aria-describedby]",
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload.",
+              "expectedTargetCount": 1
+            }
+          },
+          {
+            "id": "case-11",
+            "file": "eval/act-augmented/1.1.1/pages/meaningful-image-suppressed-as-decorative/case-11.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/meaningful-image-suppressed-as-decorative/case-11.md",
+            "scenario": "Paired applicability-boundary hard negative for source case-05: the same transit service diagram remains `alt=\"\"`, while adjacent visible text now repeats every operational fact from the diagram.",
+            "expected": "passed",
+            "mechanism": "Exact repair from source case-05: replace the generic advisory paragraph with complete text for the B-line suspension endpoints, the Q reroute and skipped stops, and the free replacement shuttle. Because all diagram information is redundant, keeping the image excluded is correct.",
+            "primarySelector": ".diagram img[alt=\"\"]",
+            "whyAutomatedToolsMiss": "A syntactic empty-alt check cannot decide whether an image is meaningful or redundant. The pass depends on comparing the diagram’s embedded facts against the complete adjacent advisory.",
+            "citation": {
+              "doc": "wcag-techniques/failures/F39.html",
+              "quote": "A text alternative for an image should convey the meaning of the image. When an image is used for decoration, spacing or other purpose that is not part of the meaningful content in the page then the image has no meaning and should be ignored by assistive technologies."
+            }
+          },
+          {
+            "id": "case-12",
+            "file": "eval/act-augmented/1.1.1/pages/meaningful-image-suppressed-as-decorative/case-12.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/meaningful-image-suppressed-as-decorative/case-12.md",
+            "scenario": "Paired hard negative for source case-02: the same presentational tariff canvas remains, with one semantic table added containing every painted row, plan, and value.",
+            "expected": "passed",
+            "mechanism": "Add a visible captioned table that exactly duplicates all tariff data while retaining the unchanged canvas and presentational role.",
+            "primarySelector": "section.panel table",
+            "whyAutomatedToolsMiss": "A tool cannot OCR the decorative canvas and establish that the table duplicates all twelve painted values.",
+            "citation": {
+              "doc": "wcag-techniques/general/G94.html",
+              "quote": "The text alternative should be able to substitute for the non-text content."
+            },
+            "balanceBatch": "gena11y-fp-50-v2",
+            "hardNegativeType": "accessibility-evidence-omitted",
+            "pairedWith": "case-02"
+          },
+          {
+            "id": "case-13",
+            "file": "eval/act-augmented/1.1.1/pages/meaningful-image-suppressed-as-decorative/case-13.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/meaningful-image-suppressed-as-decorative/case-13.md",
+            "scenario": "Paired redundant-graphic hard negative for source case-01: the hidden green check remains while listing-specific Verified seller text is added in the same row.",
+            "expected": "passed",
+            "mechanism": "Add visible Verified seller text beside the unchanged presentational badge, making the icon a redundant cue rather than the sole carrier of status.",
+            "primarySelector": ".seller-row .seller-status",
+            "whyAutomatedToolsMiss": "The verdict requires comparing the contextual badge meaning with the visible text while confirming the hidden SVG adds no unique fact.",
+            "citation": {
+              "doc": "wcag-techniques/failures/F39.html",
+              "quote": "When an image is used for decoration, spacing or other purpose that is not part of the meaningful content in the page then the image has no meaning and should be ignored by assistive technologies."
+            },
+            "balanceBatch": "gena11y-fp-50-v2",
+            "hardNegativeType": "redundant-graphic-or-visual-cue",
+            "pairedWith": "case-01"
+          },
+          {
+            "id": "case-14",
+            "file": "eval/act-augmented/1.1.1/pages/meaningful-image-suppressed-as-decorative/case-14.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/meaningful-image-suppressed-as-decorative/case-14.md",
+            "scenario": "PAIRED PASS for source case-04. Dosing pictogram named by complete external directions.",
+            "expected": "passed",
+            "mechanism": "The image’s computed name supplies every dose and both safety instructions, but the external directions are absent from the isolated SVG payload.",
+            "primarySelector": ".schedule svg[role=\"img\"][aria-labelledby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "refs/trusted-tester/sc-1.1.1-non-text-content.md",
+              "quote": "The image is **NOT** the only means of conveying important information."
+            },
+            "balanceBatch": "initial-79-context-v3",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-04",
+            "gena11yExtraction": {
+              "extractor": "extract_visual_elements",
+              "targetSelector": ".schedule svg[role=\"img\"][aria-labelledby]",
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload.",
+              "expectedTargetCount": 1
+            }
+          },
+          {
+            "id": "case-15",
+            "file": "eval/act-augmented/1.1.1/pages/meaningful-image-suppressed-as-decorative/case-15.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/meaningful-image-suppressed-as-decorative/case-15.md",
+            "scenario": "PAIRED PASS for source case-05. Transit diagram named by a complete external advisory.",
+            "expected": "passed",
+            "mechanism": "The computed image name identifies the B suspension, Q reroute, skipped stops, and shuttle; GenA11y’s isolated image payload contains only the IDREF, not those words.",
+            "primarySelector": ".diagram img[aria-labelledby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "wcag-techniques/failures/F39.html",
+              "quote": "A text alternative for an image should convey the meaning of the image. When an image is used for decoration, spacing or other purpose that is not part of the meaningful content in the page then the image has no meaning and should be ignored by assistive technologies."
+            },
+            "balanceBatch": "initial-79-context-v3",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-05",
+            "gena11yExtraction": {
+              "extractor": "extract_visual_elements",
+              "targetSelector": ".diagram img[aria-labelledby]",
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload.",
+              "expectedTargetCount": 1
             }
           }
         ]
@@ -1087,6 +1328,218 @@
               "doc": "eval/act-augmented/1.1.1/pages/alt-not-an-alternative-filename-placeholder/case-07.md",
               "quote": "The text alternative should be able to substitute for the non-text content. If the non-text content were removed from the page and substituted with the text, the page would still provide the same function and information. The text alternative would be brief but as informative as possible."
             }
+          },
+          {
+            "id": "case-08",
+            "file": "eval/act-augmented/1.1.1/pages/alt-not-an-alternative-filename-placeholder/case-08.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/alt-not-an-alternative-filename-placeholder/case-08.md",
+            "scenario": "Paired counterfactual repair of case-01. The page preserves the source’s realistic context and complexity: Local-news article hero photo depicting a transit-fare protest (crowd marching past a domed City Hall, banners reading 'FAIR FARES'/'NO HIKE') whose alt is the raw DSLR camera filename alt=\"DSC_0481.JPG\". The only target-SC change is: Replaced only the DSLR filename alt with a concise description of the unchanged protest photo. No unrelated target-SC condition was removed.",
+            "expected": "passed",
+            "mechanism": "The image now exposes a text alternative describing the transit-fare protest, City Hall setting, and meaningful signs instead of the meaningless camera filename DSC_0481.JPG.",
+            "primarySelector": "article figure img[alt^=\"Transit-fare protesters\"]",
+            "whyAutomatedToolsMiss": "This hard-negative control is intentionally near-identical to failing case-01. Presence-only or static heuristics can easily treat the pair alike; the correct pass depends on verifying the precise repaired boundary: replaced only the DSLR filename alt with a concise description of the unchanged protest photo.",
+            "citation": {
+              "doc": "eval/act-augmented/1.1.1/pages/alt-not-an-alternative-filename-placeholder/case-01.md",
+              "quote": "filenames that are not valid text alternatives in their own right such as \"Oct.jpg\" or \"Chart.jpg\" or \"sales\\oct\\top3.jpg\""
+            },
+            "balanceBatch": "initial-79-actlike-v2",
+            "hardNegativeType": "paired-specificity",
+            "pairedWith": "case-01"
+          },
+          {
+            "id": "case-09",
+            "file": "eval/act-augmented/1.1.1/pages/alt-not-an-alternative-filename-placeholder/case-09.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/alt-not-an-alternative-filename-placeholder/case-09.md",
+            "scenario": "Paired counterfactual repair of case-02. The page preserves the source’s realistic context and complexity: E-commerce product-card grid where each thumbnail depicts a visually distinct item (yellow rain jacket, green hiking boot, blue bottle, orange daypack) but every image's alt is its CMS storage slug, e.g. alt=\"prod-9921-thumb-2\". The only target-SC change is: Replaced each CMS storage slug with an accurate description of its unchanged product thumbnail. No unrelated target-SC condition was removed.",
+            "expected": "passed",
+            "mechanism": "Each product image retains its pixels, link, and surrounding card but now has an alt that identifies the item and visible colour/size rather than a prod-#### storage token.",
+            "primarySelector": "ul.grid li.card a.thumb img",
+            "whyAutomatedToolsMiss": "This hard-negative control is intentionally near-identical to failing case-02. Presence-only or static heuristics can easily treat the pair alike; the correct pass depends on verifying the precise repaired boundary: replaced each CMS storage slug with an accurate description of its unchanged product thumbnail.",
+            "citation": {
+              "doc": "eval/act-augmented/1.1.1/pages/alt-not-an-alternative-filename-placeholder/case-02.md",
+              "quote": "programming references that do not convey the information or function of the non-text content such as \"picture 1\", \"picture 2\" or \"0001\", \"0002\" or \"Intro#1\", \"Intro#2\"."
+            },
+            "balanceBatch": "initial-79-actlike-v2",
+            "hardNegativeType": "paired-specificity",
+            "pairedWith": "case-02"
+          },
+          {
+            "id": "case-10",
+            "file": "eval/act-augmented/1.1.1/pages/alt-not-an-alternative-filename-placeholder/case-10.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/alt-not-an-alternative-filename-placeholder/case-10.md",
+            "scenario": "Paired hard negative for source case-03: the same four-person clinic directory retains each generic `alt=\"photo\"`, while every portrait now references its corresponding visible staff-name heading through a valid `aria-labelledby` IDREF.",
+            "expected": "passed",
+            "mechanism": "Exact repair from source case-03: add IDs to the four existing person-name headings and point each image’s `aria-labelledby` to its heading. Accessible-name precedence makes the computed portrait names Dr. Aaron Whitfield, Dr. Lena Park, Maya Okonjo, and Sofia Reyes, so the literal placeholder-like alt token is not the resulting text alternative.",
+            "primarySelector": ".team img[aria-labelledby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "eval/act-augmented/1.1.1/pages/alt-not-an-alternative-filename-placeholder/case-03.md",
+              "quote": "placeholder text such as \" \" or \"spacer\" or \"image\" or \"picture\" etc that are put into the 'text alternative' location on images or pictures."
+            },
+            "balanceBatch": "initial-79-context-v3",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-03",
+            "gena11yExtraction": {
+              "extractor": "extract_visual_elements",
+              "targetSelector": ".team img[aria-labelledby]",
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload.",
+              "expectedTargetCount": 4
+            }
+          },
+          {
+            "id": "case-11",
+            "file": "eval/act-augmented/1.1.1/pages/alt-not-an-alternative-filename-placeholder/case-11.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/alt-not-an-alternative-filename-placeholder/case-11.md",
+            "scenario": "Paired hard negative for source case-01: the same news photograph retains the complete article and rendered scene while its filename alternative is replaced by an equivalent scene description.",
+            "expected": "passed",
+            "mechanism": "Replace only alt=\"DSC_0481.JPG\" with a concise alternative identifying the crowd, FAIR FARES and NO HIKE signs, and City Hall.",
+            "primarySelector": "article figure img[alt^=\"Crowd carrying\"]",
+            "whyAutomatedToolsMiss": "Both pair members have non-empty alt; correctness requires comparing the alternative with the rendered photograph.",
+            "citation": {
+              "doc": "wcag-techniques/failures/F30.html",
+              "quote": "If the text in the \"text alternative\" cannot be used in place of the non-text content without losing information or function then it fails because it is not, in fact, an alternative to the non-text content."
+            },
+            "balanceBatch": "gena11y-fp-50-v2",
+            "hardNegativeType": "accessibility-evidence-omitted",
+            "pairedWith": "case-01"
+          },
+          {
+            "id": "case-12",
+            "file": "eval/act-augmented/1.1.1/pages/alt-not-an-alternative-filename-placeholder/case-12.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/alt-not-an-alternative-filename-placeholder/case-12.md",
+            "scenario": "Paired accessibility-tree hard negative for source case-04: all three Chart.jpg attributes remain, while complete figure labels override them as computed image names.",
+            "expected": "passed",
+            "mechanism": "Give complete captions stable IDs and reference them from each image with aria-labelledby, which takes accessible-name precedence over the residual alt.",
+            "primarySelector": ".charts img[aria-labelledby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "wcag-techniques/general/G94.html",
+              "quote": "The text alternative should be able to substitute for the non-text content."
+            },
+            "balanceBatch": "initial-79-context-v3",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-04",
+            "gena11yExtraction": {
+              "extractor": "extract_visual_elements",
+              "targetSelector": ".charts img[aria-labelledby]",
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload.",
+              "expectedTargetCount": 3
+            }
+          },
+          {
+            "id": "case-13",
+            "file": "eval/act-augmented/1.1.1/pages/alt-not-an-alternative-filename-placeholder/case-13.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/alt-not-an-alternative-filename-placeholder/case-13.md",
+            "scenario": "PAIRED PASS for source case-03. Four staff portraits named by external staff headings.",
+            "expected": "passed",
+            "mechanism": "The computed portrait names are Dr. Aaron Whitfield, Dr. Lena Park, Maya Okonjo, and Sofia Reyes; none of those headings is included in GenA11y’s visual-element payload.",
+            "primarySelector": ".team img[aria-labelledby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "eval/act-augmented/1.1.1/pages/alt-not-an-alternative-filename-placeholder/case-03.md",
+              "quote": "placeholder text such as \" \" or \"spacer\" or \"image\" or \"picture\" etc that are put into the 'text alternative' location on images or pictures."
+            },
+            "balanceBatch": "initial-79-context-v3",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-03",
+            "gena11yExtraction": {
+              "extractor": "extract_visual_elements",
+              "targetSelector": ".team img[aria-labelledby]",
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload.",
+              "expectedTargetCount": 4
+            }
+          },
+          {
+            "id": "case-14",
+            "file": "eval/act-augmented/1.1.1/pages/alt-not-an-alternative-filename-placeholder/case-14.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/alt-not-an-alternative-filename-placeholder/case-14.md",
+            "scenario": "PAIRED PASS for source case-05. Tutorial screenshot named by external instructions.",
+            "expected": "passed",
+            "mechanism": "The screenshot’s computed name identifies the Security panel, Two-factor authentication row, and Turn on button; that referenced text is outside the isolated image payload.",
+            "primarySelector": "ol.steps figure img[aria-labelledby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "eval/act-augmented/1.1.1/pages/alt-not-an-alternative-filename-placeholder/case-05.md",
+              "quote": "If the text in the \"text alternative\" cannot be used in place of the non-text content without losing information or function then it fails because it is not, in fact, an alternative to the non-text content."
+            },
+            "balanceBatch": "initial-79-context-v3",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-05",
+            "gena11yExtraction": {
+              "extractor": "extract_visual_elements",
+              "targetSelector": "ol.steps figure img[aria-labelledby]",
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload.",
+              "expectedTargetCount": 1
+            }
+          },
+          {
+            "id": "case-15",
+            "file": "eval/act-augmented/1.1.1/pages/alt-not-an-alternative-filename-placeholder/case-15.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/alt-not-an-alternative-filename-placeholder/case-15.md",
+            "scenario": "PAIRED PASS for source case-01. News photograph named by its external visible caption.",
+            "expected": "passed",
+            "mechanism": "Chromium names the photograph from the visible protest caption, while GenA11y extracts only the image markup and opaque IDREF.",
+            "primarySelector": "article figure img[aria-labelledby=\"cx-048\"]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "eval/act-augmented/1.1.1/pages/alt-not-an-alternative-filename-placeholder/case-01.md",
+              "quote": "filenames that are not valid text alternatives in their own right such as \"Oct.jpg\" or \"Chart.jpg\" or \"sales\\oct\\top3.jpg\""
+            },
+            "balanceBatch": "context-extraction-26-v4",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-01",
+            "gena11yExtraction": {
+              "extractor": "extract_visual_elements",
+              "targetSelector": "article figure img[aria-labelledby=\"cx-048\"]",
+              "expectedTargetCount": 1,
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload."
+            }
+          },
+          {
+            "id": "case-16",
+            "file": "eval/act-augmented/1.1.1/pages/alt-not-an-alternative-filename-placeholder/case-16.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/alt-not-an-alternative-filename-placeholder/case-16.md",
+            "scenario": "PAIRED PASS for source case-02. Product thumbnails named by external product headings.",
+            "expected": "passed",
+            "mechanism": "Each thumbnail receives the full item, colour, and size name from a sibling card heading omitted from the image and parent-anchor extraction.",
+            "primarySelector": "a.thumb img[aria-labelledby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "eval/act-augmented/1.1.1/pages/alt-not-an-alternative-filename-placeholder/case-02.md",
+              "quote": "programming references that do not convey the information or function of the non-text content such as \"picture 1\", \"picture 2\" or \"0001\", \"0002\" or \"Intro#1\", \"Intro#2\"."
+            },
+            "balanceBatch": "context-extraction-26-v4",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-02",
+            "gena11yExtraction": {
+              "extractor": "extract_visual_elements",
+              "targetSelector": "a.thumb img[aria-labelledby]",
+              "expectedTargetCount": 4,
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload."
+            }
+          },
+          {
+            "id": "case-17",
+            "file": "eval/act-augmented/1.1.1/pages/alt-not-an-alternative-filename-placeholder/case-17.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/alt-not-an-alternative-filename-placeholder/case-17.md",
+            "scenario": "PAIRED PASS for source case-06. Recipe photograph named by its external Spanish caption.",
+            "expected": "passed",
+            "mechanism": "The computed name identifies the finished red pozole and garnishes; the isolated image payload contains only an opaque reference.",
+            "primarySelector": "article figure img[aria-labelledby=\"cx-053\"]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "eval/act-augmented/1.1.1/pages/alt-not-an-alternative-filename-placeholder/case-06.md",
+              "quote": "filenames that are not valid text alternatives in their own right such as \"Oct.jpg\" or \"Chart.jpg\" or \"sales\\oct\\top3.jpg\""
+            },
+            "balanceBatch": "context-extraction-26-v4",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-06",
+            "gena11yExtraction": {
+              "extractor": "extract_visual_elements",
+              "targetSelector": "article figure img[aria-labelledby=\"cx-053\"]",
+              "expectedTargetCount": 1,
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload."
+            }
           }
         ]
       },
@@ -1308,6 +1761,203 @@
               "doc": "wcag-techniques/general/G94.html",
               "quote": "This text alternative should not necessarily describe the non-text content.  It should serve the same purpose and convey the same information.  This may sometimes result in a text alternative that looks like a description of the non-text content.  But this would only be true if that was the best way to serve the same purpose."
             }
+          },
+          {
+            "id": "case-08",
+            "file": "eval/act-augmented/1.1.1/pages/context-and-function-dependent-equivalence/case-08.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/context-and-function-dependent-equivalence/case-08.md",
+            "scenario": "Paired counterfactual repair of case-01. The page preserves the source’s realistic context and complexity: News aggregator grid: a newspaper front-page thumbnail is the sole content of a link to the publication's homepage, but its alt accurately describes the cover PHOTO ('Front page photo of a flooded town square under grey skies') instead of naming the publication. A correctly-labelled card (alt='The Harbor Gazette') is included for contrast. The only target-SC change is: Changed only the linked front-page thumbnail alt so the link is named for its destination, The Riverside Courier. No unrelated target-SC condition was removed.",
+            "expected": "passed",
+            "mechanism": "Because the image remains the link’s sole content, its repaired alt now gives the link the purpose-correct accessible name “The Riverside Courier,” matching the publication homepage it opens.",
+            "primarySelector": ".grid .card:first-child a[href*=\"riversidecourier\"] > img[alt=\"The Riverside Courier\"]",
+            "whyAutomatedToolsMiss": "This hard-negative control is intentionally near-identical to failing case-01. Presence-only or static heuristics can easily treat the pair alike; the correct pass depends on verifying the precise repaired boundary: changed only the linked front-page thumbnail alt so the link is named for its destination, The Riverside Courier.",
+            "citation": {
+              "doc": "wcag-understanding/non-text-content.html",
+              "quote": "A thumbnail image of the front page of a newspaper links to the home page of the \"Smallville Times\". The text alternative says \"Smallville Times\"."
+            },
+            "balanceBatch": "initial-79-actlike-v2",
+            "hardNegativeType": "paired-specificity",
+            "pairedWith": "case-01"
+          },
+          {
+            "id": "case-09",
+            "file": "eval/act-augmented/1.1.1/pages/context-and-function-dependent-equivalence/case-09.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/context-and-function-dependent-equivalence/case-09.md",
+            "scenario": "Paired counterfactual repair of case-02. The page preserves the source’s realistic context and complexity: Public-library catalogue search: the submit control is an icon button whose magnifying-glass image has alt='magnifying glass' (names the depicted icon, not the action 'Search'). A second submit (arrow, alt='Go') is correctly purpose-named for contrast. The only target-SC change is: Changed only the search-control image alt from the depicted glyph “magnifying glass” to its action “Search”. No unrelated target-SC condition was removed.",
+            "expected": "passed",
+            "mechanism": "The button, icon, form, and behavior are unchanged. The image alt now names the control’s action, so the resulting button name is “Search” rather than a description of the glyph.",
+            "primarySelector": "form.search button[value=\"quick\"] > img[alt=\"Search\"]",
+            "whyAutomatedToolsMiss": "This hard-negative control is intentionally near-identical to failing case-02. Presence-only or static heuristics can easily treat the pair alike; the correct pass depends on verifying the precise repaired boundary: changed only the search-control image alt from the depicted glyph “magnifying glass” to its action “Search”.",
+            "citation": {
+              "doc": "wcag-techniques/general/G94.html",
+              "quote": "A search button uses an image of a magnifying glass.  The text alternative is \"search\" and not \"magnifying glass\"."
+            },
+            "balanceBatch": "initial-79-actlike-v2",
+            "hardNegativeType": "paired-specificity",
+            "pairedWith": "case-02"
+          },
+          {
+            "id": "case-10",
+            "file": "eval/act-augmented/1.1.1/pages/context-and-function-dependent-equivalence/case-10.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/context-and-function-dependent-equivalence/case-10.md",
+            "scenario": "Paired hard negative for source case-04: the same airline boarding-pass toolbar retains the printer object alt, while the print icon now references the existing visible Print caption outside the image node.",
+            "expected": "passed",
+            "mechanism": "Exact repair from source case-04: assign `id=\"print-label\"` to the existing caption and `aria-labelledby=\"print-label\"` to the printer image. The referenced caption supplies the image and enclosing button’s purpose as Print; keeping the direct caption `aria-hidden` prevents duplicated button naming.",
+            "primarySelector": "button.iconbtn img[aria-labelledby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "wcag-understanding/non-text-content.html",
+              "quote": "For non-text content that is a control or accepts user input, such as images used as submit buttons, image maps or complex animations, a name is provided to describe the purpose of the non-text content so that the person at least knows what the non-text content is and why it is there."
+            },
+            "balanceBatch": "initial-79-context-v3",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-04",
+            "gena11yExtraction": {
+              "extractor": "extract_visual_elements",
+              "targetSelector": "button.iconbtn img[aria-labelledby]",
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload.",
+              "expectedTargetCount": 1
+            }
+          },
+          {
+            "id": "case-11",
+            "file": "eval/act-augmented/1.1.1/pages/context-and-function-dependent-equivalence/case-11.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/context-and-function-dependent-equivalence/case-11.md",
+            "scenario": "Paired applicability-boundary hard negative for source case-01: the same NewsKiosk grid retains the linked Riverside front-page thumbnail, but the thumbnail is intentionally decorative and the link is named by separate text.",
+            "expected": "passed",
+            "mechanism": "Exact repair from source case-01: change only the first thumbnail to `alt=\"\"` and insert visually hidden `The Riverside Courier` text in the same link. The image is correctly absent from the accessibility tree, while its link has the destination-equivalent name.",
+            "primarySelector": "a[href=\"https://www.riversidecourier.example/\"] img[alt=\"\"]",
+            "whyAutomatedToolsMiss": "An image-only rule may classify the empty alt as suppression without evaluating applicability at the link level. Correctness requires observing that another child supplies the link’s proper destination name.",
+            "citation": {
+              "doc": "wcag-understanding/non-text-content.html",
+              "quote": "A thumbnail image of the front page of a newspaper links to the home page of the \"Smallville Times\". The text alternative says \"Smallville Times\"."
+            }
+          },
+          {
+            "id": "case-12",
+            "file": "eval/act-augmented/1.1.1/pages/context-and-function-dependent-equivalence/case-12.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/context-and-function-dependent-equivalence/case-12.md",
+            "scenario": "Paired hard negative for source case-02: the same library form and magnifying-glass icon remain while the button receives a purpose name and the icon becomes decorative.",
+            "expected": "passed",
+            "mechanism": "Add aria-label=\"Search catalogue\" to the quick-search submit button and change only its child image alt to empty.",
+            "primarySelector": "form.search button[value=\"quick\"][aria-label=\"Search catalogue\"]",
+            "whyAutomatedToolsMiss": "Both versions expose a named button; semantic judgment separates a depiction name from a name that states the control purpose.",
+            "citation": {
+              "doc": "wcag-techniques/general/G94.html",
+              "quote": "A search button uses an image of a magnifying glass.  The text alternative is \"search\" and not \"magnifying glass\"."
+            },
+            "balanceBatch": "gena11y-fp-50-v2",
+            "hardNegativeType": "accessibility-evidence-omitted",
+            "pairedWith": "case-02"
+          },
+          {
+            "id": "case-13",
+            "file": "eval/act-augmented/1.1.1/pages/context-and-function-dependent-equivalence/case-13.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/context-and-function-dependent-equivalence/case-13.md",
+            "scenario": "Paired redundant-graphic hard negative for source case-05: the same flag graphics remain visible while their parent links state the language-switch purpose.",
+            "expected": "passed",
+            "mechanism": "Make the Japanese, German, and Brazilian flag images decorative and name their links Switch to Japanese, Switch to German, and Switch to Brazilian Portuguese.",
+            "primarySelector": ".langswitch a[hreflang=\"ja\"][aria-label=\"Switch to Japanese\"]",
+            "whyAutomatedToolsMiss": "A visual model may fixate on country flags despite purpose-complete computed names on all affected links.",
+            "citation": {
+              "doc": "wcag-techniques/html/H30.html",
+              "quote": "When an image is the only content of a link, the text alternative for the image describes the unique function of the link."
+            },
+            "balanceBatch": "gena11y-fp-50-v2",
+            "hardNegativeType": "redundant-graphic-or-visual-cue",
+            "pairedWith": "case-05"
+          },
+          {
+            "id": "case-14",
+            "file": "eval/act-augmented/1.1.1/pages/context-and-function-dependent-equivalence/case-14.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/context-and-function-dependent-equivalence/case-14.md",
+            "scenario": "PAIRED PASS for source case-01. Linked newspaper thumbnail named by external publication text.",
+            "expected": "passed",
+            "mechanism": "The linked image computes to “The Riverside Courier”, but GenA11y’s image and parent-anchor extractions omit the following visible publication label.",
+            "primarySelector": ".card:first-child a img[aria-labelledby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "wcag-understanding/non-text-content.html",
+              "quote": "A thumbnail image of the front page of a newspaper links to the home page of the \"Smallville Times\". The text alternative says \"Smallville Times\"."
+            },
+            "balanceBatch": "initial-79-context-v3",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-01",
+            "gena11yExtraction": {
+              "extractor": "extract_visual_elements",
+              "targetSelector": ".card:first-child a img[aria-labelledby]",
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload.",
+              "expectedTargetCount": 1
+            }
+          },
+          {
+            "id": "case-15",
+            "file": "eval/act-augmented/1.1.1/pages/context-and-function-dependent-equivalence/case-15.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/context-and-function-dependent-equivalence/case-15.md",
+            "scenario": "PAIRED PASS for source case-05. Flag links named by external visible language labels.",
+            "expected": "passed",
+            "mechanism": "Japanese, German, and Brazilian Portuguese become the computed link purposes, while the text nodes supplying those purposes sit outside each extracted image and anchor.",
+            "primarySelector": ".langswitch a:not([hreflang=\"en\"]) img[aria-labelledby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "wcag-understanding/non-text-content.html",
+              "quote": "An image of the world that is used on a travel site as a link to the International Travel section has the text alternative \"International Travel\". The same image is used as a link on a university website with the text alternative \"International Campuses\"."
+            },
+            "balanceBatch": "initial-79-context-v3",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-05",
+            "gena11yExtraction": {
+              "extractor": "extract_visual_elements",
+              "targetSelector": ".langswitch a:not([hreflang=\"en\"]) img[aria-labelledby]",
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload.",
+              "expectedTargetCount": 3
+            }
+          },
+          {
+            "id": "case-17",
+            "file": "eval/act-augmented/1.1.1/pages/context-and-function-dependent-equivalence/case-17.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/context-and-function-dependent-equivalence/case-17.md",
+            "scenario": "PAIRED PASS for source case-03. Image-map areas named by an external room directory.",
+            "expected": "passed",
+            "mechanism": "Every area computes to a room and service name from the external directory, but each extracted area contains only its opaque IDREF.",
+            "primarySelector": "map[name=\"wingmap\"] area[aria-labelledby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "wcag-techniques/html/H24.html",
+              "quote": "Check that the text alternative specified by the alt attribute serves the same purpose as the part of image map image referenced by the area element of the image map."
+            },
+            "balanceBatch": "context-extraction-26-v4",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-03",
+            "gena11yExtraction": {
+              "extractor": "extract_visual_elements",
+              "targetSelector": "map[name=\"wingmap\"] area[aria-labelledby]",
+              "expectedTargetCount": 5,
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload."
+            }
+          },
+          {
+            "id": "case-18",
+            "file": "eval/act-augmented/1.1.1/pages/context-and-function-dependent-equivalence/case-18.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/context-and-function-dependent-equivalence/case-18.md",
+            "scenario": "PAIRED PASS for source case-06. Order-action icons named by visible sibling labels.",
+            "expected": "passed",
+            "mechanism": "Cancel order and Track driver are exposed in the AX names but omitted from each isolated SVG payload.",
+            "primarySelector": "button.ctl svg[aria-labelledby^=\"cx-\"]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "wcag-understanding/non-text-content.html",
+              "quote": "For non-text content that is a control or accepts user input, such as images used as submit buttons, image maps or complex animations, a name is provided to describe the purpose of the non-text content so that the person at least knows what the non-text content is and why it is there."
+            },
+            "balanceBatch": "context-extraction-26-v4",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-06",
+            "gena11yExtraction": {
+              "extractor": "extract_visual_elements",
+              "targetSelector": "button.ctl svg[aria-labelledby^=\"cx-\"]",
+              "expectedTargetCount": 2,
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload."
+            }
           }
         ]
       },
@@ -1524,6 +2174,201 @@
             "citation": {
               "doc": "WCAG Techniques — F67 (wcag-techniques/failures/F67.html)",
               "quote": "Check that the long description serves the same purpose or presents the same information as the non-text content."
+            }
+          },
+          {
+            "id": "case-08",
+            "file": "eval/act-augmented/1.1.1/pages/complex-image-long-description-incomplete/case-08.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/complex-image-long-description-incomplete/case-08.md",
+            "scenario": "Paired counterfactual repair of case-01. The page preserves the source’s realistic context and complexity: Winter-Games spectator guide with an inline-SVG street map of five venues. The figcaption names each venue and its sport but states no addresses, streets, distances, or spatial relationships — the verbatim F67 Olympic-venue-map failure transposed to a self-contained page. The only target-SC change is: Completed the existing figcaption with the map’s street, river, station, direction, and relative-location information. No unrelated target-SC condition was removed.",
+            "expected": "passed",
+            "mechanism": "The caption still lists sports and venues and now also states each venue’s direction from Frostvale Station, relationship to Birch Street/Summit Boulevard/Vale River, and the rail line’s route. The long description now conveys the spatial message of the map.",
+            "primarySelector": "figure > svg[role=\"img\"][aria-labelledby=\"mapTitle mapDesc\"]",
+            "whyAutomatedToolsMiss": "This hard-negative control is intentionally near-identical to failing case-01. Presence-only or static heuristics can easily treat the pair alike; the correct pass depends on verifying the precise repaired boundary: completed the existing figcaption with the map’s street, river, station, direction, and relative-location information.",
+            "citation": {
+              "doc": "WCAG Techniques — F67 (wcag-techniques/failures/F67.html)",
+              "quote": "While this description provides useful information, it does not convey the same information as the image because it provides no specific location information such as the address or the distance of each location from some fixed point."
+            },
+            "balanceBatch": "initial-79-actlike-v2",
+            "hardNegativeType": "paired-specificity",
+            "pairedWith": "case-01"
+          },
+          {
+            "id": "case-09",
+            "file": "eval/act-augmented/1.1.1/pages/complex-image-long-description-incomplete/case-09.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/complex-image-long-description-incomplete/case-09.md",
+            "scenario": "Paired counterfactual repair of case-02. The page preserves the source’s realistic context and complexity: Finance dashboard with a four-bar quarterly-revenue chart showing three quarters of growth then a sharp red-highlighted Q4 collapse annotated '↓ port strike'. The aria-describedby caption recites the four dollar figures but never states the trend, which bar is the outlier, or the on-chart cause. The only target-SC change is: Completed the existing chart description with the encoded trend, Q4 outlier, and port-strike cause. No unrelated target-SC condition was removed.",
+            "expected": "passed",
+            "mechanism": "The description retains all four revenue values and now explicitly says revenue rose through Q3, dropped $36M in Q4, identifies the red Q4 bar as the outlier, and gives the chart’s port-strike explanation.",
+            "primarySelector": "svg[role=\"img\"][aria-describedby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "WCAG Techniques — G92 (wcag-techniques/general/G92.html)",
+              "quote": "The long description would read \"Bar Chart showing sales for October. There are 6 salespersons. Maria is highest with 349 units. Frances is next with 301. ... The primary use of the chart is to show leaders, so the description is in sales order.\""
+            },
+            "balanceBatch": "initial-79-context-v3",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-02",
+            "gena11yExtraction": {
+              "extractor": "extract_visual_elements",
+              "targetSelector": "svg[role=\"img\"][aria-describedby]",
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload.",
+              "expectedTargetCount": 1
+            }
+          },
+          {
+            "id": "case-10",
+            "file": "eval/act-augmented/1.1.1/pages/complex-image-long-description-incomplete/case-10.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/complex-image-long-description-incomplete/case-10.md",
+            "scenario": "Paired hard negative for source case-03: the original loan-decision flowchart is unchanged and its existing description now includes every directed branch and outcome.",
+            "expected": "passed",
+            "mechanism": "Extend the figcaption to state the score-under-660 decline path and both DTI branches after a score of 660 or above; correct the source's off-by-one five-stages wording to six nodes as a documented confound fix.",
+            "primarySelector": "svg[role=\"img\"][aria-labelledby=\"flowName\"]",
+            "whyAutomatedToolsMiss": "Both versions provide a name and description; the boundary requires comparing prose with the flowchart arrows and branch labels.",
+            "citation": {
+              "doc": "wcag-techniques/failures/F67.html",
+              "quote": "Without a long description that provides complete information, a person may not be able to comprehend or interact with the web page."
+            },
+            "balanceBatch": "gena11y-fp-50-v2",
+            "hardNegativeType": "accessibility-evidence-omitted",
+            "pairedWith": "case-03"
+          },
+          {
+            "id": "case-11",
+            "file": "eval/act-augmented/1.1.1/pages/complex-image-long-description-incomplete/case-11.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/complex-image-long-description-incomplete/case-11.md",
+            "scenario": "PAIRED PASS for source case-03. Loan flowchart completed by an external branch description.",
+            "expected": "passed",
+            "mechanism": "The accessibility tree exposes both branch decisions and outcomes through aria-describedby, while GenA11y’s SVG-only payload omits that external description.",
+            "primarySelector": "figure > svg[role=\"img\"][aria-describedby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "WCAG Techniques — F67 (wcag-techniques/failures/F67.html)",
+              "quote": "Without a long description that provides complete information, a person may not be able to comprehend or interact with the web page."
+            },
+            "balanceBatch": "initial-79-context-v3",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-03",
+            "gena11yExtraction": {
+              "extractor": "extract_visual_elements",
+              "targetSelector": "figure > svg[role=\"img\"][aria-describedby]",
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload.",
+              "expectedTargetCount": 1
+            }
+          },
+          {
+            "id": "case-12",
+            "file": "eval/act-augmented/1.1.1/pages/complex-image-long-description-incomplete/case-12.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/complex-image-long-description-incomplete/case-12.md",
+            "scenario": "PAIRED PASS for source case-01. Venue map described by complete external spatial directions.",
+            "expected": "passed",
+            "mechanism": "The AX description exposes venue positions, streets, river, rail line, and travel relationships; the SVG payload omits the external prose.",
+            "primarySelector": "figure > svg[role=\"img\"][aria-describedby=\"cx-063\"]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "WCAG Techniques — F67 (wcag-techniques/failures/F67.html)",
+              "quote": "While this description provides useful information, it does not convey the same information as the image because it provides no specific location information such as the address or the distance of each location from some fixed point."
+            },
+            "balanceBatch": "context-extraction-26-v4",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-01",
+            "gena11yExtraction": {
+              "extractor": "extract_visual_elements",
+              "targetSelector": "figure > svg[role=\"img\"][aria-describedby=\"cx-063\"]",
+              "expectedTargetCount": 1,
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload."
+            }
+          },
+          {
+            "id": "case-13",
+            "file": "eval/act-augmented/1.1.1/pages/complex-image-long-description-incomplete/case-13.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/complex-image-long-description-incomplete/case-13.md",
+            "scenario": "PAIRED PASS for source case-04. Metro map described by external line and interchange details.",
+            "expected": "passed",
+            "mechanism": "The AX description exposes all four line pairs and interchange stations, while the image payload contains only the opaque IDREF.",
+            "primarySelector": "img#metroMap[aria-describedby=\"cx-064\"]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "WCAG Techniques — G73 (wcag-techniques/general/G73.html)",
+              "quote": "check that the long description conveys the same information as the non-text content"
+            },
+            "balanceBatch": "context-extraction-26-v4",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-04",
+            "gena11yExtraction": {
+              "extractor": "extract_visual_elements",
+              "targetSelector": "img#metroMap[aria-describedby=\"cx-064\"]",
+              "expectedTargetCount": 1,
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload."
+            }
+          },
+          {
+            "id": "case-14",
+            "file": "eval/act-augmented/1.1.1/pages/complex-image-long-description-incomplete/case-14.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/complex-image-long-description-incomplete/case-14.md",
+            "scenario": "PAIRED PASS for source case-05. Clinical scatter plot described by external findings.",
+            "expected": "passed",
+            "mechanism": "Chromium exposes the positive correlation and seven-participant slow-metaboliser cluster; GenA11y’s SVG payload omits the caption.",
+            "primarySelector": "figure > svg[role=\"img\"][aria-describedby=\"cx-065\"]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "WCAG Techniques — G95 (wcag-techniques/general/G95.html)",
+              "quote": "this technique is used to provide a short text alternative that briefly describes the non-text content. (A long text alternative is then provided using another technique such that the combination serves the same purpose and presents the same information as the original non-text content.)"
+            },
+            "balanceBatch": "context-extraction-26-v4",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-05",
+            "gena11yExtraction": {
+              "extractor": "extract_visual_elements",
+              "targetSelector": "figure > svg[role=\"img\"][aria-describedby=\"cx-065\"]",
+              "expectedTargetCount": 1,
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload."
+            }
+          },
+          {
+            "id": "case-15",
+            "file": "eval/act-augmented/1.1.1/pages/complex-image-long-description-incomplete/case-15.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/complex-image-long-description-incomplete/case-15.md",
+            "scenario": "PAIRED PASS for source case-07. Organisation chart described by external reporting relationships.",
+            "expected": "passed",
+            "mechanism": "The AX description supplies the hierarchy while the isolated SVG payload contains only the chart title and opaque IDREF.",
+            "primarySelector": "figure > svg[role=\"img\"][aria-describedby=\"cx-066\"]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "WCAG Techniques — F67 (wcag-techniques/failures/F67.html)",
+              "quote": "Check that the long description serves the same purpose or presents the same information as the non-text content."
+            },
+            "balanceBatch": "context-extraction-26-v4",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-07",
+            "gena11yExtraction": {
+              "extractor": "extract_visual_elements",
+              "targetSelector": "figure > svg[role=\"img\"][aria-describedby=\"cx-066\"]",
+              "expectedTargetCount": 1,
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload."
+            }
+          },
+          {
+            "id": "case-16",
+            "file": "eval/act-augmented/1.1.1/pages/complex-image-long-description-incomplete/case-16.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/complex-image-long-description-incomplete/case-16.md",
+            "scenario": "PAIRED PASS for source case-04. Metro map described by an external structured interchange guide.",
+            "expected": "passed",
+            "mechanism": "The AX description exposes line termini and all four interchange pairs from a remote guide, while the extracted raster-image markup contains only the opaque IDREF.",
+            "primarySelector": "img#metroMap[aria-describedby=\"cx-054\"]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "WCAG Techniques — G73 (wcag-techniques/general/G73.html)",
+              "quote": "check that the long description conveys the same information as the non-text content"
+            },
+            "balanceBatch": "context-extraction-26-v4",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-04",
+            "gena11yExtraction": {
+              "extractor": "extract_visual_elements",
+              "targetSelector": "img#metroMap[aria-describedby=\"cx-054\"]",
+              "expectedTargetCount": 1,
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload."
             }
           }
         ]
@@ -1745,6 +2590,103 @@
               "doc": "wcag-techniques/general/G94.html",
               "quote": "When non-text content contains words that are important to understanding the content, the alt text should include those words."
             }
+          },
+          {
+            "id": "case-08",
+            "file": "eval/act-augmented/1.1.1/pages/image-of-text-alt-omits-the-text/case-08.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/image-of-text-alt-omits-the-text/case-08.md",
+            "scenario": "Paired counterfactual repair of case-01. The page preserves the source’s realistic context and complexity: Marketing-email promo banner rendered as a flattened image (inline-SVG data: URI). Pixels read 'SUMMER SALE / 20% OFF EVERYTHING / Use code SAVE20 at checkout / Ends Sunday, August 31'. alt='Summer sale promotional banner' truthfully labels the image but reproduces none of the load-bearing words; a screen-reader user can never enter SAVE20. The only target-SC change is: Replaced only the generic banner alt with all meaningful text visible in the unchanged promotional image. No unrelated target-SC condition was removed.",
+            "expected": "passed",
+            "mechanism": "The alt now reproduces SUMMER SALE, 20% off everything, code SAVE20, checkout instruction, and the August 31 deadline. The image’s load-bearing text has a complete text equivalent.",
+            "primarySelector": "img.hero[alt^=\"Summer Sale\"]",
+            "whyAutomatedToolsMiss": "This hard-negative control is intentionally near-identical to failing case-01. Presence-only or static heuristics can easily treat the pair alike; the correct pass depends on verifying the precise repaired boundary: replaced only the generic banner alt with all meaningful text visible in the unchanged promotional image.",
+            "citation": {
+              "doc": "refs/trusted-tester/sc-1.1.1-non-text-content.md",
+              "quote": "If the image is of **meaningful text**, ANDI Output must contain the **same text**."
+            },
+            "balanceBatch": "initial-79-actlike-v2",
+            "hardNegativeType": "paired-specificity",
+            "pairedWith": "case-01"
+          },
+          {
+            "id": "case-09",
+            "file": "eval/act-augmented/1.1.1/pages/image-of-text-alt-omits-the-text/case-09.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/image-of-text-alt-omits-the-text/case-09.md",
+            "scenario": "Paired counterfactual repair of case-02. The page preserves the source’s realistic context and complexity: Long-form news article drops in a stylised pull-quote baked into an image (inline-SVG data: URI): 'The future is already here — it's just not very evenly distributed.' — William Gibson, 1993. alt='Decorative pull-quote graphic in the article' labels the image; surrounding prose never restates the quote, so AT users lose both the quotation and its attribution. The only target-SC change is: Replaced only the generic pull-quote alt with the complete quotation and attribution visible in the unchanged image. No unrelated target-SC condition was removed.",
+            "expected": "passed",
+            "mechanism": "The alt now contains the full William Gibson quotation and the 1993 attribution, while the rendered image and article remain unchanged.",
+            "primarySelector": "img.pullquote[alt^=\"The future is already here\"]",
+            "whyAutomatedToolsMiss": "This hard-negative control is intentionally near-identical to failing case-02. Presence-only or static heuristics can easily treat the pair alike; the correct pass depends on verifying the precise repaired boundary: replaced only the generic pull-quote alt with the complete quotation and attribution visible in the unchanged image.",
+            "citation": {
+              "doc": "wcag-techniques/general/G94.html",
+              "quote": "When non-text content contains words that are important to understanding the content, the alt text should include those words."
+            },
+            "balanceBatch": "initial-79-actlike-v2",
+            "hardNegativeType": "paired-specificity",
+            "pairedWith": "case-02"
+          },
+          {
+            "id": "case-10",
+            "file": "eval/act-augmented/1.1.1/pages/image-of-text-alt-omits-the-text/case-10.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/image-of-text-alt-omits-the-text/case-10.md",
+            "scenario": "Paired hard negative for source case-03: the award SVG and page remain unchanged while its generic title is replaced by a transcription of all meaningful certificate text.",
+            "expected": "passed",
+            "mechanism": "Replace only the SVG title with Employee of the Quarter, Dana Okafor, Q2 2026, Customer Success, and the presenting-team attribution.",
+            "primarySelector": ".card svg[role=\"img\"]",
+            "whyAutomatedToolsMiss": "Both pair members have non-empty SVG names; a human must compare the computed name with the rendered certificate words.",
+            "citation": {
+              "doc": "wcag-techniques/general/G94.html",
+              "quote": "When non-text content contains words that are important to understanding the content, the alt text should include those words."
+            },
+            "balanceBatch": "gena11y-fp-50-v2",
+            "hardNegativeType": "accessibility-evidence-omitted",
+            "pairedWith": "case-03"
+          },
+          {
+            "id": "case-11",
+            "file": "eval/act-augmented/1.1.1/pages/image-of-text-alt-omits-the-text/case-11.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/image-of-text-alt-omits-the-text/case-11.md",
+            "scenario": "PAIRED PASS for source case-01. Promotion image named by a complete external transcript.",
+            "expected": "passed",
+            "mechanism": "The accessible image name contains the offer, code, and deadline, but GenA11y sends only the image element and omits the transcript paragraph.",
+            "primarySelector": "img.hero[aria-labelledby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "refs/trusted-tester/sc-1.1.1-non-text-content.md",
+              "quote": "If the image is of **meaningful text**, ANDI Output must contain the **same text**."
+            },
+            "balanceBatch": "initial-79-context-v3",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-01",
+            "gena11yExtraction": {
+              "extractor": "extract_visual_elements",
+              "targetSelector": "img.hero[aria-labelledby]",
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload.",
+              "expectedTargetCount": 1
+            }
+          },
+          {
+            "id": "case-12",
+            "file": "eval/act-augmented/1.1.1/pages/image-of-text-alt-omits-the-text/case-12.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/image-of-text-alt-omits-the-text/case-12.md",
+            "scenario": "PAIRED PASS for source case-02. Pull-quote image named by an external blockquote.",
+            "expected": "passed",
+            "mechanism": "The image’s computed name contains the full Gibson quotation and attribution, while the blockquote is not present in GenA11y’s visual-element extraction.",
+            "primarySelector": "img.pullquote[aria-labelledby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "wcag-techniques/general/G94.html",
+              "quote": "When non-text content contains words that are important to understanding the content, the alt text should include those words."
+            },
+            "balanceBatch": "initial-79-context-v3",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-02",
+            "gena11yExtraction": {
+              "extractor": "extract_visual_elements",
+              "targetSelector": "img.pullquote[aria-labelledby]",
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload.",
+              "expectedTargetCount": 1
+            }
           }
         ]
       },
@@ -1959,6 +2901,40 @@
               "doc": "WCAG Technique F71 (wcag-techniques/failures/F71.html)",
               "quote": "If look-alike glyphs are used, and there is not a text alternative for any range of text that uses look-alike glyphs, then the content does not meet the Success Criterion."
             }
+          },
+          {
+            "id": "case-08",
+            "file": "eval/act-augmented/1.1.1/pages/text-lookalike-glyph-substitution/case-08.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/text-lookalike-glyph-substitution/case-08.md",
+            "scenario": "Paired counterfactual repair of case-01. The page preserves the source’s realistic context and complexity: Recipe site marketing hero <h1> 'Anyone can cook tonight.' where the word 'cook' is the verbatim F71 example string (U+03F2 Greek lunate sigma, U+043E Cyrillic o, U+03BF Greek o, U+006B Latin k); only the final k is Latin, no text alternative. The only target-SC change is: Replaced only the mixed Greek/Cyrillic look-alike code points with the intended Latin text “cook”. No unrelated target-SC condition was removed.",
+            "expected": "passed",
+            "mechanism": "The hero still reads and looks “Anyone can cook tonight,” but the verb is now genuine Latin text. English TTS receives the intended word directly rather than mixed-script confusables.",
+            "primarySelector": "section.hero > h1 > span.verb",
+            "whyAutomatedToolsMiss": "This hard-negative control is intentionally near-identical to failing case-01. Presence-only or static heuristics can easily treat the pair alike; the correct pass depends on verifying the precise repaired boundary: replaced only the mixed Greek/Cyrillic look-alike code points with the intended Latin text “cook”.",
+            "citation": {
+              "doc": "WCAG Technique F71 (wcag-techniques/failures/F71.html)",
+              "quote": "The following word looks, in browsers with appropriate font support, like the English word \"cook\", yet is composed of the string U+03f2 U+043E U+03BF U+006B, only one of which is a letter from the Western alphabet. This word will not be processed meaningfully, and a text alternative is not provided."
+            },
+            "balanceBatch": "initial-79-actlike-v2",
+            "hardNegativeType": "paired-specificity",
+            "pairedWith": "case-01"
+          },
+          {
+            "id": "case-09",
+            "file": "eval/act-augmented/1.1.1/pages/text-lookalike-glyph-substitution/case-09.html",
+            "docFile": "eval/act-augmented/1.1.1/pages/text-lookalike-glyph-substitution/case-09.md",
+            "scenario": "Paired counterfactual repair of case-02. The page preserves the source’s realistic context and complexity: E-commerce checkout trust copy 'You'll be redirected to PayPal to approve $2,040.00.' where the brand name 'PayPal' is the confusable string U+0420 U+0430 U+0443 U+0420 U+0430 U+006C (five Cyrillic look-alikes plus a Latin l), with no real-text brand label. The only target-SC change is: Replaced only the two Cyrillic look-alike brand strings with genuine Latin “PayPal” text. No unrelated target-SC condition was removed.",
+            "expected": "passed",
+            "mechanism": "The payment badge and trust sentence keep the same visible brand and checkout context, but both now use genuine Latin PayPal text, so TTS and text processing receive the intended processor name.",
+            "primarySelector": "p.note > span.brand",
+            "whyAutomatedToolsMiss": "This hard-negative control is intentionally near-identical to failing case-02. Presence-only or static heuristics can easily treat the pair alike; the correct pass depends on verifying the precise repaired boundary: replaced only the two Cyrillic look-alike brand strings with genuine Latin “PayPal” text.",
+            "citation": {
+              "doc": "WCAG Technique F71 (wcag-techniques/failures/F71.html)",
+              "quote": "While the glyphs for some of these characters may look like the glyphs for other characters in visual presentation, they are not processed the same by text-to-speech tools."
+            },
+            "balanceBatch": "initial-79-actlike-v2",
+            "hardNegativeType": "paired-specificity",
+            "pairedWith": "case-02"
           }
         ]
       },

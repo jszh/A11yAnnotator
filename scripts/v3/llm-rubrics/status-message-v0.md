@@ -2,6 +2,7 @@
 id: status-message-v0
 sc: 4.1.3
 skill: dynamic-announcement
+toolMode: required
 visionEvidence: [viewport]
 ---
 

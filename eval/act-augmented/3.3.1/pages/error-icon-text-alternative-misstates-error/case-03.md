@@ -14,6 +14,8 @@ A nonprofit one-time-gift form ("Riverkeeper Trust"). Single online gifts are ca
 ## Element / selector carrying the issue
 `span#amount-icon[role="img"]` (`aria-label="error_outline"`) beside `input#amount` (value `25000`, `aria-invalid="true"`), which exceeds the stated $10,000 online maximum.
 
+The amount input has the stable non-target label `aria-label="Gift amount in US dollars"` in both this failed source and its paired pass. This prevents an unrelated unlabeled-control defect without repairing the inaccurate error icon.
+
 ## Exact accessibility mechanism (what AT experiences, why it fails)
 - The glyph exposes a valid `role=img` with a non-empty accessible name, associated to the amount field via `aria-describedby`.
 - A screen-reader user hears "error_outline" — a glyph identifier. It conveys neither the cause (amount exceeds the $10,000 single-gift maximum) nor even that this concerns the amount field. It is an appearance/identity string, not an error description.

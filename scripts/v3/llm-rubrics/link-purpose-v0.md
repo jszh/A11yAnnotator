@@ -27,6 +27,17 @@ are only file formats, sitting under a styled paragraph that names the subject �
 a *preceding sibling*, not an ancestor of each link, so the purpose is NOT determinable in context ⇒ **barrier**.
 Do not credit a non-enclosing heading/paragraph as if it disambiguated the link.
 
+**BUT `aria-labelledby` IS NOT AN EXCEPTION TO THAT RULE — IT NEVER REACHES IT.** When a link carries
+`aria-labelledby` (or `aria-label`), the referenced text is folded into the link's OWN ACCESSIBLE NAME before
+any question of context arises. There is nothing to decide about whether the referenced element "encloses" the
+link, and the fact that the referenced id sits elsewhere in the document is the normal, intended way the
+attribute works — the name you were handed already contains that text. So read the accessible name you were
+given: if it is `"<format word> <subject>"` rather than the bare format word, the purpose is determinable from
+the NAME ALONE ⇒ **NOT REPRODUCED**, and the enclosing-context test above is simply not engaged. Judging such a
+link on its visible text while ignoring its resolved name is the mirror-image error of the false-clear this
+paragraph warns about, and it is easy to make precisely because the two shapes look IDENTICAL on screen: one
+list of format-word links is fixed and the other is not, and only the accessible name tells them apart.
+
 **OPERATIONAL TEST (apply literally).** The enclosing context is the text INSIDE THE SAME paragraph / list-item /
 table-cell element that CONTAINS the link. If the link sits alone in its own block (e.g. `<p><a>…</a></p>`, or a
 table cell holding only the link) and the descriptive text is in a SEPARATE, preceding paragraph / sibling cell,
@@ -152,8 +163,16 @@ present.
 with their destinations (needed to judge the identical-names mode).
 
 **WCAG soundness caveats:**
-- Context counts: a generic name disambiguated by its programmatic context (same list item, heading) is
-  NOT a 2.4.4 failure — only flag when neither name nor context resolves the purpose.
+- Context counts: a generic name disambiguated by its programmatic context — the same paragraph, list item,
+  or table cell (or that cell's associated header) — is NOT a 2.4.4 failure. Only flag when neither the name
+  nor that context resolves the purpose.
+  **A heading counts only when it ENCLOSES the link (`<h2><a>…</a></h2>`) or is programmatically associated
+  with it; a merely PRECEDING heading does not.** WCAG's definition of programmatically-determined link
+  context lists the paragraph, list item, table cell and table header cell — not the preceding heading. The
+  technique that does describe preceding-heading context (H80) is **advisory** for this criterion, not
+  sufficient: it is good practice that does not by itself establish conformance, so it cannot license a clear.
+  An earlier wording of this line said "(same list item, heading)" and contradicted the enclosing-context rule
+  stated at the top of this rubric; the top of the rubric was the correct half.
 - **A SELF-REFERENTIAL phrase whose referent the enclosing context fixes is determinable — do NOT demand the
   name restate the subject. This caveat takes PRECEDENCE over the specificity/governance bars above (those
   govern bare format/action words, not resolvable references).** "See the description of this product",

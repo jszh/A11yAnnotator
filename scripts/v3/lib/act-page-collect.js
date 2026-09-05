@@ -854,6 +854,9 @@ async function collectActPage(page, opts = {}) {
       // C8 small-signal predicates (parity with eval-page.js / the ACT inline collector).
       const tabindexEffective = (() => { const ti = el.getAttribute('tabindex'); return ti !== null ? +ti : (['a', 'button', 'input', 'select', 'textarea', 'summary'].includes(tag) && !el.disabled ? 0 : null); })();
       let _ownTxt = ''; for (const _n of childNodesOf(el)) if (_n.nodeType === 3) _ownTxt += _n.textContent;
+      // Direct text only: this is the shared 1.3.3 applicability input. Descendant text is deliberately
+      // excluded so one sensory instruction does not create duplicate obligations on every wrapper.
+      const ownText = _ownTxt.replace(/\s+/g, ' ').trim().slice(0, 400);
       // CONFUSABLE / NON-TEXT GLYPH TEXT. Two defects fixed here (residual RCA S6):
       //  · the census covered the Private Use Areas but omitted U+1D400–U+1D7FF, Mathematical Alphanumeric
       //    Symbols — the "𝗳𝗮𝗻𝗰𝘆 𝘁𝗲𝘅𝘁" block, which is how styled-text substitution is actually written and
@@ -979,6 +982,7 @@ async function collectActPage(page, opts = {}) {
         matchesTarget: matchesTarget(el), // #11 fix — see scorer precision comment above
         // (axName below is computed by labelledText(el, sampledRole) — name-from-contents gated by role)
         text,
+        ownText,
         hasText: text.length > 0,
         inactiveText, // 1.4.3 contrast exemption (B): part of/labels an inactive component → no contrast obligation
         sectionHeading, // 2.4.6 (A): nearest preceding VISIBLE section heading (null if off-screen/none) — disambiguation context
@@ -1118,6 +1122,8 @@ async function collectActPage(page, opts = {}) {
         const type = el.getAttribute('type') || '';
         const href = el.getAttribute('href') || '';
         const text = textOf(el).slice(0, 240);
+        let ownText = ''; for (const n of el.childNodes) if (n.nodeType === 3) ownText += n.textContent;
+        ownText = ownText.replace(/\s+/g, ' ').trim().slice(0, 400);
         const sampledRole = roleAttr || nativeRoleInPage(tag, type, href);
         const focusable = focusableByMarkup(el);
         const isFormField = fieldLike(el);
@@ -1131,7 +1137,7 @@ async function collectActPage(page, opts = {}) {
         els.push({
           xpath: prefix + xpathOfInDoc(el, fdoc), inFrame: true,
           matchesTarget: matchesTarget(el), // #11 fix — el.matches() works identically for an in-frame element
-          text, hasText: text.length > 0, focusable,
+          text, ownText, hasText: text.length > 0, focusable,
           isInteractive: focusable || /^(button|link|checkbox|switch|tab|menuitem|combobox|radio|slider)$/.test(sampledRole),
           isFormField, isImage, ariaAttrs: el.getAttributeNames().filter((n) => n.indexOf('aria-') === 0),
           roleAttr, sampledRole, axRole: sampledRole, axName: labelledText(el, sampledRole), tag, type,
@@ -1600,6 +1606,13 @@ async function collectActPage(page, opts = {}) {
       }).catch(() => null);
     } catch (e) { axeData = null; }
   }
+
+  // 1.3.3 SENSORY-CHARACTERISTICS applicability. The specialized ACT-rest evaluator used to be the only
+  // caller that attached this fact, which meant production and saved-page runs could never enumerate the
+  // existing sensory-characteristics obligation/rubric. Apply the same requirement-sourced lexicon here,
+  // once in Node, over each collected element's OWN direct text. Applicability only; the LLM rubric decides
+  // whether the reference identifies content and whether a non-sensory alternative is present.
+  require('./sensory-lexicon.js').applySensoryHints(data.elements || []);
 
   // 1.4.1 COLOUR-REFERENCE pre-filter (residual RCA S6). Runs in NODE over each element's OWN text, exactly
   // like the 1.3.3 sensory pre-filter it is modelled on. The 1.3.3 lexicon deliberately EXCLUDES colour words

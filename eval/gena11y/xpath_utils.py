@@ -2,8 +2,13 @@
 
 # Injects a positional XPath (e.g., /html/body/div[1]/a[2]) for any DOM element.
 # Uses tag-name-scoped sibling counting (same as our v3 harness convention).
-_GET_XPATH_JS = """
-(function getXPath(el) {
+# NOTE: the `return` and the same-line IIFE are both load-bearing. Selenium wraps the script in a
+# function body, so a script without `return` yields None; and because the IIFE used to start on the
+# NEXT line, even a naive `'return ' + JS` prefix hit automatic-semicolon-insertion and still yielded
+# None. get_element_xpath() then swallowed it as '' and format_with_xpath() dropped the [path: ...]
+# label for EVERY element — so GenA11y silently emitted no XPaths at all, on every SC, in every run
+# before this fix, despite its system prompt telling the model to echo them back.
+_GET_XPATH_JS = """return (function getXPath(el) {
     if (!el || el.nodeType !== 1) return '';
     var parts = [];
     while (el && el.nodeType === 1) {

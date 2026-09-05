@@ -1,0 +1,316 @@
+/* client.css - the participant's shell.
+ *
+ * The chrome follows Material 3: a top app bar, filled and outlined buttons
+ * with state layers, a dialog with a 28px radius, radio buttons and an outlined
+ * text field. It is written out rather than pulled from a CDN because the study
+ * serves its own origin and makes no external requests, and it uses the system
+ * font stack rather than Roboto for the same reason.
+ *
+ * Everything visually interesting on this screen should be the page under
+ * evaluation, so the chrome stays quiet and out of the way.
+ */
+
+:root {
+  /* Material 3 tokens, light scheme, one seed colour.
+   *
+   * Light rather than dark on purpose: the participant is judging how a page
+   * looks, and a dark shell wrapped around a light snapshot changes how its
+   * contrast reads. The chrome should be the least interesting thing on the
+   * screen and should not be a second visual environment. */
+  --md-primary: #17457f;
+  --md-on-primary: #ffffff;
+  --md-primary-container: #d7e3ff;
+  --md-on-primary-container: #062e60;
+  --md-surface: #fbfcfe;
+  --md-surface-container: #eff2f7;
+  --md-surface-container-high: #e3e8f0;
+  --md-on-surface: #1a1c1f;
+  --md-on-surface-variant: #444a52;
+  --md-outline: #737a83;
+  --md-outline-variant: #c5cad2;
+  --md-error: #b3261e;
+  --md-ok: #146c43;
+  /* The one control that is unavailable but still operable - Continue, before
+     anything is chosen. Its own pair rather than a faded copy of the filled
+     button: see the note on [aria-disabled] below. */
+  --md-unavailable: #d3dae4;
+  --md-on-unavailable: #444a52;
+
+  --md-shape-sm: 8px;
+  --md-shape-md: 12px;
+  --md-shape-xl: 28px;
+  --md-shape-full: 999px;
+
+  /* The focus ring has to carry on a light surface, so it is a strong blue
+     rather than the yellow that worked against the old dark chrome. */
+  --focus: #0b57d0;
+}
+
+* { box-sizing: border-box; }
+
+/* A class rule with an explicit `display` outranks the user-agent's
+   `[hidden] { display: none }`, so a panel can carry the attribute and still be
+   painted. Every panel in this interface toggles with `hidden`, so restate the
+   rule once with the weight to win rather than remembering it per selector. */
+[hidden] { display: none !important; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+  background: var(--md-surface);
+  color: var(--md-on-surface);
+}
+
+body { display: flex; flex-direction: column; }
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0; border: 0;
+  clip: rect(0 0 0 0); clip-path: inset(50%);
+  overflow: hidden; white-space: nowrap;
+}
+
+.skiplink {
+  position: absolute;
+  left: 8px; top: -60px;
+  z-index: 10;
+  padding: 10px 14px;
+  /* Its own colour, not --focus: this one is a block of background with text on
+     it, and it needs the pairing to keep contrast in its own right. */
+  background: #ffd23f;
+  color: #11161d;
+  font-weight: 600;
+  border-radius: 0 0 var(--md-shape-sm) var(--md-shape-sm);
+  text-decoration: none;
+  transition: top .1s;
+}
+.skiplink:focus { top: 0; }
+
+/* --- Material top app bar ------------------------------------------------ */
+.appbar {
+  flex: 0 0 auto;
+  display: flex; align-items: center; gap: 16px;
+  min-height: 64px;
+  padding: 8px 16px;
+  background: var(--md-surface-container);
+  color: var(--md-on-surface);
+  border-bottom: 1px solid var(--md-outline-variant);
+}
+.appbar-lead { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; min-width: 0; }
+.appbar-task { margin: 0; font-size: 14px; font-weight: 500; color: var(--md-on-surface); font-variant-numeric: tabular-nums; }
+/* Same weight as the task line it sits beside - a note, not an alarm. The
+   dashed left edge matches what the marker itself does while it is covered. */
+.appbar-covered {
+  margin: 0;
+  font-size: 14px;
+  color: var(--md-on-surface-variant);
+  padding-left: 10px;
+  border-left: 2px dashed #ff7a00;
+}
+
+.appbar-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+
+/* --- Material buttons ---------------------------------------------------- */
+.md-button {
+  position: relative;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: 40px; padding: 0 24px;
+  border: none; border-radius: var(--md-shape-full);
+  font: 500 14px/20px inherit; letter-spacing: .00714em;
+  cursor: pointer;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+.md-button:has(.md-icon) { padding-left: 16px; }
+.md-button .md-icon { display: inline-flex; }
+/* Material state layers: a tinted overlay at 8% hover / 12% pressed rather than
+   a different background colour per state. */
+.md-button::after {
+  content: ""; position: absolute; inset: 0;
+  background: currentColor; opacity: 0; transition: opacity .1s;
+  pointer-events: none;
+}
+.md-button:hover::after { opacity: .08; }
+.md-button:active::after { opacity: .12; }
+.md-button:disabled { opacity: .38; cursor: default; }
+.md-button:disabled::after { opacity: 0; }
+/* Unavailable but still reachable: it keeps its place, its focus ring and its
+   label, because it can still be tabbed to and activated - and activating it is
+   how a participant finds out what is missing.
+
+   Explicit colours rather than the .38 opacity a disabled button gets. Fading
+   the whole button fades its label and its background together, which took the
+   text on this one to 2.06:1 - and the WCAG exemption for text in an INACTIVE
+   component does not obviously cover a control that is still in the tab order
+   and still answers when you press it. These are 7.3:1. In a study about
+   contrast, the instrument should not be the thing failing. */
+.md-button[aria-disabled="true"] {
+  background: var(--md-unavailable);
+  color: var(--md-on-unavailable);
+  /* .md-button is border:none, so an outline has to be restored here - without
+     it the button flattens into the dialog surface and stops reading as a
+     control at all, which is a worse failure than the one being fixed. */
+  border: 1px solid var(--md-outline);
+  cursor: default;
+}
+.md-button[aria-disabled="true"]:hover::after,
+.md-button[aria-disabled="true"]:active::after { opacity: 0; }
+
+.md-filled { background: var(--md-primary); color: var(--md-on-primary); }
+.md-outlined { background: transparent; color: var(--md-primary); border: 1px solid var(--md-outline); }
+.md-text { background: transparent; color: var(--md-primary); padding: 0 12px; }
+/* A toggle that is "on" reads as a filled tonal button, so its state is visible
+   without relying on the label alone. */
+.md-button[aria-pressed="true"].md-outlined {
+  background: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+  border-color: transparent;
+}
+
+.md-icon-button {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; padding: 0;
+  border: none; border-radius: var(--md-shape-full);
+  background: transparent; color: var(--md-on-surface-variant);
+  cursor: pointer; position: relative; overflow: hidden;
+}
+.md-icon-button::after { content: ""; position: absolute; inset: 0; background: currentColor; opacity: 0; transition: opacity .1s; }
+.md-icon-button:hover::after { opacity: .08; }
+.md-icon-button:active::after { opacity: .12; }
+
+/* The key that does what the button does, on the button. Quieter than the
+   label, and it must not stretch the button when the shortcut is spelled out
+   in words rather than symbols. */
+.md-key {
+  font: inherit; font-size: 11.5px; line-height: 1;
+  padding: 2px 6px; border-radius: 4px;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+  white-space: nowrap;
+}
+.md-key:empty { display: none; }
+
+/* --- stage --------------------------------------------------------------- */
+.stage { flex: 1 1 auto; position: relative; min-height: 0; background: #fff; }
+
+.waiting {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; padding: 24px; text-align: center;
+  background: var(--md-surface);
+}
+.waiting-text { margin: 0; font-size: 26px; font-weight: 600; }
+.waiting-sub { margin: 0; font-size: 14px; color: var(--md-on-surface-variant); max-width: 44ch; }
+
+.page-frame { display: block; width: 100%; height: 100%; border: 0; background: #fff; }
+
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+/* --- Material dialog ----------------------------------------------------- */
+.md-dialog {
+  width: min(880px, calc(100vw - 48px));
+  max-height: calc(100vh - 96px);
+  padding: 0;
+  border: none;
+  border-radius: var(--md-shape-xl);
+  background: var(--md-surface-container-high);
+  color: var(--md-on-surface);
+  box-shadow: 0 8px 12px 6px rgba(0,0,0,.10), 0 4px 4px rgba(0,0,0,.16);
+}
+.md-dialog::backdrop { background: rgba(0, 0, 0, .32); }
+.md-dialog-form { display: flex; flex-direction: column; max-height: calc(100vh - 96px); }
+.md-dialog-head { display: flex; align-items: flex-start; gap: 16px; padding: 24px 24px 0; }
+.md-dialog-title { margin: 0; font-size: 24px; line-height: 32px; font-weight: 400; }
+.md-dialog-sub { margin: 4px 0 0; font-size: 14px; color: var(--md-on-surface-variant); }
+.md-dialog-head .md-icon-button { margin-left: auto; flex: 0 0 auto; }
+.md-dialog-body { padding: 16px 24px 0; overflow: auto; }
+.md-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 24px; }
+
+/* --- the three columns --------------------------------------------------- */
+.tool-grid {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px; margin: 0 0 20px; padding: 0; border: 0;
+}
+/* One column when the checkers agreed: there is no choice to make between them,
+   so presenting three identical cards would invent one. */
+.tool-grid.is-unanimous { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 700px) { .tool-grid { grid-template-columns: minmax(0, 1fr); } }
+
+.tool-card {
+  display: block;
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--md-shape-md);
+  background: var(--md-surface-container);
+  padding: 16px;
+  cursor: pointer;
+  position: relative;
+}
+.tool-card:hover { border-color: var(--md-outline); }
+.tool-card:has(input:checked) {
+  border-color: var(--md-primary);
+  box-shadow: inset 0 0 0 1px var(--md-primary);
+  background: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+}
+.tool-card:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: 2px; }
+.tool-card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.tool-letter {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 32px; height: 32px; padding: 0 10px;
+  border-radius: var(--md-shape-full);
+  background: var(--md-surface-container-high);
+  font-weight: 600; font-size: 14px; letter-spacing: .04em;
+}
+.tool-card:has(input:checked) .tool-letter { background: var(--md-primary); color: var(--md-on-primary); }
+/* The number beside "I disagree with all of them", so the four options read as
+   one numbered list and the keys 1-4 have something to point at. */
+.tool-letter-inline { min-width: 28px; height: 28px; font-size: 13px; }
+.md-check-row:has(input:checked) .tool-letter-inline { background: var(--md-primary); color: var(--md-on-primary); }
+.tool-verdict { font-size: 16px; font-weight: 500; margin: 0 0 6px; }
+.tool-verdict.is-problem { color: var(--md-error); }
+.tool-verdict.is-clear { color: var(--md-ok); }
+.tool-card:has(input:checked) .tool-verdict { color: inherit; }
+/* What the tool said. Body text rather than a caption: it is the substance of
+   the card, not a footnote to the verdict. */
+.tool-reason { margin: 0; font-size: 14px; line-height: 1.45; color: var(--md-on-surface-variant); }
+.tool-reason.is-list { list-style: none; padding: 0; display: grid; gap: 8px; }
+.tool-reason.is-list li { display: flex; gap: 8px; align-items: baseline; }
+.tool-reason-letter {
+  flex: 0 0 auto; min-width: 22px; padding: 1px 7px;
+  border-radius: var(--md-shape-full);
+  background: var(--md-surface-container-high);
+  font-size: 12px; font-weight: 600; letter-spacing: .04em;
+  color: var(--md-on-surface);
+}
+.tool-card:has(input:checked) .tool-reason { color: inherit; opacity: .92; }
+.tool-card:has(input:checked) .tool-reason-letter { background: var(--md-primary); color: var(--md-on-primary); opacity: 1; }
+.tool-card input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+
+/* --- radio + text field -------------------------------------------------- */
+.disagree-block { border-top: 1px solid var(--md-outline-variant); padding-top: 16px; }
+.md-check-row, .md-radio-row { display: flex; align-items: center; gap: 12px; cursor: pointer; padding: 8px 0; }
+.md-check { appearance: none; width: 20px; height: 20px; margin: 0; border: 2px solid var(--md-outline); border-radius: 4px; position: relative; cursor: pointer; flex: 0 0 auto; }
+.md-check:checked { border-color: var(--md-primary); background: var(--md-primary); }
+.md-check:checked::after {
+  content: ""; position: absolute; left: 5px; top: 1px; width: 5px; height: 10px;
+  border: solid var(--md-on-primary); border-width: 0 2px 2px 0; transform: rotate(45deg);
+}
+.md-check:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.md-check-label, .md-radio-label { font-size: 15px; }
+
+.md-textfield { margin: 8px 0 0 32px; }
+.md-textfield-label { display: block; font-size: 12px; color: var(--md-on-surface-variant); margin-bottom: 4px; }
+.md-textfield-input {
+  width: 100%; padding: 12px 16px;
+  background: transparent; color: inherit;
+  border: 1px solid var(--md-outline); border-radius: var(--md-shape-sm);
+  font: inherit; resize: vertical;
+}
+.md-textfield-input:focus { border-color: var(--md-primary); outline: none; box-shadow: inset 0 0 0 1px var(--md-primary); }
+.md-textfield-help { margin: 4px 0 0; font-size: 12px; color: var(--md-on-surface-variant); }
+
+.md-error { color: var(--md-error); font-size: 13px; margin: 8px 0 0; min-height: 1.2em; }
+
+.answered-note { margin: 0 0 12px; font-size: 13px; color: var(--md-on-surface-variant); }

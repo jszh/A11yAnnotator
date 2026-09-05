@@ -800,6 +800,23 @@
               "doc": "wcag-techniques/failures/F85.html",
               "quote": "Activate the trigger control via the keyboard. — Check whether focus has been set to the menu, dialog, or a logical focusable descendent of the widget. — If not, check whether moving the focus forward once in the sequential navigation order puts focus in the menu or dialog."
             }
+          },
+          {
+            "id": "case-07",
+            "file": "eval/act-augmented/2.4.3/pages/f85-revealed-dialog-not-adjacent/case-07.html",
+            "docFile": "eval/act-augmented/2.4.3/pages/f85-revealed-dialog-not-adjacent/case-07.md",
+            "scenario": "Paired external-reference hard negative for case-01: the complete city page and remotely placed dialog remain; the trigger references it, opening moves focus inside, and closing restores focus.",
+            "expected": "passed",
+            "mechanism": "The trigger’s aria-controls resolves to the distant dialog; activation focuses its email field immediately and dismissal restores the trigger.",
+            "primarySelector": "#openSubscribe[aria-controls=\"subscribeDialog\"]",
+            "whyAutomatedToolsMiss": "DOM adjacency remains suspicious; evaluation must resolve the external target and observe focus behavior on open and close.",
+            "citation": {
+              "doc": "wcag-techniques/failures/F85.html",
+              "quote": "Because a user's focus isn't managed, or a keyboard mechanism isn't provided to allow them to immediately move to the invoked dialog, the user will need to tab through the rest of the web page before they can interact with the dialog."
+            },
+            "balanceBatch": "gena11y-fp-50-v2",
+            "hardNegativeType": "external-reference",
+            "pairedWith": "case-01"
           }
         ]
       },
@@ -1359,6 +1376,34 @@
               "doc": "wcag-understanding/focus-order.html",
               "quote": "Care should be taken so that the focus order makes sense to both of these sets of users and does not appear to either of them to jump around randomly."
             }
+          },
+          {
+            "id": "case-07",
+            "file": "eval/act-augmented/2.4.3/pages/multiple-valid-orders-row-vs-column/case-07.html",
+            "docFile": "eval/act-augmented/2.4.3/pages/multiple-valid-orders-row-vs-column/case-07.md",
+            "scenario": "Paired counterfactual of case-03. The budget grid still visually reads row-major and still uses positive tabindex, which looks suspicious. Exact repair: the sequence is now column-major under the existing Q1, Q2, Q3, and Q4 headers.",
+            "expected": "passed",
+            "mechanism": "Paired with case-03. Exact repair: focus follows Q1 Salaries→Travel→Equipment→Software, then repeats for Q2–Q4; each four-stop run follows one explicit table-column relationship.",
+            "primarySelector": "table tbody td input[type=\"text\"]",
+            "whyAutomatedToolsMiss": "A generic positive-tabindex warning fires on both the repaired and failed pages and cannot decide whether the induced sequence tracks a content relationship. The real focus order must be compared with the table’s existing quarter-column headers.",
+            "citation": {
+              "doc": "wcag-techniques/failures/F44.html",
+              "quote": "When the values of the tabindex attribute are assigned in a different order than the relationships and sequences in the content, the tab order no longer follows the relationships and sequences in the content."
+            }
+          },
+          {
+            "id": "case-08",
+            "file": "eval/act-augmented/2.4.3/pages/multiple-valid-orders-row-vs-column/case-08.html",
+            "docFile": "eval/act-augmented/2.4.3/pages/multiple-valid-orders-row-vs-column/case-08.md",
+            "scenario": "Paired counterfactual of case-06. The seat map still makes focus move vertically through rows rather than following the common horizontal visual scan. Exact repair: source order now follows complete seat-number columns, a coherent spatial order for comparing aligned seats across rows.",
+            "expected": "passed",
+            "mechanism": "Paired with case-06. Exact repair: each four-stop run shares one seat number and progresses A→D before advancing to the next number; the order preserves the map’s column relationship and reaches each control once.",
+            "primarySelector": ".map[role=\"group\"] button.seat[role=\"checkbox\"]",
+            "whyAutomatedToolsMiss": "The same CSS coordinates make source and repair render identically. Determining that the new vertical movement is a complete column traversal—not a random jump—requires comparing live focus order with the map’s row/seat relationships.",
+            "citation": {
+              "doc": "wcag-understanding/focus-order.html",
+              "quote": "Care should be taken so that the focus order makes sense to both of these sets of users and does not appear to either of them to jump around randomly."
+            }
           }
         ]
       },
@@ -1753,6 +1798,23 @@
               "doc": "refs/trusted-tester/sc-2.4.3-focus-order.md",
               "quote": "When focus order does not affect meaning or operability, this test Does Not Apply (e.g., a row of icons linking to social media may not need to be navigated in a particular order)."
             }
+          },
+          {
+            "id": "case-07",
+            "file": "eval/act-augmented/2.4.3/pages/f44-positive-tabindex-breaks-meaning/case-07.html",
+            "docFile": "eval/act-augmented/2.4.3/pages/f44-positive-tabindex-breaks-meaning/case-07.md",
+            "scenario": "Paired redundant-visual-cue hard negative for case-01: the complete ordered course outline and numbered chips remain; only the five positive tabindex attributes are removed.",
+            "expected": "passed",
+            "mechanism": "Native focus order follows Start and Modules 1–4; the visible ordinal chips now redundantly reinforce rather than contradict that sequence.",
+            "primarySelector": "ol.modules a:not([tabindex])",
+            "whyAutomatedToolsMiss": "The same strong number cues remain; only live focus traversal establishes that programmatic and visual sequence now agree.",
+            "citation": {
+              "doc": "wcag-techniques/failures/F44.html",
+              "quote": "When the values of the tabindex attribute are assigned in a different order than the relationships and sequences in the content, the tab order no longer follows the relationships and sequences in the content."
+            },
+            "balanceBatch": "gena11y-fp-50-v2",
+            "hardNegativeType": "redundant-graphic-or-visual-cue",
+            "pairedWith": "case-01"
           }
         ]
       },

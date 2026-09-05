@@ -62,4 +62,23 @@ function sensoryWordsIn(text) {
 
 const hasSensoryWord = (text) => sensoryWordsIn(text).length > 0;
 
-module.exports = { SENSORY_LEXICON, SENSORY_WORDS, SENSORY_PHRASES, sensoryWordsIn, hasSensoryWord };
+// Attach the shared 1.3.3 applicability facts to collector records. Keeping this in the
+// lexicon module gives every collector the exact same gate and prevents the ACT-only
+// evaluator from drifting away from production. `ownText` is intentionally required:
+// scanning an element's full subtree text would mint the same instruction on every
+// ancestor wrapper instead of on the element that owns the words.
+function applySensoryHints(elements) {
+  for (const el of elements || []) {
+    if (!el || typeof el.ownText !== 'string') continue;
+    const words = sensoryWordsIn(el.ownText);
+    if (!words.length) continue;
+    el.sensoryWordHint = true;
+    el.sensoryWords = words;
+  }
+  return elements;
+}
+
+module.exports = {
+  SENSORY_LEXICON, SENSORY_WORDS, SENSORY_PHRASES,
+  sensoryWordsIn, hasSensoryWord, applySensoryHints,
+};

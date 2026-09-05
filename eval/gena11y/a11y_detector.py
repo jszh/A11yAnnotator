@@ -7,6 +7,7 @@ Changes vs. upstream:
       * claude-*  → Python Agent SDK (CLAUDE_CODE_OAUTH_TOKEN, images via Read tool)
       * gemini-*  → Google generativeai generateContent REST (GEMINI_API_KEY)
       * gpt-*/o*  → OpenAI Responses API /v1/responses (OPENAI_API_KEY)
+      * chatgpt/* → LiteLLM ChatGPT-subscription Responses transport (OAuth device flow)
     The Gemini/OpenAI transports mirror scripts/v3/lib/llm-agent-adapter.js
     (makeGeminiTransport / makeOpenAITransport) — single-shot judge, no tools,
     vision inlined as base64 (faithful to upstream GenA11y's single-shot design).
@@ -39,6 +40,7 @@ load_dotenv(os.path.join(os.path.dirname(__file__), '..', '..', '.env'))
 # ---------------------------------------------------------------------------
 
 MODEL = CLAUDE_MODEL
+EFFORT = None
 _LOCK = threading.Lock()
 _LLM_SEM = threading.Semaphore(8)          # global cap on concurrent LLM calls
 _CTX = threading.local()                    # per-page (sc, file) for trace attribution
@@ -52,6 +54,9 @@ OPENAI_BASE = 'https://api.openai.com/v1'
 # approximate USD / 1M tokens (best-effort; precise TOKENS are the authoritative artifact)
 _PRICES = {
     'gemini-3.5-flash': {'in': 0.30, 'out': 2.50},
+    # Gemini Developer API promotional standard paid-tier rate valid through 2026-12-31; output
+    # includes reasoning/thinking tokens (results/supplementary585-gem37-flash-cost-breakdown.md).
+    'gemini-3.7-flash': {'in': 0.75, 'out': 3.75},
     'gpt-5.4-mini':     {'in': 0.25, 'out': 2.00},
     'gpt-5.4':          {'in': 1.25, 'out': 10.0},
 }
@@ -65,11 +70,13 @@ LLM_STATS = {
 }
 
 
-def configure(model: str = None, llm_concurrency: int = None, trace_sink=None) -> None:
-    """Set the active model, the global LLM-concurrency cap, and the trace sink."""
-    global MODEL, _LLM_SEM, TRACE_SINK
+def configure(model: str = None, llm_concurrency: int = None, trace_sink=None,
+              effort: str = None) -> None:
+    """Set the active model, reasoning effort, concurrency cap, and trace sink."""
+    global MODEL, EFFORT, _LLM_SEM, TRACE_SINK
     if model:
         MODEL = model
+    EFFORT = effort
     if llm_concurrency:
         _LLM_SEM = threading.Semaphore(llm_concurrency)
     if trace_sink is not None:
@@ -83,6 +90,8 @@ def set_context(sc: str, file: str) -> None:
 
 def _provider() -> str:
     m = MODEL.lower()
+    if m.startswith('chatgpt/'):
+        return 'chatgpt'
     if m.startswith('gemini'):
         return 'gemini'
     if m.startswith('gpt') or m.startswith('o'):
@@ -224,23 +233,38 @@ def _content_blocks_to_cli(content_blocks: list) -> tuple[str, list[str], bool]:
 # mirrors makeGeminiTransport in scripts/v3/lib/llm-agent-adapter.js
 # ---------------------------------------------------------------------------
 
-def _http_gemini(prompt_text, images, system=SYSTEM_MESSAGE, max_output_tokens=4096, _retries=4):
+# Gemini counts THINKING tokens against maxOutputTokens. At effort=high on a real page the model
+# routinely spends ~3.9k tokens thinking, so the old flat 4096 budget left ~150 tokens for the answer
+# and the JSON came back truncated — which _parse_verdict then turned into a clean "NOT REPRODUCED".
+# Size the budget to the thinking level so the answer is not crowded out by the reasoning.
+_THINKING_OUTPUT_BUDGET = {'MINIMAL': 8192, 'LOW': 8192, 'MEDIUM': 16384, 'HIGH': 32768}
+_MAX_OUTPUT_CEILING = 65536
+
+
+def _http_gemini(prompt_text, images, system=SYSTEM_MESSAGE, max_output_tokens=None, _retries=4):
     if not GEMINI_API_KEY:
         return None, {}, None
     parts = [{'text': prompt_text}] + [
         {'inlineData': {'mimeType': mt, 'data': b64}} for mt, b64 in images
     ]
-    budget = max_output_tokens
+    _level = {
+        'minimal': 'MINIMAL', 'low': 'LOW', 'medium': 'MEDIUM',
+        'high': 'HIGH', 'xhigh': 'HIGH', 'max': 'HIGH',
+    }.get(str(EFFORT or '').lower())
+    budget = max_output_tokens or _THINKING_OUTPUT_BUDGET.get(_level, 8192)
     doubled = False
     url = f'{GEMINI_BASE}/models/{MODEL}:generateContent?key={GEMINI_API_KEY}'
     for attempt in range(_retries + 1):
+        thinking_config = {'includeThoughts': True}
+        if _level:
+            thinking_config['thinkingLevel'] = _level
         body = {
             'systemInstruction': {'parts': [{'text': system}]},
             'contents': [{'role': 'user', 'parts': parts}],
             'generationConfig': {
                 'temperature': 0,
                 'maxOutputTokens': budget,
-                'thinkingConfig': {'includeThoughts': True},
+                'thinkingConfig': thinking_config,
             },
         }
         try:
@@ -262,9 +286,11 @@ def _http_gemini(prompt_text, images, system=SYSTEM_MESSAGE, max_output_tokens=4
                 'thoughts_tokens': um.get('thoughtsTokenCount', 0),
                 'finishReason': cand.get('finishReason'),
             }
-            if not answer and cand.get('finishReason') == 'MAX_TOKENS' and not doubled:
+            if cand.get('finishReason') == 'MAX_TOKENS' and not doubled:
+                # Truncation, with or without a partial answer: retry once with a bigger budget
+                # rather than parsing a cut-off object (which used to read as "no violations").
                 doubled = True
-                budget = min(budget * 2, 16384)
+                budget = min(budget * 2, _MAX_OUTPUT_CEILING)
                 continue
             return answer or None, usage, (thinking or None)
         except Exception as exc:
@@ -333,6 +359,123 @@ def _http_openai(prompt_text, images, system=SYSTEM_MESSAGE, effort='medium', ma
 
 
 # ---------------------------------------------------------------------------
+# Transport: ChatGPT subscription via LiteLLM OAuth — single-shot, no tools
+#
+# LiteLLM owns the OAuth device flow and local token refresh. This route deliberately
+# does not inspect or reuse ~/.codex/auth.json: CHATGPT_TOKEN_DIR / CHATGPT_AUTH_FILE
+# are LiteLLM's credential boundary. The subscription backend rejects token-limit
+# fields and metadata, so neither is sent.
+# ---------------------------------------------------------------------------
+
+def _plain_dict(value):
+    """Convert LiteLLM/OpenAI response models to plain JSON-compatible dictionaries."""
+    if isinstance(value, dict):
+        return value
+    if hasattr(value, 'model_dump'):
+        return value.model_dump()
+    if hasattr(value, 'dict'):
+        return value.dict()
+    return json.loads(json.dumps(value, default=lambda obj: getattr(obj, '__dict__', str(obj))))
+
+
+def _parse_responses_payload(response) -> tuple:
+    """Return (answer, usage, reasoning) from Responses or LiteLLM response shapes."""
+    # The ChatGPT subscription backend is natively streaming. LiteLLM returns an iterator even when the caller did
+    # not request streaming, unlike its ordinary Responses providers. Aggregate deltas and retain the completed
+    # response because that final event is the authoritative usage record.
+    if (not isinstance(response, dict) and not hasattr(response, 'model_dump')
+            and not hasattr(response, 'dict') and hasattr(response, '__iter__')):
+        text_deltas, reasoning_deltas, completed = [], [], None
+        for event in response:
+            event = _plain_dict(event)
+            event_type = event.get('type')
+            if event_type == 'response.output_text.delta':
+                text_deltas.append(event.get('delta', ''))
+            elif event_type in ('response.reasoning_summary_text.delta', 'response.reasoning_text.delta'):
+                reasoning_deltas.append(event.get('delta', ''))
+            elif event_type == 'response.completed':
+                completed = event.get('response')
+        if completed:
+            answer, usage, reasoning = _parse_responses_payload(completed)
+            return (answer or ''.join(text_deltas) or None, usage,
+                    reasoning or ''.join(reasoning_deltas) or None)
+        return ''.join(text_deltas) or None, {
+            'input_tokens': 0, 'output_tokens': 0, 'reasoning_tokens': 0,
+            'finishReason': 'stream-ended-without-completed-event',
+        }, ''.join(reasoning_deltas) or None
+
+    j = _plain_dict(response)
+    answer = j.get('output_text') or ''
+    reasoning_parts = []
+    for item in (j.get('output') or []):
+        if not isinstance(item, dict):
+            item = _plain_dict(item)
+        if item.get('type') == 'message':
+            for content in (item.get('content') or []):
+                if not isinstance(content, dict):
+                    content = _plain_dict(content)
+                if content.get('type') in ('output_text', 'text'):
+                    answer += content.get('text', '')
+        elif item.get('type') == 'reasoning':
+            for summary in (item.get('summary') or []):
+                summary = _plain_dict(summary) if not isinstance(summary, dict) else summary
+                reasoning_parts.append(summary.get('text', ''))
+
+    # Some LiteLLM releases expose an OpenAI-chat-shaped convenience view even for responses().
+    if not answer:
+        choices = j.get('choices') or []
+        if choices:
+            message = (_plain_dict(choices[0]).get('message') or {})
+            message = _plain_dict(message) if not isinstance(message, dict) else message
+            answer = message.get('content') or ''
+            if message.get('reasoning_content'):
+                reasoning_parts.append(message['reasoning_content'])
+
+    usage_raw = j.get('usage') or {}
+    usage_raw = _plain_dict(usage_raw) if not isinstance(usage_raw, dict) else usage_raw
+    output_details = usage_raw.get('output_tokens_details') or {}
+    output_details = _plain_dict(output_details) if not isinstance(output_details, dict) else output_details
+    usage = {
+        'input_tokens': usage_raw.get('input_tokens', usage_raw.get('prompt_tokens', 0)),
+        'output_tokens': usage_raw.get('output_tokens', usage_raw.get('completion_tokens', 0)),
+        'reasoning_tokens': output_details.get('reasoning_tokens', 0),
+        'finishReason': j.get('status') or j.get('finish_reason'),
+    }
+    reasoning = '\n'.join(part for part in reasoning_parts if part) or None
+    return (answer or None), usage, reasoning
+
+
+def _litellm_chatgpt(prompt_text, images, system=SYSTEM_MESSAGE, effort='medium', _retries=4):
+    try:
+        import litellm
+    except Exception as exc:
+        return None, {'error': f'LiteLLM unavailable: {exc}'}, None
+
+    content = [{'type': 'input_text', 'text': prompt_text}] + [
+        {'type': 'input_image', 'image_url': f'data:{mt};base64,{b64}'} for mt, b64 in images
+    ]
+    kwargs = {
+        'model': MODEL,
+        'instructions': system,
+        'input': [{'role': 'user', 'content': content}],
+    }
+    if effort:
+        kwargs['reasoning'] = {'effort': effort, 'summary': 'auto'}
+
+    for attempt in range(_retries + 1):
+        try:
+            response = litellm.responses(**kwargs)
+            return _parse_responses_payload(response)
+        except Exception as exc:
+            status = getattr(exc, 'status_code', None)
+            if attempt < _retries and (status == 429 or (isinstance(status, int) and status >= 500)):
+                time.sleep(2 * (attempt + 1))
+                continue
+            return None, {'error': f'{type(exc).__name__}: {exc}', 'httpStatus': status}, None
+    return None, {'error': 'retry-exhausted'}, None
+
+
+# ---------------------------------------------------------------------------
 # Transport: Claude via the Python Agent SDK (images via Read tool)
 # ---------------------------------------------------------------------------
 
@@ -345,11 +488,16 @@ def _claude_sdk(content_blocks, system=SYSTEM_MESSAGE):
     usage_box = {}
 
     async def _q():
+        # Pin the requested model (and effort, when set): without `model=` the SDK
+        # falls back to the CLI's account default, so `--model claude-haiku-4-5`
+        # would be recorded in telemetry but never actually called.
         opts = ClaudeAgentOptions(
             system_prompt=system,
             tools=['Read'] if use_read else [],
             permission_mode='bypassPermissions',
             max_turns=5 if use_read else 1,
+            model=MODEL,
+            **({'effort': EFFORT} if EFFORT else {}),
         )
         parts = []
         async for msg in claude_agent_sdk.query(prompt=prompt_text, options=opts):
@@ -359,7 +507,9 @@ def _claude_sdk(content_blocks, system=SYSTEM_MESSAGE):
                         parts.append(block.text)
             elif isinstance(msg, ResultMessage):
                 u = msg.usage or {}
+                mu = getattr(msg, 'model_usage', None) or {}
                 usage_box.update({
+                    'models_used': sorted(mu.keys()) if isinstance(mu, dict) else None,
                     'input_tokens': u.get('input_tokens', 0),
                     'output_tokens': u.get('output_tokens', 0),
                     'cache_read_input_tokens': u.get('cache_read_input_tokens', 0),
@@ -396,6 +546,9 @@ def dispatch(content_blocks: list, system: str = SYSTEM_MESSAGE) -> tuple:
     with _LLM_SEM:
         if provider == 'gemini':
             raw, usage, reasoning = _http_gemini(prompt_text, images, system=system)
+        elif provider == 'chatgpt':
+            raw, usage, reasoning = _litellm_chatgpt(
+                prompt_text, images, system=system, effort=EFFORT or 'medium')
         elif provider == 'openai':
             raw, usage, reasoning = _http_openai(prompt_text, images, system=system)
         else:
@@ -415,7 +568,7 @@ def dispatch(content_blocks: list, system: str = SYSTEM_MESSAGE) -> tuple:
 def _call_llm(content_blocks: list, _retries: int = 3) -> dict:
     """Route to the configured provider, record usage/trace, return a verdict dict."""
     prompt_text, raw, usage, reasoning, provider = dispatch(content_blocks)
-    verdict = _parse_verdict(raw) if raw else _error_verdict(
+    verdict = _parse_verdict(raw) if raw else _no_verdict(
         f'{provider} transport returned no text ({usage})')
     _emit_trace(prompt_text, raw, verdict, usage, reasoning, provider)
     return verdict
@@ -434,7 +587,7 @@ def _parse_verdict(text: str) -> dict:
     text = re.sub(r'\n?```$', '', text.strip(), flags=re.MULTILINE)
     start = text.find('{')
     if start < 0:
-        return _error_verdict('No JSON object in response')
+        return _no_verdict('No JSON object in response')
     depth, in_str, esc = 0, False, False
     for i in range(start, len(text)):
         ch = text[i]
@@ -457,9 +610,9 @@ def _parse_verdict(text: str) -> dict:
                 try:
                     obj = json.loads(span)
                 except Exception:
-                    return _error_verdict('JSON parse error')
+                    return _no_verdict('JSON parse error')
                 return _normalize(obj)
-    return _error_verdict('Unbalanced JSON')
+    return _no_verdict('Unbalanced JSON')
 
 
 def _normalize(obj: dict) -> dict:
@@ -487,11 +640,27 @@ def _normalize(obj: dict) -> dict:
 
 
 def _error_verdict(msg: str) -> dict:
+    """NO APPLICABLE DATA — the page had nothing for this SC to look at. A genuine negative."""
     return {
         'verdict': 'NOT REPRODUCED',
         'confidence': 'low',
         'violations': [],
         'summary': f'Analysis error: {msg}',
+    }
+
+
+def _no_verdict(msg: str) -> dict:
+    """
+    NO VERDICT — the transport failed or the response could not be parsed, so the model never
+    actually said "no violations here". Returning NOT REPRODUCED for these (the old behaviour)
+    silently manufactured negatives: a truncated or 5xx'd call scored exactly like a clean pass.
+    'NO VERDICT' is outside runner._OUTCOME, so the runner books it as noVerdict, not missedAgree.
+    """
+    return {
+        'verdict': 'NO VERDICT',
+        'confidence': 'low',
+        'violations': [],
+        'summary': f'No verdict: {msg}',
     }
 
 
@@ -907,5 +1076,5 @@ def detect_for_sc(sc: str, data) -> dict:
         if sc == '4.1.2':
             return detect_name_role_value(data, [])
     except Exception as e:
-        return _error_verdict(f'Exception in detect_for_sc({sc}): {e}')
+        return _no_verdict(f'Exception in detect_for_sc({sc}): {e}')
     return _error_verdict(f'SC {sc} not handled by detector')

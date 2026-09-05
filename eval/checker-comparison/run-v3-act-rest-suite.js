@@ -25,7 +25,7 @@ const { orchestrate } = require('../../scripts/v3/lib/orchestrator.js');
 const { CATALOG } = require('../../scripts/v3/lib/catalog.js');
 const { makeRunAgent, makeClaudeSdkTransport } = require('../../scripts/v3/lib/llm-agent-adapter.js');
 const LIMITS = require('../../scripts/v3/lib/limits.js');
-const { sensoryWordsIn } = require('../../scripts/v3/lib/sensory-lexicon.js'); // Round 3 (1.3.3) requirement-sourced pre-filter
+const { applySensoryHints } = require('../../scripts/v3/lib/sensory-lexicon.js'); // Round 3 (1.3.3) shared requirement-sourced pre-filter
 const qwLib = require('../../scripts/v3/lib/checker-qualweb.js'); // C2 QualWeb two-lane checker (default ON; V3_QUALWEB=0 disables)
 require('events').defaultMaxListeners = 200;
 const QUALWEB = process.env.V3_QUALWEB !== '0';
@@ -335,11 +335,7 @@ async function collectForV3(page, tc, runId) {
   // Round 3 — SC 9bd38c (1.3.3): the REQUIREMENT-SOURCED sensory-word pre-filter gates APPLICABILITY (which text
   // nodes owe an obligation). Runs in NODE over each element's OWN direct text (not ancestors) so the obligation
   // targets the text node's element; the LLM rubric judges whether a non-visual alternative exists.
-  for (const el of (data.elements || [])) {
-    if (el.tag === 'meta' || el.tag === 'zoomclip' || el.tag === 'autoupdate' || el.tag === 'bypass') continue;
-    const words = sensoryWordsIn(el.ownText || '');
-    if (words.length) { el.sensoryWordHint = true; el.sensoryWords = words; }
-  }
+  applySensoryHints(data.elements || []);
 
   return {
     file: `act:${tc.testcaseId}`, sourceUrl: tc.url, runId, pageDigest: digestForUrl(tc.url), collectedAt,
@@ -514,8 +510,8 @@ async function main() {
   console.log(`wrote ${OUT}`);
 }
 
-// Export the eval collector + helpers so the fp-experiments freezer can reuse the EXACT eval-side collection
-// (the 1.3.3 sensory pre-filter + the FIX-1 headings/landmarks structure threading), which the production
-// collectActPage does not do (DEFERRED-TODO J). Only run the CLI when invoked directly.
+// Export the eval collector + helpers so the fp-experiments freezer can reuse the EXACT eval-side collection.
+// The 1.3.3 pre-filter is now shared with production; this collector still owns its ACT-rest-specific structure
+// threading and fixture behavior. Only run the CLI when invoked directly.
 module.exports = { collectForV3, normalizeCollectRoles, urlFor, isHeldOut, REST_DIR, ELEMENT_CAP };
 if (require.main === module) main().catch((e) => { console.error(e.stack || e.message); process.exit(1); });

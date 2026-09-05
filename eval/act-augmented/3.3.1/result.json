@@ -333,7 +333,7 @@
             "id": "case-05",
             "file": "eval/act-augmented/3.3.1/pages/error-message-mismatches-actual-error/case-05.html",
             "docFile": "eval/act-augmented/3.3.1/pages/error-message-mismatches-actual-error/case-05.md",
-            "scenario": "Hotel booking review, post-submit error state. Check-in '2026-08-01', check-out '2026-09-25' (55 nights — check-out IS after check-in). The check-out field's visible associated error reads 'Check-out date must be after your check-in date.' — a relation that already holds. The form's own visible policy states 'Maximum stay: 30 nights'; the real, undescribed error is that a 55-night stay exceeds that cap.",
+            "scenario": "Hotel booking review, post-submit error state. Check-in '2099-08-01', check-out '2099-09-25' (55 nights — check-out IS after check-in). These durable future constants avoid an unrelated past-date error. The check-out field's visible associated error reads 'Check-out date must be after your check-in date.' — a relation that already holds. The form's own visible policy states 'Maximum stay: 30 nights'; the real, undescribed error is that a 55-night stay exceeds that cap.",
             "expected": "failed",
             "mechanism": "Relational boilerplate mismatch: message asserts an ordering constraint already satisfied (out > in) while the actually-violated threshold constraint (stay <= 30 nights, stated separately in the policy) goes undescribed. Acting on the false guidance makes the real problem worse.",
             "primarySelector": "#out-err",
@@ -370,6 +370,102 @@
               "doc": "wcag-understanding/error-identification.html",
               "quote": "the user enters alphabetic characters or parentheses into their phone number field that only accepts numbers;"
             }
+          },
+          {
+            "id": "case-08",
+            "file": "eval/act-augmented/3.3.1/pages/error-message-mismatches-actual-error/case-08.html",
+            "docFile": "eval/act-augmented/3.3.1/pages/error-message-mismatches-actual-error/case-08.md",
+            "scenario": "PAIRED PASS control for case-01. The retained phone number has 11 digits; the repaired message now identifies the actual length error and gives the 10-digit correction.",
+            "expected": "passed",
+            "mechanism": "No SC 3.3.1 defect remains. Replaced the unrelated letters-and-parentheses boilerplate with “Mobile number must be exactly 10 digits. Remove the extra digit and try again.”",
+            "primarySelector": "#error-phone",
+            "whyAutomatedToolsMiss": "This is a hard negative paired with case-01: nearly all page-level signals are intentionally preserved, while the normative decision-boundary defect is repaired. A reliable evaluator must verify the repaired relationship or behavior rather than infer failure from the template.",
+            "citation": {
+              "doc": "wcag-understanding/error-identification.html",
+              "quote": "The intent of this success criterion is to ensure that users are aware that an error has occurred and can determine what is wrong."
+            },
+            "pairedWith": "case-01",
+            "balanceBatch": "initial-79-context-v3",
+            "hardNegativeType": "paired-specificity"
+          },
+          {
+            "id": "case-09",
+            "file": "eval/act-augmented/3.3.1/pages/error-message-mismatches-actual-error/case-09.html",
+            "docFile": "eval/act-augmented/3.3.1/pages/error-message-mismatches-actual-error/case-09.md",
+            "scenario": "PAIRED PASS control for case-02. The retained date (03/14/2099, chosen for long-term fixture stability) is in the future; the repaired message now identifies that actual date-of-birth constraint instead of claiming the valid format is wrong.",
+            "expected": "passed",
+            "mechanism": "No SC 3.3.1 defect remains. Changed the message to “Date of birth must be in the past. Enter a date before today.” The source’s future-date value was advanced to 2099 without changing its semantic category, preventing calendar-driven fixture drift.",
+            "primarySelector": "#dob-err",
+            "whyAutomatedToolsMiss": "This is a hard negative paired with case-02: nearly all page-level signals are intentionally preserved, while the normative decision-boundary defect is repaired. A reliable evaluator must verify the repaired relationship or behavior rather than infer failure from the template.",
+            "citation": {
+              "doc": "wcag-understanding/error-identification.html",
+              "quote": "the user enters a birth date 2 years in the future;"
+            },
+            "pairedWith": "case-02",
+            "balanceBatch": "initial-79-context-v3",
+            "hardNegativeType": "paired-specificity"
+          },
+          {
+            "id": "case-10",
+            "file": "eval/act-augmented/3.3.1/pages/error-message-mismatches-actual-error/case-10.html",
+            "docFile": "eval/act-augmented/3.3.1/pages/error-message-mismatches-actual-error/case-10.md",
+            "scenario": "Paired PASS repair of case-03. The long password and requirements checklist remain; the error now names the only unmet rule, a missing number.",
+            "expected": "passed",
+            "mechanism": "The referenced error says 'Password must contain at least one number', agreeing with the value and the only unmet checklist item.",
+            "primarySelector": "#pw",
+            "whyAutomatedToolsMiss": "A subject-only extractor can omit the referenced error and checklist; correctness requires value-message-checklist reconciliation.",
+            "citation": {
+              "doc": "wcag-understanding/error-identification.html",
+              "quote": "This SC requires that users be provided with information about the nature of the error, including the identity of the item in error."
+            },
+            "pairedWith": "case-03"
+          },
+          {
+            "id": "case-11",
+            "file": "eval/act-augmented/3.3.1/pages/error-message-mismatches-actual-error/case-11.html",
+            "docFile": "eval/act-augmented/3.3.1/pages/error-message-mismatches-actual-error/case-11.md",
+            "scenario": "Paired PASS repair of case-05. The durable future 2099 dates retain the 55-night hotel stay and 30-night policy; the associated error now identifies the exceeded maximum.",
+            "expected": "passed",
+            "mechanism": "The text identifies the retained 55-night interval and the actual 30-night limit rather than falsely claiming check-out precedes check-in.",
+            "primarySelector": "#checkout",
+            "whyAutomatedToolsMiss": "Judgment requires calculating the date interval, reading the policy, and resolving multiple description references.",
+            "citation": {
+              "doc": "wcag-understanding/error-identification.html",
+              "quote": "This SC requires that users be provided with information about the nature of the error, including the identity of the item in error."
+            },
+            "pairedWith": "case-05"
+          },
+          {
+            "id": "case-12",
+            "file": "eval/act-augmented/3.3.1/pages/error-message-mismatches-actual-error/case-12.html",
+            "docFile": "eval/act-augmented/3.3.1/pages/error-message-mismatches-actual-error/case-12.md",
+            "scenario": "Paired PASS repair of case-06. The retained four-digit ZIP remains; the message now states that five digits are required instead of quoting a value the user never entered.",
+            "expected": "passed",
+            "mechanism": "The field's referenced text accurately identifies its actual short-length error and gives the required length.",
+            "primarySelector": "#zip",
+            "whyAutomatedToolsMiss": "The decisive correction is in a referenced sibling omitted by element-only extraction.",
+            "citation": {
+              "doc": "wcag-understanding/error-identification.html",
+              "quote": "This SC requires that users be provided with information about the nature of the error, including the identity of the item in error."
+            },
+            "pairedWith": "case-06"
+          },
+          {
+            "id": "case-13",
+            "file": "eval/act-augmented/3.3.1/pages/error-message-mismatches-actual-error/case-13.html",
+            "docFile": "eval/act-augmented/3.3.1/pages/error-message-mismatches-actual-error/case-13.md",
+            "scenario": "PAIRED PASS for source case-04. The complete German donation page and locale-correct value 1.234,56 are preserved, but the source’s false error state is converted into an accurate neutral confirmation.",
+            "expected": "passed",
+            "mechanism": "Because the retained value is valid in de-DE, it is no longer identified as an error. Its programmatic description accurately confirms the parsed amount instead of demanding an incorrect en-US format.",
+            "primarySelector": "#betrag",
+            "whyAutomatedToolsMiss": "The page retains the same amount, layout, and former validation component styling. An evaluator that memorizes the source mismatch or treats German punctuation as invalid can still report a nonexistent input error.",
+            "citation": {
+              "doc": "wcag-understanding/error-identification.html",
+              "quote": "This SC requires that users be provided with information about the nature of the error, including the identity of the item in error."
+            },
+            "pairedWith": "case-04",
+            "balanceBatch": "gena11y-fp-50-v2",
+            "hardNegativeType": "error-identification"
           }
         ]
       },
@@ -453,7 +549,7 @@
           "severity": "major",
           "problems": [],
           "recommendation": "keep",
-          "cdpEvidence": "SOURCE: HTML L67 input#checkin value=2026-08-01; L76-77 input#checkout value=2026-09-25 aria-describedby=\"stay-policy out-err\" aria-invalid=\"true\"; L78 #out-err \"Check-out date must be after your check-in date.\"; L59 visible policy #stay-policy \"Maximum stay: 30 nights\". Arithmetic: 2026-09-25 minus 2026-08-01 = 55 nights; checkout>checkin is TRUE, so the asserted ordering cause is FALSE; 55>30 so the real (threshold) violation is undescribed. This breaks SC 3.3.1's requirement to describe the NATURE of the error.\n\nCITATIONS VERIFIED VERBATIM: \"the user enters a bid that is below the previous bid or the minimum bid increment.\" appears char-for-char at wcag-understanding/error-identification.html L47 (a relational/threshold input-error example — directly analogous to the 30-night-max overage). Supporting quote \"This SC requires that users be provided with information about the nature of the error, including the identity of the item in error.\" matches L29. ACT 36b590 Expectation 2 (\"...or at least one of the form field error indicators describes: the cause of the error, or how to resolve it...\") matches act-rules/extracted/36b590.md L55-59. No hallucinated/paraphrased citations.\n\nRAW AX SIGNALS (inspect.js, no checker): Check-in date spinbuttons Month=08 Day=01 Year=2026; Check-out Month=09 Day=25 Year=2026 — corroborates 55-night, correct-order range. Check-out field accessible description resolves to \"Booking policy: Minimum stay 2 nights · Maximum stay: 30 nights · ... Check-out date must be after your check-in date.\" — the false error IS in the AX tree, confirming ACT 36b590/axe PASS (visible, field-identifying, describes a cause). jsErrors=[]; lang=en; no external resources (grep clean); renders from file://. Distinct domain/mechanism vs siblings case-01..07.\n\nVERDICT DRIVERS: (1) error real — described cause is false, true constraint never identified; (2) outcome=failed correct under 3.3.1 Intent; (3) human judgment required — needs cross-field value comparison + policy-prose reasoning that no automated checker performs (all deterministic checkers pass).",
+          "cdpEvidence": "SOURCE: HTML L51 input#checkin value=2099-08-01; L55-56 input#checkout value=2099-09-25 aria-describedby=\"stay-policy out-err\" aria-invalid=\"true\"; L57 #out-err \"Check-out date must be after your check-in date.\"; L43 visible policy #stay-policy \"Maximum stay: 30 nights\". Arithmetic: 2099-09-25 minus 2099-08-01 = 55 nights; checkout>checkin is TRUE, so the asserted ordering cause is FALSE; 55>30 so the real (threshold) violation is undescribed. This breaks SC 3.3.1's requirement to describe the NATURE of the error.\n\nCITATIONS VERIFIED VERBATIM: \"the user enters a bid that is below the previous bid or the minimum bid increment.\" appears char-for-char at wcag-understanding/error-identification.html L47 (a relational/threshold input-error example — directly analogous to the 30-night-max overage). Supporting quote \"This SC requires that users be provided with information about the nature of the error, including the identity of the item in error.\" matches L29. ACT 36b590 Expectation 2 (\"...or at least one of the form field error indicators describes: the cause of the error, or how to resolve it...\") matches act-rules/extracted/36b590.md L55-59. No hallucinated/paraphrased citations.\n\nRAW AX SIGNALS (inspect.js, no checker): Check-in date spinbuttons Month=08 Day=01 Year=2099; Check-out Month=09 Day=25 Year=2099 — corroborates 55-night, correct-order range. Check-out field accessible description resolves to \"Booking policy: Minimum stay 2 nights · Maximum stay: 30 nights · ... Check-out date must be after your check-in date.\" — the false error IS in the AX tree, confirming ACT 36b590/axe PASS (visible, field-identifying, describes a cause). jsErrors=[]; lang=en; no external resources (grep clean); renders from file://. Distinct domain/mechanism vs siblings case-01..07.\n\nVERDICT DRIVERS: (1) error real — described cause is false, true constraint never identified; (2) outcome=failed correct under 3.3.1 Intent; (3) human judgment required — needs cross-field value comparison + policy-prose reasoning that no automated checker performs (all deterministic checkers pass).",
           "expected": "failed",
           "docFile": "eval/act-augmented/3.3.1/pages/error-message-mismatches-actual-error/case-05.md"
         },
@@ -501,11 +597,11 @@
             "id": "case-01",
             "file": "eval/act-augmented/3.3.1/pages/silent-redisplay-after-real-error/case-01.html",
             "docFile": "eval/act-augmented/3.3.1/pages/silent-redisplay-after-real-error/case-01.md",
-            "scenario": "Riverbend Library membership registration re-displayed under the heading 'Submission received' after the server bounced the submission: Age field still shows '0' (below the stated minimum of 1), required Email is still empty, and there is no error text anywhere. Variant A (bare silent re-display). HEAD-prevalence; content-domain government/civic, server-rendered POST result page, native form.",
+            "scenario": "Glenmore City facility-booking request re-displayed under the false-success heading 'Request logged' after the server rejected the retained Event date '2019-03-02' against the printed rule requiring at least 14 days' advance notice. The full editable form is present but no text identifies the failure or date error.",
             "expected": "failed",
-            "mechanism": "An input error was automatically detected (server enforced min=1 and required Email) but is described in zero text; the 'Submission received' heading actively makes a screen-reader user believe the submission succeeded (G83 warning), while the retained out-of-range Age '0' and empty required Email are the only evidence of the failure, neither flagged as an error.",
-            "primarySelector": "h1 + form input#age[value=\"0\"]",
-            "whyAutomatedToolsMiss": "The form is flawless to a static scanner — every input has a programmatic label, markup is valid, contrast passes, and there is NO error element to evaluate. axe/WAVE/Lighthouse have no model of 'this page is the aftermath of a failed submission'; with no error indicator present they treat 3.3.1 as inapplicable / a vacuous pass (ACT Passed Example 3). Catching it requires reading page-state context (success-styled heading contradicted by retained out-of-range Age and empty required Email) and inferring a suppressed error — human judgment.",
+            "mechanism": "A server-detected past-date error is described in zero text; the 'Request logged' heading and thank-you lead actively assert success while the retained 2019 date contradicts the visible 14-day policy.",
+            "primarySelector": "#evdate[value=\"2019-03-02\"]",
+            "whyAutomatedToolsMiss": "Every control is labelled and there is no error element or invalid state to lint. Detecting the failure requires reconciling the result-page language, retained historic date, and prose lead-time policy.",
             "citation": {
               "doc": "wcag-understanding/error-identification.html",
               "quote": "In the case of an unsuccessful form submission, it is not sufficient to only re-display the form without providing any hint that the submission failed. The error must be indicated in text."
@@ -580,6 +676,87 @@
               "doc": "wcag-techniques/general/G199.html",
               "quote": "The objective of this technique is to reduce the effort required for users to confirm that an action, such as submitting a web form, was completed successfully. This can be accomplished by providing consistently presented feedback that explicitly indicates success of an action, rather than requiring a user to navigate through content to discover if the action was successful."
             }
+          },
+          {
+            "id": "case-07",
+            "file": "eval/act-augmented/3.3.1/pages/silent-redisplay-after-real-error/case-07.html",
+            "docFile": "eval/act-augmented/3.3.1/pages/silent-redisplay-after-real-error/case-07.md",
+            "scenario": "PAIRED PASS control for case-02. The rejected payment is redisplayed with a visible alert identifying the short card number and missing security code rather than a false success banner.",
+            "expected": "passed",
+            "mechanism": "No SC 3.3.1 defect remains. Converted the success status into an error alert and named both actual input errors in text.",
+            "primarySelector": "div.banner-success[role=\"alert\"]",
+            "whyAutomatedToolsMiss": "This is a hard negative paired with case-02: nearly all page-level signals are intentionally preserved, while the normative decision-boundary defect is repaired. A reliable evaluator must verify the repaired relationship or behavior rather than infer failure from the template.",
+            "citation": {
+              "doc": "wcag-techniques/general/G85.html",
+              "quote": "Fill out a form, deliberately enter user input that falls outside the required format or values"
+            },
+            "pairedWith": "case-02",
+            "balanceBatch": "initial-79-context-v3",
+            "hardNegativeType": "paired-specificity"
+          },
+          {
+            "id": "case-08",
+            "file": "eval/act-augmented/3.3.1/pages/silent-redisplay-after-real-error/case-08.html",
+            "docFile": "eval/act-augmented/3.3.1/pages/silent-redisplay-after-real-error/case-08.md",
+            "scenario": "PAIRED PASS control for case-03. The rejected sign-in now exposes a specific visible alert and associates it with the invalid password field while preserving the original portal context.",
+            "expected": "passed",
+            "mechanism": "No SC 3.3.1 defect remains. Added an error alert identifying the password failure, plus aria-invalid and aria-describedby on the password field.",
+            "primarySelector": "#signin-error",
+            "whyAutomatedToolsMiss": "This is a hard negative paired with case-03: nearly all page-level signals are intentionally preserved, while the normative decision-boundary defect is repaired. A reliable evaluator must verify the repaired relationship or behavior rather than infer failure from the template.",
+            "citation": {
+              "doc": "refs/trusted-tester/sc-3.3.1-error-identification.md",
+              "quote": "This is a **trigger-and-observe** test — the tester must actively *cause* an error\n> (submit invalid input) and then check whether the resulting error is conveyed in text. It is not a static\n> inspection."
+            },
+            "pairedWith": "case-03",
+            "balanceBatch": "initial-79-context-v3",
+            "hardNegativeType": "paired-specificity"
+          },
+          {
+            "id": "case-09",
+            "file": "eval/act-augmented/3.3.1/pages/silent-redisplay-after-real-error/case-09.html",
+            "docFile": "eval/act-augmented/3.3.1/pages/silent-redisplay-after-real-error/case-09.md",
+            "scenario": "Paired PASS repair of case-01. The complete rejected Glenmore booking retains its past date and policy; the redisplay heading/lead and a field-referenced local error now identify the failure.",
+            "expected": "passed",
+            "mechanism": "The field is invalid and described by exact text at #evdate-error; the page also states that the request was not logged.",
+            "primarySelector": "#evdate",
+            "whyAutomatedToolsMiss": "Correct judgment requires resolving the IDREF and reconciling the retained date with the page-state heading and policy.",
+            "citation": {
+              "doc": "wcag-understanding/error-identification.html",
+              "quote": "In the case of an unsuccessful form submission, it is not sufficient to only re-display the form without providing any hint that the submission failed. The error must be indicated in text."
+            },
+            "pairedWith": "case-01"
+          },
+          {
+            "id": "case-10",
+            "file": "eval/act-augmented/3.3.1/pages/silent-redisplay-after-real-error/case-10.html",
+            "docFile": "eval/act-augmented/3.3.1/pages/silent-redisplay-after-real-error/case-10.md",
+            "scenario": "Paired PASS repair of case-02. The rejected Folio payment retains both bad values; an earlier shared alert accurately identifies both and is referenced from each field.",
+            "expected": "passed",
+            "mechanism": "Both invalid fields resolve aria-describedby to #payment-errors, whose two statements identify the short card number and missing security code.",
+            "primarySelector": "#cardnum",
+            "whyAutomatedToolsMiss": "Each subject input contains no error text and shares a distant multi-error target; correct evaluation requires IDREF resolution and field-message matching.",
+            "citation": {
+              "doc": "wcag-understanding/error-identification.html",
+              "quote": "In the case of an unsuccessful form submission, it is not sufficient to only re-display the form without providing any hint that the submission failed. The error must be indicated in text."
+            },
+            "pairedWith": "case-02"
+          },
+          {
+            "id": "case-11",
+            "file": "eval/act-augmented/3.3.1/pages/silent-redisplay-after-real-error/case-11.html",
+            "docFile": "eval/act-augmented/3.3.1/pages/silent-redisplay-after-real-error/case-11.md",
+            "scenario": "PAIRED PASS for source case-04. The complete Brightwater donation redisplay, $0 amount, unselected frequency group, and page context are preserved from the failed source.",
+            "expected": "passed",
+            "mechanism": "The document title identifies the error state, and a visible error-styled `role=alert` states that the amount must be at least $5 and that a donation frequency must be selected. Both erroneous items reference that exact text; no inherited title, class, or green success palette contradicts the error.",
+            "primarySelector": "#donation-errors",
+            "whyAutomatedToolsMiss": "All original invalid values and the donation template remain, while the source’s misleading success title and presentation have been removed as confounds. Correct evaluation requires reading the repaired alert and both associations instead of inferring silent failure from the retained $0 and empty radios.",
+            "citation": {
+              "doc": "wcag-understanding/error-identification.html",
+              "quote": "This SC requires that users be provided with information about the nature of the error, including the identity of the item in error."
+            },
+            "pairedWith": "case-04",
+            "balanceBatch": "gena11y-fp-50-v2",
+            "hardNegativeType": "error-identification"
           }
         ]
       },
@@ -593,7 +770,6 @@
           "browserConfirmed": true,
           "severity": "major",
           "problems": [
-            "PROMPT/HARNESS METADATA MISMATCH (not a defect in the file): The prompt's claimed scenario (Riverbend Library membership, Age field '0', empty required Email, heading 'Submission received', selector h1 + form input#age[value=\"0\"]) does NOT describe case-01. The actual case-01.html is the 'Glenmore City facility booking' page: heading 'Request logged', retained past Event date input#evdate value='2019-03-02', no #age field, no Email field. The Riverbend Library scenario is actually case-06 (the deliberate PASSING counterpart). The supplied selector 'h1 + form input#age[value=\"0\"]' matches NOTHING in case-01 (inspect.js selectorMatch=null; no #age element exists). The mechanism text in the prompt (server enforced min=1/required Email) also belongs to a different case. Judged the actual file at the stated PATH per instructions; the file itself is internally consistent.",
             "Per-instructions caveat (inherent to the SC, not a file defect): 3.3.1 only bites 'if an input error is automatically detected.' On the rendered result page in isolation there is NO on-page evidence detection occurred (no :invalid, no aria-invalid, no error element, valid markup). The failure is inferable only from page-state context (the 'Request logged' heading contradicted by a retained impossibly-past date against the printed 14-day rule). This is what makes it a genuine human-judgment case, but it also means a purely-source evaluator must accept the documented page-state premise to reach 'failed'."
           ],
           "cdpEvidence": "REASONING (actual case-01, Glenmore facility booking): h1 'Request logged' + lead 'here are the details we have...' (HTML L73-74) frame the page as a success/result; the printed policy p.rule 'requests must be made at least 14 days in advance' (L77) is violated by retained input#evdate value='2019-03-02' (L98), a date years in the past (today 2026). The form (L81) is novalidate with all-plain type=text inputs; NO required/min/max/pattern/type=email anywhere; no role=alert/aria-live; no error text. This is the exact G83/Understanding F-pattern: 'In the case of an unsuccessful form submission, it is not sufficient to only re-display the form without providing any hint that the submission failed. The error must be indicated in text.' BROWSER SIGNALS corroborate: puppeteer eval shows alerts(role=alert/aria-live)=0; all 4 inputs valid:true, matchesInvalid:false, ariaInvalid:null, hasMin/hasMax/hasPattern=false, required=false; evdate exposed as ordinary textbox name '2019-03-02'. inspect.js AX tree: title/h1 'Request logged', no error node, no invalid state; tabOrder is clean (breadcrumb links -> 4 inputs -> Submit), no error landmark. jsErrors=[]; lang=en; self-contained (no external resources). Note: a naive errorWords regex hit 'true' only because the policy prose contains 'must be' ('requests must be made...') — NOT an actual error message; body innerText confirms zero error indication. CITATION VERIFIED VERBATIM in wcag-understanding/error-identification.html: L25-28 ('...unsuccessful form submission, it is not sufficient to only re-display the form without providing any hint that the submission failed. The error must be indicated in text.') and L45 ('the user enters a birth date 2 years in the future;'). Both support the mechanism. AUTOMATED DETECTABILITY: well-formed labelled form, no :invalid field, no error element, contrast fine -> axe/WAVE/Lighthouse treat 3.3.1 as vacuous pass; cannot read today's date or parse the prose lead-time rule. Genuinely human/contextual judgment.",
@@ -722,11 +898,11 @@
             "id": "case-03",
             "file": "eval/act-augmented/3.3.1/pages/inline-error-adjacent-to-wrong-field/case-03.html",
             "docFile": "eval/act-augmented/3.3.1/pages/inline-error-adjacent-to-wrong-field/case-03.md",
-            "scenario": "Account 'Contact preferences' panel with stacked Email (value 'ella.brooks@@mailbox.co', invalid double-@) and Mobile phone (valid). Layout uses CSS grid-template-areas; the email error's grid-area is mis-assigned to 'phone-msg'. In the DOM the email error is the email input's immediate next sibling, but CSS grid paints it in the row beneath the phone input. No aria-describedby.",
+            "scenario": "Aerolinks round-trip form has two fields identically labelled 'Travel date'. The durable-future outbound value is 2099-07-14; the return value 2025-03-02 is in the past. A generic 'Travel date is invalid' message and red state are painted under the valid outbound leg, while the actual return error is unmarked and unassociated.",
             "expected": "failed",
-            "mechanism": "DOM source-order adjacency is correct (error is next sibling of the email input), so any DOM-order/proximity reasoning concludes correct identification. But the rendered geometry diverges: the error is grid-placed under the valid phone field, so a sighted user perceives the email error as annotating the phone field while the invalid email field shows no message. Presentation, as actually rendered, identifies the wrong field.",
-            "primarySelector": ".a-email-msg",
-            "whyAutomatedToolsMiss": "The error is non-empty, visible, accessible-tree-present and descriptive; there is no aria-describedby to flag; and in the DOM the error is correctly adjacent to its field, so source-order checks pass. The fault exists only after CSS grid layout, in pixel geometry. axe/WAVE/Lighthouse do not compute post-layout bounding-box adjacency of grid-placed items against message semantics, so the DOM-vs-visual divergence is invisible.",
+            "mechanism": "The label-only error text is ambiguous between two same-named fields, and its visual placement plus red border identify the valid outbound leg rather than the invalid return leg. No aria-describedby or other programmatic association recovers the true target.",
+            "primarySelector": "fieldset:first-of-type .msg",
+            "whyAutomatedToolsMiss": "The message is visible and in-tree and both inputs are labelled. Determining failure requires combining duplicate-label ambiguity, fieldset context, presentation, and the semantic validity of the two date values.",
             "citation": {
               "doc": "act-rules/extracted/36b590.md",
               "quote": "Each test target either has no form field error indicators , or at least one of the form field error indicators allows the identification of the related test target, through text , or through non-text content , or through presentation ."
@@ -773,6 +949,87 @@
               "doc": "wcag-understanding/error-identification.html",
               "quote": "In other cases, it may be more appropriate to show errors inline, with error messages next to the specific fields that are in error."
             }
+          },
+          {
+            "id": "case-07",
+            "file": "eval/act-augmented/3.3.1/pages/inline-error-adjacent-to-wrong-field/case-07.html",
+            "docFile": "eval/act-augmented/3.3.1/pages/inline-error-adjacent-to-wrong-field/case-07.md",
+            "scenario": "PAIRED PASS control for case-01. The CVV error is moved from the valid card-number field to the invalid two-digit CVV and is programmatically associated with that input.",
+            "expected": "passed",
+            "mechanism": "No SC 3.3.1 defect remains. Removed the false card-number styling, moved the message under CVV, and added aria-invalid/aria-describedby to the CVV.",
+            "primarySelector": "#cvv-error",
+            "whyAutomatedToolsMiss": "This is a hard negative paired with case-01: nearly all page-level signals are intentionally preserved, while the normative decision-boundary defect is repaired. A reliable evaluator must verify the repaired relationship or behavior rather than infer failure from the template.",
+            "citation": {
+              "doc": "act-rules/extracted/36b590.md",
+              "quote": "Each test target either has no form field error indicators , or at least one of the form field error indicators allows the identification of the related test target, through text , or through non-text content , or through presentation ."
+            },
+            "pairedWith": "case-01",
+            "balanceBatch": "initial-79-context-v3",
+            "hardNegativeType": "paired-specificity"
+          },
+          {
+            "id": "case-08",
+            "file": "eval/act-augmented/3.3.1/pages/inline-error-adjacent-to-wrong-field/case-08.html",
+            "docFile": "eval/act-augmented/3.3.1/pages/inline-error-adjacent-to-wrong-field/case-08.md",
+            "scenario": "PAIRED PASS control for case-02. The error beneath the last-name field now describes that same empty field and is referenced from it.",
+            "expected": "passed",
+            "mechanism": "No SC 3.3.1 defect remains. Made Last name the actual empty input and changed/associated the inline message to “Last name is required.”",
+            "primarySelector": "#lname-error",
+            "whyAutomatedToolsMiss": "This is a hard negative paired with case-02: nearly all page-level signals are intentionally preserved, while the normative decision-boundary defect is repaired. A reliable evaluator must verify the repaired relationship or behavior rather than infer failure from the template.",
+            "citation": {
+              "doc": "wcag-understanding/error-identification.html",
+              "quote": "This SC requires that users be provided with information about the nature of the error, including the identity of the item in error."
+            },
+            "pairedWith": "case-02",
+            "balanceBatch": "initial-79-context-v3",
+            "hardNegativeType": "paired-specificity"
+          },
+          {
+            "id": "case-09",
+            "file": "eval/act-augmented/3.3.1/pages/inline-error-adjacent-to-wrong-field/case-09.html",
+            "docFile": "eval/act-augmented/3.3.1/pages/inline-error-adjacent-to-wrong-field/case-09.md",
+            "scenario": "Paired PASS repair of case-03. Two Travel date labels and the durable-future 2099 outbound date remain, but the past return date alone is invalid and references a return-specific message.",
+            "expected": "passed",
+            "mechanism": "Legend context, visual placement, invalid state, and aria-describedby all identify the Return flight field and its past-date cause.",
+            "primarySelector": "#leg-ret",
+            "whyAutomatedToolsMiss": "The duplicated labels remain; the pass depends on resolving the referenced message together with fieldset context.",
+            "citation": {
+              "doc": "act-rules/extracted/36b590.md",
+              "quote": "Each test target either has no form field error indicators , or at least one of the form field error indicators allows the identification of the related test target, through text , or through non-text content , or through presentation ."
+            },
+            "pairedWith": "case-03"
+          },
+          {
+            "id": "case-10",
+            "file": "eval/act-augmented/3.3.1/pages/inline-error-adjacent-to-wrong-field/case-10.html",
+            "docFile": "eval/act-augmented/3.3.1/pages/inline-error-adjacent-to-wrong-field/case-10.md",
+            "scenario": "Paired PASS repair of case-04. In the RTL address grid the valid postal code is cleared; the empty City field is invalid and has an exact Arabic description.",
+            "expected": "passed",
+            "mechanism": "The actual empty item is identified through its label, invalid state, adjacent text, and resolved description reference.",
+            "primarySelector": "#city",
+            "whyAutomatedToolsMiss": "RTL grid position is deliberately misleading; the programmatic field-message relationship determines the pass.",
+            "citation": {
+              "doc": "wcag-understanding/error-identification.html",
+              "quote": "This SC requires that users be provided with information about the nature of the error, including the identity of the item in error."
+            },
+            "pairedWith": "case-04"
+          },
+          {
+            "id": "case-11",
+            "file": "eval/act-augmented/3.3.1/pages/inline-error-adjacent-to-wrong-field/case-11.html",
+            "docFile": "eval/act-augmented/3.3.1/pages/inline-error-adjacent-to-wrong-field/case-11.md",
+            "scenario": "PAIRED PASS for source case-05. The complete blood-pressure form, normal systolic value 118, invalid diastolic value 135, and inline message are preserved from the failed source.",
+            "expected": "passed",
+            "mechanism": "The text “Diastolic must be between 40 and 120 mmHg” now appears with and programmatically describes the actual invalid diastolic field; systolic is no longer falsely flagged.",
+            "primarySelector": "#dia",
+            "whyAutomatedToolsMiss": "The same two-column visual layout, values, and error sentence remain. A position-based evaluator can cling to the source’s left-column error pattern unless it checks the corrected field association.",
+            "citation": {
+              "doc": "wcag-understanding/error-identification.html",
+              "quote": "This SC requires that users be provided with information about the nature of the error, including the identity of the item in error."
+            },
+            "pairedWith": "case-05",
+            "balanceBatch": "gena11y-fp-50-v2",
+            "hardNegativeType": "error-identification"
           }
         ]
       },
@@ -819,12 +1076,8 @@
           "requiresHumanJudgment": true,
           "browserConfirmed": true,
           "severity": "major",
-          "problems": [
-            "PROMPT/METADATA MISMATCH (not a page defect): the prompt's 'Claimed scenario' describes a DIFFERENT page entirely — an Account 'Contact preferences' panel with Email/Mobile-phone inputs, CSS grid-template-areas, a 'phone-msg' grid-area mis-assignment, double-@ email value. NONE of that exists in case-03.html. grep for a-email-msg, grid-template-areas, grid-area, phone-msg, 'Contact preferences', 'Mobile phone' returns 0 hits. The actual page is an Aerolinks airline round-trip with two 'Travel date' legs (Outbound/Return) using flexbox, where a render-helper bug paints the return-leg error under the valid outbound leg.",
-            "Element-under-test selector '.a-email-msg' given in the prompt does NOT exist in the file; the inspect tool found no such element (dumped the whole AX tree). The real error element is 'fieldset:first-of-type .msg'. Any downstream consumer keying on the prompt's selector would fail.",
-            "The prompt's 'Claimed mechanism' (DOM source-order adjacency correct, grid geometry diverges) is the wrong mechanism for this file. The real file has NO grid; its mechanism is (a) duplicate identical labels 'Travel date' across two fieldsets defeating identification-through-text, plus (b) the lone error + red .flagged border rendered under the VALID leg defeating identification-through-presentation."
-          ],
-          "cdpEvidence": "Page-on-disk (case-03.html lines 48-70): two <fieldset> legs, each a flex .leg with label 'Travel date' + input + .msg. leg-out value=2026-07-14 has class 'flagged' AND the only non-empty .msg ('Travel date is invalid.', line 56); leg-ret value=2025-03-02 (past date = real error) has empty .msg (line 68) and no flagged class. No aria-describedby anywhere. AX tree (inspect.js): TWO textboxes BOTH with accessible name 'Travel date'; StaticText 'Travel date is invalid.' nested only under the first (outbound) leg. tabOrder: stop0 leg-out border rgb(207,59,59) red (value 2026-07-14, VALID), stop1 leg-ret border rgb(196,204,214) gray (value 2025-03-02, INVALID), stop2 button — so the error indicators sit on the valid field and the invalid field is unmarked. .msg computed: visible/opacity1/display block, color rgb(207,59,59), box y=232 (under outbound). jsErrors: []. SC 3.3.1 / ACT 36b590 Expectation 1 disjunction (text OR non-text OR presentation) all fail: text is ambiguous (both names 'Travel date', cf. Failed Example 5), presentation points at the valid leg, no programmatic link — so the field in error is not identified => failed is CORRECT for this page. Citation verified VERBATIM: Expectation 1 quote == 36b590.md line 51; Failed Example 5 quote == line 248. requiresHumanJudgment=true: message is non-empty/visible/in-tree, both inputs properly labeled, no lint-catchable empty/broken attribute; detecting it needs label-collision + spatial + date-range semantic judgment no axe/WAVE/Lighthouse performs.",
+          "problems": [],
+          "cdpEvidence": "Page-on-disk (case-03.html lines 33-50): two <fieldset> legs, each a flex .leg with label 'Travel date' + input + .msg. leg-out value=2099-07-14 has class 'flagged' AND the only non-empty .msg ('Travel date is invalid.', line 40); leg-ret value=2025-03-02 (past date = real error) has empty .msg (line 50) and no flagged class. No aria-describedby anywhere. AX tree (inspect.js): TWO textboxes BOTH with accessible name 'Travel date'; StaticText 'Travel date is invalid.' nested only under the first (outbound) leg. tabOrder: stop0 leg-out border rgb(207,59,59) red (value 2099-07-14, VALID), stop1 leg-ret border rgb(196,204,214) gray (value 2025-03-02, INVALID), stop2 button — so the error indicators sit on the valid field and the invalid field is unmarked. .msg computed: visible/opacity1/display block, color rgb(207,59,59), box y=232 (under outbound). jsErrors: []. SC 3.3.1 / ACT 36b590 Expectation 1 disjunction (text OR non-text OR presentation) all fail: text is ambiguous (both names 'Travel date', cf. Failed Example 5), presentation points at the valid leg, no programmatic link — so the field in error is not identified => failed is CORRECT for this page. Citation verified VERBATIM: Expectation 1 quote == 36b590.md line 51; Failed Example 5 quote == line 248. requiresHumanJudgment=true: message is non-empty/visible/in-tree, both inputs properly labeled, no lint-catchable empty/broken attribute; detecting it needs label-collision + spatial + date-range semantic judgment no axe/WAVE/Lighthouse performs.",
           "recommendation": "keep",
           "expected": "failed",
           "docFile": "eval/act-augmented/3.3.1/pages/inline-error-adjacent-to-wrong-field/case-03.md"
@@ -980,6 +1233,70 @@
               "doc": "wcag-techniques/general/G83.html",
               "quote": "the form is re-displayed with a text description at the top informing which mandatory fields were omitted. Each omitted mandatory field is also identified using a text label so that the user does not have to return to the list at the top of the form to find the omitted fields."
             }
+          },
+          {
+            "id": "case-08",
+            "file": "eval/act-augmented/3.3.1/pages/error-summary-incoherent-with-flagged-state/case-08.html",
+            "docFile": "eval/act-augmented/3.3.1/pages/error-summary-incoherent-with-flagged-state/case-08.md",
+            "scenario": "PAIRED PASS control for case-01. The summary now lists the one genuinely invalid telephone field and links to it; the valid name and email are no longer falsely reported.",
+            "expected": "passed",
+            "mechanism": "No SC 3.3.1 defect remains. Changed the count from two to one and replaced both stale links with the real telephone error link.",
+            "primarySelector": ".error-summary",
+            "whyAutomatedToolsMiss": "This is a hard negative paired with case-01: nearly all page-level signals are intentionally preserved, while the normative decision-boundary defect is repaired. A reliable evaluator must verify the repaired relationship or behavior rather than infer failure from the template.",
+            "citation": {
+              "doc": "wcag-understanding/error-identification.html",
+              "quote": "This SC requires that users be provided with information about the nature of the error, including the identity of the item in error."
+            },
+            "pairedWith": "case-01",
+            "balanceBatch": "initial-79-context-v3",
+            "hardNegativeType": "paired-specificity"
+          },
+          {
+            "id": "case-09",
+            "file": "eval/act-augmented/3.3.1/pages/error-summary-incoherent-with-flagged-state/case-09.html",
+            "docFile": "eval/act-augmented/3.3.1/pages/error-summary-incoherent-with-flagged-state/case-09.md",
+            "scenario": "Paired PASS repair of case-01. The complete Northvale page remains; its summary now contains one item linking to the sole invalid Telephone field, while valid name and email are omitted from the error set.",
+            "expected": "passed",
+            "mechanism": "Summary count, membership, destination, invalid state, and inline wording all reconcile.",
+            "primarySelector": ".error-summary",
+            "whyAutomatedToolsMiss": "A correct verdict requires reconciling the set of summary links with the set of invalid controls.",
+            "citation": {
+              "doc": "wcag-understanding/error-identification.html",
+              "quote": "This SC requires that users be provided with information about the nature of the error, including the identity of the item in error."
+            },
+            "pairedWith": "case-01"
+          },
+          {
+            "id": "case-10",
+            "file": "eval/act-augmented/3.3.1/pages/error-summary-incoherent-with-flagged-state/case-10.html",
+            "docFile": "eval/act-augmented/3.3.1/pages/error-summary-incoherent-with-flagged-state/case-10.md",
+            "scenario": "Paired PASS repair of case-02. The complete Copper Pot form remains; the summary omits only the nonexistent City field and lists the empty event date and zero guests.",
+            "expected": "passed",
+            "mechanism": "Both summary entries correspond to actual invalid controls and matching inline descriptions; the venue remains valid.",
+            "primarySelector": ".alert",
+            "whyAutomatedToolsMiss": "The pass depends on holistic agreement between summary membership, invalid controls, and inline descriptions, not the alert's syntax.",
+            "citation": {
+              "doc": "wcag-techniques/general/G83.html",
+              "quote": "Using server-side validation, the omission is detected and the form is re-displayed with a text description at the top informing which mandatory fields were omitted."
+            },
+            "pairedWith": "case-02"
+          },
+          {
+            "id": "case-11",
+            "file": "eval/act-augmented/3.3.1/pages/error-summary-incoherent-with-flagged-state/case-11.html",
+            "docFile": "eval/act-augmented/3.3.1/pages/error-summary-incoherent-with-flagged-state/case-11.md",
+            "scenario": "PAIRED PASS for source case-03. The complete patient-registration form and its three genuinely invalid fields are preserved from the failed source.",
+            "expected": "passed",
+            "mechanism": "The summary count and membership now exactly match the three fields identified in error, and each item names and targets the corresponding control.",
+            "primarySelector": ".summary[role=\"alert\"]",
+            "whyAutomatedToolsMiss": "The dense form and all three red inline states remain. A model must reconcile the summary against field state and not repeat the source’s stale “1 error” assessment.",
+            "citation": {
+              "doc": "wcag-understanding/error-identification.html",
+              "quote": "This SC requires that users be provided with information about the nature of the error, including the identity of the item in error."
+            },
+            "pairedWith": "case-03",
+            "balanceBatch": "gena11y-fp-50-v2",
+            "hardNegativeType": "error-identification"
           }
         ]
       },
@@ -1132,14 +1449,14 @@
             "id": "case-03",
             "file": "eval/act-augmented/3.3.1/pages/non-text-only-error-indicator/case-03.html",
             "docFile": "eval/act-augmented/3.3.1/pages/non-text-only-error-indicator/case-03.md",
-            "scenario": "Conference call-for-papers form returned after a blank required 'Talk title'; the only error/required cue is the label turned red with a trailing CSS ::after asterisk. No message, no legend explaining the asterisk, no required/aria-required/aria-invalid.",
+            "scenario": "Pennine Mutual car-insurance form retains the invalid postcode 'SW1A 9ZZ XX'. The only error cue is a red border and CSS background-image exclamation icon on the Postcode field; no text or programmatic invalid state identifies what is wrong.",
             "expected": "failed",
-            "mechanism": "The ::after asterisk is a CSS pseudo-element not included in the label's accessible name, and the colour change is never announced; a screen reader hears 'Talk title, edit, blank' identically to other fields, so neither 'required' nor 'error' is conveyed in text.",
-            "primarySelector": "label.flagged[for=\"title\"]",
-            "whyAutomatedToolsMiss": "Every control has a properly associated label and contrast is fine, so structural scans pass. A label colour change is not an error signal any tool recognises, and ::after content is invisible to most accessibility-tree inspection. No tool infers 'this red asterisk means required AND in error, stated nowhere in text.' ACT 36b590 sees no error text and does not fire.",
+            "mechanism": "The red border and painted icon are non-text visual indicators. Because the labelled Postcode input has no error text, aria-invalid, aria-errormessage, or aria-describedby, users cannot determine the nature of the error in text.",
+            "primarySelector": "#postcode.flagged",
+            "whyAutomatedToolsMiss": "The input has a proper label and the CSS background image is absent from the accessibility tree. Static tools do not infer that a decorative-looking red border/icon is the page's only error signal.",
             "citation": {
-              "doc": "eval/act-augmented/3.3.1/pages/non-text-only-error-indicator/case-03.md",
-              "quote": "When users fail to provide input for any mandatory form fields, information is provided in text to enable the users to identify which fields were omitted."
+              "doc": "wcag-techniques/general/G84.html",
+              "quote": "A text description of the problem should be provided."
             }
           },
           {
@@ -1197,6 +1514,87 @@
               "doc": "eval/act-augmented/3.3.1/pages/non-text-only-error-indicator/case-07.md",
               "quote": "It is perfectly acceptable to indicate the error in other ways such as through the use of an image, color, or other visual indicator, in addition to the text description."
             }
+          },
+          {
+            "id": "case-08",
+            "file": "eval/act-augmented/3.3.1/pages/non-text-only-error-indicator/case-08.html",
+            "docFile": "eval/act-augmented/3.3.1/pages/non-text-only-error-indicator/case-08.md",
+            "scenario": "PAIRED PASS control for case-01. The over-capacity seat request retains its visual styling but now also has a specific textual error associated with the field.",
+            "expected": "passed",
+            "mechanism": "No SC 3.3.1 defect remains. Added aria-invalid, aria-describedby, and visible text stating that no more than five places can be reserved.",
+            "primarySelector": "#seats-error",
+            "whyAutomatedToolsMiss": "This is a hard negative paired with case-01: nearly all page-level signals are intentionally preserved, while the normative decision-boundary defect is repaired. A reliable evaluator must verify the repaired relationship or behavior rather than infer failure from the template.",
+            "citation": {
+              "doc": "eval/act-augmented/3.3.1/pages/non-text-only-error-indicator/case-01.md",
+              "quote": "it is not sufficient to only re-display the form without providing any hint that the submission failed. The error must be indicated in text."
+            },
+            "pairedWith": "case-01",
+            "balanceBatch": "initial-79-context-v3",
+            "hardNegativeType": "paired-specificity"
+          },
+          {
+            "id": "case-09",
+            "file": "eval/act-augmented/3.3.1/pages/non-text-only-error-indicator/case-09.html",
+            "docFile": "eval/act-augmented/3.3.1/pages/non-text-only-error-indicator/case-09.md",
+            "scenario": "Paired PASS repair of case-03. The invalid Pennine postcode retains its red visual treatment but now has specific associated text and invalid state.",
+            "expected": "passed",
+            "mechanism": "The error is identified in text; colour and visual styling are merely redundant cues.",
+            "primarySelector": "#postcode",
+            "whyAutomatedToolsMiss": "Vision-heavy evaluation may mistake a prominent red error state for an absence of text unless it follows the description reference.",
+            "citation": {
+              "doc": "wcag-understanding/error-identification.html",
+              "quote": "This success criterion does not mean that color or text styles cannot be used to indicate errors. It simply requires that errors also be identified using text."
+            },
+            "pairedWith": "case-03"
+          },
+          {
+            "id": "case-10",
+            "file": "eval/act-augmented/3.3.1/pages/non-text-only-error-indicator/case-10.html",
+            "docFile": "eval/act-augmented/3.3.1/pages/non-text-only-error-indicator/case-10.md",
+            "scenario": "Paired PASS repair of case-04. The reused Meridian password remains visually flagged but now has exact associated reuse text.",
+            "expected": "passed",
+            "mechanism": "The invalid state and referenced text identify that this password was used previously and must be changed.",
+            "primarySelector": "#pw1",
+            "whyAutomatedToolsMiss": "The same visual failure template remains; the decisive pass signal is the semantically accurate referenced prose.",
+            "citation": {
+              "doc": "wcag-understanding/error-identification.html",
+              "quote": "This success criterion does not mean that color or text styles cannot be used to indicate errors. It simply requires that errors also be identified using text."
+            },
+            "pairedWith": "case-04"
+          },
+          {
+            "id": "case-11",
+            "file": "eval/act-augmented/3.3.1/pages/non-text-only-error-indicator/case-11.html",
+            "docFile": "eval/act-augmented/3.3.1/pages/non-text-only-error-indicator/case-11.md",
+            "scenario": "PAIRED PASS for source case-02. The complete patient-intake form, impossible date 31/02/1991, and red warning icon are preserved from the failed source.",
+            "expected": "passed",
+            "mechanism": "The error is now identified in text as “Date of birth is not a valid calendar date,” and the date input exposes that description programmatically in addition to the visual icon.",
+            "primarySelector": "#dob",
+            "whyAutomatedToolsMiss": "The original red triangular indicator remains visually dominant. An evaluator focused on the residual icon can miss the nearby text and resolved description relationship.",
+            "citation": {
+              "doc": "wcag-understanding/error-identification.html",
+              "quote": "This SC requires that users be provided with information about the nature of the error, including the identity of the item in error."
+            },
+            "pairedWith": "case-02",
+            "balanceBatch": "gena11y-fp-50-v2",
+            "hardNegativeType": "error-identification"
+          },
+          {
+            "id": "case-12",
+            "file": "eval/act-augmented/3.3.1/pages/non-text-only-error-indicator/case-12.html",
+            "docFile": "eval/act-augmented/3.3.1/pages/non-text-only-error-indicator/case-12.md",
+            "scenario": "PAIRED PASS for source case-06. The complete Vantage expense claim, £139 meal line, £75 policy, and yellow attention highlight are preserved from the failed source.",
+            "expected": "passed",
+            "mechanism": "Both the rendered page and accessibility tree expose ‘Line 2 meal amount £139 exceeds the £75 per-meal cap,’ and the invalid amount resolves that sentence through `aria-describedby`. The yellow fieldset is now a supplementary visual cue.",
+            "primarySelector": "#a2",
+            "whyAutomatedToolsMiss": "The source’s yellow attention treatment remains visually prominent, but it is no longer the only evidence. Correct evaluation requires reading the rendered sentence, checking its £139-versus-£75 meaning, and resolving its association to the amount field rather than stopping at the residual color cue.",
+            "citation": {
+              "doc": "wcag-understanding/error-identification.html",
+              "quote": "This SC requires that users be provided with information about the nature of the error, including the identity of the item in error."
+            },
+            "pairedWith": "case-06",
+            "balanceBatch": "gena11y-fp-50-v2",
+            "hardNegativeType": "accessibility-evidence-omitted"
           }
         ]
       },
@@ -1244,11 +1642,10 @@
           "browserConfirmed": true,
           "severity": "major",
           "problems": [
-            "PROMPT/orchestration metadata is entirely mismatched to the actual files: the prompt describes a conference call-for-papers form with a CSS ::after asterisk on label.flagged[for=\"title\"], but the real page (case-03.html) is a car-insurance quote form whose error cue is a CSS background-image SVG glyph + red border on input#postcode.flagged. The prompt's 'claimed citation' (G84 asterisk-on-label sentence) also does not match the MD's actual citations. Judged the real files, not the stale prompt metadata. This is an orchestration defect, not a page defect.",
             "Minor: the actual page's failure mechanism (background-image glyph) is arguably even stronger/cleaner than the G84 quote's literal examples (asterisk / red label), but the G84 principle 'a text description of the problem should be provided' applies directly, so the citation is still apt."
           ],
           "recommendation": "keep",
-          "cdpEvidence": "Mechanism is sound and confirmed by raw Chromium AX tree. HTML lines 26-32: .flagged applies ONLY a red 2px border (border-color:#cf2230; border-width:2px) plus a background-image inline-SVG error glyph (data:image/svg+xml,...). No message element, no asterisk, no ::before/::after, no aria-invalid, no aria-required, no title. HTML line 64-65: input#postcode has class='flagged' value='SW1A 9ZZ XX'. CDP getPartialAXTree on #postcode (backendNodeId 26): role='textbox', name='Postcode', value='SW1A 9ZZ XX', required:false, and NO invalid property — byte-identical AX shape to the three valid fields (fullname/dob/vehicle all also required:false). So AT announces 'Postcode, edit, SW1A 9ZZ XX' indistinguishable from a valid field; neither 'error' nor 'invalid' is conveyed in text. Computed style confirms the purely-visual cue: #postcode border='2px solid rgb(207, 34, 48)' (red) vs others '1px solid rgb(185, 194, 204)'. CSS background-image is a paint operation that never enters the AX tree — this is universally true across browsers, so the cue is genuinely invisible to AT. This satisfies the SC 3.3.1 sole-cue prohibition: an input error is detected but not identified in text. Outcome 'failed' is correct. CITATIONS VERIFY VERBATIM: G84 Description (wcag-techniques/general/G84.html line 4): '...it is not sufficient simply to indicate that a field has an error by putting an asterisk on its label or turning the label red. A text description of the problem should be provided.' — exact match. Understanding 3.3.1 note (wcag-understanding/error-identification.html lines 130-131): 'This success criterion does not mean that color or text styles cannot be used to indicate errors. It simply requires that errors also be identified using text.' — exact match. inspect.js: jsErrors:[], no external resources (inline SVG data URI), renders clean, lang=en-GB. Automated checkers cannot catch this: no missing/empty attribute, no contrast failure, every input has a real associated label; the error state exists only in painted pixels — requires rendered-visual + contextual human judgment.",
+          "cdpEvidence": "Mechanism is sound and confirmed by raw Chromium AX tree. HTML lines 21-27: .flagged applies ONLY a red 2px border (border-color:#cf2230; border-width:2px) plus a background-image inline-SVG error glyph (data:image/svg+xml,...). No message element, no asterisk, no ::before/::after, no aria-invalid, no aria-required, no title. HTML lines 52-54: input#postcode has class='flagged' value='SW1A 9ZZ XX'. CDP getPartialAXTree on #postcode (backendNodeId 26): role='textbox', name='Postcode', value='SW1A 9ZZ XX', required:false, and NO invalid property — byte-identical AX shape to the three valid fields (fullname/dob/vehicle all also required:false). So AT announces 'Postcode, edit, SW1A 9ZZ XX' indistinguishable from a valid field; neither 'error' nor 'invalid' is conveyed in text. Computed style confirms the purely-visual cue: #postcode border='2px solid rgb(207, 34, 48)' (red) vs others '1px solid rgb(185, 194, 204)'. CSS background-image is a paint operation that never enters the AX tree — this is universally true across browsers, so the cue is genuinely invisible to AT. This satisfies the SC 3.3.1 sole-cue prohibition: an input error is detected but not identified in text. Outcome 'failed' is correct. CITATIONS VERIFY VERBATIM: G84 Description (wcag-techniques/general/G84.html line 4): '...it is not sufficient simply to indicate that a field has an error by putting an asterisk on its label or turning the label red. A text description of the problem should be provided.' — exact match. Understanding 3.3.1 note (wcag-understanding/error-identification.html lines 130-131): 'This success criterion does not mean that color or text styles cannot be used to indicate errors. It simply requires that errors also be identified using text.' — exact match. inspect.js: jsErrors:[], no external resources (inline SVG data URI), renders clean, lang=en-GB. Automated checkers cannot catch this: no missing/empty attribute, no contrast failure, every input has a real associated label; the error state exists only in painted pixels — requires rendered-visual + contextual human judgment.",
           "expected": "failed",
           "docFile": "eval/act-augmented/3.3.1/pages/non-text-only-error-indicator/case-03.md"
         },
@@ -1352,7 +1749,7 @@
             "id": "case-03",
             "file": "eval/act-augmented/3.3.1/pages/error-icon-text-alternative-misstates-error/case-03.html",
             "docFile": "eval/act-augmented/3.3.1/pages/error-icon-text-alternative-misstates-error/case-03.md",
-            "scenario": "Nonprofit one-time-gift form; the donor entered 25000 (over the stated $10,000 online maximum) and the error is conveyed by a Material-Icons-style icon-font glyph whose aria-label is the literal ligature key \"error_outline\" — describing the picture, not the error.",
+            "scenario": "Nonprofit one-time-gift form; the donor entered 25000 (over the stated $10,000 online maximum) and the error is conveyed by a Material-Icons-style icon-font glyph whose aria-label is the literal ligature key \"error_outline\" — describing the picture, not the error. The amount input itself has the stable label 'Gift amount in US dollars', preventing an unrelated control-name confound.",
             "expected": "failed",
             "mechanism": "The glyph exposes role=img name=\"error_outline\" (CDP-confirmed), associated via aria-describedby. A screen-reader user hears a glyph identifier that conveys neither the cause (amount exceeds the $10,000 cap) nor that this concerns the amount field; it is an appearance/identity token, not an error description.",
             "primarySelector": "span#amount-icon[role=\"img\"]",
@@ -1417,6 +1814,72 @@
               "doc": "wcag-understanding/error-identification.html",
               "quote": "It is perfectly acceptable to indicate the error in other ways such as through the use of an image, color, or other visual indicator, in addition to the text description."
             }
+          },
+          {
+            "id": "case-08",
+            "file": "eval/act-augmented/3.3.1/pages/error-icon-text-alternative-misstates-error/case-08.html",
+            "docFile": "eval/act-augmented/3.3.1/pages/error-icon-text-alternative-misstates-error/case-08.md",
+            "scenario": "PAIRED PASS control for case-01. The sole error icon now has a specific alternative describing the malformed email rather than the generic word “error”.",
+            "expected": "passed",
+            "mechanism": "No SC 3.3.1 defect remains. Changed the icon alt to “Email address must contain an @ symbol.”",
+            "primarySelector": "img#email-icon",
+            "whyAutomatedToolsMiss": "This is a hard negative paired with case-01: nearly all page-level signals are intentionally preserved, while the normative decision-boundary defect is repaired. A reliable evaluator must verify the repaired relationship or behavior rather than infer failure from the template.",
+            "citation": {
+              "doc": "wcag-understanding/error-identification.html",
+              "quote": "This SC requires that users be provided with information about the nature of the error, including the identity of the item in error."
+            },
+            "pairedWith": "case-01",
+            "balanceBatch": "initial-79-context-v3",
+            "hardNegativeType": "paired-specificity"
+          },
+          {
+            "id": "case-09",
+            "file": "eval/act-augmented/3.3.1/pages/error-icon-text-alternative-misstates-error/case-09.html",
+            "docFile": "eval/act-augmented/3.3.1/pages/error-icon-text-alternative-misstates-error/case-09.md",
+            "scenario": "Paired PASS repair of case-03. The complete Riverkeeper page, over-limit donation, icon, and stable amount-input label remain; only the icon's accessible name now states that $25,000 exceeds the $10,000 online maximum.",
+            "expected": "passed",
+            "mechanism": "The field description resolves to an image whose computed name identifies both the amount field and its actual range error.",
+            "primarySelector": "#amount-icon",
+            "whyAutomatedToolsMiss": "The icon's DOM text is only punctuation; the correct result requires the computed accessibility tree and the referenced policy note.",
+            "citation": {
+              "doc": "wcag-techniques/general/G84.html",
+              "quote": "A text description of the problem should be provided."
+            },
+            "pairedWith": "case-03"
+          },
+          {
+            "id": "case-10",
+            "file": "eval/act-augmented/3.3.1/pages/error-icon-text-alternative-misstates-error/case-10.html",
+            "docFile": "eval/act-augmented/3.3.1/pages/error-icon-text-alternative-misstates-error/case-10.md",
+            "scenario": "PAIRED PASS for source case-02. The complete Cadence HR reset form, seven-character password, visible warning icon, and policy checklist are preserved from the failed source.",
+            "expected": "passed",
+            "mechanism": "The password field is invalid and its computed description resolves through `aria-describedby` to the icon’s exact accessible name: ‘Password must be at least 10 characters; yours has 7.’ Using `aria-describedby` avoids relying on less-consistent `aria-errormessage` exposure.",
+            "primarySelector": "#newpw",
+            "whyAutomatedToolsMiss": "The icon still renders as the same warning triangle and there is no separate visible error sentence. Correct judgment requires inspecting the password input’s computed accessibility-tree description rather than treating the visual glyph or image element in isolation.",
+            "citation": {
+              "doc": "wcag-understanding/error-identification.html",
+              "quote": "This SC requires that users be provided with information about the nature of the error, including the identity of the item in error."
+            },
+            "pairedWith": "case-02",
+            "balanceBatch": "gena11y-fp-50-v2",
+            "hardNegativeType": "error-identification"
+          },
+          {
+            "id": "case-11",
+            "file": "eval/act-augmented/3.3.1/pages/error-icon-text-alternative-misstates-error/case-11.html",
+            "docFile": "eval/act-augmented/3.3.1/pages/error-icon-text-alternative-misstates-error/case-11.md",
+            "scenario": "PAIRED PASS for source case-04. The complete two-column Loomfield checkout, both invalid postcode values, and identical visible warning sprites are preserved from the failed source.",
+            "expected": "passed",
+            "mechanism": "The shipping icon states that 9021 must contain five digits; the billing icon states that SW1A 0AA! contains a disallowed exclamation mark. Each input already references its matching icon.",
+            "primarySelector": "#ship-zip-ico, #bill-zip-ico",
+            "whyAutomatedToolsMiss": "A screenshot exposes two identical red warning glyphs and no visible explanatory sentence. The decisive evidence exists only in the accessibility-tree names and per-field IDREFs, which visual-only evidence omits.",
+            "citation": {
+              "doc": "wcag-understanding/error-identification.html",
+              "quote": "This SC requires that users be provided with information about the nature of the error, including the identity of the item in error."
+            },
+            "pairedWith": "case-04",
+            "balanceBatch": "gena11y-fp-50-v2",
+            "hardNegativeType": "accessibility-evidence-omitted"
           }
         ]
       },
@@ -1460,7 +1923,7 @@
           "problems": [
             "No genuine defects found — the case is sound. Minor note (not a defect): the icon's name and the field's description resolve to the SAME token ('error_outline'). AX tree confirms input#amount (backendNodeId 20) has description='error_outline' via aria-describedby, and the icon (backendNodeId 22) has name='error_outline'. This consistently reinforces the claimed mechanism rather than contradicting it."
           ],
-          "cdpEvidence": "HTML line 72-74: input#amount value='25000', aria-invalid='true', aria-describedby='amount-icon'; the span#amount-icon role='img' aria-label='error_outline'. Line 76 note: 'Single online gifts range from $5 to $10,000' — so 25000 is a genuine out-of-range error (in scope for G84 / 3.3.1). CDP AX tree confirms: icon node (backendNodeId 22) role='image', name='error_outline' (rendered, not ignored); input node (backendNodeId 20) role='textbox', value='25000', invalid='true', description='error_outline'. So the only programmatic 'description' an AT user receives is the glyph's ligature identity — it conveys neither the cause (amount exceeds the $10,000 cap) nor that this concerns the amount field. The red border (.over, border rgb(178,59,46)) and the $5–$10,000 note are sighted-only cues not programmatically tied to the error. This is exactly G84's failure mode. CITATION VERIFIED VERBATIM: G84.html line 4 contains the quoted sentence character-for-character ('The \\\"in text\\\" portion of the success criterion underscores that it is not sufficient simply to indicate that a field has an error by putting an asterisk on its label or turning the label red. A text description of the problem should be provided.'). Secondary quote verified verbatim at error-identification.html line 47. AUTOMATED DETECTABILITY: role=img + non-empty accessible name + valid aria-describedby association = no lint-catchable defect (no empty name, no missing role, no contrast issue); the picture-vs-error semantic distinction needs human judgment. Page is self-contained: no JS, CSS-pseudo-element icon shim (no network fonts), jsErrors=[], no external resources.",
+          "cdpEvidence": "HTML lines 56-58: input#amount value='25000', aria-invalid='true', aria-describedby='amount-icon'; the span#amount-icon role='img' aria-label='error_outline'. Line 60 note: 'Single online gifts range from $5 to $10,000' — so 25000 is a genuine out-of-range error (in scope for G84 / 3.3.1). CDP AX tree confirms: icon node (backendNodeId 22) role='image', name='error_outline' (rendered, not ignored); input node (backendNodeId 20) role='textbox', value='25000', invalid='true', description='error_outline'. So the only programmatic 'description' an AT user receives is the glyph's ligature identity — it conveys neither the cause (amount exceeds the $10,000 cap) nor that this concerns the amount field. The red border (.over, border rgb(178,59,46)) and the $5–$10,000 note are sighted-only cues not programmatically tied to the error. This is exactly G84's failure mode. CITATION VERIFIED VERBATIM: G84.html line 4 contains the quoted sentence character-for-character ('The \\\"in text\\\" portion of the success criterion underscores that it is not sufficient simply to indicate that a field has an error by putting an asterisk on its label or turning the label red. A text description of the problem should be provided.'). Secondary quote verified verbatim at error-identification.html line 47. AUTOMATED DETECTABILITY: role=img + non-empty accessible name + valid aria-describedby association = no lint-catchable defect (no empty name, no missing role, no contrast issue); the picture-vs-error semantic distinction needs human judgment. Page is self-contained: no JS, CSS-pseudo-element icon shim (no network fonts), jsErrors=[], no external resources.",
           "recommendation": "keep",
           "expected": "failed",
           "docFile": "eval/act-augmented/3.3.1/pages/error-icon-text-alternative-misstates-error/case-03.md"
@@ -1666,7 +2129,6 @@
             "expectedOutcomeCorrect": true,
             "recommendation": "keep",
             "problems": [
-              "PROMPT/HARNESS METADATA MISMATCH (not a defect in the file): The prompt's claimed scenario (Riverbend Library membership, Age field '0', empty required Email, heading 'Submission received', selector h1 + form input#age[value=\"0\"]) does NOT describe case-01. The actual case-01.html is the 'Glenmore City facility booking' page: heading 'Request logged', retained past Event date input#evdate value='2019-03-02', no #age field, no Email field. The Riverbend Library scenario is actually case-06 (the deliberate PASSING counterpart). The supplied selector 'h1 + form input#age[value=\"0\"]' matches NOTHING in case-01 (inspect.js selectorMatch=null; no #age element exists). The mechanism text in the prompt (server enforced min=1/required Email) also belongs to a different case. Judged the actual file at the stated PATH per instructions; the file itself is internally consistent.",
               "Per-instructions caveat (inherent to the SC, not a file defect): 3.3.1 only bites 'if an input error is automatically detected.' On the rendered result page in isolation there is NO on-page evidence detection occurred (no :invalid, no aria-invalid, no error element, valid markup). The failure is inferable only from page-state context (the 'Request logged' heading contradicted by a retained impossibly-past date against the printed 14-day rule). This is what makes it a genuine human-judgment case, but it also means a purely-source evaluator must accept the documented page-state premise to reach 'failed'."
             ]
           },
@@ -1788,11 +2250,7 @@
             "errorIsReal": true,
             "expectedOutcomeCorrect": true,
             "recommendation": "keep",
-            "problems": [
-              "PROMPT/METADATA MISMATCH (not a page defect): the prompt's 'Claimed scenario' describes a DIFFERENT page entirely — an Account 'Contact preferences' panel with Email/Mobile-phone inputs, CSS grid-template-areas, a 'phone-msg' grid-area mis-assignment, double-@ email value. NONE of that exists in case-03.html. grep for a-email-msg, grid-template-areas, grid-area, phone-msg, 'Contact preferences', 'Mobile phone' returns 0 hits. The actual page is an Aerolinks airline round-trip with two 'Travel date' legs (Outbound/Return) using flexbox, where a render-helper bug paints the return-leg error under the valid outbound leg.",
-              "Element-under-test selector '.a-email-msg' given in the prompt does NOT exist in the file; the inspect tool found no such element (dumped the whole AX tree). The real error element is 'fieldset:first-of-type .msg'. Any downstream consumer keying on the prompt's selector would fail.",
-              "The prompt's 'Claimed mechanism' (DOM source-order adjacency correct, grid geometry diverges) is the wrong mechanism for this file. The real file has NO grid; its mechanism is (a) duplicate identical labels 'Travel date' across two fieldsets defeating identification-through-text, plus (b) the lone error + red .flagged border rendered under the VALID leg defeating identification-through-presentation."
-            ]
+            "problems": []
           },
           {
             "id": "case-04",
@@ -1983,7 +2441,6 @@
             "expectedOutcomeCorrect": true,
             "recommendation": "keep",
             "problems": [
-              "PROMPT/orchestration metadata is entirely mismatched to the actual files: the prompt describes a conference call-for-papers form with a CSS ::after asterisk on label.flagged[for=\"title\"], but the real page (case-03.html) is a car-insurance quote form whose error cue is a CSS background-image SVG glyph + red border on input#postcode.flagged. The prompt's 'claimed citation' (G84 asterisk-on-label sentence) also does not match the MD's actual citations. Judged the real files, not the stale prompt metadata. This is an orchestration defect, not a page defect.",
               "Minor: the actual page's failure mechanism (background-image glyph) is arguably even stronger/cleaner than the G84 quote's literal examples (asterisk / red label), but the G84 principle 'a text description of the problem should be provided' applies directly, so the citation is still apt."
             ]
           },

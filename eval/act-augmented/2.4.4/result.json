@@ -426,8 +426,8 @@
             "primarySelector": ".spotlight:nth-of-type(2) a.chev[href=\"/products/aurora-bt-speaker\"]",
             "whyAutomatedToolsMiss": "Both links have non-empty accessible names ('iPhone 15 Pro details' and the glyph '»'), so c487ae and axe link-name pass for both — critically the failing link is NOT an empty-name linter hit. A glyph like '>>'/'»' is not on phrase blocklists, so heuristic ambiguous-text checkers flag neither. Separating the rescued glyph from the orphaned one requires reading each enclosing sentence for a product name — a pure human meaning judgment.",
             "citation": {
-              "doc": "WCAG Techniques G53 (wcag-techniques/general/G53.html)",
-              "quote": "The sentence enclosing the link provides context for an otherwise unclear link. The description lets a user distinguish this link from links in the web page that lead to other destinations and helps the user determine whether to follow the link."
+              "doc": "ACT Rule fd3a94 applicability (act-rules/extracted/fd3a94.md)",
+              "quote": "the elements are inheriting semantic link nodes"
             }
           },
           {
@@ -442,6 +442,254 @@
             "citation": {
               "doc": "WCAG 2.2 Understanding 2.4.4 (wcag-understanding/link-purpose-in-context.html)",
               "quote": "This can be achieved by putting the description of the link in the same sentence, paragraph, list item, or table cell as the link, or in the table header cell for a link in a data table, because these are directly associated with the link itself."
+            }
+          },
+          {
+            "id": "case-07",
+            "file": "eval/act-augmented/2.4.4/pages/generic-link-text-no-rescuing-context/case-07.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/generic-link-text-no-rescuing-context/case-07.md",
+            "scenario": "Same full Coastal Ledger ferry-terminal article as failed source case-01; only the generic call-to-action is repaired.",
+            "expected": "passed",
+            "mechanism": "Paired repair of source case-01: 'Read more' becomes 'Read the full ferry-terminal approval story', so the anchor identifies its destination.",
+            "primarySelector": ".more-row > a[href=\"/news/ferry-terminal-approved-full\"]",
+            "whyAutomatedToolsMiss": "Syntax and presence checks cannot establish semantic agreement between the repaired title/link and the preserved page topic or destination; this paired control requires contextual meaning.",
+            "citation": {
+              "doc": "WCAG Techniques F63 (wcag-techniques/failures/F63.html)",
+              "quote": "A news service lists the first few sentences of an article in a paragraph. The next paragraph contains the link \"Read More...\". Because the link is not in the same paragraph as the lead sentence, the user cannot easily discover what the link will let the user read more about."
+            },
+            "balanceBatch": "initial-79-context-v3",
+            "hardNegativeType": "paired-specificity",
+            "pairedWith": "case-01"
+          },
+          {
+            "id": "case-09",
+            "file": "eval/act-augmented/2.4.4/pages/generic-link-text-no-rescuing-context/case-09.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/generic-link-text-no-rescuing-context/case-09.md",
+            "scenario": "PAIRED PASS for source case-03. The complete Saffron & Sage restaurant footer is preserved with the three generic `Details` links.",
+            "expected": "passed",
+            "mechanism": "Added only `Menu:`, `Private events:`, and `Gift cards:` text inside the corresponding link list items. No unrelated content or destination was removed. Each generic-looking link is now rescued by its own allowed list-item context rather than a remote heading or visual column.",
+            "primarySelector": "footer .col:nth-child(3) a",
+            "whyAutomatedToolsMiss": "This contextual purpose control preserves the source’s suspicious surface pattern. Syntax-only tooling cannot resolve the governing contextual meaning, accessibility-tree reference/role, or complete interaction behavior.",
+            "citation": {
+              "doc": "Trusted Tester v5.1.3 SC 2.4.4 (refs/trusted-tester/sc-2.4.4-link-purpose.md)",
+              "quote": "\"Programmatically determined link context\" is limited to same sentence/paragraph/list-item/table-cell or associated table header — not arbitrary nearby text."
+            }
+          },
+          {
+            "id": "case-10",
+            "file": "eval/act-augmented/2.4.4/pages/generic-link-text-no-rescuing-context/case-10.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/generic-link-text-no-rescuing-context/case-10.md",
+            "scenario": "PAIRED PASS for source case-01. The full Coastal Ledger lead story remains intact, including its generic `Read more` anchor.",
+            "expected": "passed",
+            "mechanism": "Added the destination-identifying phrase `Continue the Harbor Commission ferry-terminal approval story:` inside the link’s own paragraph. No unrelated content or destination was removed. The link text remains generic-looking, but the allowed same-paragraph context objectively identifies the story.",
+            "primarySelector": ".more-row > a",
+            "whyAutomatedToolsMiss": "This contextual purpose control preserves the source’s suspicious surface pattern. Syntax-only tooling cannot resolve the governing contextual meaning, accessibility-tree reference/role, or complete interaction behavior.",
+            "citation": {
+              "doc": "WCAG Techniques F63 (wcag-techniques/failures/F63.html)",
+              "quote": "A news service lists the first few sentences of an article in a paragraph. The next paragraph contains the link \"Read More...\". Because the link is not in the same paragraph as the lead sentence, the user cannot easily discover what the link will let the user read more about."
+            }
+          },
+          {
+            "id": "case-11",
+            "file": "eval/act-augmented/2.4.4/pages/generic-link-text-no-rescuing-context/case-11.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/generic-link-text-no-rescuing-context/case-11.md",
+            "scenario": "PAIRED PASS for source case-05. The complete Volt & Wire highlights page, Aurora anchor, and product destination are preserved; the suspicious chevron link now has a destination-specific computed accessible name.",
+            "expected": "passed",
+            "mechanism": "Added only `aria-label=\"Aurora Bluetooth speaker details\"` to the failing Aurora product anchor and hid the chevron glyph from name computation. The destination is unchanged. The accessibility tree exposes a link whose computed name identifies the preserved product destination.",
+            "primarySelector": ".spotlight:nth-of-type(2) a.chev",
+            "whyAutomatedToolsMiss": "The rendered link remains only a chevron. Correct judgment requires using its computed accessibility-tree name rather than the visible glyph or raw text content.",
+            "citation": {
+              "doc": "refs/trusted-tester/sc-2.4.4-link-purpose.md",
+              "quote": "The purpose of each link can be determined from any combination of the link text, accessible name, accessible description, and/or programmatically determined link context."
+            }
+          },
+          {
+            "id": "case-12",
+            "file": "eval/act-augmented/2.4.4/pages/generic-link-text-no-rescuing-context/case-12.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/generic-link-text-no-rescuing-context/case-12.md",
+            "scenario": "PAIRED PASS for source case-04. The complete Northwind quarterly-disclosures page and its visibly raw report URL are preserved from the failed source.",
+            "expected": "passed",
+            "mechanism": "The computed name begins with the complete visible URL and adds “Northwind Industries Q3 2024 quarterly report (PDF),” making purpose explicit while satisfying label-in-name ordering.",
+            "primarySelector": "a.rawlink[href=\"https://example.com/products/2024/q3-report.pdf\"]",
+            "whyAutomatedToolsMiss": "A model that fixates on the residual raw-URL cue can repeat the source verdict even though the accessibility tree now exposes a complete purpose. The visible appearance alone is intentionally unchanged.",
+            "citation": {
+              "doc": "wcag-understanding/link-purpose-in-context.html",
+              "quote": "Alternatively, authors may choose to use an ARIA technique to associate additional text on the page with the link."
+            },
+            "pairedWith": "case-04",
+            "balanceBatch": "gena11y-fp-50-v2",
+            "hardNegativeType": "residual-cue-tunnel-vision"
+          },
+          {
+            "id": "case-13",
+            "file": "eval/act-augmented/2.4.4/pages/generic-link-text-no-rescuing-context/case-13.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/generic-link-text-no-rescuing-context/case-13.md",
+            "scenario": "PAIRED PASS for source case-01. Read-more link named by an external article heading.",
+            "expected": "passed",
+            "mechanism": "The resulting name is “Read more Harbor Commission Approves Long-Delayed Ferry Terminal”; the heading is outside the extracted link paragraph.",
+            "primarySelector": "p.more-row > a[aria-labelledby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "WCAG Techniques F63 (wcag-techniques/failures/F63.html)",
+              "quote": "A news service lists the first few sentences of an article in a paragraph. The next paragraph contains the link \"Read More...\". Because the link is not in the same paragraph as the lead sentence, the user cannot easily discover what the link will let the user read more about."
+            },
+            "balanceBatch": "initial-79-context-v3",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-01",
+            "gena11yExtraction": {
+              "extractor": "extract_links",
+              "targetSelector": "p.more-row > a[aria-labelledby]",
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload.",
+              "expectedTargetCount": 1
+            }
+          },
+          {
+            "id": "case-14",
+            "file": "eval/act-augmented/2.4.4/pages/generic-link-text-no-rescuing-context/case-14.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/generic-link-text-no-rescuing-context/case-14.md",
+            "scenario": "PAIRED PASS for source case-03. Details links repaired by visible list-item context.",
+            "expected": "passed",
+            "mechanism": "Each complete purpose depends on its containing list item and external IDREF rather than the anchor string alone.",
+            "primarySelector": "footer li > a[aria-labelledby]",
+            "whyAutomatedToolsMiss": "The decisive evidence is outside a target-only element extraction or sits at a narrow ACT-rule/full-SC boundary; evaluate the rendered page, resolved IDREFs, and accessibility tree before flagging.",
+            "citation": {
+              "doc": "Trusted Tester v5.1.3 SC 2.4.4 (refs/trusted-tester/sc-2.4.4-link-purpose.md)",
+              "quote": "\"Programmatically determined link context\" is limited to same sentence/paragraph/list-item/table-cell or associated table header — not arbitrary nearby text."
+            },
+            "balanceBatch": "initial-79-actlike-v2",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-03"
+          },
+          {
+            "id": "case-08",
+            "file": "eval/act-augmented/2.4.4/pages/generic-link-text-no-rescuing-context/case-08.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/generic-link-text-no-rescuing-context/case-08.md",
+            "scenario": "PAIRED PASS for source case-04. Raw-URL link named by an external visible document title.",
+            "expected": "passed",
+            "mechanism": "The visible URL remains, but its accessible name also resolves the external “Q3 2024 earnings report” text omitted from an isolated-anchor extraction.",
+            "primarySelector": "a.rawlink[aria-labelledby]",
+            "whyAutomatedToolsMiss": "The decisive evidence is outside a target-only element extraction or sits at a narrow ACT-rule/full-SC boundary; evaluate the rendered page, resolved IDREFs, and accessibility tree before flagging.",
+            "citation": {
+              "doc": "WCAG Techniques G91 (wcag-techniques/general/G91.html)",
+              "quote": "The objective of this technique is to describe the purpose of a link in the text of the link. ... The URI of the destination is generally not sufficiently descriptive."
+            },
+            "balanceBatch": "initial-79-actlike-v2",
+            "hardNegativeType": "external-reference",
+            "pairedWith": "case-04"
+          },
+          {
+            "id": "case-15",
+            "file": "eval/act-augmented/2.4.4/pages/generic-link-text-no-rescuing-context/case-15.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/generic-link-text-no-rescuing-context/case-15.md",
+            "scenario": "PAIRED PASS for source case-05. Chevron link named by a remote visible product name.",
+            "expected": "passed",
+            "mechanism": "The chevron’s parent contains no product words; “Aurora Bluetooth speaker details” is computed from a remote sibling that GenA11y’s parent/sibling-of-link extraction does not reach.",
+            "primarySelector": ".spotlight:nth-of-type(2) a.chev[aria-labelledby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "ACT Rule fd3a94 applicability (act-rules/extracted/fd3a94.md)",
+              "quote": "the elements are inheriting semantic link nodes"
+            },
+            "balanceBatch": "initial-79-context-v3",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-05",
+            "gena11yExtraction": {
+              "extractor": "extract_links",
+              "targetSelector": ".spotlight:nth-of-type(2) a.chev[aria-labelledby]",
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload.",
+              "expectedTargetCount": 1
+            }
+          },
+          {
+            "id": "case-16",
+            "file": "eval/act-augmented/2.4.4/pages/generic-link-text-no-rescuing-context/case-16.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/generic-link-text-no-rescuing-context/case-16.md",
+            "scenario": "PAIRED PASS for source case-01. Read-more link named by the external story heading.",
+            "expected": "passed",
+            "mechanism": "The computed purpose is Read more — Harbor Commission Approves Long-Delayed Ferry Terminal; the heading is outside the extracted link parent.",
+            "primarySelector": "p.more-row > a[aria-labelledby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "WCAG Techniques F63 (wcag-techniques/failures/F63.html)",
+              "quote": "A news service lists the first few sentences of an article in a paragraph. The next paragraph contains the link \"Read More...\". Because the link is not in the same paragraph as the lead sentence, the user cannot easily discover what the link will let the user read more about."
+            },
+            "balanceBatch": "context-extraction-26-v4",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-01",
+            "gena11yExtraction": {
+              "extractor": "extract_links",
+              "targetSelector": "p.more-row > a[aria-labelledby]",
+              "expectedTargetCount": 1,
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload."
+            }
+          },
+          {
+            "id": "case-17",
+            "file": "eval/act-augmented/2.4.4/pages/generic-link-text-no-rescuing-context/case-17.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/generic-link-text-no-rescuing-context/case-17.md",
+            "scenario": "PAIRED PASS for source case-03. Restaurant detail links named by an external purpose key.",
+            "expected": "passed",
+            "mechanism": "Menu, private-events, and gift-card purposes resolve in AX names but the outermost-list extraction omits the purpose key.",
+            "primarySelector": ".col:last-child ul a[aria-labelledby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "Trusted Tester v5.1.3 SC 2.4.4 (refs/trusted-tester/sc-2.4.4-link-purpose.md)",
+              "quote": "\"Programmatically determined link context\" is limited to same sentence/paragraph/list-item/table-cell or associated table header — not arbitrary nearby text."
+            },
+            "balanceBatch": "context-extraction-26-v4",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-03",
+            "gena11yExtraction": {
+              "extractor": "extract_links",
+              "targetSelector": ".col:last-child ul a[aria-labelledby]",
+              "expectedTargetCount": 3,
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload."
+            }
+          },
+          {
+            "id": "case-18",
+            "file": "eval/act-augmented/2.4.4/pages/generic-link-text-no-rescuing-context/case-18.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/generic-link-text-no-rescuing-context/case-18.md",
+            "scenario": "PAIRED PASS for source case-04. Raw URL named by an external filing title.",
+            "expected": "passed",
+            "mechanism": "The computed name identifies the Northwind Q3 2024 report PDF; the filing title is absent from the extracted parent snippet.",
+            "primarySelector": "a.rawlink[aria-labelledby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "WCAG Techniques G91 (wcag-techniques/general/G91.html)",
+              "quote": "The objective of this technique is to describe the purpose of a link in the text of the link. ... The URI of the destination is generally not sufficiently descriptive."
+            },
+            "balanceBatch": "context-extraction-26-v4",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-04",
+            "gena11yExtraction": {
+              "extractor": "extract_links",
+              "targetSelector": "a.rawlink[aria-labelledby]",
+              "expectedTargetCount": 1,
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload."
+            }
+          },
+          {
+            "id": "case-19",
+            "file": "eval/act-augmented/2.4.4/pages/generic-link-text-no-rescuing-context/case-19.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/generic-link-text-no-rescuing-context/case-19.md",
+            "scenario": "PAIRED PASS for source case-05. Chevron link named by an external product heading.",
+            "expected": "passed",
+            "mechanism": "The computed purpose is Aurora Bluetooth speaker details, but the link-parent extraction contains only the chevron and opaque IDREF.",
+            "primarySelector": ".spotlight:nth-of-type(2) a.chev[aria-labelledby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "ACT Rule fd3a94 applicability (act-rules/extracted/fd3a94.md)",
+              "quote": "the elements are inheriting semantic link nodes"
+            },
+            "balanceBatch": "context-extraction-26-v4",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-05",
+            "gena11yExtraction": {
+              "extractor": "extract_links",
+              "targetSelector": ".spotlight:nth-of-type(2) a.chev[aria-labelledby]",
+              "expectedTargetCount": 1,
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload."
             }
           }
         ]
@@ -632,6 +880,246 @@
               "doc": "wcag-techniques/general/G53.html",
               "quote": "If the additional information follows the link, there can be confusion and difficulty for screen reader users who are reading through the page in order (top to bottom)."
             }
+          },
+          {
+            "id": "case-07",
+            "file": "eval/act-augmented/2.4.4/pages/context-outside-programmatic-link-context-f63/case-07.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/context-outside-programmatic-link-context-f63/case-07.md",
+            "scenario": "Same two Coastal Ledger document teasers as failed source case-01, including their separate continuation paragraphs.",
+            "expected": "passed",
+            "mechanism": "Paired repair of source case-01: only the two link names change to identify the harbor fee schedule and bus-route map inside each anchor.",
+            "primarySelector": "article .more > a",
+            "whyAutomatedToolsMiss": "Syntax and presence checks cannot establish semantic agreement between the repaired title/link and the preserved page topic or destination; this paired control requires contextual meaning.",
+            "citation": {
+              "doc": "wcag-understanding/link-purpose-in-context.html",
+              "quote": "If the description follows the link, there can be confusion and difficulty for screen reader users who are reading through the page in order (top to bottom)."
+            },
+            "balanceBatch": "initial-79-context-v3",
+            "hardNegativeType": "paired-specificity",
+            "pairedWith": "case-01"
+          },
+          {
+            "id": "case-08",
+            "file": "eval/act-augmented/2.4.4/pages/context-outside-programmatic-link-context-f63/case-08.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/context-outside-programmatic-link-context-f63/case-08.md",
+            "scenario": "Same banking document table as failed source case-02, with labels and actions in separate cells.",
+            "expected": "passed",
+            "mechanism": "Paired repair of source case-02: only the two 'View' names change to identify the June 2025 statement and 2024 tax form inside each anchor.",
+            "primarySelector": "td.cta-cell > a.btn",
+            "whyAutomatedToolsMiss": "Syntax and presence checks cannot establish semantic agreement between the repaired title/link and the preserved page topic or destination; this paired control requires contextual meaning.",
+            "citation": {
+              "doc": "wcag-techniques/failures/F63.html",
+              "quote": "An audio site provides links to where its player can be downloaded. The information about what would be downloaded by the link is in the preceding row of the layout table, which is not programmatically determined context for the link."
+            },
+            "balanceBatch": "initial-79-context-v3",
+            "hardNegativeType": "paired-specificity",
+            "pairedWith": "case-02"
+          },
+          {
+            "id": "case-09",
+            "file": "eval/act-augmented/2.4.4/pages/context-outside-programmatic-link-context-f63/case-09.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/context-outside-programmatic-link-context-f63/case-09.md",
+            "scenario": "PAIRED PASS for source case-01. Both Coastal Ledger document teasers and their separated continuation paragraphs are preserved.",
+            "expected": "passed",
+            "mechanism": "Added IDs to each link and its existing continuation paragraph, then used `aria-labelledby` with self-reference followed by the matching external paragraph. No unrelated content or destination was removed. Each accessible name starts with the visible `Read the full document` label and includes the cross-node document description, making purpose programmatically determinable.",
+            "primarySelector": "#fee-link, #routes-link",
+            "whyAutomatedToolsMiss": "This external reference control preserves the source’s suspicious surface pattern. Syntax-only tooling cannot resolve the governing contextual meaning, accessibility-tree reference/role, or complete interaction behavior.",
+            "citation": {
+              "doc": "wcag-understanding/link-purpose-in-context.html",
+              "quote": "If the description follows the link, there can be confusion and difficulty for screen reader users who are reading through the page in order (top to bottom)."
+            }
+          },
+          {
+            "id": "case-10",
+            "file": "eval/act-augmented/2.4.4/pages/context-outside-programmatic-link-context-f63/case-10.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/context-outside-programmatic-link-context-f63/case-10.md",
+            "scenario": "PAIRED PASS for source case-02. The full Riverbend Credit Union document email remains unchanged, including separate table rows for labels, metadata, and actions.",
+            "expected": "passed",
+            "mechanism": "Added IDs to the existing document-label cells and links, then used self-first `aria-labelledby` references from each `View` link to its matching label cell. No unrelated content or destination was removed. The external IDREF creates accurate names such as `View June 2025 Account Statement` while retaining the visible label and the original table layout.",
+            "primarySelector": "#statement-view, #tax-view",
+            "whyAutomatedToolsMiss": "This external reference control preserves the source’s suspicious surface pattern. Syntax-only tooling cannot resolve the governing contextual meaning, accessibility-tree reference/role, or complete interaction behavior.",
+            "citation": {
+              "doc": "wcag-techniques/failures/F63.html",
+              "quote": "An audio site provides links to where its player can be downloaded. The information about what would be downloaded by the link is in the preceding row of the layout table, which is not programmatically determined context for the link."
+            }
+          },
+          {
+            "id": "case-11",
+            "file": "eval/act-augmented/2.4.4/pages/context-outside-programmatic-link-context-f63/case-11.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/context-outside-programmatic-link-context-f63/case-11.md",
+            "scenario": "PAIRED PASS for source case-03. The complete Heliograph investor-relations recordings page and all three visible “Listen” links are preserved from the failed source.",
+            "expected": "passed",
+            "mechanism": "Each computed link name begins with “Listen” and continues with the correct recording title, such as “Listen Q1 FY2025 earnings call Recorded May 8, 2025 · 52 min.” The external IDREF supplies the missing purpose.",
+            "primarySelector": "dl.media a.listen[aria-labelledby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "wcag-understanding/link-purpose-in-context.html",
+              "quote": "Alternatively, authors may choose to use an ARIA technique to associate additional text on the page with the link."
+            },
+            "pairedWith": "case-03",
+            "balanceBatch": "initial-79-context-v3",
+            "hardNegativeType": "context-extraction",
+            "gena11yExtraction": {
+              "extractor": "extract_links",
+              "targetSelector": "dl.media a.listen[aria-labelledby]",
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload.",
+              "expectedTargetCount": 3
+            }
+          },
+          {
+            "id": "case-12",
+            "file": "eval/act-augmented/2.4.4/pages/context-outside-programmatic-link-context-f63/case-12.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/context-outside-programmatic-link-context-f63/case-12.md",
+            "scenario": "PAIRED PASS for source case-05. The complete Trailhead Outfitters product grid, three cards, visible “View” links, and destinations are preserved from the failed source.",
+            "expected": "passed",
+            "mechanism": "The links compute to “View Summit 22L Hiking Pack,” “View Trace 14L Trail Runner Vest,” and “View Basin 30L Overnight Pack,” even though the visual card structure remains unchanged.",
+            "primarySelector": ".card .action a[aria-labelledby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "wcag-understanding/link-purpose-in-context.html",
+              "quote": "Alternatively, authors may choose to use an ARIA technique to associate additional text on the page with the link."
+            },
+            "pairedWith": "case-05",
+            "balanceBatch": "initial-79-context-v3",
+            "hardNegativeType": "context-extraction",
+            "gena11yExtraction": {
+              "extractor": "extract_links",
+              "targetSelector": ".card .action a[aria-labelledby]",
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload.",
+              "expectedTargetCount": 3
+            }
+          },
+          {
+            "id": "case-13",
+            "file": "eval/act-augmented/2.4.4/pages/context-outside-programmatic-link-context-f63/case-13.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/context-outside-programmatic-link-context-f63/case-13.md",
+            "scenario": "PAIRED PASS for source case-01. Document links named by following external descriptions.",
+            "expected": "passed",
+            "mechanism": "The accessible names resolve external IDREFs that are absent from an isolated anchor extraction.",
+            "primarySelector": "p.more > a[aria-labelledby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "wcag-understanding/link-purpose-in-context.html",
+              "quote": "If the description follows the link, there can be confusion and difficulty for screen reader users who are reading through the page in order (top to bottom)."
+            },
+            "balanceBatch": "initial-79-context-v3",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-01",
+            "gena11yExtraction": {
+              "extractor": "extract_links",
+              "targetSelector": "p.more > a[aria-labelledby]",
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload.",
+              "expectedTargetCount": 2
+            }
+          },
+          {
+            "id": "case-14",
+            "file": "eval/act-augmented/2.4.4/pages/context-outside-programmatic-link-context-f63/case-14.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/context-outside-programmatic-link-context-f63/case-14.md",
+            "scenario": "PAIRED PASS for source case-02. Statement links named by labels in other table rows.",
+            "expected": "passed",
+            "mechanism": "The document identity is outside each anchor and outside its table cell, but the IDREF produces a complete accessible name.",
+            "primarySelector": "a.btn[aria-labelledby]",
+            "whyAutomatedToolsMiss": "The decisive evidence is outside a target-only element extraction or sits at a narrow ACT-rule/full-SC boundary; evaluate the rendered page, resolved IDREFs, and accessibility tree before flagging.",
+            "citation": {
+              "doc": "wcag-techniques/failures/F63.html",
+              "quote": "An audio site provides links to where its player can be downloaded. The information about what would be downloaded by the link is in the preceding row of the layout table, which is not programmatically determined context for the link."
+            },
+            "balanceBatch": "initial-79-actlike-v2",
+            "hardNegativeType": "external-reference",
+            "pairedWith": "case-02"
+          },
+          {
+            "id": "case-15",
+            "file": "eval/act-augmented/2.4.4/pages/context-outside-programmatic-link-context-f63/case-15.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/context-outside-programmatic-link-context-f63/case-15.md",
+            "scenario": "PAIRED PASS for source case-01. Document links named by their external continuation text.",
+            "expected": "passed",
+            "mechanism": "Each computed name includes the specific fee-schedule or bus-route document text that GenA11y omits from the link parent.",
+            "primarySelector": "p.more > a[aria-labelledby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "wcag-understanding/link-purpose-in-context.html",
+              "quote": "If the description follows the link, there can be confusion and difficulty for screen reader users who are reading through the page in order (top to bottom)."
+            },
+            "balanceBatch": "context-extraction-26-v4",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-01",
+            "gena11yExtraction": {
+              "extractor": "extract_links",
+              "targetSelector": "p.more > a[aria-labelledby]",
+              "expectedTargetCount": 2,
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload."
+            }
+          },
+          {
+            "id": "case-16",
+            "file": "eval/act-augmented/2.4.4/pages/context-outside-programmatic-link-context-f63/case-16.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/context-outside-programmatic-link-context-f63/case-16.md",
+            "scenario": "PAIRED PASS for source case-02. Email document buttons named by an external ready-document summary.",
+            "expected": "passed",
+            "mechanism": "The AX names distinguish the statement and tax form, while the table extraction omits the external summary IDs.",
+            "primarySelector": "td.cta-cell > a[aria-labelledby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "wcag-techniques/failures/F63.html",
+              "quote": "An audio site provides links to where its player can be downloaded. The information about what would be downloaded by the link is in the preceding row of the layout table, which is not programmatically determined context for the link."
+            },
+            "balanceBatch": "context-extraction-26-v4",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-02",
+            "gena11yExtraction": {
+              "extractor": "extract_links",
+              "targetSelector": "td.cta-cell > a[aria-labelledby]",
+              "expectedTargetCount": 2,
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload."
+            }
+          },
+          {
+            "id": "case-17",
+            "file": "eval/act-augmented/2.4.4/pages/context-outside-programmatic-link-context-f63/case-17.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/context-outside-programmatic-link-context-f63/case-17.md",
+            "scenario": "PAIRED PASS for source case-03. Replay links described by external definition terms.",
+            "expected": "passed",
+            "mechanism": "The AX descriptions identify each recording, while GenA11y serializes only the DD parent and omits its DT.",
+            "primarySelector": "dl.media a.listen[aria-describedby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "refs/trusted-tester/sc-2.4.4-link-purpose.md",
+              "quote": "\"Programmatically determined link context\" is **limited** to same sentence/paragraph/list-item/table-cell or associated table header — not arbitrary nearby text."
+            },
+            "balanceBatch": "context-extraction-26-v4",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-03",
+            "gena11yExtraction": {
+              "extractor": "extract_links",
+              "targetSelector": "dl.media a.listen[aria-describedby]",
+              "expectedTargetCount": 3,
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload."
+            }
+          },
+          {
+            "id": "case-18",
+            "file": "eval/act-augmented/2.4.4/pages/context-outside-programmatic-link-context-f63/case-18.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/context-outside-programmatic-link-context-f63/case-18.md",
+            "scenario": "PAIRED PASS for source case-05. Product-card links named by remote product details.",
+            "expected": "passed",
+            "mechanism": "Product identity and distinguishing features appear in AX names but not in GenA11y’s action-parent snippets.",
+            "primarySelector": ".card .action a[aria-labelledby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "wcag-techniques/failures/F63.html",
+              "quote": "This describes a failure condition when the context needed for understanding the purpose of a link is located in content that is not programmatically determined link context."
+            },
+            "balanceBatch": "context-extraction-26-v4",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-05",
+            "gena11yExtraction": {
+              "extractor": "extract_links",
+              "targetSelector": ".card .action a[aria-labelledby]",
+              "expectedTargetCount": 3,
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload."
+            }
           }
         ]
       },
@@ -812,6 +1300,155 @@
             "citation": {
               "doc": "wcag-understanding/link-purpose-in-context.html",
               "quote": "The intent of this success criterion is to help users understand the purpose of each link so they can decide whether they want to follow the link."
+            }
+          },
+          {
+            "id": "case-07",
+            "file": "eval/act-augmented/2.4.4/pages/icon-link-name-present-but-wrong-or-meaningless/case-07.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/icon-link-name-present-but-wrong-or-meaningless/case-07.md",
+            "scenario": "Same sales-pipeline application as failed source case-01, including its toolbar and pipeline columns.",
+            "expected": "passed",
+            "mechanism": "Paired repair of source case-01: only the meaningless aria-labels change to Search sales records, Open workspace settings, and Open inbox.",
+            "primarySelector": ".tools > a.iconlink",
+            "whyAutomatedToolsMiss": "Syntax and presence checks cannot establish semantic agreement between the repaired title/link and the preserved page topic or destination; this paired control requires contextual meaning.",
+            "citation": {
+              "doc": "wcag-techniques/html/H30.html",
+              "quote": "When an image is the only content of a link, the text alternative for the image describes the unique function of the link."
+            },
+            "balanceBatch": "initial-79-context-v3",
+            "hardNegativeType": "paired-specificity",
+            "pairedWith": "case-01"
+          },
+          {
+            "id": "case-08",
+            "file": "eval/act-augmented/2.4.4/pages/icon-link-name-present-but-wrong-or-meaningless/case-08.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/icon-link-name-present-but-wrong-or-meaningless/case-08.md",
+            "scenario": "Same complete Harbor Ledger transit article as failed source case-02, including icon-based article navigation.",
+            "expected": "passed",
+            "mechanism": "Paired repair of source case-02: only image alt 'forward' becomes 'Back to all Transit stories', accurately naming the link.",
+            "primarySelector": ".artnav > a.iconnav[href=\"/transit/index\"]",
+            "whyAutomatedToolsMiss": "Syntax and presence checks cannot establish semantic agreement between the repaired title/link and the preserved page topic or destination; this paired control requires contextual meaning.",
+            "citation": {
+              "doc": "wcag-understanding/link-purpose-in-context.html",
+              "quote": "The text of, or associated with, the link is intended to describe the purpose of the link."
+            },
+            "balanceBatch": "initial-79-context-v3",
+            "hardNegativeType": "paired-specificity",
+            "pairedWith": "case-02"
+          },
+          {
+            "id": "case-09",
+            "file": "eval/act-augmented/2.4.4/pages/icon-link-name-present-but-wrong-or-meaningless/case-09.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/icon-link-name-present-but-wrong-or-meaningless/case-09.md",
+            "scenario": "PAIRED PASS for source case-01. Workspace icon links named by an external visible tool key.",
+            "expected": "passed",
+            "mechanism": "Search workspace, Settings, and Inbox resolve in AX names but are absent from the toolbar-parent extraction.",
+            "primarySelector": ".tools a.iconlink[aria-labelledby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "wcag-techniques/html/H30.html",
+              "quote": "When an image is the only content of a link, the text alternative for the image describes the unique function of the link."
+            },
+            "balanceBatch": "context-extraction-26-v4",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-01",
+            "gena11yExtraction": {
+              "extractor": "extract_links",
+              "targetSelector": ".tools a.iconlink[aria-labelledby]",
+              "expectedTargetCount": 3,
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload."
+            }
+          },
+          {
+            "id": "case-10",
+            "file": "eval/act-augmented/2.4.4/pages/icon-link-name-present-but-wrong-or-meaningless/case-10.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/icon-link-name-present-but-wrong-or-meaningless/case-10.md",
+            "scenario": "PAIRED PASS for source case-02. Back-arrow link named by the external article-navigation link.",
+            "expected": "passed",
+            "mechanism": "The top icon link computes to Back to all Transit stories, but its extracted artnav parent omits the remote pager link.",
+            "primarySelector": ".artnav > a.iconnav[aria-labelledby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "wcag-understanding/link-purpose-in-context.html",
+              "quote": "The text of, or associated with, the link is intended to describe the purpose of the link."
+            },
+            "balanceBatch": "context-extraction-26-v4",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-02",
+            "gena11yExtraction": {
+              "extractor": "extract_links",
+              "targetSelector": ".artnav > a.iconnav[aria-labelledby]",
+              "expectedTargetCount": 1,
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload."
+            }
+          },
+          {
+            "id": "case-11",
+            "file": "eval/act-augmented/2.4.4/pages/icon-link-name-present-but-wrong-or-meaningless/case-11.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/icon-link-name-present-but-wrong-or-meaningless/case-11.md",
+            "scenario": "PAIRED PASS for source case-03. Social icon links named by an external visible network key.",
+            "expected": "passed",
+            "mechanism": "Each AX name identifies its network, while the social-nav extraction contains only opaque references and SVGs.",
+            "primarySelector": "nav.social a[aria-labelledby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "wcag-understanding/link-purpose-in-context.html",
+              "quote": "It is also a best practice for links with different purposes and destinations to have different link text."
+            },
+            "balanceBatch": "context-extraction-26-v4",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-03",
+            "gena11yExtraction": {
+              "extractor": "extract_links",
+              "targetSelector": "nav.social a[aria-labelledby]",
+              "expectedTargetCount": 4,
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload."
+            }
+          },
+          {
+            "id": "case-12",
+            "file": "eval/act-augmented/2.4.4/pages/icon-link-name-present-but-wrong-or-meaningless/case-12.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/icon-link-name-present-but-wrong-or-meaningless/case-12.md",
+            "scenario": "PAIRED PASS for source case-04. API-key icon actions named by an external visible action key.",
+            "expected": "passed",
+            "mechanism": "Every AX name identifies edit/revoke plus the key label; the outermost-table payload omits the action-key text.",
+            "primarySelector": "table a.iconbtn[aria-labelledby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "wcag-techniques/failures/F89.html",
+              "quote": "This failure condition occurs when a link contains only non-text content, such as an image, and that link cannot be identified by an accessible name."
+            },
+            "balanceBatch": "context-extraction-26-v4",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-04",
+            "gena11yExtraction": {
+              "extractor": "extract_links",
+              "targetSelector": "table a.iconbtn[aria-labelledby]",
+              "expectedTargetCount": 6,
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload."
+            }
+          },
+          {
+            "id": "case-13",
+            "file": "eval/act-augmented/2.4.4/pages/icon-link-name-present-but-wrong-or-meaningless/case-13.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/icon-link-name-present-but-wrong-or-meaningless/case-13.md",
+            "scenario": "PAIRED PASS for source case-05. Arabic PDF icon link named by an external download instruction.",
+            "expected": "passed",
+            "mechanism": "The computed name identifies downloading the chicken-kabsa recipe PDF; the header-parent extraction omits that external instruction.",
+            "primarySelector": "a.pdf-link[aria-labelledby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "wcag-understanding/link-purpose-in-context.html",
+              "quote": "In cases where the link takes one to a document or a web application, the name of the document or web application would be sufficient to describe the purpose of the link (which is to take you to the document or web application)."
+            },
+            "balanceBatch": "context-extraction-26-v4",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-05",
+            "gena11yExtraction": {
+              "extractor": "extract_links",
+              "targetSelector": "a.pdf-link[aria-labelledby]",
+              "expectedTargetCount": 1,
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload."
             }
           }
         ]
@@ -1002,6 +1639,211 @@
               "doc": "act-rules/extracted/fd3a94.md",
               "quote": "For each pair of links in each target set, one of the following is true: both links resolve to the same resource; or both links resolve to equivalent resources; or there is no visual information within the web page to let users know that both links resolve to non-equivalent resources."
             }
+          },
+          {
+            "id": "case-07",
+            "file": "eval/act-augmented/2.4.4/pages/duplicate-name-same-context-different-purpose/case-07.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/duplicate-name-same-context-different-purpose/case-07.md",
+            "scenario": "Same full Hollow Lane Bakery page as failed source case-01, including its detailed cake and bread-box forms.",
+            "expected": "passed",
+            "mechanism": "Paired repair of source case-01: only duplicate 'order form' names change to distinguish cake and weekly bread-box destinations.",
+            "primarySelector": "p.lead > a[href=\"#cake-form\"], p.lead > a[href=\"#bread-form\"]",
+            "whyAutomatedToolsMiss": "Syntax and presence checks cannot establish semantic agreement between the repaired title/link and the preserved page topic or destination; this paired control requires contextual meaning.",
+            "citation": {
+              "doc": "wcag-understanding/link-purpose-in-context.html",
+              "quote": "It is a best practice for links with the same destination to have consistent text (and this is a requirement per Success Criterion 3.2.4 Consistent Identification for pages in a set). It is also a best practice for links with different purposes and destinations to have different link text."
+            },
+            "balanceBatch": "initial-79-context-v3",
+            "hardNegativeType": "paired-specificity",
+            "pairedWith": "case-01"
+          },
+          {
+            "id": "case-08",
+            "file": "eval/act-augmented/2.4.4/pages/duplicate-name-same-context-different-purpose/case-08.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/duplicate-name-same-context-different-purpose/case-08.md",
+            "scenario": "Same developer-tools contact card as failed source case-03, with separate sales and production-support mailboxes.",
+            "expected": "passed",
+            "mechanism": "Paired repair of source case-03: only duplicate 'Email us' names change to distinguish sales from production support.",
+            "primarySelector": ".card p > a[href^=\"mailto:\"]",
+            "whyAutomatedToolsMiss": "Syntax and presence checks cannot establish semantic agreement between the repaired title/link and the preserved page topic or destination; this paired control requires contextual meaning.",
+            "citation": {
+              "doc": "act-rules/extracted/fd3a94.md",
+              "quote": "This rule assumes that reading the URL, such as from the status bar when the link is focused, is not considered part of the context, and therefore, it does not disambiguate links."
+            },
+            "balanceBatch": "initial-79-context-v3",
+            "hardNegativeType": "paired-specificity",
+            "pairedWith": "case-03"
+          },
+          {
+            "id": "case-09",
+            "file": "eval/act-augmented/2.4.4/pages/duplicate-name-same-context-different-purpose/case-09.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/duplicate-name-same-context-different-purpose/case-09.md",
+            "scenario": "PAIRED PASS for source case-01. The full bakery page and both non-equivalent order forms are preserved; both links still visibly read `order form`.",
+            "expected": "passed",
+            "mechanism": "Split the original combined lead paragraph into separate paragraphs, one naming celebration cakes and one naming sourdough and bread boxes. No unrelated content or destination was removed. Each identical name is now resolved by its own allowed paragraph context, so the user can determine which form each link opens.",
+            "primarySelector": ".lead > a",
+            "whyAutomatedToolsMiss": "This contextual purpose control preserves the source’s suspicious surface pattern. Syntax-only tooling cannot resolve the governing contextual meaning, accessibility-tree reference/role, or complete interaction behavior.",
+            "citation": {
+              "doc": "wcag-understanding/link-purpose-in-context.html",
+              "quote": "It is a best practice for links with the same destination to have consistent text (and this is a requirement per Success Criterion 3.2.4 Consistent Identification for pages in a set). It is also a best practice for links with different purposes and destinations to have different link text."
+            }
+          },
+          {
+            "id": "case-10",
+            "file": "eval/act-augmented/2.4.4/pages/duplicate-name-same-context-different-purpose/case-10.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/duplicate-name-same-context-different-purpose/case-10.md",
+            "scenario": "PAIRED PASS for source case-03. The complete Latchkey contact card and its distinct sales and production-support mailto destinations are preserved; both links still read `Email us`.",
+            "expected": "passed",
+            "mechanism": "Placed each mail link in its own paragraph whose text identifies either pricing/trial inquiries or broken-production support. No unrelated content or destination was removed. The identical names are now disambiguated by separate allowed paragraph contexts rather than one shared ambiguous paragraph.",
+            "primarySelector": ".card p > a[href^=\"mailto:\"]",
+            "whyAutomatedToolsMiss": "This contextual purpose control preserves the source’s suspicious surface pattern. Syntax-only tooling cannot resolve the governing contextual meaning, accessibility-tree reference/role, or complete interaction behavior.",
+            "citation": {
+              "doc": "act-rules/extracted/fd3a94.md",
+              "quote": "This rule assumes that reading the URL, such as from the status bar when the link is focused, is not considered part of the context, and therefore, it does not disambiguate links."
+            }
+          },
+          {
+            "id": "case-11",
+            "file": "eval/act-augmented/2.4.4/pages/duplicate-name-same-context-different-purpose/case-11.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/duplicate-name-same-context-different-purpose/case-11.md",
+            "scenario": "PAIRED PASS for source case-04. The complete Foliage pricing comparison and both identical visible “Buy now” links are preserved from the failed source.",
+            "expected": "passed",
+            "mechanism": "Each generic link is now in a same-paragraph sentence that identifies its plan: “Sprout plan: Buy now” or “Greenhouse plan: Buy now.” That paragraph is programmatically determined link context.",
+            "primarySelector": ".buyrow p a.buy",
+            "whyAutomatedToolsMiss": "Duplicate-text heuristics still see two links named “Buy now.” A correct evaluator must inspect their allowed paragraph contexts and distinguish valid duplication from the source’s visual-only grid association.",
+            "citation": {
+              "doc": "wcag-understanding/link-purpose-in-context.html",
+              "quote": "This can be achieved by putting the description of the link in the same sentence, paragraph, list item, or table cell as the link, or in the table header cell for a link in a data table, because these are directly associated with the link itself."
+            },
+            "pairedWith": "case-04",
+            "balanceBatch": "gena11y-fp-50-v2",
+            "hardNegativeType": "contextual-purpose"
+          },
+          {
+            "id": "case-12",
+            "file": "eval/act-augmented/2.4.4/pages/duplicate-name-same-context-different-purpose/case-12.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/duplicate-name-same-context-different-purpose/case-12.md",
+            "scenario": "PAIRED PASS for source case-01. Duplicate order-form links named by external destination headings.",
+            "expected": "passed",
+            "mechanism": "The links remain visually identical, while their computed names resolve to different external section headings.",
+            "primarySelector": ".lead a[aria-labelledby]",
+            "whyAutomatedToolsMiss": "The decisive evidence is outside a target-only element extraction or sits at a narrow ACT-rule/full-SC boundary; evaluate the rendered page, resolved IDREFs, and accessibility tree before flagging.",
+            "citation": {
+              "doc": "wcag-understanding/link-purpose-in-context.html",
+              "quote": "It is a best practice for links with the same destination to have consistent text (and this is a requirement per Success Criterion 3.2.4 Consistent Identification for pages in a set). It is also a best practice for links with different purposes and destinations to have different link text."
+            },
+            "balanceBatch": "initial-79-actlike-v2",
+            "hardNegativeType": "external-reference",
+            "pairedWith": "case-01"
+          },
+          {
+            "id": "case-13",
+            "file": "eval/act-augmented/2.4.4/pages/duplicate-name-same-context-different-purpose/case-13.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/duplicate-name-same-context-different-purpose/case-13.md",
+            "scenario": "PAIRED PASS for source case-03. Duplicate email links named by external purpose phrases.",
+            "expected": "passed",
+            "mechanism": "The destination-specific words are outside each anchor but become part of the computed name through IDREFs.",
+            "primarySelector": ".card a[aria-labelledby]",
+            "whyAutomatedToolsMiss": "The decisive evidence is outside a target-only element extraction or sits at a narrow ACT-rule/full-SC boundary; evaluate the rendered page, resolved IDREFs, and accessibility tree before flagging.",
+            "citation": {
+              "doc": "act-rules/extracted/fd3a94.md",
+              "quote": "This rule assumes that reading the URL, such as from the status bar when the link is focused, is not considered part of the context, and therefore, it does not disambiguate links."
+            },
+            "balanceBatch": "initial-79-actlike-v2",
+            "hardNegativeType": "external-reference",
+            "pairedWith": "case-03"
+          },
+          {
+            "id": "case-14",
+            "file": "eval/act-augmented/2.4.4/pages/duplicate-name-same-context-different-purpose/case-14.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/duplicate-name-same-context-different-purpose/case-14.md",
+            "scenario": "PAIRED PASS for source case-04. Buy-now links named by remote plan names.",
+            "expected": "passed",
+            "mechanism": "Each link’s parent contains only “Buy now”; Sprout or Greenhouse resolves in the accessibility tree but is absent from the extracted link context.",
+            "primarySelector": ".buyrow a.buy[aria-labelledby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "act-rules/extracted/fd3a94.md",
+              "quote": "These two HTML a elements have the same accessible name and context, but go to different resources. Their purpose is disambiguated for sighted users by the alignment of the links with the images above."
+            },
+            "balanceBatch": "initial-79-context-v3",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-04",
+            "gena11yExtraction": {
+              "extractor": "extract_links",
+              "targetSelector": ".buyrow a.buy[aria-labelledby]",
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload.",
+              "expectedTargetCount": 2
+            }
+          },
+          {
+            "id": "case-15",
+            "file": "eval/act-augmented/2.4.4/pages/duplicate-name-same-context-different-purpose/case-15.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/duplicate-name-same-context-different-purpose/case-15.md",
+            "scenario": "PAIRED PASS for source case-01. Bakery order-form links named by remote form headings.",
+            "expected": "passed",
+            "mechanism": "The AX names distinguish celebration-cake and weekly-bread forms; the link-parent extraction omits the remote destination headings.",
+            "primarySelector": "p.lead > a[aria-labelledby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "wcag-understanding/link-purpose-in-context.html",
+              "quote": "It is a best practice for links with the same destination to have consistent text (and this is a requirement per Success Criterion 3.2.4 Consistent Identification for pages in a set). It is also a best practice for links with different purposes and destinations to have different link text."
+            },
+            "balanceBatch": "context-extraction-26-v4",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-01",
+            "gena11yExtraction": {
+              "extractor": "extract_links",
+              "targetSelector": "p.lead > a[aria-labelledby]",
+              "expectedTargetCount": 2,
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload."
+            }
+          },
+          {
+            "id": "case-16",
+            "file": "eval/act-augmented/2.4.4/pages/duplicate-name-same-context-different-purpose/case-16.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/duplicate-name-same-context-different-purpose/case-16.md",
+            "scenario": "PAIRED PASS for source case-03. Email links named by an external visible contact directory.",
+            "expected": "passed",
+            "mechanism": "Sales enquiries and production support resolve in AX names, while GenA11y’s paragraph extraction omits the remote directory.",
+            "primarySelector": ".card p:first-child a[aria-labelledby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "act-rules/extracted/fd3a94.md",
+              "quote": "This rule assumes that reading the URL, such as from the status bar when the link is focused, is not considered part of the context, and therefore, it does not disambiguate links."
+            },
+            "balanceBatch": "context-extraction-26-v4",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-03",
+            "gena11yExtraction": {
+              "extractor": "extract_links",
+              "targetSelector": ".card p:first-child a[aria-labelledby]",
+              "expectedTargetCount": 2,
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload."
+            }
+          },
+          {
+            "id": "case-17",
+            "file": "eval/act-augmented/2.4.4/pages/duplicate-name-same-context-different-purpose/case-17.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/duplicate-name-same-context-different-purpose/case-17.md",
+            "scenario": "PAIRED PASS for source case-05. Spanish call links named by external telephone context.",
+            "expected": "passed",
+            "mechanism": "The AX names distinguish the health-centre and emergency numbers, but those referenced numbers sit outside the extracted actions paragraph.",
+            "primarySelector": "p.acciones a.tel-link[aria-labelledby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "wcag-techniques/failures/F63.html",
+              "quote": "This describes a failure condition when the context needed for understanding the purpose of a link is located in content that is not programmatically determined link context."
+            },
+            "balanceBatch": "context-extraction-26-v4",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-05",
+            "gena11yExtraction": {
+              "extractor": "extract_links",
+              "targetSelector": "p.acciones a.tel-link[aria-labelledby]",
+              "expectedTargetCount": 2,
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload."
+            }
           }
         ]
       },
@@ -1150,8 +1992,8 @@
             "primarySelector": "section.invoice:first-of-type ul.actions a.danger[href=\"/billing/1042/void\"]",
             "whyAutomatedToolsMiss": "Each link has clear non-empty text (link-name passes). There is no empty/skipped heading to flag — a page is allowed to have one <h1> and no subheadings, so no heading-structure rule fires. Identical link names to different URLs is legitimate row-action behaviour. Recognising the bold <p> was meant to be the heading carrier, that it fails because it is not a heading and not in-context, and that the three action triads are therefore indistinguishable, requires reading the visual design intent against the DOM.",
             "citation": {
-              "doc": "Trusted Tester v5.1.3 SC 2.4.4 (refs/trusted-tester/sc-2.4.4-link-purpose.md)",
-              "quote": "limited** to same sentence/paragraph/list-item/table-cell or"
+              "doc": "WCAG Technique H80 (wcag-techniques/html/H80.html)",
+              "quote": "The preceding heading provides context for an otherwise unclear link. The description lets a user distinguish this link from links in the web page that lead to other destinations and helps the user determine whether to follow the link."
             }
           },
           {
@@ -1194,6 +2036,180 @@
             "citation": {
               "doc": "WCAG 2.2 Understanding Link Purpose (In Context) (wcag-understanding/link-purpose-in-context.html)",
               "quote": "This can be achieved by putting the description of the link in"
+            }
+          },
+          {
+            "id": "case-07",
+            "file": "eval/act-augmented/2.4.4/pages/preceding-heading-or-list-grouping-context-sufficiency/case-07.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/preceding-heading-or-list-grouping-context-sufficiency/case-07.md",
+            "scenario": "Same convention hotel page as failed source case-01, including both descriptions and its pooled Quick links bar.",
+            "expected": "passed",
+            "mechanism": "Paired repair of source case-01: only accurate aria-labels are added to the six short links, preserving each complete visible label and incorporating the matching hotel name.",
+            "primarySelector": ".resource-bar a",
+            "whyAutomatedToolsMiss": "Syntax and presence checks cannot establish semantic agreement between the repaired title/link and the preserved page topic or destination; this paired control requires contextual meaning.",
+            "citation": {
+              "doc": "WCAG Technique H80 (wcag-techniques/html/H80.html)",
+              "quote": "Find the heading element that precedes the link"
+            },
+            "balanceBatch": "initial-79-actlike-v2",
+            "hardNegativeType": "paired-specificity",
+            "pairedWith": "case-01"
+          },
+          {
+            "id": "case-08",
+            "file": "eval/act-augmented/2.4.4/pages/preceding-heading-or-list-grouping-context-sufficiency/case-08.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/preceding-heading-or-list-grouping-context-sufficiency/case-08.md",
+            "scenario": "PAIRED PASS for source case-03. The complete overdue-invoice dashboard and all nine short action links are preserved.",
+            "expected": "passed",
+            "mechanism": "Changed the three styled invoice-title paragraphs into real `h2` elements with stable IDs, then directly associated every action link through a self-first `aria-labelledby` reference followed by the matching invoice heading. Each computed name preserves the visible action first and adds the record-specific purpose; no unrelated content or destination was removed.",
+            "primarySelector": ".invoice .actions a",
+            "whyAutomatedToolsMiss": "The page still presents repeated visible action words, but each computed link name is now unique and invoice-specific. Correct evaluation requires resolving the multi-ID accessible name rather than applying a same-visible-text heuristic.",
+            "citation": {
+              "doc": "wcag-understanding/link-purpose-in-context.html",
+              "quote": "Alternatively, authors may choose to use an ARIA technique to associate additional text on the page with the link."
+            }
+          },
+          {
+            "id": "case-09",
+            "file": "eval/act-augmented/2.4.4/pages/preceding-heading-or-list-grouping-context-sufficiency/case-09.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/preceding-heading-or-list-grouping-context-sufficiency/case-09.md",
+            "scenario": "PAIRED PASS for source case-01. The complete convention-hotel page, pooled Quick links bar, group-label list items, and six repeated short links are preserved from the failed source.",
+            "expected": "passed",
+            "mechanism": "Each link has an independently sufficient name such as “Map — Royal Palm Hotel” or “Book now — Hotel Three Rivers,” so it no longer depends on the severed H80 grouping.",
+            "primarySelector": ".resource-bar ul > li > a",
+            "whyAutomatedToolsMiss": "The visible bar still contains duplicate Map, Photos, and Book now labels beneath a generic heading. A surface-pattern evaluator can over-report unless it reads each explicit computed name.",
+            "citation": {
+              "doc": "wcag-understanding/link-purpose-in-context.html",
+              "quote": "Alternatively, authors may choose to use an ARIA technique to associate additional text on the page with the link."
+            },
+            "pairedWith": "case-01",
+            "balanceBatch": "gena11y-fp-50-v2",
+            "hardNegativeType": "heading-context-or-explicit-name"
+          },
+          {
+            "id": "case-10",
+            "file": "eval/act-augmented/2.4.4/pages/preceding-heading-or-list-grouping-context-sufficiency/case-10.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/preceding-heading-or-list-grouping-context-sufficiency/case-10.md",
+            "scenario": "PAIRED PASS for source case-04. The complete Harbourview Realty page, both property headings, and both repeated per-listing navigation groups are preserved from the failed source.",
+            "expected": "passed",
+            "mechanism": "Corrected the second navigation region’s stale heading reference, then assigned stable IDs to all six links and gave each a self-first `aria-labelledby` followed by the correct listing heading. Each computed name begins with its visible action and includes the matching property, such as ‘Map 8 Birch Lane — Riverside,’ without depending on landmark context.",
+            "primarySelector": ".listing-links a[aria-labelledby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "wcag-understanding/link-purpose-in-context.html",
+              "quote": "Alternatively, authors may choose to use an ARIA technique to associate additional text on the page with the link."
+            },
+            "pairedWith": "case-04",
+            "balanceBatch": "initial-79-context-v3",
+            "hardNegativeType": "context-extraction",
+            "gena11yExtraction": {
+              "extractor": "extract_links",
+              "targetSelector": ".listing-links a[aria-labelledby]",
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload.",
+              "expectedTargetCount": 6
+            }
+          },
+          {
+            "id": "case-11",
+            "file": "eval/act-augmented/2.4.4/pages/preceding-heading-or-list-grouping-context-sufficiency/case-11.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/preceding-heading-or-list-grouping-context-sufficiency/case-11.md",
+            "scenario": "PAIRED PASS for source case-05. The complete Aperture S2 comparison, CSS visual columns, two headings, and six repeated resource links are preserved from the failed source.",
+            "expected": "passed",
+            "mechanism": "Each link independently identifies both resource and product, for example “Datasheet (PDF) — S2 Standard” and “Datasheet (PDF) — S2 Pro.”",
+            "primarySelector": ".links-block a",
+            "whyAutomatedToolsMiss": "The CSS layout and repeated visible text retain the source’s strongest visual failure cues. Correct evaluation requires the computed names rather than assuming that the visually grouped headings are the only carrier.",
+            "citation": {
+              "doc": "wcag-understanding/link-purpose-in-context.html",
+              "quote": "Alternatively, authors may choose to use an ARIA technique to associate additional text on the page with the link."
+            },
+            "pairedWith": "case-05",
+            "balanceBatch": "gena11y-fp-50-v2",
+            "hardNegativeType": "heading-context-or-explicit-name"
+          },
+          {
+            "id": "case-13",
+            "file": "eval/act-augmented/2.4.4/pages/preceding-heading-or-list-grouping-context-sufficiency/case-13.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/preceding-heading-or-list-grouping-context-sufficiency/case-13.md",
+            "scenario": "PAIRED PASS for source case-01. Hotel quick links explicitly named by external hotel headings.",
+            "expected": "passed",
+            "mechanism": "The heading is outside the quick-links list, but the accessible name explicitly includes the correct hotel.",
+            "primarySelector": ".resource-bar a[aria-labelledby]",
+            "whyAutomatedToolsMiss": "The decisive evidence is outside a target-only element extraction or sits at a narrow ACT-rule/full-SC boundary; evaluate the rendered page, resolved IDREFs, and accessibility tree before flagging.",
+            "citation": {
+              "doc": "WCAG Technique H80 (wcag-techniques/html/H80.html)",
+              "quote": "Find the heading element that precedes the link"
+            },
+            "balanceBatch": "initial-79-actlike-v2",
+            "hardNegativeType": "external-reference",
+            "pairedWith": "case-01"
+          },
+          {
+            "id": "case-14",
+            "file": "eval/act-augmented/2.4.4/pages/preceding-heading-or-list-grouping-context-sufficiency/case-14.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/preceding-heading-or-list-grouping-context-sufficiency/case-14.md",
+            "scenario": "PAIRED PASS for source case-03. Invoice actions explicitly named by external invoice titles.",
+            "expected": "passed",
+            "mechanism": "All nine names remain action-first and become unique through external invoice context omitted from isolated link snippets.",
+            "primarySelector": ".actions a[aria-labelledby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "WCAG Technique H80 (wcag-techniques/html/H80.html)",
+              "quote": "The preceding heading provides context for an otherwise unclear link. The description lets a user distinguish this link from links in the web page that lead to other destinations and helps the user determine whether to follow the link."
+            },
+            "balanceBatch": "initial-79-context-v3",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-03",
+            "gena11yExtraction": {
+              "extractor": "extract_links",
+              "targetSelector": ".actions a[aria-labelledby]",
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload.",
+              "expectedTargetCount": 9
+            }
+          },
+          {
+            "id": "case-15",
+            "file": "eval/act-augmented/2.4.4/pages/preceding-heading-or-list-grouping-context-sufficiency/case-15.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/preceding-heading-or-list-grouping-context-sufficiency/case-15.md",
+            "scenario": "PAIRED PASS for source case-05. Sensor resources named by remote variant headings.",
+            "expected": "passed",
+            "mechanism": "The grid headings are outside each links-block parent, so Standard or Pro appears in the computed link name but nowhere in GenA11y’s extracted parent context.",
+            "primarySelector": ".links-block a[aria-labelledby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "WCAG Technique F63 (wcag-techniques/failures/F63.html)",
+              "quote": "This describes a failure condition when the context needed for understanding the purpose of a link is located in content that is not programmatically determined link context."
+            },
+            "balanceBatch": "initial-79-context-v3",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-05",
+            "gena11yExtraction": {
+              "extractor": "extract_links",
+              "targetSelector": ".links-block a[aria-labelledby]",
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload.",
+              "expectedTargetCount": 6
+            }
+          },
+          {
+            "id": "case-16",
+            "file": "eval/act-augmented/2.4.4/pages/preceding-heading-or-list-grouping-context-sufficiency/case-16.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/preceding-heading-or-list-grouping-context-sufficiency/case-16.md",
+            "scenario": "PAIRED PASS for source case-06. Format links explicitly named by remote definition terms.",
+            "expected": "passed",
+            "mechanism": "GenA11y does not treat a definition list as an extraction ancestor, so the referenced Arabic document term is absent from every DD/link snippet while present in the computed name.",
+            "primarySelector": "dl dd a[aria-labelledby]",
+            "whyAutomatedToolsMiss": "GenA11y’s exact per-SC extraction omits the externally referenced text that supplies the complete accessible alternative or purpose.",
+            "citation": {
+              "doc": "WCAG 2.2 Understanding Link Purpose (In Context) (wcag-understanding/link-purpose-in-context.html)",
+              "quote": "This can be achieved by putting the description of the link in"
+            },
+            "balanceBatch": "initial-79-context-v3",
+            "hardNegativeType": "context-extraction",
+            "pairedWith": "case-06",
+            "gena11yExtraction": {
+              "extractor": "extract_links",
+              "targetSelector": "dl dd a[aria-labelledby]",
+              "assertion": "Every target resolves non-self aria-labelledby/aria-describedby evidence that is absent from the complete GenA11y per-page payload.",
+              "expectedTargetCount": 6
             }
           }
         ]
@@ -1381,6 +2397,23 @@
               "doc": "wcag-understanding/link-purpose-in-context.html",
               "quote": "The intent of this success criterion is to help users understand the purpose of each\n         link so they can decide whether they want to follow the link."
             }
+          },
+          {
+            "id": "case-07",
+            "file": "eval/act-augmented/2.4.4/pages/descriptive-name-contradicts-on-page-destination/case-07.html",
+            "docFile": "eval/act-augmented/2.4.4/pages/descriptive-name-contradicts-on-page-destination/case-07.md",
+            "scenario": "Same complete credit-union Help & Legal Centre as failed source case-01, including all legal sections and footer navigation.",
+            "expected": "passed",
+            "mechanism": "Paired repair of source case-01: only the Privacy Policy target changes from '#terms' to '#privacy', matching name and destination.",
+            "primarySelector": "footer nav[aria-label=\"Legal documents\"] a[href=\"#privacy\"]",
+            "whyAutomatedToolsMiss": "Syntax and presence checks cannot establish semantic agreement between the repaired title/link and the preserved page topic or destination; this paired control requires contextual meaning.",
+            "citation": {
+              "doc": "wcag-understanding/link-purpose-in-context.html",
+              "quote": "It is also a best practice for links with different purposes and destinations to have different link text."
+            },
+            "balanceBatch": "initial-79-context-v3",
+            "hardNegativeType": "paired-specificity",
+            "pairedWith": "case-01"
           }
         ]
       },

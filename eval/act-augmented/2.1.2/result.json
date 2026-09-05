@@ -357,6 +357,51 @@
               "doc": "wcag-techniques/general/G21.html",
               "quote": "Ensuring that the keyboard function for advancing focus within content (commonly the tab key) exits the subset of the content after it reaches the final navigation location."
             }
+          },
+          {
+            "id": "case-07",
+            "file": "eval/act-augmented/2.1.2/pages/cross-format-embedded-application-trap-f10/case-07.html",
+            "docFile": "eval/act-augmented/2.1.2/pages/cross-format-embedded-application-trap-f10/case-07.md",
+            "scenario": "Paired counterfactual of case-01. The task-board help page retains the same titled embedded quick tour and the controls following it from case-01. Exact repair: Remove only the frame script that suppresses Tab and re-focuses its button; the paired main page points to case-07-frame.html.",
+            "expected": "passed",
+            "mechanism": "PASS paired with case-01: Native Tab now leaves the embedded application and reaches the following parent-page control.",
+            "primarySelector": "iframe[title=\"Quick tour: pinning your first board\"]",
+            "whyAutomatedToolsMiss": "This hard negative preserves the source page's content, styling, and surrounding complexity; only the target failure mechanism was repaired. Static iframe structure is unchanged; only real cross-frame keyboard traversal proves the pass.",
+            "citation": {
+              "doc": "wcag-techniques/failures/F10.html",
+              "quote": "Applies when content creates a situation where the user can enter the content using the keyboard, but cannot exit the content using the keyboard."
+            }
+          },
+          {
+            "id": "case-08",
+            "file": "eval/act-augmented/2.1.2/pages/cross-format-embedded-application-trap-f10/case-08.html",
+            "docFile": "eval/act-augmented/2.1.2/pages/cross-format-embedded-application-trap-f10/case-08.md",
+            "scenario": "Paired counterfactual of case-02. The payment controls still look and expose as a contained third-party application. Exact repair: remove only the two Tab-wrapping handlers so standard forward and reverse Tab cross the iframe boundary.",
+            "expected": "passed",
+            "mechanism": "Paired with case-02. Exact repair: after Donate, native forward Tab reaches the parent Cancel link, and reverse Tab from Amount returns to the parent context; no focus loop or alternate undocumented escape remains.",
+            "primarySelector": "iframe[src=\"case-08-frame.html\"]",
+            "whyAutomatedToolsMiss": "The iframe, internal form, focusable controls, and accessibility-tree boundary are unchanged. Only cross-document interaction proves that the apparently contained region has a standard exit in both directions.",
+            "citation": {
+              "doc": "wcag-techniques/general/G21.html",
+              "quote": "Ensuring that the keyboard function for advancing focus within content (commonly the tab key) exits the subset of the content after it reaches the final navigation location."
+            }
+          },
+          {
+            "id": "case-09",
+            "file": "eval/act-augmented/2.1.2/pages/cross-format-embedded-application-trap-f10/case-09.html",
+            "docFile": "eval/act-augmented/2.1.2/pages/cross-format-embedded-application-trap-f10/case-09.md",
+            "scenario": "Paired accessibility-tree-boundary hard negative for case-03: the same custom element and open shadow controls remain; only the focusout re-grab listener is removed.",
+            "expected": "passed",
+            "mechanism": "Tab traverses textarea, Post, then crosses the shadow boundary to the following host link without a nonstandard command.",
+            "primarySelector": "comment-composer",
+            "whyAutomatedToolsMiss": "Light DOM exposes only a custom-element host; verification requires piercing the shadow tree and exercising cross-boundary focus.",
+            "citation": {
+              "doc": "wcag-understanding/no-keyboard-trap.html",
+              "quote": "The intent of this success criterion is to ensure that content does not \"trap\" keyboard focus within subsections of content on a web page."
+            },
+            "balanceBatch": "gena11y-fp-50-v2",
+            "hardNegativeType": "accessibility-tree-boundary",
+            "pairedWith": "case-03"
           }
         ]
       },
@@ -545,6 +590,20 @@
             "citation": {
               "doc": "refs/trusted-tester/sc-2.1.2-no-keyboard-trap.md",
               "quote": "Keyboard focus can be moved away from each section of the page containing elements (not trapped in a \"loop\" preventing access to other elements) using either standard navigation keys OR documented custom keystrokes."
+            }
+          },
+          {
+            "id": "case-07",
+            "file": "eval/act-augmented/2.1.2/pages/modal-popover-legitimate-containment-vs-trap/case-07.html",
+            "docFile": "eval/act-augmented/2.1.2/pages/modal-popover-legitimate-containment-vs-trap/case-07.md",
+            "scenario": "Paired counterfactual of case-01. The pharmacy refill dialog retains the same modal containment, fields, and Tab cycle as case-01. Exact repair: Add only a keyboard-reachable Close refill dialog button to the existing focus cycle and wire it to dialog.close().",
+            "expected": "passed",
+            "mechanism": "PASS paired with case-01: Focus may remain contained while the dialog is open because a standard keyboard-operable dismiss is reachable.",
+            "primarySelector": "#dismiss",
+            "whyAutomatedToolsMiss": "This hard negative preserves the source page's content, styling, and surrounding complexity; only the target failure mechanism was repaired. A focus-cycle observer still sees containment; it must verify that the reachable dismiss actually releases the user.",
+            "citation": {
+              "doc": "wcag-understanding/no-keyboard-trap.html",
+              "quote": "There may be times when it's appropriate for a web page to restrict focus to a subsection of the content – for example, when the user is inside a modal dialog or popover. This does not fail the requirements of this criterion, as long as the user knows how to \"untrap\" the focus and leave that component."
             }
           }
         ]
@@ -736,6 +795,20 @@
             "citation": {
               "doc": "wcag-understanding/no-keyboard-trap.html",
               "quote": "Keyboard focus is not considered trapped when the user can navigate away from a component\n         using only a keyboard interface, and if it only requires unmodified arrow or Tab keys"
+            }
+          },
+          {
+            "id": "case-07",
+            "file": "eval/act-augmented/2.1.2/pages/esc-standard-exit-method-no-advice-owed/case-07.html",
+            "docFile": "eval/act-augmented/2.1.2/pages/esc-standard-exit-method-no-advice-owed/case-07.md",
+            "scenario": "Paired counterfactual of case-02. The Trailhead quick-view modal retains the same controls, Tab containment, and absence of escape advice as case-02. Exact repair: Change only the Escape branch from swallowing the key to invoking the existing close() function.",
+            "expected": "passed",
+            "mechanism": "PASS paired with case-02: Escape is a standard exit method and releases focus to the trigger, so no special advice is required.",
+            "primarySelector": "#qv",
+            "whyAutomatedToolsMiss": "This hard negative preserves the source page's content, styling, and surrounding complexity; only the target failure mechanism was repaired. The static modal markup and visible text are unchanged; pressing Escape is necessary to distinguish this pass.",
+            "citation": {
+              "doc": "wcag-understanding/no-keyboard-trap.html",
+              "quote": "If untrapping focus requires a different method (rather than unmodified arrow keys, the Tab key, or other \"standard exit methods\"), content can still pass this criterion provided that the user is advised how they can untrap focus using their keyboard interface."
             }
           }
         ]
@@ -935,6 +1008,20 @@
               "doc": "refs/trusted-tester/sc-2.1.2-no-keyboard-trap.md",
               "quote": "Keyboard focus can be moved away from an element using either:\n   - a. Standard navigation keys, OR\n   - b. Custom keystrokes that are **documented and available** to users in the application."
             }
+          },
+          {
+            "id": "case-07",
+            "file": "eval/act-augmented/2.1.2/pages/arrow-key-roving-tabindex-composite-widget-trap/case-07.html",
+            "docFile": "eval/act-augmented/2.1.2/pages/arrow-key-roving-tabindex-composite-widget-trap/case-07.md",
+            "scenario": "Paired counterfactual of case-01. The restaurant ordering menu retains the same ARIA menu, roving tabindex, and arrow/Home/End behavior as case-01. Exact repair: Remove only the keydown case that intercepts Tab and Shift+Tab.",
+            "expected": "passed",
+            "mechanism": "PASS paired with case-01: Arrow navigation remains internal while native Tab navigation can move focus away from the composite widget.",
+            "primarySelector": "ul#orderMenu[role=\"menu\"]",
+            "whyAutomatedToolsMiss": "This hard negative preserves the source page's content, styling, and surrounding complexity; only the target failure mechanism was repaired. The ARIA structure and arrow behavior match the failure; only an actual Tab traversal reveals the repaired boundary.",
+            "citation": {
+              "doc": "wcag-understanding/no-keyboard-trap.html",
+              "quote": "Keyboard focus is not considered trapped when the user can navigate away from a component using only a keyboard interface, and if it only requires unmodified arrow or Tab keys or other \"standard exit methods\"."
+            }
           }
         ]
       },
@@ -1119,6 +1206,20 @@
             "citation": {
               "doc": "wcag-understanding/no-keyboard-trap.html",
               "quote": "If untrapping focus requires a different method (rather than unmodified arrow keys, the Tab key, or other \"standard exit methods\"), content can still pass this criterion provided that the user is advised how they can untrap focus using their keyboard interface."
+            }
+          },
+          {
+            "id": "case-07",
+            "file": "eval/act-augmented/2.1.2/pages/multi-element-region-loop-tab-must-exit/case-07.html",
+            "docFile": "eval/act-augmented/2.1.2/pages/multi-element-region-loop-tab-must-exit/case-07.md",
+            "scenario": "Paired counterfactual of case-01. The garden-centre carousel retains the same five cards between header and footer navigation as case-01. Exact repair: Remove only the last card’s Tab handler that wrapped focus to the first card.",
+            "expected": "passed",
+            "mechanism": "PASS paired with case-01: Forward Tab from the final carousel control now exits naturally to the footer links.",
+            "primarySelector": "#lastCard",
+            "whyAutomatedToolsMiss": "This hard negative preserves the source page's content, styling, and surrounding complexity; only the target failure mechanism was repaired. The same substantive focus region remains; testing the boundary after its final control is required.",
+            "citation": {
+              "doc": "wcag-techniques/general/G21.html",
+              "quote": "Ensuring that the keyboard function for advancing focus within content (commonly the tab key) exits the subset of the content after it reaches the final navigation location."
             }
           }
         ]
@@ -1505,6 +1606,23 @@
               "doc": "wcag-techniques/general/G21.html",
               "quote": "The objective of this technique is to ensure that keyboard users do not become trapped in a subset of the content that can only be exited using a mouse or pointing device."
             }
+          },
+          {
+            "id": "case-07",
+            "file": "eval/act-augmented/2.1.2/pages/documented-exit-reachability-and-accuracy-beyond-ctrlm/case-07.html",
+            "docFile": "eval/act-augmented/2.1.2/pages/documented-exit-reachability-and-accuracy-beyond-ctrlm/case-07.md",
+            "scenario": "Paired external-reference hard negative for case-01: the working Ctrl+M exit remains; the existing accurate instruction is moved from the unreachable collapsed disclosure to the start of the worksheet and referenced with aria-describedby.",
+            "expected": "passed",
+            "mechanism": "On entering the trapped subset, assistive technology can obtain the working Ctrl+M exit advice through the resolved external description.",
+            "primarySelector": "#worksheet[aria-describedby=\"worksheet-exit-help\"]",
+            "whyAutomatedToolsMiss": "Repeated Tab still resembles a trap; the evaluator must resolve externally referenced advice and verify the described modified-key exit.",
+            "citation": {
+              "doc": "wcag-techniques/general/G21.html",
+              "quote": "Providing a keyboard function to move the focus out of the subset of the content. Be sure to document the feature in an accessible manner within the subset."
+            },
+            "balanceBatch": "gena11y-fp-50-v2",
+            "hardNegativeType": "external-reference",
+            "pairedWith": "case-01"
           }
         ]
       },

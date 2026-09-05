@@ -33,6 +33,8 @@ FIXED_STATUS_PATH = (os.environ.get('LLM_EVAL_STATUS_PATH')
                      or os.environ.get('FN_LLM_STATUS_PATH') or '/tmp/llm-eval-status.json')
 ACT_SUBSET_DIR = PROJECT_ROOT / 'eval/checker-comparison/act-subset'
 ACT_RAW = PROJECT_ROOT / 'eval/checker-comparison/upstream-evidence/v3-act-subset-proposed/raw.json'
+sys.path.insert(0, str(PROJECT_ROOT / 'eval/act-augmented/_tools'))
+from reliable_annotated_cases import load_reliable_annotated_cases
 
 _DRIVER_SEM = threading.Semaphore(25)
 
@@ -91,6 +93,27 @@ def load_act_rest_cases():
             'expected': r.get('expected', 'unknown'),
             'reaches': False,
             'ruleId': r.get('ruleId'), 'testcaseId': r.get('testcaseId'),
+        })
+    return out
+
+
+def load_case_list(case_list):
+    """Load an explicit, provenance-preserving slice shared by all comparison runners."""
+    list_path = Path(case_list)
+    if not list_path.is_absolute():
+        list_path = PROJECT_ROOT / list_path
+    rows = json.loads(list_path.read_text())
+    out = []
+    for row in rows:
+        fixture = PROJECT_ROOT / row['file']
+        if not fixture.exists():
+            raise FileNotFoundError(f"case-list fixture missing: {row['file']}")
+        out.append({
+            'file': row['file'], 'abs_path': str(fixture.resolve()),
+            'sc': row['sc'], 'all_scs': [row['sc']],
+            'expected': row['expected'], 'reaches': False,
+            'ruleId': row.get('aspect'),
+            'testcaseId': f"aug-{row['sc']}-{row.get('aspect', 'aspect')}-{row['id']}",
         })
     return out
 
@@ -194,7 +217,7 @@ class Telemetry:
             'config': {'fnTotal': total, 'pageConc': cfg['pages'], 'globalLlm': cfg['llm_conc'],
                        'perPageLlm': 1, 'maxTabs': cfg['tabs'], 'vision': True, 'tools': False,
                        'evidence': 'accessguru-axe+semantic', 'noVisionRubric': False,
-                       'baselineVision': False, 'model': model},
+                       'baselineVision': False, 'model': model, 'effort': cfg['effort']},
             'phase': 'init', 'done': 0, 'total': total, 'workers': {}, 'inflight': {},
             'tabs': {}, 'mem': {}, 'llm': dict(a11y_detector.LLM_STATS),
             'tally': {'caught': 0, 'missedAgree': 0, 'uncertain': 0, 'noVerdict': 0,
@@ -273,7 +296,8 @@ class Telemetry:
         fpr = fp / (fp + tn) if (fp + tn) else None
         prec = tp / (tp + fp) if (tp + fp) else None
         f1 = (2 * prec * rec / (prec + rec)) if (prec and rec) else None
-        return {'runName': self.tel['runName'], 'model': model, 'n': len(self.results),
+        return {'runName': self.tel['runName'], 'model': model,
+                'effort': self.tel['config'].get('effort'), 'n': len(self.results),
                 'confusion': {'tp': tp, 'fp': fp, 'tn': tn, 'fn': fn, 'error': err},
                 'recall': rec, 'fpRate': fpr, 'precision': prec, 'f1': f1,
                 'llm': dict(a11y_detector.LLM_STATS)}
@@ -285,8 +309,11 @@ class Telemetry:
 
 def main():
     p = argparse.ArgumentParser(description='Run AccessGuru (axe + LLM semantic) over the ACT corpus.')
-    p.add_argument('--corpus', choices=['act', 'act-rest'], default='act')
+    p.add_argument('--corpus', choices=['act', 'act-rest', 'annotated-reliable'], default='act')
+    p.add_argument('--case-list', help='Explicit JSON case list; overrides --corpus selection.')
     p.add_argument('--model', default='gemini-3.5-flash')
+    p.add_argument('--effort', choices=['minimal', 'low', 'medium', 'high', 'xhigh', 'max'])
+    p.add_argument('--sc', help='Restrict annotated-reliable to a comma-separated SC list.')
     p.add_argument('--limit', type=int)
     p.add_argument('--pages', type=int, default=25)
     p.add_argument('--tabs', type=int, default=25)
@@ -301,7 +328,15 @@ def main():
     out_dir = PROJECT_ROOT / 'results' / args.out
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    pages = load_act_cases() if args.corpus == 'act' else load_act_rest_cases()
+    if args.case_list:
+        pages = load_case_list(args.case_list)
+    elif args.corpus == 'act':
+        pages = load_act_cases()
+    elif args.corpus == 'act-rest':
+        pages = load_act_rest_cases()
+    else:
+        scs = [s.strip() for s in args.sc.split(',') if s.strip()] if args.sc else None
+        pages = load_reliable_annotated_cases(PROJECT_ROOT, scs)
     if args.limit:
         pages = pages[:args.limit]
 
@@ -317,12 +352,14 @@ def main():
     def trace_sink(rec):
         trace_fh.write(json.dumps(rec) + '\n'); trace_fh.flush()
 
-    a11y_detector.configure(model=args.model, llm_concurrency=args.llm_conc, trace_sink=None)
+    a11y_detector.configure(model=args.model, effort=args.effort,
+                            llm_concurrency=args.llm_conc, trace_sink=None)
 
-    cfg = {'pages': args.pages, 'tabs': args.tabs, 'llm_conc': args.llm_conc}
+    cfg = {'pages': args.pages, 'tabs': args.tabs, 'llm_conc': args.llm_conc,
+           'effort': args.effort}
     with open(out_dir / 'run.log', 'w') as log_fh:
         tel = Telemetry(args.out, out_dir, len(pages), args.model, cfg, log_fh)
-        tel.log(f'AccessGuru run: {len(pages)} cases | model={args.model} | '
+        tel.log(f'AccessGuru run: {len(pages)} cases | model={args.model} | effort={args.effort} | '
                 f'pages={args.pages} tabs={args.tabs} llmConc={args.llm_conc}')
         tel.log(f'status → {out_dir/"status.json"}  (monitor: node eval/checker-comparison/fn-llm-monitor.js {args.out})')
         tel.log('')

@@ -308,6 +308,48 @@
               "doc": "wcag-techniques/client-side-script/SCR39.html",
               "quote": "The pointer can be moved over the additional content without the additional content disappearing."
             }
+          },
+          {
+            "id": "case-07",
+            "file": "eval/act-augmented/1.4.13/pages/f95-hover-content-not-hoverable-pointer-travel/case-07.html",
+            "docFile": "eval/act-augmented/1.4.13/pages/f95-hover-content-not-hoverable-pointer-travel/case-07.md",
+            "scenario": "Paired counterfactual repair of case-01. The page preserves the source’s realistic context and complexity: SaaS billing page: a \"?\" help button beside \"Seat overage\" shows a custom tooltip positioned 30px BELOW the trigger, separated by a transparent .gap spacer (pointer-events:none). Show/hide is bound only to the trigger button's mouseover/mouseout; the tooltip has no hover handler and is not a descendant of the trigger. Moving the pointer down to read the tooltip crosses the gap, fires mouseout, and the tooltip vanishes before the pointer reaches it. The only target-SC change is: Replaced immediate trigger-only hiding with a 500ms pointer-travel grace period and tooltip mouseenter/mouseleave support; Escape also dismisses. No unrelated target-SC condition was removed.",
+            "expected": "passed",
+            "mechanism": "The 30px layout gap is unchanged, but leaving the trigger schedules rather than immediately performs hide. Entering the tooltip cancels that schedule, making the tooltip itself hoverable; Escape dismisses without requiring pointer or focus movement.",
+            "primarySelector": "#ov-trigger",
+            "whyAutomatedToolsMiss": "This hard-negative control is intentionally near-identical to failing case-01. Presence-only or static heuristics can easily treat the pair alike; the correct pass depends on verifying the precise repaired boundary: replaced immediate trigger-only hiding with a 500ms pointer-travel grace period and tooltip mouseenter/mouseleave support; Escape also dismisses.",
+            "citation": {
+              "doc": "wcag-techniques/failures/F95.html",
+              "quote": "A pop-up opens on pointer hover. Due to the chosen screen magnification, the content is only partially visible. However, as soon as the pointer is moved away from the trigger towards the pop-up content so it can be read, the pop-up automatically closes."
+            }
+          },
+          {
+            "id": "case-08",
+            "file": "eval/act-augmented/1.4.13/pages/f95-hover-content-not-hoverable-pointer-travel/case-08.html",
+            "docFile": "eval/act-augmented/1.4.13/pages/f95-hover-content-not-hoverable-pointer-travel/case-08.md",
+            "scenario": "Paired counterfactual repair of case-02. The page preserves the source’s realistic context and complexity: Community forum thread: a GitHub/Twitter-style profile \"hover card\" appears when hovering a username. It is rendered into a detached portal layer (#hovercard-layer, sibling of the content) positioned 12px below the username. Show is delayed 180ms (hover-intent); hide is immediate on the username's mouseleave; the card has no mouseenter of its own. Moving the pointer down to the card crosses the 12px transparent gap, fires mouseleave, and the card vanishes instantly. The only target-SC change is: Added a symmetric delayed hide and hover handlers on the unchanged portaled card so the pointer can cross the 12px gap and remain over its controls. No unrelated target-SC condition was removed.",
+            "expected": "passed",
+            "mechanism": "The portal, 12px offset, and 180ms hover-intent show remain. Trigger leave now grants 500ms, card mouseenter cancels hide, card mouseleave schedules it, and Escape dismisses, so users can reach and operate the card.",
+            "primarySelector": "#author-link",
+            "whyAutomatedToolsMiss": "This hard-negative control is intentionally near-identical to failing case-02. Presence-only or static heuristics can easily treat the pair alike; the correct pass depends on verifying the precise repaired boundary: added a symmetric delayed hide and hover handlers on the unchanged portaled card so the pointer can cross the 12px gap and remain over its controls.",
+            "citation": {
+              "doc": "wcag-understanding/content-on-hover-or-focus.html",
+              "quote": "When the added content is large, magnified views may mean that the user needs to scroll or pan to completely view it, which is impossible unless the user is able to move their pointer off the trigger without the additional content disappearing."
+            }
+          },
+          {
+            "id": "case-09",
+            "file": "eval/act-augmented/1.4.13/pages/f95-hover-content-not-hoverable-pointer-travel/case-09.html",
+            "docFile": "eval/act-augmented/1.4.13/pages/f95-hover-content-not-hoverable-pointer-travel/case-09.md",
+            "scenario": "PAIRED PASS for source case-01. The complete Meridian Analytics billing page and suspicious hover/focus tooltip are preserved.",
+            "expected": "passed",
+            "mechanism": "Removed the pointer dead zone, positioned the tooltip adjacent to its trigger, kept it open across wrapper/tooltip hover and focus, added delayed boundary closure, and added Escape dismissal without moving focus. The source fixture's self-referential footer was replaced with neutral support copy to avoid leaking the answer. The tooltip is exposed through the trigger’s description when shown and satisfies all three SC conditions: dismissible, hoverable, and persistent. It remains open during pointer travel and has no automatic timeout.",
+            "primarySelector": "#ov-trigger, #ov-tip",
+            "whyAutomatedToolsMiss": "This accessibility tree interaction control preserves the source’s suspicious surface pattern. Syntax-only tooling cannot resolve the governing contextual meaning, accessibility-tree reference/role, or complete interaction behavior.",
+            "citation": {
+              "doc": "wcag-techniques/failures/F95.html",
+              "quote": "A pop-up opens on pointer hover. Due to the chosen screen magnification, the content is only partially visible. However, as soon as the pointer is moved away from the trigger towards the pop-up content so it can be read, the pop-up automatically closes."
+            }
           }
         ]
       },
@@ -496,6 +538,20 @@
             "citation": {
               "doc": "wcag-understanding/content-on-hover-or-focus.html",
               "quote": "Modal dialogs are out of scope for this criterion because they must take keyboard focus  and thus should not appear on hover or focus.  Refer to Success Criterion 3.2.1 On Focus."
+            }
+          },
+          {
+            "id": "case-07",
+            "file": "eval/act-augmented/1.4.13/pages/applicability-author-vs-ua-title-tooltip/case-07.html",
+            "docFile": "eval/act-augmented/1.4.13/pages/applicability-author-vs-ua-title-tooltip/case-07.md",
+            "scenario": "Paired counterfactual repair of case-02. The page preserves the source’s realistic context and complexity: Northwind Pharmacy refill queue: each status help icon shipped with a native title=, but a Bootstrap/jQuery-UI-style tooltip plugin strips the native title on load (removeAttribute('title')) and renders its own gray span.nwtip styled to mimic the native UA tooltip. The author bubble is pointer-events:none, toggled only on mouseenter/mouseleave of the 18px icon, with no Escape handler. Visually near-identical to the case-01 native tooltip, but author-owned, so 1.4.13 applies and it fails. The only target-SC change is: Removed the author tooltip plug-in so the unchanged title attributes are rendered only by the user agent. No unrelated target-SC condition was removed.",
+            "expected": "passed",
+            "mechanism": "The pharmacy cards and title strings remain, but no script removes title or creates span.nwtip. Any tooltip appearance is therefore completely controlled by the user agent and is excluded from SC 1.4.13 applicability.",
+            "primarySelector": ".info[title]",
+            "whyAutomatedToolsMiss": "This hard-negative control is intentionally near-identical to failing case-02. Presence-only or static heuristics can easily treat the pair alike; the correct pass depends on verifying the precise repaired boundary: removed the author tooltip plug-in so the unchanged title attributes are rendered only by the user agent.",
+            "citation": {
+              "doc": "wcag-techniques/failures/F95.html",
+              "quote": "The objective of this failure is to describe a situation where users find it difficult or impossible to move the pointer over additional content that appears on hover."
             }
           }
         ]
@@ -693,6 +749,20 @@
               "doc": "eval/act-augmented/1.4.13/pages/dismissible-esc-keyboard-dismiss-without-moving-hover-focus/case-06.md",
               "quote": "document.addEventListener(\"keydown\", (e) => { if ((e.keyCode || e.which) === 27) document.getElementById(\"popup\").style.display = \"none\"; });"
             }
+          },
+          {
+            "id": "case-07",
+            "file": "eval/act-augmented/1.4.13/pages/dismissible-esc-keyboard-dismiss-without-moving-hover-focus/case-07.html",
+            "docFile": "eval/act-augmented/1.4.13/pages/dismissible-esc-keyboard-dismiss-without-moving-hover-focus/case-07.md",
+            "scenario": "Paired counterfactual repair of case-01. The page preserves the source’s realistic context and complexity: Online-banking transfer-limit screen: a round 'i' info button shows a tooltip on hover AND keyboard focus that overlaps the help paragraph and the Continue button. The tooltip is keyboard-reachable (meets 2.1.1) but there is NO Escape handler, no documented shortcut, and activating the trigger does not toggle it off — the only way to clear the obscuring content is to move focus/pointer off the trigger. The only target-SC change is: Added an Escape handler that hides the unchanged tooltip while focus remains on the trigger, resetting only after the hover/focus state ends. No unrelated target-SC condition was removed.",
+            "expected": "passed",
+            "mechanism": "The same tooltip can overlap the same content, but Escape adds a dismissed state with display:none without blurring the button. Leaving or blurring resets the state so help remains available on a later interaction.",
+            "primarySelector": "button#limitInfo",
+            "whyAutomatedToolsMiss": "This hard-negative control is intentionally near-identical to failing case-01. Presence-only or static heuristics can easily treat the pair alike; the correct pass depends on verifying the precise repaired boundary: added an Escape handler that hides the unchanged tooltip while focus remains on the trigger, resetting only after the hover/focus state ends.",
+            "citation": {
+              "doc": "eval/act-augmented/1.4.13/pages/dismissible-esc-keyboard-dismiss-without-moving-hover-focus/case-01.md",
+              "quote": "Alternatively, low vision users who can only navigate via the keyboard do not want the small area of their magnified viewport cluttered with hover text. They need a keyboard method of dismissing something that is obscuring the current focal area."
+            }
           }
         ]
       },
@@ -888,6 +958,20 @@
               "doc": "WCAG 2.2 Understanding 1.4.13",
               "quote": "Position the additional content so that it does not obscure any other content including the trigger, with the exception of white space and purely decorative content, such as a background graphic which provides no information."
             }
+          },
+          {
+            "id": "case-07",
+            "file": "eval/act-augmented/1.4.13/pages/dismissible-position-obscures-meaningful-vs-decorative/case-07.html",
+            "docFile": "eval/act-augmented/1.4.13/pages/dismissible-position-obscures-meaningful-vs-decorative/case-07.md",
+            "scenario": "Paired counterfactual repair of case-01. The page preserves the source’s realistic context and complexity: Long-form policy article: an inline glossary-term tooltip (Emissions Trading System) opens downward on hover/focus with no Esc dismiss, landing on the first ~3 lines of the next body paragraph. Method 2 absent, so Method 1 is the only path — and it obscures meaningful body text. The only target-SC change is: Added an Escape-controlled dismissed state so the unchanged overlapping glossary tooltip can be cleared without moving hover or keyboard focus. No unrelated target-SC condition was removed.",
+            "expected": "passed",
+            "mechanism": "The glossary popup’s content and overlapping placement are unchanged. Pressing Escape forces the tooltip to display:none while the term retains focus, satisfying the dismissal alternative even though the popup obscures prose.",
+            "primarySelector": "#tip-ets",
+            "whyAutomatedToolsMiss": "This hard-negative control is intentionally near-identical to failing case-01. Presence-only or static heuristics can easily treat the pair alike; the correct pass depends on verifying the precise repaired boundary: added an Escape-controlled dismissed state so the unchanged overlapping glossary tooltip can be cleared without moving hover or keyboard focus.",
+            "citation": {
+              "doc": "WCAG 2.2 Understanding 1.4.13",
+              "quote": "Position the additional content so that it does not obscure any other content including the trigger, with the exception of white space and purely decorative content, such as a background graphic which provides no information."
+            }
           }
         ]
       },
@@ -1048,6 +1132,20 @@
             "citation": {
               "doc": "WCAG 2.2 Understanding 1.4.13 — Persistent (wcag-understanding/content-on-hover-or-focus.html)",
               "quote": "The information conveyed by the additional content becomes invalid, such as a 'busy' message that is no longer valid."
+            }
+          },
+          {
+            "id": "case-07",
+            "file": "eval/act-augmented/1.4.13/pages/persistent-auto-timeout-vs-valid-info-invalidation/case-07.html",
+            "docFile": "eval/act-augmented/1.4.13/pages/persistent-auto-timeout-vs-valid-info-invalidation/case-07.md",
+            "scenario": "Paired counterfactual repair of case-01. The page preserves the source’s realistic context and complexity: Business-banking wire-transfer form: a daily-limit help tooltip (role=tooltip) appears on hover/focus of a ? button, is hoverable and Esc-dismissible, but a setTimeout(...,4000) removes it 4 seconds after it appears while the trigger is still hovered/focused. Verified: opacity 1 at 0s -> opacity 0 / visibility hidden at 5s while still hovering. The only target-SC change is: Removed only the four-second auto-dismiss timer. No unrelated target-SC condition was removed.",
+            "expected": "passed",
+            "mechanism": "The tooltip still appears on hover/focus, is hoverable, and is Escape-dismissible. With the timer removed, it remains visible as long as hover or focus persists and the daily-limit information remains valid.",
+            "primarySelector": "#limitTip[role=\"tooltip\"]",
+            "whyAutomatedToolsMiss": "This hard-negative control is intentionally near-identical to failing case-01. Presence-only or static heuristics can easily treat the pair alike; the correct pass depends on verifying the precise repaired boundary: removed only the four-second auto-dismiss timer.",
+            "citation": {
+              "doc": "WCAG Technique SCR39 (wcag-techniques/client-side-script/SCR39.html)",
+              "quote": "The additional content stays visible and does not automatically close after a time."
             }
           }
         ]
@@ -1239,6 +1337,54 @@
               "doc": "wcag-techniques/client-side-script/SCR39.html",
               "quote": "For additional content that appears on focus check that:"
             }
+          },
+          {
+            "id": "case-07",
+            "file": "eval/act-augmented/1.4.13/pages/hover-content-no-keyboard-focus-trigger-path/case-07.html",
+            "docFile": "eval/act-augmented/1.4.13/pages/hover-content-no-keyboard-focus-trigger-path/case-07.md",
+            "scenario": "Paired counterfactual repair of case-01. The page preserves the source’s realistic context and complexity: Banco Aurora high-yield savings page: a circular info 'i' icon next to '4.35% APY' reveals a hover-only popup disclosing a material tiered-rate caveat (4.35% only up to $250,000; above that 0.50%) found nowhere else on the page. The trigger is a non-focusable <span> with only mouseover/mouseout handlers, so keyboard, switch, and magnifier users never see the cap. The only target-SC change is: Made the unchanged-looking info trigger a native button and added focus, activation, pointer-travel, popup-hover, and Escape handling. No unrelated target-SC condition was removed.",
+            "expected": "passed",
+            "mechanism": "The APY disclosure and visual appearance of the trigger are unchanged. The trigger is now a named native button; focus or activation opens the popup, blur schedules hide, pointer travel onto the popup cancels hide, and Escape dismisses it.",
+            "primarySelector": "button#apy-info",
+            "whyAutomatedToolsMiss": "This hard-negative control is intentionally near-identical to failing case-01. Presence-only or static heuristics can easily treat the pair alike; the correct pass depends on verifying the precise repaired boundary: made the unchanged-looking info trigger a native button and added focus, activation, pointer-travel, popup-hover, and Escape handling.",
+            "citation": {
+              "doc": "wcag-understanding/content-on-hover-or-focus.html",
+              "quote": "Content which can be triggered via pointer hover should also be able to be triggered by keyboard focus.  Refer to Success Criterion 2.1.1 Keyboard."
+            }
+          },
+          {
+            "id": "case-08",
+            "file": "eval/act-augmented/1.4.13/pages/hover-content-no-keyboard-focus-trigger-path/case-08.html",
+            "docFile": "eval/act-augmented/1.4.13/pages/hover-content-no-keyboard-focus-trigger-path/case-08.md",
+            "scenario": "Paired interaction hard negative for source case-02: the same abbreviation tooltip gains keyboard focus, focus reveal, a gap-free 1px pointer overlap, popup-hover persistence, and Escape dismissal.",
+            "expected": "passed",
+            "mechanism": "Change tabindex to 0, reveal on hover/focus/focus-within, position the popup with a 1px overlap to eliminate the pointer corridor, and add an Escape-controlled dismissed state that resets after leave or blur.",
+            "primarySelector": "abbr.term[tabindex=\"0\"]",
+            "whyAutomatedToolsMiss": "The suspicious hover tooltip remains; only runtime checks across focus, pointer travel, persistence and dismissal establish conformance.",
+            "citation": {
+              "doc": "wcag-understanding/content-on-hover-or-focus.html",
+              "quote": "Provide a mechanism to easily dismiss the additional content, such as by pressing Escape."
+            },
+            "balanceBatch": "gena11y-fp-50-v2",
+            "hardNegativeType": "accessibility-tree-boundary",
+            "pairedWith": "case-02"
+          },
+          {
+            "id": "case-09",
+            "file": "eval/act-augmented/1.4.13/pages/hover-content-no-keyboard-focus-trigger-path/case-09.html",
+            "docFile": "eval/act-augmented/1.4.13/pages/hover-content-no-keyboard-focus-trigger-path/case-09.md",
+            "scenario": "Paired interaction hard negative for source case-03: the same metric tooltip gains equivalent focus reveal, a gap-free 1px pointer overlap, pointer-travel persistence, delayed boundary close as backup, and Escape dismissal.",
+            "expected": "passed",
+            "mechanism": "Position the popup with a 1px trigger overlap, add focus and blur handling, retain delayed pointer close as backup with popup-hover cancellation, and add Escape closure while preserving the full tooltip payload.",
+            "primarySelector": "button#conv-help[aria-describedby=\"metric-tip\"]",
+            "whyAutomatedToolsMiss": "Markup remains nearly identical to the failure; complete interaction-state execution is required to distinguish it.",
+            "citation": {
+              "doc": "wcag-techniques/client-side-script/SCR39.html",
+              "quote": "The additional content stays visible and does not automatically close after a time."
+            },
+            "balanceBatch": "gena11y-fp-50-v2",
+            "hardNegativeType": "accessibility-tree-boundary",
+            "pairedWith": "case-03"
           }
         ]
       },

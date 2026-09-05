@@ -1,0 +1,195 @@
+/* control.css - operator console. Dense on purpose: the operator is watching
+   several participants at once and should not have to scroll to see focus. */
+
+:root {
+  --bg: #f6f8fb;
+  --panel: #ffffff;
+  --panel-2: #eef2f7;
+  --line: #d3dae3;
+  --fg: #161d26;
+  --dim: #56606c;
+  --accent: #0b57d0;
+  --good: #146c43;
+  --warn: #8a5a00;
+  --bad: #b3261e;
+  --key: #0b57d0;
+  --key-fg: #ffffff;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg);
+  font: 13.5px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+body { display: flex; flex-direction: column; }
+
+.vh { position: absolute !important; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0;
+  clip: rect(0 0 0 0); clip-path: inset(50%); overflow: hidden; white-space: nowrap; }
+
+/* A class rule with an explicit `display` outranks the user-agent's
+   `[hidden] { display: none }`, so a panel can carry the attribute and still be
+   painted. Every panel in this interface toggles with `hidden`, so restate the
+   rule once with the weight to win rather than remembering it per selector. */
+[hidden] { display: none !important; }
+
+button, input, select, textarea { font: inherit; color: inherit; }
+button { background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px;
+  padding: 5px 11px; cursor: pointer; }
+button:hover { background: #e2e8f0; }
+button.primary { background: var(--key); border-color: var(--key); color: var(--key-fg); }
+button.primary:hover { background: #0a4bb5; }
+/* The buttons that drive a participant through the session. They are the ones
+   reached for constantly and the ones it matters to hit first time. */
+button.key { background: var(--key); border-color: var(--key); color: var(--key-fg); font-weight: 600; }
+button.key:hover { background: #0a4bb5; }
+button.ghost { background: transparent; }
+button:focus-visible, .pick:focus-visible, a:focus-visible { outline: 3px solid #ffbf47; outline-offset: 2px; }
+input, select, textarea { background: #ffffff; border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; }
+textarea { width: 100%; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; resize: vertical; }
+a { color: var(--accent); }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; background: var(--panel-2); padding: 1px 4px; border-radius: 3px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* login */
+.login { flex: 1 1 auto; display: flex; align-items: center; justify-content: center; }
+.login-card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+  padding: 26px 28px; width: 360px; display: flex; flex-direction: column; gap: 8px; }
+.login-card h1 { font-size: 17px; margin: 0; }
+.login-sub { margin: 0 0 8px; color: var(--dim); font-size: 12.5px; }
+.login-card label { font-size: 12px; color: var(--dim); }
+.login-card button { margin-top: 8px; }
+.err { color: var(--bad); min-height: 1.2em; margin: 0; font-size: 12.5px; }
+
+/* console */
+.console { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
+.bar { display: flex; align-items: center; gap: 12px; padding: 8px 14px;
+  background: var(--panel); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.bar-title { font-size: 14px; margin: 0; font-weight: 600; }
+.bar-status { display: flex; align-items: center; gap: 6px; color: var(--dim); }
+.bar-sample { color: var(--dim); font-size: 12px; }
+.spacer { flex: 1 1 auto; }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--bad); display: inline-block; }
+.dot.on { background: var(--good); }
+
+.cols { flex: 1 1 auto; display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(340px, 1fr);
+  gap: 0; min-height: 0; }
+.col { overflow: auto; padding: 12px 14px; min-height: 0; }
+.col.assign { border-left: 1px solid var(--line); background: var(--panel-2); }
+.col h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--dim); margin: 0 0 10px; }
+.col-head { display: flex; align-items: center; gap: 12px; }
+.col-head h2 { margin: 0 0 10px; }
+.inline { display: flex; gap: 6px; margin: 0 0 10px auto; }
+
+/* participant cards */
+.pcard { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  padding: 10px 12px; margin-bottom: 10px; }
+.pcard-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pname { font-weight: 600; font-size: 14px; }
+.pill { font-size: 11px; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--dim); }
+.pill.on { color: #ffffff; background: var(--good); border-color: var(--good); font-weight: 600; }
+.pill.off { color: var(--dim); }
+.plink { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; color: var(--dim);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 32ch; }
+.pcard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 9px; }
+.box { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+.box h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--dim); margin: 0 0 6px; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; font-size: 12.5px; }
+.kv dt { color: var(--dim); }
+.kv dd { margin: 0; overflow-wrap: anywhere; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; }
+.nav { display: flex; gap: 6px; align-items: center; margin-top: 9px; flex-wrap: wrap; }
+.nav .idx { color: var(--dim); font-variant-numeric: tabular-nums; }
+.note-row { display: flex; gap: 6px; margin-top: 8px; align-items: flex-start; }
+.note-row textarea { min-height: 46px; }
+.tools { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; }
+.tag { font-size: 11px; padding: 1px 7px; border-radius: 4px; border: 1px solid var(--line); }
+.tag.flag { background: #fbe9e7; border-color: #e2b4ae; color: #8c1d18; }
+.tag.clear { background: #e6f4ec; border-color: #a8d5bd; color: #0b5132; }
+.tag.nolane { color: var(--dim); }
+.target-hit { color: var(--good); font-weight: 600; }
+.target-miss { color: var(--warn); }
+.empty { color: var(--dim); font-style: italic; }
+
+/* assignment panel */
+details { border: 1px solid var(--line); border-radius: 8px; margin-bottom: 10px; background: var(--panel); }
+summary { padding: 8px 11px; cursor: pointer; font-weight: 600; }
+details > *:not(summary) { padding: 0 11px; }
+details > form { padding-bottom: 11px; }
+.stack { display: flex; flex-direction: column; gap: 8px; }
+.row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.row label { color: var(--dim); font-size: 12.5px; }
+.note { color: var(--dim); font-size: 12px; margin: 6px 0; }
+.msg { min-height: 1.2em; margin: 0; font-size: 12.5px; }
+.msg.ok { color: var(--good); }
+.msg.bad { color: var(--bad); }
+
+table.ov { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 11px; }
+table.ov th, table.ov td { text-align: right; padding: 2px 6px; border-bottom: 1px solid var(--line); }
+table.ov th:first-child, table.ov td:first-child { text-align: left; }
+table.ov th { color: var(--dim); font-weight: 600; }
+
+/* the blinded evaluation view, as the participant sees it plus the mapping */
+.blind-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-bottom: 6px; }
+.blind-col { display: flex; flex-direction: column; gap: 2px; padding: 6px 8px;
+  border: 1px solid var(--line); border-radius: 6px; background: var(--panel-2); font-size: 12px; }
+.blind-col.is-problem { border-color: #e2b4ae; }
+.blind-col.is-clear { border-color: #a8d5bd; }
+.blind-letter { font-weight: 700; font-size: 13px; }
+.blind-tool { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: var(--accent); }
+.blind-verdict { color: var(--dim); }
+.blind-col.is-problem .blind-verdict { color: var(--bad); font-weight: 600; }
+.blind-col.is-clear .blind-verdict { color: var(--good); font-weight: 600; }
+.blind-nolane { color: var(--warn); font-size: 11px; }
+.blind-reason { margin: 6px 0 0; font-size: 12px; line-height: 1.4; color: var(--muted); }
+.answer-given { color: var(--good); font-weight: 600; }
+
+/* --- overview list ------------------------------------------------------- */
+.ptable { width: 100%; border-collapse: collapse; }
+.ptable th { text-align: left; font-weight: 600; color: var(--dim); font-size: 12px;
+  padding: 6px 10px; border-bottom: 1px solid var(--line); }
+.ptable th.num, .ptable td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.ptable td { padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.ptable tr.prow { cursor: pointer; }
+.ptable tr.prow:hover td { background: var(--panel-2); }
+.ptable td.trunc { max-width: 28ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+button.linky { background: none; border: 0; padding: 0; color: var(--accent); font-weight: 600; cursor: pointer; }
+button.linky:hover { text-decoration: underline; background: none; }
+
+/* --- one participant ----------------------------------------------------- */
+.detail { padding: 14px 16px; overflow: auto; }
+.detail-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.detail-head h2 { margin: 0; font-size: 17px; }
+.detail-head .spacer { flex: 1 1 auto; }
+
+/* --- assign by ability ---------------------------------------------------- */
+.fset { border: 1px solid var(--line); border-radius: 8px; padding: 8px 11px; margin: 0; }
+.fset legend { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--dim); padding: 0 4px; }
+.checks { display: flex; flex-direction: column; gap: 4px; }
+.checks label { display: flex; align-items: center; gap: 6px; font-size: 12.5px; }
+.checks .note { margin: 0; }
+
+/* --- the whole assignment at a glance ------------------------------------ */
+/* One cell per task, so "what is still outstanding" is a thing the operator can
+   see rather than something they have to step through forty tasks to find out.
+   Answered recedes; outstanding is the one that has to catch the eye. */
+.tgrid { display: flex; flex-wrap: wrap; gap: 4px; margin: 2px 0 4px; }
+.tcell {
+  min-width: 30px; padding: 3px 0; text-align: center;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px;
+  border: 1px solid var(--line); border-radius: 5px; background: var(--panel); cursor: pointer;
+}
+.tcell.is-done { background: #e6f4ec; border-color: #a8d5bd; color: #0b5132; }
+.tcell.is-open { background: var(--panel); border-color: var(--dim); color: var(--fg); font-weight: 700; }
+.tcell.is-current { outline: 2px solid var(--key); outline-offset: 1px; }
+.tcell:hover { border-color: var(--key); }
+.ptable td.left-open { color: var(--warn); font-weight: 700; }
+/* "All answered" - nothing to jump to, so the button says so and stops being a
+   control rather than sitting there looking live. */
+button:disabled { opacity: .55; cursor: default; }
+button.key:disabled { background: var(--panel-2); border-color: var(--line); color: var(--dim); }
+
+/* --- answering for a participant ----------------------------------------- */
+.picker { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.picker h4 { margin: 0 0 8px; font-size: 12px; color: var(--dim); text-transform: uppercase; letter-spacing: .04em; }
+.picks { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px; }
+.pick { min-width: 42px; font-weight: 600; }
+.pick.on { background: var(--key); border-color: var(--key); color: var(--key-fg); }
+.picker input[type="text"] { width: 100%; }

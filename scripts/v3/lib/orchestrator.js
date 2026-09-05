@@ -493,11 +493,11 @@ async function orchestrate(collect, drive, opts = {}) {
           });
         }
         // PROVIDER tool surface (SAME CDP handlers, different protocol): 'claude' wraps them as an in-process Agent-SDK
-        // MCP server the query() loop drives; 'gemini' builds a direct dispatch the hand-rolled function-calling loop
+        // MCP server the query() loop drives; 'gemini' builds a direct dispatch the stateful Interactions loop
         // drives; 'codex' exposes them as an in-process Streamable-HTTP MCP server the Codex agent connects to by URL.
         const provider = opts.llmProvider || 'claude';
         const server = (toolSession && provider === 'claude') ? await cdpTools.buildCdpToolServer(toolSession).catch(() => null) : null;
-        // gemini AND openai drive the SAME direct dispatch via a hand-rolled function-calling loop (only the API shape differs).
+        // Gemini Interactions and OpenAI Responses drive the SAME direct dispatch (only the API/state protocol differs).
         const dispatch = (toolSession && (provider === 'gemini' || provider === 'openai')) ? (() => { try { return cdpTools.buildCdpToolDispatch(toolSession); } catch (e) { return null; } })() : null;
         if (toolSession && provider === 'codex') codexMcp = await cdpTools.buildCdpHttpMcpServer(toolSession).catch(() => null);
         if (server || dispatch || codexMcp) {
@@ -505,7 +505,9 @@ async function orchestrate(collect, drive, opts = {}) {
           const runTimeoutMs = opts.llmToolRunTimeoutMs || LIMITS.llm.toolRunTimeoutMs;
           const maxTurns = opts.llmToolMaxTurns || LIMITS.llm.toolMaxTurns;
           const transport = provider === 'gemini'
-            ? adapter.makeGeminiToolTransport({ apiKey: opts.geminiKey, model: opts.llmTransportConfig.model, effort: opts.llmTransportConfig.effort, dispatch, maxTurns, runTimeoutMs, getExtraDeadlineMs: toolSession.extraDeadlineMs, onTraceSink: opts.llmTransportConfig.onTraceSink })
+            ? adapter.makeGeminiToolTransport({ apiKey: opts.geminiKey, model: opts.llmTransportConfig.model, effort: opts.llmTransportConfig.effort,
+              dispatch, cacheManager: opts.llmTransportConfig.cacheManager || null, maxTurns, runTimeoutMs,
+              getExtraDeadlineMs: toolSession.extraDeadlineMs, onTraceSink: opts.llmTransportConfig.onTraceSink })
             : provider === 'openai'
               ? adapter.makeOpenAITransport({ apiKey: opts.openaiKey, model: opts.llmTransportConfig.model, effort: opts.llmTransportConfig.effort, dispatch, maxTurns, runTimeoutMs, getExtraDeadlineMs: toolSession.extraDeadlineMs, onTraceSink: opts.llmTransportConfig.onTraceSink })
               : provider === 'codex'

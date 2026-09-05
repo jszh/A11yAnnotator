@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Accessibility evaluation study</title>
+<link rel="stylesheet" href="/static/client.css">
+</head>
+<body>
+<a class="skiplink" href="#page-frame">Skip to the page under evaluation</a>
+
+<!-- Material top app bar. The two toggles are the participant's only controls;
+     everything else about the session is driven by the operator. -->
+<header class="appbar" id="shell">
+  <div class="appbar-lead">
+    <!-- The interface still needs a heading; the participant does not need to
+         read it. Naming the page is what it is for. -->
+    <h1 class="visually-hidden">Accessibility evaluation study</h1>
+    <p class="appbar-task" id="taskline" hidden></p>
+    <!-- Shown only while the page is drawing its own content over the target.
+         It lives in the study's chrome, never in the page being judged. -->
+    <p class="appbar-covered" id="cover-note" hidden>target is behind the content on screen</p>
+  </div>
+  <div class="appbar-actions">
+    <button type="button" class="md-button md-outlined" id="toggle-focus" aria-pressed="true" hidden>
+      <span class="md-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M3 5a2 2 0 0 1 2-2h3v2H5v3H3V5Zm18 0v3h-2V5h-3V3h3a2 2 0 0 1 2 2ZM3 16h2v3h3v2H5a2 2 0 0 1-2-2v-3Zm18 3a2 2 0 0 1-2 2h-3v-2h3v-3h2v3ZM12 9a3 3 0 1 1 0 6 3 3 0 0 1 0-6Z"/></svg>
+      </span>
+      <span class="md-label" id="toggle-focus-label">Show focus</span>
+      <!-- The shortcut for whatever the button currently does, on the button
+           that does it. A line of key hints somewhere else is a line nobody
+           reads twice. -->
+      <kbd class="md-key" id="toggle-focus-key"></kbd>
+    </button>
+    <button type="button" class="md-button md-filled" id="toggle-tools" aria-pressed="false" aria-haspopup="dialog" hidden>
+      <span class="md-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M4 5h16v2H4V5Zm0 6h16v2H4v-2Zm0 6h10v2H4v-2Z"/></svg>
+      </span>
+      <span class="md-label" id="toggle-tools-label">Evaluate</span>
+      <kbd class="md-key" id="toggle-tools-key"></kbd>
+    </button>
+  </div>
+</header>
+
+
+<!--
+  One assertive announcer, kept outside the page frame so that announcing a new
+  task never touches the document the participant is judging. It is the only
+  thing in this interface that speaks; the highlight itself is aria-hidden so
+  that nothing the study adds can change what a screen reader reports about the
+  target element.
+-->
+<div id="announcer" class="visually-hidden" role="status" aria-live="assertive" aria-atomic="true"></div>
+
+<main class="stage" id="stage">
+  <div class="waiting" id="waiting">
+    <p class="waiting-text" id="waiting-text">Waiting for study to begin</p>
+    <p class="waiting-sub" id="waiting-sub">The screen will update on its own when the study operator starts the session.</p>
+  </div>
+  <iframe id="page-frame" class="page-frame" hidden title="Page under evaluation"></iframe>
+</main>
+
+<!--
+  A native <dialog>: it brings focus trapping, an inert background and Escape
+  handling with the browser's own semantics rather than a hand-rolled imitation,
+  and it lives in the shell document so opening it never touches the page being
+  judged.
+-->
+<dialog class="md-dialog" id="tool-dialog" aria-labelledby="tool-dialog-title">
+  <form method="dialog" class="md-dialog-form" id="tool-form">
+    <div class="md-dialog-head">
+      <div>
+        <!-- Filled in per task: one sentence, from the WCAG 2.2 Understanding
+             "In Brief" text for this criterion. It is the first thing on the
+             screen because it is the question being asked. -->
+        <h2 class="md-dialog-title" id="tool-dialog-title"></h2>
+        <p class="md-dialog-sub" id="tool-dialog-sub"></p>
+      </div>
+      <button type="button" class="md-icon-button" id="tool-close" aria-label="Close the evaluation view">
+        <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="m12 10.6 5.3-5.3 1.4 1.4-5.3 5.3 5.3 5.3-1.4 1.4-5.3-5.3-5.3 5.3-1.4-1.4 5.3-5.3-5.3-5.3 1.4-1.4Z"/></svg>
+      </button>
+    </div>
+
+    <div class="md-dialog-body">
+      <fieldset class="tool-grid" id="tool-grid">
+        <legend class="visually-hidden">Which results do you agree with?</legend>
+      </fieldset>
+
+      <div class="disagree-block">
+        <label class="md-check-row" for="choice-disagree">
+          <input type="checkbox" name="choice" value="disagree" id="choice-disagree" class="md-check">
+          <span class="tool-letter tool-letter-inline">4</span>
+          <span class="md-check-label">I disagree with all of them</span>
+        </label>
+        <div class="md-textfield" id="comment-field" hidden>
+          <label class="md-textfield-label" for="disagree-comment">What did you find instead?</label>
+          <textarea id="disagree-comment" class="md-textfield-input" rows="3"
+                    aria-describedby="comment-help"></textarea>
+          <p class="md-textfield-help" id="comment-help">Required when you disagree.</p>
+        </div>
+      </div>
+
+      <!-- The error a participant reads and the error a screen reader speaks are
+           this one node. role="alert" is assertive by definition; the attributes
+           are spelled out anyway because assistive technology that honours only
+           one of the two forms is still in use. -->
+      <p class="md-error" id="tool-error" role="alert" aria-live="assertive" aria-atomic="true"></p>
+    </div>
+
+    <div class="md-dialog-actions">
+      <button type="button" class="md-button md-text" id="tool-dismiss">Dismiss <kbd class="md-key">Esc</kbd></button>
+      <button type="submit" class="md-button md-filled" id="tool-continue" aria-disabled="true">Continue <kbd class="md-key">Enter</kbd></button>
+    </div>
+  </form>
+</dialog>
+
+<script src="/static/resolve-xpath.js"></script>
+<script src="/static/client.js"></script>
+</body>
+</html>

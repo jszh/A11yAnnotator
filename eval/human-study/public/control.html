@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Study operator console</title>
+<link rel="stylesheet" href="/static/control.css">
+</head>
+<body>
+
+<section id="login" class="login">
+  <form class="login-card" id="login-form">
+    <h1>Study operator console</h1>
+    <p class="login-sub">Participants stay on &ldquo;waiting for study to begin&rdquo; until this console is signed in.</p>
+    <label for="password">Password</label>
+    <input type="password" id="password" name="password" autocomplete="current-password" required>
+    <p class="err" id="login-error" role="alert"></p>
+    <button type="submit">Sign in</button>
+  </form>
+</section>
+
+<div id="console" class="console" hidden>
+  <header class="bar">
+    <h1 class="bar-title">Study operator console</h1>
+    <div class="bar-status">
+      <span class="dot" id="live-dot"></span>
+      <span id="live-label">closed</span>
+    </div>
+    <button id="toggle-open" class="primary">Open study</button>
+    <span class="bar-sample" id="bar-sample"></span>
+    <span class="spacer"></span>
+    <!-- Named downloads. The server sends Content-Disposition too; this is the
+         half that still works if a proxy strips the header. -->
+    <a id="export-json" href="/api/control/export" download="study-export.json">Export JSON</a>
+    <a id="export-csv" href="/api/control/export?format=csv" download="study-notes.csv">Export CSV</a>
+    <button id="logout" class="ghost">Sign out</button>
+  </header>
+
+  <!-- Two pages, not one long column. The overview is the page an operator
+       watches a session from; one participant at a time is a different job and
+       gets its own screen, so the controls that drive somebody are never a
+       mis-click away from the person sitting next to them in a list. -->
+  <div class="cols" id="page-overview">
+    <section class="col participants" aria-labelledby="participants-h">
+      <div class="col-head">
+        <h2 id="participants-h">Participants</h2>
+        <form id="add-form" class="inline">
+          <label class="vh" for="add-name">New participant name</label>
+          <input id="add-name" placeholder="name (blank = auto)" size="16">
+          <button type="submit">Add</button>
+        </form>
+      </div>
+      <div id="participant-list"></div>
+    </section>
+
+    <section class="col assign" aria-labelledby="assign-h">
+      <h2 id="assign-h">Assignment</h2>
+
+      <details open>
+        <summary>Split the sample across participants</summary>
+        <form id="split-form" class="stack">
+          <div class="row">
+            <label for="split-mode">Mode</label>
+            <select id="split-mode">
+              <option value="interleave">Interleave (each gets a balanced mix)</option>
+              <option value="block">Block (contiguous slices)</option>
+            </select>
+          </div>
+          <div class="row">
+            <label for="split-anchor">Shared anchor cases</label>
+            <input id="split-anchor" type="number" min="0" max="200" value="0" size="4">
+            <span class="note">assigned to everyone, for inter-rater agreement</span>
+          </div>
+          <div class="row">
+            <label for="split-seed">Seed</label>
+            <input id="split-seed" type="number" value="20260825" size="10">
+          </div>
+          <div class="row">
+            <label for="split-filter">Restrict pool (optional JSON)</label>
+          </div>
+          <textarea id="split-filter" rows="3" spellcheck="false" placeholder='{"strata":["DIFFER"]}'></textarea>
+          <div class="row">
+            <button type="submit" class="primary">Split across all participants</button>
+          </div>
+          <p class="msg" id="split-msg" role="status"></p>
+        </form>
+      </details>
+
+      <!-- Staffing by what a participant can actually do. The pool is filtered
+           by the ability a case needs before it is handed out, so nobody is
+           asked to judge contrast without sight or an announcement without a
+           screen reader. -->
+      <details open>
+        <summary>Assign by ability</summary>
+        <form id="ability-form" class="stack">
+          <fieldset class="fset">
+            <legend>Participants</legend>
+            <div id="ability-people" class="checks"></div>
+          </fieldset>
+          <fieldset class="fset">
+            <legend>Task types to give them</legend>
+            <div class="checks">
+              <label><input type="checkbox" name="ability" value="vision" checked> Needs vision <span class="note" id="ability-n-vision"></span></label>
+              <label><input type="checkbox" name="ability" value="screenreader"> Needs a screen reader <span class="note" id="ability-n-screenreader"></span></label>
+              <label><input type="checkbox" name="ability" value="other"> Neither <span class="note" id="ability-n-other"></span></label>
+            </div>
+          </fieldset>
+          <div class="row">
+            <label for="ability-mode">Then</label>
+            <select id="ability-mode">
+              <option value="split">Divide the pool between them</option>
+              <option value="each">Give each of them the whole pool</option>
+            </select>
+          </div>
+          <div class="row">
+            <label for="ability-anchor">Shared anchor cases</label>
+            <input id="ability-anchor" type="number" min="0" max="200" value="0" size="4">
+            <span class="note">everyone in this group also gets these (dividing only)</span>
+          </div>
+          <div class="row">
+            <label for="ability-seed">Seed</label>
+            <input id="ability-seed" type="number" value="20260825" size="10">
+          </div>
+          <div class="row">
+            <button type="submit" class="primary">Assign</button>
+          </div>
+          <p class="note">Reassigning replaces a participant's task list. Answers are never deleted, but any that fall outside the new list are reported below.</p>
+          <p class="msg" id="ability-msg" role="status"></p>
+        </form>
+      </details>
+
+      <details>
+        <summary>Apply a JSON selection dict</summary>
+        <p class="note">
+          Keys are participant names or ids. A value is either a list of case ids or a filter over
+          <code>pages</code>, <code>scs</code>, <code>strata</code>, <code>patterns</code>, <code>abilities</code>, <code>scope</code>,
+          plus optional <code>shuffle</code>, <code>seed</code>, <code>limit</code>.
+        </p>
+        <form id="dict-form" class="stack">
+          <label class="vh" for="dict-json">Selection dict</label>
+          <textarea id="dict-json" rows="12" spellcheck="false"></textarea>
+          <div class="row">
+            <button type="submit" class="primary">Apply</button>
+            <button type="button" id="dict-example" class="ghost">Insert example</button>
+          </div>
+          <p class="msg" id="dict-msg" role="status"></p>
+        </form>
+      </details>
+
+      <details>
+        <summary>Sample overview</summary>
+        <div id="sample-overview"></div>
+      </details>
+    </section>
+  </div>
+
+  <div class="detail" id="page-detail" hidden>
+    <div class="detail-head">
+      <button id="detail-back" class="ghost">&larr; All participants</button>
+      <h2 id="detail-name"></h2>
+      <span class="spacer"></span>
+      <span id="detail-status"></span>
+    </div>
+    <div id="detail-body"></div>
+  </div>
+</div>
+
+<script src="/static/control.js"></script>
+</body>
+</html>

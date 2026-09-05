@@ -61,3 +61,16 @@ test('1.3.3 oracle family fires on sensoryWordHint and only then', () => {
   assert.equal(oracle.familiesFor({ xpath: '/p', text: 'x' }).includes('sensory-characteristics'), false);
   assert.equal(oracle.FAMILIES['sensory-characteristics'].sc, '1.3.3');
 });
+
+test('shared 1.3.3 enrichment reads own direct text only and preserves the matched terms', () => {
+  const elements = [
+    { xpath: '/p[1]', text: 'Choose the round control', ownText: 'Choose the round control' },
+    { xpath: '/div[1]', text: 'Choose the square control', ownText: '' },
+    { xpath: '/p[2]', text: 'Choose Continue', ownText: 'Choose Continue' },
+  ];
+  assert.equal(L.applySensoryHints(elements), elements, 'enrichment mutates and returns the collector array');
+  assert.equal(elements[0].sensoryWordHint, true);
+  assert.deepEqual(elements[0].sensoryWords, ['round']);
+  assert.equal(elements[1].sensoryWordHint, undefined, 'descendant-only sensory text does not duplicate onto an ancestor');
+  assert.equal(elements[2].sensoryWordHint, undefined, 'non-sensory direct text stays outside the family');
+});

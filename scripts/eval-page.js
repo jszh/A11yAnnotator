@@ -47,6 +47,7 @@ const ROOT = path.join(__dirname, '..');
 const { assetPath, assetUrlUnder } = require('./lib/asset-paths.js');
 const { collectTables } = require('./v3/lib/collect-tables.js'); // Tier-0 #4: per-<table> relationship facts for 1.3.1
 const { collectLists } = require('./v3/lib/collect-lists.js');   // TT gap G1: per-list semantics (1.3.1 / TT 10.D)
+const { applySensoryHints } = require('./v3/lib/sensory-lexicon.js'); // 1.3.3 shared direct-text applicability gate
 function pageDigest(file) {
   try { return 'sha256:' + crypto.createHash('sha256').update(fs.readFileSync(assetPath(file))).digest('hex'); }
   catch (e) { return null; }
@@ -599,6 +600,8 @@ function parseRGB(s) {
           || /recaptcha|hcaptcha|captcha|turnstile/.test((r.getAttribute('src') || '').toLowerCase())
           || _capTok(r.getAttribute('class')) || _capTok(r.getAttribute('id'))
           || (tag === 'iframe' && /captcha|turnstile/.test((r.getAttribute('title') || '').toLowerCase()));
+        let ownText = ''; for (const n of r.childNodes) if (n.nodeType === 3) ownText += n.textContent;
+        ownText = ownText.replace(/\s+/g, ' ').trim().slice(0, 400);
         return {
           tag, roleAttr, ariaLabel: r.getAttribute('aria-label'), ariaLabelledby: r.getAttribute('aria-labelledby'),
           ariaDescribedby: r.getAttribute('aria-describedby'), alt: r.getAttribute('alt'), href: r.getAttribute('href'), // href: Item 14a (2.4.4 same-name index)
@@ -606,7 +609,7 @@ function parseRGB(s) {
           required: r.hasAttribute('required') || r.getAttribute('aria-required') === 'true',
           ariaInvalid: r.getAttribute('aria-invalid'),
           hasOnclick: r.hasAttribute('onclick'),
-          text: (r.innerText || r.textContent || '').trim().slice(0, 120), tabindex: r.getAttribute('tabindex'),
+          text: (r.innerText || r.textContent || '').trim().slice(0, 120), ownText, tabindex: r.getAttribute('tabindex'),
           // Audit #7 (1.1.1 confusable-text, parity with act-page-collect): nearest ancestor-or-self declared
           // lang/xml:lang — threads into detectConfusableText so a fully-foldable Cyrillic/Greek word is judged
           // against the content's declared writing system, not assumed to be a Latin spoof.
@@ -770,6 +773,9 @@ function parseRGB(s) {
   } finally {
     await browser.close();
   }
+  // The legacy saved-page collector now uses the same applicability enrichment as collectActPage and the
+  // ACT-rest evaluator. This creates obligations only; the sensory rubric remains the decision-maker.
+  applySensoryHints(out.elements || []);
   // R2.8-D (R27-H2): stamp collectedAt at COMPLETION (not start) so the driver's start
   // (drivenAt) being >= collectedAt proves it ran after the collector FINISHED — i.e. it
   // could have used a completed collection, not merely started after the collector started.

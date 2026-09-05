@@ -10,11 +10,18 @@ Two corpora
                           fixture whose primary SC GenA11y covers (531 cases / 10 SCs).
   --corpus act-augmented  this project's human-judgment pages (eval/act-augmented/);
                           labels are UNVALIDATED (directional only).
+  --corpus saved-pages    the 56 real saved webpages the Gemini-3.7 harness run used
+                          (eval/56-page-baselines/page-list-56.json). These pages have NO
+                          ground-truth labels, so cases are marked unlabeled: the summary
+                          reports verdict counts, never a confusion matrix. Pages are loaded
+                          over the annotator server (--base) with the SAME ?offline=1[&noscript=1]
+                          query the harness used, not from file://.
 
 Models (a11y_detector.configure)
 --------------------------------
   --model gemini-3.5-flash   Google generateContent REST (GEMINI_API_KEY)
   --model gpt-5.4-mini       OpenAI Responses API (OPENAI_API_KEY)
+  --model chatgpt/gpt-5.6-luna  LiteLLM ChatGPT-subscription OAuth transport
   --model claude-sonnet-4-6  Python Agent SDK (CLAUDE_CODE_OAUTH_TOKEN)
 
 Concurrency
@@ -42,13 +49,16 @@ import time
 import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
+from urllib.parse import quote
 
 sys.path.insert(0, os.path.dirname(__file__))
 
 import a11y_detector
+import extract_elements as _extract_elements
 from consts import CLAUDE_MODEL, COVERED_SCS, UNCOVERED_SCS, EVAL_DIR
-from extract_elements import extract_for_sc, make_driver, take_full_page_screenshot
+from extract_elements import make_driver
 from a11y_detector import detect_for_sc
+from temp_isolation import ThreadLocalTempFolders
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 FIXED_STATUS_PATH = (
@@ -58,11 +68,38 @@ FIXED_STATUS_PATH = (
 )
 ACT_SUBSET_DIR = PROJECT_ROOT / 'eval/checker-comparison/act-subset'
 ACT_RAW = PROJECT_ROOT / 'eval/checker-comparison/upstream-evidence/v3-act-subset-proposed/raw.json'
+sys.path.insert(0, str(PROJECT_ROOT / 'eval/act-augmented/_tools'))
+from reliable_annotated_cases import load_reliable_annotated_cases
 
 _OUTCOME = {'REPRODUCED': 'caught', 'PARTIAL': 'caught', 'NOT REPRODUCED': 'missedAgree'}
 
 # throttles concurrent Chrome drivers (the "tab limit"); (re)sized in main()
 _DRIVER_SEM = threading.Semaphore(25)
+
+# GenA11y's screenshot helpers use fixed filenames under one module-level
+# directory. Keep the imported detector/extractor unchanged, but give every
+# screenshot-producing page extraction its own thread-local temporary
+# subdirectory so captures remain isolated without reducing page concurrency.
+_SCREENSHOT_SC_S = {'1.4.1', '1.4.3', '1.4.10', '2.4.10', '3.3.1', '3.3.3'}
+_SCREENSHOT_TMP_ROOT = _extract_elements.TEMP_FILE_FOLDER
+_SCREENSHOT_TEMP_FOLDERS = ThreadLocalTempFolders(_SCREENSHOT_TMP_ROOT)
+_extract_elements.TEMP_FILE_FOLDER = _SCREENSHOT_TEMP_FOLDERS
+
+
+def _extract_for_page(driver, sc: str):
+    def extract():
+        if sc == '2.4.10':
+            section_data = _extract_elements.extract_section_headings(driver)
+            screenshot_b64 = _extract_elements.take_full_page_screenshot(
+                driver, 'section_headings')
+            return section_data, screenshot_b64
+        return _extract_elements.extract_for_sc(driver, sc)
+
+    if sc not in _SCREENSHOT_SC_S:
+        return extract()
+
+    safe_sc = sc.replace('.', '-')
+    return _SCREENSHOT_TEMP_FOLDERS.run(f'page-{safe_sc}-', extract)
 
 
 # ---------------------------------------------------------------------------
@@ -188,6 +225,71 @@ def collect_augmented(scs: list[str], limit: int | None) -> list[dict]:
     return out
 
 
+SAVED_PAGE_LIST = PROJECT_ROOT / 'eval/56-page-baselines/page-list-56.json'
+
+# The 21 SCs the 774-element harness sample actually spans. GenA11y covers 10 of them; the other
+# 11 load with covered=False and short-circuit to a zero-cost structural abstain, so the artifact
+# records GenA11y's coverage gap on this corpus explicitly instead of leaving the SC absent.
+SAVED_SAMPLE_SCS = ['1.1.1', '1.3.1', '1.4.1', '1.4.3', '1.4.4', '1.4.5', '1.4.12', '1.4.13',
+                    '2.1.1', '2.1.2', '2.2.1', '2.2.2', '2.4.2', '2.4.3', '2.4.4', '2.4.6',
+                    '2.4.7', '2.5.3', '3.3.1', '4.1.2', '4.1.3']
+
+
+def load_saved_pages_cases(scs_filter: list[str] | None, base: str,
+                           page_list: str | None = None) -> list[dict]:
+    """
+    The 56 real saved webpages, expanded to one case per (page, SC).
+
+    SC scope = GenA11y's own COVERED_SCS (everything it can actually evaluate) UNION the SCs the
+    harness sample spans (so its gaps are on the record). Real pages carry no labels, hence
+    expected='unknown' and unlabeled=True — scoring these against a confusion matrix would be
+    inventing ground truth.
+    """
+    list_path = Path(page_list) if page_list else SAVED_PAGE_LIST
+    if not list_path.is_absolute():
+        list_path = PROJECT_ROOT / list_path
+    data = json.loads(list_path.read_text())
+    scs = scs_filter or sorted(set(COVERED_SCS) | set(SAVED_SAMPLE_SCS))
+    out = []
+    for page in data['pages']:
+        rel = page['relPath']
+        fixture = PROJECT_ROOT / rel
+        if not fixture.exists():
+            raise FileNotFoundError(f"saved-pages corpus file missing: {rel}")
+        # assetUrlUnder(): {base}/assets/{dir}/{encoded file} — identical to the harness's URL.
+        url = f"{base}/assets/{page['assetDir']}/{quote(page['file'], safe='')}{page['query']}"
+        for sc in scs:
+            out.append({
+                'file': rel, 'abs_path': str(fixture.resolve()), 'url': url,
+                'sc': sc, 'expected': 'unknown', 'unlabeled': True,
+                'covered': sc in COVERED_SCS,
+                'ruleId': page['name'], 'testcaseId': f"{page['name']}::{sc}",
+                'pageFile': page['file'],
+            })
+    return out
+
+
+def load_case_list(case_list: str) -> list[dict]:
+    """Load an explicit, provenance-preserving slice shared by all comparison runners."""
+    list_path = Path(case_list)
+    if not list_path.is_absolute():
+        list_path = PROJECT_ROOT / list_path
+    rows = json.loads(list_path.read_text())
+    out = []
+    for row in rows:
+        fixture = PROJECT_ROOT / row['file']
+        if not fixture.exists():
+            raise FileNotFoundError(f"case-list fixture missing: {row['file']}")
+        out.append({
+            'file': row['file'], 'abs_path': str(fixture.resolve()),
+            'sc': row['sc'], 'expected': row['expected'],
+            'ruleId': row.get('aspect'),
+            'testcaseId': f"aug-{row['sc']}-{row.get('aspect', 'aspect')}-{row['id']}",
+            'covered': row['sc'] in COVERED_SCS,
+        })
+    return out
+
+
 # ---------------------------------------------------------------------------
 # Single-page evaluation
 # ---------------------------------------------------------------------------
@@ -203,22 +305,18 @@ def run_page(page: dict) -> dict:
             'ruleId': page.get('ruleId'), 'testcaseId': page.get('testcaseId'),
             'polarity': 'recall' if page['expected'] == 'failed' else 'specificity',
             'outcome': 'uncovered', 'gena11y': None,
-            'correct': page['expected'] != 'failed', 'error': None,
+            'correct': None if page.get('unlabeled') else page['expected'] != 'failed',
+            'unlabeled': bool(page.get('unlabeled')), 'pageFile': page.get('pageFile'),
+            'error': None,
         }
     sc = page['sc']
-    url = f"file://{page['abs_path']}"
+    url = page.get('url') or f"file://{page['abs_path']}"
     a11y_detector.set_context(sc, page['file'])
     driver = None
     try:
         with _DRIVER_SEM:
             driver = make_driver(url)
-            if sc == '2.4.10':
-                from extract_elements import extract_section_headings
-                section_data = extract_section_headings(driver)
-                screenshot_b64 = take_full_page_screenshot(driver, 'section_headings')
-                extracted = (section_data, screenshot_b64)
-            else:
-                extracted = extract_for_sc(driver, sc)
+            extracted = _extract_for_page(driver, sc)
             try:
                 driver.quit()
             finally:
@@ -243,12 +341,15 @@ def _make_result(page: dict, verdict: dict | None, error: str | None = None) -> 
     outcome = 'error' if error else 'noVerdict'
     if verdict and not error:
         outcome = _OUTCOME.get(verdict['verdict'], 'noVerdict')
-        correct = ((verdict['verdict'] in ('REPRODUCED', 'PARTIAL')) == (expected == 'failed'))
+        if not page.get('unlabeled'):
+            correct = ((verdict['verdict'] in ('REPRODUCED', 'PARTIAL')) == (expected == 'failed'))
     return {
         'file': page['file'], 'sc': page['sc'], 'expected': expected,
         'ruleId': page.get('ruleId'), 'testcaseId': page.get('testcaseId'),
         'polarity': 'recall' if expected == 'failed' else 'specificity',
-        'outcome': outcome, 'gena11y': verdict, 'correct': correct, 'error': error,
+        'outcome': outcome, 'gena11y': verdict, 'correct': correct,
+        'unlabeled': bool(page.get('unlabeled')), 'pageFile': page.get('pageFile'),
+        'error': error,
     }
 
 
@@ -267,7 +368,7 @@ class Telemetry:
             'config': {'fnTotal': total, 'pageConc': cfg['pages'], 'globalLlm': cfg['llm_conc'],
                        'perPageLlm': 1, 'maxTabs': cfg['tabs'], 'vision': True, 'tools': False,
                        'evidence': 'gena11y-extract', 'noVisionRubric': False,
-                       'baselineVision': False, 'model': model},
+                       'baselineVision': False, 'model': model, 'effort': cfg['effort']},
             'phase': 'init', 'done': 0, 'total': total,
             'workers': {}, 'inflight': {}, 'tabs': {}, 'mem': {},
             'llm': dict(a11y_detector.LLM_STATS),
@@ -343,7 +444,28 @@ class Telemetry:
     def _summarize(self, model):
         tp = fp = tn = fn = err = nov = 0
         by_sc = {}
+        # Unlabeled corpora (the 56 real saved pages) have NO ground truth. Scoring them into a
+        # confusion matrix would silently label every flag a false positive, so they are tallied
+        # by verdict only and excluded from tp/fp/tn/fn entirely.
+        unlabeled = [r for r in self.results if r.get('unlabeled')]
         for r in self.results:
+            if r.get('unlabeled'):
+                sc = r['sc']
+                d = by_sc.setdefault(sc, {'tp': 0, 'fp': 0, 'tn': 0, 'fn': 0, 'err': 0, 'nov': 0})
+                d.setdefault('unlabeled', {'flagged': 0, 'notFlagged': 0, 'uncovered': 0,
+                                           'noVerdict': 0, 'error': 0})
+                u = d['unlabeled']
+                if r['outcome'] == 'error':
+                    u['error'] += 1; err += 1; d['err'] += 1
+                elif r['outcome'] == 'uncovered':
+                    u['uncovered'] += 1
+                elif r['outcome'] == 'caught':
+                    u['flagged'] += 1
+                elif r['outcome'] == 'noVerdict':
+                    u['noVerdict'] += 1; nov += 1; d['nov'] += 1
+                else:
+                    u['notFlagged'] += 1
+                continue
             sc = r['sc']
             d = by_sc.setdefault(sc, {'tp': 0, 'fp': 0, 'tn': 0, 'fn': 0, 'err': 0, 'nov': 0})
             if r['outcome'] == 'error':
@@ -362,14 +484,36 @@ class Telemetry:
         fp_rate = fp / (fp + tn) if (fp + tn) else None
         prec = tp / (tp + fp) if (tp + fp) else None
         f1 = (2 * prec * recall_v / (prec + recall_v)) if (prec and recall_v) else None
-        return {
-            'runName': self.tel['runName'], 'model': model, 'n': len(self.results),
+        out = {
+            'runName': self.tel['runName'], 'model': model,
+            'effort': self.tel['config'].get('effort'), 'n': len(self.results),
             'elapsedMs': self.tel.get('elapsedMs'),
             'tally': self.tel['tally'],
             'confusion': {'tp': tp, 'fp': fp, 'tn': tn, 'fn': fn, 'error': err, 'noVerdict': nov},
             'recall': recall_v, 'fpRate': fp_rate, 'precision': prec, 'f1': f1,
             'bySc': by_sc, 'llm': dict(a11y_detector.LLM_STATS),
         }
+        if unlabeled:
+            flagged = [r for r in unlabeled if r['outcome'] == 'caught']
+            out['unlabeled'] = {
+                'cases': len(unlabeled),
+                'pages': len({r.get('pageFile') or r['file'] for r in unlabeled}),
+                'covered': len([r for r in unlabeled if r['outcome'] != 'uncovered']),
+                'uncovered': len([r for r in unlabeled if r['outcome'] == 'uncovered']),
+                'flagged': len(flagged),
+                'notFlagged': len([r for r in unlabeled if r['outcome'] == 'missedAgree']),
+                'noVerdict': len([r for r in unlabeled if r['outcome'] == 'noVerdict']),
+                'error': len([r for r in unlabeled if r['outcome'] == 'error']),
+                # element-level: GenA11y returns an xpath per violation, so the flagged-element
+                # count is the unit that lines up with the harness's per-element sample.
+                'violationElements': sum(len((r.get('gena11y') or {}).get('violations') or [])
+                                         for r in flagged),
+            }
+            if len(unlabeled) == len(self.results):
+                # nothing labeled ran — do not publish a confusion matrix built from no labels
+                for k in ('confusion', 'recall', 'fpRate', 'precision', 'f1'):
+                    out[k] = None
+        return out
 
 
 # ---------------------------------------------------------------------------
@@ -378,14 +522,20 @@ class Telemetry:
 
 def main():
     p = argparse.ArgumentParser(description='Run GenA11y over an ACT corpus with a chosen model.')
-    p.add_argument('--corpus', choices=['act', 'act-rest', 'act-augmented'], default='act')
+    p.add_argument('--corpus', choices=['act', 'act-rest', 'act-augmented', 'annotated-reliable',
+                                        'saved-pages'], default='act')
+    p.add_argument('--case-list', help='Explicit JSON case list; overrides --corpus selection.')
     p.add_argument('--model', default=CLAUDE_MODEL)
-    p.add_argument('--sc', help='Restrict to a single SC.')
+    p.add_argument('--effort', choices=['minimal', 'low', 'medium', 'high', 'xhigh', 'max'])
+    p.add_argument('--sc', help='Restrict to one SC or a comma-separated SC list.')
     p.add_argument('--limit', type=int, help='Cap total cases.')
     p.add_argument('--pages', type=int, default=25, help='Parallel page workers.')
     p.add_argument('--tabs', type=int, default=25, help='Concurrent Chrome driver cap.')
     p.add_argument('--llm-conc', type=int, default=60, help='Global concurrent LLM-call cap.')
     p.add_argument('--out', default='gena11y', help='Run name → results/<name>/.')
+    p.add_argument('--base', default=os.environ.get('A11Y_BASE', 'http://127.0.0.1:3001'),
+                   help='saved-pages: annotator server origin the pages load from.')
+    p.add_argument('--page-list', help='saved-pages: page-list JSON (default eval/56-page-baselines/page-list-56.json).')
     p.add_argument('--dry-run', action='store_true')
     args = p.parse_args()
 
@@ -397,15 +547,25 @@ def main():
 
     scs_filter = None
     if args.sc:
-        if args.sc not in COVERED_SCS:
-            print(f'SC {args.sc} not covered by GenA11y.', file=sys.stderr)
-            sys.exit(1)
-        scs_filter = [args.sc]
+        scs_filter = [s.strip() for s in args.sc.split(',') if s.strip()]
+        if not args.case_list and args.corpus not in ('annotated-reliable', 'saved-pages'):
+            unsupported = [s for s in scs_filter if s not in COVERED_SCS]
+            if unsupported:
+                print(f'SC(s) {",".join(unsupported)} not covered by GenA11y.', file=sys.stderr)
+                sys.exit(1)
 
-    if args.corpus == 'act':
+    if args.case_list:
+        pages = load_case_list(args.case_list)
+    elif args.corpus == 'act':
         pages = load_act_cases(scs_filter)
     elif args.corpus == 'act-rest':
         pages = load_act_rest_cases()
+    elif args.corpus == 'saved-pages':
+        pages = load_saved_pages_cases(scs_filter, args.base.rstrip('/'), args.page_list)
+    elif args.corpus == 'annotated-reliable':
+        pages = load_reliable_annotated_cases(PROJECT_ROOT, scs_filter)
+        for page in pages:
+            page['covered'] = page['sc'] in COVERED_SCS
     else:
         scs = scs_filter or sorted(COVERED_SCS)
         pages = collect_augmented(scs, None)
@@ -420,6 +580,12 @@ def main():
         print(f'{args.corpus} corpus | model={args.model} | {len(pages)} cases')
         print('expected:', dict(Counter(p['expected'] for p in pages)))
         print('by SC   :', dict(Counter(p['sc'] for p in pages)))
+        if args.corpus == 'saved-pages':
+            covered = [p for p in pages if p.get('covered')]
+            print(f'pages   : {len({p["file"] for p in pages})} | '
+                  f'covered cases (LLM): {len(covered)} | '
+                  f'structural abstains: {len(pages) - len(covered)}')
+            print('example url:', pages[0]['url'])
         return
 
     # trace sink: append every LLM call (prompt/raw/reasoning/usage/verdict) as JSONL
@@ -429,12 +595,14 @@ def main():
         trace_fh.write(json.dumps(rec) + '\n')
         trace_fh.flush()
 
-    a11y_detector.configure(model=args.model, llm_concurrency=args.llm_conc, trace_sink=trace_sink)
+    a11y_detector.configure(model=args.model, effort=args.effort,
+                            llm_concurrency=args.llm_conc, trace_sink=trace_sink)
 
-    cfg = {'pages': args.pages, 'tabs': args.tabs, 'llm_conc': args.llm_conc}
+    cfg = {'pages': args.pages, 'tabs': args.tabs, 'llm_conc': args.llm_conc,
+           'effort': args.effort}
     with open(out_dir / 'run.log', 'w') as log_fh:
         tel = Telemetry(args.out, out_dir, len(pages), args.model, cfg, log_fh)
-        tel.log(f'GenA11y {args.corpus} run: {len(pages)} cases | model={args.model} | '
+        tel.log(f'GenA11y {args.corpus} run: {len(pages)} cases | model={args.model} | effort={args.effort} | '
                 f'pages={args.pages} tabs={args.tabs} llmConc={args.llm_conc}')
         tel.log(f'status → {out_dir / "status.json"}  '
                 f'(monitor: node eval/checker-comparison/fn-llm-monitor.js {args.out})')
@@ -469,11 +637,20 @@ def main():
         c = summary['confusion']
         pct = lambda x: f'{100*x:.1f}%' if x is not None else '—'
         tel.log('')
-        tel.log(f'DONE  n={summary["n"]}  TP={c["tp"]} FP={c["fp"]} TN={c["tn"]} FN={c["fn"]} '
-                f'noVerd={c["noVerdict"]} err={c["error"]}')
-        tel.log(f'      recall={pct(summary["recall"])}  FPrate={pct(summary["fpRate"])}  '
-                f'precision={pct(summary["precision"])}  F1={summary["f1"]:.3f}' if summary['f1']
-                else f'      recall={pct(summary["recall"])}  FPrate={pct(summary["fpRate"])}')
+        if c is None:
+            # unlabeled corpus: report what was flagged, never a confusion matrix over absent labels
+            u = summary['unlabeled']
+            tel.log(f'DONE  n={summary["n"]}  pages={u["pages"]}  covered={u["covered"]} '
+                    f'uncovered={u["uncovered"]}  (no ground truth — verdict tally only)')
+            tel.log(f'      flagged={u["flagged"]} notFlagged={u["notFlagged"]} '
+                    f'noVerdict={u["noVerdict"]} err={u["error"]}  '
+                    f'violationElements={u["violationElements"]}')
+        else:
+            tel.log(f'DONE  n={summary["n"]}  TP={c["tp"]} FP={c["fp"]} TN={c["tn"]} FN={c["fn"]} '
+                    f'noVerd={c["noVerdict"]} err={c["error"]}')
+            tel.log(f'      recall={pct(summary["recall"])}  FPrate={pct(summary["fpRate"])}  '
+                    f'precision={pct(summary["precision"])}  F1={summary["f1"]:.3f}' if summary['f1']
+                    else f'      recall={pct(summary["recall"])}  FPrate={pct(summary["fpRate"])}')
         tel.log(f'      tokens in={summary["llm"]["inputTokens"]} out={summary["llm"]["outputTokens"]} '
                 f'~${summary["llm"]["costUsd"]:.2f}')
         tel.log(f'wrote {out_dir}/ (results.json, summary.json, run.log, llm-trace.jsonl)')

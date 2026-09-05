@@ -2,6 +2,7 @@
 id: focus-return-after-dismissal-v0
 sc: 2.4.3
 skill: focus-management
+toolMode: required
 visionEvidence: []
 ---
 

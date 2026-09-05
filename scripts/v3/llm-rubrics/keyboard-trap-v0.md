@@ -2,6 +2,7 @@
 id: keyboard-trap-v0
 sc: 2.1.2
 skill: keyboard-operability
+toolMode: required
 visionEvidence: [viewport]
 ---
 

@@ -51,6 +51,8 @@ function parseFrontmatter(text) {
 const SKILLS_DIR = path.join(__dirname, '..', '..', '..', 'skills');
 const RUBRICS_DIR = path.join(__dirname, '..', 'llm-rubrics');
 const okVision = (v) => (Array.isArray(v) ? v.filter((x) => VISION_EVIDENCE.includes(x)) : []);
+const TOOL_MODES = new Set(['auto', 'required', 'none']);
+const toolMode = (v) => TOOL_MODES.has(String(v || '').toLowerCase()) ? String(v).toLowerCase() : 'auto';
 
 // Load both rubric sources. Returns { skills:{[skill]:{text,promptHash,visionEvidence}},
 // rubrics:{[id]:{id,sc,skill,visionEvidence,text,promptHash}}, promptHash } — the combined hash changes
@@ -65,9 +67,10 @@ function loadRubrics({ skillsDir = SKILLS_DIR, rubricsDir = RUBRICS_DIR } = {}) 
     const { meta, body } = parseFrontmatter(fs.readFileSync(path.join(skillsDir, f), 'utf8'));
     const text = body.trim();
     const vision = okVision(meta.visionEvidence).length ? okVision(meta.visionEvidence) : (SKILL_VISION[skill] || []);
+    const mode = toolMode(meta.toolMode);
     // the hash binds the agent's ACTUAL inputs — body AND which crops it is handed — so changing the
     // vision needs is a DIFFERENT mechanism that cannot inherit the old gold (adversarial: provenance hole).
-    skills[skill] = { text, promptHash: sha256(JSON.stringify({ text, visionEvidence: vision })), visionEvidence: vision };
+    skills[skill] = { text, promptHash: sha256(JSON.stringify({ text, visionEvidence: vision, toolMode: mode })), visionEvidence: vision, toolMode: mode };
   }
   const rubrics = {};
   for (const f of ls(rubricsDir)) {
@@ -86,7 +89,9 @@ function loadRubrics({ skillsDir = SKILLS_DIR, rubricsDir = RUBRICS_DIR } = {}) 
     // didn't stop it. `requiresVision: true` in frontmatter opts a rubric OUT of the non-visual exception, so
     // the required-evidence gate abstains (auto-PARTIAL) instead of inviting a hallucinated pixel comparison.
     const requiresVision = meta.requiresVision === 'true';
-    rubrics[id] = { id, sc: meta.sc || null, skill: meta.skill || null, visionEvidence: vision, requiresVision, text, promptHash: sha256(JSON.stringify({ text, sc: meta.sc || null, visionEvidence: vision, requiresVision })) };
+    const mode = toolMode(meta.toolMode);
+    rubrics[id] = { id, sc: meta.sc || null, skill: meta.skill || null, visionEvidence: vision, requiresVision, toolMode: mode, text,
+      promptHash: sha256(JSON.stringify({ text, sc: meta.sc || null, visionEvidence: vision, requiresVision, toolMode: mode })) };
   }
   const fingerprint = JSON.stringify({
     skills: Object.fromEntries(Object.entries(skills).map(([k, v]) => [k, v.promptHash])),

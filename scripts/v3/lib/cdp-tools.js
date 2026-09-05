@@ -1497,10 +1497,10 @@ async function buildCdpToolServer(session) {
 }
 
 // CROSS-FAMILY tool surface (Gemini): the SAME CDP handlers + descriptions as buildCdpToolServer, exposed as Gemini
-// `functionDeclarations` (JSON-Schema params) + a direct dispatcher — the Gemini transport drives a hand-rolled
-// function-calling loop, not the Claude Agent SDK's MCP query() loop. `call()` returns the RAW result object; the
-// Gemini loop JSON-stringifies it into a `functionResponse` exactly as the MCP `wrap` above stringifies it into text
-// content, so the judge receives byte-identical tool EVIDENCE across families — only the agent-loop protocol differs.
+// JSON-Schema function declarations + a direct dispatcher — the Gemini Interactions transport drives the client-side
+// function execution, not the Claude Agent SDK's MCP query() loop. `call()` returns the RAW result object; the Gemini
+// loop JSON-stringifies it into a `function_result` text block exactly as the MCP `wrap` above stringifies it into text
+// content, so the judge receives byte-identical tool EVIDENCE across families — only the API protocol differs.
 // Descriptions are intentionally verbatim copies of buildCdpToolServer's (keep the two in sync if either changes).
 function buildCdpToolDispatch(session) {
   const page = session.page;
@@ -1550,7 +1550,7 @@ function buildCdpToolDispatch(session) {
     { name: 'capture_full_page', description: 'Mutating (FRESH clone): a screenshot of the WHOLE scrollable document — beyond the viewport / below the fold. Optional targetXpath additionally returns that element\'s box in PAGE coordinates (origin = document top) + tag/role/text + verticalPositionPct + inViewport. Use to confirm an OFF-VIEWPORT heading/element exists and judge WHERE it sits relative to content (does an h1 introduce the prose or sit over the nav/TOC? — 2.4.10/2.4.6/1.3.1). Returns PIXELS + geometry, never a verdict; never infer a barrier from position alone.',
       parameters: S({ targetXpath: { type: 'string' } }) },
   ];
-  // Returns the RAW result OBJECT (NOT MCP-wrapped); the Gemini loop JSON-stringifies it into a functionResponse,
+  // Returns the RAW result OBJECT (NOT MCP-wrapped); the Gemini loop JSON-stringifies it into a function_result,
   // matching how `wrap` JSON-stringifies it into MCP text content. A thrown handler ⇒ {error} (never a fake result).
   const call = async (name, args) => {
     const fn = HANDLERS[name];

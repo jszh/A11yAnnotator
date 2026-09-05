@@ -36,7 +36,21 @@ def make_driver(url: str) -> webdriver.Chrome:
     opts.add_argument('--headless')
     opts.add_argument('--no-sandbox')
     opts.add_argument('--disable-dev-shm-usage')
-    driver = webdriver.Chrome(options=opts)
+    # Concurrent Selenium Manager launches can occasionally race while starting
+    # ChromeDriver. Retry browser creation only; page extraction and detector
+    # execution remain single-attempt so this cannot change a verdict.
+    last_error = None
+    for attempt in range(3):
+        try:
+            driver = webdriver.Chrome(options=opts)
+            break
+        except Exception as exc:
+            last_error = exc
+            if attempt == 2:
+                raise
+            time.sleep(1 + attempt)
+    if last_error is not None and 'driver' not in locals():
+        raise last_error
     driver.maximize_window()
     driver.get(url)
     _wait_for_load(driver)

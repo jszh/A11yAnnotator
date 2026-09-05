@@ -2,6 +2,7 @@
 id: hover-persistent-v0
 sc: 1.4.13
 skill: color-and-visual-text
+toolMode: required
 visionEvidence: []
 ---
 

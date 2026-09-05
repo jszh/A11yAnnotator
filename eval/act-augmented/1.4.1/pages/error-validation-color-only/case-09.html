@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patient Intake — Cedar Ridge Family Health</title>
+<style>
+  :root { --ink:#222b32; --muted:#5d6770; --line:#c9d1d6; --teal:#0f6e6e; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.55 "Helvetica Neue",Arial,sans-serif; color:var(--ink); background:#f3f6f7; }
+  header { background:var(--teal); color:#fff; padding:22px 26px; }
+  header h1 { margin:0; font-size:1.35rem; }
+  header p { margin:4px 0 0; opacity:.92; font-size:.92rem; }
+  main { max-width:640px; margin:24px auto 60px; background:#fff; border-radius:10px;
+         box-shadow:0 4px 18px rgba(15,35,40,.08); padding:28px 30px 32px; }
+  h2 { font-size:1.05rem; margin:0 0 4px; color:#1a2228; }
+  .intro { color:var(--muted); font-size:.92rem; margin:0 0 22px; }
+
+  fieldset { border:1px solid var(--line); border-radius:8px; padding:16px 18px 6px; margin:0 0 22px; }
+  legend { font-weight:700; font-size:.95rem; padding:0 6px; color:#27323a; }
+  .field { margin-bottom:16px; }
+
+  label { display:block; font-size:.88rem; font-weight:600; margin:0 0 6px; color:#222b32; }
+  label.err { color:#c01818; }   
+  .field-error { color:#8a1111; font-size:.84rem; font-weight:600; margin:.35rem 0 0; }
+
+  input, select { width:100%; padding:9px 11px; font-size:1rem; border:1px solid var(--line);
+                  border-radius:6px; background:#fff; color:var(--ink); }
+  input:focus, select:focus { outline:2px solid var(--teal); outline-offset:1px; }
+  .two { display:flex; gap:14px; } .two > .field { flex:1; }
+
+  .summary { display:none; background:#fbecec; border:1px solid #efbcbc; color:#7d1818;
+             border-radius:7px; padding:10px 12px; font-size:.9rem; margin-bottom:20px; }
+  .summary.show { display:block; }
+
+  button { padding:11px 20px; font-size:1rem; font-weight:600; color:#fff; background:var(--teal);
+           border:0; border-radius:7px; cursor:pointer; }
+  .req-note { font-size:.82rem; color:var(--muted); margin:4px 0 20px; }
+  footer { max-width:640px; margin:0 auto; padding:0 30px 30px; color:var(--muted); font-size:.8rem; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Cedar Ridge Family Health</h1>
+  <p>New patient intake · please complete before your appointment</p>
+</header>
+
+<main>
+  <h2>Patient information</h2>
+  <p class="intro">Required fields are needed so we can verify your record and insurance.</p>
+
+  <div class="summary" id="summary" role="alert">Some required information is still missing. Please review the form and resubmit.</div>
+
+  <form id="intake" action="#" method="post" novalidate>
+    <fieldset>
+      <legend>Identity</legend>
+      <div class="two">
+        <div class="field">
+          <label for="first">Legal first name</label>
+          <input id="first" name="first" type="text" data-req value="Marisol">
+          <p class="field-error" id="first-error">Error: Enter your legal first name.</p>
+        </div>
+        <div class="field">
+          <label for="last">Legal last name</label>
+          <input id="last" name="last" type="text" data-req value="Delgado">
+          <p class="field-error" id="last-error">Error: Enter your legal last name.</p>
+        </div>
+      </div>
+      <div class="field">
+        <label for="dob">Date of birth</label>
+        <input id="dob" name="dob" type="text" placeholder="MM/DD/YYYY" data-req value="" aria-invalid="true" aria-describedby="dob-error">
+        <p class="field-error" id="dob-error">Error: Enter your date of birth.</p>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Insurance</legend>
+      <div class="field">
+        <label for="carrier">Insurance carrier</label>
+        <select id="carrier" name="carrier" data-req>
+          <option value="">Select…</option>
+          <option selected>BlueShield Regional</option>
+          <option>Aetna</option>
+          <option>Self-pay</option>
+        </select>
+        <p class="field-error" id="carrier-error">Error: Select your insurance carrier.</p>
+      </div>
+      <div class="field">
+        <label for="member">Member ID</label>
+        <input id="member" name="member" type="text" data-req value="" aria-invalid="true" aria-describedby="member-error">
+        <p class="field-error" id="member-error">Error: Enter your insurance member ID.</p>
+      </div>
+    </fieldset>
+
+    <p class="req-note">All fields on this form are required.</p>
+    <button type="submit">Submit intake form</button>
+  </form>
+</main>
+<footer>Cedar Ridge Family Health · 100% file:// — no external resources · Patient Services 555-0142</footer>
+
+<script>
+  function syncField(el) {
+    var empty = !el.value.trim();
+    var lbl = document.querySelector('label[for="' + el.id + '"]');
+    var error = document.getElementById(el.id + '-error');
+    lbl.classList.toggle('err', empty);
+    if (error) {
+      error.hidden = !empty;
+      el.setAttribute('aria-invalid', empty ? 'true' : 'false');
+      if (empty) el.setAttribute('aria-describedby', error.id);
+      else el.removeAttribute('aria-describedby');
+    }
+    return empty;
+  }
+
+  function syncForm(form) {
+    var anyError = false;
+    form.querySelectorAll('[data-req]').forEach(function (el) {
+      if (syncField(el)) anyError = true;
+    });
+    document.getElementById('summary').classList.toggle('show', anyError);
+  }
+
+  document.getElementById('intake').addEventListener('submit', function (e) {
+    e.preventDefault();
+    syncForm(this);
+  });
+  document.getElementById('intake').addEventListener('input', function (e) {
+    if (e.target.matches('[data-req]')) syncForm(this);
+  });
+  window.addEventListener('DOMContentLoaded', function () {
+    syncForm(document.getElementById('intake'));
+  });
+</script>
+</body>
+</html>

@@ -1581,10 +1581,10 @@ const KNOWLEDGE_LAYER = [
 function buildPrompt(subject, signals, transcriptExcerpt, opts = {}) {
   const rubric = opts.rubric || `(rubric for skill "${subject.skill}" — judge whether a WCAG ${subject.sc} barrier is present)`;
   const fpStrip = process.env.V3_FP_STRIP_QUESTION === '1';
-  return [
-    // DISTRACTOR-STRIP lever (V3_FP_STRIP_QUESTION, inert by default): drop the task framing + claim-family
-    // priming that can nudge the judge toward over-flagging (the "One Token to Fool" finding: the restated
-    // question can raise judge FP). The rubric + grounded evidence remain — only the priming framing is removed.
+  // Controlled prompt-order ablation. This reproduces the pre-cache-prefix ordering byte-for-byte while leaving
+  // the cache-friendly ordering below as the default for every provider. It is intentionally an environment-only
+  // test switch so production callers do not need a second prompt API.
+  if (process.env.V3_PROMPT_ORDER === 'original') return [
     ...(fpStrip
       ? ['You are evaluating one element. Judge ONLY from the rubric and the evidence provided below.']
       : [`You are the ${subject.skill} skill evaluating WCAG ${subject.sc} for one element.`,
@@ -1594,22 +1594,48 @@ function buildPrompt(subject, signals, transcriptExcerpt, opts = {}) {
     KNOWLEDGE_LAYER,
     '--- rubric ---',
     rubric,
+    ...(process.env.V3_NO_VISION_RUBRIC === '1' ? ['--- IMPORTANT: NO visual evidence is available for this judgment ---',
+      'No screenshot, crop, image, or rendered-pixel view is provided. DISREGARD every rubric instruction to examine a crop / image / surrounding-region / rendered pixels / "what you can SEE". Judge ONLY from the TEXTUAL evidence in this prompt (accessible name, role, signals, markup, context). Do NOT return PARTIAL merely because you cannot see the rendering — make your best determination from the available textual facts; return PARTIAL only if those facts THEMSELVES genuinely cannot resolve it.'] : []),
+    '--- pre-computed deterministic signals (do not re-derive; a signal\'s `uncertainReason` says WHY a checker abstained — an ABSENT signal or ratio means it could NOT decide, NOT that the page passes) ---',
+    JSON.stringify(signals),
+    ...(opts.checkerHint ? ['--- external-checker cross-signal (flagged this for REVIEW — could not auto-decide) ---', JSON.stringify(opts.checkerHint)] : []),
+    '--- VSR announcement (realistic accessible name) ---',
+    transcriptExcerpt ? JSON.stringify(transcriptExcerpt) : '(none)',
+    ...(opts.toolsEnabled ? (() => { const g = renderToolGuidance(toolsForSubject(subject.sc, subject.skill)); return g ? [g] : []; })() : []),
+    ...(process.env.V3_FP_BOUNDARY === '1' ? ['--- when NOT to flag a barrier ---',
+      ['A WCAG barrier exists ONLY if a real user is ACTUALLY blocked. Return NOT REPRODUCED when ANY of these holds:',
+       '• the SC\'s literal requirement IS met and the issue is merely sub-optimal quality/style/wording — e.g. an accessible name that is PRESENT and matches the role satisfies an SC that only requires a name to EXIST; un-descriptive ≠ absent;',
+       '• a recognized WCAG exception applies — e.g. images of text that are ESSENTIAL (the visual presentation itself conveys the information), or decorative/incidental content;',
+       '• the element is removed from the accessibility tree (aria-hidden=true / role=presentation / alt="" on a rendering image) and so exposes nothing to assistive tech;',
+       '• the programmatically-determined CONTEXT (enclosing list item, table cell, row/column header, owning paragraph) already resolves the concern, even when the element\'s own name is generic or format-only;',
+       '• a deterministic checker owns the facet and the provided evidence does not show it FAILING — do NOT re-derive a contrast ratio, target size, or computed role yourself to manufacture a failure.',
+       'If the requirement is literally satisfied, do NOT escalate a preference or a stylistic concern into a barrier.'].join('\n')] : []),
+    ...((process.env.V3_FP_412_SHARPEN === '1' && subject.sc === '4.1.2') ? ['--- 4.1.2 name decision procedure (follow in order) ---',
+      ['1. Is the accessible name an UN-SUBSTITUTED CODE TOKEN ({{...}}, %LABEL%, raw markup) or the BARE literal "undefined"/"null"/"aria-label"/"role"? If yes → REPRODUCED. If no → continue.',
+       '2. Does the name describe a DIFFERENT control than the one rendered (e.g. "Search" on a Menu icon), or name only the ICON/file for an icon-only control? If yes → REPRODUCED. If no → continue.',
+       '3. Is a prohibited/invalid ARIA attribute the routed concern (checkerHint = aria-prohibited-attr etc.)? If yes → judge ARIA legality (REPRODUCED if prohibited). If no → continue.',
+       '4. Otherwise the name is PRESENT and real → NOT REPRODUCED. A name made of real words — INCLUDING words that name the control TYPE ("button", "link", "button/link", "menu") or that are terse/generic — satisfies 4.1.2. "Could be more descriptive" is 2.4.6, which you DEFER. Do NOT call a real, type-naming name a "placeholder/filler".'].join('\n')] : []),
+    ...(process.env.V3_FP_GROUNDED === '1' ? ['--- grounding requirement (applies before any REPRODUCED verdict) ---',
+      'Before returning REPRODUCED you MUST (a) cite the SPECIFIC provided evidence field or visible region that establishes the barrier, and (b) state the most likely benign explanation and rule it out using that same evidence. If you cannot do BOTH from the evidence ACTUALLY provided — without assuming facts not in evidence — return PARTIAL, not REPRODUCED.'] : []),
+    '--- output ---',
+    'Return STRICT JSON: {"verdict": "REPRODUCED"|"NOT REPRODUCED"|"PARTIAL"|"N/A", "confidence":"low"|"medium"|"high", "summary": string, "reasoning": string, "evidenceRefs": string[]}.',
+    'REPRODUCED = a barrier is present; NOT REPRODUCED = no barrier; PARTIAL = cannot decide; N/A = abstain (do NOT use for "out of scope" — that is the oracle\'s job).',
+    '"summary" = ONE sentence stating the verdict in plain language (for a human annotator). "reasoning" = ONE sentence citing the specific evidence that drove it.',
+  ].join('\n');
+  return [
+    // CACHEABLE PREFIX: everything before `case-specific evidence` is identical for judgments sharing a rubric/SC
+    // and run configuration. Gemini implicit caching keys common leading content, so never put XPath/claim/signals
+    // ahead of this layer. Grouped-SC evaluation runs can now reuse this substantial prefix.
+    'You are evaluating one page element for a WCAG accessibility barrier. Judge ONLY from the rubric and supplied evidence.',
+    '--- cross-cutting judgment principles (apply to EVERY SC; the rubric below adds the SC-specific detail) ---',
+    KNOWLEDGE_LAYER,
+    '--- rubric ---',
+    rubric,
     // NO-VISION ablation fairness (V3_NO_VISION_RUBRIC): neutralize the rubric's visual-examination instructions so a
     // text-only run is NOT penalized for abstaining on a crop it was never given. Without this, the rubric's "judge
     // from the crop" lines make the LLM return PARTIAL for lack of vision — confounding the no-vision measurement.
     ...(process.env.V3_NO_VISION_RUBRIC === '1' ? ['--- IMPORTANT: NO visual evidence is available for this judgment ---',
       'No screenshot, crop, image, or rendered-pixel view is provided. DISREGARD every rubric instruction to examine a crop / image / surrounding-region / rendered pixels / "what you can SEE". Judge ONLY from the TEXTUAL evidence in this prompt (accessible name, role, signals, markup, context). Do NOT return PARTIAL merely because you cannot see the rendering — make your best determination from the available textual facts; return PARTIAL only if those facts THEMSELVES genuinely cannot resolve it.'] : []),
-    // #44: tell the agent how to READ the deterministic signals — an `uncertainReason` is WHY a checker
-    // abstained, and an absent signal/ratio means "could not decide", never "passes". (Atomic rubrics
-    // additionally carry this in their "Interpreting the deterministic evidence" section.)
-    '--- pre-computed deterministic signals (do not re-derive; a signal\'s `uncertainReason` says WHY a checker abstained — an ABSENT signal or ratio means it could NOT decide, NOT that the page passes) ---',
-    JSON.stringify(signals),
-    // CHECKER-UNCERTAINTY hint (DEFERRED-TODO A): an external checker (axe/IBM) ran a rule here and returned
-    // NEEDS-REVIEW (it could not decide). That is exactly why this obligation reached you — investigate the
-    // checker's specific concern; "needs review" is NEVER a pass (absence ≠ pass).
-    ...(opts.checkerHint ? ['--- external-checker cross-signal (flagged this for REVIEW — could not auto-decide) ---', JSON.stringify(opts.checkerHint)] : []),
-    '--- VSR announcement (realistic accessible name) ---',
-    transcriptExcerpt ? JSON.stringify(transcriptExcerpt) : '(none)',
     // LIVE TOOLS (only when the orchestrator actually built the CDP server): inject the tools RELEVANT to this
     // subject's SC, each with params + when-to-use + a directive to call them when the evidence is insufficient.
     // Without this the model was offered tools but never told it had them ⇒ 0 tool calls (the FN×LLM finding).
@@ -1641,6 +1667,20 @@ function buildPrompt(subject, signals, transcriptExcerpt, opts = {}) {
     'Return STRICT JSON: {"verdict": "REPRODUCED"|"NOT REPRODUCED"|"PARTIAL"|"N/A", "confidence":"low"|"medium"|"high", "summary": string, "reasoning": string, "evidenceRefs": string[]}.',
     'REPRODUCED = a barrier is present; NOT REPRODUCED = no barrier; PARTIAL = cannot decide; N/A = abstain (do NOT use for "out of scope" — that is the oracle\'s job).',
     '"summary" = ONE sentence stating the verdict in plain language (for a human annotator). "reasoning" = ONE sentence citing the specific evidence that drove it.',
+    '--- case-specific evidence (not part of the reusable prefix) ---',
+    // DISTRACTOR-STRIP lever (V3_FP_STRIP_QUESTION, inert by default): drop the dynamic task framing + claim-family
+    // priming that can nudge the judge toward over-flagging. The shared prefix and grounded evidence remain.
+    ...(fpStrip ? [] : [`Skill: ${subject.skill}`, `WCAG SC: ${subject.sc}`, `Element xpath: ${subject.xpath}`,
+      `Claim family (bind your verdict to this): ${subject.claimFamily}`]),
+    // #44: tell the agent how to READ the deterministic signals — an `uncertainReason` is WHY a checker
+    // abstained, and an absent signal/ratio means "could not decide", never "passes".
+    '--- pre-computed deterministic signals (do not re-derive; a signal\'s `uncertainReason` says WHY a checker abstained — an ABSENT signal or ratio means it could NOT decide, NOT that the page passes) ---',
+    JSON.stringify(signals),
+    // CHECKER-UNCERTAINTY hint (DEFERRED-TODO A): an external checker (axe/IBM) ran a rule here and returned
+    // NEEDS-REVIEW (it could not decide). That is exactly why this obligation reached the agent.
+    ...(opts.checkerHint ? ['--- external-checker cross-signal (flagged this for REVIEW — could not auto-decide) ---', JSON.stringify(opts.checkerHint)] : []),
+    '--- VSR announcement (realistic accessible name) ---',
+    transcriptExcerpt ? JSON.stringify(transcriptExcerpt) : '(none)',
   ].join('\n');
 }
 
@@ -1867,7 +1907,7 @@ async function runAdjudication(subjects, opts = {}) {
   const checkerHintsByXpath = opts.checkerHintsByXpath || {}; // xpath -> [{ sc, checker, rule, note }] (DEFERRED-TODO A)
   // rubric source: the loader's { skills:{[skill]:{text,visionEvidence}} } OR a plain { skill: text } map.
   const rubricsBySkill = (opts.llmRubrics && opts.llmRubrics.skills) || opts.rubrics || {};
-  const getRubric = (skill) => { const r = rubricsBySkill[skill]; if (!r) return { text: null, visionEvidence: [] }; if (typeof r === 'string') return { text: r, visionEvidence: [] }; return { text: r.text || null, visionEvidence: Array.isArray(r.visionEvidence) ? r.visionEvidence : [] }; };
+  const getRubric = (skill) => { const r = rubricsBySkill[skill]; if (!r) return { text: null, visionEvidence: [], toolMode: 'auto' }; if (typeof r === 'string') return { text: r, visionEvidence: [], toolMode: 'auto' }; return { text: r.text || null, visionEvidence: Array.isArray(r.visionEvidence) ? r.visionEvidence : [], toolMode: r.toolMode || 'auto' }; };
   const scope = (xpath) => ({ actionTargetRef: xpath, state: opts.state || 'fresh-load', action: opts.action || 'inspect', environment: opts.environment || 'headless-chromium' });
   const verdicts = [];
   const rationales = [];
@@ -1882,7 +1922,7 @@ async function runAdjudication(subjects, opts = {}) {
   const computed = await runPool(subjects, concurrency, async (subj, i) => {
     const transcriptExcerpt = transcriptByXpath[subj.xpath];
     const signals = precomputeSignals(subj.element, subj.skill, subj.sc);
-    const { text: rubricText, visionEvidence } = getRubric(subj.skill);
+    const { text: rubricText, visionEvidence, toolMode } = getRubric(subj.skill);
     // supply EXACTLY the vision frames the rubric declares AND the collector captured for this element.
     const avail = visionByXpath[subj.xpath] || {};
     // #13 fix: same as runRubricJudgments below — a native dialog's captured text is otherwise discarded.
@@ -1899,7 +1939,7 @@ async function runAdjudication(subjects, opts = {}) {
     const checkerHint = (checkerHintsByXpath[subj.xpath] || []).find((h) => h.sc === subj.sc) || null;
     const messages = buildMessages(subj, signals, transcriptExcerpt, frames, { rubric: rubricText, checkerHint, toolsEnabled: opts.toolsEnabled });
     let out; const t0 = Date.now();
-    try { out = await judgeWithMethod(runAgent, messages, subj); } catch (e) { out = null; }
+    try { out = await judgeWithMethod(runAgent, messages, { ...subj, toolMode }); } catch (e) { out = null; }
     const latencyMs = Date.now() - t0;
     return { subj, frames, out, signals, transcriptExcerpt, latencyMs };
   }, stop, opts.afterEach);

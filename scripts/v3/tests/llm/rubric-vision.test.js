@@ -31,6 +31,8 @@ test('loadRubrics: skill rubrics + the atomic v3.2 set, each with a pinned conte
   assert.ok(r.rubrics['alt-text-adequacy-v0'], 'the atomic alt-text rubric (id used by the tests) is present');
   assert.equal(r.rubrics['target-size-minimum-v0'].sc, '2.5.8', 'a ○-tier rubric is registered');
   assert.equal(r.rubrics['label-in-name-v0'].sc, '2.5.3');
+  assert.equal(r.rubrics['keyboard-trap-v0'].toolMode, 'required', 'behavioral rubrics declaratively bypass the static cached pass');
+  assert.equal(r.rubrics['link-purpose-v0'].toolMode, 'auto', 'static/context rubrics retain provider-decided AUTO routing');
   assert.ok(r.rubrics['alt-text-adequacy-v0'].text.length > 200 && r.rubrics['alt-text-adequacy-v0'].promptHash.startsWith('sha256:'));
   assert.ok(r.promptHash.startsWith('sha256:'), 'a combined fingerprint pins the whole rubric set');
 });
@@ -62,10 +64,26 @@ test('facet hard-stops: the four over-reach-prone rubrics fence their SC facet (
 });
 
 test('loadRubrics: a reworded rubric is a DIFFERENT mechanism (the content hash changes)', () => {
-  const a = parseFrontmatter('---\nid: x\nsc: 1.1.1\nvisionEvidence: [element-crop]\n---\nbody one');
+  const a = parseFrontmatter('---\nid: x\nsc: 1.1.1\ntoolMode: required\nvisionEvidence: [element-crop]\n---\nbody one');
   assert.equal(a.meta.id, 'x'); assert.equal(a.meta.sc, '1.1.1');
+  assert.equal(a.meta.toolMode, 'required');
   assert.deepEqual(a.meta.visionEvidence, ['element-crop']);
   assert.notEqual(sha256('body one'), sha256('body two'), 'a v0→v1 reword cannot inherit v0 gold calibration');
+});
+
+test('loadRubrics: declarative toolMode is normalized, defaults safely, and changes prompt provenance', () => {
+  const os = require('node:os');
+  const d = fs.mkdtempSync(path.join(os.tmpdir(), 'rub-route-'));
+  try {
+    const f = path.join(d, 'route.md');
+    fs.writeFileSync(f, '---\nid: route\nsc: 2.4.4\ntoolMode: required\n---\nBODY');
+    const required = loadRubrics({ rubricsDir: d }).rubrics.route;
+    assert.equal(required.toolMode, 'required');
+    fs.writeFileSync(f, '---\nid: route\nsc: 2.4.4\ntoolMode: invented\n---\nBODY');
+    const fallback = loadRubrics({ rubricsDir: d }).rubrics.route;
+    assert.equal(fallback.toolMode, 'auto', 'unknown values fail safely to provider-decided AUTO routing');
+    assert.notEqual(required.promptHash, fallback.promptHash, 'routing policy is pinned as part of the mechanism');
+  } finally { fs.rmSync(d, { recursive: true, force: true }); }
 });
 
 // ============================ item 12: multimodal plumbing ============================

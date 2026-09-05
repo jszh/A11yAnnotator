@@ -298,7 +298,7 @@ test('E4 no vanish revises nothing', () => {
 
 const { makeGeminiToolTransport } = require('../../lib/llm-agent-adapter.js');
 
-// a fake Gemini endpoint: turn 1 asks for a tool, turn 2 answers. Mirrors the v1beta response shape.
+// a fake Gemini Interactions endpoint: low-thinking selection followed by a medium tools-off verdict.
 function fakeGemini(turns) {
   let i = 0;
   return async () => {
@@ -306,10 +306,17 @@ function fakeGemini(turns) {
     return { ok: true, json: async () => body };
   };
 }
-const CALL_TURN = { candidates: [{ finishReason: 'STOP', content: { parts: [{ functionCall: { name: 'capture_full_page', args: { xpath: '/html' } } }] } }],
-  usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 5 } };
-const TEXT_TURN = { candidates: [{ finishReason: 'STOP', content: { parts: [{ text: '{"verdict":"NOT REPRODUCED","confidence":"low","summary":"s","reasoning":"r","evidenceRefs":[]}' }] } }],
-  usageMetadata: { promptTokenCount: 12, candidatesTokenCount: 6 } };
+const IX_USAGE = { total_input_tokens: 10, total_output_tokens: 5, total_thought_tokens: 2, total_cached_tokens: 4 };
+const CALL_TURN = { id: 'selection-with-tool', status: 'completed', steps: [
+  { type: 'function_call', id: 'capture-1', name: 'capture_full_page', arguments: { xpath: '/html' } },
+  { type: 'function_call', id: 'finish-1', name: 'finish_evidence_collection', arguments: {} }
+], usage: IX_USAGE };
+const FINISH_TURN = { id: 'selection-finished', status: 'completed', steps: [
+  { type: 'function_call', id: 'finish-2', name: 'finish_evidence_collection', arguments: {} }
+], usage: IX_USAGE };
+const TEXT_TURN = { id: 'final-verdict', status: 'completed', steps: [{ type: 'model_output', content: [
+  { type: 'text', text: '{"verdict":"NOT REPRODUCED","confidence":"low","summary":"s","reasoning":"r","evidenceRefs":[]}' }
+] }], usage: IX_USAGE };
 
 test('G1 a Gemini tool call emits the same tool_use trace shape the counter reads', async () => {
   const events = [];
@@ -341,15 +348,15 @@ test('G2 the turn count rides the existing result event — no extra event, so l
   assert.ok(results.every((r) => r.usage && r.usage.input_tokens > 0), 'token accounting is untouched');
 });
 
-test('G3 a run that calls NO tool still reports zero — the warning must stay able to fire', async () => {
+test('G3 a run that calls NO evidence tool still reports zero — the warning must stay able to fire', async () => {
   const events = [];
   const transport = makeGeminiToolTransport({
     apiKey: 'test-key', model: 'gemini-3.7-flash',
     dispatch: { declarations: [{ name: 'capture_full_page', parameters: { type: 'object', properties: {} } }], call: async () => ({ ok: true }) },
-    fetchImpl: fakeGemini([TEXT_TURN]),
+    fetchImpl: fakeGemini([FINISH_TURN, TEXT_TURN]),
     onTraceSink: (e) => events.push(e),
   });
   await transport({ messages: [{ content: [{ type: 'text', text: 'judge this' }] }] });
   assert.equal(events.filter((e) => Array.isArray(e.blocks)).length, 0, 'no tool call ⇒ no tool_use blocks');
-  assert.equal(events.filter((e) => e.type === 'result').length, 1);
+  assert.equal(events.filter((e) => e.type === 'result').length, 2, 'selection + final are both billed API calls');
 });

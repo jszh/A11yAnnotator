@@ -3,7 +3,7 @@
 ## Scenario
 An airline (Aerolinks) round-trip itinerary confirmation. Two `<fieldset>` legs — **Outbound
 flight** and **Return flight** — each contain a date input whose visible label is the
-**identical** text "Travel date". The outbound date `2026-07-14` (next month) is valid; the
+**identical** text "Travel date". The outbound date `2099-07-14` (a durable future date) is valid; the
 return date `2025-03-02` (last year) is in the past and is the real error. A single inline
 error, the label-only string **"Travel date is invalid."**, is rendered in the message slot
 under the **Outbound** input (which also carries the red `.flagged` border). The Return leg —
@@ -39,7 +39,7 @@ actually in error is `#leg-ret` (return, `2025-03-02`), whose `.msg` slot is emp
   fieldsets defeats identification through text.)
 - **Through non-text / presentation fails (wrong target):** the only disambiguating cue —
   which slot the message sits under, plus the red border — points at the **Outbound** leg,
-  whose date `2026-07-14` is valid. The leg actually in error (Return, past date) shows no
+  whose date `2099-07-14` is valid. The leg actually in error (Return, past date) shows no
   message.
 - No `aria-describedby`: a screen reader associates the message with neither input, so there
   is no programmatic channel to recover the target either.
@@ -56,7 +56,7 @@ return leg. The item that is in error is therefore not identified.
 The message is non-empty, visible, in the accessibility tree, and "describes" a cause; there
 is no `aria-describedby` to flag and both inputs have proper labels. A scanner cannot tell
 that the two visible labels collide ("Travel date" twice), cannot read that the lone message
-sits under the valid leg, and cannot know that `2025-03-02` (not `2026-07-14`) is the
+sits under the valid leg, and cannot know that `2025-03-02` (not `2099-07-14`) is the
 out-of-range date. Catching it requires a human to read the legend context, compute which leg
 the message visually adjoins, and judge which date is actually invalid — a semantic + spatial
 judgment no static scanner performs.
