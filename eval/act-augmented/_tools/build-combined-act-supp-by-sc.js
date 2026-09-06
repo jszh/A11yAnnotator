@@ -38,7 +38,10 @@ const opt = (k, d) => { const a = argv.find((x) => x.startsWith(`--${k}=`)); ret
 const systems = argv.filter((x) => x.startsWith('--system=')).map((x) => {
   const parts = x.slice(9).split('|'); const s = { label: parts[0] };
   for (const p of parts.slice(1)) { const [k, v] = p.split('='); s[k] = v; }
-  if (!s.act || !s.supp) throw new Error(`--system needs label|act=<run>|supp=<run>: ${x}`);
+  // supp is OPTIONAL: the two slices are computed independently, so an ACT-only system is
+  // well-defined and lets ACT runs be scored before their 585 counterpart exists. When it is
+  // absent the supplementary/combined slices are OMITTED, never reported as zeros.
+  if (!s.act) throw new Error(`--system needs at least label|act=<run>: ${x}`);
   return s;
 });
 const OUT = opt('out', null); const ACT_VIEW = opt('act-view', '458'); const GT = opt('gt', 'starred');
@@ -88,8 +91,8 @@ function confusion(rows) {
 }
 const pct = (v) => (v == null ? 'n/a' : `${(v * 100).toFixed(1)}%`);
 
-const data = systems.map((s) => { const a = actRows(s.act), b = suppRows(s.supp); return { ...s, act: a, supp: b, all: a.rows.concat(b.rows) }; });
-const overall = data.map((d) => ({ label: d.label, act: confusion(d.act.rows), supp: confusion(d.supp.rows), suppHuman: confusion(d.supp.rows.filter((r) => r.source === 'human-annotated')), suppGenerated: confusion(d.supp.rows.filter((r) => r.source === 'generated-negative')), combined: confusion(d.all), meta: { act: d.act.meta, supp: d.supp.meta } }));
+const data = systems.map((s) => { const a = actRows(s.act), b = s.supp ? suppRows(s.supp) : { rows: [], meta: null }; return { ...s, hasSupp: !!s.supp, act: a, supp: b, all: a.rows.concat(b.rows) }; });
+const overall = data.map((d) => ({ label: d.label, hasSupp: d.hasSupp, act: confusion(d.act.rows), supp: d.hasSupp ? confusion(d.supp.rows) : null, suppHuman: d.hasSupp ? confusion(d.supp.rows.filter((r) => r.source === 'human-annotated')) : null, suppGenerated: d.hasSupp ? confusion(d.supp.rows.filter((r) => r.source === 'generated-negative')) : null, combined: d.hasSupp ? confusion(d.all) : null, meta: { act: d.act.meta, supp: d.supp.meta } }));
 const bySc = INCLUDED_SCS.map((sc) => {
   const per = data.map((d) => confusion(d.all.filter((r) => r.sc.includes(sc))));
   for (const p of per) if (p.n !== per[0].n || p.positives !== per[0].positives) throw new Error(`${sc}: denominators differ across systems`);
@@ -101,6 +104,7 @@ fs.writeFileSync(path.join(RESULTS, `${OUT}.json`), `${JSON.stringify(output, nu
 const L = [`# Combined ACT ${actUniverse.length} + supplementary 585 — ${data.map((d) => d.label).join(' vs ')}`, '', `GT labels: ${GT === 'starred' ? 'starred (2-case 1.1.1 cross-rule override applied to every system)' : 'raw ACT'}. ACT view: ${ACT_VIEW === '581' ? 'full 581 (harness = 458 live + 123 pre-settled composed as positive; baselines native, absent→negative)' : 'reaches-LLM 458 (absent→negative, i.e. uncovered=Negative)'}. Positive prediction = outcome \`caught\`; every other outcome is negative.`, '', `ACT evidence file (gitignored, local-only): \`${path.relative(ROOT, RAW)}\` sha256 \`${RAW_SHA.slice(0, 16)}…\` — the 458/581 denominators are not reproducible from the repo alone.`, '',
   '| System | slice | n | TP | FP | TN | FN | Precision | Recall | F1 | FPR | notes |', '| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |'];
 for (const o of overall) for (const [slice, c, m] of [[`ACT ${ACT_VIEW}`, o.act, o.meta.act], ['supplementary 585', o.supp, o.meta.supp], ['  · human-annotated 389', o.suppHuman, null], ['  · generated-negative 196', o.suppGenerated, null], ['combined', o.combined, null]]) {
+  if (!c) continue;   // ACT-only system: omit the slices it has no data for
   const notes = m ? `${m.rowsInFile} rows; absent→neg ${m.absentAsNegative}${m.composedPreSettled ? `; composed pre-settled ${m.composedPreSettled}` : ''}${m.errorsAsNegative ? `; errors→neg ${m.errorsAsNegative}` : ''}` : '';
   L.push(`| ${o.label} | ${slice} | ${c.n} | ${c.tp} | ${c.fp} | ${c.tn} | ${c.fn} | ${pct(c.precision)} | ${pct(c.recall)} | ${pct(c.f1)} | ${pct(c.fpr)} | ${notes} |`);
 }
