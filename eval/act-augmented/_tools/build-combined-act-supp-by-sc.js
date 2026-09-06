@@ -92,16 +92,21 @@ function confusion(rows) {
 const pct = (v) => (v == null ? 'n/a' : `${(v * 100).toFixed(1)}%`);
 
 const data = systems.map((s) => { const a = actRows(s.act), b = s.supp ? suppRows(s.supp) : { rows: [], meta: null }; return { ...s, hasSupp: !!s.supp, act: a, supp: b, all: a.rows.concat(b.rows) }; });
+const ANY_SUPP = data.some((d) => d.hasSupp);
 const overall = data.map((d) => ({ label: d.label, hasSupp: d.hasSupp, act: confusion(d.act.rows), supp: d.hasSupp ? confusion(d.supp.rows) : null, suppHuman: d.hasSupp ? confusion(d.supp.rows.filter((r) => r.source === 'human-annotated')) : null, suppGenerated: d.hasSupp ? confusion(d.supp.rows.filter((r) => r.source === 'generated-negative')) : null, combined: d.hasSupp ? confusion(d.all) : null, meta: { act: d.act.meta, supp: d.supp.meta } }));
 const bySc = INCLUDED_SCS.map((sc) => {
   const per = data.map((d) => confusion(d.all.filter((r) => r.sc.includes(sc))));
   for (const p of per) if (p.n !== per[0].n || p.positives !== per[0].positives) throw new Error(`${sc}: denominators differ across systems`);
   return { sc, cases: per[0].n, positives: per[0].positives, negatives: per[0].negatives, systems: Object.fromEntries(data.map((d, i) => [d.label, per[i]])) };
 });
-const output = { schema: 'combined-act-supplementary-by-sc/2', generatedAt: new Date().toISOString(), actView: ACT_VIEW, gtLabels: GT, actEvidenceSha256: RAW_SHA, scope: { actCases: actUniverse.length, supplementaryCases: CASES.length, includedScs: INCLUDED_SCS, note: 'ACT cases mapped to two SCs contribute to both SC rows; absent rows are negative predictions; positive prediction = outcome caught.' }, systems: overall, bySc };
+const output = { schema: 'combined-act-supplementary-by-sc/2', generatedAt: new Date().toISOString(), actView: ACT_VIEW, gtLabels: GT, actEvidenceSha256: RAW_SHA, scope: { actCases: actUniverse.length, ...(ANY_SUPP ? { supplementaryCases: CASES.length } : {}), includedScs: INCLUDED_SCS, note: 'ACT cases mapped to two SCs contribute to both SC rows; absent rows are negative predictions; positive prediction = outcome caught.' }, systems: overall, bySc };
 fs.writeFileSync(path.join(RESULTS, `${OUT}.json`), `${JSON.stringify(output, null, 2)}\n`);
 
-const L = [`# Combined ACT ${actUniverse.length} + supplementary 585 — ${data.map((d) => d.label).join(' vs ')}`, '', `GT labels: ${GT === 'starred' ? 'starred (2-case 1.1.1 cross-rule override applied to every system)' : 'raw ACT'}. ACT view: ${ACT_VIEW === '581' ? 'full 581 (harness = 458 live + 123 pre-settled composed as positive; baselines native, absent→negative)' : 'reaches-LLM 458 (absent→negative, i.e. uncovered=Negative)'}. Positive prediction = outcome \`caught\`; every other outcome is negative.`, '', `ACT evidence file (gitignored, local-only): \`${path.relative(ROOT, RAW)}\` sha256 \`${RAW_SHA.slice(0, 16)}…\` — the 458/581 denominators are not reproducible from the repo alone.`, '',
+// The header must describe what the file CONTAINS. An ACT-only artifact titled
+// "Combined ACT + supplementary 585" would be read as covering 585 cases it never
+// touched, and its per-SC denominators would look inexplicably small rather than
+// obviously ACT-only.
+const L = [`# ${ANY_SUPP ? `Combined ACT ${actUniverse.length} + supplementary 585` : `ACT ${actUniverse.length}`} — ${data.map((d) => d.label).join(' vs ')}`, '', `GT labels: ${GT === 'starred' ? 'starred (2-case 1.1.1 cross-rule override applied to every system)' : 'raw ACT'}. ACT view: ${ACT_VIEW === '581' ? 'full 581 (harness = 458 live + 123 pre-settled composed as positive; baselines native, absent→negative)' : 'reaches-LLM 458 (absent→negative, i.e. uncovered=Negative)'}. Positive prediction = outcome \`caught\`; every other outcome is negative.`, '', `ACT evidence file (gitignored, local-only): \`${path.relative(ROOT, RAW)}\` sha256 \`${RAW_SHA.slice(0, 16)}…\` — the 458/581 denominators are not reproducible from the repo alone.`, '',
   '| System | slice | n | TP | FP | TN | FN | Precision | Recall | F1 | FPR | notes |', '| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |'];
 for (const o of overall) for (const [slice, c, m] of [[`ACT ${ACT_VIEW}`, o.act, o.meta.act], ['supplementary 585', o.supp, o.meta.supp], ['  · human-annotated 389', o.suppHuman, null], ['  · generated-negative 196', o.suppGenerated, null], ['combined', o.combined, null]]) {
   if (!c) continue;   // ACT-only system: omit the slices it has no data for
