@@ -85,6 +85,11 @@ def cmd_assemble(a):
     keyfn = spec['key']
     all_rows, traces_arr, traces_lines, chunk_names, cost = [], [], [], [], 0.0
     seen = set()
+    # Aggregate the chunks' LLM failure telemetry onto the assembled run. Without this a
+    # supp585 assembly is the one artifact in the campaign that our own validator cannot
+    # judge (run-annotated-suite.js writes no trace file, so there is nothing to
+    # concatenate) — and it is the artifact that gets scored and archived.
+    llm_calls, llm_fails, llm_modes, llm_known = 0, 0, {}, True
     for i in range(1, man['chunks'] + 1):
         rd = os.path.join(REPO, 'results', f'{a.prefix}__c{i:02d}')
         if not os.path.isdir(rd):
@@ -104,10 +109,21 @@ def cmd_assemble(a):
             with open(tl) as f:
                 traces_lines += [ln for ln in f if ln.strip()]
         try:
-            cost += float((load_json(os.path.join(rd, 'summary.json')).get('tokens') or {})
-                          .get('costUsd') or 0)
+            sm = load_json(os.path.join(rd, 'summary.json'))
+            cost += float((sm.get('tokens') or {}).get('costUsd') or 0)
+            llm = sm.get('llm') or {}
+            if llm:
+                llm_calls += int(llm.get('calls') or 0)
+                if 'transportFailures' in llm:
+                    llm_fails += int(llm['transportFailures'] or 0)
+                    for k, v in (llm.get('failuresByMode') or {}).items():
+                        llm_modes[k] = llm_modes.get(k, 0) + int(v or 0)
+                else:
+                    # One chunk without telemetry makes the whole assembly unverifiable;
+                    # summing the rest would manufacture a clean bill it hasn't earned.
+                    llm_known = False
         except Exception:
-            pass
+            llm_known = False
 
     if len(all_rows) != spec['n']:
         sys.exit(f"FATAL: assembled {len(all_rows)} rows, expected {spec['n']} — "
@@ -123,10 +139,18 @@ def cmd_assemble(a):
     if traces_lines:
         with open(os.path.join(out, 'llm-trace.jsonl'), 'w') as f:
             f.writelines(traces_lines)
+    agg_llm = None
+    if llm_calls > 0:
+        agg_llm = {'calls': llm_calls, 'failuresByMode': llm_modes, 'aggregatedFromChunks': True}
+        # Omitted, not zeroed, when any chunk lacked telemetry ⇒ the validator reports
+        # UNKNOWN rather than VALID.
+        if llm_known:
+            agg_llm['transportFailures'] = llm_fails
     with open(os.path.join(out, 'summary.json'), 'w') as f:
         json.dump({
             'assembled': True, 'kind': a.kind, 'n': len(all_rows),
             'chunks': chunk_names, 'tokens': {'costUsd': round(cost, 4)},
+            **({'llm': agg_llm} if agg_llm else {}),
             'note': ('Assembled from independent per-case chunk runs on one tree because the '
                      'runners cannot resume across an OAuth quota reset. Rows are verbatim from '
                      'the chunk runs; metrics are NOT in this file — derive them with '
