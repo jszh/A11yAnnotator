@@ -398,7 +398,8 @@ any row with `node eval/checker-comparison/ablation-table.js` (config = the run 
 | `claude-sonnet-full` **`*`** (06-30) | Claude Sonnet 4.6 | tools, 8-par, `*`override | `34aec9d3` | 89.7 (61/68) | 77.2 | 4.6 (18/390) | 0.830 | 2 |
 | `sonnet5-full` (06-30) | Claude Sonnet 5.0 | tools, 16-par (default) | `21518a5f` ‡ | 84.8 (56/66) | 75.7 | 4.6 (18/392) | 0.800 | 2 |
 | `sonnet5-full` **`*`** (06-30) | Claude Sonnet 5.0 | tools, 16-par (default) | `21518a5f` ‡ | 82.4 (56/68) | 75.7 | 4.6 (18/390) | 0.789 | 2 |
-| `gpt54mini-live` (06-30) | GPT-5.4-mini | tools, 25-page/60-par, §splice | `9415844e` § | 86.4 (57/66) | 86.4 | 2.3 (9/392) | **0.864** | 3 |
+| `gpt54mini-live` (06-30) | GPT-5.4-mini | tools, 25-page/60-par, §splice | `9415844e` § | 86.4 (57/66) | 83.8 | 2.8 (11/392) | **0.851** | 3 |
+| `gpt54mini-live` **`*`** (06-30) | GPT-5.4-mini | tools, 25-page/60-par, §splice, `*`override | `9415844e` § | 86.8 (59/68) | 86.8 | 2.3 (9/390) | **0.868** | 3 |
 | `skip-sonnet-46` (07-01) | Claude Sonnet 4.6 | tools, 16-par, ◊splice | `752d5468` ◊ | 97.0 (64/66) | 80.0 | 4.1 (16/392) | 0.877 | 3 |
 | `skip-sonnet-46` **`*`** (07-01) | Claude Sonnet 4.6 | tools, 16-par, ◊splice, `*`override | `752d5468` ◊ | **97.1** (66/68) | 82.5 | 3.6 (14/390) | **0.892** | 3 |
 | `skip-gemini-35` (07-01) | Gemini 3.5-flash | tools, 50-par, ◊splice | `752d5468` ◊ | 92.4 (61/66) | 79.2 | 4.1 (16/392) | 0.853 | 3 |
@@ -471,8 +472,8 @@ crash on the first attempt). Real model spend confirmed (4.31M in / 246k out, 68
 `gpt-5.5-mini` attempt which was a **404 non-existent model** the transport silently degraded to all-noVerdict, 0
 tokens). **CONFOUND — model+code, not model alone:** this rides `9415844e` (round-3 fixes + round-4 hover/drag/
 contrast/confusable tooling), while the `openai-gpt54-full` GPT-5.4 baseline rides `876e4696` (older). So the
-+0.037 F1 over GPT-5.4-full (0.864 vs 0.827) mixes the mini model with the newer build; a clean read needs GPT-5.4
-re-run at `9415844e`. Still, **0.864 is the strongest measured GPT result** and second only to `full-claude-default`.
++0.024 F1 over GPT-5.4-full (0.851 vs 0.827) mixes the mini model with the newer build; a clean read needs GPT-5.4
+re-run at `9415844e`. Still, **0.851 is the strongest measured GPT result** and second only to `full-claude-default`.
 
 ◊ **Persisted LLM-independence splice (`--skip-llm-independent`, harness commit `752d5468`; pipeline `b7fe59f8`
 ≡ `9415844e`).** First runs of the splice optimization as a **committed, guarded** harness feature
@@ -566,7 +567,7 @@ Recompute: `python eval/gena11y/analyze.py`.
 | GenA11y (single-shot, no grounding, no tools) | Gemini 3.5-flash | 53.0 (35/66) | 31.8 | 19.1 (75/392) | 0.398 |
 | **Our harness** (`fn-llm-gemini-v2`, Table 1e) | Gemini 3.5-flash | **90.9** (60/66) | **76.9** | **4.6** (18/392) | **0.834** |
 | GenA11y (single-shot, no grounding, no tools) | GPT-5.4-mini | 50.0 (33/66) | 23.7 | 27.0 (106/392) | 0.322 |
-| **Our harness** (`gpt54mini-live`, Table 1e) | GPT-5.4-mini | **86.4** (57/66) | **86.4** | **2.3** (9/392) | **0.864** |
+| **Our harness** (`gpt54mini-live`, Table 1e) | GPT-5.4-mini | **86.4** (57/66) | **83.8** | **2.8** (11/392) | **0.851** |
 
 **Full-corpus 581 view (uncovered=Negative), against the existing-checker baseline (Table 1a):**
 
@@ -578,8 +579,8 @@ Recompute: `python eval/gena11y/analyze.py`.
 
 **Read-off.**
 - **Same model, harness vs GenA11y — the harness dominates every axis.** On the reaches-LLM set the harness beats
-  GenA11y by **+37.9 recall / +45.1 precision / −14.5 FP** (Gemini) and **+36.4 recall / +62.7 precision / −24.7 FP**
-  (GPT-5.4-mini), roughly **doubling F1** (0.398→0.834; 0.322→0.864). Because model, corpus, and provider endpoints
+  GenA11y by **+37.9 recall / +45.1 precision / −14.5 FP** (Gemini) and **+36.4 recall / +60.1 precision / −24.2 FP**
+  (GPT-5.4-mini), roughly **doubling F1** (0.398→0.834; 0.322→0.851). Because model, corpus, and provider endpoints
   are held fixed, this delta **isolates the harness architecture** (route-by-facet grounding + tools + obligation
   ledger + calibrated honest-uncertainty scoring) from the model — GenA11y is the same-model, no-harness control.
   It is the *system-level* corroboration of contributions #1–#2 and #5.
@@ -658,7 +659,7 @@ our independent axe-core baseline (Table 1a: 89.8 / 3.0), confirming the faithfu
 | AccessGuru (axe`*` ∪ LLM) | Gemini 3.5-flash | 40.9 (27/66) | 30.7 | 15.6 (61/390) | 0.351 |
 | **Our harness** (`fn-llm-gemini-v2`, Table 1e) | Gemini 3.5-flash | **90.9** (60/66) | **76.9** | **4.6** (18/392) | **0.834** |
 | AccessGuru (axe`*` ∪ LLM) | GPT-5.4-mini | 42.4 (28/66) | 29.8 | 16.8 (66/392) | 0.350 |
-| **Our harness** (`gpt54mini-live`, Table 1e) | GPT-5.4-mini | **86.4** (57/66) | **86.4** | **2.3** (9/392) | **0.864** |
+| **Our harness** (`gpt54mini-live`, Table 1e) | GPT-5.4-mini | **86.4** (57/66) | **83.8** | **2.8** (11/392) | **0.851** |
 
 (Faithful, before element-scoping: reaches AccessGuru∪LLM was 53.0/23.2/29.7 (Gemini), 54.5/23.2/30.4 (GPT-5.4-mini)
 — inflated on **both** axes by the best-practice scaffold rules; element-scoping removes the spurious FPs **and** the
@@ -1729,6 +1730,480 @@ layout table holding two ordinary labelled fields — present in *both* variants
 it comes from the clause's premise (teaching the judge to look for composite groups makes it find them where
 none exist), not from its qualifiers. Both the clause and the trim were written from, and measured on, the
 cases that motivated them: this is confirmation that the diagnosis was right, not a held-out result.
+
+## Table 1m — Claude cross-tool campaign: Sonnet 4.6 + Haiku 4.5 × {GenA11y, AccessGuru, our harness} × {ACT, supplementary 585} (2026-09-05)
+
+Pre-experiment commit: **`5add266e`**. **STATUS: IN PROGRESS** — rows below are filled in as each run
+completes and is trace-validated; pending cells are marked `—`. Serial execution (all three systems spend the
+same OAuth token), driven by a scratchpad runner that probes the budget with a 1-case call before each job and
+trace-validates after it.
+
+**Why this campaign exists.** Every prior cross-tool number in Tables 1e–1g is Gemini or GPT; no scored Claude
+baseline existed for either external tool. This adds the Claude family on both corpora for all three systems.
+
+**Two methodology findings, both of which would have silently invalidated the results:**
+
+**A. The baselines never pinned the model (fixed at `5add266e`).** `eval/gena11y/a11y_detector.py::_claude_sdk`
+built `ClaudeAgentOptions` **without `model=`**, so `--model claude-haiku-4-5` was written into telemetry while
+the Agent SDK called the **CLI account default**. AccessGuru reuses the same transport via
+`a11y_detector.dispatch`, so both baselines were affected. The fix pins `model=` (and `effort=`) and records
+`models_used` from `ResultMessage.model_usage` into every trace line, so the billed model is now checkable
+per case rather than asserted. The only pre-existing Claude artifact affected is the 10-case `gena11y-smoke`
+(2026-07-01); no scored Claude baseline was ever published, so nothing in this document is retracted.
+
+**B. An exhausted OAuth budget produces a well-formed run reporting recall 0.0.** When the subscription budget
+runs out the SDK returns `Claude Code returned an error result: success` **with no text**. All three runners
+treat that as a per-case no-verdict, continue, and **exit 0 with a valid `summary.json`** — indistinguishable
+from a real result by summary alone (`recall 0.0` reads as "the model found nothing", not "the model was never
+called"). This burned 3 runs outright (`gena11y-act-sonnet46`, `accessguru-act-sonnet46`,
+`supplementary585-gena11y-haiku45`, quarantined under `results/_invalid-usage-limit-2026-09-05/`) and killed
+the tail of a 4th. Runs are now validated with
+`python3 eval/act-augmented/_tools/check-claude-trace.py <run>` before scoring, and the driver quarantines a
+job with dead calls instead of recording it done.
+
+**Tail repair by top-up, not re-run.** `supplementary585-accessguru-sonnet46` lost its last 45 cases (traces
+528+). Because the cases are independent and deterministic, they were re-run alone on the identical tree and
+model (`accessguru-585-sonnet46-topup45`, 45/45 live calls) and spliced back — the same rule already used for
+partial ACT-gate assembly. Provenance is recorded in `summary.json.topup` (case list, source run, timestamp)
+and the pre-merge artifacts are kept as `results.pre-topup.json` / `llm-trace.pre-topup.jsonl`. Cost ~$2 versus
+~$25 for a full re-run. **On the Sonnet run the splice changed zero outcomes** (all 45 stayed
+`missedAgree`) — verified case-by-case — so those metrics are unchanged from the contaminated version, but are
+now backed by 45 live Sonnet verdicts rather than 45 dead calls.
+
+**Do not generalise that to "contamination is score-neutral" — the Haiku run is the counterexample.** The same
+repair on `supplementary585-accessguru-haiku45` (114 dead cases, traces 459+) flipped **9 of 114** from
+`missedAgree` to `caught`, and the metrics moved with them; nothing outside the 114 changed, verified
+case-by-case in both runs. The reason the two differ is not luck about which model: a **dead call and a genuine
+miss collapse to the same `missedAgree` outcome**, so contamination is *invisible in the score* and its
+magnitude is unknowable until the cases are actually re-run. The Sonnet 45 happened to fall on 3.3.1/4.1.3
+aspects AccessGuru misses anyway; the Haiku 114 did not. The operating rule is therefore **repair, then
+measure** — never infer from a prior repair that a contaminated tail was harmless, and never score a run whose
+trace shows dead calls.
+
+### Supplementary 585 (`score-supplementary-585.js`; positive prediction = `outcome == caught`)
+
+| System | Model | TP | FP | TN | FN | Precision | Recall | F1 | FPR |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| GenA11y | Sonnet 4.6 | 125 | 64 | 211 | 185 | 66.1 | 40.3 | 0.501 | 23.3 |
+| AccessGuru | Sonnet 4.6 | 133 | 126 | 149 | 177 | 51.4 | 42.9 | 0.467 | 45.8 |
+| GenA11y | Haiku 4.5 | 113 | 54 | 221 | 197 | 67.7 | 36.5 | 0.474 | 19.6 |
+| AccessGuru | Haiku 4.5 | 134 | 149 | 126 | 176 | 47.3 | 43.2 | 0.452 | 54.2 |
+| **Our harness** | Sonnet 4.6 | — | — | — | — | — | — | — | — |
+| **Our harness** | Haiku 4.5 | — | — | — | — | — | — | — | — |
+| *Our harness (reference, Table 1k-post11)* | *Gemini 3.5 Flash Lite* | *242* | *49* | *226* | *68* | *83.2* | *78.1* | *0.805* | *17.8* |
+
+**Slice split — the aggregate FPR is carried almost entirely by the generated negatives.** The 585 is 389
+human-annotated + 196 generated-negative cases; the latter contain no positives, so they contribute only FP/TN:
+
+| System | Model | human-annotated (389) P / R / FPR | generated-negative (196) FPR |
+| --- | --- | --- | ---: |
+| GenA11y | Sonnet 4.6 | 95.4 / 40.3 / **7.6** | **29.6** (58/196) |
+| GenA11y | Haiku 4.5 | 97.4 / 36.5 / **3.8** | **26.0** (51/196) |
+| AccessGuru | Haiku 4.5 | 87.6 / 43.2 / **24.1** | **66.3** (130/196) |
+| AccessGuru | Sonnet 4.6 | 88.1 / 42.9 / **22.8** | **55.1** (108/196) |
+| *Our harness (ref.)* | *Gemini 3.5 Flash Lite* | *96.8 / 78.1 / 10.1* | *20.9* (41/196) |
+
+**The 585 block is complete, and the four Claude baseline runs span F1 0.452–0.501** (GenA11y Sonnet 0.501,
+GenA11y Haiku 0.474, AccessGuru Sonnet 0.467, AccessGuru Haiku 0.452) against the harness reference at
+**0.805** under Gemini 3.5 Flash Lite. Stated plainly: **both external tools, given the strongest models
+either has ever been run with, stay far below the harness running the weakest model in the comparison** — a
+small, cheap Gemini tier. The 0.30-F1 gap is not a model-capability gap.
+
+AccessGuru's Haiku row also reproduces the Table 1g refinement on this second corpus: recall 43.2 vs Sonnet's
+42.9 while FPR moves 54.2 vs 45.8, so F1 lands 0.452 vs 0.467 — the operating point shifts, the ceiling does
+not. Its generated-negative FPR of **66.3%** is the campaign's worst: two thirds of pages built to be clean
+come back flagged.
+
+Read this the right way round: on the human-annotated slice GenA11y under Sonnet is **precise but deaf** —
+95.4% precision on what it does flag, but it flags 40.3% of the real defects. Its aggregate 23.3% FPR is
+mostly the generated negatives, where it fires on 29.6% of pages designed to be clean. AccessGuru's axe ∪ LLM
+union buys +2.6 points of recall for **3× the false-positive rate** (45.8 vs 23.3), and more than half of the
+generated-clean pages come back flagged.
+
+### ACT — reaches-LLM 458, `uncovered=Negative` (identical denominator to Tables 1e/1f/1g)
+
+| System | Model | Recall | Prec | FP rate | F1 |
+| --- | --- | ---: | ---: | ---: | ---: |
+| GenA11y | **Sonnet 4.6** | 53.0 (35/66) | 33.0 | 18.1 (71/392) | **0.407** |
+| *GenA11y (ref., Table 1f)* | *Gemini 3.5-flash* | *53.0 (35/66)* | *31.8* | *19.1 (75/392)* | *0.398* |
+| *GenA11y (ref., Table 1f)* | *GPT-5.4-mini* | *50.0 (33/66)* | *23.7* | *27.0 (106/392)* | *0.322* |
+| AccessGuru`*` (axe`*` ∪ LLM) | **Sonnet 4.6** | 51.5 (34/66) | 22.1 | 30.6 (120/392) | **0.309** |
+| *AccessGuru`*` (ref., Table 1g)* | *Gemini 3.5-flash* | *40.9 (27/66)* | *30.7* | *15.6 (61/390)* | *0.351* |
+| *AccessGuru`*` (ref., Table 1g)* | *GPT-5.4-mini* | *42.4 (28/66)* | *29.8* | *16.8 (66/392)* | *0.350* |
+| GenA11y | **Haiku 4.5** | 51.5 (34/66) | 23.1 | 28.8 (113/392) | **0.319** |
+| AccessGuru`*` (axe`*` ∪ LLM) | **Haiku 4.5** | 47.0 (31/66) | 20.5 | 30.6 (120/392) | **0.286** |
+| **Our harness** (`fn-llm-sonnet46-2026-09-05`) | **Sonnet 4.6** | **97.0 (64/66)** | **83.1** | **3.3 (13/392)** | **0.895** |
+| **Our harness** (`fn-llm-haiku45-2026-09-05`) | **Haiku 4.5** | **87.9 (58/66)** | **65.9** | **7.7 (30/392)** | **0.753** |
+| *Our harness (ref., Table 1e)* | *Gemini 3.5-flash* | *90.9 (60/66)* | *76.9* | *4.6 (18/392)* | *0.834* |
+| *Our harness (ref., Table 1e)* | *GPT-5.4-mini* | *86.4 (57/66)* | *83.8* | *2.8 (11/392)* | *0.851* |
+
+**Full 581, `uncovered=Negative`:**
+
+| System | Model | Recall | Prec | FP rate | F1 |
+| --- | --- | ---: | ---: | ---: | ---: |
+| GenA11y | **Sonnet 4.6** | 61.6 (109/177) | 58.3 | 19.3 (78/404) | **0.599** |
+| *GenA11y (ref.)* | *Gemini 3.5-flash* | *63.8 (113/177)* | *58.2* | *20.0 (81/404)* | *0.609* |
+| *GenA11y (ref.)* | *GPT-5.4-mini* | *65.5 (116/177)* | *50.0* | *28.7 (116/404)* | *0.567* |
+| GenA11y | **Haiku 4.5** | 62.7 (111/177) | 48.3 | 29.5 (119/404) | **0.545** |
+| AccessGuru`*` (axe`*` ∪ LLM) | **Sonnet 4.6** | 75.1 (133/177) | 51.2 | 31.4 (127/404) | **0.609** |
+| AccessGuru`*` (axe`*` ∪ LLM) | **Haiku 4.5** | 74.6 (132/177) | 51.0 | 31.4 (127/404) | **0.606** |
+| *AccessGuru`*` (ref., Table 1g)* | *Gemini 3.5-flash* | *71.2* | *64.6* | — | *0.677* |
+| **Our harness** (`fn-llm-sonnet46-2026-09-05`) | **Sonnet 4.6** | **98.9 (175/177)** | **87.5** | **6.2 (25/404)** | **0.928** |
+| **Our harness** (`fn-llm-haiku45-2026-09-05`) | **Haiku 4.5** | **95.5 (169/177)** | **80.1** | **10.4 (42/404)** | **0.871** |
+| *axe-core (ref., Table 1a)* | — | *59.9 (106/177)* | *89.8* | *3.0 (12/404)* | *0.72* |
+
+AccessGuru sub-lanes under Sonnet 4.6 (full 581, element-scoped): `axe-only*` R 53.7 / P 86.4 / F1 0.662
+(model-independent, matches every prior run); **`LLM-semantic` R 50.8 / P 43.7 / FP 28.7 / F1 0.470**.
+Faithful (best-practice axe included, as AccessGuru ships): full-581 R 80.2 / FP 42.3 / F1 0.580;
+reaches-458 R 65.2 / FP 41.8 / F1 0.315.
+
+**Sonnet 4.6 vs Haiku 4.5 on our harness is a real model difference, and it is the one clean model
+comparison in this campaign.** Both runs are same-tree (`5add266e`), same code, all-live, same day, same
+458 denominator — none of the commit or splice confounds that qualify the cross-month comparisons apply.
+Raw: recall **97.0 (64/66) vs 87.9 (58/66)**, FP **13 vs 30**, F1 **0.895 vs 0.753**. A 6-case recall gap and
+a 17-case FP gap are both far outside the documented ±3 full-pipeline FP band, so unlike the retracted
+"0.910 is a new best" reading, this one is safe to state as a finding: **Haiku 4.5 is decisively behind
+Sonnet 4.6 on ACT under our harness.** Scored independently by two sessions with identical results.
+
+The degradation is judgment, not plumbing. On the 303 cases where a mid-run check was possible, the five
+positive cases Sonnet caught and Haiku missed resolved to `missedAgree` (3) and `uncertain` (2) — the judge
+reached the evidence and either misread it or declined to commit. Haiku is not failing to be handed the
+right evidence; it is failing to adjudicate it.
+
+**The splice premise was tested by execution for the first time, and it holds for scoring.** The July
+reference runs (`skip-sonnet-46`, `skip-haiku-45`) spliced 131 deterministic-TN cases from the 132-case
+`llm-independent-set.json` manifest, so those cases structurally *could not* produce false positives, while
+these all-live runs can. If the new FPs had landed there, both the model comparison and the cross-month
+comparison would be artefacts. They did not: **zero of Sonnet's 13 and zero of Haiku's 30 FPs fall on the 132
+manifest cases.** The manifest's assertion had been guarded by a pipeline hash but never checked by running
+the cases; it now has been, under two models. Consequence: the July numbers were not inflated by the splice,
+and `skip-sonnet-46` (0.892) / `skip-haiku-45` (0.808) remain fair comparators despite the mode difference.
+
+**One correction to the manifest's stated mechanism.** It claims these cases have *no in-scope obligation*
+and therefore return `noObligation` regardless of model. Under live execution only **129 of 132** do. Three
+cases (`97a4e1/5bfdf45a98f7`, `c487ae/b9a3949e2a75`, `cc0f0a/e3debccdca56`) now mint 1–2 in-scope obligations
+and resolve to `missedAgree`. Both models deviate on exactly the same three cases with identical obligation
+counts, so this is **pipeline drift since the manifest was derived at `9415844e`, not model variance** — which
+is why the driver had already flagged that the manifest hash no longer matches this tree. The *scoring*
+premise (all 132 are TN) is unaffected and validated; the *mechanism* premise is now known to be stale for
+three cases. Anyone re-deriving the manifest should expect 129, not 132.
+
+For the record on the 131/132 arithmetic, which otherwise reads as an unexplained gap: the manifest holds
+**132 unique testcaseIds with no internal duplicates**, but one of them (`8ff1c1f8ce6c`, under both `qt1vmo`
+and `e88epe`) appears twice in the 458 reaches set. `partitionForSplice` sees `freq > 1` and routes it to
+`liveDuplicated` — running it **live** instead of splicing, precisely because an id's outcome can differ
+between two rules. So 131 spliced + 1 deliberately run live = the 132 manifest ids, which is exactly the
+"131 spliced, 327 live" in the July logs. This is **deliberate safety behaviour, not a shortfall**.
+
+Both keyings of the drift figure are correct and describe the same fact: **129 of 132** manifest
+`(ruleId, testcaseId)` pairs, or **130 of 133** run rows whose bare `testcaseId` is in the manifest, return
+`noObligation`. The three deviating cases are identical under either keying, and the extra duplicate row is
+itself `noObligation`. Quote the pair figure when talking about the manifest and the row figure when talking
+about a run; the 458/453 duplicate-id split makes bare-`testcaseId` joins ambiguous everywhere else.
+
+**Latent risk this exposes (not a defect in any number reported here).** `spliceRecord`
+(`eval/checker-comparison/lib/llm-independent.js:80`) does not measure anything: it hardcodes
+`outcome: 'noObligation'`, `correct: true`, `falsePositive: false` for every manifest case. So a case that had
+drifted to a *positive* prediction would be written into `results.json` as a clean true negative, and nothing
+downstream — scorer, row diff, or trace validator — could detect it. The three drifted cases above are the
+proof of concept: they already moved off `noObligation` and stayed harmless only because `missedAgree` is
+still a negative prediction. The hash guard is the sole protection and it is a proxy for the premise rather
+than the premise itself — it hashes `scripts/v3/lib/*.js`, so obligation-minting changes originating outside
+that file set drift the premise without tripping it, and `--force-splice` overrides it by design. The sound
+pattern is verify-then-splice: a `--no-llm` deterministic pass over the manifest cases on the current tree
+(the deterministic phase is what decides `noObligation`, and it costs browser time, not OAuth budget), assert
+every one returns `noObligation`, then splice — which is close to what `--derive-independent` already does.
+Framed against the duplicate check above, the splice has exactly one **premise-based** guard rather than
+tree-based — the `freq > 1` test — and that is the one that works. The missing guard is the same idea applied
+to drift, so verify-then-splice is an extension of an existing pattern, not a new concept.
+On this campaign the guard behaved correctly: it refused the stale manifest, which is why these runs are
+all-live. **Not filed as deferred work — it needs the user's approval per the DEFERRED-TODO convention.**
+
+
+**AccessGuru moves its operating point, but not its F1 — and it refines a Table 1g claim.** Table 1g concluded
+"the model barely matters for AccessGuru", from Gemini and GPT-5.4-mini landing within 1.5 points of each other
+on every axis. Sonnet 4.6 shows that was **under-determined by two similar samples**. The model does move
+AccessGuru — just in *opposing directions* that cancel. Its semantic lane is genuinely stronger: reaches-set
+LLM-only recall **47.0** vs the 36–40 of the earlier families, lifting union recall from 40.9–42.4 to **51.5**
+(+9 to +11 points). But the same lane over-flags harder, doubling FP rate (30.6 vs 15.6–16.8) and dropping
+precision to 22.1. Net F1 is **0.309 vs 0.350–0.351 — slightly worse than the weaker models**. The same
+cancellation appears on the full 581: recall 71.2 → **75.1**, precision 64.6 → **51.2**, F1 0.677 → **0.609**.
+
+So the correct statement is narrower than Table 1g's: **AccessGuru's F1 is model-insensitive (0.309–0.351
+across three families) while its precision/recall balance is not.** The invariant is the ceiling, not the
+behaviour — a better judge inside an ungrounded union buys recall it cannot pay for in precision. The
+model-independent `axe-only*` backbone (R 53.7 / P 86.4, identical across all three runs) confirms the
+deterministic half is doing exactly what it always did; every delta here is the LLM lane. Both external tools
+therefore stay far below the harness's 0.834–0.864 under a *stronger* model than the harness rows used, but for
+different reasons: GenA11y does not improve at all, AccessGuru improves on one axis and pays it back on the
+other.
+
+**Four models across three families, one operating point — the architecture is the binding constraint.** GenA11y
+under Sonnet 4.6 scores **the identical 35/66 recall** as under Gemini 3.5-flash on the reaches-LLM set, with
+marginally better precision (33.0 vs 31.8) and FP rate (18.1 vs 19.1): F1 **0.407 vs 0.398**, well inside
+run-to-run noise. Across three *independent model families* — Gemini, GPT, and now Claude — GenA11y's F1 spans
+only **0.319–0.407** — Haiku 4.5 lands at 0.319, statistically on top of GPT-5.4-mini's 0.322, and the
+strongest and weakest judges tested differ by less than 0.09 F1 — while the harness on the same corpus and the
+same provider endpoints sits at **0.834–0.864**. The ordering is **not** by model capability: Sonnet 4.6 and
+Gemini 3.5-flash top the group and the two cheaper models sit together at the bottom, and the spread is a
+*precision* effect — recall spans only 50.0–53.0 across all four, while precision spans 23.1–33.0.
+
+**Caveat — these four rows are not a controlled model comparison.** The Claude pair ran today at `5add266e`;
+the Gemini and GPT rows are from 2026-07-01 at adapter commit `a50a70ba` (Table 1f). Same corpus, same
+accounting, *different adapter commit* — so the Claude pair is internally controlled and the Gemini/GPT pair
+is internally controlled, but across those two groups the comparison is model **+** code. The claim the span
+supports is "no judge yet tried escapes this band", not a ranking of the four. Swapping in a frontier model does not move an ungrounded single-shot judge: the ~0.43 F1 gap
+is attributable to the architecture (facet-routed grounding + tools + obligation ledger), not to model
+capability. This is the strongest form of the Table 1f read-off, because Sonnet 4.6 is the newest and most
+capable judge any of the three tools has been given.
+
+GenA11y's covered-only slice (its native accounting, 531 of 581 cases) reads R 64.9 / P 58.3 / FP 21.5 /
+F1 0.614 — reported here only to note that the `uncovered=Negative` rows above, not this one, are the
+comparable numbers. Cost $21.91, 531 cases, 518 live calls, 0 errors (13 structural abstains).
+
+**Reasoning effort differs by corpus — pre-existing, not introduced here.** `run-fn-llm.js` (ACT) defaults to
+`effort: medium` and has since the file was created at `8cd7e5ff`, so the `skip-sonnet-46` / `skip-haiku-45`
+rows ran at medium too. Their artifacts carry **no `effort` key at all** (and an empty `config: {}`), so any
+reader that defaults a missing key renders it as `None`/`null` — which is easy to misread as "effort was
+explicitly unset" when it is simply absence of provenance. Verified by key inspection, not by the defaulted read. `run-annotated-suite.js` (585) defaults to
+the provider default (`null`), matching every prior 585 run including the Gemini 3.5 Flash Lite reference. Each
+corpus is therefore internally consistent with its own history; neither default was changed for this campaign,
+and cross-*corpus* model statements should not be read as effort-controlled.
+
+**Sonnet 4.6 baseline cost, for the model-parity read-off:** GenA11y $25.19 (585) + $21.91 (ACT); AccessGuru
+**$69.11** (585 = $63.46 for the first 540 live calls + **$5.65** for the 45-case top-up) + $45.43 (ACT).
+(An earlier draft of this note said "$63.46 incl. the ~$2 top-up" — wrong twice: the top-up is *additional* to
+that figure, and it cost $5.65, not the ~$2 estimated before it ran. Per-call, recovery was still ~4× cheaper
+than re-running: $0.126/case topped up vs $0.118/case for the original run, against $63 to redo all 585.) Against Gemini 3.5-flash's $1.22 / $1.85 on ACT, that is
+~18× (GenA11y) and ~25× (AccessGuru) the spend for equal-or-worse F1. **A duration tell worth keeping:** the
+two budget-killed ACT baselines "completed" in 5 min each against 12 min (GenA11y) and 21 min (AccessGuru)
+healthy — a run that finishes implausibly fast is the cheapest signal that its calls are dead.
+
+Harness ACT rows run **fully live** (`--reaches-llm --tools --provider=claude`): the LLM-independent splice
+manifest is hash-guarded and its hash no longer matches this tree, so no deterministic-TN cases are spliced in.
+
+**Harness runs are assembled from chunks, and that was verified rather than assumed.** The OAuth quota runs a
+~20% duty cycle (measured productive windows of 53 and 63 min against lockouts of ~4 h), and the two 585
+harness runs need ~160 min of model time — 2.5× the longest window observed. A run that cannot finish inside
+one window can never finish at all under discard-and-retry, so each harness run executes as independent chunks
+(ACT 100 cases, 585 120) that are concatenated afterwards; completed chunks are never re-run, so progress is
+monotone across any number of quota hits. This is the same independence premise the ACT 581 gate policy uses
+to assemble that corpus from partial same-tree runs.
+
+Two distinct properties were checked, because a *lossless* merge of subtly *different* rows would still be
+wrong: (1) assembly is lossless — round-tripping an existing 458-row run through the chunker is byte-identical
+(order-insensitive), and the assembler refuses on a missing or overlapping chunk rather than writing a short
+artifact; (2) chunking does not change per-case behaviour — a deterministic `--no-llm` A/B (40 cases whole vs
+2 × 20 chunked) gives **identical rows for all 40 keys**, with zero differences on any scoring field and zero
+outside timing. That slice exercises the deterministic per-case pipeline that feeds the judge (obligation
+minting — populated on 40/40 — auto-partial, polarity, barrier, tool-use accounting). It does **not** exercise
+the LLM lane, which is per-case and stateless by construction; a live A/B could not settle the question anyway,
+since run-to-run judge variance would swamp any chunking effect.
+
+**A third quota signature, and why it nearly corrupted a headline number (2026-09-06).** The Claude SDK can
+return the quota message **as text** (`You've hit your session limit · resets 5:40am`, 67 chars). Because text
+arrives, `failTrace('empty')` never fires, `transportFailures` is legitimately 0, and the trace validator
+reports VALID. The adjudicator files each such call as
+`[v3:noVerdict] {"reason":"unparseable-envelope"}`, so the case becomes a **fabricated negative** in a run
+that looks healthy. This is distinct from mode 1 (`error result: success`, no text → counted → INVALID) and
+mode 2 (missing telemetry → UNKNOWN). It hit `supplementary585-sonnet46 c01`: 33/120 rows (27.5%) never
+reached a judge, against a family background of 0.0-2.0% measured over 15 reference 585-family runs and 10
+ACT chunks. Had it assembled it would have depressed the flagship 585 Sonnet recall with no visible failure
+anywhere. Caught before assembly; the chunk is quarantined under `results/_invalid-usage-limit-2026-09-05/`
+and **no reported number in this table is affected** — the ACT runs are 0.0-1.8% and the string appears in no
+other campaign log.
+
+Two mitigations shipped, both eval-infrastructure (gate-exempt):
+* `check-claude-trace.py` now cross-checks the ROW distribution — a `noVerdict` rate above 5% (n≥5) reports
+  **SUSPECT**, never VALID. Deliberately provider-agnostic: matching Anthropic's wording would miss the
+  Gemini/OpenAI equivalents, whereas a dead tail inflates the no-verdict rate whoever caused it.
+* `triage-quota-contamination.py` decides from a run's own artifacts which cases must be re-run, and refuses
+  to guess when it cannot tell. It separates CERTAIN damage (`noVerdict` with unjudged obligations) from the
+  RESIDUAL class (a row that emitted an outcome while an obligation went unjudged) — the dangerous one,
+  because **short rows are normal**: clean reference runs run 12-22% short, so "fewer verdicts than
+  obligations" is not by itself evidence of damage. Establishing that control is what prevented condemning
+  the whole chunk; the first read of the data flagged 7 survivors as corrupted and was wrong. On c01 the tool
+  independently reproduces the hand-derived answer (33 certain, 0 at-risk, all SC 1.3.1) and reports CLEAN on
+  every clean run.
+
+**A third gate: shape, not magnitude (added 2026-09-06 after c02/c03 landed).** The rate gate above catches
+magnitude, but quota death is a *shape*: the budget dies once and every case after it fabricates a negative,
+so the damage is a block running to the final row. If the budget dies with only a few cases left, the rate
+stays under the gate (5/120 = 4.2%) and the chunk reads VALID with fabricated negatives in it. Measured over
+the three 120-case sonnet46 chunks, the trailing run of consecutive `noVerdict` rows separates cleanly:
+
+| chunk | noVerdict | rate | trailing run | positions |
+|---|---|---|---|---|
+| c01 (quota death) | 33/120 | 27.5% | **29** | block ending at the last row |
+| c02 (clean) | 0/120 | 0.0% | 0 | — |
+| c03 (clean) | 3/120 | 2.5% | 0 | 12, 44, 49 (scattered) |
+
+Ordinary no-verdicts scatter; only a budget death piles them at the tail. `check-claude-trace.py` now reports
+SUSPECT on a trailing run of ≥3 even when the rate is under the gate, verified at the boundary on synthetic
+fixtures (trailing run 3 at 2.5% ⇒ SUSPECT; trailing run 2 ⇒ VALID) with both real clean chunks unaffected.
+Threshold 3 rather than 5 because the costs are asymmetric — a false alarm costs one non-destructive triage
+run, a miss corrupts a scored number. **Caveat:** rows are SC-ordered, so adjacent rows are correlated and a
+genuinely hard trailing SC could in principle produce a short run; SUSPECT means "investigate", not "proven
+contaminated".
+
+**Two per-chunk caveats, so these numbers are not misquoted later.** (1) The 0.0-2.0% no-verdict background
+and the 12-22% short-row background are **whole-run** figures; per-chunk variance is higher, and c03's 2.5%
+is fine. The 5% gate is set for chunk-scale variance, not run-scale. (2) Per-chunk call counts and costs swing
+by ~4x on **composition**, not health: chunks are contiguous slices of an SC-ordered corpus, so c02 (1.3.1 /
+1.4.1 heavy, element-level obligations) made 389 calls at \$49.72 while c03 (2.4.2 / 2.1.2 heavy — page-level
+title and deterministic keyboard-trap, few judge calls) made 97 at \$10.38 for the same 120 cases. c03's
+short-row rate of 34.2%, above the whole-run background, has the same cause. A cheap chunk is not a degraded
+chunk. Campaign cost note: the two 585 harness runs track toward ~\$250 combined against \$19-63 per baseline
+run, because the harness averages ~3 model calls per case with tools and vision where the baselines make one.
+
+
+**Deliberately NOT fixed mid-campaign.** The sound fix is per-row failure provenance — each row recording how
+many of its calls died and in what mode — which makes recovery a lookup instead of a forensic exercise, plus
+fail-fast on a quota-shaped envelope so a dying run yields a SHORT artifact (which the assembler already
+refuses) rather than a complete-but-wrong one. That is adjudicator/runner code, which the ACT 581 gate policy
+covers. It is also unsafe for a different reason: **chunks of one assembled run must be behaviourally
+identical**, and changing the runner between chunk 2 and chunk 3 would silently break that equivalence. Filed
+for post-campaign, pending user approval.
+
+**Denominator provenance (reproducibility caveat).** The two corpora are not equally reproducible, and the
+asymmetry should be stated rather than discovered later:
+
+- **585 — tracked and verified stable.** `eval/act-augmented/_tools/full-supplementary-585-cases.json`
+  (sha256 `65d80ffd5308…`) is unmodified since `5add266e`: 585 entries, **585 unique `key`s**, no duplicates,
+  strata 312 `unflagged` + 70 `clear` + 7 `fixed` = 389 human-annotated, plus 196 `generated-negative` —
+  exactly the slice split reported above. All six completed 585 runs (three Claude, three Gemini references)
+  cover the identical id set, zero missing and zero extra, so every 585 number sits on one denominator.
+- **ACT — a gitignored local artifact.** Both ACT denominators derive from
+  `eval/checker-comparison/upstream-evidence/v3-act-subset-proposed/raw.json`, which is **untracked**
+  (`eval/checker-comparison/.gitignore` line 9, `upstream-evidence/*/raw.json`). `loadReachesLlmCases()` derives
+  the reaches-LLM 458 from it and the combined builder takes the 581 view from it, so **neither ACT denominator
+  is reconstructible from the repo alone**. It is stable (sha256 `94507beb2eaf3e8c…`, unchanged since
+  2026-06-17) and is the same file every prior ACT run in this document used, so no published number is
+  affected — but a regeneration would silently redefine the 458/581 sets with no error raised.
+
+Mitigation: the scorers now fail hard if the 585 case list is not 585 unique ids, warn on a digest change, and
+record the ACT evidence sha256 into their output. Digests above were verified independently of the tools that
+report them (`shasum`, key-level inspection, `git ls-files`), and the hardened
+`score-supplementary-585.js` still reproduces the Table 1k-post11 reference exactly (242/49/226/68).
+
+**All eight baseline runs are complete. Across 2 tools × 4 models the reaches-LLM 458 F1 spans 0.286–0.407**
+(GenA11y: Sonnet 0.407, Gemini 0.398, GPT-5.4-mini 0.322, Haiku 0.319; AccessGuru: Gemini 0.351, GPT-5.4-mini
+0.350, Sonnet 0.309, Haiku 0.286) against the harness at **0.834–0.864** on the same corpus and the same
+provider endpoints. No model moves either tool out of that band, and the two tools fail differently inside it —
+GenA11y by under-firing (recall 50–53 at 23–33 precision), AccessGuru by over-firing (recall 47–52 at 20–31
+precision). Cross-group model comparisons carry the `a50a70ba` vs `5add266e` confound noted above; the *band*
+does not, since every row shares corpus, denominator and accounting.
+
+AccessGuru under Haiku is the campaign's tightest model-invariance result: element-scoped, it lands within
+0.023 F1 of Sonnet on the reaches set (0.286 vs 0.309) and within 0.003 on the full 581 (0.606 vs 0.609), at
+$19.95 against $45.43. Its `axe-only*` backbone reads R 53.7 / P 86.4 / F1 0.662 with **TP 95 / FP 15 / FN 82 in all four runs** —
+Gemini, GPT-5.4-mini, Sonnet 4.6 and Haiku 4.5 alike. (The Gemini run's denominator is 579, not 581, because
+2 cases errored, so its TN is 387 against 389; every other cell matches exactly.) This is the control that
+makes the LLM-lane deltas attributable: the deterministic half is provably unchanged across the four runs, so
+each observed difference belongs to the judge and not to axe, the corpus, or the harness around it.
+
+### The same-model head-to-head (ACT 458, raw labels, one scorer)
+
+The first harness Claude row lands, and it is what the campaign was run to obtain — **the same model, on the
+same corpus, through the same provider endpoint, inside three different architectures**:
+
+| System (Sonnet 4.6, ACT 458, raw) | Recall | Prec | FP rate | F1 |
+| --- | ---: | ---: | ---: | ---: |
+| **Our harness** | **97.0** (64/66) | **83.1** | **3.3** | **0.895** |
+| GenA11y (single-shot, ungrounded) | 53.0 | 33.0 | 18.1 | 0.407 |
+| AccessGuru (axe ∪ LLM, faithful) | 65.2 | 20.8 | 41.8 | 0.315 |
+
+**+44.0 recall / +50.1 precision / −14.8 FP** over GenA11y and **+31.8 / +62.3 / −38.5** over AccessGuru, with
+model, corpus and endpoint held fixed. Until now the Claude story rested on the *baselines failing to improve*;
+this is the positive form of the claim.
+
+**Every row above was recomputed by one code path.** The baseline rows in this document come from
+`analyze.py` and the harness rows from `build-combined-act-supp-by-sc.js`, so before comparing them the builder
+was made to reproduce the published numbers under `--gt=raw`: `fn-llm-gemini-v2` returns 90.9 (60/66) / 76.9 /
+4.6 (18/392) / 0.833, matching its Table 1e cell exactly, and both GenA11y rows and both AccessGuru faithful
+rows reproduce their Table 1m/1g values. Two denominators exist and must not be mixed: **raw labels give 66
+positives, the starred 1.1.1 override gives 68** (it relabels 2 cases). All rows here are raw/66. Under
+starred/68 the harness reads 97.1 / 85.7 / 2.8 / **0.910**. AccessGuru is scored *faithfully* by the builder;
+its fairer element-scoped view (Table 1g) is 0.309 Sonnet / 0.286 Haiku — lower still, not higher.
+
+**Against the previous best *Claude* harness run — a match, not an improvement.** `skip-sonnet-46` is the
+same model at commit `752d5468` and holds the best **Claude** full-set F1 at 0.892 starred. It is not the best
+measured overall: `fn-llm-gemini37-flash-server` (Gemini 3.7-flash, `9b7d60c7`) sits at **0.921** starred /
+90.1 precision / 1.8 FP, which the new Sonnet run does not approach. The new run scores 0.910
+starred / 0.895 raw, but **that difference must not be read as an improvement**: recall is identical (the same
+64 caught and 2 missed under raw, 66/2 under starred), so the entire F1 delta rests on false positives,
+16 → 13 raw and 14 → 11 starred — and **±3 FP is exactly this pipeline's documented variance** (fixed-evidence
+noise floor σ≈1.06, full-pipeline ±3, Table 1c, restated at the head of this document). Both arms are n=1. A
+3-FP move at n=1 against a ±3 noise band is not a demonstrated gain, and 0.910 is **not** reported here as a
+new best measured F1.
+
+**The defensible finding is the recall, and it does not depend on the FP delta at all.** The run *matches* the
+best prior Sonnet result while executing fully live on a pipeline many commits later, with recall identical to
+the case across two different pipelines AND two different execution modes (all-live vs spliced). That is
+evidence the judge lane is stable under substantial pipeline change; the precision difference is within noise.
+
+The row-level diff supports the noise reading rather than a fix story: **5 fixed, 2 new, 9 shared**. A uniform
+improvement would not introduce 2 new false positives, and rule `akn7bn` has one case fixed and a different one
+regressed — churn, not a shift. So the net −3 must not be credited to any single fix (fixed
+`7d6734:ec2a7a47`, `qt1vmo:4d04a494` — 1.1.1; `akn7bn:17a371c4` — 2.1.1; `fd3a94:19d5c288`,
+`fd3a94:8e6c190e` — 2.4.4; new `a25f45:09d9fb18` — 1.3.1, `akn7bn:aa153f67` — 2.1.1).
+
+Settling it would take **3 replicates** of the new run — the precedent this document already sets ("one
+replicate cannot state a rate on a slice this size", Table 1k-post9 / fn-r1) — at roughly 38 min and ~$38 each,
+about one budget window per replicate under the current duty cycle. **Not spent:** the remaining 585 harness
+runs are the campaign's priority and this is a precision delta sitting on the noise floor. Recorded as an
+explicit decision rather than left implied by silence.
+
+Three confounds, stated rather than buried: the two runs sit at **different pipeline commits** with the whole
+round-3/4/5 fix set between them; this run is **all-live 458** against 327-live-plus-131-spliced (the 132
+spliced cases are all still in the corpus, so the case list is the same); and both are **single runs**, where
+this document's own limitations section records that the LLM lane moves run to run. Identical recall across two
+pipelines is mild evidence the judge lane is stable here, but a 2-case FP flip is exactly the magnitude of
+noise that should not be read as signal at n=1.
+
+### Correction to Table 1e made during this campaign (2026-09-06)
+
+Cross-validating the new harness row against Table 1e surfaced a **pre-existing defect in the
+`gpt54mini-live` cell**, unrelated to this campaign. From that run's own `summary.json`, `unmodified` is
+TP 57/66 with FP 11 and starred is TP 59/68 with FP 9; the published row took the **unmodified numerator and
+denominator for recall (57/66) together with the starred false-positive count (9)**. Precision 86.4 is
+57/(57+9) and the F1 0.864 was computed from unmodified TP/FN against starred FP — the two accountings mixed
+inside one cell.
+
+| `gpt54mini-live` reading | Recall | Prec | FP rate | F1 |
+| --- | ---: | ---: | ---: | ---: |
+| as published (mixed) | 86.4 (57/66) | 86.4 | 2.3 (9/392) | 0.864 |
+| **fully unmodified** (now the plain row) | 86.4 (57/66) | **83.8** | **2.8** (11/392) | **0.851** |
+| **fully starred** (row added) | 86.8 (59/68) | 86.8 | 2.3 (9/390) | **0.868** |
+
+It overstated precision by 2.6 points and F1 by 0.013. Corrected in all three places it appeared, with the
+missing starred row added so the run follows the same plain/starred convention as `sonnet5-full` and
+`skip-sonnet-46`; the derived read-off deltas were recomputed (**+60.1** precision and **−24.2** FP against
+GenA11y GPT-5.4-mini, F1 0.322→**0.851**), as was the "strongest measured GPT result" figure, whose
+*qualitative* claim survives either correction. **Every Table 1e row with a stored run was then re-checked
+against both accountings reconstructed from its own summary; all now read as internally consistent.** Two
+AccessGuru Gemini rows that look anomalous (27/66 with 61/390) were checked and are **correct** — that run
+errored on 2 cases, so `analyze.py` reports n=456 (f 66/pNA 390).
+
+**Two further corrections, to claims made earlier in this section.** (1) `skip-sonnet-46` is commit
+`752d5468`; `9415844e` is `gpt54mini-live`'s commit and the commit at which the splice *manifest* was derived —
+adjacent facts that must not be conflated. (2) 0.892 was described as the best measured full-set F1. It is the
+best **Claude** result; `fn-llm-gemini37-flash-server` (Gemini 3.7-flash) holds the overall best at **0.921**
+starred, four rows below it in the same table. Both errors originated in a memory note that was accurate when
+written and went stale when the August Gemini runs landed — a reminder that a superlative needs re-deriving
+from the table, not recalling.
+
+### New tooling shipped with this campaign
+
+- `eval/act-augmented/_tools/score-supplementary-585.js` — scores any run (harness or baseline) against the
+  585 list on `testcaseId`, emitting overall + human-annotated/generated-negative slices + per-SC. Validated by
+  reproducing the Table 1k-post11 Gemini 3.5 Flash Lite numbers exactly (242/49/226/68).
+- `eval/act-augmented/_tools/build-combined-act-supp-by-sc.js` — N-system combined ACT+585 per-SC comparison
+  (`--system="Label|act=<run>|supp=<run>" --act-view=458|581`), generalising the hard-coded two-Gemini
+  builder. Applies the starred 1.1.1 GT override uniformly to every system. Validated against the existing
+  two-model table (1.1.1 44/22/8/88, 2.4.4 33/15/8/79, 4.1.2 7/1/2/134).
+- `eval/act-augmented/_tools/check-claude-trace.py` — trace validity checker handling both trace shapes
+  (gena11y `verdict.summary`, accessguru `usage.error`); reports VALID/PARTIAL/INVALID with `firstErrAt`.
 
 ## Limitations (state these honestly)
 

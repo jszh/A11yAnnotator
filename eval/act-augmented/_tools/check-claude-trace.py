@@ -23,8 +23,63 @@ Three shapes:
 Do NOT infer liveness from results.json: a deterministic catch, a noObligation case and
 a genuine live no-verdict all present as rows with empty verdicts, so a dead call is
 indistinguishable from a real one at row level.
+
+THIRD quota signature (2026-09-06, supplementary585-sonnet46 c01). The SDK can return the
+quota message AS TEXT ("You've hit your session limit · resets 5:40am", textLen 67). Text
+arrived, so failTrace('empty') never fires, transportFailures is legitimately 0, and the
+trace check above reports VALID. The adjudicator logs it as
+`[v3:noVerdict] {"reason":"unparseable-envelope"}` and the case becomes a fabricated
+negative. Neither the trace nor the telemetry can see this, so we cross-check the ROW
+distribution: an in-family noVerdict rate is 0.0-2.0% (measured over 15 reference
+585-family runs + 10 ACT chunks); the contaminated chunk was 27.5%. A rate over
+NOVERDICT_SUSPECT_RATE reports SUSPECT, never VALID.
+
+Deliberately provider-agnostic: matching Anthropic's wording would miss the Gemini and
+OpenAI equivalents, whereas a dead tail inflates the no-verdict rate whoever produced it.
 """
 import json, sys, collections, os
+
+# Above this share of rows returning noVerdict, a run is contaminated rather than merely
+# unlucky. Family range is 0.0-2.0%; the one known bad run was 27.5%. MIN_N keeps a small
+# chunk from tripping on one or two legitimate no-verdicts.
+NOVERDICT_SUSPECT_RATE = 0.05
+NOVERDICT_SUSPECT_MIN_N = 5
+# The rate gate catches MAGNITUDE, but quota death is a SHAPE: the budget dies once and
+# every case after it fabricates a negative, so the damage is a block running to the final
+# row. If the budget dies with only a few cases left the rate stays under the gate (5/120 =
+# 4.2%) and the chunk reads VALID with fabricated negatives in it. So gate the trailing run
+# of consecutive noVerdicts as well. Measured on the three 120-case sonnet46 chunks:
+#   c01 (quota death) 27.5%, trailing run 29   <- block running to the last row
+#   c02 (clean)        0.0%, trailing run  0
+#   c03 (clean)        2.5%, trailing run  0   <- scattered (positions 12, 44, 49)
+# Ordinary no-verdicts scatter; only a quota death piles them at the tail.
+#
+# Threshold 3 over 5 because the cost is asymmetric: a false alarm costs one triage run and
+# is non-destructive, while a miss corrupts a scored number. CAVEAT: rows are SC-ordered, so
+# adjacent rows are correlated and a genuinely hard trailing SC could in principle produce a
+# short run — treat SUSPECT as "investigate", not "proven contaminated".
+NOVERDICT_TRAILING_RUN_MAX = 3
+
+
+def noverdict_shape(name):
+    """(noVerdict, total, trailing_run) from results.json, or None when there are no rows."""
+    p = f'results/{name}/results.json'
+    if not os.path.exists(p):
+        return None
+    try:
+        r = json.load(open(p))
+    except Exception:
+        return None
+    rows = r if isinstance(r, list) else (r.get('results') or r.get('rows'))
+    if not rows:
+        return None
+    isnv = [isinstance(x, dict) and x.get('outcome') == 'noVerdict' for x in rows]
+    trail = 0
+    for flag in reversed(isnv):
+        if not flag:
+            break
+        trail += 1
+    return sum(isnv), len(rows), trail
 
 
 def _has_assistant_text(events):
@@ -112,6 +167,26 @@ if __name__ == '__main__':
                   f"firstErrAt=None via=summary.llm (no transportFailures telemetry)")
             continue
         verdict = 'VALID' if r['err'] == 0 else ('INVALID' if r['ok'] == 0 else 'PARTIAL')
+        # Row-distribution cross-check: catches the quota-message-as-text mode, which is
+        # invisible to both the trace and the telemetry. Only ever downgrades.
+        nvr = noverdict_shape(name)
+        if nvr and verdict == 'VALID':
+            nv, tot, trail = nvr
+            why = None
+            if nv >= NOVERDICT_SUSPECT_MIN_N and nv / tot > NOVERDICT_SUSPECT_RATE:
+                why = (f'noVerdict={nv}/{tot}={nv / tot * 100:.1f}% over the '
+                       f'{NOVERDICT_SUSPECT_RATE * 100:.0f}% rate gate')
+            elif trail >= NOVERDICT_TRAILING_RUN_MAX:
+                # Shape, not magnitude: a run of no-verdicts ending at the final row is what
+                # a mid-chunk budget death looks like and case difficulty cannot produce.
+                why = (f'{trail} consecutive noVerdict rows ending at the LAST row '
+                       f'(rate {nv / tot * 100:.1f}% is under the gate — this is shape, '
+                       f'not magnitude)')
+            if why:
+                print(f'{name:44s} SUSPECT  traces={r["traces"]:4d} ok={r["ok"]:4d} '
+                      f'err={r["err"]:4d} — {why}; trace and telemetry are clean but the '
+                      f'row distribution says a tail never reached a judge; do NOT score')
+                continue
         extra = ''
         if r.get('source'):
             extra = f" via={r['source']}" + (f" modes={json.dumps(r['modes'])}" if r.get('modes') else '')
