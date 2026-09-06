@@ -76,6 +76,13 @@ def check(name):
         if not llm:
             return None
         n = int(llm.get('calls') or 0)
+        # `or 0` on a MISSING key would report "no failures" for a run that never
+        # recorded any — absence of evidence read as evidence of health, which is the
+        # exact pattern behind the original recall-0.0 runs. Runs predating the
+        # telemetry (or one that died before the sink finalised) are UNKNOWN, not clean.
+        if n > 0 and 'transportFailures' not in llm:
+            return dict(traces=n, ok=0, err=0, first_err_at=None, unknown=True,
+                        modes=None, source='summary.llm')
         # Any transportFail means the call degraded to null; 'empty' is the quota
         # signature. Count them all — a degraded run must never be scored silently.
         err = int(llm.get('transportFailures') or 0)
@@ -97,6 +104,12 @@ if __name__ == '__main__':
             # No calls at all is NOT proof of health — an assembled/aborted run can look
             # empty. Never report VALID here; the caller must treat it as unusable.
             print(f'{name:44s} EMPTY    traces=   0 ok=   0 err=   0 firstErrAt=None')
+            continue
+        if r.get('unknown'):
+            # Never VALID: the run made calls but recorded no failure telemetry, so its
+            # health is unverifiable. Callers must refuse to score it, not pass it.
+            print(f"{name:44s} UNKNOWN  traces={r['traces']:4d} ok=   ? err=   ? "
+                  f"firstErrAt=None via=summary.llm (no transportFailures telemetry)")
             continue
         verdict = 'VALID' if r['err'] == 0 else ('INVALID' if r['ok'] == 0 else 'PARTIAL')
         extra = ''
