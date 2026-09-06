@@ -12,7 +12,17 @@ Three shapes:
   * accessguru— llm-trace.jsonl, dead call ⇒ usage.error set
   * harness   — llm-trace.json, an ARRAY of {testcaseId, traces:[{trace:[events], verdict}]};
                 each inner trace is one call, live iff some assistant event carries
-                non-empty text. (run-fn-llm.js / run-annotated-suite.js)
+                non-empty text. (run-fn-llm.js)
+  * annotated — run-annotated-suite.js persists NO trace file, so fall back to the
+                telemetry it does persist: summary.json llm.transportFailures /
+                failuresByMode. A dead call degrades the Claude transport to null via
+                failTrace('empty') (llm-agent-adapter.js:761), which the suite's trace
+                sink counts. That is a per-call count, so PARTIAL death is detected —
+                not merely total death.
+
+Do NOT infer liveness from results.json: a deterministic catch, a noObligation case and
+a genuine live no-verdict all present as rows with empty verdicts, so a dead call is
+indistinguishable from a real one at row level.
 """
 import json, sys, collections, os
 
@@ -60,6 +70,18 @@ def check(name):
                 c['ERR' if bad else 'OK'] += 1
                 if bad and first_err is None:
                     first_err = n
+    elif os.path.exists(f'{base}/summary.json'):        # annotated-suite: no trace file
+        with open(f'{base}/summary.json') as fh:
+            llm = (json.load(fh).get('llm') or {})
+        if not llm:
+            return None
+        n = int(llm.get('calls') or 0)
+        # Any transportFail means the call degraded to null; 'empty' is the quota
+        # signature. Count them all — a degraded run must never be scored silently.
+        err = int(llm.get('transportFailures') or 0)
+        modes = llm.get('failuresByMode') or {}
+        return dict(traces=n, ok=max(n - err, 0), err=err, first_err_at=None,
+                    modes=modes, source='summary.llm')
     else:
         return None
     return dict(traces=n, ok=c['OK'], err=c['ERR'], first_err_at=first_err)
@@ -77,5 +99,8 @@ if __name__ == '__main__':
             print(f'{name:44s} EMPTY    traces=   0 ok=   0 err=   0 firstErrAt=None')
             continue
         verdict = 'VALID' if r['err'] == 0 else ('INVALID' if r['ok'] == 0 else 'PARTIAL')
+        extra = ''
+        if r.get('source'):
+            extra = f" via={r['source']}" + (f" modes={json.dumps(r['modes'])}" if r.get('modes') else '')
         print(f"{name:44s} {verdict:8s} traces={r['traces']:4d} ok={r['ok']:4d} "
-              f"err={r['err']:4d} firstErrAt={r['first_err_at']}")
+              f"err={r['err']:4d} firstErrAt={r['first_err_at']}{extra}")
