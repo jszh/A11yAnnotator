@@ -86,6 +86,10 @@ const LLM_CAP = PROVIDER === 'gemini' ? Number(process.env.GEMINI_LLM_CAP || 100
 const GLOBAL_LLM = Math.min(LLM_CAP, Math.max(1, Number(arg('global-llm', LIMITS.concurrency.llm))));
 const MODEL = process.env.V3_LLM_MODEL || (PROVIDER === 'gemini' ? 'gemini-3.7-flash' : 'claude-sonnet-4-6');
 const EFFORT = arg('effort', process.env.V3_LLM_EFFORT || null);
+// Gemini flex tier (50% token cost, 1-15 min latency, sheddable). Raise the HTTP timeout with it: at the 60s
+// default a slow-but-healthy flex response aborts and becomes a fabricated no-verdict.
+const SERVICE_TIER = process.env.V3_LLM_SERVICE_TIER || null;
+const HTTP_TIMEOUT_MS = +(process.env.V3_LLM_HTTP_TIMEOUT_MS || (SERVICE_TIER === 'flex' ? 900000 : 0)) || undefined;
 const INCLUDE = String(arg('include', 'unflagged,clear,fixed'));
 const CASE_LIST_RAW = arg('case-list', null);
 const SC_FILTER_RAW = arg('sc', null);
@@ -288,7 +292,7 @@ function makeTraceSink(caseAcc) {
 const newCaseToolAcc = () => ({ calls: 0, byName: {}, multiTurnResults: 0, maxTurns: 0, llmCalls: 0 });
 const recordTrace = makeTraceSink(null);   // run-level only (the non-tool base agent)
 const baseTransport = PROVIDER === 'gemini'
-  ? makeGeminiTransport({ apiKey: TRANSPORT.apiKey, model: MODEL, effort: EFFORT, onTraceSink: recordTrace })
+  ? makeGeminiTransport({ apiKey: TRANSPORT.apiKey, model: MODEL, effort: EFFORT, onTraceSink: recordTrace, serviceTier: SERVICE_TIER, ...(HTTP_TIMEOUT_MS ? { timeoutMs: HTTP_TIMEOUT_MS } : {}) })
   : makeClaudeSdkTransport({ ...TRANSPORT, onTraceSink: recordTrace });
 const baseAgent = makeRunAgent({ transport: baseTransport, model: MODEL });
 
@@ -437,7 +441,7 @@ async function main() {
           // not enough; without llmTransportConfig the orchestrator cannot build
           // the tool agent and silently falls back to the single-shot judge.
           llmTools: TOOLS,
-          llmTransportConfig: TOOLS ? { ...TRANSPORT, onTraceSink: makeTraceSink(caseTools) } : undefined,
+          llmTransportConfig: TOOLS ? { ...TRANSPORT, onTraceSink: makeTraceSink(caseTools), serviceTier: SERVICE_TIER } : undefined,
           llmProvider: PROVIDER,
           geminiKey: process.env.GEMINI_API_KEY,
           llmToolConcurrency: LIMITS.concurrency.llmTool,

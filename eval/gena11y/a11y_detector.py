@@ -51,15 +51,21 @@ OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
 GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta'
 OPENAI_BASE = 'https://api.openai.com/v1'
 
-# approximate USD / 1M tokens (best-effort; precise TOKENS are the authoritative artifact)
+# USD / 1M tokens, standard paid tier (ai.google.dev/gemini-api/docs/pricing, checked 2026-09-06).
+# Output includes reasoning/thinking tokens (results/supplementary585-gem37-flash-cost-breakdown.md).
+# CORRECTED 2026-09-06: 'gemini-3.5-flash' previously carried 0.30/2.50, which are FLASH-LITE's rates —
+# every 3.5-flash baseline run before this commit understated spend ~5x on input and ~3.6x on output.
+# 3.7-flash rates are promotional through 2026-12-31 and double on 2027-01-01.
 _PRICES = {
-    'gemini-3.5-flash': {'in': 0.30, 'out': 2.50},
-    # Gemini Developer API promotional standard paid-tier rate valid through 2026-12-31; output
-    # includes reasoning/thinking tokens (results/supplementary585-gem37-flash-cost-breakdown.md).
+    'gemini-3.5-flash-lite': {'in': 0.30, 'out': 2.50},   # must precede 'gemini-3.5-flash' (longest-prefix)
+    'gemini-3.5-flash': {'in': 1.50, 'out': 9.00},
     'gemini-3.7-flash': {'in': 0.75, 'out': 3.75},
     'gpt-5.4-mini':     {'in': 0.25, 'out': 2.00},
     'gpt-5.4':          {'in': 1.25, 'out': 10.0},
 }
+# flex/batch bill at 50% of standard; SERVICE_TIER is set by the runner from --service-tier / env.
+_TIER_MULTIPLIER = {'flex': 0.5, 'batch': 0.5}
+SERVICE_TIER = os.environ.get('V3_LLM_SERVICE_TIER') or None
 
 # Module-level LLM telemetry the runner surfaces into status.json for the monitor.
 LLM_STATS = {
@@ -131,10 +137,15 @@ def _stat_add(input_tok=0, output_tok=0, cache_read=0, cache_create=0, cost=0.0,
 
 
 def _price(input_tok: int, output_tok: int) -> float:
-    p = _PRICES.get(MODEL)
-    if not p:
+    # Longest-prefix match so suffixed/dated ids ('gemini-3.5-flash-lite-preview') price as their family
+    # instead of falling through to 0.0 — an absent price silently reading as "free" is how the Gemini
+    # runs came to report $0 spend.
+    keys = [k for k in _PRICES if (MODEL or '').startswith(k)]
+    if not keys:
         return 0.0
-    return (input_tok / 1e6) * p['in'] + (output_tok / 1e6) * p['out']
+    p = _PRICES[max(keys, key=len)]
+    mult = _TIER_MULTIPLIER.get(SERVICE_TIER, 1.0)
+    return ((input_tok / 1e6) * p['in'] + (output_tok / 1e6) * p['out']) * mult
 
 
 def _emit_trace(prompt_text, raw, verdict, usage, reasoning, provider, extra=None):
@@ -267,8 +278,14 @@ def _http_gemini(prompt_text, images, system=SYSTEM_MESSAGE, max_output_tokens=N
                 'thinkingConfig': thinking_config,
             },
         }
+        if SERVICE_TIER:
+            body['service_tier'] = SERVICE_TIER
         try:
-            r = requests.post(url, json=body, timeout=180)
+            # flex targets 1-15 min per request and is sheddable; the 180s standard timeout would abort
+            # slow-but-healthy responses and record them as failures. The 429/5xx retry above is what
+            # flex's "no server-side fallback" requires.
+            _timeout = 900 if SERVICE_TIER == 'flex' else 180
+            r = requests.post(url, json=body, timeout=_timeout)
             if r.status_code == 429 or r.status_code >= 500:
                 time.sleep(2 * (attempt + 1))
                 continue

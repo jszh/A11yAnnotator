@@ -507,6 +507,9 @@ async function orchestrate(collect, drive, opts = {}) {
           const transport = provider === 'gemini'
             ? adapter.makeGeminiToolTransport({ apiKey: opts.geminiKey, model: opts.llmTransportConfig.model, effort: opts.llmTransportConfig.effort,
               dispatch, cacheManager: opts.llmTransportConfig.cacheManager || null, maxTurns, runTimeoutMs,
+              // Tools-ON runs spend most of their tokens here, so the tier must reach this transport too —
+              // otherwise flex would apply to the single-shot path only and the run would be billed at two rates.
+              serviceTier: opts.llmTransportConfig.serviceTier || null,
               getExtraDeadlineMs: toolSession.extraDeadlineMs, onTraceSink: opts.llmTransportConfig.onTraceSink })
             : provider === 'openai'
               ? adapter.makeOpenAITransport({ apiKey: opts.openaiKey, model: opts.llmTransportConfig.model, effort: opts.llmTransportConfig.effort, dispatch, maxTurns, runTimeoutMs, getExtraDeadlineMs: toolSession.extraDeadlineMs, onTraceSink: opts.llmTransportConfig.onTraceSink })

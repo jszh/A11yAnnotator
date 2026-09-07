@@ -113,6 +113,14 @@ const TRANSPORT_CONFIG = {
   perTurnTimeoutMs: +(process.env.V3_LLM_TURN_TIMEOUT_MS || LIMITS.llm.perTurnTimeoutMs),
   runTimeoutMs: +(process.env.V3_LLM_RUN_TIMEOUT_MS || LIMITS.llm.runTimeoutMs),
 };
+// Gemini flex tier: 50% token cost for variable latency (1-15 min target) and best-effort, sheddable capacity.
+// The transports already retry 429/5xx with backoff, which is the client-side retry flex needs. The HTTP timeout
+// is the part that is NOT safe by default: at the 60s standard default a slow-but-healthy flex response aborts
+// and degrades to a fabricated no-verdict — the exact contamination class this campaign spent a day removing.
+// So raise the floor to 15 min whenever flex is on, unless the caller set an explicit timeout.
+const SERVICE_TIER = process.env.V3_LLM_SERVICE_TIER || null; // 'flex' | 'batch' | null (standard)
+const HTTP_TIMEOUT_MS = +(process.env.V3_LLM_HTTP_TIMEOUT_MS || (SERVICE_TIER === 'flex' ? 900000 : LIMITS.llm.httpTimeoutMs));
+if (SERVICE_TIER && PROVIDER !== 'gemini') { console.error(`FATAL: V3_LLM_SERVICE_TIER=${SERVICE_TIER} is Gemini-only (provider=${PROVIDER})`); process.exit(1); }
 
 // ---- FN worklist: union of approved + proposed bothFail, deduped by testcaseId ----
 function loadFnCases() {
@@ -155,7 +163,7 @@ const startedAt = Date.now();
 const tel = {
   startedAt,
   runName: RUN_NAME,
-  config: { fnTotal: 0, pageConc: PAGE_CONC, globalLlm: GLOBAL_LLM, perPageLlm: LLM_CONC, maxTabs: MAX_TABS, browserShards: BROWSER_SHARDS, instrumentsConc: INSTRUMENTS_CONC, instrumentsTimeoutMs: INSTRUMENTS_TIMEOUT, effort: TRANSPORT_CONFIG.effort, vision: VISION, tools: TOOLS, evidence: EVIDENCE_MODE, noVisionRubric: NO_VISION_RUBRIC, baselineVision: BASELINE_VISION, model: MODEL },
+  config: { fnTotal: 0, pageConc: PAGE_CONC, globalLlm: GLOBAL_LLM, perPageLlm: LLM_CONC, maxTabs: MAX_TABS, browserShards: BROWSER_SHARDS, instrumentsConc: INSTRUMENTS_CONC, instrumentsTimeoutMs: INSTRUMENTS_TIMEOUT, effort: TRANSPORT_CONFIG.effort, serviceTier: SERVICE_TIER, httpTimeoutMs: HTTP_TIMEOUT_MS, vision: VISION, tools: TOOLS, evidence: EVIDENCE_MODE, noVisionRubric: NO_VISION_RUBRIC, baselineVision: BASELINE_VISION, model: MODEL },
   phase: 'init',
   done: 0,
   total: 0,
@@ -197,10 +205,10 @@ function recordTrace(e) {
 // ONE config carrying the persistent token sink. It feeds BOTH the single-shot transport built here AND the
 // multi-turn tool transport orchestrate builds internally (it rides `...llmTransportConfig`), so the monitor's
 // token/cost counters stay honest whether tools are off or on.
-const TRANSPORT_WITH_SINK = { ...TRANSPORT_CONFIG, onTraceSink: recordTrace };
+const TRANSPORT_WITH_SINK = { ...TRANSPORT_CONFIG, onTraceSink: recordTrace, serviceTier: SERVICE_TIER };
 // PROVIDER switch: gemini ⇒ cross-family single-shot transport (no tools, no OAuth), else the subscription SDK.
 const baseTransport = PROVIDER === 'gemini'
-  ? makeGeminiTransport({ apiKey: GEMINI_KEY, model: MODEL, effort: TRANSPORT_CONFIG.effort, onTraceSink: recordTrace }) // onTraceSink ⇒ Gemini tokens now hit the persistent telemetry
+  ? makeGeminiTransport({ apiKey: GEMINI_KEY, model: MODEL, effort: TRANSPORT_CONFIG.effort, onTraceSink: recordTrace, serviceTier: SERVICE_TIER, timeoutMs: HTTP_TIMEOUT_MS }) // onTraceSink ⇒ Gemini tokens now hit the persistent telemetry
   : PROVIDER === 'codex'
     ? makeCodexTransport({ apiKey: CODEX_KEY, model: MODEL, effort: TRANSPORT_CONFIG.effort, onTraceSink: recordTrace, runTimeoutMs: TRANSPORT_CONFIG.runTimeoutMs }) // GPT-5.4 via the Codex SDK (vision; agent won't tool-call)
     : PROVIDER === 'openai'
@@ -435,7 +443,7 @@ async function main() {
   tel.config.spliced = spliceRecords.length;
   tel.phase = 'launching';
   writeStatus();
-  console.log(`FN×LLM run: ${cases.length} cases | provider=${PROVIDER} model=${MODEL} effort=${TRANSPORT_CONFIG.effort} | pages=${PAGE_CONC} globalLLM=${GLOBAL_LLM} maxTabs=${MAX_TABS} browsers=${BROWSER_SHARDS} instruments=${INSTRUMENTS_CONC}/${INSTRUMENTS_TIMEOUT}ms vision=${VISION} tools=${TOOLS}`);
+  console.log(`FN×LLM run: ${cases.length} cases | provider=${PROVIDER} model=${MODEL} effort=${TRANSPORT_CONFIG.effort} tier=${SERVICE_TIER || 'standard'} | pages=${PAGE_CONC} globalLLM=${GLOBAL_LLM} maxTabs=${MAX_TABS} browsers=${BROWSER_SHARDS} instruments=${INSTRUMENTS_CONC}/${INSTRUMENTS_TIMEOUT}ms vision=${VISION} tools=${TOOLS}`);
   console.log(`status → ${path.join(OUT, 'status.json')}  (run: node ${path.relative(process.cwd(), path.join(__dirname, 'fn-llm-monitor.js'))})`);
 
   if (!RUN_LLM) { /* deterministic-only pass (e.g. --derive-independent / --no-llm): no LLM auth required */ }

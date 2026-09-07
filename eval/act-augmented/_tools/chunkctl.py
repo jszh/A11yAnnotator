@@ -90,6 +90,7 @@ def cmd_assemble(a):
     # judge (run-annotated-suite.js writes no trace file, so there is nothing to
     # concatenate) — and it is the artifact that gets scored and archived.
     llm_calls, llm_fails, llm_modes, llm_known = 0, 0, {}, True
+    llm_in, llm_out = 0, 0  # token totals, so an assembled artifact can be re-costed without reopening chunks
     for i in range(1, man['chunks'] + 1):
         rd = os.path.join(REPO, 'results', f'{a.prefix}__c{i:02d}')
         if not os.path.isdir(rd):
@@ -110,7 +111,13 @@ def cmd_assemble(a):
                 traces_lines += [ln for ln in f if ln.strip()]
         try:
             sm = load_json(os.path.join(rd, 'summary.json'))
-            cost += float((sm.get('tokens') or {}).get('costUsd') or 0)
+            # Two summary shapes: run-fn-llm.js records spend under tokens.costUsd, the annotated suite under
+            # llm.costUsd. Summing only the first reported $0 for every assembled annotated run — the Sonnet
+            # 585 assembly showed $0.00 against an actual $144.91 across its chunks. Take whichever is present.
+            _t, _l = (sm.get('tokens') or {}), (sm.get('llm') or {})
+            cost += float(_t.get('costUsd') or _l.get('costUsd') or 0)
+            llm_in += int(_l.get('inputTokens') or _t.get('inputTokens') or 0)
+            llm_out += int(_l.get('outputTokens') or _t.get('outputTokens') or 0)
             llm = sm.get('llm') or {}
             if llm:
                 llm_calls += int(llm.get('calls') or 0)
@@ -141,7 +148,8 @@ def cmd_assemble(a):
             f.writelines(traces_lines)
     agg_llm = None
     if llm_calls > 0:
-        agg_llm = {'calls': llm_calls, 'failuresByMode': llm_modes, 'aggregatedFromChunks': True}
+        agg_llm = {'calls': llm_calls, 'failuresByMode': llm_modes, 'aggregatedFromChunks': True,
+                   'inputTokens': llm_in, 'outputTokens': llm_out, 'costUsd': round(cost, 4)}
         # Omitted, not zeroed, when any chunk lacked telemetry ⇒ the validator reports
         # UNKNOWN rather than VALID.
         if llm_known:

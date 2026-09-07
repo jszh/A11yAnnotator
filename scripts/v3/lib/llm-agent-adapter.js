@@ -272,8 +272,39 @@ const geminiGenerationConfig = ({ temperature, maxOutputTokens, effort }) => {
   return config;
 };
 
+// Gemini USD per 1M tokens (ai.google.dev/gemini-api/docs/pricing, read 2026-09-06). Gemini emits token counts
+// but — unlike the Claude SDK, which returns total_cost_usd — no cost, so every Gemini run in this repo has
+// recorded $0 spend. That is missing accounting, not free inference. Prices are dated because 3.7 Flash carries
+// promotional rates that DOUBLE on 2027-01-01; geminiCostUsd picks by run date so old artifacts stay correct.
+// Flex and Batch are both a flat 50% of standard.
+const GEMINI_PRICES = { // [input, output, cachedInput] per 1M tokens
+  'gemini-3.7-flash': { until: '2027-01-01', before: [0.75, 3.75, 0.075], after: [1.50, 7.50, 0.15] },
+  'gemini-3.5-flash': { before: [1.50, 9.00, 0.15] },
+  'gemini-3.5-flash-lite': { before: [0.30, 2.50, 0] }, // context caching not offered on flash-lite
+};
+const GEMINI_TIER_MULTIPLIER = { flex: 0.5, batch: 0.5 }; // standard = 1
+
+function geminiCostUsd({ model, inputTokens = 0, outputTokens = 0, cachedTokens = 0, serviceTier = null, at = null }) {
+  // Longest-prefix match so dated/suffixed ids ('gemini-3.7-flash-preview-xx') price as their family rather
+  // than silently falling through to $0 — the failure mode this function exists to end.
+  const key = Object.keys(GEMINI_PRICES).filter((k) => (model || '').startsWith(k)).sort((a, b) => b.length - a.length)[0];
+  if (!key) return null; // unknown model ⇒ null, NOT 0: an absent price must never read as free
+  const p = GEMINI_PRICES[key];
+  const rates = (p.until && p.after && new Date(at || Date.now()) >= new Date(p.until)) ? p.after : p.before;
+  const mult = GEMINI_TIER_MULTIPLIER[serviceTier] || 1;
+  return ((inputTokens * rates[0]) + (outputTokens * rates[1]) + (cachedTokens * rates[2])) / 1e6 * mult;
+}
+
+// serviceTier: 'flex' halves token cost in exchange for variable latency (1-15 min target) and best-effort
+// availability — requests are sheddable and fail 429/503 with NO server-side fallback to standard. Both Gemini
+// transports already retry 429/5xx with backoff, which is exactly the client-side retry flex requires; the part
+// that is NOT safe by default is the timeout, so a flex caller must also raise timeoutMs past the 60s standard
+// default or every slow-but-healthy flex response aborts and degrades to a fabricated no-verdict.
+// The field is validated server-side (an invalid value 400s naming the ServiceTier enum), so a typo cannot
+// silently bill at standard rates.
 function makeGeminiTransport({ apiKey, model = 'gemini-3.5-flash', fetchImpl, maxOutputTokens = 4096, temperature = null, effort = null,
   baseUrl = 'https://generativelanguage.googleapis.com/v1beta', timeoutMs = LIMITS.llm.httpTimeoutMs,
+  serviceTier = null,
   maxRetries = LIMITS.llm.maxRetries, baseBackoffMs = LIMITS.llm.baseBackoffMs, onTraceSink = null } = {}) {
   const f = fetchImpl || (typeof fetch === 'function' ? fetch : null);
   if (!apiKey) throw new Error('makeGeminiTransport: apiKey required (set GEMINI_API_KEY in .env)');
@@ -285,6 +316,7 @@ function makeGeminiTransport({ apiKey, model = 'gemini-3.5-flash', fetchImpl, ma
     const msg = (request.messages && request.messages[0]) || { content: [] };
     const temp = request.temperatureOverride != null ? request.temperatureOverride : temperature; // degeneration-retry perturbation
     const body = { contents: [{ role: 'user', parts: toParts(msg.content) }], generationConfig: geminiGenerationConfig({ temperature: temp, maxOutputTokens, effort }) };
+    if (serviceTier) body.service_tier = serviceTier;
     // failTrace records WHY this transport degraded to null (lifted by emitNoVerdict into the durable noVerdict log).
     const failTrace = (mode, finishReason) => {
       const ev = { type: 'transportFail', provider: 'gemini', mode, finishReason: finishReason || null };
@@ -303,11 +335,15 @@ function makeGeminiTransport({ apiKey, model = 'gemini-3.5-flash', fetchImpl, ma
         const cand = j && j.candidates && j.candidates[0];
         const text = cand && cand.content && Array.isArray(cand.content.parts) ? cand.content.parts.map((p) => p.text || '').join('') : null;
         if (j.usageMetadata) { // token telemetry → BOTH the verdict trace (onTrace) AND the persistent token sink (onTraceSink); output INCLUDES thinking tokens
-          const um = j.usageMetadata; const ev = { type: 'result', usage: {
+          const um = j.usageMetadata; const usage = {
             input_tokens: um.promptTokenCount || 0,
             output_tokens: (um.candidatesTokenCount || 0) + (um.thoughtsTokenCount || 0),
             cache_read_input_tokens: um.cachedContentTokenCount || 0
-          } };
+          };
+          // Gemini returns no cost field, so derive it — otherwise the run reports $0 spend.
+          const cost = geminiCostUsd({ model, inputTokens: usage.input_tokens, outputTokens: usage.output_tokens,
+            cachedTokens: usage.cache_read_input_tokens, serviceTier });
+          const ev = { type: 'result', usage, ...(cost == null ? {} : { totalCostUsd: cost }) };
           if (typeof callOpts.onTrace === 'function') callOpts.onTrace(ev); if (typeof onTraceSink === 'function') try { onTraceSink(ev); } catch (e) {}
         }
         // MAX_TOKENS with empty output ⇒ thinking starved the verdict ⇒ DOUBLE the budget once and re-issue.
@@ -422,6 +458,7 @@ function makeGeminiToolTransport({ apiKey, model = 'gemini-3.5-flash', dispatch,
   cacheManager = null,
   baseUrl = 'https://generativelanguage.googleapis.com/v1beta',
   runTimeoutMs = LIMITS.llm.toolRunTimeoutMs, maxTurns = LIMITS.llm.toolMaxTurns,
+  serviceTier = null,
   maxRetries = LIMITS.llm.maxRetries, baseBackoffMs = LIMITS.llm.baseBackoffMs, maxBackoffMs = LIMITS.llm.maxBackoffMs,
   getExtraDeadlineMs = null, onTraceSink = null } = {}) {
   const f = fetchImpl || (typeof fetch === 'function' ? fetch : null);
@@ -459,11 +496,16 @@ function makeGeminiToolTransport({ apiKey, model = 'gemini-3.5-flash', dispatch,
     // `result`, and each loop turn IS one API call, so emitting an extra terminal event to carry the turn count
     // would inflate that metric by one per subject.
     let turnNo = 0;
-    const trace = (j) => { if (j && j.usage) { const u = j.usage; const ev = { type: 'result', numTurns: turnNo, usage: {
+    const trace = (j) => { if (j && j.usage) { const u = j.usage; const usage = {
       input_tokens: u.total_input_tokens || 0,
       output_tokens: (u.total_output_tokens || 0) + (u.total_thought_tokens || 0),
       cache_read_input_tokens: u.total_cached_tokens || 0
-    } }; if (typeof callOpts.onTrace === 'function') callOpts.onTrace(ev); if (typeof onTraceSink === 'function') try { onTraceSink(ev); } catch (e) {} } };
+    };
+    // Interactions API carries the bulk of tool-run spend; without this the tools-ON runs report $0.
+    const cost = geminiCostUsd({ model, inputTokens: usage.input_tokens, outputTokens: usage.output_tokens,
+      cachedTokens: usage.cache_read_input_tokens, serviceTier });
+    const ev = { type: 'result', numTurns: turnNo, usage, ...(cost == null ? {} : { totalCostUsd: cost }) };
+    if (typeof callOpts.onTrace === 'function') callOpts.onTrace(ev); if (typeof onTraceSink === 'function') try { onTraceSink(ev); } catch (e) {} } };
     // failTrace records WHY this transport degraded to null (lifted by emitNoVerdict into the durable noVerdict log).
     // Keep the existing finishReason trace key for consumer compatibility; on Interactions it carries status.
     const failTrace = (mode, interactionStatus) => {
@@ -477,12 +519,17 @@ function makeGeminiToolTransport({ apiKey, model = 'gemini-3.5-flash', dispatch,
     const emitGenerateUsage = (j, creationTokens = 0) => {
       if (!j || !j.usageMetadata) return;
       const u = j.usageMetadata;
-      const ev = { type: 'result', numTurns: ++turnNo, phase: 'cached-first-pass', usage: {
+      const usage = {
         input_tokens: u.promptTokenCount || 0,
         output_tokens: (u.candidatesTokenCount || 0) + (u.thoughtsTokenCount || 0),
         cache_read_input_tokens: u.cachedContentTokenCount || 0,
         cache_creation_input_tokens: creationTokens || 0,
-      } };
+      };
+      // Same derivation as the single-shot transport: Gemini reports no cost of its own.
+      const cost = geminiCostUsd({ model, inputTokens: usage.input_tokens, outputTokens: usage.output_tokens,
+        cachedTokens: usage.cache_read_input_tokens, serviceTier });
+      const ev = { type: 'result', numTurns: ++turnNo, phase: 'cached-first-pass', usage,
+        ...(cost == null ? {} : { totalCostUsd: cost }) };
       if (typeof callOpts.onTrace === 'function') callOpts.onTrace(ev);
       if (typeof onTraceSink === 'function') try { onTraceSink(ev); } catch (e) { /* telemetry must never throw */ }
     };
@@ -510,6 +557,7 @@ function makeGeminiToolTransport({ apiKey, model = 'gemini-3.5-flash', dispatch,
           contents: [{ role: 'user', parts: toGenerateParts(cache.name ? dynamic : content) }],
           generationConfig: geminiGenerationConfig({ temperature: temp, maxOutputTokens, effort: finalEffort }),
         };
+        if (serviceTier) body.service_tier = serviceTier;
         if (cache.name) body.cachedContent = cache.name;
         else if (routeTools.length) { body.tools = routeTools; body.toolConfig = { functionCallingConfig: { mode: 'AUTO' } }; }
         let routed = null;
@@ -995,4 +1043,4 @@ function makeOpenAITransport(opts = {}) {
   };
 }
 
-module.exports = { makeRunAgent, makeAnthropicTransport, makeClaudeSdkTransport, makeGeminiTransport, makeGeminiToolTransport, makeGeminiCacheManager, makeCodexTransport, makeOpenAITransport, parseAgentReply, toAnthropicContent, looksDegenerate };
+module.exports = { makeRunAgent, makeAnthropicTransport, makeClaudeSdkTransport, makeGeminiTransport, makeGeminiToolTransport, makeGeminiCacheManager, makeCodexTransport, makeOpenAITransport, parseAgentReply, toAnthropicContent, looksDegenerate, geminiCostUsd };
