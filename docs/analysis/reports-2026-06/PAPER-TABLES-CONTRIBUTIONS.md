@@ -1788,8 +1788,8 @@ trace shows dead calls.
 | AccessGuru | Sonnet 4.6 | 133 | 126 | 149 | 177 | 51.4 | 42.9 | 0.467 | 45.8 |
 | GenA11y | Haiku 4.5 | 113 | 54 | 221 | 197 | 67.7 | 36.5 | 0.474 | 19.6 |
 | AccessGuru | Haiku 4.5 | 134 | 149 | 126 | 176 | 47.3 | 43.2 | 0.452 | 54.2 |
-| **Our harness** | Sonnet 4.6 | — | — | — | — | — | — | — | — |
-| **Our harness** | Haiku 4.5 | — | — | — | — | — | — | — | — |
+| **Our harness** | **Sonnet 4.6** | **298** | **10** | **265** | **12** | **96.8** | **96.1** | **0.964** | **3.6** |
+| **Our harness** | **Haiku 4.5** | **292** | **39** | **236** | **18** | **88.2** | **94.2** | **0.911** | **14.2** |
 | *Our harness (reference, Table 1k-post11)* | *Gemini 3.5 Flash Lite* | *242* | *49* | *226* | *68* | *83.2* | *78.1* | *0.805* | *17.8* |
 
 **Slice split — the aggregate FPR is carried almost entirely by the generated negatives.** The 585 is 389
@@ -1801,7 +1801,114 @@ human-annotated + 196 generated-negative cases; the latter contain no positives,
 | GenA11y | Haiku 4.5 | 97.4 / 36.5 / **3.8** | **26.0** (51/196) |
 | AccessGuru | Haiku 4.5 | 87.6 / 43.2 / **24.1** | **66.3** (130/196) |
 | AccessGuru | Sonnet 4.6 | 88.1 / 42.9 / **22.8** | **55.1** (108/196) |
+| **Our harness** | **Sonnet 4.6** | **99.7 / 96.1 / 1.3** | **4.6** (9/196) |
+| **Our harness** | **Haiku 4.5** | **96.1 / 94.2 / 15.2** | **13.8** (27/196) |
 | *Our harness (ref.)* | *Gemini 3.5 Flash Lite* | *96.8 / 78.1 / 10.1* | *20.9* (41/196) |
+
+**The harness under Sonnet 4.6 reaches F1 0.964 on the 585 (recall 96.1, FPR 3.6).** The comparison this
+campaign exists to make is the **same-model, same-tree, same-day** one, and it is clean — no model confound,
+no code confound, no corpus confound:
+
+| System (Sonnet 4.6, identical cases and judge) | Recall | FPR | F1 |
+| --- | ---: | ---: | ---: |
+| **Our harness** | **96.1** | **3.6** | **0.964** |
+| GenA11y | 40.3 | 23.3 | 0.501 |
+| AccessGuru | 42.9 | 45.8 | 0.467 |
+
+Nearly double either baseline's F1 with the same model behind all three. **The harness-vs-harness figure
+(0.964 Sonnet vs the 0.805 Gemini 3.5 Flash Lite reference) is NOT a clean comparison and must not be quoted
+as a model delta** — that reference row comes from a different model *and* a different tree (Table 1k-post11),
+so it confounds model capability with months of harness change. **Read the precision figures with the noise
+floor in mind:** 10 FP sits within a few counts of the documented full-pipeline ±3 FP band, so differences of
+1-2 false positives are not resolvable here; the recall gap against the baselines is many times the band and
+is the claim that survives.
+
+**Scoring-provenance trap for any COMBINED ACT+585 table: AccessGuru has two scorings and they disagree
+where it matters.** A builder that derives everything from `results.json` `outcome` gets the *faithful* axe ∪
+LLM union, which includes axe best-practice rules; `analyze.py` applies the element-scoped `*` view that
+Table 1g argues is the fairer one, because the faithful union over-flags on best-practice scaffold rules.
+Verified on `accessguru-act-sonnet46` (reaches-LLM subset):
+
+| AccessGuru ACT, Sonnet 4.6 | Recall | FPR | F1 |
+| --- | ---: | ---: | ---: |
+| faithful (`results.json` outcome) | 65.2 | 42.0 | 0.314 |
+| element-scoped (`analyze.py`, Table 1g) | **51.5** | **30.6** | **0.309** |
+
+**F1 is nearly identical (0.314 vs 0.309) because the recall and FPR inflations cancel**, so checking F1 alone
+would wrongly suggest the scoping choice is immaterial — while recall and FPR, which the prose quotes, move by
+14 and 11 points. A combined table must therefore take AccessGuru's rows from `analyze.py` or label them
+faithful explicitly; it must not silently mix the two. Do NOT re-implement element scoping in a second code
+path — it needs the per-rule axe ids `analyze.py` reads from the run's own artifacts, and a second
+implementation is how two scorers drift apart. The harness and GenA11y rows have no scoping variant and are
+unaffected.
+
+**The scoping split constrains the combined table's shape.** On the 585, element scoping is **unimplemented,
+not unavailable**: `score-supplementary-585.js` contains no axe logic (grep count 0), but all 585 AccessGuru
+rows carry `detection.axe_ids` / `axe_scs` / `sem_flag` / `sem_scs`, and both artifacts `analyze.py` uses
+(`data/axe_best_practice_only.json`, 31 rules, and `data/mapping_dict_file.json`) are present. So the ACT half
+has two scorings today and the 585 half has one, and sourcing AccessGuru from `analyze.py` — the obvious fix
+to the trap above — would yield a row *element-scoped on ACT and faithful on the 585*: two scorings inside a
+single row, which is worse than the inconsistency it repairs, because it looks corrected while being
+internally incoherent.
+
+**The right fix is to extend `analyze.py` to the 585 corpus**, so one scorer owns element scoping for both
+halves, rather than adding axe logic to `score-supplementary-585.js`. There is now direct evidence for that
+rather than only the principle: a from-scratch element-scoped reimplementation, using `analyze.py`'s own
+`_BP_ONLY` set and mapping dict with target-SC matching, **reproduced recall exactly but missed the false
+positives by 5** on the ACT reaches set — TP 34 / FP 125 / FPR 31.8 / F1 0.302 against the published TP 34 /
+FP 120 / FPR 30.6 / F1 0.309. Something in the published predicate (GT-override handling, the 2 errored cases,
+or a stricter SC match) is not visible from outside it. An earlier attempt that dropped SC mapping scored
+*higher* recall and FPR than faithful — impossible for a filter that only removes signals — and the error was
+caught only because that impossibility was checked. Any second implementation is therefore unverified until it
+reproduces the published row exactly, and FP is the column where it silently won't.
+
+**DECISION (user, 2026-09-06): use faithful throughout for AccessGuru.** One scoring on both corpora, so the
+combined row is coherent and no row mixes methods. Faithful ACT rows are now in the table above alongside the
+element-scoped `*` rows, which are retained as the Table 1g view rather than removed. Note for the write-up
+that faithful is **more** flattering to AccessGuru on recall (65.2 vs 51.5 on ACT/Sonnet) and **less**
+flattering on false-positive rate (41.8 vs 30.6) — so this choice is not a thumb on the scale in either
+direction, and should be stated as chosen for cross-corpus coherence. Extending `analyze.py` to the 585 (which
+would allow element-scoped on both halves) is **not being done**; element-scoped 585 figures from any second
+code path are indicative only and must not be published. The harness and GenA11y have no scoping variant on
+either corpus, so their rows are unambiguous.
+
+**The F1-cancellation trap generalises to the second corpus**, which is why it is stated as a named trap and
+not an ACT footnote: under scoping the 585 F1 moves 0.467 → 0.464 (Sonnet) and 0.452 → 0.436 (Haiku) while
+FPR moves 5-8 points. On both corpora, the one number a reviewer would spot-check says the scoping choice does
+not matter, and on both corpora it does.
+
+Two further points for whoever builds the combined table. **Denominators are safe, and by construction rather
+than by luck:** the builder iterates the case universe from `raw.json` for every system and marks anything
+absent from that system's results as a negative prediction, so a system's own row count never sets the
+denominator — which is why AccessGuru's 581-row `results.json` still scores on 458 and GenA11y's 531 rows show
+"absent→neg 47" instead of shrinking the denominator. All five systems land on one tuple: ACT n=458 pos=66,
+supp n=585 pos=310, combined n=1043 pos=376. **Terminology:** 1043 is a *row* count — 458 ACT rows covering
+453 unique testcaseIds plus 585 — so the set is 1043 rows / **1038 unique cases**; write it that way rather
+than "1043 cases". Finally, since AccessGuru's rows must come from `analyze.py` while the harness and GenA11y
+rows come from the builder, **the final table carries two scorer provenances and must say so per row** — a
+column or footnote — or the next person will try to reproduce an AccessGuru row with the builder and conclude
+one of the two is broken.
+
+
+**Provenance — this row is assembled, and one fifth of it was repaired.** `supplementary585-sonnet46-2026-09-05`
+is `chunkctl.py assemble` over five independent 120/105-case chunk runs on one tree (585 rows, 585 unique keys,
+1283 LLM calls, 0 transport failures). Two chunks were hit by the quota-message-as-text mode: **c01** was
+rebuilt from its 87 clean survivors plus a same-tree same-model re-run of the 33 cases whose obligations never
+reached a judge (19 of those 33 came back `caught`, so the contamination was materially depressing recall, not
+inert), and **c05** was discarded and re-run whole at 73.3% damage. All five chunks pass `check-claude-trace.py`
+and `triage-quota-contamination.py` individually; the 3 residual `noVerdict` rows in the assembled artifact are
+c03's ordinary scattered judge residue (chunk-local positions 12/44/49 = assembled 252/284/289), not quota
+damage. The contaminated originals are preserved under `results/_invalid-usage-limit-2026-09-05/`. So the run
+is **four live chunks plus one reconstructed chunk**, and should be described that way rather than as five
+live chunks. `triage-quota-contamination.py` now detects an assembled artifact and delegates to its chunks,
+taking the worst verdict — necessary because the assembled directory has no run log of its own, so judging it
+directly always returned CANNOT DETERMINE; all five chunks return CLEAN.
+
+**The assembled `tokens.costUsd` of $0.00 is wrong, not free.** `chunkctl.py` sums `tokens.costUsd`, but the
+annotated-suite chunks record spend under `llm.costUsd`, and the reconstructed c01 summary carries only the
+top-up's telemetry. Real chunk spend for this run is **≈$145**. Do not quote the assembled summary's cost
+field; it is an aggregation defect, not a measurement.
+
 
 **The 585 block is complete, and the four Claude baseline runs span F1 0.452–0.501** (GenA11y Sonnet 0.501,
 GenA11y Haiku 0.474, AccessGuru Sonnet 0.467, AccessGuru Haiku 0.452) against the harness reference at
@@ -1828,10 +1935,12 @@ generated-clean pages come back flagged.
 | *GenA11y (ref., Table 1f)* | *Gemini 3.5-flash* | *53.0 (35/66)* | *31.8* | *19.1 (75/392)* | *0.398* |
 | *GenA11y (ref., Table 1f)* | *GPT-5.4-mini* | *50.0 (33/66)* | *23.7* | *27.0 (106/392)* | *0.322* |
 | AccessGuru`*` (axe`*` ∪ LLM) | **Sonnet 4.6** | 51.5 (34/66) | 22.1 | 30.6 (120/392) | **0.309** |
+| **AccessGuru (faithful, axe ∪ LLM)** | **Sonnet 4.6** | **65.2 (43/66)** | **20.8** | **41.8 (164/392)** | **0.315** |
 | *AccessGuru`*` (ref., Table 1g)* | *Gemini 3.5-flash* | *40.9 (27/66)* | *30.7* | *15.6 (61/390)* | *0.351* |
 | *AccessGuru`*` (ref., Table 1g)* | *GPT-5.4-mini* | *42.4 (28/66)* | *29.8* | *16.8 (66/392)* | *0.350* |
 | GenA11y | **Haiku 4.5** | 51.5 (34/66) | 23.1 | 28.8 (113/392) | **0.319** |
 | AccessGuru`*` (axe`*` ∪ LLM) | **Haiku 4.5** | 47.0 (31/66) | 20.5 | 30.6 (120/392) | **0.286** |
+| **AccessGuru (faithful, axe ∪ LLM)** | **Haiku 4.5** | **59.1 (39/66)** | **19.5** | **41.1 (161/392)** | **0.293** |
 | **Our harness** (`fn-llm-sonnet46-2026-09-05`) | **Sonnet 4.6** | **97.0 (64/66)** | **83.1** | **3.3 (13/392)** | **0.895** |
 | **Our harness** (`fn-llm-haiku45-2026-09-05`) | **Haiku 4.5** | **87.9 (58/66)** | **65.9** | **7.7 (30/392)** | **0.753** |
 | *Our harness (ref., Table 1e)* | *Gemini 3.5-flash* | *90.9 (60/66)* | *76.9* | *4.6 (18/392)* | *0.834* |

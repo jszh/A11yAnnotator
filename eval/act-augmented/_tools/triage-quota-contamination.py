@@ -70,6 +70,29 @@ def main():
     ap.add_argument('--out', help='write the redo case-list here')
     a = ap.parse_args()
 
+    # An ASSEMBLED run has no run log of its own — the logs live with the chunks it was
+    # concatenated from — so judging it directly always yields CANNOT DETERMINE. Delegate to
+    # the chunks, which is the level at which the evidence exists. Aggregate is the worst
+    # chunk verdict: an assembled artifact is only as clean as its dirtiest part.
+    smp = os.path.join('results', a.run, 'summary.json')
+    if os.path.exists(smp):
+        try:
+            sm = json.load(open(smp))
+        except Exception:
+            sm = {}
+        if sm.get('assembled') and sm.get('chunks'):
+            print(f'{a.run}: assembled from {len(sm["chunks"])} chunks — triaging each '
+                  f'(the assembled dir has no run log of its own).')
+            worst, argv0 = 0, sys.argv[0]
+            for ch in sm['chunks']:
+                sys.argv = [argv0, ch]
+                rc = main()
+                worst = max(worst, rc)
+            sys.argv = [argv0, a.run]
+            print(f'{a.run}: AGGREGATE = worst chunk verdict, rc={worst} '
+                  f'({"CLEAN" if worst == 0 else "damage or undetermined — see chunks above"})')
+            return worst
+
     rows = rows_of(a.run)
     if not rows:
         print(f'{a.run}: no results.json'); return 3
