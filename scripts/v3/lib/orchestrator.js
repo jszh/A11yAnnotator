@@ -498,7 +498,10 @@ async function orchestrate(collect, drive, opts = {}) {
         const provider = opts.llmProvider || 'claude';
         const server = (toolSession && provider === 'claude') ? await cdpTools.buildCdpToolServer(toolSession).catch(() => null) : null;
         // Gemini Interactions and OpenAI Responses drive the SAME direct dispatch (only the API/state protocol differs).
-        const dispatch = (toolSession && (provider === 'gemini' || provider === 'openai')) ? (() => { try { return cdpTools.buildCdpToolDispatch(toolSession); } catch (e) { return null; } })() : null;
+        // openrouter drives the same direct dispatch as gemini/openai — chat/completions tool calls over the
+        // SAME CDP handlers. Omitting it here left dispatch null, which silently skipped the whole tool block
+        // and produced a single-shot run mislabelled tools-ON (0 tool calls, maxTurns 0).
+        const dispatch = (toolSession && (provider === 'gemini' || provider === 'openai' || provider === 'openrouter')) ? (() => { try { return cdpTools.buildCdpToolDispatch(toolSession); } catch (e) { return null; } })() : null;
         if (toolSession && provider === 'codex') codexMcp = await cdpTools.buildCdpHttpMcpServer(toolSession).catch(() => null);
         if (server || dispatch || codexMcp) {
           toolConcurrency = Math.min(Number(opts.llmConcurrency) || 1, Number(opts.llmToolConcurrency) || LIMITS.concurrency.llmTool); // V3_LLM_TOOL_CONCURRENCY (default 4) bounds concurrent SUBJECTS (≈ tabs; a turn may open >1 clone briefly)
@@ -511,6 +514,8 @@ async function orchestrate(collect, drive, opts = {}) {
               // otherwise flex would apply to the single-shot path only and the run would be billed at two rates.
               serviceTier: opts.llmTransportConfig.serviceTier || null,
               getExtraDeadlineMs: toolSession.extraDeadlineMs, onTraceSink: opts.llmTransportConfig.onTraceSink })
+            : provider === 'openrouter'
+              ? adapter.makeOpenRouterToolTransport({ apiKey: opts.openrouterKey, model: opts.llmTransportConfig.model, effort: opts.llmTransportConfig.effort, dispatch, maxTurns, runTimeoutMs, getExtraDeadlineMs: toolSession.extraDeadlineMs, onTraceSink: opts.llmTransportConfig.onTraceSink })
             : provider === 'openai'
               ? adapter.makeOpenAITransport({ apiKey: opts.openaiKey, model: opts.llmTransportConfig.model, effort: opts.llmTransportConfig.effort, dispatch, maxTurns, runTimeoutMs, getExtraDeadlineMs: toolSession.extraDeadlineMs, onTraceSink: opts.llmTransportConfig.onTraceSink })
               : provider === 'codex'

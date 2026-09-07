@@ -26,7 +26,7 @@ require('../../scripts/v3/lib/load-env.js').loadEnv(REPO_ROOT);
 const { orchestrate, BROWSER_ARGS } = require('../../scripts/v3/lib/orchestrator.js');
 const { createTabAllocator } = require('../../scripts/v3/lib/tab-allocator.js');
 const { createBrowserShardPool } = require('../../scripts/v3/lib/browser-shard-pool.js');
-const { makeRunAgent, makeClaudeSdkTransport, makeGeminiTransport, makeCodexTransport, makeOpenAITransport } = require('../../scripts/v3/lib/llm-agent-adapter.js');
+const { makeRunAgent, makeClaudeSdkTransport, makeGeminiTransport, makeCodexTransport, makeOpenAITransport, makeOpenRouterTransport } = require('../../scripts/v3/lib/llm-agent-adapter.js');
 const { collectActPage, normalizeCollectRoles } = require('../../scripts/v3/lib/act-page-collect.js');
 const { makeSemaphore, sampleMemory } = require('../../scripts/v3/lib/run-telemetry.js');
 const LIMITS = require('../../scripts/v3/lib/limits.js');
@@ -102,6 +102,7 @@ const STATUS_EVERY_MS = 500;
 const MODEL = process.env.V3_LLM_MODEL || (PROVIDER === 'gemini' ? (arg('model', null) || 'gemini-3.5-flash') : (PROVIDER === 'codex' || PROVIDER === 'openai') ? (arg('model', null) || 'gpt-5.4') : 'claude-sonnet-4-6');
 const envVal = (key) => { try { return (fs.readFileSync(path.join(REPO_ROOT, '.env'), 'utf8').split('\n').find((l) => l.startsWith(key + '=')) || '').split('=')[1].trim() || null; } catch (e) { return null; } };
 const GEMINI_KEY = envVal('GEMINI_API_KEY');
+const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY || envVal('OPENROUTER_API_KEY');
 // codex auth (the OpenAI Codex SDK lane): CODEX_API_KEY from .env OR ambient (`codex login`). Inert until set.
 const CODEX_KEY = process.env.CODEX_API_KEY || envVal('CODEX_API_KEY');
 // openai auth (the GPT hand-rolled function-calling lane): OPENAI_API_KEY from .env. Inert until set.
@@ -207,7 +208,9 @@ function recordTrace(e) {
 // token/cost counters stay honest whether tools are off or on.
 const TRANSPORT_WITH_SINK = { ...TRANSPORT_CONFIG, onTraceSink: recordTrace, serviceTier: SERVICE_TIER };
 // PROVIDER switch: gemini ⇒ cross-family single-shot transport (no tools, no OAuth), else the subscription SDK.
-const baseTransport = PROVIDER === 'gemini'
+const baseTransport = PROVIDER === 'openrouter'
+  ? makeOpenRouterTransport({ apiKey: OPENROUTER_KEY, model: MODEL, effort: TRANSPORT_CONFIG.effort, onTraceSink: recordTrace })
+  : PROVIDER === 'gemini'
   ? makeGeminiTransport({ apiKey: GEMINI_KEY, model: MODEL, effort: TRANSPORT_CONFIG.effort, onTraceSink: recordTrace, serviceTier: SERVICE_TIER, timeoutMs: HTTP_TIMEOUT_MS }) // onTraceSink ⇒ Gemini tokens now hit the persistent telemetry
   : PROVIDER === 'codex'
     ? makeCodexTransport({ apiKey: CODEX_KEY, model: MODEL, effort: TRANSPORT_CONFIG.effort, onTraceSink: recordTrace, runTimeoutMs: TRANSPORT_CONFIG.runTimeoutMs }) // GPT-5.4 via the Codex SDK (vision; agent won't tool-call)
@@ -448,6 +451,7 @@ async function main() {
 
   if (!RUN_LLM) { /* deterministic-only pass (e.g. --derive-independent / --no-llm): no LLM auth required */ }
   else if (PROVIDER === 'gemini') { if (!GEMINI_KEY) { console.error('FATAL: GEMINI_API_KEY not set (.env)'); process.exit(1); } }
+  else if (PROVIDER === 'openrouter') { if (!OPENROUTER_KEY) { console.error('FATAL: OPENROUTER_API_KEY not set (.env)'); process.exit(1); } }
   else if (!process.env.CLAUDE_CODE_OAUTH_TOKEN) { console.error('FATAL: CLAUDE_CODE_OAUTH_TOKEN not set (.env)'); process.exit(1); }
 
   // BROWSER_ARGS (shared with orchestrator.js's own internal default) includes --allow-file-access-from-files —
@@ -530,7 +534,7 @@ async function main() {
           experimentConcurrency: Math.min(LIMITS.concurrency.experimentCap, LIMITS.concurrency.experiment),
           runLlm: RUN_LLM, runAgent, captureVision: RUN_LLM && VISION, wrapAgent, // --no-llm ⇒ DETERMINISTIC baseline (no LLM lane, no vision capture)
           llmConcurrency: LLM_CONC,
-          llmTools: TOOLS, llmTransportConfig: TRANSPORT_WITH_SINK,
+          llmTools: TOOLS, llmTransportConfig: TRANSPORT_WITH_SINK, openrouterKey: OPENROUTER_KEY,
           llmProvider: PROVIDER, geminiKey: GEMINI_KEY, codexKey: CODEX_KEY, openaiKey: OPENAI_KEY, // gemini/openai ⇒ hand-rolled tool loop; codex ⇒ HTTP MCP cdp server
           llmToolConcurrency: LIMITS.concurrency.llmTool,
           llmToolMaxTurns: LIMITS.llm.toolMaxTurns,

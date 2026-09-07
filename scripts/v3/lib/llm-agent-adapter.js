@@ -284,6 +284,11 @@ const GEMINI_PRICES = { // [input, output, cachedInput] per 1M tokens
 };
 const GEMINI_TIER_MULTIPLIER = { flex: 0.5, batch: 0.5 }; // standard = 1
 
+// NOTE ON CACHED TOKENS: Gemini's promptTokenCount INCLUDES cachedContentTokenCount, so callers pass
+// the full prompt count as inputTokens and the cached subset as cachedTokens. This function therefore
+// subtracts the cached portion before charging the uncached rate — passing both through at full price
+// double-charges the cache (once at input rate, once at cache rate) and overstated one 585 run by 49%
+// ($22.32 recorded against $15.00 actual).
 function geminiCostUsd({ model, inputTokens = 0, outputTokens = 0, cachedTokens = 0, serviceTier = null, at = null }) {
   // Longest-prefix match so dated/suffixed ids ('gemini-3.7-flash-preview-xx') price as their family rather
   // than silently falling through to $0 — the failure mode this function exists to end.
@@ -292,7 +297,8 @@ function geminiCostUsd({ model, inputTokens = 0, outputTokens = 0, cachedTokens 
   const p = GEMINI_PRICES[key];
   const rates = (p.until && p.after && new Date(at || Date.now()) >= new Date(p.until)) ? p.after : p.before;
   const mult = GEMINI_TIER_MULTIPLIER[serviceTier] || 1;
-  return ((inputTokens * rates[0]) + (outputTokens * rates[1]) + (cachedTokens * rates[2])) / 1e6 * mult;
+  const uncachedIn = Math.max(0, inputTokens - cachedTokens);
+  return ((uncachedIn * rates[0]) + (outputTokens * rates[1]) + (cachedTokens * rates[2])) / 1e6 * mult;
 }
 
 // serviceTier: 'flex' halves token cost in exchange for variable latency (1-15 min target) and best-effort
@@ -302,6 +308,228 @@ function geminiCostUsd({ model, inputTokens = 0, outputTokens = 0, cachedTokens 
 // default or every slow-but-healthy flex response aborts and degrades to a fabricated no-verdict.
 // The field is validated server-side (an invalid value 400s naming the ServiceTier enum), so a typo cannot
 // silently bill at standard rates.
+// ---------------------------------------------------------------------------
+// OPENROUTER (chat/completions, OpenAI-compatible). Used for models not offered by the direct
+// vendor transports (qwen3.8-flash and friends).
+//
+// Deliberately NOT a repoint of makeOpenAITransport: that one targets /v1/responses, which
+// OpenRouter does not serve. This is chat/completions with a standard tool loop.
+//
+// Two OpenRouter-specific behaviours the other transports do not have:
+//   * COST IS REPORTED. `usage: {include:true}` returns usage.cost — credits actually charged,
+//     including routing and upstream margin. Better than any local price table, so it is passed
+//     through as totalCostUsd and the caller must not re-derive it.
+//   * UPSTREAM FAILURES ARRIVE AS HTTP 200 with an `error` body ("Provider returned error"), which
+//     are transient and common at high concurrency. Untreated they become no-verdicts — fabricated
+//     "no violations found" rows. They are retried like a 5xx.
+//
+// Reasoning: only effort low|medium|high are accepted by qwen3.8-flash; 'minimal',
+// reasoning.max_tokens and enabled:false are all rejected upstream.
+// Jittered exponential backoff. Jitter matters here: without it, N concurrent workers that all hit the
+// same 429 retry in lockstep and re-trigger it together.
+function orBackoff(attempt, base, cap) { return Math.min(cap, base * (2 ** attempt)) * (1 + Math.random() * 0.3); }
+
+const OPENROUTER_REASONING = { minimal: 'low', low: 'low', medium: 'medium', high: 'high', xhigh: 'high', max: 'high' };
+
+function orMessages(content) {
+  const parts = (content || []).map((b) => (b && b.type === 'image' && b.source)
+    ? { type: 'image_url', image_url: { url: `data:${b.source.media_type || 'image/png'};base64,${b.source.data}` } }
+    : { type: 'text', text: (b && b.text) || '' });
+  return parts;
+}
+
+function makeOpenRouterTransport({ apiKey, model, fetchImpl, maxOutputTokens = 16384, effort = null,
+  baseUrl = 'https://openrouter.ai/api/v1', timeoutMs = 900000,
+  // 429 is the dominant OpenRouter failure at concurrency and it is SUSTAINED, not a blip: linear
+  // 2/4/6/8s backoff (20s total) exhausted retries on 12-17% of calls in the 585 baseline runs, and
+  // every exhausted call became a fabricated negative. 8 attempts of jittered exponential capped at
+  // 60s gives ~4 minutes of patience instead of 20 seconds.
+  maxRetries = 8, baseBackoffMs = LIMITS.llm.baseBackoffMs, maxBackoffMs = 60000, onTraceSink = null } = {}) {
+  const f = fetchImpl || (typeof fetch === 'function' ? fetch : null);
+  if (!apiKey) throw new Error('makeOpenRouterTransport: apiKey required (set OPENROUTER_API_KEY in .env)');
+  if (!f) throw new Error('makeOpenRouterTransport: no fetch available');
+  const reasoning = OPENROUTER_REASONING[String(effort || '').toLowerCase()];
+  return async function transport(request, callOpts = {}) {
+    const msg = (request.messages && request.messages[0]) || { content: [] };
+    const failTrace = (mode) => {
+      const ev = { type: 'transportFail', provider: 'openrouter', mode, finishReason: null };
+      if (typeof callOpts.onTrace === 'function') callOpts.onTrace(ev);
+      if (typeof onTraceSink === 'function') try { onTraceSink(ev); } catch (e) {}
+    };
+    let budget = maxOutputTokens; let doubled = false; let lastErr = 'none';
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), timeoutMs);
+      try {
+        const body = { model, messages: [{ role: 'user', content: orMessages(msg.content) }],
+          max_tokens: budget, temperature: 0, usage: { include: true } };
+        if (reasoning) body.reasoning = { effort: reasoning };
+        const r = await f(`${baseUrl}/chat/completions`, { method: 'POST', signal: ctrl.signal,
+          headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' }, body: JSON.stringify(body) });
+        clearTimeout(t);
+        if (r.status === 429 || r.status >= 500) { lastErr = `http-${r.status}`; await new Promise((res) => setTimeout(res, orBackoff(attempt, baseBackoffMs, maxBackoffMs))); continue; }
+        if (!r.ok) { failTrace(`http-${r.status}`); return null; }
+        const j = await r.json();
+        if (j && j.error) { // HTTP 200 + error body: transient upstream failure, retry
+          lastErr = String((j.error && j.error.message) || j.error).slice(0, 120);
+          if (attempt < maxRetries) { await new Promise((res) => setTimeout(res, orBackoff(attempt, baseBackoffMs, maxBackoffMs))); continue; }
+          failTrace('provider-error'); return null;
+        }
+        const ch = (j.choices || [])[0] || {};
+        const u = j.usage || {};
+        if (u.prompt_tokens || u.completion_tokens) {
+          const ev = { type: 'result', usage: {
+            input_tokens: u.prompt_tokens || 0,
+            output_tokens: u.completion_tokens || 0,
+            cache_read_input_tokens: (u.prompt_tokens_details || {}).cached_tokens || 0,
+          }, ...(typeof u.cost === 'number' ? { totalCostUsd: u.cost } : {}) };
+          if (typeof callOpts.onTrace === 'function') callOpts.onTrace(ev);
+          if (typeof onTraceSink === 'function') try { onTraceSink(ev); } catch (e) {}
+        }
+        const text = (ch.message && ch.message.content) || '';
+        // Reasoning models can burn the whole budget thinking and emit nothing; retry once at
+        // double rather than let an empty answer read as "no violations".
+        if (ch.finish_reason === 'length' && !text.trim() && !doubled) { doubled = true; budget *= 2; continue; }
+        if (!text.trim()) { failTrace('empty'); return null; }
+        return text;
+      } catch (e) {
+        clearTimeout(t);
+        if (attempt >= maxRetries) { failTrace(ctrl.signal.aborted ? 'timeout' : 'network'); return null; }
+        await new Promise((res) => setTimeout(res, baseBackoffMs * (attempt + 1)));
+      }
+    }
+    failTrace(`retry-exhausted:${lastErr}`);   // carry the CAUSE, not just that retries ran out
+    return null;
+  };
+}
+
+// Multi-turn tool loop over chat/completions. Same {declarations, call} dispatch contract as the
+// Gemini/OpenAI tool transports, so the orchestrator needs no special-casing beyond provider routing.
+function makeOpenRouterToolTransport({ apiKey, model, dispatch, fetchImpl, maxOutputTokens = 16384, effort = null,
+  baseUrl = 'https://openrouter.ai/api/v1', runTimeoutMs = LIMITS.llm.toolRunTimeoutMs,
+  maxTurns = LIMITS.llm.toolMaxTurns, maxRetries = 8,
+  baseBackoffMs = LIMITS.llm.baseBackoffMs, maxBackoffMs = 60000,
+  // A model can emit a tool_call whose `arguments` are not valid JSON (truncated, or prose wrapped
+  // around the object). Calling the tool with {} silently executes the WRONG call and the model then
+  // reasons over a bogus result, which is worse than failing. Re-ask instead, a bounded number of
+  // times, before falling back.
+  maxArgParseRetries = 3,
+  getExtraDeadlineMs = null, onTraceSink = null } = {}) {
+  const f = fetchImpl || (typeof fetch === 'function' ? fetch : null);
+  if (!apiKey) throw new Error('makeOpenRouterToolTransport: apiKey required');
+  if (!f) throw new Error('makeOpenRouterToolTransport: no fetch available');
+  if (!dispatch || !Array.isArray(dispatch.declarations) || typeof dispatch.call !== 'function') {
+    throw new Error('makeOpenRouterToolTransport: dispatch {declarations, call} required');
+  }
+  const reasoning = OPENROUTER_REASONING[String(effort || '').toLowerCase()];
+  // chat/completions nests the schema under `function`, unlike the Interactions/Responses shape.
+  const tools = dispatch.declarations.map((d) => ({ type: 'function', function: { name: d.name, description: d.description, parameters: d.parameters } }));
+  return async function transport(request, callOpts = {}) {
+    const deadline = Date.now() + runTimeoutMs;
+    let backoffCreditMs = 0;
+    const dueAt = () => deadline + (getExtraDeadlineMs ? (Number(getExtraDeadlineMs()) || 0) : 0) + backoffCreditMs;
+    const msg = (request.messages && request.messages[0]) || { content: [] };
+    const messages = [{ role: 'user', content: orMessages(msg.content) }];
+    let turnNo = 0; let argRetries = 0;
+    const failTrace = (mode) => {
+      const ev = { type: 'transportFail', provider: 'openrouter', mode, finishReason: null };
+      if (typeof callOpts.onTrace === 'function') callOpts.onTrace(ev);
+      if (typeof onTraceSink === 'function') try { onTraceSink(ev); } catch (e) {}
+    };
+    const emitUsage = (u) => {
+      if (!u || (!u.prompt_tokens && !u.completion_tokens)) return;
+      const ev = { type: 'result', numTurns: ++turnNo, usage: {
+        input_tokens: u.prompt_tokens || 0,
+        output_tokens: u.completion_tokens || 0,
+        cache_read_input_tokens: (u.prompt_tokens_details || {}).cached_tokens || 0,
+      }, ...(typeof u.cost === 'number' ? { totalCostUsd: u.cost } : {}) };
+      if (typeof callOpts.onTrace === 'function') callOpts.onTrace(ev);
+      if (typeof onTraceSink === 'function') try { onTraceSink(ev); } catch (e) {}
+    };
+    for (let turn = 0; turn < maxTurns; turn++) {
+      const offerTools = turn < maxTurns - 1;      // final turn offers none, so it must answer
+      let j = null;
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        if (Date.now() > dueAt()) { failTrace('deadline'); return null; }
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), Math.max(1000, dueAt() - Date.now()));
+        try {
+          const body = { model, messages, max_tokens: maxOutputTokens, temperature: 0, usage: { include: true } };
+          if (reasoning) body.reasoning = { effort: reasoning };
+          if (offerTools && tools.length) { body.tools = tools; body.tool_choice = 'auto'; }
+          const r = await f(`${baseUrl}/chat/completions`, { method: 'POST', signal: ctrl.signal,
+            headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' }, body: JSON.stringify(body) });
+          clearTimeout(t);
+          if (r.status === 429 || r.status >= 500) {
+            if (attempt < maxRetries) { const b = orBackoff(attempt, baseBackoffMs, maxBackoffMs); backoffCreditMs += b; await new Promise((res) => setTimeout(res, b)); continue; }
+            failTrace(`http-${r.status}`); return null;
+          }
+          if (!r.ok) { failTrace(`http-${r.status}`); return null; }
+          const cand = await r.json();
+          if (cand && cand.error) {   // HTTP 200 + error body — transient upstream failure
+            if (attempt < maxRetries) { const b = orBackoff(attempt, baseBackoffMs, maxBackoffMs); backoffCreditMs += b; await new Promise((res) => setTimeout(res, b)); continue; }
+            failTrace('provider-error'); return null;
+          }
+          j = cand; break;
+        } catch (e) {
+          clearTimeout(t);
+          if (attempt >= maxRetries) { failTrace('network'); return null; }
+          const b = orBackoff(attempt, baseBackoffMs, maxBackoffMs); backoffCreditMs += b;
+          await new Promise((res) => setTimeout(res, b));
+        }
+      }
+      if (!j) { failTrace('no-response'); return null; }
+      emitUsage(j.usage);
+      const ch = (j.choices || [])[0] || {};
+      const m = ch.message || {};
+      const calls = m.tool_calls || [];
+      if (calls.length && offerTools) {
+        // Parse EVERY call's arguments up front. Executing a partially-parsed batch would run some
+        // tools and then abandon the turn, leaving the page mutated with no verdict to show for it.
+        const parsed = [];
+        let badArgs = null;
+        for (const c of calls) {
+          try { parsed.push({ c, args: JSON.parse((c.function && c.function.arguments) || '{}') }); }
+          catch (e) { badArgs = (c.function && c.function.name) || '?'; break; }
+        }
+        if (badArgs) {
+          if (argRetries < maxArgParseRetries) {
+            argRetries++;
+            if (process.env.V3_OR_TOOL_DEBUG) console.error(`[or:badargs] ${badArgs} (re-ask ${argRetries}/${maxArgParseRetries})`);
+            // Re-ask the SAME turn: do not consume a turn, and do not push the malformed assistant
+            // message, so the model is not conditioned on its own broken output.
+            turn--;
+            continue;
+          }
+          failTrace('tool-args-unparseable'); return null;   // never execute a guessed {} call
+        }
+        if (process.env.V3_OR_TOOL_DEBUG) console.error('[or:toolcall] ' + calls.map((c) => c.function && c.function.name).join(','));
+        messages.push({ role: 'assistant', content: m.content || null, tool_calls: calls });
+        for (const { c, args } of parsed) {
+          let out; try { out = await dispatch.call(c.function.name, args); }
+          catch (e) { out = { error: String((e && e.message) || e) }; }
+          // Tool images cannot ride a `tool` message; strip them so the payload stays valid JSON.
+          const imgs = [];
+          const cleaned = extractToolImages(out && typeof out === 'object' ? out : { result: out }, imgs);
+          messages.push({ role: 'tool', tool_call_id: c.id, content: JSON.stringify(cleaned == null ? {} : cleaned) });
+          if (imgs.length) {
+            messages.push({ role: 'user', content: imgs.map((img) => ({ type: 'image_url', image_url: { url: `data:${img.inlineData.mimeType};base64,${img.inlineData.data}` } })) });
+          }
+        }
+        if (turn === maxTurns - 2) messages.push({ role: 'user', content: [{ type: 'text', text: CONCLUDE_INSTRUCTION }] });
+        continue;
+      }
+      const text = m.content || '';
+      if (text.trim()) return text;
+      if (!offerTools) { failTrace('conclusion-empty'); return null; }
+      // Answered with neither text nor a tool call: push it to conclude rather than loop empty.
+      messages.push({ role: 'user', content: [{ type: 'text', text: CONCLUDE_INSTRUCTION }] });
+    }
+    failTrace('max-turns');
+    return null;
+  };
+}
+
 function makeGeminiTransport({ apiKey, model = 'gemini-3.5-flash', fetchImpl, maxOutputTokens = 4096, temperature = null, effort = null,
   baseUrl = 'https://generativelanguage.googleapis.com/v1beta', timeoutMs = LIMITS.llm.httpTimeoutMs,
   serviceTier = null,
@@ -1043,4 +1271,4 @@ function makeOpenAITransport(opts = {}) {
   };
 }
 
-module.exports = { makeRunAgent, makeAnthropicTransport, makeClaudeSdkTransport, makeGeminiTransport, makeGeminiToolTransport, makeGeminiCacheManager, makeCodexTransport, makeOpenAITransport, parseAgentReply, toAnthropicContent, looksDegenerate, geminiCostUsd };
+module.exports = { makeRunAgent, makeAnthropicTransport, makeClaudeSdkTransport, makeGeminiTransport, makeGeminiToolTransport, makeGeminiCacheManager, makeCodexTransport, makeOpenAITransport, makeOpenRouterTransport, makeOpenRouterToolTransport, parseAgentReply, toAnthropicContent, looksDegenerate, geminiCostUsd };

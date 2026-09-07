@@ -52,7 +52,9 @@ for (const run of fs.readdirSync(RESULTS).sort()) {
   const ratio = outTok ? inTok / outTok : Infinity;
   const suspectCache = cacheTok === 0 && ratio > 12;
   const at = s.finishedAt || s.startedAt || s.mergedAt || null;
-  const recon = geminiCostUsd({ model, inputTokens: inTok - cacheTok, outputTokens: outTok, cachedTokens: cacheTok, at });
+  // geminiCostUsd now subtracts the cached portion itself (promptTokenCount includes it), so pass the
+  // full prompt count — subtracting here too would under-charge by removing the cache twice.
+  const recon = geminiCostUsd({ model, inputTokens: inTok, outputTokens: outTok, cachedTokens: cacheTok, at });
   const recorded = typeof llm.costUsd === 'number' ? llm.costUsd : null;
   if (recon != null && recon < MIN) continue;
   rows.push({ run, model, inTok, outTok, cacheTok, recorded, reconstructed: recon, suspectCache, ratio });

@@ -37,7 +37,7 @@ require('../../../scripts/v3/lib/load-env.js').loadEnv(REPO_ROOT);
 const { orchestrate, BROWSER_ARGS } = require('../../../scripts/v3/lib/orchestrator.js');
 const { createTabAllocator } = require('../../../scripts/v3/lib/tab-allocator.js');
 const { createBrowserShardPool } = require('../../../scripts/v3/lib/browser-shard-pool.js');
-const { makeRunAgent, makeClaudeSdkTransport, makeGeminiTransport, makeGeminiCacheManager } = require('../../../scripts/v3/lib/llm-agent-adapter.js');
+const { makeRunAgent, makeClaudeSdkTransport, makeGeminiTransport, makeGeminiCacheManager, makeOpenRouterTransport } = require('../../../scripts/v3/lib/llm-agent-adapter.js');
 const { collectActPage, normalizeCollectRoles } = require('../../../scripts/v3/lib/act-page-collect.js');
 const { makeSemaphore, sampleMemory } = require('../../../scripts/v3/lib/run-telemetry.js');
 const LIMITS = require('../../../scripts/v3/lib/limits.js');
@@ -81,8 +81,8 @@ const MAX_TABS = Math.floor(MAX_TABS_RAW);
 // four 36-tab allocators) so browser-context/CDP work can use multiple cores.
 const BROWSER_SHARDS = Math.max(1, Math.min(PAGE_CONC, MAX_TABS, Math.floor(Number(arg('browsers', 1)) || 1)));
 const PROVIDER = String(arg('provider', 'claude')).toLowerCase();
-if (!['claude', 'gemini'].includes(PROVIDER)) throw new Error(`unsupported --provider: ${PROVIDER}`);
-const LLM_CAP = PROVIDER === 'gemini' ? Number(process.env.GEMINI_LLM_CAP || 100) : LIMITS.concurrency.llm;
+if (!['claude', 'gemini', 'openrouter'].includes(PROVIDER)) throw new Error(`unsupported --provider: ${PROVIDER}`);
+const LLM_CAP = (PROVIDER === 'gemini' || PROVIDER === 'openrouter') ? Number(process.env.GEMINI_LLM_CAP || 100) : LIMITS.concurrency.llm;
 const GLOBAL_LLM = Math.min(LLM_CAP, Math.max(1, Number(arg('global-llm', LIMITS.concurrency.llm))));
 const MODEL = process.env.V3_LLM_MODEL || (PROVIDER === 'gemini' ? 'gemini-3.7-flash' : 'claude-sonnet-4-6');
 const EFFORT = arg('effort', process.env.V3_LLM_EFFORT || null);
@@ -293,6 +293,8 @@ const newCaseToolAcc = () => ({ calls: 0, byName: {}, multiTurnResults: 0, maxTu
 const recordTrace = makeTraceSink(null);   // run-level only (the non-tool base agent)
 const baseTransport = PROVIDER === 'gemini'
   ? makeGeminiTransport({ apiKey: TRANSPORT.apiKey, model: MODEL, effort: EFFORT, onTraceSink: recordTrace, serviceTier: SERVICE_TIER, ...(HTTP_TIMEOUT_MS ? { timeoutMs: HTTP_TIMEOUT_MS } : {}) })
+  : PROVIDER === 'openrouter'
+  ? makeOpenRouterTransport({ apiKey: process.env.OPENROUTER_API_KEY, model: MODEL, effort: EFFORT, onTraceSink: recordTrace })
   : makeClaudeSdkTransport({ ...TRANSPORT, onTraceSink: recordTrace });
 const baseAgent = makeRunAgent({ transport: baseTransport, model: MODEL });
 
@@ -444,6 +446,7 @@ async function main() {
           llmTransportConfig: TOOLS ? { ...TRANSPORT, onTraceSink: makeTraceSink(caseTools), serviceTier: SERVICE_TIER } : undefined,
           llmProvider: PROVIDER,
           geminiKey: process.env.GEMINI_API_KEY,
+          openrouterKey: process.env.OPENROUTER_API_KEY,
           llmToolConcurrency: LIMITS.concurrency.llmTool,
           llmToolMaxTurns: LIMITS.llm.toolMaxTurns,
           llmToolRunTimeoutMs: LIMITS.llm.toolRunTimeoutMs,

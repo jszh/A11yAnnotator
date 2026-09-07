@@ -49,6 +49,8 @@ TRACE_SINK = None                           # callable(dict) -> None, set by run
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
 GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta'
+OPENROUTER_API_KEY = os.environ.get('OPENROUTER_API_KEY')
+OPENROUTER_BASE = 'https://openrouter.ai/api/v1'
 OPENAI_BASE = 'https://api.openai.com/v1'
 
 # USD / 1M tokens, standard paid tier (ai.google.dev/gemini-api/docs/pricing, checked 2026-09-06).
@@ -100,6 +102,11 @@ def _provider() -> str:
         return 'chatgpt'
     if m.startswith('gemini'):
         return 'gemini'
+    # OpenRouter ids are always 'vendor/model' (qwen/qwen3.8-flash, moonshot/..., x-ai/...).
+    # Checked BEFORE the bare gpt/o prefixes so 'openai/gpt-...' routes to OpenRouter rather
+    # than to the direct OpenAI transport, which would use the wrong key and base URL.
+    if '/' in m:
+        return 'openrouter'
     if m.startswith('gpt') or m.startswith('o'):
         return 'openai'
     return 'claude'
@@ -250,6 +257,103 @@ def _content_blocks_to_cli(content_blocks: list) -> tuple[str, list[str], bool]:
 # Size the budget to the thinking level so the answer is not crowded out by the reasoning.
 _THINKING_OUTPUT_BUDGET = {'MINIMAL': 8192, 'LOW': 8192, 'MEDIUM': 16384, 'HIGH': 32768}
 _MAX_OUTPUT_CEILING = 65536
+
+
+def _http_openrouter(prompt_text, images, system=SYSTEM_MESSAGE, max_output_tokens=None, _retries=8):
+    """OpenAI-compatible chat/completions against OpenRouter.
+
+    Two things make this different from the direct OpenAI transport:
+
+    * COST IS REPORTED, NOT DERIVED. Passing {"usage": {"include": true}} makes OpenRouter return
+      usage.cost — the credits actually charged for the call, including its own margin and whatever
+      upstream provider it routed to. That is strictly better than a local price table, which is what
+      every other transport here needs, so this path returns costUsd and _price() is bypassed for it.
+    * MANY OPENROUTER MODELS THINK. qwen3.8-flash spent 68 of 80 completion tokens on reasoning for a
+      trivial prompt, and reasoning lands in message.reasoning while the answer lands in
+      message.content. A budget sized for the answer alone truncates before any answer is emitted —
+      an empty content with finish_reason='length', which upstream would read as "no violations".
+      So the budget is generous by default and a truncated reply retries once at double, matching the
+      Gemini transport's MAX_TOKENS handling.
+    """
+    if not OPENROUTER_API_KEY:
+        return None, {}, None
+    content = [{'type': 'text', 'text': prompt_text}] + [
+        {'type': 'image_url', 'image_url': {'url': f'data:{mt};base64,{b64}'}} for mt, b64 in images
+    ]
+    _level = {'minimal': 8192, 'low': 8192, 'medium': 16384, 'high': 32768}
+    budget = max_output_tokens or _level.get(str(EFFORT or 'medium').lower(), 16384)
+    # Reasoning effort is a SEPARATE knob from the token budget. Until 2026-09-06 this transport
+    # used EFFORT only to size max_tokens, so every OpenRouter run silently used the provider's
+    # default reasoning — qwen3.8-flash spends ~715 reasoning tokens/call at default against 26 at
+    # 'low', a 27x difference that --effort appeared to control and did not.
+    # Only effort low/medium/high are accepted; 'minimal', reasoning.max_tokens and enabled:false
+    # are all rejected by this provider ("Provider returned error"), so map onto the three that work.
+    _reasoning = {'minimal': 'low', 'low': 'low', 'medium': 'medium',
+                  'high': 'high', 'xhigh': 'high', 'max': 'high'}.get(str(EFFORT or '').lower())
+    doubled = False
+    _last_err = 'none'
+    url = f'{OPENROUTER_BASE}/chat/completions'
+    headers = {'Authorization': f'Bearer {OPENROUTER_API_KEY}', 'content-type': 'application/json'}
+    for attempt in range(_retries + 1):
+        body = {
+            'model': MODEL,
+            'messages': [{'role': 'system', 'content': system},
+                         {'role': 'user', 'content': content}],
+            'max_tokens': budget,
+            'temperature': 0,
+            'usage': {'include': True},
+        }
+        if _reasoning:
+            body['reasoning'] = {'effort': _reasoning}
+        try:
+            r = requests.post(url, json=body, headers=headers, timeout=900)
+            if r.status_code == 429 or r.status_code >= 500:
+                _last_err = f'http-{r.status_code}'
+                # 429 is the dominant failure at high concurrency and it is SUSTAINED, not a blip:
+                # linear 2/4/6/8s backoff (20s total) exhausted retries on 12-18% of calls in the
+                # 585 runs, and every one of those became a fabricated negative. Exponential with
+                # jitter, capped at 60s, gives ~4 min of patience instead of 20 s.
+                import random
+                time.sleep(min(60, 2 ** attempt) * (1 + random.random() * 0.3))
+                continue
+            if not r.ok:
+                return None, {'error': f'http-{r.status_code}'}, None
+            j = r.json()
+            if j.get('error'):
+                _last_err = str(j['error'])[:160]
+                # OpenRouter reports upstream failures as HTTP 200 with an error body ("Provider
+                # returned error"), which are transient and frequent at high concurrency. Without a
+                # retry these become no-verdicts — i.e. fabricated "no violations found" rows.
+                if attempt < _retries:
+                    time.sleep(2 * (attempt + 1))
+                    continue
+                return None, {'error': str(j['error'])[:200]}, None
+            ch = (j.get('choices') or [{}])[0]
+            msg = ch.get('message') or {}
+            answer = msg.get('content') or ''
+            reasoning = msg.get('reasoning') or ''
+            u = j.get('usage') or {}
+            usage = {
+                'input_tokens': u.get('prompt_tokens', 0),
+                'output_tokens': u.get('completion_tokens', 0),
+                'reasoning_tokens': (u.get('completion_tokens_details') or {}).get('reasoning_tokens', 0),
+                'finishReason': ch.get('finish_reason'),
+                # OpenRouter bills this exactly; do NOT re-derive it from a local table.
+                'costUsd': u.get('cost'),
+            }
+            if ch.get('finish_reason') == 'length' and not doubled:
+                doubled = True
+                budget *= 2
+                continue
+            return answer, usage, reasoning
+        except Exception as e:  # network/timeout — same backoff as the other transports
+            _last_err = f'{type(e).__name__}: {str(e)[:120]}'
+            if attempt >= _retries:
+                return None, {'error': _last_err}, None
+            time.sleep(2 * (attempt + 1))
+    # Carry the LAST underlying failure, not just that retries ran out. Recording only
+    # 'retry-exhausted' made 70 no-verdicts in a 585 GenA11y run undiagnosable from the artifact.
+    return None, {'error': f'retry-exhausted: {_last_err}'}, None
 
 
 def _http_gemini(prompt_text, images, system=SYSTEM_MESSAGE, max_output_tokens=None, _retries=4):
@@ -566,6 +670,8 @@ def dispatch(content_blocks: list, system: str = SYSTEM_MESSAGE) -> tuple:
         elif provider == 'chatgpt':
             raw, usage, reasoning = _litellm_chatgpt(
                 prompt_text, images, system=system, effort=EFFORT or 'medium')
+        elif provider == 'openrouter':
+            raw, usage, reasoning = _http_openrouter(prompt_text, images, system=system)
         elif provider == 'openai':
             raw, usage, reasoning = _http_openai(prompt_text, images, system=system)
         else:
@@ -577,7 +683,12 @@ def dispatch(content_blocks: list, system: str = SYSTEM_MESSAGE) -> tuple:
                   cost=usage.get('costUsd', 0), done=bool(raw))
     else:
         in_tok, out_tok = usage.get('input_tokens', 0), usage.get('output_tokens', 0)
-        _stat_add(in_tok, out_tok, cost=_price(in_tok, out_tok), done=bool(raw))
+        # OpenRouter reports the cost it actually charged; every other provider needs the local
+        # table. Prefer the reported figure — it already accounts for routing and margin, which a
+        # static table cannot know.
+        reported = usage.get('costUsd')
+        cost = float(reported) if isinstance(reported, (int, float)) else _price(in_tok, out_tok)
+        _stat_add(in_tok, out_tok, cost=cost, done=bool(raw))
 
     return prompt_text, raw, usage, reasoning, provider
 

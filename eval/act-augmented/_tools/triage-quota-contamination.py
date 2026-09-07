@@ -137,7 +137,30 @@ def main():
     # carries a small residue of ordinary no-verdicts (reference runs sit at 0.2-1.0%) and
     # re-running those just reproduces them. Without this gate the tool cries wolf on every
     # clean run, which is how a real warning gets ignored.
-    if targets is not None and quota_lines == 0:
+    # A run can be rate-limited without ever writing a quota-shaped LOG line: OpenRouter returns HTTP
+    # 429 and the runner records it in summary.llm.failuresByMode, not in prose. Consulting only the log
+    # made this tool report CLEAN on a run with 333 http-429 failures. Treat recorded transport failures
+    # as first-class evidence alongside the log grep.
+    tf_modes, tf_total = {}, 0
+    _sp = os.path.join('results', a.run, 'summary.json')
+    if os.path.exists(_sp):
+        # Narrow catch on purpose: a bare `except Exception` here swallowed a NameError and left the
+        # evidence empty, so the tool reported CLEAN on a throttled run — the same absent-read-as-zero
+        # failure this tool exists to catch. Only malformed JSON is tolerated.
+        try:
+            _llm = (json.load(open(_sp)).get('llm') or {})
+            tf_modes = _llm.get('failuresByMode') or {}
+            tf_total = int(_llm.get('transportFailures') or 0)
+        except (ValueError, OSError):
+            pass
+    throttled = sum(v for k, v in tf_modes.items()
+                    if any(h in str(k).lower() for h in ('429', 'rate', 'quota', 'limit', 'overloaded')))
+    if throttled:
+        print(f'  recorded transport failures                      : {tf_total} {dict(tf_modes)}')
+        print(f'  -> {throttled} are throttling-shaped; the run log carries no quota prose, so the log grep alone')
+        print('     would have called this CLEAN. Treating recorded failures as evidence.')
+
+    if targets is not None and quota_lines == 0 and not throttled:
         print(f'  NO quota-shaped log lines: the {len(certain)} noVerdict row(s) are this '
               "run's ordinary judge residue, not quota damage.")
         print('  VERDICT: CLEAN — no quota event in this run; nothing to re-run.')
