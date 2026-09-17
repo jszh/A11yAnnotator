@@ -248,10 +248,14 @@ const instGate = makeSemaphore(Math.max(1, Math.min(PAGE_CONC, Number(arg('inst-
 // 405 records, so a run-level "74% of tool-capable runs made zero tool calls" could not be joined to any
 // per-case result, and one root cause had to be INFERRED from verdict prose instead of observed. Passing a
 // per-case sink alongside the global one fixes that at no cost.
-function makeTraceSink(caseAcc) {
+function makeTraceSink(caseAcc, tc = null, attempt = null) {
   return function recordTraceFor(e) {
     if (!e) return;
     if (Array.isArray(e.blocks)) {
+      if (tc) {
+        try { fs.appendFileSync(path.join(OUT, 'tool-events.jsonl'), JSON.stringify({ testcaseId: tc.testcaseId, ruleId: tc.ruleId, sc: tc.sc, attempt, event: e }) + '\n'); }
+        catch (err) { tel.tools.traceWriteErrors = (tel.tools.traceWriteErrors || 0) + 1; }
+      }
       for (const b of e.blocks) {
         if (b && b.kind === 'tool_use') {
           tel.tools.calls++;
@@ -408,6 +412,8 @@ async function main() {
       const runId = `aug-${tc.testcaseId}`;
       tel.workers[wid] = { idx: i, ruleId: tc.ruleId, sc: tc.sc[0], expected: tc.expected, stratum: tc.stratum, phase: 'collect', startedAt: Date.now() };
       let rec;
+      // Keep all attempts attributable, including calls before a browser failure.
+      const caseTools = newCaseToolAcc();
       // Browser-resource failures are transient and say nothing about the page,
       // so retry once after letting the browser drain. A case that errors is
       // dropped from BOTH the recall and specificity denominators, which quietly
@@ -428,7 +434,6 @@ async function main() {
 
         tel.workers[wid].phase = 'orchestrate';
         // per-case tool attribution (see makeTraceSink) — rides alongside the run-level counters
-        const caseTools = newCaseToolAcc();
         const drive = { file: collect.file, runId, pageDigest: collect.pageDigest, drivenAt: collect.collectedAt + 1, elements: [] };
         const out = await orchestrate(collect, drive, {
           resolveUrl: () => tc.url, executablePath: CHROME, browser: shard.browser, tabAllocator: shard.alloc, maxTabs: shard.cap, // reads the CURRENT shard bindings (self-heal swaps them)
@@ -443,7 +448,7 @@ async function main() {
           // not enough; without llmTransportConfig the orchestrator cannot build
           // the tool agent and silently falls back to the single-shot judge.
           llmTools: TOOLS,
-          llmTransportConfig: TOOLS ? { ...TRANSPORT, onTraceSink: makeTraceSink(caseTools), serviceTier: SERVICE_TIER } : undefined,
+          llmTransportConfig: TOOLS ? { ...TRANSPORT, onTraceSink: makeTraceSink(caseTools, tc, attempt + 1), serviceTier: SERVICE_TIER } : undefined,
           llmProvider: PROVIDER,
           geminiKey: process.env.GEMINI_API_KEY,
           openrouterKey: process.env.OPENROUTER_API_KEY,
@@ -512,6 +517,7 @@ async function main() {
       }
       // carry the reliability stratum + the humans' own votes into the record so
       // every downstream slice is a filter, never another run
+      rec.toolUse = { ...caseTools, toolsEnabled: TOOLS };
       rec.stratum = tc.stratum;
       rec.key = tc.key;
       rec.humanVotes = tc.humanVotes;

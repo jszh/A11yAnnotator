@@ -30,6 +30,7 @@ const { makeRunAgent, makeClaudeSdkTransport, makeGeminiTransport, makeCodexTran
 const { collectActPage, normalizeCollectRoles } = require('../../scripts/v3/lib/act-page-collect.js');
 const { makeSemaphore, sampleMemory } = require('../../scripts/v3/lib/run-telemetry.js');
 const LIMITS = require('../../scripts/v3/lib/limits.js');
+const { newToolAccumulator, recordToolTrace } = require('../../scripts/v3/lib/tool-telemetry.js');
 const INDEP = require('./lib/llm-independent.js'); // LLM-independent splice (derive/skip/guard)
 const { execSync } = require('child_process');
 const puppeteer = require('puppeteer');
@@ -171,6 +172,7 @@ const tel = {
   workers: {},     // workerId -> { idx, ruleId, sc, expected, phase, startedAt }
   inflight: {},    // callId  -> { xpath, sc, skill, startedAt }
   llm: { calls: 0, done: 0, results: 0, peakInFlight: 0, inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheCreateTokens: 0, costUsd: 0 },
+  tools: newToolAccumulator(),
   tabs: {},        // allocator.stats()
   mem: {},
   tally: { caught: 0, missedAgree: 0, uncertain: 0, noVerdict: 0, noObligation: 0, error: 0 },
@@ -193,7 +195,13 @@ function writeStatus() {
 // ============================ LLM agent: tee (token telemetry) + GLOBAL semaphore + inflight tracking ============================
 const sem = makeSemaphore(GLOBAL_LLM);
 let callSeq = 0;
-function recordTrace(e) {
+function recordTrace(e, caseAcc = null, tc = null) {
+  recordToolTrace(tel.tools, e);
+  recordToolTrace(caseAcc, e);
+  if (tc && e && Array.isArray(e.blocks)) {
+    try { fs.appendFileSync(path.join(OUT, 'tool-events.jsonl'), JSON.stringify({ testcaseId: tc.testcaseId, ruleId: tc.ruleId, sc: tc.sc, event: e }) + '\n'); }
+    catch (err) { tel.toolTraceWriteErrors = (tel.toolTraceWriteErrors || 0) + 1; }
+  }
   if (!e || e.type !== 'result') return;
   const u = e.usage || {};
   tel.llm.inputTokens += (+u.input_tokens || 0);
@@ -493,7 +501,9 @@ async function main() {
     const tk = tel.llm;
     const tokens = { provider: PROVIDER, model: MODEL, inputTokens: tk.inputTokens, outputTokens: tk.outputTokens, totalTokens: tk.inputTokens + tk.outputTokens, cacheReadTokens: tk.cacheReadTokens, cacheCreateTokens: tk.cacheCreateTokens, costUsd: tk.costUsd, usageEvents: tk.results, meanOutputPerVerdict: tk.results ? Math.round(tk.outputTokens / tk.results) : 0 };
     const splice = spliceRecords.length ? { spliced: spliceRecords.length, live: results.length, manifest: path.basename(INDEP.MANIFEST_PATH) } : undefined;
-    fs.writeFileSync(path.join(OUT, 'summary.json'), JSON.stringify({ ...summarize(out), tokens, ...(splice ? { splice } : {}) }, null, 2));
+    fs.writeFileSync(path.join(OUT, 'summary.json'), JSON.stringify({ ...summarize(out), tokens,
+      toolUse: { ...tel.tools, enabled: TOOLS, traceWriteErrors: tel.toolTraceWriteErrors || 0 },
+      ...(splice ? { splice } : {}) }, null, 2));
   };
 
   let cursor = 0;
@@ -506,6 +516,7 @@ async function main() {
       const runId = `fn-llm-${tc.testcaseId}`;
       tel.workers[wid] = { idx: i, ruleId: tc.ruleId, sc: (tc.sc || []).join(','), expected: tc.expected, phase: 'collect', startedAt: Date.now() };
       let rec;
+      const caseTools = newToolAccumulator();
       try {
         // COLLECT: borrow a tab from the shared allocator, navigate + extract, release.
         const lease = await shard.alloc.acquire();
@@ -532,9 +543,10 @@ async function main() {
           budgetOpts: { maxRunWallClockMs: RUN_WALL }, // deterministic lane bounded by TIME (2 min), not count — run as many real runners as fit, defer the tail to the LLM lane
 
           experimentConcurrency: Math.min(LIMITS.concurrency.experimentCap, LIMITS.concurrency.experiment),
-          runLlm: RUN_LLM, runAgent, captureVision: RUN_LLM && VISION, wrapAgent, // --no-llm ⇒ DETERMINISTIC baseline (no LLM lane, no vision capture)
+          runLlm: RUN_LLM, runAgent, captureVision: RUN_LLM && VISION,
+          wrapAgent: (agent) => { caseTools.agentBuilt = (caseTools.agentBuilt || 0) + 1; return wrapAgent(agent); },
           llmConcurrency: LLM_CONC,
-          llmTools: TOOLS, llmTransportConfig: TRANSPORT_WITH_SINK, openrouterKey: OPENROUTER_KEY,
+          llmTools: TOOLS, llmTransportConfig: { ...TRANSPORT_WITH_SINK, onTraceSink: (e) => recordTrace(e, caseTools, tc) }, openrouterKey: OPENROUTER_KEY,
           llmProvider: PROVIDER, geminiKey: GEMINI_KEY, codexKey: CODEX_KEY, openaiKey: OPENAI_KEY, // gemini/openai ⇒ hand-rolled tool loop; codex ⇒ HTTP MCP cdp server
           llmToolConcurrency: LIMITS.concurrency.llmTool,
           llmToolMaxTurns: LIMITS.llm.toolMaxTurns,
@@ -548,6 +560,7 @@ async function main() {
         rec = { testcaseId: tc.testcaseId, ruleId: tc.ruleId, sc: tc.sc, expected: tc.expected, outcome: 'error', error: String((e && e.stack) || e) };
         tel.errors.push({ ruleId: tc.ruleId, testcaseId: tc.testcaseId, error: String((e && e.message) || e) });
       }
+      rec.toolUse = { ...caseTools, toolsEnabled: TOOLS };
       results.push(rec);
       tel.done = results.length;
       tel.tally[rec.outcome] = (tel.tally[rec.outcome] || 0) + 1;

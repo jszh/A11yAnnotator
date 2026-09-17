@@ -431,6 +431,12 @@ function makeOpenRouterToolTransport({ apiKey, model, dispatch, fetchImpl, maxOu
     const msg = (request.messages && request.messages[0]) || { content: [] };
     const messages = [{ role: 'user', content: orMessages(msg.content) }];
     let turnNo = 0; let argRetries = 0;
+    // Match the Claude/Gemini trace contract used by both evaluation runners.
+    // Tracing is observational: a broken sink must never change tool execution.
+    const emitToolTrace = (ev) => {
+      if (typeof callOpts.onTrace === 'function') try { callOpts.onTrace(ev); } catch (e) {}
+      if (typeof onTraceSink === 'function') try { onTraceSink(ev); } catch (e) {}
+    };
     const failTrace = (mode) => {
       const ev = { type: 'transportFail', provider: 'openrouter', mode, finishReason: null };
       if (typeof callOpts.onTrace === 'function') callOpts.onTrace(ev);
@@ -483,6 +489,15 @@ function makeOpenRouterToolTransport({ apiKey, model, dispatch, fetchImpl, maxOu
       const ch = (j.choices || [])[0] || {};
       const m = ch.message || {};
       const calls = m.tool_calls || [];
+      if (calls.length) {
+        emitToolTrace({ type: 'assistant', role: 'assistant', blocks: calls.map((c) => {
+          const raw = (c.function && c.function.arguments) || '{}';
+          let input; let argumentsValid = true;
+          try { input = JSON.parse(raw); } catch (e) { input = elideBase64(raw); argumentsValid = false; }
+          return { kind: 'tool_use', id: c.id, name: c.function && c.function.name,
+            input, argumentsValid, offered: offerTools };
+        }) });
+      }
       if (calls.length && offerTools) {
         // Parse EVERY call's arguments up front. Executing a partially-parsed batch would run some
         // tools and then abandon the turn, leaving the page mutated with no verdict to show for it.
@@ -508,6 +523,9 @@ function makeOpenRouterToolTransport({ apiKey, model, dispatch, fetchImpl, maxOu
         for (const { c, args } of parsed) {
           let out; try { out = await dispatch.call(c.function.name, args); }
           catch (e) { out = { error: String((e && e.message) || e) }; }
+          emitToolTrace({ type: 'user', role: 'user', blocks: [{ kind: 'tool_result',
+            toolUseId: c.id, name: c.function.name, isError: !!(out && (out.error || out.isError)),
+            content: elideBase64(JSON.stringify(out == null ? {} : out)) }] });
           // Tool images cannot ride a `tool` message; strip them so the payload stays valid JSON.
           const imgs = [];
           const cleaned = extractToolImages(out && typeof out === 'object' ? out : { result: out }, imgs);
