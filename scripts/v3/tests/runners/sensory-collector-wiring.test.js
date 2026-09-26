@@ -44,6 +44,7 @@ test('the shared collector universally wires direct sensory text into 1.3.3 obli
       elementCap: 80,
       autoUpdateWindowMs: 0,
       visualStructureProbe: false,
+      scope: 'all', // 1.3.3 is an ACT-REST shadow lane, outside categories.json — scored unscoped (V3 scope filter)
     });
   } finally {
     await page.close();

@@ -55,6 +55,10 @@ function nativeRole(tag, type, href) {
 async function collectActPage(page, opts = {}) {
   const url = opts.url;
   const elementCap = Number.isFinite(opts.elementCap) ? opts.elementCap : 80;
+  // V1 (expert-FP population check): collect + axe at the SAME 1280×900 the vision crops and CDP tools use —
+  // a fresh tab is Puppeteer's 800×600 default, which switches responsive sites to their mobile layout.
+  // Only the default is replaced; a caller-set viewport is kept.
+  await require('./viewport.js').pinCollectorViewport(page);
   await page.goto(url, { waitUntil: 'load', timeout: 45000 });
   await new Promise((r) => setTimeout(r, Number.isFinite(opts.settleMs) ? opts.settleMs : 250));
   // #9 (round-3 overfit audit) — AUTO-UPDATING TEXT observation window (SC 2.2.2, second clause). A JS
@@ -576,6 +580,11 @@ async function collectActPage(page, opts = {}) {
     // chose them deliberately, mirroring eval-page.js's loadXpaths model). This makes the 80-cap moot for saved-page
     // runs: the subset IS the selection. (Cross-frame `>>` xpaths don't resolve via document.evaluate ⇒ dropped here;
     // top-document xpaths are the saved-page case.)
+    // SCRIPTING OFF for this capture (the saved-page server's noscript mode strips scripts, or the document has
+    // none at all): script-driven keyboard behaviour — arrow-key roving focus in a tablist, a carousel's dots —
+    // cannot be exercised, so a keyboard judge must not read its absence as a barrier (expert-study C063/C131).
+    // Stamped on elements ONLY when true, so every script-running page's record stays byte-identical.
+    const _scriptsDisabled = /[?&]noscript=1(?:&|$)/.test(location.search) || document.scripts.length === 0;
     const _subset = (Array.isArray(subsetXpaths) && subsetXpaths.length)
       ? subsetXpaths.map((xp) => { try { return document.evaluate(xp, document, null, 9, null).singleNodeValue; } catch (e) { return null; } }).filter(Boolean)
       : null;
@@ -628,8 +637,33 @@ async function collectActPage(page, opts = {}) {
       // can credit a specific row-subject header while treating a generic column category as insufficient — which is the
       // condition the original deferral required. (Relying on a model to call query_ax_node for this is unreliable: the
       // passive models — GPT-5.4 / Gemini — judge the link without investigating, so the deterministic signal is needed.)
+      // EXCEPTION to the link stripping: a sibling link to the SAME RESOURCE (same origin + path) keeps its text. A
+      // news card's title link, its thumbnail link and its "8 comments" link all go to the one article, and the
+      // title IS the comments link's context — stripping it (measured on BuzzFeed, C213/C222) left "In the News 48
+      // mins ago React" and the judge, trusting the signal, found no context. Links to a DIFFERENT resource (a
+      // format list's PDF vs EPUB, a nav menu's children) are still stripped, and fragment/same-page links never
+      // count as "the same resource".
       const enclosingBlockText = (sampledRole === 'link' || tag === 'a') ? (function () {
-        const ownText = (node) => { if (!node) return ''; const c = node.cloneNode(true); c.querySelectorAll('a,[role=link]').forEach((n) => n.remove()); return (c.textContent || '').replace(/\s+/g, ' ').trim(); };
+        const destKey = (a) => {
+          try {
+            const h = a.getAttribute && a.getAttribute('href');
+            if (!h || h.charAt(0) === '#' || /^\s*javascript:/i.test(h)) return null;
+            const u = new URL(h, location.href);
+            if (u.origin === location.origin && u.pathname === location.pathname) return null;
+            return u.origin + u.pathname;
+          } catch (e) { return null; }
+        };
+        const selfDest = destKey(el);
+        const ownText = (node) => {
+          if (!node) return '';
+          el.setAttribute('data-v3-lc-self', '1');
+          let c; try { c = node.cloneNode(true); } finally { el.removeAttribute('data-v3-lc-self'); }
+          c.querySelectorAll('a,[role=link]').forEach((n) => {
+            if (!n.hasAttribute('data-v3-lc-self') && selfDest && destKey(n) === selfDest) return;
+            n.remove();
+          });
+          return (c.textContent || '').replace(/\s+/g, ' ').trim();
+        };
         const parts = []; let inBlock = false;
         let n = el.parentElement, hops = 0;
         while (n && hops < 8) { const t = n.tagName.toLowerCase();
@@ -711,6 +745,28 @@ async function collectActPage(page, opts = {}) {
       // (1.4.11) families EVEN when role-stripped (role="none"/"presentation") — that's exactly the mis-marked
       // decorative case. Kept by the inclusion filter so a role=none graphic still enumerates.
       const isImage = tag === 'img' || tag === 'svg' || tag === 'canvas' || roleAttr === 'img' || (tag === 'input' && type === 'image');
+      // RASTER PROVENANCE for an <img> (expert-study C226, Reebok): the image had FAILED to load (naturalWidth 0)
+      // and the card's HTML heading "RUNNING" was painted over its box, so the crop showed a broken image with
+      // text on it and the 1.4.5 judge called the heading an image of text. Record whether the raster actually
+      // loaded, and which LIVE HTML text is painted over the image box — text that is, by construction, not in
+      // the raster. Bounded: the search stays inside the image's nearest 4 ancestors, 3 strings max.
+      const imgRender = tag === 'img' ? (function () {
+        const out = { loaded: !!(el.complete && el.naturalWidth > 0), overlayText: [] };
+        const ib = el.getBoundingClientRect();
+        if (!(ib.width > 0 && ib.height > 0)) return out;
+        let scope = el; for (let i = 0; i < 4 && scope.parentElement; i++) scope = scope.parentElement;
+        const tw = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT); let n; let seen = 0;
+        while ((n = tw.nextNode()) && out.overlayText.length < 3 && seen++ < 400) {
+          const t = (n.textContent || '').replace(/\s+/g, ' ').trim(); if (t.length < 2) continue;
+          const p = n.parentElement; if (!p || /^(SCRIPT|STYLE|NOSCRIPT|TEMPLATE)$/.test(p.tagName)) continue;
+          const pcs = getComputedStyle(p); if (pcs.visibility === 'hidden' || pcs.display === 'none') continue;
+          const rg = document.createRange(); rg.selectNodeContents(n); const q = rg.getBoundingClientRect();
+          if (!(q.width > 0 && q.height > 0)) continue;
+          const ox = Math.min(q.right, ib.right) - Math.max(q.left, ib.left), oy = Math.min(q.bottom, ib.bottom) - Math.max(q.top, ib.top);
+          if (ox > 0 && oy > 0 && ox * oy >= 0.5 * q.width * q.height) out.overlayText.push(t.slice(0, 80));
+        }
+        return out;
+      })() : undefined;
       // EMULATED CONTROL (F42, residual RCA S6 — the 1.3.1 "control semantics" gap). A script activation
       // handler bolted onto a plain element that is NOT focusable and declares NO interactive role: a
       // keyboard user cannot reach it, and AT never announces it as a control, so the relationship between
@@ -726,9 +782,45 @@ async function collectActPage(page, opts = {}) {
       const _inlineActivation = el.hasAttribute('onclick') || el.hasAttribute('onkeydown') || el.hasAttribute('onkeypress') || el.hasAttribute('onkeyup');
       const _nativeInteractiveTag = /^(a|button|input|select|textarea|summary|details|option|label)$/.test(tag);
       const _tiAttr = el.getAttribute('tabindex');
+      // A custom element whose OPEN SHADOW ROOT holds the native control (a <play-button> host wrapping a real
+      // <button>) is not an emulated control: the focusable, roled element exists — the light-DOM querySelector
+      // above cannot see it (expert-study C658 was judged "no role, not focusable" on exactly this shape).
+      const _shadowNativeInteractive = !!(el.shadowRoot && el.shadowRoot.querySelector(_NATIVE_INTERACTIVE));
+      // V8 (expert-FP population check): a custom-element HOST with no interactive semantics of its own whose
+      // operable control lives in its (open, possibly nested) shadow tree — Rotten Tomatoes' <play-button> host
+      // carries aria-label="Play …" while the real <button> inside is unnamed. Every name/role/focus judgment
+      // made on the host judged the wrong node: C658 was "no role, not focusable" (false for the control), and
+      // host aria-label legality was reported instead of the inner control's empty name. Record the FIRST
+      // rendered interactive node of the composed tree; the CDP pass below resolves its computed role + name and
+      // the host record adopts them (the host xpath stays the addressable anchor — the inner node has none).
+      let innerControl = null;
+      if (el.shadowRoot && !_nativeInteractiveTag && !_INTERACTIVE_ROLE_RE.test(roleAttr) && !focusable) {
+        const found = []; let budget = 400;
+        const walkShadow = (root, depth) => {
+          if (depth > 4) return;
+          for (const n of root.querySelectorAll('*')) {
+            if (budget-- <= 0 || found.length >= 3) return;
+            if (n.matches(_NATIVE_INTERACTIVE) && !(n.tagName === 'A' && !n.hasAttribute('href'))) {
+              const r = n.getBoundingClientRect();
+              if (r.width > 0 && r.height > 0) found.push(n);
+            }
+            if (n.shadowRoot) walkShadow(n.shadowRoot, depth + 1);
+          }
+        };
+        walkShadow(el.shadowRoot, 0);
+        if (found.length) {
+          const c = found[0];
+          window.__v3InnerCtl = window.__v3InnerCtl || [];
+          const idx = window.__v3InnerCtl.push(c) - 1;
+          innerControl = { idx, tag: c.tagName.toLowerCase(), roleAttr: c.getAttribute('role') || '', count: found.length,
+            focusable: c.tabIndex >= 0 && !c.disabled,
+            hostLabel: (el.getAttribute('aria-label') || '').trim().slice(0, 120) || null,
+            hostLabelledby: !!(el.getAttribute('aria-labelledby') || '').trim() };
+        }
+      }
       const _emulatedShape = !focusable && !_nativeInteractiveTag && !_INTERACTIVE_ROLE_RE.test(roleAttr)
         && !(_tiAttr !== null && +_tiAttr >= 0)
-        && !el.querySelector(_NATIVE_INTERACTIVE)
+        && !el.querySelector(_NATIVE_INTERACTIVE) && !_shadowNativeInteractive
         && !(box.width >= (window.innerWidth || 1280) * 0.8 && box.height >= (window.innerHeight || 800) * 0.5)
         && box.width > 0 && box.height > 0;
       // the LISTENER half is filled in the CDP pass (listenerTypes), which runs after this evaluate.
@@ -744,7 +836,7 @@ async function collectActPage(page, opts = {}) {
       // CDP listener pass (click/key*) after this evaluate. Same claim family (control-semantics, 1.3.1).
       const _emulatedFocusableShape = !_nativeInteractiveTag && !_INTERACTIVE_ROLE_RE.test(roleAttr)
         && (_tiAttr !== null && +_tiAttr >= 0)
-        && !el.querySelector(_NATIVE_INTERACTIVE)
+        && !el.querySelector(_NATIVE_INTERACTIVE) && !_shadowNativeInteractive
         && !(box.width >= (window.innerWidth || 1280) * 0.8 && box.height >= (window.innerHeight || 800) * 0.5)
         && box.width > 0 && box.height > 0;
       const emulatedControlFocusableShape = _emulatedFocusableShape;
@@ -976,7 +1068,7 @@ async function collectActPage(page, opts = {}) {
       // item 12: mutedLiveRegionWiring keeps the MUTED live-region shape (admitted by the visibility
       // carve-out above) through this filter too — its ariaAttrs census is what the oracle's
       // mutedLiveRegionShape gate reads to mint the status-message obligation.
-      if (!_subset && !focusable && !isFormField && !sampledRole && !text && !isImage && !liveRegion && !mutedLiveRegionWiring(el) && !isMedia && !autoMotion && !backgroundImageMeaningful && !isCaptcha && !iframeTabExcluded && !focusableInAriaHidden && !prohibitedAriaAttr) continue; // a pre-selected subset element is always included
+      if (!_subset && !focusable && !isFormField && !sampledRole && !text && !isImage && !liveRegion && !mutedLiveRegionWiring(el) && !isMedia && !autoMotion && !backgroundImageMeaningful && !isCaptcha && !iframeTabExcluded && !focusableInAriaHidden && !prohibitedAriaAttr && !innerControl) continue; // a pre-selected subset element is always included
       els.push({
         xpath: xpathOf(el),
         matchesTarget: matchesTarget(el), // #11 fix — see scorer precision comment above
@@ -991,6 +1083,8 @@ async function collectActPage(page, opts = {}) {
         isInteractive, ownsInteractiveDescendants, hasKeyHandler,
         isFormField,
         isImage,
+        ...(imgRender ? { imgRender } : {}),
+        ...(innerControl ? { innerControl } : {}), // V8 — resolved + adopted in the CDP pass
         ariaAttrs,
         roleAttr,
         sampledRole,
@@ -1029,6 +1123,7 @@ async function collectActPage(page, opts = {}) {
         hasHoverContent: _hasHoverContent(el),
         backgroundImageMeaningful, backgroundImageUrl, isCaptcha, // TT gaps G2/G3 (1.1.1)
         iframeTabExcluded, focusableInAriaHidden, prohibitedAriaAttr, // deterministic barrier flags (2.1.1 / 4.1.2)
+        ...(_scriptsDisabled && (focusable || isInteractive || roleAttr) ? { pageScriptsDisabled: true } : {}),
         iframeSrc: (tag === 'iframe' || tag === 'frame') ? (el.getAttribute('src') || '') : undefined, // 4.1.2 (4b1c6c): same-name iframe purpose-equivalence
         // ACT-REST Round 1 applicability facts (element-level; the runner re-measures the verdict).
         autocompleteApplicable: (() => {
@@ -1353,12 +1448,41 @@ async function collectActPage(page, opts = {}) {
           }
         }
       }
-      if (!ax) continue;                                 // unresolved ⇒ keep the heuristic axName (degraded fallback)
-      const nm = ax.name && ax.name.value;
-      if (typeof nm === 'string') el.axName = nm;         // AUTHORITATIVE; '' is a real resolved-empty name
-      if (ax.role && ax.role.value) el.cdpRole = ax.role.value; // authoritative computed role (S2 role gate prefers this)
-      el.inTree = !ax.ignored;
-      el.ignoredByModal = (ax.ignoredReasons || []).some((r) => r && (r.name === 'activeModalDialog' || r.name === 'inertSubtree')); // #3 guard
+      if (ax) {
+        const nm = ax.name && ax.name.value;
+        if (typeof nm === 'string') el.axName = nm;         // AUTHORITATIVE; '' is a real resolved-empty name
+        if (ax.role && ax.role.value) el.cdpRole = ax.role.value; // authoritative computed role (S2 role gate prefers this)
+        el.inTree = !ax.ignored;
+        el.ignoredByModal = (ax.ignoredReasons || []).some((r) => r && (r.name === 'activeModalDialog' || r.name === 'inertSubtree')); // #3 guard
+      }
+      // V8: resolve the host's composed inner control and JUDGE THE HOST RECORD ON IT. The inner node has no
+      // light-DOM xpath, so it is reached through the in-page handle; its computed role/name come from Chrome
+      // like every other name here. The host's own values are kept as hostAxName/hostCdpRole so the ARIA on the
+      // host stays visible (a host aria-label that does not reach the control is exactly the defect to report).
+      if (el.innerControl && Number.isInteger(el.innerControl.idx)) {
+        try {
+          const iev = await cdp.send('Runtime.evaluate', { expression: `(window.__v3InnerCtl||[])[${el.innerControl.idx}]`, returnByValue: false }).catch(() => null);
+          const ioid = iev && iev.result && iev.result.objectId;
+          const idn = ioid ? await cdp.send('DOM.describeNode', { objectId: ioid }).catch(() => null) : null;
+          const ibid = idn && idn.node && idn.node.backendNodeId;
+          const iax = ibid ? await cdp.send('Accessibility.getAXNodeAndAncestors', { backendNodeId: ibid }).catch(() => null) : null;
+          const inode = iax && iax.nodes && iax.nodes[0];
+          const irole = inode && inode.role && inode.role.value;
+          const iname = inode && inode.name && inode.name.value;
+          if (typeof irole === 'string') el.innerControl.axRole = irole;
+          if (typeof iname === 'string') el.innerControl.axName = iname;
+          if (inode) el.innerControl.inTree = !inode.ignored;
+          const ROLE_OK = /^(button|link|checkbox|radio|switch|tab|menuitem|menuitemcheckbox|menuitemradio|option|combobox|textbox|searchbox|slider|spinbutton|treeitem|gridcell)$/;
+          if (inode && !inode.ignored && ROLE_OK.test(irole || '')) {
+            el.hostAxName = el.axName; el.hostCdpRole = el.cdpRole || null;
+            if (!el.roleAttr) { el.sampledRole = irole; el.axRole = irole; el.cdpRole = irole; }
+            if (typeof iname === 'string') el.axName = iname;
+            if (el.innerControl.focusable) el.focusable = true;
+            el.delegatedToShadowControl = true;
+          }
+        } catch (e) { /* unresolved ⇒ the host keeps its own facts (the pre-V8 behaviour) */ }
+      }
+      if (!ax) continue;
     }
     // #2: a heading's accessible NAME (used by 2.4.6/2.4.10) — source it authoritatively too (the heuristic
     // returns '' for an <h2><img alt="Foo"></h2> heading; CDP gives "Foo").
@@ -1591,7 +1715,56 @@ async function collectActPage(page, opts = {}) {
         // GUARD (adversarial review): axe `target` is a per-frame array; a depth>1 target is a CHILD-frame node whose
         // last selector, querySelected against the TOP document, would miss or mis-resolve to a different top-level
         // node → wrong xpath. Return null for cross-frame targets (degrade to a shadow signal, never mis-attribute).
-        const resolveXpath = (target) => { try { if (Array.isArray(target) && target.length > 1) return null; const sel = Array.isArray(target) ? target[0] : target; const el = sel ? document.querySelector(sel) : null; return el ? xpathOf(el) : null; } catch (e) { return null; } };
+        // SHADOW targets: axe gives a nested array [host, inner, ..., node] for a node inside shadow DOM. Passing that
+        // array to querySelector stringified it into a comma SELECTOR LIST, which returned whichever of host / inner /
+        // node matched FIRST in the document — measured on Rotten Tomatoes, a poster-tile's shadow link was joined to
+        // an unrelated header dropdown link whose href ended the same way. Resolve the chain instead, and attribute
+        // the finding to its outermost light-DOM host (the element the v3 inventory can name by xpath); a chain that
+        // does not resolve end to end returns null (shadow signal only, never a wrong element).
+        const resolveNode = (target) => {
+          if (Array.isArray(target) && target.length > 1) return null;
+          const sel = Array.isArray(target) ? target[0] : target;
+          if (!sel) return null;
+          if (!Array.isArray(sel)) return { node: document.querySelector(sel), host: null };
+          let root = document; let node = null; let host = null;
+          for (let i = 0; i < sel.length; i++) {
+            node = root.querySelector(sel[i]);
+            if (!node) return null;
+            if (i === 0) host = node;
+            if (i < sel.length - 1) { if (!node.shadowRoot) return null; root = node.shadowRoot; }
+          }
+          return { node, host };
+        };
+        const resolveXpath = (target) => { try { const r = resolveNode(target); const el = r && (r.host || r.node); return el ? xpathOf(el) : null; } catch (e) { return null; } };
+        // Per-node facts build-v3 needs to apply a rule's ACT applicability before promoting it (object-alt: the
+        // embedded resource must be image/audio/video and actually rendered — C620 was a 1x1 off-screen Flash
+        // capability probe).
+        const nodeFacts = (target) => {
+          try {
+            const r = resolveNode(target); const el = r && r.node; if (!el || !el.getBoundingClientRect) return {};
+            const b = el.getBoundingClientRect();
+            const out = { w: Math.round(b.width), h: Math.round(b.height) };
+            if (failedImageIn(el)) out.failedImage = true;
+            // Is this node a USER INTERFACE COMPONENT (4.1.2's subject)? Focusable, a native/ARIA interactive role,
+            // or a pointer-cursor element whose own or a near ancestor's click handler makes it operable (the Newegg
+            // notification bell, C649: an <i> inside a div with onclick — a real mouse-only control).
+            const IROLE = /^(button|link|checkbox|radio|switch|tab|menuitem|menuitemcheckbox|menuitemradio|option|combobox|textbox|searchbox|slider|spinbutton|treeitem|gridcell)$/;
+            const role = (el.getAttribute('role') || '').trim().split(/\s+/)[0];
+            let clickable = false;
+            if (getComputedStyle(el).cursor === 'pointer') for (let a = el, d = 0; a && d < 3; a = a.parentElement, d++) if (a.onclick || a.hasAttribute('onclick')) { clickable = true; break; }
+            out.interactive = el.tabIndex >= 0 && !el.disabled && el.getAttribute('tabindex') !== null
+              || /^(A|BUTTON|INPUT|SELECT|TEXTAREA|SUMMARY)$/.test(el.tagName) && !(el.tagName === 'A' && !el.hasAttribute('href'))
+              || IROLE.test(role) || clickable;
+            if (/^(OBJECT|EMBED)$/.test(el.tagName)) {
+              const t = (el.getAttribute('type') || '').toLowerCase();
+              const src = (el.getAttribute('data') || el.getAttribute('src') || '').toLowerCase().split(/[?#]/)[0];
+              const ext = (src.match(/\.([a-z0-9]+)$/) || [])[1] || '';
+              const byExt = /^(png|jpe?g|gif|webp|svg|bmp|avif)$/.test(ext) ? 'image/' + ext : /^(mp3|wav|ogg|oga|m4a|aac|flac)$/.test(ext) ? 'audio/' + ext : /^(mp4|webm|ogv|mov|m4v)$/.test(ext) ? 'video/' + ext : /^(swf)$/.test(ext) ? 'application/x-shockwave-flash' : '';
+              out.mime = t || byExt || null;
+            }
+            return out;
+          } catch (e) { return {}; }
+        };
         // PASSES ALLOWLIST: a rubric may be told to DEFER to a checker that measured exactly its question —
         // use-of-color-v0 says "when the handed axe `link-in-text-block` signal reports PASS, DEFER to it".
         // That clause was UNREACHABLE: `resultTypes` did not include 'passes', so axe returned at most one
@@ -1599,9 +1772,31 @@ async function collectActPage(page, opts = {}) {
         // flagged links styled identically to their prose (1:1 contrast) — 3 of the run's 14 false positives.
         // Only allowlisted rules are carried so the artifact does not balloon with every passing check.
         const PASS_ALLOW = new Set(['link-in-text-block']);
+        const FACT_RULES = new Set(['object-alt', 'aria-prohibited-attr', 'link-name', 'image-alt', 'button-name', 'input-image-alt', 'role-img-alt', 'svg-img-alt']);
+        // A FAILED image load in the node's COMPOSED subtree (through open shadow roots and slot assignments):
+        // an <img> whose src is set but which finished with no decoded pixels. A name that depends on that image
+        // (a web component that drops the alt when its image errors) is then missing because an ASSET failed,
+        // not because the page lacks one — measured on Rotten Tomatoes (C164/C203/C635): aborting image loads
+        // reproduces the campaign's 31 unnamed poster links exactly; with images loaded they are all named. An
+        // EMPTY src is not a failed load (a genuinely image-less tile stays a real finding).
+        const failedImageIn = (root) => {
+          let found = false; let budget = 300;
+          const walk = (n, depth) => {
+            if (found || depth > 8 || budget-- <= 0 || !n) return;
+            // ...and only an image that CARRIES a text alternative: the name was authored and is missing only
+            // because the failed image (or the component around it) stopped exposing it. An image with NO alt
+            // leaves its link unnamed whether or not it loads — that stays a real finding.
+            if (n.tagName === 'IMG') { const src = (n.getAttribute('src') || '').trim(); if (src && src !== 'none' && n.complete && n.naturalWidth === 0 && (n.getAttribute('alt') || '').trim()) { found = true; return; } }
+            if (n.shadowRoot) walk(n.shadowRoot, depth + 1);
+            if (n.tagName === 'SLOT' && n.assignedElements) for (const x of n.assignedElements({ flatten: true })) walk(x, depth + 1);
+            for (const c of (n.children || [])) walk(c, depth + 1);
+          };
+          walk(root, 0);
+          return found;
+        };
         const cfg = { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice'] }, resultTypes: ['violations', 'incomplete', 'passes'] };
         const r = await axe.run(document, cfg);
-        const map = (arr) => (arr || []).map((v) => ({ id: v.id, impact: v.impact, wcag: (v.tags || []).filter((t) => /^wcag\d/.test(t)), nodes: (v.nodes || []).map((n) => ({ target: n.target, xpath: resolveXpath(n.target) })) }));
+        const map = (arr) => (arr || []).map((v) => ({ id: v.id, impact: v.impact, wcag: (v.tags || []).filter((t) => /^wcag\d/.test(t)), nodes: (v.nodes || []).map((n) => ({ target: n.target, xpath: resolveXpath(n.target), ...(FACT_RULES.has(v.id) ? { facts: nodeFacts(n.target) } : {}) })) }));
         return { violations: map(r.violations), incomplete: map(r.incomplete), passes: map((r.passes || []).filter((v) => PASS_ALLOW.has(v.id))) };
       }).catch(() => null);
     } catch (e) { axeData = null; }
@@ -1775,6 +1970,14 @@ async function collectActPage(page, opts = {}) {
     }
   }
 
+  // V2 EXPOSURE facts — run LAST: the revealed-on-focus probe moves focus (restored after each probe), so no
+  // collector above can see its side effects. A failure leaves `exposure` absent ⇒ the oracle gates nothing.
+  try {
+    const { collectExposure } = require('./collect-exposure.js');
+    const exp = await page.evaluate(collectExposure, (data.elements || []).map((e) => e && e.xpath).filter(Boolean));
+    if (exp && typeof exp === 'object') for (const el of data.elements || []) if (el && exp[el.xpath]) el.exposure = exp[el.xpath];
+  } catch (e) { /* exposure unavailable ⇒ ungated (the pre-V2 behaviour) */ }
+
   return {
     file: opts.file || `act:${url}`,
     sourceUrl: opts.sourceUrl || url,
@@ -1783,6 +1986,9 @@ async function collectActPage(page, opts = {}) {
     collectedAt,
     elements: data.elements || [],
     elementCount: (data.elements || []).length,
+    // V3: the SC scope obligations are minted for (categories.json unless the caller passes opts.scope —
+    // 'all' ⇒ undefined ⇒ unfiltered). Enforced by candidate-generator + build-v3 via scope.js.
+    scope: require('./scope.js').scopeDeclaration(opts.scope),
     // EN C.9.6.2 "full pages" coverage disclosure: when the element cap truncated the scan, a page-clear covers
     // ONLY the collected prefix — a barrier past the cap is unseen by every v3 lane. Surfaced so the builder can
     // flag the page-clear as PARTIAL-COVERAGE rather than a full-page conformance claim. `cap` is the configured cap.

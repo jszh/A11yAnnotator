@@ -426,6 +426,9 @@ function precomputeSignals(element, skill, sc) {
     s.focusRing = A.focusRingDecision({ realTabSpatial: element.focusStats });
   }
   if (skill === 'keyboard-operability') {
+    if (element.pageScriptsDisabled === true) {
+      s.scriptsDisabled = { value: true, uncertainReason: 'this page was captured with scripting OFF. Script-driven key behaviour (arrow-key roving focus in a tablist/listbox/menu/radiogroup, carousel dot navigation, custom key handlers) cannot run here, so its absence is NOT evidence of a keyboard barrier — judge that half PARTIAL. Static facts still stand: a control with no role, or one no member of its widget can reach by Tab, is judged as usual.' };
+    }
     s.keyboard = A.keyboardOperabilitySignal({
       role: element.role, tabindex: element.tabindex, reachedByTab: element.reachedByTab,
       respondedToSyntheticKey: element.respondedToSyntheticKey, respondsToArrows: element.respondsToArrows, focusable: element.focusable,
@@ -475,6 +478,49 @@ function precomputeSignals(element, skill, sc) {
   // S7 (RCA R7, 0va7u6): an <svg> rendering LIVE <text> is not an image of text — clear 1.4.5 for it.
   if (element.svgLiveText === true) {
     s.svgLiveText = { value: true, uncertainReason: 'this <svg> renders LIVE <text>/<tspan> — its text is REAL and machine-readable (not flattened pixels), so it is NOT an image of text and carries NO 1.4.5 barrier (judge NOT REPRODUCED for the images-of-text concern)' };
+  }
+  // V2 EXPOSURE (collect-exposure.js): when the at-rest crop cannot show this element, say so and say why —
+  // the oracle already removed the families that cannot apply; these are the ones that still do.
+  if (element.exposure && typeof element.exposure === 'object') {
+    const x = element.exposure;
+    if (x.srOnly === true && x.revealedOnFocus === true) {
+      s.revealedOnFocus = { value: true, uncertainReason: 'this element is VISUALLY HIDDEN AT REST and becomes visible when it receives keyboard focus (the skip-link pattern). An at-rest crop shows nothing here — that is by design, not a defect. Judge focus visibility and any visual property on the FOCUSED state only; if no focused-state evidence is provided, return PARTIAL for visual questions.' };
+    } else if (x.srOnly === true && skill === 'focus-visibility') {
+      s.invisibleWhenFocused = { value: true, labelProxy: x.labelProxy || null,
+        uncertainReason: 'this focusable element stays VISUALLY HIDDEN even while focused (sr-only / 1px / off-page) — keyboard focus lands on something no sighted user can see. '
+          + (x.labelProxy ? 'A rendered label (' + x.labelProxy + ') stands in for it visually: focus is visible ONLY if that label (or the control\'s visible wrapper) shows a focus indication when this control is focused — judge that; if it shows none, this is a 2.4.7 barrier.' : 'No visible stand-in was found: unless focusing it reveals a visible indication elsewhere, focus is not visible (2.4.7 barrier).') };
+    }
+    if (x.clippedOut && x.clippedOut.scrollReachable !== true) {
+      s.clippedOutOfView = { container: x.clippedOut.container || null, uncertainReason: 'at capture this element was wholly CLIPPED OUT OF VIEW by an overflow container (' + (x.clippedOut.container || 'a carousel/scroller') + ') — typically an off-screen carousel slide. The crop may show neighbouring content instead of this element. For any VISUAL question, judge only if the element is actually visible in the crop; otherwise return PARTIAL (not a barrier, not a pass).' };
+    }
+  }
+  // V8 SHADOW-CONTROL IDENTITY (expert-study C658): this record is a custom-element HOST whose operable control
+  // lives inside its shadow root; the collector judged the host on that control's computed role/name/focus. Tell
+  // the judge which node the facts describe and what the host's own ARIA does (or does not) contribute.
+  if (element.delegatedToShadowControl === true && element.innerControl && typeof element.innerControl === 'object') {
+    const ic = element.innerControl;
+    const hostLabel = ic.hostLabel || null;
+    const innerName = typeof ic.axName === 'string' ? ic.axName : null;
+    const hostLabelReaches = !!(hostLabel && innerName && innerName.toLowerCase().includes(hostLabel.toLowerCase()));
+    s.shadowInnerControl = {
+      innerTag: ic.tag, innerRole: ic.axRole || null, innerAccessibleName: innerName, innerFocusable: ic.focusable === true,
+      hostAriaLabel: hostLabel, hostLabelReachesControl: hostLabelReaches,
+      uncertainReason: 'this element is a custom-element HOST. Its operable control is the <' + ic.tag + '> inside its shadow root (role ' + (ic.axRole || 'unknown') + ', ' + (ic.focusable === true ? 'keyboard-focusable' : 'not focusable') + '), and the role/name/focus facts here describe THAT control. Judge name, role, state and keyboard access on the inner control, NOT on the host: the host being role-less or unfocusable is not a defect when the control inside it is a real, focusable ' + (ic.axRole || 'control') + '. '
+        + (hostLabel
+          ? (hostLabelReaches ? 'The host\'s aria-label reaches the control\'s accessible name, so it is not a separate defect.' : 'The host carries aria-label "' + hostLabel + '", but the control\'s computed accessible name is ' + (innerName ? '"' + innerName + '"' : 'EMPTY') + ' — the label on the host does not reach the control. If the name is empty, that is a 4.1.2 name defect of the control; report it as such, not as ARIA legality on the host.')
+          : ''),
+    };
+  }
+  // RASTER PROVENANCE (expert-study C226): what the crop of an <img> actually shows. A raster that did not load
+  // is not evidence of the image's content, and live HTML text painted over the image box is not IN the raster.
+  if (element.imgRender && typeof element.imgRender === 'object') {
+    const ir = element.imgRender;
+    if (ir.loaded === false) {
+      s.imageNotLoaded = { value: true, uncertainReason: 'this <img> had NOT loaded when the page was captured (no decoded pixels, naturalWidth 0). The crop shows a broken-image placeholder or whatever is painted over the box — NOT the image\'s content. Do not judge what the image depicts or whether it contains text (1.1.1 alt adequacy against the pictured content, 1.4.5 images of text) from these pixels: return PARTIAL for those questions. Questions that need no pixels (an empty/absent alt on an informative image, a file-name alt) can still be judged.' };
+    }
+    if (Array.isArray(ir.overlayText) && ir.overlayText.length) {
+      s.htmlTextOverImage = { strings: ir.overlayText.slice(0, 3), uncertainReason: 'these strings are LIVE HTML TEXT whose rendered boxes lie over this image — the DOM owns them, so they are NOT part of the image raster. If the crop shows only this text, it is NOT an image of text (1.4.5 NOT REPRODUCED for that text); judge the raster on any OTHER text it visibly contains.' };
+    }
   }
   // #9 (round-3 overfit audit): SC 2.2.2 has TWO clauses with DIFFERENT conditions — tell the motion-control
   // rubric WHICH mechanical signal minted this obligation so it applies the right one. MOVING/blinking/

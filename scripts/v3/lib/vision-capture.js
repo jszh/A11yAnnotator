@@ -258,7 +258,11 @@ async function captureVision(page, xpaths, opts = {}) {
   await safeInstallResolver(page); // #10 fix: idempotent per-page setup for frame-qualified xpaths
   const want = new Set(opts.states || ['element-crop', 'surrounding-region', 'viewport', 'viewport-320']);
   const pad = Number.isFinite(opts.pad) ? opts.pad : 24;
-  const shot = (clip) => require('./settle.js').robustScreenshot(page, clip ? { clip, encoding: 'base64' } : { encoding: 'base64' }); // retry-on-null under contention
+  // captureBeyondViewport:false — every clip here is clamped to the viewport after scrollIntoView, so there is
+  // nothing beyond it to capture, and Puppeteer's default (true) RESIZES the viewport to the whole document for the
+  // shot. That re-layout is not neutral: on the saved ESPN page it painted the content washed-out (the same clip
+  // read crisp dark-on-white with false), and a contrast judge flagged the pale frame (expert-study C631).
+  const shot = (clip) => require('./settle.js').robustScreenshot(page, clip ? { clip, encoding: 'base64', captureBeyondViewport: false } : { encoding: 'base64' }); // retry-on-null under contention
   const out = {};
 
   // page-wide viewport crops are shared across all elements — capture once. Hardened (batch-3 #19b): a
@@ -415,7 +419,7 @@ async function captureStateVision(page, plan, opts = {}) {
   page.on('dialog', onDialog);
   let cdp = null;
   try { cdp = await page.createCDPSession(); await cdp.send('DOM.enable'); await cdp.send('CSS.enable'); } catch (e) { cdp = null; }
-  const shot = (clip) => require('./settle.js').robustScreenshot(page, { clip, encoding: 'base64' }); // retry-on-null under contention
+  const shot = (clip) => require('./settle.js').robustScreenshot(page, { clip, encoding: 'base64', captureBeyondViewport: false }); // viewport-clamped clips; see captureVision
   const str = (s) => typeof s === 'string' && s.length > 0;
   // park the pointer FAR off-viewport (proven idle): (0,0) is a real hittable coordinate, so a prior hover
   // iteration that ended there could leave a fixed top-left element :hover and pollute the NEXT subject's
@@ -563,19 +567,36 @@ async function captureStateVision(page, plan, opts = {}) {
     await parkPointer(); // RESET to a guaranteed-idle pointer BEFORE the before-frame (kills cross-subject hover leak)
     // a true IDLE before-state: blur whatever is focused, then bring the target into view.
     await page.evaluate((x) => { try { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); } catch (e) {} const el = window.__v3ResolveXpath(x); if (el && el.scrollIntoView) { try { el.scrollIntoView({ block: 'center', inline: 'center' }); } catch (e) { el.scrollIntoView(); } } }, xp).catch(() => {});
-    const rect = await page.evaluate((x) => {
+    const rect = await page.evaluate((x, inkBox) => {
       const el = window.__v3ResolveXpath(x);
       if (!el || !el.getBoundingClientRect) return null;
       if (!window.__v3EffectivelyVisible(el)) return null; // #10e fix: ancestor-cascaded opacity:0/hidden — see captureVision's probe
       // #10b fix: top-page-relative coords — cx/cy feed a REAL page.mouse.move() below, which is meaningless
       // (or hits the wrong element) if computed from an in-frame-local rect.
-      const r = window.__v3ResolveXpathBox(x);
+      let r = window.__v3ResolveXpathBox(x);
       if (!r) return null;
+      // FOCUS: crop the element's INK box, not its own box. An inline <a> wrapping a block image has a 16px
+      // line box, but its focus ring is painted around the whole 200px card (expert-study C181, Amazon): the
+      // own-box crop was a thin band through the middle of the image, the ring fell outside it, and the judge
+      // saw "no visible change". Union the rendered descendants' boxes (same frame ⇒ shift by the same
+      // local→top offset __v3ResolveXpathBox applied to the element itself).
+      if (inkBox) {
+        const own = el.getBoundingClientRect();
+        const dx = r.left - own.left, dy = r.top - own.top;
+        let L = r.left, T = r.top, R = r.left + r.width, B = r.top + r.height;
+        const kids = el.querySelectorAll('*');
+        for (let i = 0; i < kids.length && i < 400; i++) {
+          const q = kids[i].getBoundingClientRect();
+          if (!(q.width > 0 && q.height > 0)) continue;
+          L = Math.min(L, q.left + dx); T = Math.min(T, q.top + dy); R = Math.max(R, q.right + dx); B = Math.max(B, q.bottom + dy);
+        }
+        r = { left: L, top: T, width: R - L, height: B - T };
+      }
       if (!(r.width >= 6) || !(r.height >= 6)) return null;
       // cx/cy stay VIEWPORT-relative (they feed a real page.mouse.move() below, which is a screen/input coordinate,
       // NOT a page.screenshot clip) — only x/y grow a scrollX/scrollY tag, consumed by clampClip/unionClip (#10d fix).
       return { x: r.left, y: r.top, w: r.width, h: r.height, vw: window.innerWidth, vh: window.innerHeight, scrollX: window.scrollX, scrollY: window.scrollY, cx: r.left + r.width / 2, cy: r.top + r.height / 2 };
-    }, xp).catch(() => null);
+    }, xp, transition === 'focus').catch(() => null);
     if (!rect) continue;
     const inView = rect.x < rect.vw && rect.y < rect.vh && rect.x + rect.w > 0 && rect.y + rect.h > 0;
     if (!inView) continue;

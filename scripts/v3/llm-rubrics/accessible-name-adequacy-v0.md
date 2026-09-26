@@ -78,16 +78,23 @@ cannot show what the control does, abstain (PARTIAL).
 **When the routed concern is ARIA-attribute LEGALITY, not name adequacy.** This obligation can reach you
 because an external checker flagged a **prohibited ARIA attribute** (the `external-checker cross-signal` /
 `checkerHint` names a rule like `aria-prohibited-attr` — e.g. `aria-label`/`aria-*` on a `<div>`/`<p>`/`<span>`
-or any element whose role does **not** support that property). That is a 4.1.2 **value/validity** failure, NOT
-a name-adequacy question: judging whether the name "reads fine" is the WRONG test and will false-clear a real
-barrier (this happened — a legible name on an element carrying a prohibited `aria-*` was cleared). When the
-checkerHint points at ARIA legality:
-- Judge whether the ARIA property is **prohibited on this element** — an `aria-*` on a generic element with no
-  (or a conflicting) role, or a property its role disallows. A prohibited/invalid ARIA property is a barrier
-  (AT may expose a wrong/ignored name-role-value) → **REPRODUCED**, regardless of whether the name text reads well.
-- Do **NOT** clear just because the accessible name is adequate; name adequacy does not cure an illegal attribute.
-- If you cannot determine the element's computed role or whether the attribute is honored, call `query_ax_node`
-  (role / role source / required states / IDREF resolution) — and if still unresolved, return **PARTIAL**, never a clear.
+or any element whose role does **not** support that property). An illegal attribute is an **ARIA authoring**
+error. It is a 4.1.2 barrier **only when a user loses something because of it** — ACT itself lists 4.1.2 as a
+*secondary* requirement of the prohibited-ARIA rules ("some of the failed examples satisfy this success
+criterion"). So ask the WCAG question, not the markup question:
+- **REPRODUCED** when the element is a **user interface component** — something a user operates (it is focusable,
+  has an interactive role, or visibly behaves as a control: pointer cursor, click handler, opens something) — and
+  the ignored attribute leaves it without the name / role / state it needs. Do not clear such a control merely
+  because the ignored `aria-label` text "reads fine": AT never receives it.
+- **REPRODUCED** when the ignored attribute is the **only** carrier of information the page conveys visually — an
+  icon or graphic with no text alternative and no visible text beside it saying the same thing.
+- **NOT REPRODUCED** otherwise: the element is not a component (a wrapper, a paragraph, a decorative or
+  labelled-by-adjacent-text icon, a container whose content is read anyway), so nothing is lost. Name the
+  information you checked for in `reasoning` (e.g. "the status icon sits beside visible text that states the same
+  status"; "the wrapper's child image already has an equivalent alt"). A mouse-operable icon `<i aria-label>` with
+  no role inside a clickable container IS a barrier — because it is a control, not because of the attribute.
+- If you cannot tell whether the element is operable or whether its meaning is conveyed elsewhere, call
+  `query_ax_node` / inspect the crop, and if still unresolved return **PARTIAL**.
 
 **WCAG soundness caveats (do NOT manufacture a failure these don't support):**
 - If `accessibleName.present:false` (empty name) AND the role REQUIRES a name (interactive widget, per the list

@@ -349,6 +349,7 @@ async function runBroadScopeForUrl(url, opts = {}) {
   const id = { file: opts.file || 'page', runId: opts.runId || 'run', pageDigest: opts.pageDigest || 'sha256:unknown' };
   const open = async () => {
     const page = await browser.newPage();
+    await require('./viewport.js').pinCollectorViewport(page); // V1: collector viewport
     await page.goto(url, { waitUntil: 'load', timeout: opts.timeoutMs || 45000 });
     await sleep(Number.isFinite(opts.settleMs) ? opts.settleMs : 150);
     return page;

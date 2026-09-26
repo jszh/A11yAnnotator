@@ -561,7 +561,12 @@ async function runInstruments(page, opts = {}) {
   // fires inside it, a batched add would ALSO discard the region/self-refocus rows already in hand —
   // exactly the S5 shape the partial sink exists to prevent. Each detector's rows land the moment it
   // returns.
-  const traps = await guard('keyboardTraps', detectKeyboardTraps(page));
+  // V6: only regions the real Tab walk entered are probed — and only when that walk completed its ring (a
+  // truncated walk proves nothing about unreached regions, so the detector falls back to its tabbable gate).
+  const reachableXpaths = (tab && tab.wrapped && Array.isArray(tab.order))
+    ? [...new Set([...(tab.order || []), ...((tabBack && Array.isArray(tabBack.order)) ? tabBack.order : [])].map((s) => s && s.xpath).filter(Boolean))]
+    : null;
+  const traps = await guard('keyboardTraps', detectKeyboardTraps(page, { reachableXpaths }));
   add('keyboard-trap', trapFindingRowsFrom(traps, null, null));
   // self-refocus traps (2.1.2): a LONE focusable that re-grabs its own focus on blur — the region
   // detector above cannot see these (no region; its escape probe runs before the async refocus fires).

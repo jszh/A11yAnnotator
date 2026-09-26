@@ -92,6 +92,9 @@ function createTabAllocator(opts = {}) {
     try { page = await open(); }
     catch (e) { openFailures++; releaseSlot(); throw e; }
     granted++;
+    // V1: every leased tab starts at the collector viewport (1280×900), not Puppeteer's 800×600 default, so the
+    // experiments/instruments/vision lanes measure the same layout the collector described. No-op on mock pages.
+    await require('./viewport.js').pinCollectorViewport(page);
 
     // DOWNLOAD GUARD: deny file downloads on EVERY tab. Saved fixture pages can link to real external resources
     // Chrome serves as a download — e.g. ACT 5effbb links to gutenberg.org's Ulysses `.epub` — and a runner that

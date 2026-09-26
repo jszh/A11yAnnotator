@@ -72,6 +72,10 @@ function collectColourPeers(opts) {
     return t || (e.textContent || '').replace(/\s+/g, ' ').trim();
   };
 
+  // Rendered text of the element itself (any descendant text) — the aria-label fallback used for `label` below
+  // does not count: a dot labelled "Slide 1" renders no text.
+  const ownTextRendered = (e) => ((e.textContent || '').replace(/\s+/g, '').length > 0);
+
   // Bucket by (tag, role, parent) — the structural definition of "peer".
   const buckets = new Map();
   const tokenBuckets = tokenLane ? new Map() : null; // (tag, class token) → text-less painted instances, cross-parent
@@ -146,6 +150,8 @@ function collectColourPeers(opts) {
     if (members.length < 2 || groups.length >= MAX_GROUPS) continue;
     const facts = members.map((el) => {
       const cs = getComputedStyle(el);
+      const box = el.getBoundingClientRect();
+      const tm = /matrix\(([-\d.e]+),\s*([-\d.e]+)/.exec(cs.transform || '');
       return {
         el,
         xpath: xpathOf(el),
@@ -159,6 +165,14 @@ function collectColourPeers(opts) {
         decoration: (cs.textDecorationLine || '').trim(),
         size: cs.fontSize,
         borderStyle: cs.borderTopStyle + '/' + cs.borderTopWidth,
+        // SHAPE / SIZE. A text-less indicator (a carousel dot, a swatch, a step marker) is often distinguished by
+        // its box: Zillow's active slide dot is 8x8 against 6x6/4x4 peers, which the font axes above cannot see,
+        // so the group was reported colour-only and the active dot's judge was told there was no other cue. Box
+        // size is only a cue for peers WITHOUT their own rendered text — text peers differ in width by their text
+        // length ("Home" vs "About us"), which is not a state cue, so for them only radius/scale count.
+        box: ownTextRendered(el) ? '' : Math.round(box.width) + 'x' + Math.round(box.height),
+        radius: cs.borderTopLeftRadius,
+        scale: tm ? (Math.round(Math.hypot(+tm[1], +tm[2]) * 100) / 100) : 1,
         // an icon, marker, or generated-content glyph the peer might carry instead of colour
         marker: (el.querySelector('img, svg, [role="img"]') ? 'child' : '')
           + ((getComputedStyle(el, '::before').content || 'none') !== 'none' ? '+before' : '')
@@ -175,7 +189,8 @@ function collectColourPeers(opts) {
     // Any non-colour difference ⇒ the distinction is available without colour ⇒ NOT a 1.4.1 candidate.
     const nonColourDiffers = distinct((x) => x.weight).size > 1 || distinct((x) => x.style).size > 1
       || distinct((x) => x.decoration).size > 1 || distinct((x) => x.size).size > 1
-      || distinct((x) => x.borderStyle).size > 1 || distinct((x) => x.marker).size > 1;
+      || distinct((x) => x.borderStyle).size > 1 || distinct((x) => x.marker).size > 1
+      || distinct((x) => x.box).size > 1 || distinct((x) => x.radius).size > 1 || distinct((x) => x.scale).size > 1;
     if (nonColourDiffers) continue;
     // ZEBRA STRIPING: a background that alternates strictly with row parity across 4+ peers is decorative
     // banding, not a category code. Checked before reporting because it is the commonest benign 2-colour set.
@@ -184,6 +199,33 @@ function collectColourPeers(opts) {
       const oddBg = new Set(facts.filter((_, i) => i % 2 === 1).map((x) => x.background));
       const sameText = distinct((x) => x.color).size === 1;
       if (sameText && evenBg.size === 1 && oddBg.size === 1 && [...evenBg][0] !== [...oddBg][0]) continue;
+    }
+    // V7 LIGHTNESS AXIS (expert-FP population check): a state pair that differs by ≥3:1 in relative luminance
+    // — a near-black selected tab among mid-grey ones, a white-on-dark active pill — is still distinguishable in
+    // greyscale, so the distinction does not rest on colour (hue) alone; 3:1 is the WCAG threshold for a
+    // perceivable non-text difference (G183/1.4.11). 2 of the 8 colour-group barriers left on the saved pages
+    // were such pairs (~3.3:1 and ~7:1). Every pair of DISTINCT colour signatures must be separated — a group
+    // with any hue-only pair (red vs green at similar lightness) is still reported.
+    {
+      const parse = (s) => { const m = /rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?/.exec(s || ''); return m ? [+m[1], +m[2], +m[3], m[4] == null ? 1 : +m[4]] : null; };
+      let under = [255, 255, 255];
+      for (let p = members[0].parentElement; p; p = p.parentElement) { const c = parse(getComputedStyle(p).backgroundColor); if (c && c[3] >= 1) { under = c.slice(0, 3); break; } }
+      const flat = (c, base) => (c ? [0, 1, 2].map((i) => c[i] * c[3] + base[i] * (1 - c[3])) : base);
+      const lum = (rgb) => { const ch = rgb.map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2]; };
+      const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+      const sigs = new Map();
+      for (const x of facts) {
+        const sig = x.color + '|' + x.background + '|' + x.borderColor;
+        if (sigs.has(sig)) continue;
+        const bg = flat(parse(x.background), under);
+        sigs.set(sig, { fg: flat(parse(x.color), bg), bg });
+      }
+      const list = [...sigs.values()];
+      let allSeparated = list.length >= 2;
+      for (let i = 0; i < list.length && allSeparated; i++) for (let j = i + 1; j < list.length; j++) {
+        if (Math.max(ratio(list[i].fg, list[j].fg), ratio(list[i].bg, list[j].bg)) < 3) { allSeparated = false; break; }
+      }
+      if (allSeparated) continue;
     }
     // ANCHOR ELIGIBILITY (residual RCA S10). Downstream, members[0] IS the group's subject: the obligation
     // mints on members[0].xpath (build-v3.js) and the judge's group evidence threads onto the subject with

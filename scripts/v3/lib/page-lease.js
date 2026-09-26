@@ -10,6 +10,8 @@
 const DEFAULT_CHROME = process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_PATH
   || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 
+const { pinCollectorViewport } = require('./viewport.js');
+
 async function withLanePage(opts, fn) {
   const o = opts || {};
   if (o.tabAllocator) {
@@ -18,12 +20,14 @@ async function withLanePage(opts, fn) {
   }
   if (o.browser) {
     const page = await o.browser.newPage();
+    await pinCollectorViewport(page); // V1: same layout as the collector
     try { return await fn(page); } finally { await page.close().catch(() => {}); }
   }
   const puppeteer = require('puppeteer');
   const browser = await puppeteer.launch({ executablePath: o.executablePath || DEFAULT_CHROME, headless: 'new', args: require('./browser-args.js').BROWSER_ARGS });
   try {
     const page = await browser.newPage();
+    await pinCollectorViewport(page);
     try { return await fn(page); } finally { await page.close().catch(() => {}); }
   } finally { await browser.close().catch(() => {}); }
 }

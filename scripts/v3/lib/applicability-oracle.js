@@ -437,7 +437,46 @@ function familiesFor(el) {
   // fact carries the same structural guards as emulatedControl with the focusability inverted; both are
   // activation-proven (inline handler or CDP listener), so a bare tabindex'd scroll region never fires.
   if (el.emulatedControlFocusable === true) fams.push('control-semantics');
-  return [...new Set(fams)];
+  const drops = exposureDrops(el);
+  return [...new Set(fams)].filter((f) => !drops.has(f));
+}
+
+// V2 EXPOSURE GATE (expert-FP population check, 2026-09-26). An obligation exists only for the way a user
+// actually meets the element; the collector's `exposure` facts (collect-exposure.js) say how that is. Absent
+// facts (synthetic fixtures, other collectors, a failed pass) gate nothing. The coverage registry re-declares
+// this gate independently (Rule 16).
+//   · NOT RENDERED (display:none / visibility:hidden / no box) — nothing to see, focus, or operate in this state:
+//     no visual, focus, keyboard, obscuring or hover family. Its semantics (name, link purpose, alt) still stand.
+//   · VISUALLY HIDDEN (sr-only / 1px / opacity 0 / off the page) and NOT revealed on focus — no visual
+//     presentation to judge: no contrast, colour, image-of-text or target-size family. Focus visibility STAYS:
+//     focus landing on an invisible control is precisely a 2.4.7 question (the Gymshark 1px size radios).
+//   · ROVING MEMBER (tabindex=-1 inside a composite widget that has a Tab stop) — Tab is not how it is reached;
+//     the widget's keyboard operability is judged on its entry member, so no per-member keyboard-operable.
+//   · tabindex=-1 NON-CONTROL (a programmatic focus target: a heading, a region, a dialog container) — not a
+//     keyboard-operated UI component: no keyboard-operable, no focus-indicator. A CONTROL removed from the Tab
+//     order keeps both (that is a real 2.1.1 candidate).
+//   · ARIA-HIDDEN and NOT FOCUSABLE — not exposed to assistive technology: no name-role-value, link-purpose,
+//     heading or label-in-name family (a focusable one keeps them: aria-hidden focus is itself the defect).
+const EXPOSURE_VISUAL_FAMILIES = ['text-contrast', 'non-text-contrast', 'use-of-color', 'images-of-text', 'target-size-minimum', 'target-size-enhanced'];
+const EXPOSURE_CONTROL_ROLE = /^(button|link|checkbox|switch|tab|menuitem|menuitemcheckbox|menuitemradio|combobox|radio|slider|option|spinbutton|textbox|searchbox|treeitem|gridcell)$/;
+function exposureIsControl(el) {
+  if (EXPOSURE_CONTROL_ROLE.test(factRole(el)) || el.isFormField === true || el.hasKeyHandler === true || el.emulatedControlFocusable === true) return true;
+  const types = Array.isArray(el.listenerTypes) ? el.listenerTypes : [];
+  return types.some((t) => t === 'click' || t === 'keydown' || t === 'keyup' || t === 'keypress');
+}
+function exposureDrops(el) {
+  const drop = new Set();
+  const x = el && el.exposure;
+  if (!x || typeof x !== 'object') return drop;
+  if (x.rendered === false) {
+    for (const f of [...EXPOSURE_VISUAL_FAMILIES, 'focus-indicator-visible', 'keyboard-operable', 'no-keyboard-trap', 'focus-not-obscured', 'hover-content']) drop.add(f);
+  } else if (x.srOnly === true && x.revealedOnFocus !== true) {
+    for (const f of EXPOSURE_VISUAL_FAMILIES) drop.add(f);
+  }
+  if (x.rovingMember === true && x.widgetEntryReachable === true) drop.add('keyboard-operable');
+  if (x.tabindexNegative === true && x.rovingMember !== true && !exposureIsControl(el)) { drop.add('keyboard-operable'); drop.add('focus-indicator-visible'); }
+  if (el.hiddenMechanism === 'aria-hidden' && el.focusable !== true) { for (const f of ['name-role-value', 'link-purpose', 'heading-descriptive', 'label-in-name']) drop.add(f); }
+  return drop;
 }
 
 // The atomic obligation list for a collect artifact, derived independently of any applicableScs.
@@ -522,6 +561,7 @@ function skillsForFamily(claimFamily) { return (FAMILIES[claimFamily] && FAMILIE
 function scForFamily(claimFamily) { return FAMILIES[claimFamily] && FAMILIES[claimFamily].sc; }
 
 module.exports = {
+  exposureDrops,
   FAMILIES, WIDGET_ROLE, FORMFIELD_ROLE, STATE_BEARING_ROLE, IMG_ROLE, HEADING_ROLE, decorativeSuspect, mutedLiveRegionShape, PAGE_REFLOW_XPATH, PAGE_TITLE_XPATH, PAGE_INFOREL_XPATH,
   PAGE_SECTIONHEADINGS_XPATH, PAGE_FOCUSORDER_XPATH, PAGE_MEANINGFUL_SEQUENCE_XPATH, PAGE_STATUS_MESSAGE_XPATH, pageTitleSlotPresent,
   isEvaluable, familiesFor, deriveObligations, oblId,

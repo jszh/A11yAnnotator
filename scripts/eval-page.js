@@ -776,6 +776,9 @@ function parseRGB(s) {
   // The legacy saved-page collector now uses the same applicability enrichment as collectActPage and the
   // ACT-rest evaluator. This creates obligations only; the sensory rubric remains the decision-maker.
   applySensoryHints(out.elements || []);
+  // V3: the SC scope obligations are minted for (categories.json; V3_SCOPE=all ⇒ unscoped). Same declaration
+  // collectActPage attaches — enforced by candidate-generator + build-v3 via scope.js.
+  { const sd = require('./v3/lib/scope.js').scopeDeclaration(process.env.V3_SCOPE === 'all' ? 'all' : undefined); if (sd) out.scope = sd; }
   // R2.8-D (R27-H2): stamp collectedAt at COMPLETION (not start) so the driver's start
   // (drivenAt) being >= collectedAt proves it ran after the collector FINISHED — i.e. it
   // could have used a completed collection, not merely started after the collector started.

@@ -222,8 +222,22 @@ async function detectStatusMessages(page, opts = {}) {
         // alt / title) — the AT voices a bare symbol name ("check") the eye never reads, possibly in the
         // wrong language. Record WHO carried it ({viaAccName, tag, role} + the carrier's nearest lang)
         // so the rubric can distinguish an icon-accname announcement from an ordinary one-word outcome.
+        // RENDERED text only: a <style>/<script>/<noscript>/<template> body is textContent but never visible —
+        // measured on Newegg, activating a control that injected a component carrying its own <style> produced a
+        // "status-not-announced" whose "message" was CSS.
+        const NONTEXT = /^(STYLE|SCRIPT|NOSCRIPT|TEMPLATE)$/;
+        const textOf = (n) => {
+          if (!n) return '';
+          if (n.nodeType === 3) return (n.parentElement && NONTEXT.test(n.parentElement.tagName)) ? '' : n.textContent;
+          if (n.nodeType !== 1) return '';
+          if (NONTEXT.test(n.tagName)) return '';
+          if (!n.querySelector || !n.querySelector('style,script,noscript,template')) return n.textContent;
+          let t = ''; const tw = document.createTreeWalker(n, NodeFilter.SHOW_TEXT); let x;
+          while ((x = tw.nextNode())) { let skip = false; for (let a = x.parentElement; a && a !== n.parentElement; a = a.parentElement) if (NONTEXT.test(a.tagName)) { skip = true; break; } if (!skip) t += x.textContent; }
+          return t;
+        };
         const accInfo = (n) => {
-          const base = norm(n && n.textContent);
+          const base = norm(textOf(n));
           // only an ELEMENT node widens: for a text node, toEl() would reach its PARENT and sweep in
           // sibling names that were never part of this mutation.
           if (!n || n.nodeType !== 1 || !n.querySelectorAll) return { parts: base ? [base] : [], prov: [] };
@@ -309,6 +323,7 @@ async function detectStatusMessages(page, opts = {}) {
         const valueEvents = [];   // a watched control's value went non-empty → empty
         const regionTrace = [];   // ordered live-region text transitions (emptied / refilled / updated)
         const colourDeltaByEl = new Map(); // Task-3 colour deltas, keyed by element (first-before, last-after)
+        const flippedVisible = new WeakSet(); // V5: elements this activation turned from hidden to rendered
         const rowTileLike = (el) => {
           const tag = el.tagName ? el.tagName.toLowerCase() : '';
           if (/^(tr|td|th|li|dt|dd)$/.test(tag)) return true;
@@ -351,7 +366,7 @@ async function detectStatusMessages(page, opts = {}) {
               for (const n of m.addedNodes) { const info = accInfo(n); const parts = info.parts; const t = parts.join(' ').replace(/\s+/g, ' ').trim(); if (t) added.push({ node: n, text: t, parts, at, inLive: inLiveRegion(n), prov: info.prov }); }
               for (const n of m.removedNodes) { const parts = accParts(n); const t = parts.join(' ').replace(/\s+/g, ' ').trim(); if (t) removedTexts.push({ text: t, parts, at, fromLive: !!(m.target && m.target.closest && m.target.closest(LIVE)) }); }
             } else if (m.type === 'characterData') {
-              const t = norm(m.target.textContent); if (t) added.push({ node: m.target, text: t, parts: [t], at, inLive: inLiveRegion(m.target) });
+              const t = norm(textOf(m.target)); if (t) added.push({ node: m.target, text: t, parts: [t], at, inLive: inLiveRegion(m.target) });
             } else if (m.type === 'attributes') {
               // TIMELINE-ONLY branch: attribute mutations never touch `added`/`removedTexts`, so every
               // legacy field (and therefore every current prompt) is byte-identical with this observer on.
@@ -366,6 +381,7 @@ async function detectStatusMessages(page, opts = {}) {
                   if (s.vis !== visNow && visFlips.length < 20) {
                     visFlips.push({ at, xpath: getXPath(el), nowVisible: visNow, text: norm(el.textContent).slice(0, 80) });
                   }
+                  if (!s.vis && visNow) flippedVisible.add(el); // V5: a reveal root (uncapped — the timeline cap above is for reporting only)
                   if (s.vis !== visNow) s.vis = visNow;
                   // Task-3 colour delta: computed background/colour change on a row/tile-like element
                   // (the "a row changes colour on activation" shape). First-before + last-after per element.
@@ -512,10 +528,67 @@ async function detectStatusMessages(page, opts = {}) {
         const role = (trig.getAttribute('role') || '').toLowerCase();
         const expandedNow = trig.getAttribute('aria-expanded') === 'true';
         const controlsEls = (trig.getAttribute('aria-controls') || '').split(/\s+/).filter(Boolean).map((id) => document.getElementById(id)).filter(Boolean);
+        // V5 (expert-FP population check): new content that IS an interface — a menu, a sort/filter list, a
+        // sign-in form — is primary content the user asked for, not a status message, even when the trigger
+        // carries no aria-expanded/aria-controls (3 of the 4 status findings left after A7 on the saved pages were
+        // exactly this: Quora's "Sign In" form and two option menus). The REVEAL ROOT is the outermost ancestor-or-
+        // self of the new text that this activation inserted or turned visible. It is revealed UI when it holds
+        // a form field, or ≥2 operable controls whose own text is most (≥60%) of the root's text — a menu is made
+        // of its items. A message that merely carries controls stays a status message: a cart toast ("Added to
+        // cart" + product + View cart/Checkout) is mostly non-control text, and an error summary's same-page
+        // fragment links are not counted as controls.
+        const addedEls = new Set(added.map((a) => a.node).filter((n) => n && n.nodeType === 1));
+        const revealRootOf = (e) => {
+          let root = null;
+          for (let a = e; a && a !== document.body && a !== document.documentElement; a = a.parentElement) {
+            if (addedEls.has(a) || flippedVisible.has(a)) root = a;
+          }
+          return root;
+        };
+        const CTRL_SEL = 'a[href],button,input:not([type="hidden"]),select,textarea,summary,[role="button"],[role="link"],[role="menuitem"],[role="menuitemcheckbox"],[role="menuitemradio"],[role="option"],[role="tab"],[role="checkbox"],[role="radio"],[role="switch"],[tabindex]:not([tabindex="-1"])';
+        const FIELD_SEL = 'input:not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="image"]),select,textarea';
+        const renderedCtl = (c) => { const r = c.getBoundingClientRect(); if (!(r.width > 0 && r.height > 0)) return false; const cs = getComputedStyle(c); return cs.visibility !== 'hidden' && cs.display !== 'none'; };
+        const revealedUiMemo = new Map();
+        const isRevealedUi = (e) => {
+          const root = revealRootOf(e);
+          if (!root || root === trig || root.contains(trig)) return false;
+          if (revealedUiMemo.has(root)) return revealedUiMemo.get(root);
+          let verdict = false;
+          // a popup the activation opened (role=menu/listbox/tree/grid on the reveal root or around it) is an
+          // interface by declaration — Quora's sort menu is a role=menu of role-less tabindex=0 items.
+          if (root.closest('[role="menu"],[role="menubar"],[role="listbox"],[role="tree"],[role="grid"]') || root.querySelector('[role="menu"],[role="listbox"]')) { revealedUiMemo.set(root, true); return true; }
+          const all = [...root.querySelectorAll(CTRL_SEL)].slice(0, 200).filter(renderedCtl);
+          const ctls = all.filter((c) => !(c.tagName === 'A' && /^#/.test(c.getAttribute('href') || '')) && !c.closest('[aria-hidden="true"]'));
+          const outer = ctls.filter((c) => !ctls.some((o) => o !== c && o.contains(c))); // a button inside a link counts once
+          if (outer.length >= 2) {
+            // an undeclared MODAL: a fixed/sticky overlay covering ≥50% of the viewport (Quora's sign-in wall) is a
+            // dialog in all but role — the same exclusion A7 makes for a declared one. A toast is fixed but small.
+            const rr = root.getBoundingClientRect();
+            const fixedish = /fixed|sticky/.test(getComputedStyle(root).position);
+            const coverage = (Math.max(0, Math.min(rr.right, innerWidth) - Math.max(rr.left, 0)) * Math.max(0, Math.min(rr.bottom, innerHeight) - Math.max(rr.top, 0))) / Math.max(1, innerWidth * innerHeight);
+            if (fixedish && coverage >= 0.5) verdict = true;
+            else if (outer.some((c) => c.matches(FIELD_SEL))) verdict = true;
+            else {
+              const len = (s) => norm(s).length;
+              const total = len(root.innerText || '');
+              const inCtl = outer.reduce((n, c) => n + len(c.innerText || c.getAttribute('aria-label') || ''), 0);
+              verdict = total > 0 && inCtl / total >= 0.6;
+            }
+          }
+          revealedUiMemo.set(root, verdict);
+          return verdict;
+        };
         const isDisclosureReveal = (node) => {
           const e = toEl(node); if (!e) return false;
           if ((expandedNow || role === 'tab') && controlsEls.some((c) => c === e || c.contains(e))) return true;
           if (role === 'tab' && e.closest && e.closest('[role="tabpanel"]')) return true;
+          // A DIALOG the activation opened is primary content the user asked for, not a status message (4.1.3
+          // covers results, waiting, progress and errors). Measured on Newegg (C675): the Osano cookie
+          // "Storage Preferences" dialog's heading was reported as an unannounced status. Whether focus should
+          // have moved INTO the dialog is a focus-management question, not a live-region one. alertdialog is
+          // not excluded: it is itself in the LIVE set above.
+          if (e.closest && e.closest('[role="dialog"], dialog, [aria-modal="true"]')) return true;
+          if (isRevealedUi(e)) return true;
           return false;
         };
         msgs = msgs.filter((a) => !isDisclosureReveal(a.node));

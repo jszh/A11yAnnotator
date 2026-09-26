@@ -535,6 +535,7 @@ async function main() {
     }
     rec.qwRan = !!(qwResult && qwResult.ran);
     const page = await browser.newPage();
+    await require('../../scripts/v3/lib/viewport.js').pinCollectorViewport(page); // V1: collect + axe at the collector viewport (1280×900), same as every experiment tab
     try {
       await withTimeout((async () => {
       const collect = normalizeCollectRoles(await collectForV3(page, tc, runId));

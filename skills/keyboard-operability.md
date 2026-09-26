@@ -82,6 +82,17 @@ You judge over these; you do not collect them.
   `noscript`-served SPA the handlers are inert — a silent key probe there is **not** evidence the
   control works. Lean on the static reachability/semantics signals and mark the operability half
   **PARTIAL** rather than clearing it.
+- **A roving-tabindex member is not "unreachable".** In a composite widget (`tablist`, `listbox`,
+  `menu`/`menubar`, `radiogroup`, `tree`, `grid`) exactly one member carries `tabindex=0` and the rest
+  carry `tabindex=-1` **by design** — they are reached with the arrow keys, which only script provides.
+  If arrows do not move focus, first check whether the widget works **at all** in this capture: activate
+  the target with the pointer (`observe_state_after_activation` / `interact_and_observe` click) and read
+  whether its state changed (`aria-selected` / `aria-expanded` / the panel shown). **Pointer also does
+  nothing (or only navigates away) ⇒ the widget is inert in this snapshot ⇒ PARTIAL**, naming the missing
+  script behaviour. Report **REPRODUCED** only on an **asymmetry**: the pointer operates it and the
+  keyboard cannot, or no member of the widget is reachable by Tab at all. When the handed signals say
+  `scriptsDisabled`, the page was captured with scripting off — arrow-key and other script-driven key
+  behaviour cannot be exercised, so that half is PARTIAL by construction.
 - **Absent ≠ passing.** If the control isn't in the snapshot (rendered only at runtime / not
   captured), that is **N/A** (a capture-fidelity gap), not a clear and not a barrier.
 

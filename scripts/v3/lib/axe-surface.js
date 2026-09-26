@@ -145,10 +145,17 @@ function surfaceAxeFindings(collect) {
           // finding to an obligation by xpath (the axe-promotion). Falls back to the raw CSS target when absent
           // (older collector output / a node the collector couldn't resolve) — then it stays a shadow-only signal.
           const xpath = (n && typeof n.xpath === 'string' && n.xpath) || target;
-          const key = `${ruleId}::${sc}::${target || ''}::${kind}`;
+          // A violation whose node carries a FAILED image load (collector nodeFacts.failedImage) was decided on a
+          // degraded page state: downgrade it to needs-review, so it routes to the checker-uncertainty lane with
+          // its reason instead of promoting as a decided barrier (expert-study C164/C203/C635).
+          const assetFailed = !!(n && n.facts && n.facts.failedImage === true) && kind === 'violation';
+          const k2 = assetFailed ? 'incomplete' : kind;
+          const key = `${ruleId}::${sc}::${target || ''}::${k2}`;
           if (seen.has(key)) continue;
           seen.add(key);
-          findings.push({ source: 'axe', detector: `axe:${ruleId}`, ruleId, sc, impact, kind, xpath, cssTarget: target, review: effReview });
+          findings.push({ source: 'axe', detector: `axe:${ruleId}`, ruleId, sc, impact, kind: k2, xpath, cssTarget: target, review: effReview || assetFailed,
+            ...(assetFailed ? { uncertainReason: 'asset-load-failed' } : {}),
+            ...(n && n.facts && typeof n.facts === 'object' ? { nodeFacts: n.facts } : {}) });
         }
       }
     }

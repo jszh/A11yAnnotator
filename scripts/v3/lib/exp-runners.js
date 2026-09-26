@@ -2680,9 +2680,21 @@ async function runZoomClipProbe(page, request) {
     if (!visible || !(clipX || clipY)) return { applicable: false };
     // ACT "visible": a clip window smaller than ~4x4px (the classic 1x1 visually-hidden / off-screen idiom)
     // renders NO perceivable text ⇒ the text node is fully hidden ⇒ the rule is INAPPLICABLE (not a barrier).
-    if (el.clientWidth < 4 && el.clientHeight < 4) return { applicable: false };
+    // Either axis under 4px is enough: a 1x8 window (measured: Vueling's clipped EN|EUR culture label) shows no
+    // text either, and the earlier `&&` let it through as "text clipped at zoom".
+    if (el.clientWidth < 4 || el.clientHeight < 4) return { applicable: false };
+    // A text node inside a visually-hidden box (the sr-only idiom: clip rect(0..1px), clip-path inset(50%), or a
+    // <=1px overflow-clipped box) is not visible text, so its overflow is not "clipped text" — measured on Zillow's
+    // "Previous photo"/"Next photo" labels inside an image carousel, which read as clipped text at 640px.
+    const clippedAway = (a) => {
+      const s = getComputedStyle(a);
+      const m = /rect\(\s*([-\d.]+)px[,\s]+([-\d.]+)px[,\s]+([-\d.]+)px[,\s]+([-\d.]+)px/.exec(s.clip || '');
+      if (/absolute|fixed/.test(s.position) && m && (Math.abs(+m[2] - +m[4]) <= 1 || Math.abs(+m[3] - +m[1]) <= 1)) return true;
+      if (/inset\(\s*(50|100)%/.test(s.clipPath || '')) return true;
+      return (a.offsetWidth <= 1 || a.offsetHeight <= 1) && /(hidden|clip)/.test(s.overflow || '');
+    };
     // a visible non-whitespace text node under el, with an HTML-element parent (not SVG/MathML), not aria-hidden.
-    let hasText = false;
+    const textNodes = []; // V4: the perceivable text nodes, re-used below to prove text actually crosses the clip edge
     const tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
     let n; while ((n = tw.nextNode())) {
       if (!n.textContent.trim()) continue;
@@ -2691,9 +2703,11 @@ async function runZoomClipProbe(page, request) {
       let ah = false; for (let a = p; a; a = a.parentElement) if (a.getAttribute && a.getAttribute('aria-hidden') === 'true') { ah = true; break; }
       if (ah) continue;
       const pc = getComputedStyle(p); if (pc.display === 'none' || pc.visibility === 'hidden') continue;
-      hasText = true; break;
+      let hidden = false; for (let a = p; a && a !== el; a = a.parentElement) if (clippedAway(a)) { hidden = true; break; }
+      if (hidden) continue;
+      textNodes.push(n); if (textNodes.length >= 400) break;
     }
-    if (!hasText) return { applicable: false };
+    if (!textNodes.length) return { applicable: false };
     // USED line-height = the vertical distance between successive rendered line-box TOPS (getClientRects returns
     // ALL layout lines, incl. the overflow-clipped ones — verified). getClientRects()[0].height is the GLYPH-RUN
     // height (~1.15x font-size), NOT the used line-height, so it wrongly barriered line-height:1.5 boxes. Fall back
@@ -2717,7 +2731,31 @@ async function runZoomClipProbe(page, request) {
       const cleanBoundary = Math.round(ratio) >= 1 && Math.abs(ratio - Math.round(ratio)) < 0.2;
       vBarrier = !cleanBoundary;
     }
-    return { applicable: true, barrier: hBarrier || vBarrier, detail: { clientH: el.clientHeight, scrollH: el.scrollHeight, clientW: el.clientWidth, scrollW: el.scrollWidth, lineH: +lineH.toFixed(1), ratio: ratio != null ? +ratio.toFixed(2) : null, ws: cs.whiteSpace, to: cs.textOverflow, hBarrier, vBarrier } };
+    // V4 (expert-FP population check): scrollWidth/scrollHeight overflow is not the same as CLIPPED TEXT. On real
+    // pages 13/32 published 1.4.4 barriers overflowed only because of images, padding or an off-screen slide —
+    // no rendered text line reached the clip edge. Require a text line box that is PARTLY inside the clip box
+    // (it renders) AND extends past its edge on the barrier axis. A line wholly outside the box (a scrolled-away
+    // carousel slide) is not visible text and is not "clipped" either.
+    let textCrossesX = false, textCrossesY = false;
+    if (hBarrier || vBarrier) {
+      const cl = r.left + el.clientLeft, ct = r.top + el.clientTop;
+      const box = { l: cl, t: ct, r: cl + el.clientWidth, b: ct + el.clientHeight };
+      const range = document.createRange();
+      outer: for (const t of textNodes) {
+        range.selectNodeContents(t);
+        for (const q of range.getClientRects()) {
+          if (!(q.width > 0 && q.height > 0)) continue;
+          const overlaps = q.right > box.l + SLOP && q.left < box.r - SLOP && q.bottom > box.t + SLOP && q.top < box.b - SLOP;
+          if (!overlaps) continue;
+          if (q.right > box.r + SLOP || q.left < box.l - SLOP) textCrossesX = true;
+          if (q.bottom > box.b + SLOP || q.top < box.t - SLOP) textCrossesY = true;
+          if (textCrossesX && textCrossesY) break outer;
+        }
+      }
+      if (hBarrier && !textCrossesX) hBarrier = false;
+      if (vBarrier && !textCrossesY) vBarrier = false;
+    }
+    return { applicable: true, barrier: hBarrier || vBarrier, detail: { clientH: el.clientHeight, scrollH: el.scrollHeight, clientW: el.clientWidth, scrollW: el.scrollWidth, lineH: +lineH.toFixed(1), ratio: ratio != null ? +ratio.toFixed(2) : null, ws: cs.whiteSpace, to: cs.textOverflow, hBarrier, vBarrier, textCrossesX, textCrossesY } };
   }, marker).catch(() => null);
   if (!d || !d.applicable) return mkStatic(request, 'zoom-clip-probe', '1.4.4', 'zoomClipApplicable', false, null, 'zoom-clip-640');
   return mkStatic(request, 'zoom-clip-probe', '1.4.4', 'zoomClipApplicable', true, d.barrier ? 'barrier' : 'pass', 'zoom-clip-640', d.detail);

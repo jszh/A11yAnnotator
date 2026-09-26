@@ -43,6 +43,7 @@ function generateCandidates(collect, drive) {
     const experimentId = FAM_EXP[claimFamily]; if (!experimentId) return;
     candidates.push({ candidateId: `cand-${++i}`, xpath, sc: oracle.scForFamily(claimFamily), claimFamily, experimentId, allowedExperiments: [experimentId], selectionLevel, selectionReason: reason, missingEvidence: missing });
   };
+  const inScope = require('./scope.js').scopePredicate(collect); // V3: no experiment for an out-of-scope SC
   for (const el of (collect && collect.elements) || []) {
     if (!el || !el.xpath) continue;
     // an IN-FRAME element (coverage audit, iframe traversal) carries a NAMESPACED xpath a top-doc experiment
@@ -53,6 +54,7 @@ function generateCandidates(collect, drive) {
     const baselineFocus = d.focusIndicator;
     const indeterminate = !baselineFocus || baselineFocus.present == null || baselineFocus.cropInvalid === true;
     for (const fam of oracle.familiesFor(el)) {
+      if (inScope && !inScope(oracle.scForFamily(fam))) continue;
       if (fam === 'focus-indicator-visible') {
         if (el.focusable && indeterminate) add(el.xpath, fam, 'baseline focus indicator indeterminate or crop invalid', ['focusDependentIndicator', 'obviouslyVisible']);
       } else {
@@ -61,7 +63,7 @@ function generateCandidates(collect, drive) {
     }
   }
   // page-level reflow obligation (C8).
-  if (collect && collect.page && collect.page.reflowApplicable === true) add(oracle.PAGE_REFLOW_XPATH, 'reflow-no-hscroll', 'page-level reflow at 320px');
+  if (collect && collect.page && collect.page.reflowApplicable === true && (!inScope || inScope(oracle.scForFamily('reflow-no-hscroll')))) add(oracle.PAGE_REFLOW_XPATH, 'reflow-no-hscroll', 'page-level reflow at 320px');
   return { file: collect && collect.file, runId: collect && collect.runId, pageDigest: collect && collect.pageDigest, candidates };
 }
 

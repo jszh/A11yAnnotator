@@ -584,8 +584,19 @@ async function probeCloseEscape(page, regId, closeRe, attr = 'data-v3-trapreg') 
   return false;
 }
 
+// V6 (expert-FP population check): a region is only a keyboard trap if a keyboard user can GET INTO it. The
+// probe enters by script (`focus()`), so on the saved pages it "trapped" focus inside regions the Tab key never
+// reaches — Newegg's off-canvas cookie drawer, whose buttons sit visibility:hidden until it opens (and whose
+// `offsetParent` is non-null, so it counted them as focusables). Two gates:
+//   · focusables are counted only when they can hold focus (rendered including `visibility`, not inert, not
+//     disabled), and at least one must be a Tab ENTRY (no negative tabindex — a roving grid has exactly one);
+//   · `opts.reachableXpaths` (the page's real Tab walk, forward ∪ backward, passed only when that walk completed
+//     its ring) — a region none of whose focusables the walk reached is not probed and is reported in
+//     `unreachableRegions` instead. Without a complete walk the tabbable gate alone applies (never a silent skip
+//     on a truncated walk, which would hide a real trap late in the ring).
 async function detectKeyboardTraps(page, opts = {}) {
-  const regions = await page.evaluate((regSel, focSel) => {
+  const reachable = Array.isArray(opts.reachableXpaths) ? opts.reachableXpaths : null;
+  const scan = await page.evaluate((regSel, focSel, reach) => {
     const getXPath = (e) => {
       if (!e || !e.tagName) return '';
       if (e === document.body) return '/html/body';
@@ -595,14 +606,28 @@ async function detectKeyboardTraps(page, opts = {}) {
       while (sib) { if (sib.tagName === e.tagName) idx++; sib = sib.previousElementSibling; }
       return getXPath(e.parentElement) + (isHtml ? '/' + t + '[' + idx + ']' : "/*[local-name()='" + t + "'][" + idx + "]");
     };
-    const out = []; let n = 0; const seenEl = new Set();
+    const reachSet = reach ? new Set(reach) : null;
+    // FOCUSABLE = can hold focus at all (rendered incl. visibility, not inert/disabled) — a roving grid's
+    // tabindex=-1 cells count, because arrow keys and script move focus there and the trap lives among them.
+    // ENTRY = a focusable Tab itself can land on (no negative tabindex). A region needs ≥2 focusables and ≥1 entry.
+    const focusableNow = (f) => {
+      if (!(f.offsetParent !== null || getComputedStyle(f).position === 'fixed')) return false;
+      if (typeof f.checkVisibility === 'function' && !f.checkVisibility({ visibilityProperty: true })) return false;
+      return !(f.closest('[inert]') || f.disabled === true);
+    };
+    const isEntry = (f) => { const ti = f.getAttribute('tabindex'); return !(ti !== null && parseInt(ti, 10) < 0); };
+    const out = []; const unreachable = []; let n = 0; const seenEl = new Set();
     document.querySelectorAll(regSel).forEach((reg) => {
       if (seenEl.has(reg)) return; seenEl.add(reg);
-      const fs = [...reg.querySelectorAll(focSel)].filter((f) => f.offsetParent !== null || getComputedStyle(f).position === 'fixed');
-      if (fs.length >= 2) { const id = 'tr' + (n++); reg.setAttribute('data-v3-trapreg', id); out.push({ id, xpath: getXPath(reg), focusableCount: fs.length }); }
+      const fs = [...reg.querySelectorAll(focSel)].filter(focusableNow);
+      const entries = fs.filter(isEntry);
+      if (fs.length < 2 || !entries.length) return;
+      if (reachSet && !entries.some((f) => reachSet.has(getXPath(f)))) { if (unreachable.length < 20) unreachable.push({ xpath: getXPath(reg), focusableCount: fs.length }); return; }
+      const id = 'tr' + (n++); reg.setAttribute('data-v3-trapreg', id); out.push({ id, xpath: getXPath(reg), focusableCount: fs.length });
     });
-    return out;
-  }, TRAP_REGION_SEL, FOCUSABLE_SEL);
+    return { out, unreachable };
+  }, TRAP_REGION_SEL, FOCUSABLE_SEL, reachable);
+  const regions = scan.out;
 
   const candidates = [];
   for (const reg of regions) {
@@ -632,7 +657,7 @@ async function detectKeyboardTraps(page, opts = {}) {
   return {
     traps: candidates.filter((t) => t.confirmed),
     directionalTraps: candidates.filter((t) => t.directional && !t.confirmed),
-    candidates, regionCount: regions.length,
+    candidates, regionCount: regions.length, unreachableRegions: scan.unreachable,
   };
 }
 
@@ -1863,17 +1888,52 @@ async function detectEmbeddedFormatTraps(page, opts = {}) {
   };
   const enter = async (b) => (b.kind === 'shadow-root' ? enterShadow(b.id) : enterByTab(b.id));
 
+  // WHERE focus is, down through nested frames and open shadow roots: one key per real focus position. A trap
+  // is focus that CYCLES — it comes back to a position it already held without ever leaving the boundary. A
+  // count budget cannot tell a trap from a long embed: `innerFocusables` counts only the embed's own document,
+  // and measured on a real Zillow ad (C253) the nested ad iframes and their scrollable frame bodies made the
+  // walk 8 stops long against a budget of 6, so a region a user leaves on the 9th Tab was reported as a trap.
+  const deepKey = async () => {
+    let frame = page.mainFrame(); const parts = [];
+    for (let depth = 0; depth < 6; depth++) {
+      const r = await frame.evaluate(() => {
+        let a = document.activeElement; let path = '';
+        while (a && a.shadowRoot && a.shadowRoot.activeElement) { path += a.tagName + '>'; a = a.shadowRoot.activeElement; }
+        if (!a) return { key: 'none', frame: false };
+        const all = a.getRootNode().querySelectorAll('*'); let i = 0; for (; i < all.length; i++) if (all[i] === a) break;
+        return { key: path + a.tagName + '#' + i, frame: /^(IFRAME|FRAME|OBJECT|EMBED)$/.test(a.tagName) };
+      }).catch(() => null);
+      if (!r) return null;
+      parts.push(r.key);
+      if (!r.frame) break;
+      const h = await frame.evaluateHandle(() => document.activeElement).catch(() => null);
+      const child = h && h.asElement() ? await h.asElement().contentFrame().catch(() => null) : null;
+      if (h) await h.dispose().catch(() => {});
+      // focus is inside an embedded document we cannot read (a plugin <object>, a detached frame): the host
+      // element would repeat on every press and fake a cycle, so report the position as unreadable instead.
+      if (!child) return null;
+      frame = child;
+    }
+    return parts.join('/');
+  };
+  const HARD_CAP = 150; // no cycle and no exit within this many presses ⇒ undetermined, never "trapped"
   const walkOut = async (b, backward) => {
     if (!(await enter(b))) return { escaped: null };
     if (!(await atBoundary(b.id))) return { escaped: null };   // focus refused to enter — nothing to test
     const budget = (Number.isFinite(b.innerFocusables) ? b.innerFocusables : 8) + margin;
-    for (let i = 0; i < budget; i++) {
+    const seen = new Set();
+    for (let i = 0; i < HARD_CAP; i++) {
       if (backward) { await page.keyboard.down('Shift'); await page.keyboard.press('Tab'); await page.keyboard.up('Shift'); }
       else { await page.keyboard.press('Tab'); }
       await page.evaluate(() => new Promise((r) => setTimeout(r, 25))).catch(() => {});
       if (!(await atBoundary(b.id))) return { escaped: true };
+      const key = await deepKey();
+      // Position unreadable: fall back to the count budget (the pre-cycle behaviour) rather than guess.
+      if (key == null) { if (i + 1 >= budget) return { escaped: false }; continue; }
+      if (seen.has(key)) return { escaped: false };             // focus came back round inside the boundary
+      seen.add(key);
     }
-    return { escaped: false };
+    return { escaped: null };
   };
 
   const traps = [];

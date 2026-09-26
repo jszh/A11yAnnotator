@@ -121,11 +121,33 @@ const SURFACES = Object.freeze([
   }, families: ['status-message'] }),
 ]);
 
+// V2 EXPOSURE — re-declared independently of the oracle's exposureDrops (Rule 16): the surfaces above describe
+// what an element IS; how a user MEETS it (the collector's `exposure` facts) removes the families that cannot
+// apply. Kept as a separate table so a drift between the two gates reads as a coverage error, not agreement.
+const EXPOSURE_RULES = Object.freeze([
+  Object.freeze({ id: 'not-rendered', when: (el, x) => x.rendered === false,
+    families: ['text-contrast', 'non-text-contrast', 'use-of-color', 'images-of-text', 'target-size-minimum', 'target-size-enhanced', 'focus-indicator-visible', 'keyboard-operable', 'no-keyboard-trap', 'focus-not-obscured', 'hover-content'] }),
+  Object.freeze({ id: 'visually-hidden', when: (el, x) => x.rendered !== false && x.srOnly === true && x.revealedOnFocus !== true,
+    families: ['text-contrast', 'non-text-contrast', 'use-of-color', 'images-of-text', 'target-size-minimum', 'target-size-enhanced'] }),
+  Object.freeze({ id: 'roving-member', when: (el, x) => x.rovingMember === true && x.widgetEntryReachable === true, families: ['keyboard-operable'] }),
+  Object.freeze({ id: 'negative-tabindex-non-control', when: (el, x) => {
+    if (x.tabindexNegative !== true || x.rovingMember === true) return false;
+    const control = /^(button|link|checkbox|switch|tab|menuitem|menuitemcheckbox|menuitemradio|combobox|radio|slider|option|spinbutton|textbox|searchbox|treeitem|gridcell)$/.test(factRole(el))
+      || el.isFormField === true || el.hasKeyHandler === true || el.emulatedControlFocusable === true
+      || (Array.isArray(el.listenerTypes) && el.listenerTypes.some((t) => /^(click|keydown|keyup|keypress)$/.test(String(t))));
+    return !control;
+  }, families: ['keyboard-operable', 'focus-indicator-visible'] }),
+  Object.freeze({ id: 'aria-hidden-unfocusable', when: (el) => el.hiddenMechanism === 'aria-hidden' && el.focusable !== true,
+    families: ['name-role-value', 'link-purpose', 'heading-descriptive', 'label-in-name'] }),
+]);
+
 // The families this registry requires for one element (independent of the oracle).
 function expectedFamilies(el) {
   const out = new Set();
   if (!el) return out;
   for (const s of SURFACES) if (s.when(el)) for (const f of s.families) out.add(f);
+  const x = el.exposure;
+  if (x && typeof x === 'object') for (const r of EXPOSURE_RULES) if (r.when(el, x)) for (const f of r.families) out.delete(f);
   return out;
 }
 

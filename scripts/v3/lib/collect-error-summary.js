@@ -231,6 +231,19 @@ function collectAtRestErrorState() {
   const FIELD_SEL = 'input:not([type=hidden]):not([type=submit]):not([type=button]):not([type=reset]), select, textarea';
   const fields = [].slice.call(document.querySelectorAll(FIELD_SEL)).filter(visible);
   if (!fields.length) return [];
+  const fieldKind = (el) => {
+    const t = el.tagName.toLowerCase() === 'input' ? String(el.type || 'text').toLowerCase() : el.tagName.toLowerCase();
+    if (t === 'checkbox' || t === 'radio') return 'choice';
+    if (t === 'file') return 'file';
+    if (t === 'range' || t === 'color' || t === 'image') return t;
+    return 'text'; // text-like inputs, textarea, select
+  };
+  const rendersBox = (el, cs) => {
+    const r = el.getBoundingClientRect();
+    if (r.width <= 2 || r.height <= 2) return false;
+    if (/absolute|fixed/.test(cs.position) && /rect\(\s*0(px)?[,\s]+0(px)?[,\s]+0(px)?[,\s]+0(px)?\s*\)/.test(cs.clip || '')) return false;
+    return parseFloat(cs.opacity || '1') > 0.05;
+  };
 
   // PAGE SHAPE — the two facts that say a before/after driver cannot help here. Counted, not judged.
   const scriptCount = document.querySelectorAll('script').length;
@@ -310,7 +323,11 @@ function collectAtRestErrorState() {
     // The icon is NOT judged here. Whether an image beside a field means "error" is only decidable by
     // comparing it with the other fields of the same form — an icon every field carries is furniture — so the
     // comparison happens below, with the border one, and only the raw presence and its alt are recorded now.
-    const icon = block ? block.querySelector('img, svg, [role="img"]') : null;
+    // An icon INSIDE an interactive control (a combobox's chevron toggle, a password-reveal eye, a clear "x") is
+    // that control's affordance, not a status marker — error markers are not operable. Measured on the Ashby
+    // Location combobox, whose toggle chevron made the field read as "flagged" on a pristine form.
+    const icon = block ? [].slice.call(block.querySelectorAll('img, svg, [role="img"]'))
+      .find((n) => !(n.parentElement && n.parentElement.closest('button, a[href], [role="button"], summary'))) || null : null;
     const value = (el.tagName.toLowerCase() === 'select')
       ? clip((el.selectedOptions && el.selectedOptions[0] && el.selectedOptions[0].textContent) || '', 60)
       : clip(el.value || '', 60);
@@ -325,6 +342,12 @@ function collectAtRestErrorState() {
       })(),
       border: borderSig(cs), background: cs.backgroundColor, color: cs.color,
       appearance: borderSig(cs) + ' / bg ' + cs.backgroundColor,
+      // Which fields can be compared on appearance at all. A field whose own box is not rendered (the <=2px /
+      // clip-hidden native input behind a styled "Upload File" button) shows no border to anyone, and a file
+      // input, a checkbox and a text box are drawn differently by design — measured on a pristine Ashby job
+      // form (C223), where the hidden 1x1 file input "differed from the other fields" and was reported flagged.
+      appearanceKind: fieldKind(el),
+      rendersBox: rendersBox(el, cs),
       blockHasIcon: !!icon,
       blockIconAlt: icon ? clip(icon.getAttribute('alt') != null ? icon.getAttribute('alt') : (icon.getAttribute('aria-label') || ''), 60) : null,
       retainedValue: value || null,
@@ -380,37 +403,46 @@ function collectAtRestErrorState() {
   // get reported as the ones that look different. Telling a judge that a clean field is visually marked is
   // precisely the false counter-fact this whole lane exists to remove.
   // Computed BEFORE the gate, because a border delta is itself one of the things the gate opens on.
-  const peerBorderOf = new Map();
-  for (const [k, group] of byForm) {
+  // The baseline is read per (form, field kind) over fields that render a box — see appearanceKind/rendersBox.
+  const peerOfKind = (kindGroup) => {
     let peer = null;
-    const clean = group.filter((f) => f.indicators.length === 0);
+    const clean = kindGroup.filter((f) => f.indicators.length === 0);
     if (clean.length >= 2 && new Set(clean.map((f) => f.appearance)).size === 1) peer = clean[0].appearance;
-    else if (!group.some((f) => f.indicators.length) && group.length >= 3) {
+    else if (!kindGroup.some((f) => f.indicators.length) && kindGroup.length >= 3) {
       const tally = new Map();
-      for (const f of group) tally.set(f.appearance, (tally.get(f.appearance) || 0) + 1);
+      for (const f of kindGroup) tally.set(f.appearance, (tally.get(f.appearance) || 0) + 1);
       let best = 0;
       for (const [b, n] of tally) if (n > best) { best = n; peer = b; }
-      if (!(best >= 2 && best >= Math.ceil(group.length * 0.6))) peer = null;
+      if (!(best >= 2 && best >= Math.ceil(kindGroup.length * 0.6))) peer = null;
     }
-    peerBorderOf.set(k, peer);
-    // ...and the same comparison for an ICON sitting with the field. An icon EVERY field carries is form
-    // furniture; an icon only some fields carry is a marker. Only the minority side is marked, and only when
-    // there is a genuine majority without one.
-    const withIcon = group.filter((f) => f.blockHasIcon).length;
-    const iconMarks = group.length >= 2 && withIcon > 0 && withIcon <= Math.floor(group.length / 2);
-    for (const f of group) {
-      if (peer != null && f.appearance !== peer) { f.indicators.push('border/background differs from the other fields of this form'); f.flagged = true; }
-      if (iconMarks && f.blockHasIcon) { f.indicators.push('an image/icon sits with this field and not with the other fields of this form'); f.flagged = true; }
+    return peer;
+  };
+  for (const [k, group] of byForm) {
+    const kinds = new Map();
+    for (const f of group) { f.peerAppearance = null; if (!f.rendersBox) continue; if (!kinds.has(f.appearanceKind)) kinds.set(f.appearanceKind, []); kinds.get(f.appearanceKind).push(f); }
+    for (const kindGroup of kinds.values()) {
+      const peer = peerOfKind(kindGroup);
+      // ...and the same comparison for an ICON sitting with the field. An icon EVERY field carries is form
+      // furniture; an icon only some fields carry is a marker. Only the minority side is marked, and only when
+      // there is a genuine majority without one — among fields of the same kind (an upload widget's paperclip
+      // is not an error marker relative to the text boxes).
+      const withIcon = kindGroup.filter((f) => f.blockHasIcon).length;
+      const iconMarks = kindGroup.length >= 2 && withIcon > 0 && withIcon <= Math.floor(kindGroup.length / 2);
+      for (const f of kindGroup) {
+        f.peerAppearance = peer;
+        if (peer != null && f.appearance !== peer) { f.indicators.push('border/background differs from the other fields of this form'); f.flagged = true; }
+        if (iconMarks && f.blockHasIcon) { f.indicators.push('an image/icon sits with this field and not with the other fields of this form'); f.flagged = true; }
+      }
     }
   }
   const out = [];
   for (const [k, group] of byForm) {
-    const peerBorder = peerBorderOf.get(k) || null;
     const anyFlagged = group.some((f) => f.flagged);
     const prefilled = group.filter((f) => f.hasRetainedValue).length;
     if (!anyFlagged && !prefilled) continue;
     for (const f of group) {
       if (out.length >= MAX_FIELDS) break;
+      const peerBorder = f.peerAppearance == null ? null : f.peerAppearance;
       const differs = peerBorder != null && f.appearance !== peerBorder;
       out.push({
         xpath: f.xpath,

@@ -348,11 +348,31 @@ function buildV3(bundle, opts = {}) {
   // axe `aria-valid-attr-value` flags `aria-hidden="yes"` on a generic <div> — a markup nit ACT 6cfa84 rules
   // INAPPLICABLE — and was promoted to a 4.1.2 barrier.) They still surface as shadow checker signals / LLM hints.
   const AXE_VALIDITY_NONBARRIER = new Set(['aria-valid-attr-value', 'aria-valid-attr']);
+  // ARIA LEGALITY IS NOT BY ITSELF A 4.1.2 BARRIER. ACT maps the prohibited-ARIA rules (kb1m8s, 5c01ea) to 4.1.2 as
+  // a SECONDARY requirement — "some of the failed examples satisfy this success criterion". Promoted blindly, axe
+  // `aria-prohibited-attr` published barriers on an aria-label'd tick icon beside visible "Verified buyer" text and
+  // on non-interactive wrappers (expert-study audit 2026-09-25: C265/C268 and siblings). It publishes only when the
+  // node is a user-interface component, 4.1.2's subject (C649: a mouse-operable bell with no role). Otherwise it
+  // stays a shadow checker signal; ACT scoring reads the deterministic kb1m8s lane, not this promotion.
+  // object-alt applies ACT 8fc3b6's applicability: an image/audio/video object that actually renders (C620 was a
+  // 1x1 off-screen Flash capability probe). Findings without nodeFacts (older collector output) keep the old path.
+  const axeBarrierApplicable = (f) => {
+    const nf = f.nodeFacts;
+    if (!nf || typeof nf !== 'object') return true;
+    const rule = f.rule || f.ruleId;
+    if (rule === 'aria-prohibited-attr') return nf.interactive === true;
+    if (rule === 'object-alt') {
+      if (Number.isFinite(nf.w) && Number.isFinite(nf.h) && (nf.w < 2 || nf.h < 2)) return false;
+      if (typeof nf.mime === 'string' && nf.mime && !/^(image|audio|video)\//.test(nf.mime)) return false;
+    }
+    return true;
+  };
   const axeObs = [];
   if (bundle.checkerFindings && Array.isArray(bundle.checkerFindings.findings)) {
     for (const f of bundle.checkerFindings.findings) {
       if (!f || f.source !== 'axe' || f.kind !== 'violation' || f.review) continue; // DECIDED hard violations only
       if (AXE_VALIDITY_NONBARRIER.has(f.rule || f.ruleId)) continue;                  // validity-only ⇒ shadow, never an authoritative barrier
+      if (!axeBarrierApplicable(f)) continue;                                          // ARIA-legality / applicability gate ⇒ shadow only
       let xpath = f.xpath, family = AXE_SC_FAMILY[f.sc];
       if (!family && Object.prototype.hasOwnProperty.call(AXE_PAGE_LEVEL, f.sc)) { xpath = AXE_PAGE_LEVEL[f.sc][0]; family = AXE_PAGE_LEVEL[f.sc][1]; }
       if (!family || !xpath || xpath[0] !== '/') continue; // a CSS-selector fallback xpath can't match a v3 obligation — skip
@@ -685,6 +705,23 @@ function buildV3(bundle, opts = {}) {
     }
     for (const o of qwMintedObligations) obligations.push(o);
   }
+  // V3 SCOPE (categories.json): drop every obligation — oracle-derived, checker/axe/instrument-minted, dynamic —
+  // whose SC the collect artifact declares out of scope, BEFORE any fill. Nothing is judged or published for it;
+  // the dropped count per SC is reported in summary.scopeDropped. A collect with no `scope` is untouched.
+  const scopeDroppedIds = new Set();
+  const scopeDropped = Object.create(null);
+  {
+    const inScope = require('./scope.js').scopePredicate(bundle.collect);
+    if (inScope) {
+      for (let i = obligations.length - 1; i >= 0; i--) {
+        const o = obligations[i];
+        if (inScope(o.sc)) continue;
+        scopeDroppedIds.add(o.obligationId);
+        scopeDropped[o.sc] = (scopeDropped[o.sc] || 0) + 1;
+        obligations.splice(i, 1);
+      }
+    }
+  }
   // 2.1.2 PRECEDENCE (self-refocus FN, 80af7b): the keyboard-trap-escape EXPERIMENT provably cannot decide an
   // ASYNC self-refocus trap (onblur→focus snap-back) — it abstains (INCONCLUSIVE) and records a NON-authoritative
   // SHADOW PARTIAL on the no-keyboard-trap obligation. That shadow PARTIAL was shutting out the hardened (~0-FP)
@@ -792,6 +829,7 @@ function buildV3(bundle, opts = {}) {
     }
   }
 
+  if (scopeDroppedIds.size) { for (let i = dispositions.length - 1; i >= 0; i--) if (scopeDroppedIds.has(dispositions[i].obligationId)) dispositions.splice(i, 1); }
   const { errors: recErrors, ledger } = obl.reconcile(obligations, dispositions);
   for (const m of recErrors) E(`obligation: ${m}`);
   if (errors.length) return { ok: false, errors, results: null };
@@ -1096,6 +1134,7 @@ function buildV3(bundle, opts = {}) {
     deterministicSignals, // F: shadow 2.5.8 geometry + 2.5.3 label-in-name facts (closed sub-domains; reduce LLM load)
     summary: {
       obligations: obligations.length,
+      scopeDropped, // V3: obligations dropped as out of the declared SC scope, per SC (empty when unscoped)
       proposals: proposals.length,
       authoritative: claims.length,
       shadow: shadowObs.length, // deterministic gate-passing shadows ONLY (unchanged meaning)

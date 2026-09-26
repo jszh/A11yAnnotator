@@ -184,7 +184,8 @@ function compactResult(spec, collect, out, elapsedMs) {
   const ledger = (built.results && built.results.obligationLedger) || [];
   const judgments = (bundle.judgments && bundle.judgments.judgments) || [];
   const observations = (built.results && built.results.shadowObservations) || [];
-  const obligations = oracle.deriveObligations(collect);
+  const inScope = require('../../scripts/v3/lib/scope.js').scopePredicate(collect); // V3: count only in-scope obligations
+  const obligations = oracle.deriveObligations(collect).filter((o) => !inScope || inScope(o.sc));
   return {
     key: spec.key, file: spec.file, name: spec.name, noscript: !!spec.noscript, randomCount: spec.randomCount, xpaths: spec.xpaths, requestedElements: spec.xpaths.length,
     collectedElements: (collect.elements || []).length, unresolvedElements: Math.max(0, spec.xpaths.length - (collect.elements || []).length),
