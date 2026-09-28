@@ -9,7 +9,7 @@ const { judgeCandidates } = require('../judge/judge.js');
 const { resolveCriterion } = require('./resolve.js');
 const { sweep } = require('../screen/sweep.js');
 const screened = require('../screen/screened.js');
-const { key } = require('../lib/xpath.js');
+const { key, within } = require('../lib/xpath.js');
 const { PAGE } = require('../criteria/common.js');
 
 // targets: null, or { page: bool, keys: Set<xpath key> } — evaluate only these elements (page: every candidate)
@@ -40,8 +40,9 @@ async function evaluateCriterion({ criterion, session, model, probes, client, ll
   const screenedOnly = pageCands.length ? [] : selectedOnly.map((p) => ({ xpath: p.xpath, kind: 'screened', aspect: p.aspect, origin: 'screen' }));
   let raw = [...native, ...screenedOnly];
   // evaluation restricted to given elements (the expert study's annotated elements): the candidates are the
-  // union above intersected with them — an element neither source proposed is not added
-  if (targets && !targets.page) raw = raw.filter((c) => targets.keys.has(key(c.xpath)));
+  // union above that are one of them or inside one (testing an element includes its content — the text in a
+  // button, the links in a hidden slide); an element neither source proposed is not added
+  if (targets && !targets.page) raw = raw.filter((c) => { const k = key(c.xpath); return [...targets.keys].some((t) => within(k, t)); });
   const counts = new Map();
   for (const c of raw) counts.set(c.xpath, (counts.get(c.xpath) || 0) + 1);
   const candidates = raw.map((c) => ({ ...c, key: counts.get(c.xpath) > 1 ? `${c.xpath}#${c.kind}` : c.xpath }));

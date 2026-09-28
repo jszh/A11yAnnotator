@@ -17,6 +17,14 @@ const WIDGET = new Set([...NAME_REQUIRED, ...WIDGET_EXTRA, 'option', 'gridcell',
 const INERT_ROLES = new Set(['generic', 'none', 'presentation', 'paragraph', 'StaticText', 'group', 'LineBreak', 'InlineTextBox', 'Section', 'div', 'span', 'image', 'img', 'listitem', 'list', 'text']);
 const REQUIRED_STATES = { checkbox: ['aria-checked'], switch: ['aria-checked'], menuitemcheckbox: ['aria-checked'], menuitemradio: ['aria-checked'], radio: ['aria-checked'], slider: ['aria-valuenow'], scrollbar: ['aria-valuenow', 'aria-controls'], combobox: ['aria-expanded'], heading: ['aria-level'], option: [], meter: ['aria-valuenow'] };
 
+// Names that do not identify the component: a placeholder word or a file name. Counted under 4.1.2 following the
+// expert raters' practice (the study counted a button named "icon" as a 4.1.2 failure); strictly, 4.1.2 asks that a
+// name exists, and its quality is also 2.4.6 / 2.5.3.
+const PLACEHOLDER_NAME = /^(icon|button|link|image|img|graphic|svg|picture|photo|undefined|null|true|false|object|\[object object\])$|\.(svg|png|jpe?g|gif|webp|ico)$/i;
+
+// sequential-focus content: rendered, not inert or disabled, and focusable in the Tab order
+const inTabOrder = (x) => x.rendered && !x.inert && !x.disabled && (x.tabindex !== null ? x.tabindex >= 0 : x.nativeFocusable);
+
 function isPointerControl(e) {
   return !!(e.listeners && /click|mousedown|pointerdown|mouseup|pointerup|keydown/.test(e.listeners)) || e.inlineHandlers.length > 0;
 }
@@ -41,11 +49,23 @@ module.exports = {
       if (!component) continue;
       out.push({ xpath: e.xpath, kind: stop ? 'tab-stop' : 'component', el: e, stop, act: acts.get(k) || null, axe: model.axe.of(e.xpath).filter((r) => r.scs.includes('4.1.2')) });
     }
+    // ACT 6cfa84's test target: an element with aria-hidden="true" that has content in sequential focus navigation
+    for (const e of model.elements) {
+      if (!e.ariaHiddenSelf || !isRendered(e)) continue;
+      const inside = model.elements.filter((x) => x !== e && (x.xpath.startsWith(e.xpath + '/') || x.xpath.startsWith(e.xpath + '>>')) && inTabOrder(x));
+      if (!inside.length && !inTabOrder(e)) continue;
+      const reached = [e, ...inside].filter((x) => stops.get(key(x.xpath)));
+      out.push({ xpath: e.xpath, kind: 'hidden-with-focusable-content', el: e, focusable: inside.slice(0, 8), reached, act: null, stop: null, axe: [] });
+    }
     return out;
   },
 
   assess(c, obs, model) {
     const e = c.el, ax = e.ax || {};
+    if (c.kind === 'hidden-with-focusable-content') {
+      if (c.reached.length) return { status: 'FAIL', rule: 'hidden-content-in-tab-order', reason: `This element is aria-hidden="true", yet the keyboard walk stopped on ${c.reached.length === 1 && c.reached[0] === e ? 'it' : `${c.reached.length} element(s) inside it`} — assistive technology is told the focused content does not exist (ACT 6cfa84).` };
+      return { status: 'OPEN', rule: 'hidden-content-focusable' };
+    }
     const hiddenFromAT = e.ariaHiddenSelf || e.ariaHiddenAncestor;
     // ACT 6cfa84: focus rests on an element assistive technology cannot perceive (the walk recorded focus resting here)
     if (c.stop && hiddenFromAT) {
@@ -59,6 +79,9 @@ module.exports = {
     const unreachableFrame = e.tag === 'iframe' && e.tabindex !== null && e.tabindex < 0;
     if (role && NAME_REQUIRED.has(role) && !unreachableFrame && !String(ax.name || '').trim() && !(e.tag === 'input' && e.type === 'hidden')) {
       return { status: 'FAIL', rule: 'no-accessible-name', reason: `The browser computes role "${role}" with an empty accessible name, so assistive technology announces the ${role} without saying what it is.` };
+    }
+    if (role && NAME_REQUIRED.has(role) && PLACEHOLDER_NAME.test(String(ax.name || '').trim())) {
+      return { status: 'FAIL', rule: 'placeholder-name', reason: `The browser computes role "${role}" with the name "${String(ax.name).trim()}", a placeholder that does not identify the component (counted under 4.1.2 as the expert raters did; also a 2.4.6 matter).` };
     }
     // a scripted control whose computed role is not a widget role (F59) — decided only when operating it demonstrably did something
     const inertRole = !role || INERT_ROLES.has(role);
@@ -91,6 +114,9 @@ module.exports = {
 
   evidence(c, obs, model) {
     const e = c.el;
+    if (c.kind === 'hidden-with-focusable-content') {
+      return { facts: { ariaHidden: 'aria-hidden="true" on this element', focusableInside: c.focusable.map((x) => ({ path: x.xpath, tag: x.tag, tabindex: x.tabindex, name: x.ax && x.ax.name })), keyboardWalkStoppedInside: false, note: 'decide whether any of this content can receive keyboard focus by Tab (it may be removed from focus by script, inert, or never shown)' } };
+    }
     const facts = {
       tabStop: c.stop ? { index: c.stop.index, visibleWhenFocused: c.stop.visibleWhenFocused } : 'not in the Tab sequence',
       hiddenFromAT: e.ariaHiddenSelf ? 'aria-hidden on the element' : e.ariaHiddenAncestor ? 'inside an aria-hidden container' : null,

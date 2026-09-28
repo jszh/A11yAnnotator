@@ -1,7 +1,8 @@
 'use strict';
 // 4.1.2 Name, Role, Value. Rules 1–6: GenA11y's detect_name_role_value test rules, with the parts that are not
 // 4.1.2 removed — "descriptive" names (a descriptive name is 2.4.6), "one label per field", and rule 7 ("Links
-// must have valid href values"). Rule 7 below is added in the same style.
+// must have valid href values"). Rules 7–8 below are added in the same style. Rule 8 (placeholder names) follows the
+// expert raters' practice: strictly 4.1.2 asks that a name exists, and name quality is also 2.4.6 / 2.5.3.
 module.exports = {
   sc: '4.1.2', title: 'Name, Role, Value',
   rules: [
@@ -15,7 +16,7 @@ module.exports = {
       from: 'gena11y',
       text: 'Elements with aria-hidden must not receive focus.',
       tools: ['query_ax_node', 'interact_and_observe'],
-      rubric: `Keyboard focus that rests on an element that is aria-hidden, or inside an aria-hidden container, fails (ACT 6cfa84): assistive technology is told the focused element does not exist. It passes when the element cannot actually receive focus (display:none or visibility:hidden, or a focus sentinel that immediately moves focus elsewhere). Evidence: whether it was a Tab stop and what held focus.`,
+      rubric: `An element with aria-hidden="true" that has content in sequential focus navigation — itself or a descendant reachable by Tab — fails (ACT 6cfa84, whose test target is the aria-hidden element); so does keyboard focus that rests on an element that is aria-hidden or inside an aria-hidden container: assistive technology is told the focused element does not exist. It passes when the element cannot actually receive focus (display:none or visibility:hidden, or a focus sentinel that immediately moves focus elsewhere). Evidence: whether it was a Tab stop and what held focus.`,
     },
     {
       from: 'gena11y',
@@ -46,6 +47,12 @@ module.exports = {
       text: 'Custom controls must expose the states and values their role needs (checked, expanded, selected, pressed, value) and update them — and their name — when operated.',
       tools: ['observe_state_after_activation', 'interact_and_observe', 'query_ax_node'],
       rubric: `4.1.2 requires that states, properties and values that can be set by the user can be programmatically determined and that changes are notified. It fails when a widget role lacks a state it requires (a role="checkbox" without aria-checked; ACT 4e8ab6), or when operating a component visibly changes its state (expands, selects, toggles) and no exposed state changes to match, or its name no longer matches its function (a Play button that now pauses). A visual change that is not a state (an action performed, a navigation) passes. An ARIA or HTML authoring error that does not change what assistive technology receives for a component is not a failure of this criterion. Evidence: the trigger's ARIA attributes and computed states before and after operation, what was revealed or hidden.`,
+    },
+    {
+      from: 'added',
+      text: 'Accessible names must identify the component, not be placeholders ("icon", "button", "image", a file name).',
+      tools: [],
+      rubric: `A control whose computed name is a placeholder word or a file name fails: the name exists but does not say what the component is. This follows the expert raters' practice; strictly, 4.1.2 asks that a name exists, and a name's quality is also 2.4.6 (Headings and Labels) and 2.5.3 (Label in Name).`,
     },
   ],
 };
