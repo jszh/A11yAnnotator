@@ -479,6 +479,21 @@ function precomputeSignals(element, skill, sc) {
   if (element.svgLiveText === true) {
     s.svgLiveText = { value: true, uncertainReason: 'this <svg> renders LIVE <text>/<tspan> — its text is REAL and machine-readable (not flattened pixels), so it is NOT an image of text and carries NO 1.4.5 barrier (judge NOT REPRODUCED for the images-of-text concern)' };
   }
+  // NON-AUTHORITATIVE EXPERIMENT EVIDENCE (orchestrator → el.__experimentEvidence): a deterministic experiment ran on
+  // this element for this criterion but did not decide it with authority. Its observation is EVIDENCE for the judge,
+  // not a verdict: a shadow runner's outcome is unvalidated, and INCONCLUSIVE means it could not measure.
+  if (Array.isArray(element.__experimentEvidence)) {
+    const evs = element.__experimentEvidence.filter((e) => e && (!sc || e.sc === sc)).slice(0, 4);
+    if (evs.length) {
+      const say = (e) => (e.outcome === 'BARRIER_OBSERVED' ? 'observed a barrier' : e.outcome === 'NO_BARRIER_OBSERVED' ? 'observed no barrier' : 'could not decide');
+      s.experimentEvidence = {
+        observations: evs.map((e) => ({ experiment: e.mechanism, outcome: e.outcome, note: e.reason })),
+        uncertainReason: 'a deterministic experiment already ran on this element for this criterion and is NOT authoritative: '
+          + evs.map((e) => (e.mechanism || 'experiment') + ' ' + say(e)).join('; ')
+          + '. Use it as evidence — confirm or overturn it from the element, the crops and your tools; do not copy it as the verdict, and "could not decide" is not a pass.',
+      };
+    }
+  }
   // V2 EXPOSURE (collect-exposure.js): when the at-rest crop cannot show this element, say so and say why —
   // the oracle already removed the families that cannot apply; these are the ones that still do.
   if (element.exposure && typeof element.exposure === 'object') {

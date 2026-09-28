@@ -221,6 +221,7 @@ function buildV3(bundle, opts = {}) {
     out._target = target;
     out._family = family;
     out._sc = p.sc;
+    out._exp = p.experimentId || null;
 
     if (!out.authoritative) { partials.push(out); continue; }
 
@@ -722,29 +723,30 @@ function buildV3(bundle, opts = {}) {
       }
     }
   }
-  // 2.1.2 PRECEDENCE (self-refocus FN, 80af7b): the keyboard-trap-escape EXPERIMENT provably cannot decide an
-  // ASYNC self-refocus trap (onblur→focus snap-back) — it abstains (INCONCLUSIVE) and records a NON-authoritative
-  // SHADOW PARTIAL on the no-keyboard-trap obligation. That shadow PARTIAL was shutting out the hardened (~0-FP)
-  // trap DETECTOR's BARRIER for the SAME obligation, because the §5b fill skips any obligation that already carries
-  // ANY disposition. A CONFIRMED instrument BARRIER (trapObs / detBarrierObs — both already adversarially held-out
-  // validated for ~0 FP) OUTRANKS an abstaining shadow PARTIAL: drop the colliding shadow PARTIAL so the BARRIER
-  // fills via §5b. A real CLAIM or a non-shadow PARTIAL (a bound/decided result) still owns the obligation — untouched.
-  const instrumentBarrierIds = new Set();
-  for (const o of [...trapObs, ...detBarrierObs]) {
-    if (o && o.wouldBe && o.wouldBe.observationOutcome === 'BARRIER_OBSERVED') {
-      instrumentBarrierIds.add(oracle.oblId(o.observationScope && o.observationScope.actionTargetRef, o.sc, o.claimFamily));
-    }
-  }
+  // 2.1.2 PRECEDENCE (self-refocus FN, 80af7b) — an abstaining keyboard-trap-escape experiment used to record a
+  // shadow PARTIAL that shut out the confirmed trap detector's BARRIER; that special case is now the general rule
+  // below (non-authoritative results never become dispositions).
   const dispositions = [];
   for (const c of claims) dispositions.push({
     obligationId: oracle.oblId(c._target, c._sc, c._family), kind: 'CLAIM',
     cleared: c.observationOutcome === 'NO_BARRIER_OBSERVED' || c.wcagApplicability === 'INAPPLICABLE',
   });
-  for (const p of partials) dispositions.push({ obligationId: oracle.oblId(p._target, p._sc, p._family), kind: 'PARTIAL', cleared: false });
+  // NON-AUTHORITATIVE EXPERIMENT RESULTS ARE EVIDENCE, NOT DISPOSITIONS (2026-09-26, user-approved). An experiment
+  // that ran but could not decide (unbound / invalid / INCONCLUSIVE — `partials`), or decided without authority
+  // (gate-passing but unpromoted — `shadowObs`), used to record a PARTIAL disposition, and ANY deterministic
+  // disposition shut the obligation out of both the checker/instrument PROVISIONAL fill and the LLM lane (which
+  // only judges auto-PARTIAL rows). Harmless while the page budget deferred ~88% of experiments; once they ran
+  // (V3 freed the budget) 222 element obligations on the saved pages ended with NO verdict from anyone — e.g. an
+  // Artera link with no accessible name that axe `link-name` flags and both experts called a barrier stayed
+  // PARTIAL because `ax-state-diff` ran and abstained. Now only an authoritative CLAIM owns an obligation; every
+  // non-authoritative result is kept as `experimentEvidence` (and still rides shadowObservations for scoring), the
+  // obligation stays open for the axe/QualWeb/instrument fills and the LLM, and the orchestrator hands the judge
+  // the experiment's outcome as a signal. (This subsumes the 2.1.2 precedence rule above.)
+  const experimentEvidence = [];
+  for (const p of partials) experimentEvidence.push({ obligationId: oracle.oblId(p._target, p._sc, p._family), xpath: p._target, sc: p._sc, claimFamily: p._family, mechanism: p._exp, outcome: p.observationOutcome || 'INCONCLUSIVE', authoritative: false, reason: String(p.reason || '').slice(0, 300) });
   for (const s of shadowObs) {
     const sid = oracle.oblId(s.observationScope && s.observationScope.actionTargetRef, s.sc, s.claimFamily);
-    if (instrumentBarrierIds.has(sid)) continue; // a confirmed instrument BARRIER outranks an abstaining shadow PARTIAL (2.1.2 async trap)
-    dispositions.push({ obligationId: sid, kind: 'PARTIAL', cleared: false, shadow: true });
+    experimentEvidence.push({ obligationId: sid, xpath: s.observationScope && s.observationScope.actionTargetRef, sc: s.sc, claimFamily: s.claimFamily, mechanism: s.mechanism, outcome: (s.wouldBe && s.wouldBe.observationOutcome) || 'INCONCLUSIVE', authoritative: false, reason: String(s.reason || '').slice(0, 300) });
   }
   // C2 QUALWEB DISPOSITIONS (authoritative). A barrier/clear fills ONLY a true auto-PARTIAL obligation
   // (no existing deterministic disposition) so reconcile never collides and a v3 CLAIM/PARTIAL is never
@@ -1106,6 +1108,7 @@ function buildV3(bundle, opts = {}) {
     // deterministic gate-passing shadows FIRST (lineage/fifth-pass tests key on [0]), then the
     // non-disposition LLM annotations — one array for per-mechanism gold scoring (metrics.js).
     shadowObservations: [...shadowObs, ...annotationObs],
+    experimentEvidence, // non-authoritative experiment results — evidence handed to the fills/LLM, never a disposition
     obligationLedger: ledger,
     elementSkillSummaries: aggregates,
     outOfScope,

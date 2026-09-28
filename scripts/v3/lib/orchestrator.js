@@ -311,6 +311,21 @@ async function orchestrate(collect, drive, opts = {}) {
         el.deterministicTrapConfirmed = trapBarrierXpaths.some((tx) => el.xpath === tx || el.xpath.startsWith(tx + '/') || tx.startsWith(el.xpath + '/'));
       }
     }
+    // NON-AUTHORITATIVE EXPERIMENT EVIDENCE (build-v3 `experimentEvidence`): an experiment that ran on this element
+    // but is shadow or inconclusive no longer closes the obligation — the judge now decides it, and is told what the
+    // experiment observed (precomputeSignals `experimentEvidence`). Rebuilt per pass so it never goes stale.
+    {
+      const byXpath = new Map();
+      for (const ev of ((built.results && built.results.experimentEvidence) || [])) {
+        if (!ev || !ev.xpath) continue;
+        if (!byXpath.has(ev.xpath)) byXpath.set(ev.xpath, []);
+        byXpath.get(ev.xpath).push({ sc: ev.sc, claimFamily: ev.claimFamily, mechanism: ev.mechanism, outcome: ev.outcome, reason: ev.reason });
+      }
+      for (const el of collect.elements || []) {
+        if (!el || !el.xpath) continue;
+        if (byXpath.has(el.xpath)) el.__experimentEvidence = byXpath.get(el.xpath); else delete el.__experimentEvidence;
+      }
+    }
     // PARTITION: the SCs an atomic rubric covers are OWNED by the rubric producer; the whole-obligation
     // agent runs only on the rubric-less SCs, so the two never co-fire on one cell (no duplicate eval).
     const ownedScs = new Set(Object.values(llmRubrics.rubrics || {}).filter((r) => r && r.sc).map((r) => r.sc));

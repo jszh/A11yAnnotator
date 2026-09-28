@@ -106,7 +106,7 @@ async function main() {
   // (a noObligation case correctly produces no verdict, so it must not count against "quota healthy").
   const subjectBearing = packs.filter((p) => (p.agentSubjects && p.agentSubjects.length) || (p.rubricSubjects && p.rubricSubjects.length)).length;
   const sem = makeSemaphore(GLOBAL_LLM);
-  const transport = PROVIDER === 'gemini' ? makeGeminiTransport({ apiKey: GEMINI_KEY, model: MODEL }) : makeClaudeSdkTransport(TRANSPORT);
+  const transport = PROVIDER === 'gemini' ? makeGeminiTransport({ apiKey: GEMINI_KEY, model: MODEL, ...(process.env.V3_LLM_EFFORT ? { effort: process.env.V3_LLM_EFFORT } : {}) }) : makeClaudeSdkTransport(TRANSPORT);
   const baseAgent = makeRunAgent({ transport, model: MODEL });
   const runAgent = (messages, subject) => sem.run(() => baseAgent(messages, subject));
 

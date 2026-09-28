@@ -14,7 +14,7 @@ const REPO_ROOT = path.join(__dirname, '..', '..', '..');
 require('../../../scripts/v3/lib/load-env.js').loadEnv(REPO_ROOT);
 const { orchestrate } = require('../../../scripts/v3/lib/orchestrator.js');
 const { createTabAllocator } = require('../../../scripts/v3/lib/tab-allocator.js');
-const { makeRunAgent, makeClaudeSdkTransport } = require('../../../scripts/v3/lib/llm-agent-adapter.js');
+const { makeRunAgent, makeClaudeSdkTransport, makeGeminiTransport } = require('../../../scripts/v3/lib/llm-agent-adapter.js');
 const { collectActPage, normalizeCollectRoles } = require('../../../scripts/v3/lib/act-page-collect.js');
 const { makeSemaphore } = require('../../../scripts/v3/lib/run-telemetry.js');
 const LIMITS = require('../../../scripts/v3/lib/limits.js');
@@ -34,7 +34,11 @@ const GLOBAL_LLM = Math.min(LIMITS.concurrency.llm, Number(arg('global-llm', LIM
 const RUN_NAME = arg('out', null) || 'fp-heldout-base0';
 const PACKS_DIR = path.join(REPO_ROOT, arg('packs', null) || 'results/fp-experiments/packs-heldout');
 const OUT = path.join(REPO_ROOT, 'results/fp-experiments/runs', RUN_NAME);
-const MODEL = process.env.V3_LLM_MODEL || 'claude-sonnet-4-6';
+// --provider=gemini (GEMINI_API_KEY from .env) for the baseline judge — same switch as replay-judge.js; the packs are
+// provider-independent (they freeze the judge INPUTS), only the baseline scoring run uses the provider.
+const PROVIDER = arg('provider', 'claude');
+const GEMINI_KEY = (() => { try { return (fs.readFileSync(path.join(REPO_ROOT, '.env'), 'utf8').split('\n').find((l) => l.startsWith('GEMINI_API_KEY=')) || '').split('=')[1].trim(); } catch (e) { return null; } })();
+const MODEL = process.env.V3_LLM_MODEL || (PROVIDER === 'gemini' ? (arg('model', null) || 'gemini-3.7-flash') : 'claude-sonnet-4-6');
 const TRANSPORT = { oauthToken: process.env.CLAUDE_CODE_OAUTH_TOKEN, model: MODEL, effort: process.env.V3_LLM_EFFORT || 'medium', perTurnTimeoutMs: +(process.env.V3_LLM_TURN_TIMEOUT_MS || LIMITS.llm.perTurnTimeoutMs), runTimeoutMs: +(process.env.V3_LLM_RUN_TIMEOUT_MS || LIMITS.llm.runTimeoutMs) };
 
 const safe = (s) => String(s).replace(/[^a-z0-9_]+/gi, '-').slice(0, 80);
@@ -60,14 +64,14 @@ function freezePOpts(p) { return { toolsEnabled: false, transcriptByXpath: p.tra
 
 const sem = makeSemaphore(GLOBAL_LLM);
 const instGate = makeSemaphore(Math.max(1, Math.min(PAGE_CONC, 4)));
-const baseAgent = makeRunAgent({ transport: makeClaudeSdkTransport(TRANSPORT), model: MODEL });
+const baseAgent = makeRunAgent({ transport: PROVIDER === 'gemini' ? makeGeminiTransport({ apiKey: GEMINI_KEY, model: MODEL, effort: process.env.V3_LLM_EFFORT || 'high' }) : makeClaudeSdkTransport(TRANSPORT), model: MODEL });
 const runAgent = (messages, subject) => sem.run(() => baseAgent(messages, subject));
 
 async function main() {
   fs.mkdirSync(OUT, { recursive: true }); fs.mkdirSync(PACKS_DIR, { recursive: true });
   let cases = loadHeldoutCases();
   if (LIMIT > 0) cases = cases.slice(0, LIMIT);
-  if (!process.env.CLAUDE_CODE_OAUTH_TOKEN) { console.error('FATAL: CLAUDE_CODE_OAUTH_TOKEN not set'); process.exit(1); }
+  if (PROVIDER === 'gemini' ? !GEMINI_KEY : !process.env.CLAUDE_CODE_OAUTH_TOKEN) { console.error('FATAL: judge credentials not set'); process.exit(1); }
   console.log(`FREEZE held-out: ${cases.length} pages | SCs=${SCS.join(',')} | tools=OFF | packs→${PACKS_DIR}`);
   const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: BROWSER_ARGS });
   const alloc = createTabAllocator({ browser, maxTabs: MAX_TABS });

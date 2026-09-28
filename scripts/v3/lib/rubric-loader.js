@@ -48,8 +48,10 @@ function parseFrontmatter(text) {
   return { meta, body: m[2] };
 }
 
-const SKILLS_DIR = path.join(__dirname, '..', '..', '..', 'skills');
-const RUBRICS_DIR = path.join(__dirname, '..', 'llm-rubrics');
+// V3_SKILLS_DIR / V3_RUBRICS_DIR: replay-only overrides (fixed-evidence A/B of prompt TEXT — e.g. the pre-change
+// rubric set); unset ⇒ the repository directories, as always.
+const SKILLS_DIR = process.env.V3_SKILLS_DIR || path.join(__dirname, '..', '..', '..', 'skills');
+const RUBRICS_DIR = process.env.V3_RUBRICS_DIR || path.join(__dirname, '..', 'llm-rubrics');
 const okVision = (v) => (Array.isArray(v) ? v.filter((x) => VISION_EVIDENCE.includes(x)) : []);
 const TOOL_MODES = new Set(['auto', 'required', 'none']);
 const toolMode = (v) => TOOL_MODES.has(String(v || '').toLowerCase()) ? String(v).toLowerCase() : 'auto';

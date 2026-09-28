@@ -58,7 +58,15 @@ const INSTRUMENTS_CONC = Math.max(1, Number(arg('instruments-conc', 32)) || 32);
 // six-page sample completed in 74-160 s with low contention, so 180 s had too little operating margin.
 // Keep the global library default conservative for small suites; this saved-page entry point owns the
 // measured 300 s allowance and callers can use 600 s for targeted recovery.
-const INSTRUMENTS_TIMEOUT = Math.max(1, Number(arg('instruments-timeout-ms', 300000)) || 300000);
+// 1500 s (was 300 s): at 300 s the instrument lane timed out on 22/56 saved pages in the 40a6bb3c campaign (28/56 in
+// the 2026-08-20 one), losing 2.1.2/4.1.3/2.4.3 evidence. The cap starts only once the lane holds its concurrency
+// slot (orchestrator), so a longer cap costs wall time only on the pages that actually need it.
+const INSTRUMENTS_TIMEOUT = Math.max(1, Number(arg('instruments-timeout-ms', 1500000)) || 1500000);
+// NO page-level experiment ceiling by default (2026-09-26): each experiment attempt already has its own wall
+// (catalog, clamped at LIMITS.experiment.maxWallClockMs = 150 s), and the page ceiling borrowed from the ACT suite
+// (10 min) deferred 1546 of 2485 experiment requests on the 56 saved pages — the deferred checks then fell to the
+// LLM by budget accident. `--experiment-page-wall-ms=<ms>` restores a ceiling (0 / absent = none).
+const EXPERIMENT_PAGE_WALL = Number(arg('experiment-page-wall-ms', 0)) > 0 ? Number(arg('experiment-page-wall-ms', 0)) : Infinity;
 const REQUIRE_INSTRUMENTS_COMPLETE = !!arg('require-instruments-complete', false);
 const GLOBAL_LLM = Math.max(1, Number(arg('global-llm', 100)) || 100);
 const LLM_CONC = Math.max(1, Number(arg('llm-concurrency', LIMITS.concurrency.llm)) || LIMITS.concurrency.llm);
@@ -214,7 +222,7 @@ async function main() {
   const manifest = {
     schema: 'saved-elements-run/1', phase: PHASE, runName: RUN_NAME, startedAt: new Date().toISOString(), base: BASE,
     model: RUN_LLM ? MODEL : null, effort: RUN_LLM ? EFFORT : null, tools: RUN_LLM && TOOLS, llm: RUN_LLM,
-    concurrency: { pages: PAGE_CONC, globalLlm: GLOBAL_LLM, maxTabs: MAX_TABS, browserShards: BROWSER_SHARDS, instruments: INSTRUMENTS_CONC, instrumentsTimeoutMs: INSTRUMENTS_TIMEOUT, requireInstrumentsComplete: REQUIRE_INSTRUMENTS_COMPLETE },
+    concurrency: { pages: PAGE_CONC, globalLlm: GLOBAL_LLM, maxTabs: MAX_TABS, browserShards: BROWSER_SHARDS, instruments: INSTRUMENTS_CONC, instrumentsTimeoutMs: INSTRUMENTS_TIMEOUT, experimentPageWallMs: Number.isFinite(EXPERIMENT_PAGE_WALL) ? EXPERIMENT_PAGE_WALL : null, requireInstrumentsComplete: REQUIRE_INSTRUMENTS_COMPLETE },
     requested: { pages: specs.length, elements: expectedTotal, elementsPerPage: VARIABLE_ELEMENTS ? null : ELEMENTS_PER_PAGE, variableElements: VARIABLE_ELEMENTS }, targets,
     sourceHashes: Object.fromEntries(sourceFiles.map((f) => [f, hashFile(f)])),
   };
@@ -278,7 +286,7 @@ async function main() {
           const out = await orchestrate(collect, drive, {
             resolveUrl: () => pageUrl, executablePath: CHROME, browser: shard.browser, tabAllocator: shard.alloc, maxTabs: shard.cap,
             runInstruments: true, instrumentsGate: instGate, instrumentsTimeoutMs: INSTRUMENTS_TIMEOUT, now: collect.collectedAt + 2,
-            maxAutomatic: LIMITS.act.maxAuto, budgetOpts: { maxRunWallClockMs: LIMITS.act.runWallClockMs }, experimentConcurrency: Math.min(LIMITS.concurrency.experimentCap, LIMITS.concurrency.experiment),
+            maxAutomatic: LIMITS.act.maxAuto, budgetOpts: { maxRunWallClockMs: EXPERIMENT_PAGE_WALL }, experimentConcurrency: Math.min(LIMITS.concurrency.experimentCap, LIMITS.concurrency.experiment),
             runLlm: RUN_LLM, runAgent, captureVision: RUN_LLM, wrapAgent, llmConcurrency: LLM_CONC,
             llmTools: RUN_LLM && TOOLS, llmTransportConfig: RUN_LLM && TOOLS ? transportConfig : undefined,
             llmProvider: 'gemini', geminiKey: GEMINI_KEY, llmToolConcurrency: LIMITS.concurrency.llmTool, llmToolMaxTurns: LIMITS.llm.toolMaxTurns, llmToolRunTimeoutMs: LIMITS.llm.toolRunTimeoutMs,
