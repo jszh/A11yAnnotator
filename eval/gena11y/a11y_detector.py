@@ -50,8 +50,9 @@ STANCE = 'original'                         # 'original' | 'neutral' (InterA11y'
 # The ablation ladder's step 1 (intera11y/DESIGN.md §6): GenA11y with only its prompt stance replaced by InterA11y's
 # judge stance (intera11y/src/judge/prompt.js) — the same extraction, screenshots, chunking and test rules. The
 # original stance asks the model to detect violations, "only flag clear violations", and returns one page verdict in
-# which PARTIAL ("evidence is incomplete") counts as a detection; the neutral stance asks for a verdict per element
-# with the same evidence burden for FAIL and PASS. The reply is mapped back to GenA11y's schema (_normalize_neutral),
+# which PARTIAL ("evidence is incomplete") counts as a detection; the neutral stance asks for a verdict per element,
+# with no instruction favouring either outcome. It carries no evidence standard (InterA11y's judge has one, so that
+# arrives with step 2). The reply is mapped back to GenA11y's schema (_normalize_neutral),
 # so scoring is unchanged: FAIL elements and page findings are the violations.
 SYSTEM_NEUTRAL = (
     'You are an accessibility auditor testing one web page against one WCAG 2.2 success criterion.\n\n'
@@ -64,16 +65,12 @@ SYSTEM_NEUTRAL = (
     '- NOT_APPLICABLE — the evidence shows the criterion does not apply to this element (say which applicability '
     'condition it lacks).\n'
     '- UNDETERMINED — the evidence supports none of the above.\n\n'
-    'Evidence standard. Every verdict must name the evidence it rests on (a detail of the markup, style or '
-    'screenshot). FAIL and PASS carry the same burden: an absent observation is evidence of nothing, so it cannot '
-    'support either. Judge each element on its own evidence, not on how many others fail or pass.\n\n'
     'If the page has a failure of this criterion that is not one of the listed elements (or only a screenshot is '
     "given), report it under pageFindings with the XPath of the element it concerns if you have it, or null.\n\n"
     'Answer with one JSON object and nothing else:\n'
     '{"elements":[{"xpath":"<the element\'s [path: ...] value, verbatim>","outerHTML":"<opening tag only>",'
-    '"verdict":"FAIL|PASS|NOT_APPLICABLE|UNDETERMINED","evidence":"<the evidence the verdict rests on>",'
-    '"reason":"<the test condition, and how the evidence meets or fails it>"}],\n'
-    ' "pageFindings":[{"xpath":"<xpath or null>","outerHTML":"<opening tag, or empty>","evidence":"…","reason":"…"}]}'
+    '"verdict":"FAIL|PASS|NOT_APPLICABLE|UNDETERMINED","reason":"<why>"}],\n'
+    ' "pageFindings":[{"xpath":"<xpath or null>","outerHTML":"<opening tag, or empty>","reason":"…"}]}'
 )
 
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')

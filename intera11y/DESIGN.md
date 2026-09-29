@@ -284,8 +284,9 @@ defaults are InterA11y as designed (`core/config.js` `ablation`, `judge.rubric`,
   only the stance: GenA11y's system prompt asks the model to detect violations and "only flag clear violations",
   returns one page verdict in which PARTIAL ("evidence is incomplete") counts as a detection, and 3.3.1's rules end
   with "If no form or error state is present, the page passes". The neutral stance is InterA11y's judge stance
-  (`judge/prompt.js`): a verdict per element (FAIL / PASS / NOT_APPLICABLE / UNDETERMINED), the same evidence burden
-  for FAIL and PASS, failures outside the listed elements as page findings. FAIL elements and page findings become
+  (`judge/prompt.js`) without its evidence standard: a verdict per element (FAIL / PASS / NOT_APPLICABLE /
+  UNDETERMINED) and failures outside the listed elements as page findings. The evidence standard ("every verdict
+  names the observation it rests on; FAIL and PASS carry the same burden") comes with InterA11y's prompt in step 2. FAIL elements and page findings become
   GenA11y's violations, so step 1 is scored exactly as step 0.
 - 1→2 moves into InterA11y's pipeline, so it changes how the evidence is gathered and presented as a whole: which
   elements are judged (`pool`: every rendered element of the criterion's kinds — the sweep's element pool — with
