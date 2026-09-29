@@ -79,7 +79,7 @@ async function sweep({ criterion, model, client, llmPool, trace }) {
     const deadline = new Deadline(CONFIG.unitDeadlineMs);
     const blocks = [{ type: 'text', text: head.replace('{N}', parts.length > 1 ? `; part ${i + 1} of ${parts.length}` : '') + part.join('\n') }];
     if (model.screenshot) blocks.push({ type: 'image', data: model.screenshot, mime: 'image/png' });
-    const res = await client.converse({ system: SYSTEM, blocks, deadline });
+    const res = await client.converse({ system: SYSTEM, blocks, deadline, log: trace && ((ev) => trace({ kind: 'turn', sc: criterion.sc, stage: 'screen', chunk: i, ...ev })) });
     if (res.usage) for (const k of Object.keys(usage)) usage[k] += res.usage[k] || 0;
     const parsed = res.text ? parse(res.text) : null;
     if (!parsed || !Array.isArray(parsed.elements)) failedCalls++;

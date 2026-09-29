@@ -11,7 +11,8 @@ const load = (sc) => require(path.join(RUBRIC_DIR, `${sc}.js`));
 // opts.tools = false: the judge has no tools, so none are named (the rubric paragraphs stay, for v2)
 function render(sc, variant, { tools = true } = {}) {
   const r = load(sc);
-  const lines = [`Analyze compliance with WCAG SC ${r.sc} (${r.title}).`, 'Test rules:'];
+  // GenA11y's text between the heading and the test rules (its pass condition, where it states one) is kept
+  const lines = [`Analyze compliance with WCAG SC ${r.sc} (${r.title}).`, ...(r.preamble ? [r.preamble] : []), 'Test rules:'];
   r.rules.forEach((rule, i) => {
     lines.push(`${i + 1}. ${rule.text}`);
     if (variant === 'rules' || !rule.tools || !rule.tools.length) return;

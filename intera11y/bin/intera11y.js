@@ -6,7 +6,8 @@
 //        [--ids=a,b | --ids-file=f] [--limit=N] [--out=name] [--pages=8] [--browsers=2] [--llm-conc=16]
 //
 // Writes results/<out>/: pages/<id>.json (full page report), results.json (one row per case in the shape the
-// existing scorers read), summary.json, trace.jsonl (every judge batch and tool call), status.json.
+// existing scorers read), summary.json, trace.jsonl (every judge batch and tool call), turns.jsonl + turn-images/ (every LLM
+// conversation in full, turn by turn), status.json.
 // Re-running with the same --out resumes: cases whose page report exists are not re-run.
 const fs = require('fs');
 const path = require('path');
@@ -39,7 +40,29 @@ const client = makeGeminiClient({ model, effort });
 const llmPool = makePool(Number(args['llm-conc'] || CONFIG.judge.concurrency));
 const pagePool = makePool(Number(args.pages || 8));
 const traceFh = fs.openSync(path.join(OUT, 'trace.jsonl'), 'a');
-const trace = (ev) => { try { fs.writeSync(traceFh, JSON.stringify({ t: Date.now(), ...ev }) + '\n'); } catch (e) { /* telemetry never throws */ } };
+// the LLM conversations, turn by turn (turns.jsonl); every image in them is written once to turn-images/<hash>.<ext>
+// and referenced by that path
+const turnsFh = fs.openSync(path.join(OUT, 'turns.jsonl'), 'a');
+const IMG_DIR = path.join(OUT, 'turn-images');
+fs.mkdirSync(IMG_DIR, { recursive: true });
+const externalise = (v, depth = 0) => {
+  if (typeof v === 'string' && v.length > 1000 && /^(iVBORw0KGgo|\/9j\/)/.test(v)) {
+    const ext = v.startsWith('/9j/') ? 'jpg' : 'png';
+    const name = `${require('crypto').createHash('sha1').update(v).digest('hex').slice(0, 20)}.${ext}`;
+    const f = path.join(IMG_DIR, name);
+    if (!fs.existsSync(f)) fs.writeFileSync(f, Buffer.from(v, 'base64'));
+    return `turn-images/${name}`;
+  }
+  if (!v || typeof v !== 'object' || depth > 12) return v;
+  if (Array.isArray(v)) return v.map((x) => externalise(x, depth + 1));
+  return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, externalise(x, depth + 1)]));
+};
+const trace = (ev) => {
+  try {
+    if (ev.kind === 'turn') fs.writeSync(turnsFh, JSON.stringify(externalise({ t: Date.now(), ...ev })) + '\n');
+    else fs.writeSync(traceFh, JSON.stringify({ t: Date.now(), ...ev }) + '\n');
+  } catch (e) { /* telemetry never throws */ }
+};
 
 // the exact code that ran: a hash over every InterA11y source file and the v3 files it imports
 function codeHash() {

@@ -65,7 +65,8 @@ async function judgeCandidates({ criterion, page, session, candidates, client, l
     const deadline = new Deadline(CONFIG.unitDeadlineMs);
     const blocks = buildBatchMessage(criterion, page, batch);
     const toolTrace = [];
-    const res = await client.converse({ system: SYSTEM, blocks, tools, toolBudget: tools ? budgetFor(batch.length) : 0, deadline, trace: (t) => toolTrace.push(t) });
+    const log = trace && ((ev) => trace({ kind: 'turn', sc: criterion.sc, stage: 'judge', batch: bi, ...(ev.turn === 'prompt' ? { candidates: batch.map((c) => c.path) } : {}), ...ev }));
+    const res = await client.converse({ system: SYSTEM, blocks, tools, toolBudget: tools ? budgetFor(batch.length) : 0, deadline, trace: (t) => toolTrace.push(t), log });
     const parsed = res.text ? parseAnswer(res.text) : null;
     usage.batches++; usage.toolCalls += res.toolCalls || 0;
     if (res.usage) for (const k of ['calls', 'inputTokens', 'outputTokens', 'costUsd']) usage[k] += res.usage[k] || 0;

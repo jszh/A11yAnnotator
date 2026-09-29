@@ -1,7 +1,8 @@
 'use strict';
-// 2.4.4 Link Purpose (In Context). Rules 1–3: GenA11y's detect_link_purpose test rules, verbatim.
+// 2.4.4 Link Purpose (In Context). The preamble and rules 1–3: GenA11y's detect_link_purpose prompt, verbatim.
 module.exports = {
   sc: '2.4.4', title: 'Link Purpose (In Context)',
+  preamble: 'A link passes if its purpose is clear from its accessible name OR from its surrounding context (same sentence, paragraph, list item, or table cell).',
   rules: [
     {
       from: 'gena11y',

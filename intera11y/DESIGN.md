@@ -140,7 +140,9 @@ module.exports = {
 **Test rules** (`rubrics/<sc>.js`, rendered by `judge/rubric.js`) are one source per criterion in GenA11y's prompt
 format — *"Analyze compliance with WCAG SC … Test rules: 1. … 2. …"*:
 
-- For the six SCs GenA11y covers, the rules are GenA11y's own `Test rules:` text, verbatim, except for what is not
+- For the six SCs GenA11y covers, the rules are GenA11y's own `Test rules:` text, verbatim, and so is any text GenA11y
+  puts between the heading and the rules (`preamble`; among these SCs only 2.4.4 has one, its pass condition: purpose
+  clear from the name or from the same sentence, paragraph, list item or table cell) — except for what is not
   that criterion: removed rules and removed parts of rules are listed in each file's header (e.g. 4.1.2's "Links
   must have valid href values" and its "descriptive" names, which are 2.4.6; 1.4.3's "check text readability").
   Rules for the element kinds InterA11y also tests, and all rules for the six SCs GenA11y does not cover, are
