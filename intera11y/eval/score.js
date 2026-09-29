@@ -3,6 +3,7 @@
 // Per-criterion comparison of InterA11y with GenA11y and the v3 harness, on the same cases.
 //
 //   node intera11y/eval/score.js --act=<intera11y run> --supp=<intera11y run> --expert=<intera11y saved-pages run> [--json=out.json]
+//     [--gena11y-act=<gena11y run>] [--gena11y-supp=<gena11y run>] [--gena11y-expert=<gena11y saved-pages run>]  (GenA11y with another model)
 //
 // ACT (validated labels): positive = expected "failed"; a system flags a case when its outcome is "caught".
 //   Headline slice = the 458 "reaches-LLM" cases (neither axe nor the v3 deterministic lane settles them), where
@@ -68,7 +69,7 @@ function withoutSweep(ia) {
 if (args.act) {
   const raw = rowsOf('eval/checker-comparison/upstream-evidence/v3-act-subset-proposed/raw.json');
   const ia = new Map(rowsOf(`results/${args.act}/results.json`).map((r) => [`${r.ruleId}/${r.testcaseId}`, r]));
-  const ge = new Map(rowsOf('results/gena11y-act-gem37/results.json').map((r) => [`${r.ruleId}/${r.testcaseId}`, r]));
+  const ge = new Map(rowsOf(`results/${args['gena11y-act'] || 'gena11y-act-gem37'}/results.json`).map((r) => [`${r.ruleId}/${r.testcaseId}`, r]));
   const ha = new Map(rowsOf('results/fn-llm-gemini37-flash-server/results.json').map((r) => [`${r.ruleId}/${r.testcaseId}`, r]));
   const cases = [];
   for (const r of raw) {
@@ -95,7 +96,7 @@ if (args.supp) {
   const safe = (s) => String(s).replace(/[^a-z0-9_]+/gi, '-').slice(0, 80);
   const idOf = (c) => `aug-${c.sc}-${safe(c.aspect)}-${safe(c.id)}`;
   const ia = new Map(rowsOf(`results/${args.supp}/results.json`).map((r) => [r.id || r.testcaseId, r]));
-  const ge = new Map(rowsOf('results/supplementary585-gena11y-gem37/results.json').map((r) => [r.testcaseId, r]));
+  const ge = new Map(rowsOf(`results/${args['gena11y-supp'] || 'supplementary585-gena11y-gem37'}/results.json`).map((r) => [r.testcaseId, r]));
   const ha = new Map(rowsOf('results/supplementary585-ours-gem37/results.json').map((r) => [r.testcaseId, r]));
   const cases = all.filter((c) => OURS.has(c.sc) && ia.has(idOf(c))).map((c) => ({ k: idOf(c), scs: [c.sc], positive: c.expected === 'failed', source: c.source }));
   const caught = (m) => (c) => { const r = m.get(c.k); return !!r && r.outcome === 'caught'; };
@@ -137,6 +138,18 @@ if (args.expert) {
   let setAside = 0, overridden = 0;
   // manually verified cases whose truth is overridden (expert-overrides.json), for every system alike
   const overrides = fs.existsSync(path.join(__dirname, 'expert-overrides.json')) ? JSON.parse(fs.readFileSync(path.join(__dirname, 'expert-overrides.json'), 'utf8')) : {};
+  // --gena11y-expert=<run>: GenA11y's flags from a GenA11y saved-pages run (e.g. another model), matched to the case
+  // the way InterA11y's are — a violation on the element or inside it; without it, the study's recorded flags
+  let genFlag = null;
+  if (args['gena11y-expert']) {
+    const byPageSc = new Map();
+    for (const r of readJson(`results/${args['gena11y-expert']}/results.json`)) {
+      if (!r.gena11y) continue;
+      const k = `${String(r.pageFile || '').normalize('NFC')}|${r.sc}`;
+      byPageSc.set(k, (r.gena11y.violations || []).map((v) => v.xpath).filter(Boolean).map(key));
+    }
+    genFlag = (c) => { const xs = byPageSc.get(`${String(c.page.file).normalize('NFC')}|${c.sc}`) || []; const k = key(c.xpath || ''); return c.scope === 'page' ? xs.length > 0 : xs.some((x) => within(x, k)); };
+  }
   const recorded = [...pages.values()].some((r) => Object.values(r.criteria || {}).some((x) => x.verdictWithoutScreen));
   const SYS = ['InterA11y', 'InterA11y (exact element only)', ...(recorded ? ['InterA11y without sweep'] : []), 'GenA11y', 'v3 harness', 'axe'];
   const m = Object.fromEntries(SYS.map((s) => [s, blank()]));
@@ -154,7 +167,7 @@ if (args.expert) {
       if (!truth && nameless(cid)) { setAside++; continue; }
       const ia = iaFlag(c);
       if (ia === null) { missing++; continue; }
-      const sys = { InterA11y: ia, 'InterA11y (exact element only)': iaFlag(c, false, true), ...(recorded ? { 'InterA11y without sweep': iaFlag(c, true) } : {}), GenA11y: !!flags.gena11y, 'v3 harness': !!flags.harness, axe: !!flags.axe };
+      const sys = { InterA11y: ia, 'InterA11y (exact element only)': iaFlag(c, false, true), ...(recorded ? { 'InterA11y without sweep': iaFlag(c, true) } : {}), GenA11y: genFlag ? genFlag(c) : !!flags.gena11y, 'v3 harness': !!flags.harness, axe: !!flags.axe };
       bySc[c.sc] = bySc[c.sc] || Object.fromEntries(SYS.map((s) => [s, blank()]));
       for (const [s, f] of Object.entries(sys)) { add(m[s], f, truth); add(bySc[c.sc][s], f, truth); }
       perCase[cid] = { sc: c.sc, xpath: c.xpath, page: c.page.file, truth, InterA11y: ia, GenA11y: sys.GenA11y, harness: sys['v3 harness'] };

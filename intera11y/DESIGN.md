@@ -254,3 +254,31 @@ join on normalised XPath, same truth rule as `rescore-run.js`).
   forced into development (`eval/touched-before-split.txt`). Tuning looks only at development results.
 - **Comparators on the same cases:** GenA11y and the v3 harness, Gemini 3.7 Flash. The v3 harness was tuned on ACT
   and the 585; InterA11y's rules were tuned on the development split only.
+
+## 6. Ablation ladder (from GenA11y to InterA11y)
+
+Each step adds one group of InterA11y's differences to the step before, scored on the six SCs GenA11y covers
+(1.1.1, 1.4.1, 1.4.3, 2.4.4, 3.3.1, 4.1.2). Steps 1–3b run inside InterA11y's pipeline under switches whose
+defaults are InterA11y as designed (`core/config.js` `ablation`, `judge.rubric`, `judge.tools`):
+
+| Step | Adds | `INTERA11Y_CANDIDATES` | `INTERA11Y_EVIDENCE` | `INTERA11Y_RUBRIC` | `INTERA11Y_TOOLS` |
+|---|---|---|---|---|---|
+| 0 | GenA11y as is (its own code and results) | — | — | — | — |
+| 1 | the neutral system prompt | `pool` | `markup` | `gena11y` | `0` |
+| 2 | evidence: computed facts, probe observations, crops, page text | `pool` | `full` | `gena11y` | `0` |
+| 3a | InterA11y's rules (corrections and added rules, no tool names) | `pool` | `full` | `rules` | `0` |
+| 3b | the agentic judge (tools, tool names on the rules: V1) | `pool` | `full` | `v1` | on |
+| 4 | triage: rule inventory + sweep, measurement rules decide first | `triage` | `full` | `v1` | on |
+
+- `pool`: every rendered element of the criterion's kinds (the sweep's element pool) goes to the judge — GenA11y's
+  scope — and nothing is decided before the judge; in the expert study, only the pool elements at or inside the
+  annotated elements, as in every expert run.
+- `markup`: a card carries the element's opening tag and its own text only; no probe runs, and no page text.
+- `gena11y` (`rubrics/gena11y-original.js`): GenA11y's heading, pass condition and rules, verbatim. The lines after
+  the rules are not carried over: three describe GenA11y's input format, and 3.3.1's "If no form or error state is
+  present, the page passes" tells the model how to decide without evidence, which step 1's neutral stance removes.
+- The system prompt is the same neutral one from step 1 on.
+- Step 0 is GenA11y's own pipeline, so 0→1 also includes pipeline differences (element extraction, page loading,
+  a verdict per element); 1→4 are within one pipeline. Each step's gain is conditional on the steps before it.
+- The judge model is set with `INTERA11Y_MODEL`; an OpenRouter id (vendor/model, e.g. `z-ai/glm-5.3-flash`) uses
+  `judge/openrouter.js`, which has the Gemini client's contract (tool loop, budget, turn logs).

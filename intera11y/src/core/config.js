@@ -32,6 +32,14 @@ const CONFIG = {
   pageDeadlineMs: Number(process.env.INTERA11Y_PAGE_DEADLINE_MS || 360 * 60 * 1000),
   // the page-wide LLM screening sweep that adds elements to every criterion's candidate set (INTERA11Y_SCREEN=0 turns it off)
   screen: { enabled: process.env.INTERA11Y_SCREEN !== '0' },
+  // the ablation ladder's switches (DESIGN §6); the defaults are InterA11y as designed.
+  //   candidates: 'triage' — rule inventory + sweep, measurement rules decide first; 'pool' — every rendered element
+  //               of the criterion's kinds goes to the judge (GenA11y's scope), no inventory, sweep or rules
+  //   evidence:   'full' — computed facts, probe observations, crops, page text; 'markup' — the element's markup only
+  ablation: {
+    candidates: process.env.INTERA11Y_CANDIDATES || 'triage',
+    evidence: process.env.INTERA11Y_EVIDENCE || 'full',
+  },
   judge: {
     provider: 'gemini',
     model: process.env.INTERA11Y_MODEL || 'gemini-3.7-flash',

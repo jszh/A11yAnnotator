@@ -8,8 +8,14 @@ const path = require('path');
 const RUBRIC_DIR = path.join(__dirname, '..', '..', 'rubrics');
 const load = (sc) => require(path.join(RUBRIC_DIR, `${sc}.js`));
 
+//   'gena11y' — GenA11y's own rule text, unedited (rubrics/gena11y-original.js; the ablation ladder's steps 1–2)
 // opts.tools = false: the judge has no tools, so none are named (the rubric paragraphs stay, for v2)
 function render(sc, variant, { tools = true } = {}) {
+  if (variant === 'gena11y') {
+    const g = require(path.join(RUBRIC_DIR, 'gena11y-original.js'))[sc];
+    if (!g) throw new Error(`no GenA11y rules for SC ${sc} (GenA11y covers 1.1.1, 1.4.1, 1.4.3, 2.4.4, 3.3.1, 4.1.2)`);
+    return [g.heading, ...(g.preamble ? [g.preamble] : []), 'Test rules:', ...g.rules.map((t, i) => `${i + 1}. ${t}`)].join('\n');
+  }
   const r = load(sc);
   // GenA11y's text between the heading and the test rules (its pass condition, where it states one) is kept
   const lines = [`Analyze compliance with WCAG SC ${r.sc} (${r.title}).`, ...(r.preamble ? [r.preamble] : []), 'Test rules:'];

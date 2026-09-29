@@ -36,7 +36,8 @@ if (args.limit) cases = cases.slice(0, Number(args.limit));
 
 const model = args.model || CONFIG.judge.model;
 const effort = args.effort || CONFIG.judge.effort;
-const client = makeGeminiClient({ model, effort });
+// an OpenRouter model id is vendor/model (e.g. z-ai/glm-5.3-flash); a bare id is a Gemini model
+const client = model.includes('/') ? require('../src/judge/openrouter.js').makeOpenRouterClient({ model, effort }) : makeGeminiClient({ model, effort });
 const llmPool = makePool(Number(args['llm-conc'] || CONFIG.judge.concurrency));
 const pagePool = makePool(Number(args.pages || 8));
 const traceFh = fs.openSync(path.join(OUT, 'trace.jsonl'), 'a');

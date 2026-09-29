@@ -2,7 +2,7 @@
 // One page: read the PageModel, then evaluate each criterion — identify → observe → assess → judge → resolve.
 const { openSession } = require('./session.js');
 const { CONFIG } = require('./config.js');
-const { buildPageModel } = require('../model/page-model.js');
+const { buildPageModel, isRendered } = require('../model/page-model.js');
 const { makeProbeRunner } = require('../probes/index.js');
 const { CRITERIA } = require('../criteria/index.js');
 const { judgeCandidates } = require('../judge/judge.js');
@@ -14,6 +14,7 @@ const { PAGE } = require('../criteria/common.js');
 
 // targets: null, or { page: bool, keys: Set<xpath key> } — evaluate only these elements (page: every candidate)
 async function evaluateCriterion({ criterion, session, model, probes, client, llmPool, trace, targets = null }) {
+  if (CONFIG.ablation.candidates === 'pool') return evaluatePool({ criterion, session, model, probes, client, llmPool, trace, targets });
   const t0 = Date.now();
   // the probes and the screening sweep are independent of each other: they run together
   const [obs, screen] = await Promise.all([
@@ -62,6 +63,35 @@ async function evaluateCriterion({ criterion, session, model, probes, client, ll
     criterion, assessed, judged, coverage, ms: Date.now() - t0,
     costUsd: (judged.usage ? judged.usage.costUsd : 0) + screenCost, usage: judged.usage,
     screen: screen && { pool: screen.pool, calls: screen.calls, failedCalls: screen.failedCalls, selected: screen.selected, unknownPaths: screen.unknownPaths, screenedOnly: screenedOnly.length, usage: screen.usage },
+  });
+}
+
+// Ablation (CONFIG.ablation.candidates = 'pool'): GenA11y's scope inside InterA11y's pipeline. Every rendered
+// element of the criterion's kinds (the sweep's element pool) is a candidate and goes to the judge — no rule-based
+// inventory, no sweep, no measurement rule decides anything. With evidence 'markup' no probe runs and a card carries
+// the element's markup only; with 'full' it carries what a screened candidate carries (every probe observation of
+// the element, a crop) and the element's computed accessibility facts.
+async function evaluatePool({ criterion, session, model, probes, client, llmPool, trace, targets }) {
+  const t0 = Date.now();
+  const markupOnly = CONFIG.ablation.evidence === 'markup';
+  const obs = markupOnly ? {} : await probes.get(criterion.probes);
+  const coverage = Object.fromEntries(Object.entries(obs).map(([k, v]) => [k, { completeness: v.completeness, reason: v.reason, ms: v.ms }]));
+  const spec = criterion.screen;
+  let raw = model.elements.filter((e) => isRendered(e) && spec && spec.select(e, model)).map((e) => ({ xpath: e.xpath, kind: 'pool', origin: 'pool' }));
+  if (targets && !targets.page) raw = raw.filter((c) => { const k = key(c.xpath); return [...targets.keys].some((t) => within(k, t)); });
+  const assessed = raw.map((c) => ({ ...c, key: c.xpath, assessment: { status: 'OPEN', rule: 'pool' } }));
+  let judged = { results: new Map(), pageFindings: [], usage: null };
+  if (assessed.length) {
+    const cards = assessed.map((c) => {
+      const e = model.get(c.xpath);
+      if (markupOnly) return { path: c.key, element: e, markupOnly: true };
+      return { path: c.key, element: e, ...screened.evidence(c, obs, model) };
+    });
+    judged = await judgeCandidates({ criterion, page: model, session, candidates: cards, client, llmPool, trace });
+  }
+  return resolveCriterion({
+    criterion, assessed, judged, coverage, ms: Date.now() - t0,
+    costUsd: judged.usage ? judged.usage.costUsd : 0, usage: judged.usage, screen: null,
   });
 }
 

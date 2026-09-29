@@ -64,7 +64,7 @@ function evidence(c, obs, model) {
   const crop = cropOf(model, e);
   return {
     facts: {
-      selectedForTestingBecause: `${c.aspect} (a screening pass chose this element for testing; this is not a finding)`,
+      selectedForTestingBecause: c.aspect ? `${c.aspect} (a screening pass chose this element for testing; this is not a finding)` : undefined,
       elementBox: e.rect, rendered: e.rendered, occupiesSpace: e.boxed, visuallyHidden: e.visuallyHidden || undefined,
       tabindex: e.tabindex, nativelyFocusable: e.nativeFocusable, disabled: e.disabled || undefined,
       eventListeners: e.listeners || undefined, inlineHandlers: e.inlineHandlers && e.inlineHandlers.length ? e.inlineHandlers : undefined,

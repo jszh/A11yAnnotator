@@ -45,15 +45,17 @@ function buildBatchMessage(criterion, page, candidates) {
   text.push(`# Success criterion ${criterion.sc} ${criterion.title}\n`);
   text.push(render(criterion.sc, CONFIG.judge.rubric, { tools: CONFIG.judge.tools }));
   text.push(`\n# Page\nURL: ${page.doc.url}\nTitle: ${JSON.stringify(page.doc.title || '')}\nViewport: 1280×900 CSS px. Document: ${page.doc.width}×${page.doc.height}.`);
-  if (page.doc.text) text.push(`Visible text of the page${page.doc.textLength > page.doc.text.length ? ` (first ${page.doc.text.length} of ${page.doc.textLength} characters)` : ''}:\n"""\n${page.doc.text}\n"""`);
-  if (criterion.pageContext) text.push(criterion.pageContext);
+  const markupOnly = candidates.some((c) => c.markupOnly);
+  if (page.doc.text && !markupOnly) text.push(`Visible text of the page${page.doc.textLength > page.doc.text.length ? ` (first ${page.doc.text.length} of ${page.doc.textLength} characters)` : ''}:\n"""\n${page.doc.text}\n"""`);
+  if (criterion.pageContext && !markupOnly) text.push(criterion.pageContext);
   text.push(`\n# Candidates (${candidates.length})`);
   blocks.push({ type: 'text', text: text.join('\n') });
   candidates.forEach((c, i) => {
     const lines = [`\n## Candidate ${i + 1} [path: ${c.path}]`];
     if (c.element) {
       lines.push(`Markup: ${c.element.openTag}${c.element.text ? ` text=${JSON.stringify(c.element.text)}` : ''}`);
-      lines.push(`Accessibility: ${axLine(c.element.ax)}`);
+      // the ablation's markup-only evidence: no computed facts, observations or images
+      if (!c.markupOnly) lines.push(`Accessibility: ${axLine(c.element.ax)}`);
     }
     if (c.facts) lines.push(`Observed: ${compact(c.facts)}`);
     const imgs = (c.images || []).filter((x) => x && x.data);
