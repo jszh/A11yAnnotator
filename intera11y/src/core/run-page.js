@@ -46,7 +46,7 @@ async function evaluateCriterion({ criterion, session, model, probes, client, ll
   const counts = new Map();
   for (const c of raw) counts.set(c.xpath, (counts.get(c.xpath) || 0) + 1);
   const candidates = raw.map((c) => ({ ...c, key: counts.get(c.xpath) > 1 ? `${c.xpath}#${c.kind}` : c.xpath }));
-  const assessed = candidates.map((c) => ({ ...c, assessment: c.kind === 'screened' ? screened.assess(c) : criterion.assess(c, obs, model) }));
+  const assessed = candidates.map((c) => ({ ...c, assessment: c.kind === 'screened' ? screened.assess(c, criterion, obs, model) : criterion.assess(c, obs, model) }));
   const open = assessed.filter((c) => c.assessment.status === 'OPEN');
   let judged = { results: new Map(), pageFindings: [], usage: null };
   if (open.length) {

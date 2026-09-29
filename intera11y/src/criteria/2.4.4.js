@@ -12,10 +12,14 @@ module.exports = {
   // screening sweep: the element kinds it reads (its test rules are the criterion's rules)
   screen: { select: S.links },
 
+  // a link exposed to assistive technology (ACT c487ae's applicability): rendered, not inert, not aria-hidden
+  applies: (e) => e.rendered && !e.inert && !e.ariaHiddenSelf && !e.ariaHiddenAncestor && !(e.ax && e.ax.ignored),
+  applicability: 'Not a link exposed to assistive technology (it is aria-hidden, inert or ignored), so 2.4.4 does not apply to it.',
+
   identify(model, { content, activation }) {
     // l.el is the link element itself (its computed name and role), which a component host may wrap
     const links = (content.links || []).map((l) => ({ ...l, el: model.get(l.linkXpath || l.xpath) }))
-      .filter((l) => l.el && l.el.rendered && !l.el.inert && !l.el.ariaHiddenSelf && !l.el.ariaHiddenAncestor);
+      .filter((l) => l.el && module.exports.applies(l.el));
     // elements that act as links without being links: activating them (by keyboard or pointer) tried to navigate,
     // and they have no widget role and are not native controls
     const linkKeys = new Set(links.flatMap((l) => [key(l.xpath), key(l.linkXpath || l.xpath)]));

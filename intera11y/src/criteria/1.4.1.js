@@ -53,6 +53,11 @@ module.exports = {
       const cues = nonColourCues(c.p.diff);
       if (cues.length) return { status: 'PASS', rule: 'state-has-non-colour-cue', reason: `The "on" item differs from its peers by more than colour: ${cues.join('; ')}.` };
       if (!Object.keys(c.p.diff.colour).length) return { status: 'NOT_APPLICABLE', rule: 'no-visual-state-difference', reason: 'The "on" item and its peer render identically; colour is not what distinguishes them (whether the state is shown at all is not a colour question).' };
+      // an item marked among its peers: a difference in lightness of at least 3:1 survives without hue (Understanding
+      // 1.4.1: colour is hue; G183's 3:1 relative-luminance threshold), so the item is still told apart. Not for
+      // labels coloured to mean "required" — there the question is what the colour means, not whether it differs (F81).
+      const strong = c.p.how === 'label-colour-group' ? [] : Object.entries(c.p.colourRatios || {}).filter(([, r]) => r >= 3);
+      if (strong.length) return { status: 'PASS', rule: 'lightness-difference', reason: `The "on" item differs from its peer in lightness by ${strong.map(([p, r]) => `${r}:1 (${p})`).join(', ')} — at least 3:1, so the difference is visible without hue.` };
       return { status: 'OPEN', rule: 'state-by-colour-only' };
     }
     return { status: 'OPEN', rule: c.kind };

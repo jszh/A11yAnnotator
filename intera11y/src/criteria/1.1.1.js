@@ -4,6 +4,14 @@
 const S = require('../screen/select.js');
 const { toolsOf } = require('../judge/rubric.js');
 
+const EMBEDS_RESOURCE = /^<(object|embed)\b[^>]*\s(data|src)\s*=\s*["']?[^"'\s>]/i;
+function presented(e) {
+  if (!e) return true;
+  const area = e.rect ? e.rect.w * e.rect.h : 0;
+  if (e.boxed && area > 9) return true;
+  return area === 0 && EMBEDS_RESOURCE.test(e.openTag || '');
+}
+
 const FILENAME = /\.(png|jpe?g|gif|svg|webp|avif|bmp|ico)(\?|$)|^(img|image|photo|picture|graphic|icon|logo|banner|spacer)[\s_-]?\d*$/i;
 
 module.exports = {
@@ -12,6 +20,12 @@ module.exports = {
   tools: toolsOf('1.1.1'),
   // screening sweep: the element kinds it reads (its test rules are the criterion's rules)
   screen: { select: S.images },
+
+  // content presented to users: it occupies more than a 3×3 px box (smaller is a tracking pixel). An embedded object
+  // that references a resource yet has no box has not rendered that resource here, so its size says nothing about
+  // what the author presents (ACT 8fc3b6): size does not exclude it.
+  applies: (e) => presented(e),
+  applicability: 'The element occupies at most a 3×3 px box: it is not presented to users (a tracking pixel or utility object).',
 
   identify(model, { content }) {
     const out = (content.images || []).map((im) => ({ xpath: im.xpath, kind: im.kind, im, el: model.get(im.xpath) }));
@@ -23,7 +37,8 @@ module.exports = {
     if (c.kind === 'lookalike-glyphs') return { status: 'OPEN', rule: 'lookalike-glyphs' };
     const im = c.im, e = c.el || {}, ax = e.ax || {};
     const hidden = im.ariaHidden || im.presentational || ax.ignored || im.alt === '';
-    if (im.box && im.box.w * im.box.h <= 9) return { status: 'NOT_APPLICABLE', rule: 'tracking-pixel', reason: 'A 1–3 px image is not presented to users.' };
+    if (im.box && im.box.w * im.box.h <= 9 && !(c.el && presented(c.el))) return { status: 'NOT_APPLICABLE', rule: 'tracking-pixel', reason: 'A 1–3 px image is not presented to users.' };
+    if (im.tag === 'canvas' && im.blankCanvas === true) return { status: 'NOT_APPLICABLE', rule: 'blank-canvas', reason: 'The canvas has no painted pixel: it presents no content.' };
     if (im.kind === 'media') return { status: 'OPEN', rule: 'media-identification' };
     if (hidden) return { status: 'OPEN', rule: 'marked-decorative' };                       // is it really decorative? (e88epe)
     const name = String(ax.name || '').trim();

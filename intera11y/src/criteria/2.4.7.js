@@ -12,6 +12,10 @@ module.exports = {
   // screening sweep: the element kinds it reads (its test rules are the criterion's rules)
   screen: { select: S.interactive },
 
+  // an element that can receive keyboard focus by Tab
+  applies: (e) => e.rendered && !e.inert && !e.disabled && (e.tabindex !== null ? e.tabindex >= 0 : e.nativeFocusable),
+  applicability: 'The element cannot receive keyboard focus by Tab, so there is no keyboard focus to show.',
+
   identify(model, { keyboard }) {
     const out = (keyboard.stops || []).map((s) => ({ xpath: s.xpath, kind: 'tab-stop', stop: s }));
     // a control that throws focus away when it receives it (F55) — only where a user can see and reach it: content

@@ -1,7 +1,7 @@
 'use strict';
 // 2.1.2 No Keyboard Trap — focus that can enter a part of the page can leave it with the keyboard.
 const { PAGE, expectedTabbable, labelOf } = require('./common.js');
-const { key } = require('../lib/xpath.js');
+const { key, within } = require('../lib/xpath.js');
 const S = require('../screen/select.js');
 const { toolsOf } = require('../judge/rubric.js');
 
@@ -11,6 +11,15 @@ module.exports = {
   tools: toolsOf('2.1.2'),
   // screening sweep: the element kinds it reads (its test rules are the criterion's rules)
   screen: { select: S.any(S.interactive, S.dialogs) },
+
+  // an element the Tab walk reached and then left, in a ring that closed at the document boundary, does not trap focus
+  assessScreened(c, { keyboard: kb }) {
+    if (!kb || kb.wrapKind !== 'boundary' || kb.completeness !== 'complete') return null;
+    const k = key(c.xpath);
+    const at = (kb.stops || []).findIndex((s) => within(key(s.xpath), k));
+    if (at < 0 || at >= kb.stops.length - 1) return null;
+    return { status: 'PASS', rule: 'walk-moved-past', reason: `The Tab walk reached this element (stop ${at}) and moved on to ${kb.stops.length - 1 - at} later stop(s), and the Tab ring closed at the document boundary, so focus is not trapped here.` };
+  },
 
   identify(model, { keyboard: kb, activation }) {
     const out = [];

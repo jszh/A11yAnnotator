@@ -131,10 +131,14 @@ if (args.expert) {
   // system alike.
   const NAMED = /^(link|button|image|img|graphics-document|graphics-symbol|textbox|searchbox|combobox|listbox|checkbox|radio|switch|slider|spinbutton|menuitem|menuitemcheckbox|menuitemradio|tab|treeitem|option|Iframe|iframe)$/;
   const axNames = fs.existsSync(path.join(__dirname, 'expert-ax-names.json')) ? JSON.parse(fs.readFileSync(path.join(__dirname, 'expert-ax-names.json'), 'utf8')) : {};
-  const nameless = (cid) => { const a = axNames[cid]; return !!(a && a.found && !a.ignored && !a.name && NAMED.test(a.role || '')); };
-  let setAside = 0;
+  const namelessAx = (a) => !!(a && !a.ignored && !a.name && NAMED.test(a.role || ''));
+  // the element itself, or the one control inside a component host (what assistive technology lands on)
+  const nameless = (cid) => { const a = axNames[cid]; return !!(a && a.found && (namelessAx(a) || namelessAx(a.innerControl))); };
+  let setAside = 0, overridden = 0;
+  // manually verified cases whose truth is overridden (expert-overrides.json), for every system alike
+  const overrides = fs.existsSync(path.join(__dirname, 'expert-overrides.json')) ? JSON.parse(fs.readFileSync(path.join(__dirname, 'expert-overrides.json'), 'utf8')) : {};
   const recorded = [...pages.values()].some((r) => Object.values(r.criteria || {}).some((x) => x.verdictWithoutScreen));
-  const SYS = ['InterA11y', 'InterA11y (exact element only)', ...(recorded ? ['InterA11y without sweep'] : []), 'GenA11y', 'v3 harness'];
+  const SYS = ['InterA11y', 'InterA11y (exact element only)', ...(recorded ? ['InterA11y without sweep'] : []), 'GenA11y', 'v3 harness', 'axe'];
   const m = Object.fromEntries(SYS.map((s) => [s, blank()]));
   const bySc = {};
   let missing = 0;
@@ -145,18 +149,19 @@ if (args.expert) {
       const c = cases[cid];
       if (!c || c.arm === 'actionability' || !OURS.has(c.sc)) continue;
       const flags = Object.fromEntries(Object.entries(c.tools).map(([t, v]) => [t, v.flagged]));
-      const truth = (resp.choices || []).includes('disagree') ? !Object.values(flags)[0] : flags[resp.tools[0]];
+      let truth = (resp.choices || []).includes('disagree') ? !Object.values(flags)[0] : flags[resp.tools[0]];
+      if (overrides[cid] && overrides[cid].truth) { const t = overrides[cid].truth === 'fail'; if (t !== truth) overridden++; truth = t; }
       if (!truth && nameless(cid)) { setAside++; continue; }
       const ia = iaFlag(c);
       if (ia === null) { missing++; continue; }
-      const sys = { InterA11y: ia, 'InterA11y (exact element only)': iaFlag(c, false, true), ...(recorded ? { 'InterA11y without sweep': iaFlag(c, true) } : {}), GenA11y: !!flags.gena11y, 'v3 harness': !!flags.harness };
+      const sys = { InterA11y: ia, 'InterA11y (exact element only)': iaFlag(c, false, true), ...(recorded ? { 'InterA11y without sweep': iaFlag(c, true) } : {}), GenA11y: !!flags.gena11y, 'v3 harness': !!flags.harness, axe: !!flags.axe };
       bySc[c.sc] = bySc[c.sc] || Object.fromEntries(SYS.map((s) => [s, blank()]));
       for (const [s, f] of Object.entries(sys)) { add(m[s], f, truth); add(bySc[c.sc][s], f, truth); }
-      perCase[cid] = { sc: c.sc, xpath: c.xpath, page: c.page.file, InterA11y: ia, GenA11y: sys.GenA11y, harness: sys['v3 harness'] };
+      perCase[cid] = { sc: c.sc, xpath: c.xpath, page: c.page.file, truth, InterA11y: ia, GenA11y: sys.GenA11y, harness: sys['v3 harness'] };
     }
   }
   const fmt = (o) => Object.fromEntries(Object.entries(o).map(([s, x]) => [s, stats(x)]));
-  report.expert = { setAsideNamelessPasses: setAside, all: fmt(m), bySc: Object.fromEntries(Object.entries(bySc).sort().map(([sc, o]) => [sc, fmt(o)])), responsesMissingARun: missing, perCase };
+  report.expert = { setAsideNamelessPasses: setAside, overriddenResponses: overridden, all: fmt(m), bySc: Object.fromEntries(Object.entries(bySc).sort().map(([sc, o]) => [sc, fmt(o)])), responsesMissingARun: missing, perCase };
 }
 
 function table(title, r) {
@@ -172,5 +177,5 @@ if (report.actFullStarred) console.log(table('ACT, all cases (*: the 7 manually 
 if (report.actFullSharedScope) console.log(table('ACT, SCs GenA11y covers only', report.actFullSharedScope));
 if (report.supplementary) console.log(table('Supplementary 585, human-annotated cases', report.supplementary));
 if (report.supplementarySharedScope) console.log(table('Supplementary 585, human-annotated, SCs GenA11y covers only', report.supplementarySharedScope));
-if (report.expert) console.log(table('Expert study (P2–P5 responses)', report.expert) + `\n(responses whose page has no InterA11y run: ${report.expert.responsesMissingARun}; expert passes set aside on elements the browser exposes with no name: ${report.expert.setAsideNamelessPasses})`);
+if (report.expert) console.log(table('Expert study (P2–P5 responses)', report.expert) + `\n(responses whose page has no InterA11y run: ${report.expert.responsesMissingARun}; expert passes set aside on elements the browser exposes with no name: ${report.expert.setAsideNamelessPasses}; responses overridden after manual verification: ${report.expert.overriddenResponses})`);
 if (args.json) fs.writeFileSync(path.resolve(ROOT, args.json), JSON.stringify(report, null, 1));

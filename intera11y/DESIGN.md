@@ -109,7 +109,10 @@ the criteria everything it saw, in the same shape (and the criteria go INCOMPLET
 The keyboard probe photographs each stop's neighbourhood (its box plus 48 px) focused and unfocused, with CSS
 transitions switched off on that walk so each image shows a final state; the whole viewport is compared only when
 nothing changed in the neighbourhood (an indicator drawn elsewhere). The reverse walk and the v3 detectors run on
-their own fresh pages alongside the forward walk.
+their own fresh pages alongside the forward walk. A stop inside a same-origin frame is addressed
+`frameXpath>>frame/innerXpath`; after its unfocused photograph the walk focuses the frame, then the stop, so the next
+Tab continues from there (a stop that cannot be refocused sends the next Tab to the document start, which reads as
+a ring that closes without reaching the end of the page).
 
 | Probe | Drives | Observes | Used by |
 |---|---|---|---|
@@ -178,8 +181,14 @@ candidate selector:
   a focus order is not judged apart from the order).
 - **Union** (`core/run-page.js`): an element both the inventory and the sweep produce keeps its native
   candidate(s), native rules and native evidence (`origin: rules+screen`). An element only the sweep produced
-  becomes a `screened` candidate (`origin: screen`): it has no kind-specific probe record, so no kind-specific rule
-  applies and it goes to the judge (`screen/screened.js`) with the element's record, every observation any of the
+  becomes a `screened` candidate (`origin: screen`). The criterion's element-level applicability (`applies`, the
+  same test its inventory uses) and its sound rules for any element (`assessScreened`, e.g. 2.1.2: the Tab walk
+  reached the element and moved on, in a ring that closed at the document boundary) apply to it first — the sweep
+  widens what is tested, never what the criterion covers. Applicability follows the WCAG/ACT definitions, not
+  proxies that only hold on typical pages: 1.1.1's "presented" is a box over 3×3 px *or* an `<object>` that
+  references a resource and drew no box (it did not render here, so its size is not the author's — ACT 8fc3b6),
+  and a 2D canvas with no painted pixel presents nothing; 1.4.3 excludes text inside a disabled or aria-disabled
+  element or ancestor (an inactive user interface component — the SC's own exception, ACT afw4f7). Otherwise it goes to the judge (`screen/screened.js`) with the element's record, every observation any of the
   criterion's probes made about that element (found by XPath across the observations, images included), a crop of
   it from the page-load screenshot when it is in the first viewport, and the sweep's aspect, labelled as the reason
   it was selected, not a finding. The judge's tools let it observe the element live.
@@ -195,7 +204,14 @@ candidate selector:
   calls per candidate, at least 4, at most 24). A rule names only tools that add evidence the candidate card does
   not already carry — the card has the computed role, name and states, so `query_ax_node` is named only where its
   extra fields matter (focus on aria-hidden content, required states). `INTERA11Y_TOOLS=0` runs the judge without
-  tools (the ablation), with the rules shown without tool names.
+  tools (the ablation), with the rules shown without tool names. Tool observations are what a keyboard user
+  would get: `set_state_and_capture` focuses by Tab (Shift+Tab, Tab), so the page is in keyboard modality and
+  `:focus-visible` indicators render; `interact_and_observe` reports the focused element inside same-origin frames,
+  and says when focus is inside a cross-origin frame, so focus moving among a frame's controls is not read as focus
+  stuck on the frame; the tools that photograph an element (`set_state_and_capture`, `request_hi_res_crop`,
+  `render_with_overrides`, `measure_text_contrast_over_image`) clip in document coordinates, which is how the
+  browser reads a screenshot clip — a viewport rectangle taken after scrolling photographs another part of the page
+  (before and after then compare equal, and a visible indicator reads as "no change").
 - Output: one verdict per candidate `{path, verdict: FAIL|PASS|UNDETERMINED, reason, evidence}`, plus optional
   page-level findings for criteria that are page-scoped (2.4.3 sequences, 2.1.2 regions, page-wide shortcuts).
 - Batches are chunked by token estimate and capped at 12 candidates, so the answer fits the output limit; an

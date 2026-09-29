@@ -459,7 +459,22 @@ async function interactAndObserve(page, args, ctx) {
       // record WHERE focus is after this primitive (the focus TRAJECTORY — subsumes press_keys_and_observe_focus:
       // for 2.1.2 a press whose activeAfter is OUTSIDE the trapped set is a working escape; an unchanged one is not).
       const last = steps[steps.length - 1];
-      if (last) last.activeAfter = await live.evaluate(() => { const a2 = document.activeElement; if (!a2 || a2.nodeType !== 1) return null; const p = []; for (let n = a2; n && n.nodeType === 1; n = n.parentElement) { let i = 1; for (let s = n.previousElementSibling; s; s = s.previousElementSibling) if (s.tagName === n.tagName) i++; p.unshift(n.tagName.toLowerCase() + '[' + i + ']'); } return '/' + p.join('/'); }).catch(() => null);
+      // the focused element, followed into same-origin frames (`iframePath>>frame/innerPath`): read at the top
+      // document alone, focus moving between a frame's controls looks like focus stuck on the frame. A
+      // cross-origin frame's inside cannot be read; that is said, so an unchanged value is not read as a trap.
+      if (last) last.activeAfter = await live.evaluate(() => {
+        const path = (a2) => { const p = []; for (let n = a2; n && n.nodeType === 1; n = n.parentElement) { let i = 1; for (let s = n.previousElementSibling; s; s = s.previousElementSibling) if (s.tagName === n.tagName) i++; p.unshift(n.tagName.toLowerCase() + '[' + i + ']'); } return '/' + p.join('/'); };
+        let a2 = document.activeElement; if (!a2 || a2.nodeType !== 1) return null;
+        let out = path(a2);
+        for (let d = 0; d < 4 && /^i?frame$/i.test(a2.tagName); d++) {
+          let doc = null; try { doc = a2.contentDocument; } catch (e) { doc = null; }
+          if (!doc) return out + ' (focus is inside a cross-origin frame; movement inside it is not observable)';
+          const inner = doc.activeElement;
+          if (!inner || inner === doc.body || inner === doc.documentElement) return out;
+          out += '>>frame' + path(inner); a2 = inner;
+        }
+        return out;
+      }).catch(() => null);
       // per-step REVEALED snapshot: nodes visible-now that were hidden/absent in BEFORE. A hover that reveals a
       // tooltip then a move that LOSES it ⇒ revealedNow non-empty then empty across steps (the F95 not-hoverable gap).
       if (last && last.ok) last.revealedNow = await snapRevealed().catch(() => undefined);
@@ -557,7 +572,9 @@ async function setStateAndCapture(page, args, ctx) {
       try { el.scrollIntoView({ block: 'center', inline: 'center' }); } catch (e) {}
       const r = el.getBoundingClientRect();
       const cs = getComputedStyle(el); const style = {}; for (const k of keys) style[k] = cs[k];
-      return { box: { x: Math.max(0, r.x - 6), y: Math.max(0, r.y - 6), w: Math.min(innerWidth, r.width + 12), h: Math.min(innerHeight, r.height + 12) }, style };
+      // box: DOCUMENT coordinates (Puppeteer reads a screenshot clip in document coordinates — a viewport rect
+      // after scrollIntoView photographs another part of the page); view: viewport coordinates, for the pointer
+      return { box: { x: Math.max(0, r.x + scrollX - 6), y: Math.max(0, r.y + scrollY - 6), w: Math.min(innerWidth, r.width + 12), h: Math.min(innerHeight, r.height + 12) }, view: { x: r.x, y: r.y, w: r.width, h: r.height }, style };
     }, targetXpath, STYLE_KEYS);
     if (!meta || !(meta.box.w > 0 && meta.box.h > 0)) return { stateReached: false, reason: 'target not found or has no rendered box' };
     const clip = { x: Math.round(meta.box.x), y: Math.round(meta.box.y), width: Math.round(meta.box.w), height: Math.round(meta.box.h) };
@@ -569,8 +586,19 @@ async function setStateAndCapture(page, args, ctx) {
     // drive the state on the clone (pseudo / native property / activation — all reload-isolated)
     let driven = { reached: false };
     if (state === 'hover') {
-      await live.mouse.move(clip.x + clip.width / 2, clip.y + clip.height / 2);
+      await live.mouse.move(meta.view.x + meta.view.w / 2, meta.view.y + meta.view.h / 2);
       driven = { reached: null }; // hover-reached is judged by the style/pixel delta below
+    } else if (state === 'focus') {
+      // focus as a KEYBOARD user reaches it: a script focus() with no prior key press leaves the page in pointer
+      // modality, where :focus-visible (the rule most focus indicators hang on) does not match — the indicator
+      // would never render and the tool would report "no change". Tab into the element (Shift+Tab, Tab) and, if
+      // that does not land on it (not in the tab order), focus it by script now that the modality is keyboard.
+      const onTarget = () => live.evaluate(() => { const el = document.querySelector('[data-v3-state-target="1"]'); return !!el && document.activeElement === el; }).catch(() => false);
+      await live.evaluate(() => { const el = document.querySelector('[data-v3-state-target="1"]'); if (el) el.focus({ preventScroll: true }); }).catch(() => {});
+      await live.keyboard.press('Shift+Tab').catch(() => {});
+      await live.keyboard.press('Tab').catch(() => {});
+      if (!(await onTarget())) await live.evaluate(() => { const el = document.querySelector('[data-v3-state-target="1"]'); if (el) el.focus({ preventScroll: true }); }).catch(() => {});
+      driven = await live.evaluate(() => { const el = document.querySelector('[data-v3-state-target="1"]'); return { reached: !!el && document.activeElement === el, focusVisible: !!el && el.matches(':focus-visible') }; }).catch(() => ({ reached: false }));
     } else {
       driven = await live.evaluate((st) => {
         const el = document.querySelector('[data-v3-state-target="1"]'); if (!el) return { reached: false };
@@ -616,6 +644,7 @@ async function setStateAndCapture(page, args, ctx) {
       textVisible: !!((afterMeta && afterMeta.hasText) || (driven && driven.placeholderText)), // a shown placeholder IS visible text
       styleDelta,            // which allowlisted props changed (read-only) — NO synthesized fg/bg pair
       pixelsChanged,
+      ...(state === 'focus' ? { focusVisible: !!(driven && driven.focusVisible) } : {}),
       indicatorBox: afterMeta ? afterMeta.box : null,
       screenshots: { before, after }, // judge the AFTER pixels; the runner abandoned this surface for a reason
       ...(stateReached ? {} : { note: `state '${state}' did not reproduce — do not read a pass from it` }),
@@ -796,7 +825,7 @@ async function requestHiResCrop(page, args, ctx) {
   try {
     const vp = live.viewport() || { width: 1280, height: 900 };
     await live.setViewport({ width: vp.width, height: vp.height, deviceScaleFactor: s }).catch(() => {});
-    const meta = await live.evaluate((xp) => { const el = document.evaluate(xp, document, null, 9, null).singleNodeValue; if (!el) return null; try { el.scrollIntoView({ block: 'center', inline: 'center' }); } catch (e) {} const r = el.getBoundingClientRect(); return { box: { x: Math.max(0, r.x), y: Math.max(0, r.y), w: r.width, h: r.height }, cssW: Math.round(r.width), cssH: Math.round(r.height) }; }, targetXpath).catch(() => null);
+    const meta = await live.evaluate((xp) => { const el = document.evaluate(xp, document, null, 9, null).singleNodeValue; if (!el) return null; try { el.scrollIntoView({ block: 'center', inline: 'center' }); } catch (e) {} const r = el.getBoundingClientRect(); return { box: { x: Math.max(0, r.x + scrollX), y: Math.max(0, r.y + scrollY), w: r.width, h: r.height }, cssW: Math.round(r.width), cssH: Math.round(r.height) }; }, targetXpath).catch(() => null); // document coordinates (the clip's)
     if (!meta || !(meta.box.w > 0 && meta.box.h > 0)) return { error: 'target not found or zero-size' };
     const clip = { x: Math.round(meta.box.x), y: Math.round(meta.box.y), width: Math.round(meta.box.w), height: Math.round(meta.box.h) };
     const screenshot = await require('./settle.js').robustScreenshot(live, { encoding: 'base64', clip });
@@ -826,7 +855,7 @@ async function renderWithOverrides(page, args, ctx) {
     await require('./settle.js').awaitSettle(live, { force: true, floorMs: 160 }); // settle the media/CSS re-render reflow (floor preserves old 160ms)
     let clip;
     if (typeof targetXpath === 'string' && targetXpath) {
-      const meta = await live.evaluate((xp) => { const el = document.evaluate(xp, document, null, 9, null).singleNodeValue; if (!el) return null; try { el.scrollIntoView({ block: 'center', inline: 'center' }); } catch (e) {} const r = el.getBoundingClientRect(); return { x: Math.max(0, r.x), y: Math.max(0, r.y), w: r.width, h: r.height }; }, targetXpath).catch(() => null);
+      const meta = await live.evaluate((xp) => { const el = document.evaluate(xp, document, null, 9, null).singleNodeValue; if (!el) return null; try { el.scrollIntoView({ block: 'center', inline: 'center' }); } catch (e) {} const r = el.getBoundingClientRect(); return { x: Math.max(0, r.x + scrollX), y: Math.max(0, r.y + scrollY), w: r.width, h: r.height }; }, targetXpath).catch(() => null); // document coordinates (the clip's)
       // a targetXpath was given but didn't resolve ⇒ ERROR (never silently fall back to a full-viewport shot,
       // which the model would mistake for the requested element). Full-viewport is reserved for the no-target case.
       if (!meta || !(meta.w > 0 && meta.h > 0)) return { error: 'target not found or zero-size', transform };
@@ -954,7 +983,7 @@ async function measureTextContrastOverImage(page, args, ctx) {
       if (r.width < 2 || r.height < 2) return null;
       const cs = getComputedStyle(el);
       let bgKind = 'flat'; for (let n = el, i = 0; n && i < 6; n = n.parentElement, i++) { const c = getComputedStyle(n); if (c.backgroundImage && c.backgroundImage !== 'none') { bgKind = /gradient/i.test(c.backgroundImage) ? 'gradient' : 'image'; break; } }
-      return { x: r.left, y: r.top, w: r.width, h: r.height, color: cs.color, fontPx: parseFloat(cs.fontSize), fontWeight: cs.fontWeight, bgKind };
+      return { x: r.left + scrollX, y: r.top + scrollY, w: r.width, h: r.height, color: cs.color, fontPx: parseFloat(cs.fontSize), fontWeight: cs.fontWeight, bgKind }; // document coordinates (the clip's)
     }, targetXpath).catch(() => null);
     if (!meta) return { error: 'target not found / too small (<2px)' };
     const clip = { x: Math.max(0, Math.round(meta.x)), y: Math.max(0, Math.round(meta.y)), width: Math.round(meta.w), height: Math.round(meta.h) };

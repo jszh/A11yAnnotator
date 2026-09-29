@@ -93,9 +93,14 @@ function blurActive() {
 // Give focus back to the stop, so the next Tab's keydown reaches the stop's own handlers (a trap lives there).
 function refocus(xp) {
   const a = window.__ia.resolve(xp);
-  if (a && typeof a.focus === 'function') a.focus({ preventScroll: true });
-  const now = window.__ia.deepActive();
-  return !!now && window.__ia.xpathOf(now) === xp;
+  if (!a || typeof a.focus !== 'function') return false;
+  // an element in a frame: focus the frames from the outside in, then the element
+  const frames = [];
+  for (let w = a.ownerDocument.defaultView; w && w.frameElement; w = w.parent) frames.unshift(w.frameElement);
+  for (const f of frames) f.focus({ preventScroll: true });
+  a.focus({ preventScroll: true });
+  const inner = a.getRootNode && a.getRootNode().activeElement !== undefined ? a.getRootNode().activeElement : a.ownerDocument.activeElement;
+  return inner === a && (!frames.length || document.activeElement === frames[0]);
 }
 
 function styleOf(xp) {

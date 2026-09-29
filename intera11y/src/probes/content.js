@@ -113,9 +113,23 @@ function inventory() {
   }
   // ---- images
   const images = [];
+  // an <object> that references a resource but drew no box has not rendered it here; its size is not the author's
+  // (1.1.1's applicability: presented unless deliberately sized as a tracking pixel)
+  const unrenderedEmbed = (el) => el.tagName === 'OBJECT' && !!el.getAttribute('data') && el.checkVisibility({ visibilityProperty: true }) && !el.getBoundingClientRect().width && !el.getBoundingClientRect().height;
+  // a 2D canvas with no painted pixel presents nothing (null: not readable — WebGL, or tainted by cross-origin images)
+  const canvasBlank = (el) => {
+    try {
+      if (!el.width || !el.height || el.width * el.height > 4e6) return null;
+      const ctx = el.getContext('2d');
+      if (!ctx) return null;
+      const d = ctx.getImageData(0, 0, el.width, el.height).data;
+      for (let i = 3; i < d.length; i += 4) if (d[i]) return false;
+      return true;
+    } catch (e) { return null; }
+  };
   const addImg = (el, kind) => {
     const r = el.getBoundingClientRect();
-    if (!vis(el) || r.width < 3 || r.height < 3) return;
+    if ((!vis(el) || r.width < 3 || r.height < 3) && !unrenderedEmbed(el)) return;
     const alt = el.hasAttribute('alt') ? el.getAttribute('alt') : null;
     const fig = el.closest('figure');
     const link = el.closest('a[href],button');
@@ -128,6 +142,7 @@ function inventory() {
       inControl: link ? { tag: link.tagName.toLowerCase(), text: txt(link).slice(0, 120) } : null,
       nearbyText: txt(el.parentElement).slice(0, 200),
       box: box(el),
+      blankCanvas: el.tagName === 'CANVAS' ? canvasBlank(el) : undefined,
     });
   };
   for (const el of deepAll('img,input[type="image"],[role="img"],object,area,canvas')) addImg(el, el.tagName.toLowerCase() === 'input' ? 'image-button' : 'image');

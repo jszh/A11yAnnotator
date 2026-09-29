@@ -1,7 +1,8 @@
 'use strict';
 // 4.1.2 Name, Role, Value. Rules 1–6: GenA11y's detect_name_role_value test rules, with the parts that are not
 // 4.1.2 removed — "descriptive" names (a descriptive name is 2.4.6), "one label per field", and rule 7 ("Links
-// must have valid href values"). Rules 7–8 below are added in the same style. Rule 8 (placeholder names) follows the
+// must have valid href values"), and rule 5's "same purpose" reads "equivalent purpose" (ACT 4b1c6c: iframes
+// with the same name may show different content serving an equivalent purpose, e.g. two advertisements). Rules 7–8 below are added in the same style. Rule 8 (placeholder names) follows the
 // expert raters' practice: strictly 4.1.2 asks that a name exists, and name quality is also 2.4.6 / 2.5.3.
 module.exports = {
   sc: '4.1.2', title: 'Name, Role, Value',
@@ -32,7 +33,7 @@ module.exports = {
     },
     {
       from: 'gena11y',
-      text: 'Iframes must have non-empty accessible names; identical names → same purpose.',
+      text: 'Iframes must have non-empty accessible names; identical names → equivalent purpose.',
       tools: ['compare_iframe_content'],
       rubric: `An iframe in the accessibility tree with an empty computed name fails (ACT cae760), unless it is removed from focus (tabindex="-1") and holds no interactive content. Iframes with the same name fail when their content serves different purposes (ACT 4b1c6c). compare_iframe_content compares same-named frames.`,
     },

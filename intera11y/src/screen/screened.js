@@ -48,8 +48,14 @@ function cropOf(model, e) {
   return png.cropBase64(img, { x: r.x - m, y: r.y - m, w: Math.min(700, r.w + 2 * m), h: Math.min(450, r.h + 2 * m) });
 }
 
-function assess() {
-  return { status: 'OPEN', rule: 'screened' };
+// The criterion's own applicability and sound rules apply to a screened element too: the sweep widens what is tested,
+// never what the criterion covers. `criterion.applies(element)` is the element-level applicability its inventory
+// uses; `criterion.assessScreened(candidate, obs, model)` decides what its observations settle for any element.
+function assess(c, criterion, obs, model) {
+  const e = model.get(c.xpath);
+  if (e && criterion.applies && !criterion.applies(e, model)) return { status: 'NOT_APPLICABLE', rule: 'outside-applicability', reason: criterion.applicability || 'The element is outside the criterion\'s applicability.' };
+  const decided = criterion.assessScreened ? criterion.assessScreened(c, obs, model) : null;
+  return decided || { status: 'OPEN', rule: 'screened' };
 }
 
 function evidence(c, obs, model) {

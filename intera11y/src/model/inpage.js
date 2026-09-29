@@ -28,6 +28,13 @@ function installHelpers() {
     let el = null;
     try { el = document.evaluate(steps[0], document, null, 9, null).singleNodeValue; } catch (e) { return null; }
     for (let i = 1; i < steps.length; i++) {
+      // `frame/html[1]/…`: the rest is an XPath in a same-origin frame's document (the keyboard walk's in-frame stops)
+      if (/^frame\//.test(steps[i])) {
+        let doc = null; try { doc = el && el.contentDocument; } catch (e) { doc = null; }
+        if (!doc) return null;
+        try { el = doc.evaluate(steps[i].slice(5), doc, null, 9, null).singleNodeValue; } catch (e) { return null; }
+        continue;
+      }
       if (!el || !el.shadowRoot) return null;
       let cur = el.shadowRoot;
       for (const seg of steps[i].split('/').filter(Boolean)) {

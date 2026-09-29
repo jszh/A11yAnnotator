@@ -32,18 +32,28 @@ const SCS = new Set(['1.1.1', '2.4.4', '4.1.2']);
     if (!page) continue;
     const cdp = await page.createCDPSession();
     await cdp.send('DOM.getDocument', { depth: -1, pierce: true });
+    // objects are resolved on this CDP session: a Puppeteer handle's objectId belongs to another session
+    const axOf = async (expression) => {
+      const r = await cdp.send('Runtime.evaluate', { expression, returnByValue: false }).catch(() => null);
+      const objectId = r && r.result && r.result.objectId;
+      if (!objectId) return null;
+      const { nodeId } = await cdp.send('DOM.requestNode', { objectId }).catch(() => ({}));
+      if (!nodeId) return null;
+      const ax = await cdp.send('Accessibility.getPartialAXTree', { nodeId, fetchRelatives: false }).catch(() => null);
+      const n = ax && ax.nodes && ax.nodes[0];
+      return n ? { role: n.role && n.role.value, name: (n.name && n.name.value) || '', ignored: !!n.ignored } : null;
+    };
     for (const c of list) {
       const rec = { sc: c.sc, xpath: c.xpath, found: false };
-      for (const q of [c.xpath, c.xpath.replace(/\[1\]/g, '')]) {
-        const { searchId, resultCount } = await cdp.send('DOM.performSearch', { query: q }).catch(() => ({ resultCount: 0 }));
-        if (!resultCount) continue;
-        const { nodeIds } = await cdp.send('DOM.getSearchResults', { searchId, fromIndex: 0, toIndex: 1 });
-        await cdp.send('DOM.discardSearchResults', { searchId }).catch(() => {});
-        const ax = await cdp.send('Accessibility.getPartialAXTree', { nodeId: nodeIds[0], fetchRelatives: false }).catch(() => null);
-        const n = ax && ax.nodes && ax.nodes[0];
-        if (n) Object.assign(rec, { found: true, role: n.role && n.role.value, name: (n.name && n.name.value) || '', ignored: !!n.ignored });
-        break;
-      }
+      // the element, and — for a component host whose shadow root holds exactly one link or button — that inner
+      // control, which is what assistive technology lands on
+      const find = `(() => { const f = (q) => { try { return document.evaluate(q, document, null, 9, null).singleNodeValue; } catch (e) { return null; } };
+        const xp = ${JSON.stringify(c.xpath)}; return f(xp) || f(xp.replace(/\\[1\\]/g, '')); })()`;
+      const a = await axOf(find);
+      if (a) Object.assign(rec, { found: true, ...a });
+      const b = a ? await axOf(`(() => { const e = ${find}; if (!e || !e.shadowRoot) return null;
+        const ls = e.shadowRoot.querySelectorAll('a[href],[role="link"],button,[role="button"]'); return ls.length === 1 ? ls[0] : null; })()`) : null;
+      if (b) rec.innerControl = b;
       out[c.caseId] = rec;
     }
     await page.close().catch(() => {});

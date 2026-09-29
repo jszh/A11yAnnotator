@@ -47,6 +47,7 @@ from. "GenA11y" means the evaluated adapter in `eval/gena11y/` (`extract_element
 | N12 | **Arrow-key probe for composite widgets** (listbox, grid, menu, tablist, aria-activedescendant): where the current item goes, whether it is visibly marked, whether focus leaves. | new | `probes/keyboard.js` |
 | N11 | **axe-core as evidence**, not as a verdict: its findings for the 12 criteria are attached to elements for applicability and shown to the judge. | v3 `axe-surface.js` (evidence role); expert audit: ARIA-validity promotions were the largest FP source | `model/axe.js` |
 | N13 | **Links by behaviour**: an element with no link markup whose activation (keyboard or pointer) tried to navigate is tested for 2.4.4 as a scripted link; video and audio are tested for 1.1.1's descriptive identification. | new (the activation probe's held navigations) | `criteria/2.4.4.js`, `criteria/1.1.1.js`, `probes/content.js` |
+| N14 | **Observations as a keyboard user gets them**: the Tab walk follows focus into same-origin frames and refocuses in-frame stops after photographing them; the judge's focus tool reaches focus by Tab (so `:focus-visible` indicators render) and its screenshots clip in document coordinates; the key-press tool reports focus inside frames. Found root-causing expert FPs (C485, C253). | new; fixes in the shared v3 tools apply to v3 too | `probes/keyboard.js`, `model/inpage.js`, `scripts/v3/lib/cdp-tools.js` |
 
 ## 4. What InterA11y does *not* take from v3
 
