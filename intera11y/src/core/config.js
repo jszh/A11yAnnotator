@@ -24,11 +24,12 @@ const CONFIG = {
   viewport: { width: 1280, height: 900, deviceScaleFactor: 1 },
   navTimeoutMs: 30000,
   settleFloorMs: 150,
-  // the single time limit: one (page, criterion) unit — probes + judge — must finish inside it
+  // the time limit: each probe and each sweep call gets it once; a judge batch gets it once per element it holds
   unitDeadlineMs: Number(process.env.INTERA11Y_UNIT_DEADLINE_MS || 10 * 60 * 1000),
-  // a safety net for the whole page, above the per-unit limits: it catches a hang, and so must allow for time a
-  // page's judge batches spend waiting for the shared LLM pool; a page that exceeds it is recorded as an error
-  pageDeadlineMs: Number(process.env.INTERA11Y_PAGE_DEADLINE_MS || 120 * 60 * 1000),
+  // a safety net for the whole page, above the per-unit limits: it catches a hang, and so must allow for a full judge
+  // batch (12 elements × 10 minutes) and the time batches spend waiting for the shared LLM pool; a page that
+  // exceeds it is recorded as an error
+  pageDeadlineMs: Number(process.env.INTERA11Y_PAGE_DEADLINE_MS || 360 * 60 * 1000),
   // the page-wide LLM screening sweep that adds elements to every criterion's candidate set (INTERA11Y_SCREEN=0 turns it off)
   screen: { enabled: process.env.INTERA11Y_SCREEN !== '0' },
   judge: {

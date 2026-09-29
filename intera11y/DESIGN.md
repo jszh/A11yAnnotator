@@ -57,12 +57,13 @@ All 12 are in `categories.json`.
    counted as a finding.
 6. **One judgment unit = one criterion on one page**, with candidates batched (GenA11y), so the judge sees
    siblings and page context; the judge can call tools to gather evidence for any candidate (harness).
-7. **One time limit.** Every probe, every judge batch and every sweep call gets the same limit (default 10
-   minutes), counted from when it starts its work — time spent waiting for a slot in the shared LLM pool is not
+7. **One time limit per unit of work.** Every probe and every sweep call gets the limit (default 10 minutes); a
+   judge batch gets it once per element it holds (10 minutes per element, as if each were judged alone — v3's
+   per-element budget, kept while batching), counted from when it starts its work — time spent waiting for a slot in the shared LLM pool is not
    counted against it. A step that runs out is recorded as truncated (or NO_VERDICT) and makes the criteria that
    depend on it INCOMPLETE — never PASS. Every single await on the page or a tool is bounded as well (a tool call
-   at 3 minutes, closing a page at 15 s), and a whole page has a safety net (120 minutes, which must also cover its
-   batches' queueing) past which it is recorded as an error. Nothing else is capped except the judge's per-batch
+   at 3 minutes, closing a page at 15 s), and a whole page has a safety net (360 minutes, which must also cover a full
+   12-element batch and its batches' queueing) past which it is recorded as an error. Nothing else is capped except the judge's per-batch
    tool calls.
 
 ## 3. Pipeline

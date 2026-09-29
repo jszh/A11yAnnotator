@@ -54,15 +54,16 @@ const norm = (p) => String(p || '').trim();
 // the tool budget scales with the batch: a fixed budget per candidate, within a floor and a ceiling
 const budgetFor = (n) => Math.max(CONFIG.judge.toolCalls.min, Math.min(CONFIG.judge.toolCalls.max, CONFIG.judge.toolCalls.perCandidate * n));
 
-// Each batch gets the unit time limit from the moment it is dispatched (it may first wait for a slot in the
-// shared LLM pool; waiting is not the batch's work and does not count against it).
+// Each batch gets the unit time limit once per element it holds (10 minutes per element, as if each were judged
+// alone), from the moment it is dispatched (it may first wait for a slot in the shared LLM pool; waiting is not the
+// batch's work and does not count against it).
 async function judgeCandidates({ criterion, page, session, candidates, client, llmPool, trace }) {
   const results = new Map();
   const pageFindings = [];
   const usage = { calls: 0, inputTokens: 0, outputTokens: 0, costUsd: 0, toolCalls: 0, batches: 0 };
   const tools = CONFIG.judge.tools ? bindTools(session, criterion.tools || []) : null;
   const runs = batches(candidates).map((batch, bi) => llmPool(async () => {
-    const deadline = new Deadline(CONFIG.unitDeadlineMs);
+    const deadline = new Deadline(CONFIG.unitDeadlineMs * batch.length);
     const blocks = buildBatchMessage(criterion, page, batch);
     const toolTrace = [];
     const log = trace && ((ev) => trace({ kind: 'turn', sc: criterion.sc, stage: 'judge', batch: bi, ...(ev.turn === 'prompt' ? { candidates: batch.map((c) => c.path) } : {}), ...ev }));
