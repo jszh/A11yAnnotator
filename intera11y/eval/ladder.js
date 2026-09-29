@@ -2,7 +2,9 @@
 'use strict';
 // The ablation ladder's table (DESIGN §6): each step's totals over the six SCs GenA11y covers, on the held-out
 // ACT cases, the human-annotated 585 cases and the expert study, scored by score.js. Step 0 is GenA11y's own runs
-// (its expert flags recomputed from the run, matched like InterA11y's); steps 1–4 are InterA11y runs.
+// (its expert flags recomputed from the run, matched like InterA11y's); steps 1–4 are InterA11y runs. ACT and 585
+// runs load the label-free page copies (eval/neutral-corpus.js); earlier runs (test9, gena11y-act-gem37/-glm53)
+// could read the answer from the page and are not used.
 //
 //   node intera11y/eval/ladder.js [--json=out.json]
 const { execFileSync } = require('child_process');
@@ -15,11 +17,11 @@ const args = Object.fromEntries(process.argv.slice(2).map((a) => { const m = /^-
 
 const MODELS = {
   'Gemini 3.7 Flash': {
-    gena11y: { act: 'gena11y-act-gem37', supp: 'supplementary585-gena11y-gem37', expert: 'gena11y-56-gemini37-high-20260823-combined' },
-    steps: { 1: 'ladder-gem-1', 2: 'ladder-gem-2', '3a': 'ladder-gem-3a', '3b': 'ladder-gem-3b', 4: { test: 'test9-v1', expert: 'expert8-v1' } },
+    gena11y: { act: 'gena11y-act-gem37-neutral', supp: 'supplementary585-gena11y-gem37', expert: 'gena11y-56-gemini37-high-20260823-combined' },
+    steps: { 1: 'ladder-gem-1', 2: 'ladder-gem-2', '3a': 'ladder-gem-3a', '3b': 'ladder-gem-3b', 4: { test: 'test10-v1', expert: 'expert8-v1' } },
   },
   'GLM 5.3 Flash': {
-    gena11y: { act: 'gena11y-act-glm53', supp: 'supplementary585-gena11y-glm53', expert: 'gena11y-56-glm53' },
+    gena11y: { act: 'gena11y-act-glm53-neutral', supp: 'supplementary585-gena11y-glm53', expert: 'gena11y-56-glm53' },
     steps: { 1: 'ladder-glm-1', 2: 'ladder-glm-2', '3a': 'ladder-glm-3a', '3b': 'ladder-glm-3b', 4: 'ladder-glm-4' },
   },
 };
@@ -50,8 +52,8 @@ for (const [model, m] of Object.entries(MODELS)) {
     const row = {};
     if (step === '0') {
       const g = m.gena11y;
-      if (exists(g.act) && exists('intera11y-test9-v1')) { const r = score([`--act=intera11y-test9-v1`, `--gena11y-act=${g.act}`]); row.act = stats(r.actFullSharedScope.all.GenA11y); }
-      if (exists(g.supp) && exists('intera11y-test9-v1')) { const r = score([`--supp=intera11y-test9-v1`, `--gena11y-supp=${g.supp}`]); row.supp = stats(sum(r.supplementary.bySc, 'GenA11y')); }
+      if (exists(g.act) && exists('intera11y-test10-v1')) { const r = score([`--act=intera11y-test10-v1`, `--gena11y-act=${g.act}`]); row.act = stats(r.actFullSharedScope.all.GenA11y); }
+      if (exists(g.supp) && exists('intera11y-test10-v1')) { const r = score([`--supp=intera11y-test10-v1`, `--gena11y-supp=${g.supp}`]); row.supp = stats(sum(r.supplementary.bySc, 'GenA11y')); }
       if (exists(g.expert) && exists('intera11y-expert8-v1')) { const r = score([`--expert=intera11y-expert8-v1`, `--gena11y-expert=${g.expert}`]); row.expert = stats(sum(r.expert.bySc, 'GenA11y')); }
     } else {
       const s = m.steps[step];

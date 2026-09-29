@@ -252,6 +252,15 @@ join on normalised XPath, same truth rule as `rescore-run.js`).
 - **Development / test split fixed before tuning** (`eval/split.js`): within each ACT rule and each 585 aspect,
   a hash-ordered quarter is development; everything else is test. Cases examined before the split existed are
   forced into development (`eval/touched-before-split.txt`). Tuning looks only at development results.
+- **Pages that do not give the answer away** (`eval/neutral-corpus.js`). 456 of the 581 ACT pages are titled
+  "Passed Example 3" / "Failed Example 1", an ACT page's path holds its rule id, its asset folders the rule's name
+  (`links-with-identical-names-serve-equivalent-purpose-b20e66/…`, in every src and href the judge reads), and a
+  585 page's path the aspect under test. The judge sees the page's URL and title, and Gemini's reasoning cited the
+  example titles on about two thirds of ACT pages. ACT and 585 pages are therefore evaluated from copies with
+  hashed file and asset names and the example titles replaced (GenA11y's runner loads the same copies). A
+  side-by-side load of all 1,166 originals and copies found no difference in what renders — element counts,
+  embedded-content boxes and load state, frame contents — only in the 457 titles. Runs before this change (up to
+  test9 and GenA11y's ACT runs `gena11y-act-gem37`/`-glm53`) are not used.
 - **Comparators on the same cases:** GenA11y and the v3 harness, Gemini 3.7 Flash. The v3 harness was tuned on ACT
   and the 585; InterA11y's rules were tuned on the development split only.
 

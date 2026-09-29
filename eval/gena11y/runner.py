@@ -114,6 +114,34 @@ def _primary_covered_sc(sc_field) -> str | None:
     return None
 
 
+# ACT and supplementary pages are loaded from their label-free copies (built by intera11y/eval/neutral-corpus.js),
+# the same pages InterA11y evaluates: the originals' titles ("Failed Example 2"), paths and asset folder names name
+# the rule and the expected result. 'file' stays the original path (results are keyed by it); only the page loaded
+# changes.
+NEUTRAL_MAP = PROJECT_ROOT / 'eval/corpus-neutral/map.json'
+_neutral = None
+
+
+def _load_neutral() -> dict:
+    global _neutral
+    if _neutral is None:
+        if not NEUTRAL_MAP.exists():
+            raise FileNotFoundError('eval/corpus-neutral/map.json is missing: run node intera11y/eval/neutral-corpus.js')
+        _neutral = json.loads(NEUTRAL_MAP.read_text())
+    return _neutral
+
+
+def _in_neutral(rel: str) -> bool:
+    return rel in _load_neutral()
+
+
+def neutral_abs_path(rel: str) -> str:
+    _load_neutral()
+    if rel not in _neutral:
+        raise FileNotFoundError(f'no label-free copy of {rel}: rebuild with node intera11y/eval/neutral-corpus.js')
+    return str((PROJECT_ROOT / _neutral[rel]).resolve())
+
+
 def load_act_cases(scs_filter: list[str] | None = None) -> list[dict]:
     """
     Official ACT subset, FULL set (no axe/v3 deterministic-TN subtraction): every
@@ -130,9 +158,10 @@ def load_act_cases(scs_filter: list[str] | None = None) -> list[dict]:
         fixture = ACT_SUBSET_DIR / 'pages' / r['ruleId'] / f"{r['testcaseId']}.html"
         if not fixture.exists():
             continue
+        rel = str(fixture.relative_to(PROJECT_ROOT))
         out.append({
-            'file': str(fixture.relative_to(PROJECT_ROOT)),
-            'abs_path': str(fixture.resolve()),
+            'file': rel,
+            'abs_path': neutral_abs_path(rel),
             'sc': sc,
             'expected': r.get('expected', 'unknown'),
             'ruleId': r.get('ruleId'),
@@ -281,7 +310,8 @@ def load_case_list(case_list: str) -> list[dict]:
         if not fixture.exists():
             raise FileNotFoundError(f"case-list fixture missing: {row['file']}")
         out.append({
-            'file': row['file'], 'abs_path': str(fixture.resolve()),
+            # a supplementary-585 page from its label-free copy; other lists (e.g. act-augmented dev pages) as they are
+            'file': row['file'], 'abs_path': neutral_abs_path(row['file']) if _in_neutral(row['file']) else str(fixture.resolve()),
             'sc': row['sc'], 'expected': row['expected'],
             'ruleId': row.get('aspect'),
             'testcaseId': f"aug-{row['sc']}-{row.get('aspect', 'aspect')}-{row['id']}",

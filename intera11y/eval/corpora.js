@@ -13,6 +13,19 @@ const OURS = new Set(SCS);
 const safe = (s) => String(s).replace(/[^a-z0-9_]+/gi, '-').slice(0, 80);
 const fileUrl = (rel) => pathToFileURL(path.join(ROOT, rel)).href;
 
+// ACT and supplementary pages are evaluated from their label-free copies (eval/neutral-corpus.js): the originals'
+// titles ("Failed Example 2"), paths (rule id, aspect under test) and asset folder names give the answer away.
+let neutral = null;
+function neutralUrl(rel) {
+  if (!neutral) {
+    const f = path.join(ROOT, 'eval/corpus-neutral/map.json');
+    if (!fs.existsSync(f)) throw new Error('eval/corpus-neutral/map.json is missing: run node intera11y/eval/neutral-corpus.js');
+    neutral = JSON.parse(fs.readFileSync(f, 'utf8'));
+  }
+  if (!neutral[rel]) throw new Error(`no label-free copy of ${rel}: rebuild with node intera11y/eval/neutral-corpus.js`);
+  return fileUrl(neutral[rel]);
+}
+
 function act() {
   const raw = JSON.parse(fs.readFileSync(path.join(ROOT, 'eval/checker-comparison/upstream-evidence/v3-act-subset-proposed/raw.json'), 'utf8'));
   const rows = Array.isArray(raw) ? raw : raw.cases || raw.rows;
@@ -23,7 +36,7 @@ function act() {
     if (!scs.length) continue;
     const rel = `eval/checker-comparison/act-subset/pages/${r.ruleId}/${r.testcaseId}.html`;
     if (!fs.existsSync(path.join(ROOT, rel))) continue;
-    out.push({ id: `${r.ruleId}/${r.testcaseId}`, url: fileUrl(rel), scs, expected: r.expected,
+    out.push({ id: `${r.ruleId}/${r.testcaseId}`, url: neutralUrl(rel), scs, expected: r.expected,
       meta: { ruleId: r.ruleId, testcaseId: r.testcaseId, ruleName: r.ruleName, sc: r.sc, reachesLlm: !r.axeFlag && !r.v3Flag } });
   }
   return out;
@@ -32,7 +45,7 @@ function act() {
 function supplementary() {
   const cases = JSON.parse(fs.readFileSync(path.join(ROOT, 'eval/act-augmented/_tools/full-supplementary-585-cases.json'), 'utf8'));
   return cases.filter((c) => OURS.has(c.sc)).map((c) => ({
-    id: `aug-${c.sc}-${safe(c.aspect)}-${safe(c.id)}`, url: fileUrl(c.file), scs: [c.sc], expected: c.expected,
+    id: `aug-${c.sc}-${safe(c.aspect)}-${safe(c.id)}`, url: neutralUrl(c.file), scs: [c.sc], expected: c.expected,
     meta: { testcaseId: `aug-${c.sc}-${safe(c.aspect)}-${safe(c.id)}`, sc: c.sc, aspect: c.aspect, source: c.source, key: c.key },
   }));
 }
