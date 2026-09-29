@@ -33,7 +33,11 @@ async function openPage(browser, url, viewport = CONFIG.viewport) {
   page.on('dialog', (d) => { page.__dialogs.push({ type: d.type(), message: d.message() }); d.dismiss().catch(() => {}); });
   await page.evaluateOnNewDocument(installHelpers);
   await page.evaluateOnNewDocument(installListenerLog);
-  await page.goto(url, { waitUntil: 'load', timeout: CONFIG.navTimeoutMs }).catch(() => {});
+  // a slow page is tested as far as it loaded; a page that did not load at all (the server is down, a 4xx/5xx) is
+  // an error — tested, its error page would read as a page with nothing to test
+  const res = await page.goto(url, { waitUntil: 'load', timeout: CONFIG.navTimeoutMs }).catch((e) => ({ failed: e }));
+  if (res && res.failed && !/timeout/i.test(String(res.failed.message))) { await page.close().catch(() => {}); throw new Error(`page did not load: ${String(res.failed.message).slice(0, 200)}`); }
+  if (res && !res.failed && /^https?:/.test(url) && res.status() >= 400) { await page.close().catch(() => {}); throw new Error(`page did not load: HTTP ${res.status()}`); }
   await awaitSettle(page, { force: true, floorMs: CONFIG.settleFloorMs });
   return page;
 }
