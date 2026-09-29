@@ -267,27 +267,35 @@ join on normalised XPath, same truth rule as `rescore-run.js`).
 ## 6. Ablation ladder (from GenA11y to InterA11y)
 
 Each step adds one group of InterA11y's differences to the step before, scored on the six SCs GenA11y covers
-(1.1.1, 1.4.1, 1.4.3, 2.4.4, 3.3.1, 4.1.2). Steps 1–3b run inside InterA11y's pipeline under switches whose
+(1.1.1, 1.4.1, 1.4.3, 2.4.4, 3.3.1, 4.1.2). Step 1 is GenA11y's own pipeline with one switch
+(`eval/gena11y/runner.py --stance=neutral`); steps 2–3b run inside InterA11y's pipeline under switches whose
 defaults are InterA11y as designed (`core/config.js` `ablation`, `judge.rubric`, `judge.tools`):
 
-| Step | Adds | `INTERA11Y_CANDIDATES` | `INTERA11Y_EVIDENCE` | `INTERA11Y_RUBRIC` | `INTERA11Y_TOOLS` |
-|---|---|---|---|---|---|
-| 0 | GenA11y as is (its own code and results) | — | — | — | — |
-| 1 | the neutral system prompt | `pool` | `markup` | `gena11y` | `0` |
-| 2 | evidence: computed facts, probe observations, crops, page text | `pool` | `full` | `gena11y` | `0` |
-| 3a | InterA11y's rules (corrections and added rules, no tool names) | `pool` | `full` | `rules` | `0` |
-| 3b | the agentic judge (tools, tool names on the rules: V1) | `pool` | `full` | `v1` | on |
-| 4 | triage: rule inventory + sweep, measurement rules decide first | `triage` | `full` | `v1` | on |
+| Step | Adds | Pipeline | `INTERA11Y_CANDIDATES` | `INTERA11Y_EVIDENCE` | `INTERA11Y_RUBRIC` | `INTERA11Y_TOOLS` |
+|---|---|---|---|---|---|---|
+| 0 | GenA11y as is | GenA11y | — | — | — | — |
+| 1 | the neutral prompt stance | GenA11y, `--stance=neutral` | — | — | — | — |
+| 2 | InterA11y's evidence: its element cards (computed facts, probe observations, crops, page text) | InterA11y | `pool` | `full` | `gena11y` | `0` |
+| 3a | InterA11y's rules (corrections and added rules, no tool names) | InterA11y | `pool` | `full` | `rules` | `0` |
+| 3b | the agentic judge (tools, tool names on the rules: V1) | InterA11y | `pool` | `full` | `v1` | on |
+| 4 | triage: rule inventory + sweep, measurement rules decide first | InterA11y | `triage` | `full` | `v1` | on |
 
-- `pool`: every rendered element of the criterion's kinds (the sweep's element pool) goes to the judge — GenA11y's
-  scope — and nothing is decided before the judge; in the expert study, only the pool elements at or inside the
-  annotated elements, as in every expert run.
-- `markup`: a card carries the element's opening tag and its own text only; no probe runs, and no page text.
-- `gena11y` (`rubrics/gena11y-original.js`): GenA11y's heading, pass condition and rules, verbatim. The lines after
-  the rules are not carried over: three describe GenA11y's input format, and 3.3.1's "If no form or error state is
-  present, the page passes" tells the model how to decide without evidence, which step 1's neutral stance removes.
-- The system prompt is the same neutral one from step 1 on.
-- Step 0 is GenA11y's own pipeline, so 0→1 also includes pipeline differences (element extraction, page loading,
-  a verdict per element); 1→4 are within one pipeline. Each step's gain is conditional on the steps before it.
+- Step 1 keeps everything of GenA11y — element extraction, screenshots, chunking, its test rules — and replaces
+  only the stance: GenA11y's system prompt asks the model to detect violations and "only flag clear violations",
+  returns one page verdict in which PARTIAL ("evidence is incomplete") counts as a detection, and 3.3.1's rules end
+  with "If no form or error state is present, the page passes". The neutral stance is InterA11y's judge stance
+  (`judge/prompt.js`): a verdict per element (FAIL / PASS / NOT_APPLICABLE / UNDETERMINED), the same evidence burden
+  for FAIL and PASS, failures outside the listed elements as page findings. FAIL elements and page findings become
+  GenA11y's violations, so step 1 is scored exactly as step 0.
+- 1→2 moves into InterA11y's pipeline, so it changes how the evidence is gathered and presented as a whole: which
+  elements are judged (`pool`: every rendered element of the criterion's kinds — the sweep's element pool — with
+  nothing decided before the judge; in the expert study, only pool elements at or inside the annotated elements, as
+  in every expert run), what each element's card carries, and how elements are batched.
+- `gena11y` (`rubrics/gena11y-original.js`): GenA11y's heading, pass condition and rules, verbatim, without the lines
+  after the rules (three describe GenA11y's input format; 3.3.1's default verdict is the stance change of step 1).
+- Each step's gain is conditional on the steps before it.
+- An earlier step 1 ran inside InterA11y's pipeline with markup-only cards (`INTERA11Y_EVIDENCE=markup`, runs
+  `intera11y-ladder-*-1-*`). It changed the evidence and the element set along with the stance, so it was replaced;
+  the `markup` switch remains.
 - The judge model is set with `INTERA11Y_MODEL`; an OpenRouter id (vendor/model, e.g. `z-ai/glm-5.3-flash`) uses
   `judge/openrouter.js`, which has the Gemini client's contract (tool loop, budget, turn logs).

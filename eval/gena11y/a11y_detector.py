@@ -45,6 +45,36 @@ _LOCK = threading.Lock()
 _LLM_SEM = threading.Semaphore(8)          # global cap on concurrent LLM calls
 _CTX = threading.local()                    # per-page (sc, file) for trace attribution
 TRACE_SINK = None                           # callable(dict) -> None, set by runner
+STANCE = 'original'                         # 'original' | 'neutral' (InterA11y's ablation ladder, step 1)
+
+# The ablation ladder's step 1 (intera11y/DESIGN.md §6): GenA11y with only its prompt stance replaced by InterA11y's
+# judge stance (intera11y/src/judge/prompt.js) — the same extraction, screenshots, chunking and test rules. The
+# original stance asks the model to detect violations, "only flag clear violations", and returns one page verdict in
+# which PARTIAL ("evidence is incomplete") counts as a detection; the neutral stance asks for a verdict per element
+# with the same evidence burden for FAIL and PASS. The reply is mapped back to GenA11y's schema (_normalize_neutral),
+# so scoring is unchanged: FAIL elements and page findings are the violations.
+SYSTEM_NEUTRAL = (
+    'You are an accessibility auditor testing one web page against one WCAG 2.2 success criterion.\n\n'
+    "You receive the criterion's test rules and the page's elements that the rules concern, each prefixed with a "
+    '[path: /html/...] label giving its XPath, and sometimes a screenshot. For each element, decide whether it meets '
+    "the criterion's test condition.\n\n"
+    'Verdicts, one per element:\n'
+    '- FAIL — the evidence shows the test condition is not met.\n'
+    '- PASS — the evidence shows the test condition is met.\n'
+    '- NOT_APPLICABLE — the evidence shows the criterion does not apply to this element (say which applicability '
+    'condition it lacks).\n'
+    '- UNDETERMINED — the evidence supports none of the above.\n\n'
+    'Evidence standard. Every verdict must name the evidence it rests on (a detail of the markup, style or '
+    'screenshot). FAIL and PASS carry the same burden: an absent observation is evidence of nothing, so it cannot '
+    'support either. Judge each element on its own evidence, not on how many others fail or pass.\n\n'
+    'If the page has a failure of this criterion that is not one of the listed elements (or only a screenshot is '
+    "given), report it under pageFindings with the XPath of the element it concerns if you have it, or null.\n\n"
+    'Answer with one JSON object and nothing else:\n'
+    '{"elements":[{"xpath":"<the element\'s [path: ...] value, verbatim>","outerHTML":"<opening tag only>",'
+    '"verdict":"FAIL|PASS|NOT_APPLICABLE|UNDETERMINED","evidence":"<the evidence the verdict rests on>",'
+    '"reason":"<the test condition, and how the evidence meets or fails it>"}],\n'
+    ' "pageFindings":[{"xpath":"<xpath or null>","outerHTML":"<opening tag, or empty>","evidence":"…","reason":"…"}]}'
+)
 
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
@@ -79,9 +109,13 @@ LLM_STATS = {
 
 
 def configure(model: str = None, llm_concurrency: int = None, trace_sink=None,
-              effort: str = None) -> None:
-    """Set the active model, reasoning effort, concurrency cap, and trace sink."""
-    global MODEL, EFFORT, _LLM_SEM, TRACE_SINK
+              effort: str = None, stance: str = None) -> None:
+    """Set the active model, reasoning effort, concurrency cap, trace sink, and prompt stance."""
+    global MODEL, EFFORT, _LLM_SEM, TRACE_SINK, STANCE
+    if stance:
+        if stance not in ('original', 'neutral'):
+            raise ValueError(f'unknown stance {stance}')
+        STANCE = stance
     if model:
         MODEL = model
     EFFORT = effort
@@ -695,7 +729,8 @@ def dispatch(content_blocks: list, system: str = SYSTEM_MESSAGE) -> tuple:
 
 def _call_llm(content_blocks: list, _retries: int = 3) -> dict:
     """Route to the configured provider, record usage/trace, return a verdict dict."""
-    prompt_text, raw, usage, reasoning, provider = dispatch(content_blocks)
+    prompt_text, raw, usage, reasoning, provider = dispatch(
+        content_blocks, system=SYSTEM_NEUTRAL if STANCE == 'neutral' else SYSTEM_MESSAGE)
     verdict = _parse_verdict(raw) if raw else _no_verdict(
         f'{provider} transport returned no text ({usage})')
     _emit_trace(prompt_text, raw, verdict, usage, reasoning, provider)
@@ -743,7 +778,30 @@ def _parse_verdict(text: str) -> dict:
     return _no_verdict('Unbalanced JSON')
 
 
+def _normalize_neutral(obj: dict) -> dict:
+    """A neutral-stance reply in GenA11y's schema: FAIL elements and page findings are the violations."""
+    elements = [e for e in (obj.get('elements') or []) if isinstance(e, dict)]
+    findings = [f for f in (obj.get('pageFindings') or []) if isinstance(f, dict)]
+    fails = [e for e in elements if str(e.get('verdict', '')).upper() == 'FAIL']
+    counts = {}
+    for e in elements:
+        v = str(e.get('verdict', '')).upper() or 'MISSING'
+        counts[v] = counts.get(v, 0) + 1
+    violations = [{'xpath': v.get('xpath'), 'outerHTML': v.get('outerHTML', ''),
+                   'reason': ' — '.join(x for x in (v.get('evidence', ''), v.get('reason', '')) if x),
+                   'recommendation': ''} for v in fails + findings]
+    return {
+        'verdict': 'REPRODUCED' if violations else 'NOT REPRODUCED',
+        'confidence': 'medium',
+        'violations': violations,
+        'summary': f'element verdicts {counts}; page findings {len(findings)}',
+        'elementVerdicts': counts,
+    }
+
+
 def _normalize(obj: dict) -> dict:
+    if STANCE == 'neutral':
+        return _normalize_neutral(obj)
     valid_verdicts = {'REPRODUCED', 'NOT REPRODUCED', 'PARTIAL'}
     verdict = obj.get('verdict', 'NOT REPRODUCED')
     if verdict not in valid_verdicts:
@@ -1136,9 +1194,10 @@ def detect_error_identification(screenshot_b64: str) -> dict:
             'Test rules:\n'
             '1. If an input error is automatically detected, the item in error must be identified '
             '   and the error described to the user in text.\n'
-            'Look for form validation errors visible in the screenshot. If no form or error state '
-            'is present, the page passes.\n'
-            '------------------\n'
+            # the neutral stance drops the default verdict ("... the page passes"), as InterA11y's gena11y rubric does
+            'Look for form validation errors visible in the screenshot.'
+            + ('\n' if STANCE == 'neutral' else ' If no form or error state is present, the page passes.\n')
+            + '------------------\n'
         ),
         _b64_image_block(screenshot_b64),
     ]
