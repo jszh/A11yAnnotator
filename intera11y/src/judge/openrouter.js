@@ -77,7 +77,7 @@ function makeOpenRouterClient({ apiKey = process.env.OPENROUTER_API_KEY, model, 
     return { error: 'retries-exhausted' };
   }
 
-  async function converse({ system, blocks, tools, toolBudget = 0, deadline, trace, log }) {
+  async function converse({ system, blocks, tools, toolBudget = 0, deadline, trace, log, responseSchema }) {
     const local = { calls: 0, inputTokens: 0, outputTokens: 0, cachedTokens: 0, costUsd: 0 };
     const say = (ev) => { if (log) { try { log(ev); } catch (e) { /* logging never throws */ } } };
     const done = (r) => { say({ turn: 'end', error: r.error || null, toolCalls: r.toolCalls, finishReason: r.finishReason || null, usage: local }); return { ...r, usage: local }; };
@@ -89,6 +89,8 @@ function makeOpenRouterClient({ apiKey = process.env.OPENROUTER_API_KEY, model, 
     for (let turn = 0; turn < toolBudget + 3; turn++) {
       const allowTools = decls && used < toolBudget;
       const body = { model, messages, max_tokens: maxOutputTokens, temperature: 0, usage: { include: true }, reasoning: { effort: reasoning } };
+      // structured output: the answer is constrained to the schema; only providers that honour it are used
+      if (responseSchema) { body.response_format = { type: 'json_schema', json_schema: { name: 'answer', strict: true, schema: responseSchema } }; body.provider = { require_parameters: true }; }
       if (allowTools) { body.tools = decls; body.tool_choice = 'auto'; }
       const t0 = Date.now();
       const res = await post(body, deadline, local);

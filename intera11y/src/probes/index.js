@@ -15,7 +15,7 @@ function makeProbeRunner(session, model) {
     if (!memo.has(name)) {
       if (!PROBES.includes(name)) throw new Error(`unknown probe ${name}`);
       const probe = load(name);
-      const deadline = new Deadline(CONFIG.unitDeadlineMs);
+      const deadline = new Deadline(CONFIG.probeDeadlineMs);
       const t0 = Date.now();
       const partial = probe.empty();
       memo.set(name, deadline.run(() => probe.run({ session, model, deadline, partial })).then((r) => {

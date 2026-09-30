@@ -572,7 +572,7 @@ def main():
                    help='saved-pages: annotator server origin the pages load from.')
     p.add_argument('--page-list', help='saved-pages: page-list JSON (default eval/56-page-baselines/page-list-56.json).')
     p.add_argument('--dry-run', action='store_true')
-    p.add_argument('--redo-failed-of', help='Run only the cases that ended in error or no verdict in results/<run>/ '
+    p.add_argument('--redo-failed-of', help='Run only the cases that ended in error or no verdict (wholly or in some chunks) in results/<run>/ '
                    '(matched on file and SC); merge back with merge_redo.py.')
     args = p.parse_args()
 
@@ -608,7 +608,9 @@ def main():
         pages = collect_augmented(scs, None)
     if args.redo_failed_of:
         prior = json.loads((PROJECT_ROOT / 'results' / args.redo_failed_of / 'results.json').read_text())
-        failed = {(r['file'], r['sc']) for r in prior if r.get('outcome') in ('error', 'noVerdict')}
+        # failed outright, or partially: some chunks returned no verdict (helper.aggregate_responses records it)
+        failed = {(r['file'], r['sc']) for r in prior if r.get('outcome') in ('error', 'noVerdict')
+                  or 'chunks returned no verdict]' in str((r.get('gena11y') or {}).get('summary', ''))}
         pages = [pg for pg in pages if (pg['file'], pg['sc']) in failed]
         print(f'redo: {len(pages)} of {len(failed)} failed cases of {args.redo_failed_of}', file=sys.stderr)
     if args.limit:

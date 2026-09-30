@@ -29,8 +29,11 @@ const fileId = (id) => id.replace(/[^a-z0-9_.-]+/gi, '_').slice(0, 180);
 let cases = CORPORA[corpus]();
 if (args.sc) { const want = new Set(String(args.sc).split(',')); cases = cases.map((c) => ({ ...c, scs: c.scs.filter((s) => want.has(s)) })).filter((c) => c.scs.length); }
 if (args.ids || args['ids-file']) {
-  const ids = new Set(args.ids ? String(args.ids).split(',') : fs.readFileSync(args['ids-file'], 'utf8').split(/\s+/).filter(Boolean));
+  // --ids-file: one id per line (saved-page ids contain spaces and commas)
+  const ids = new Set(args.ids ? String(args.ids).split(',') : fs.readFileSync(args['ids-file'], 'utf8').split(/\r?\n/).map((x) => x.trim()).filter(Boolean));
   cases = cases.filter((c) => ids.has(c.id));
+  const missing = [...ids].filter((x) => !cases.some((c) => c.id === x));
+  if (missing.length) { console.error(`ids not in the corpus: ${missing.slice(0, 5).join(' | ')}`); process.exit(1); }
 }
 if (args.limit) cases = cases.slice(0, Number(args.limit));
 

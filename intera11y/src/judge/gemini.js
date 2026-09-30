@@ -78,7 +78,7 @@ function makeGeminiClient({ apiKey = process.env.GEMINI_API_KEY, model, effort =
   }
 
   // system: string; blocks: [{type:'text',text}|{type:'image',data,mime}]; tools: {declarations:[], call(name,args)}
-  async function converse({ system, blocks, tools, toolBudget = 0, deadline, trace, log }) {
+  async function converse({ system, blocks, tools, toolBudget = 0, deadline, trace, log, responseSchema }) {
     const local = { calls: 0, inputTokens: 0, outputTokens: 0, cachedTokens: 0, costUsd: 0 };
     const say = (ev) => { if (log) { try { log(ev); } catch (e) { /* logging never throws */ } } };
     const done = (r) => { say({ turn: 'end', error: r.error || null, toolCalls: r.toolCalls, finishReason: r.finishReason || null, usage: local }); return { ...r, usage: local }; };
@@ -91,7 +91,9 @@ function makeGeminiClient({ apiKey = process.env.GEMINI_API_KEY, model, effort =
       const body = {
         systemInstruction: { parts: [{ text: system }] },
         contents,
-        generationConfig: { maxOutputTokens, temperature: 0, thinkingConfig: { thinkingLevel: LEVEL[effort] || 'HIGH', ...(includeThoughts ? { includeThoughts: true } : {}) } },
+        generationConfig: { maxOutputTokens, temperature: 0, thinkingConfig: { thinkingLevel: LEVEL[effort] || 'HIGH', ...(includeThoughts ? { includeThoughts: true } : {}) },
+          // structured output: the answer text is constrained to the schema (tool calls are unaffected)
+          ...(responseSchema ? { responseMimeType: 'application/json', responseJsonSchema: responseSchema } : {}) },
       };
       // once the budget is spent the tools are not declared at all: with tools declared but disabled the model
       // can still attempt a call and end the turn without an answer

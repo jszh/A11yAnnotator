@@ -23,9 +23,15 @@ const CONFIG = {
   chromePath: process.env.CHROME_PATH || (fs.existsSync(MAC_CHROME) ? MAC_CHROME : '/usr/bin/google-chrome'),
   viewport: { width: 1280, height: 900, deviceScaleFactor: 1 },
   navTimeoutMs: 30000,
+  // after load, a page is tested once its main frame has not navigated for navQuietMs (a self-reload), at most navQuietMaxMs
+  navQuietMs: 2000,
+  navQuietMaxMs: 15000,
   settleFloorMs: 150,
-  // the time limit: each probe and each sweep call gets it once; a judge batch gets it once per element it holds
+  // the time limit: each sweep call gets it once; a judge batch gets it once per element it holds
   unitDeadlineMs: Number(process.env.INTERA11Y_UNIT_DEADLINE_MS || 10 * 60 * 1000),
+  // each probe's limit: a probe drives the whole page (a Tab walk over every stop, activating every control), and on
+  // the largest expert pages 10 minutes truncated the keyboard, activation and content probes
+  probeDeadlineMs: Number(process.env.INTERA11Y_PROBE_DEADLINE_MS || 30 * 60 * 1000),
   // a safety net for the whole page, above the per-unit limits: it catches a hang, and so must allow for a full judge
   // batch (12 elements × 10 minutes) and the time batches spend waiting for the shared LLM pool; a page that
   // exceeds it is recorded as an error

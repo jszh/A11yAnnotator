@@ -66,4 +66,20 @@ function buildBatchMessage(criterion, page, candidates) {
   return blocks;
 }
 
-module.exports = { SYSTEM, buildBatchMessage };
+// The answer's JSON schema, given to the API as structured output (the SYSTEM prompt states the same format)
+const ANSWER_SCHEMA = {
+  type: 'object',
+  properties: {
+    candidates: { type: 'array', items: { type: 'object', properties: {
+      path: { type: 'string' }, verdict: { type: 'string', enum: ['FAIL', 'PASS', 'NOT_APPLICABLE', 'UNDETERMINED'] },
+      evidence: { type: 'string' }, reason: { type: 'string' },
+    }, required: ['path', 'verdict', 'evidence', 'reason'], additionalProperties: false } },
+    pageFindings: { type: 'array', items: { type: 'object', properties: {
+      path: { type: ['string', 'null'] }, evidence: { type: 'string' }, reason: { type: 'string' },
+    }, required: ['path', 'evidence', 'reason'], additionalProperties: false } },
+  },
+  required: ['candidates', 'pageFindings'],
+  additionalProperties: false,
+};
+
+module.exports = { SYSTEM, ANSWER_SCHEMA, buildBatchMessage };

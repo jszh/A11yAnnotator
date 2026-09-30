@@ -55,12 +55,29 @@ function chunks(lines) {
   return out;
 }
 
+// the answer's JSON schema, given to the API as structured output (SYSTEM states the same format)
+const SELECTION_SCHEMA = {
+  type: 'object',
+  properties: { elements: { type: 'array', items: { type: 'object', properties: { path: { type: 'string' }, aspect: { type: 'string' } }, required: ['path', 'aspect'], additionalProperties: false } } },
+  required: ['elements'],
+  additionalProperties: false,
+};
+
+// the answer object; when it was cut off (output limit), the element entries that are whole JSON on their own,
+// marked partial so the chunk is sent again in halves
 function parse(text) {
   const s = String(text || '').replace(/^```[a-z]*\s*/i, '').replace(/```\s*$/, '');
   const a = s.indexOf('{'), b = s.lastIndexOf('}');
-  if (a < 0 || b < a) return null;
-  try { return JSON.parse(s.slice(a, b + 1)); } catch (e) { return null; }
+  if (a >= 0 && b > a) { try { return JSON.parse(s.slice(a, b + 1)); } catch (e) { /* salvage below */ } }
+  const elements = [];
+  for (const m of s.matchAll(/\{\s*"path"\s*:\s*"((?:[^"\\]|\\.)*)"\s*,\s*"aspect"\s*:\s*"((?:[^"\\]|\\.)*)"\s*\}/g)) {
+    try { elements.push({ path: JSON.parse(`"${m[1]}"`), aspect: JSON.parse(`"${m[2]}"`) }); } catch (e) { /* skip */ }
+  }
+  return elements.length ? { elements, partial: true } : null;
 }
+
+// a chunk whose answer was cut off or did not parse is sent again as two halves, down to SPLIT_MIN elements
+const SPLIT_MIN = 10;
 
 // → { proposals: Map<xpath, aspect>, selected, unknownPaths, calls, failedCalls, usage }
 // each call gets the unit time limit from when it is dispatched, like a judge batch
@@ -74,15 +91,16 @@ async function sweep({ criterion, model, client, llmPool, trace }) {
   const byKey = new Map(model.elements.map((e) => [key(e.xpath), e]));
   const head = `Success criterion: SC ${criterion.sc} ${criterion.title}\nTest rules:\n${load(criterion.sc).rules.map((r, i) => `${i + 1}. ${r.text}`).join('\n')}\n\nPage: ${model.doc.url} — title ${JSON.stringify(model.doc.title || '')}\n------------------\nElements (${pool.length} on the page of the kinds this criterion concerns${'{N}'}):\n`;
   const parts = chunks(pool.map(line));
-  let unknownPaths = 0, failedCalls = 0;
-  await Promise.all(parts.map((part, i) => llmPool(async () => {
+  let unknownPaths = 0, failedCalls = 0, calls = 0, ci = 0;
+  const run = async (part) => {
+    const i = ci++;
+    calls++;
     const deadline = new Deadline(CONFIG.unitDeadlineMs);
-    const blocks = [{ type: 'text', text: head.replace('{N}', parts.length > 1 ? `; part ${i + 1} of ${parts.length}` : '') + part.join('\n') }];
+    const blocks = [{ type: 'text', text: head.replace('{N}', parts.length > 1 ? `; part ${i + 1}` : '') + part.join('\n') }];
     if (model.screenshot) blocks.push({ type: 'image', data: model.screenshot, mime: 'image/png' });
-    const res = await client.converse({ system: SYSTEM, blocks, deadline, log: trace && ((ev) => trace({ kind: 'turn', sc: criterion.sc, stage: 'screen', chunk: i, ...ev })) });
+    const res = await client.converse({ system: SYSTEM, blocks, deadline, responseSchema: SELECTION_SCHEMA, log: trace && ((ev) => trace({ kind: 'turn', sc: criterion.sc, stage: 'screen', chunk: i, ...ev })) });
     if (res.usage) for (const k of Object.keys(usage)) usage[k] += res.usage[k] || 0;
     const parsed = res.text ? parse(res.text) : null;
-    if (!parsed || !Array.isArray(parsed.elements)) failedCalls++;
     const got = [];
     for (const x of (parsed && parsed.elements) || []) {
       // the path as written, or unwrapped if the model copied the whole `[path: …]` label
@@ -94,9 +112,16 @@ async function sweep({ criterion, model, client, llmPool, trace }) {
       if (!proposals.has(e.xpath)) proposals.set(e.xpath, clip(x.aspect, 300));
       got.push(e.xpath);
     }
-    if (trace) trace({ sc: criterion.sc, stage: 'screen', chunk: i, of: parts.length, elements: part.length, selected: got.length, error: res.error || (parsed ? null : 'unparseable'), answer: res.text ? res.text.slice(0, 8000) : null });
-  })));
-  return { proposals, pool: pool.length, selected: proposals.size, unknownPaths, calls: parts.length, failedCalls, usage };
+    const incomplete = !parsed || !Array.isArray(parsed.elements) || parsed.partial;
+    const split = incomplete && part.length >= 2 * SPLIT_MIN;
+    if (trace) trace({ sc: criterion.sc, stage: 'screen', chunk: i, elements: part.length, selected: got.length, error: res.error || (!parsed ? 'unparseable' : parsed.partial ? 'partial-answer' : null), resent: split || undefined, answer: res.text ? res.text.slice(0, 8000) : null });
+    if (split) { const h = Math.ceil(part.length / 2); return [part.slice(0, h), part.slice(h)]; }
+    if (incomplete) failedCalls++;
+    return [];
+  };
+  // halves are sent after their parent call has released its slot in the shared pool
+  for (let queue = parts; queue.length;) queue = (await Promise.all(queue.map((part) => llmPool(() => run(part))))).flat();
+  return { proposals, pool: pool.length, selected: proposals.size, unknownPaths, calls, failedCalls, usage };
 }
 
-module.exports = { sweep, SYSTEM };
+module.exports = { sweep, SYSTEM, parse };
