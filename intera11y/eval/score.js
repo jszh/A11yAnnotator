@@ -210,7 +210,9 @@ function leaveOneOut(rows, systems) {
     const m = blank(), all = blank(), cases = new Set();
     for (const r of rows) { add(all, r.flags[s], r.truth); if (own(s)(r)) continue; add(m, r.flags[s], r.truth); cases.add(r.cid); }
     const st = stats(m);
-    out.systems[s] = { ...st, responses: m.TP + m.FP + m.FN + m.TN, cases: cases.size, leftOut: rows.filter(own(s)).length, fprAllNegatives: stats(all).fpr };
+    // f1AllNegatives: recall as above, false positives over all negatives (the system's own sourced ones kept)
+    const pA = m.TP / (m.TP + all.FP), rA = m.TP / (m.TP + m.FN);
+    out.systems[s] = { ...st, responses: m.TP + m.FP + m.FN + m.TN, cases: cases.size, leftOut: rows.filter(own(s)).length, fprAllNegatives: stats(all).fpr, f1AllNegatives: +(2 * pA * rA / (pA + rA)).toFixed(3) };
   }
   const exact = (b, n) => { if (!n) return 1; const lg = (k) => { let x = 0; for (let i = 2; i <= k; i++) x += Math.log(i); return x; }; const pm = (k) => Math.exp(lg(n) - lg(k) - lg(n - k) - n * Math.LN2); const o = pm(b); let p = 0; for (let k = 0; k <= n; k++) if (pm(k) <= o * (1 + 1e-9)) p += pm(k); return Math.min(1, p); };
   const mcnemar = (units, a, b) => { const d = { pos: { onlyA: 0, onlyB: 0, n: 0 }, neg: { onlyA: 0, onlyB: 0, n: 0 } }; for (const u of units) { const x = u.truth ? d.pos : d.neg; x.n++; if (u.flags[a] && !u.flags[b]) x.onlyA++; if (u.flags[b] && !u.flags[a]) x.onlyB++; } for (const x of Object.values(d)) x.p = +exact(x.onlyA, x.onlyA + x.onlyB).toPrecision(3); return d; };
@@ -239,8 +241,8 @@ if (report.supplementary) console.log(table('Supplementary 585, human-annotated 
 if (report.supplementarySharedScope) console.log(table('Supplementary 585, human-annotated, SCs GenA11y covers only', report.supplementarySharedScope));
 if (report.expert && report.expert.leaveOneOut) {
   const L = report.expert.leaveOneOut;
-  console.log('\n## Expert study, leave-one-run-out (each system scored without the cases it alone sourced)\n| System | Cases | Responses | Left out | Recall | FPR | F1 | FPR, all negatives |\n|---|---:|---:|---:|---:|---:|---:|---:|');
-  for (const [s, x] of Object.entries(L.systems)) console.log(`| ${s} | ${x.cases} | ${x.responses} | ${x.leftOut} | ${x.recall ?? '—'} | ${x.fpr ?? '—'} | ${x.f1 ?? '—'} | ${x.fprAllNegatives ?? '—'} |`);
+  console.log('\n## Expert study, leave-one-run-out (each system scored without the cases it alone sourced)\n| System | Cases | Responses | Left out | Recall | FPR | F1 | FPR, all negatives | F1, all negatives |\n|---|---:|---:|---:|---:|---:|---:|---:|---:|');
+  for (const [s, x] of Object.entries(L.systems)) console.log(`| ${s} | ${x.cases} | ${x.responses} | ${x.leftOut} | ${x.recall ?? '—'} | ${x.fpr ?? '—'} | ${x.f1 ?? '—'} | ${x.fprAllNegatives ?? '—'} | ${x.f1AllNegatives ?? '—'} |`);
   console.log('\n| Pair (shared cases) | Unit | Violations caught: only InterA11y / only other (p) | False positives: only InterA11y / only other (p) |\n|---|---|---|---|');
   for (const [pair, d] of Object.entries(L.paired)) for (const u of ['responses', 'cases']) console.log(`| ${pair} | ${u}${u === 'cases' ? ` (${d.cases.tiesDropped} ties dropped)` : ''} | ${d[u].pos.onlyA} / ${d[u].pos.onlyB} (${d[u].pos.p}) | ${d[u].neg.onlyA} / ${d[u].neg.onlyB} (${d[u].neg.p}) |`);
 }
