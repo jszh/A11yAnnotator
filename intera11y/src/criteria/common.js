@@ -12,7 +12,10 @@ function expectedTabbable(model) {
 
 function stopByKey(kb) {
   const m = new Map();
-  for (const s of (kb && kb.stops) || []) m.set(key(s.xpath), s);
+  // a stop after a Tab stall (the walk went on from the stalled element by script) counts as reached by keyboard
+  // only if the Shift+Tab walk reached it too
+  const back = new Set(((kb && kb.backward && kb.backward.sequence) || []).map(key));
+  for (const s of (kb && kb.stops) || []) if (!s.afterStall || back.has(key(s.xpath))) m.set(key(s.xpath), s);
   return m;
 }
 
@@ -21,6 +24,8 @@ function stopFacts(s) {
   const i = s.indicator || {};
   return {
     tabIndex: s.index,
+    ...(s.reachedBy ? { reachedBy: s.reachedBy } : {}),
+    ...(s.afterStall ? { afterTabStall: 'reached only after the walk continued past an element on which Tab left focus in place' } : {}),
     visibleWhenFocused: s.visibleWhenFocused,
     occludedBy: s.occludedBy,
     modalOpen: s.modalOpen, insideModal: s.insideModal,

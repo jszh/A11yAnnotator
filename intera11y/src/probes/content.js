@@ -19,6 +19,7 @@
 //             file name, the text around it, and a crop.
 const png = require('../lib/png.js');
 const { contrastRatio } = require('../lib/v3.js');
+const { loadLazyContent } = require('../core/session.js');
 
 // viewport-high screenshot steps: the whole page (≈ 360 000 px); the probe's time limit bounds the work, and a page
 // longer than this is marked truncated
@@ -140,10 +141,14 @@ function inventory() {
   // an <object> that references a resource but drew no box has not rendered it here; its size is not the author's
   // (1.1.1's applicability: presented unless deliberately sized as a tracking pixel)
   const unrenderedEmbed = (el) => el.tagName === 'OBJECT' && !!el.getAttribute('data') && el.checkVisibility({ visibilityProperty: true }) && !el.getBoundingClientRect().width && !el.getBoundingClientRect().height;
-  // a 2D canvas with no painted pixel presents nothing (null: not readable — WebGL, or tainted by cross-origin images)
+  // a 2D canvas with no painted pixel presents nothing (null: not readable — WebGL, tainted by cross-origin images, or
+  // outside the viewport's width)
   const canvasBlank = (el) => {
     try {
       if (!el.width || !el.height || el.width * el.height > 4e6) return null;
+      // a canvas outside the viewport's width (a carousel slide) may not be drawn until shown: not readable here
+      const cr = el.getBoundingClientRect();
+      if (cr.left >= innerWidth || cr.right <= 0) return null;
       const ctx = el.getContext('2d');
       if (!ctx) return null;
       const d = ctx.getImageData(0, 0, el.width, el.height).data;
@@ -221,6 +226,7 @@ const empty = () => ({ links: [], texts: [], images: [], lookalikes: [], stepsTa
 
 async function run({ session, deadline, partial }) {
   return session.withFreshPage(async (page) => {
+    await loadLazyContent(page);
     const inv = await page.evaluate(inventory);
     Object.assign(partial, { links: inv.links, texts: inv.texts, images: inv.images, lookalikes: inv.lookalikes });
     const vp = page.viewport();
@@ -228,9 +234,8 @@ async function run({ session, deadline, partial }) {
     const inStep = (b, y) => b.y >= y && b.y + Math.min(b.h, vp.height) <= y + vp.height;
     // a page longer than the steps, or an inventory that hit a cap, is not wholly measured
     let truncated = inv.docHeight > STEP_LIMIT * vp.height || !!inv.capped;
-    for (let i = 0; i < steps; i++) {
-      if (deadline.remaining() < 30000) { truncated = true; break; }
-      const y = i * vp.height;
+    // photograph the viewport scrolled to y and measure everything wholly inside it not yet measured
+    const measureAt = async (y) => {
       await page.evaluate((yy) => window.scrollTo(0, yy), y);
       await new Promise((r) => setTimeout(r, 150));
       const sy = await page.evaluate(() => scrollY);
@@ -256,6 +261,21 @@ async function run({ session, deadline, partial }) {
         const crop = { x: Math.max(0, b.x - 4), y: Math.max(0, b.y - 4), w: Math.min(600, b.w + 8), h: Math.min(420, b.h + 8) };
         im.image = png.cropBase64(img, crop);
       }
+    };
+    for (let i = 0; i < steps; i++) {
+      if (deadline.remaining() < 30000) { truncated = true; break; }
+      await measureAt(i * vp.height);
+    }
+    // an element straddling two steps is wholly inside neither: scroll to each one still unmeasured (with its
+    // neighbours in the same view) — without this it would silently go unmeasured
+    const gaveUp = new Set();
+    const pending = () => [...inv.texts.filter((t) => !t.pixels), ...inv.images.filter((im) => !im.image)].filter((x) => !gaveUp.has(x) && x.box && x.box.h > 0 && x.box.x < vp.width && x.box.y + x.box.h > 0).sort((a, b) => a.box.y - b.box.y);
+    for (let left = pending(), guard = 0; left.length && guard < 400; left = pending(), guard++) {
+      if (truncated || deadline.remaining() < 30000) { truncated = true; break; }
+      const before = left.length;
+      await measureAt(Math.max(0, left[0].box.y - 100));
+      // still not measurable there (it scrolls with the page differently than its box says): recorded, not retried
+      if (pending().length === before) { left[0].unmeasured = 'not wholly inside the viewport at its own scroll position'; gaveUp.add(left[0]); }
     }
     return { completeness: truncated ? 'truncated' : 'complete', links: inv.links, texts: inv.texts, images: inv.images, lookalikes: inv.lookalikes, stepsTaken: steps };
   });

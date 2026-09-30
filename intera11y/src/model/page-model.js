@@ -70,6 +70,8 @@ async function buildPageModel(page) {
 // Is the element one a user can perceive at all (sighted or AT)? Shared by every criterion's applicability.
 function isRendered(e) { return !!(e && e.rendered && !e.inert); }
 function isPerceivableVisually(e) { return isRendered(e) && e.boxed && !e.visuallyHidden && !e.clippedOut; }
+// in view now, or brought into view by scrolling a region of the page (a carousel slide, a scrolled list)
+function isReachableVisually(e) { return isPerceivableVisually(e) || !!(isRendered(e) && e.boxed && !e.visuallyHidden && e.revealedByScrolling); }
 function isExposedToAT(e) { return isRendered(e) && !e.ariaHiddenSelf && !e.ariaHiddenAncestor && !(e.ax && e.ax.ignored); }
 
-module.exports = { buildPageModel, isRendered, isPerceivableVisually, isExposedToAT };
+module.exports = { buildPageModel, isRendered, isPerceivableVisually, isReachableVisually, isExposedToAT };

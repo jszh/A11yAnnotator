@@ -2,7 +2,7 @@
 // 2.1.1 Keyboard — everything a pointer user can operate, a keyboard user can operate.
 const { stopByKey, labelOf } = require('./common.js');
 const { key } = require('../lib/xpath.js');
-const { isPerceivableVisually } = require('../model/page-model.js');
+const { isPerceivableVisually, isReachableVisually } = require('../model/page-model.js');
 const S = require('../screen/select.js');
 const { toolsOf } = require('../judge/rubric.js');
 
@@ -45,7 +45,9 @@ module.exports = {
     const out = [];
     const vw = 1280 * 900;
     for (const e of model.elements) {
-      if (!isPerceivableVisually(e) || e.tag === 'html' || e.tag === 'body' || e.disabled) continue;
+      // a control in view, or brought into view by scrolling its region (a carousel slide): a keyboard user must be
+      // able to operate it once it is shown
+      if (!isReachableVisually(e) || e.tag === 'html' || e.tag === 'body' || e.disabled) continue;
       const widgetRole = e.role && /^(button|link|tab|menuitem|menuitemcheckbox|menuitemradio|switch|checkbox|radio|option|treeitem|slider|spinbutton|combobox|gridcell)$/.test(e.role);
       const native = NATIVE.test(e.tag) && !(e.tag === 'a' && !/\shref=/.test(e.openTag));
       const handled = pointerHandled(e) && !native;
@@ -126,6 +128,8 @@ module.exports = {
       tabindex: c.el.tabindex,
       pointerHandlers: c.el.listeners || c.el.inlineHandlers.join(',') || null,
       tabStopsInside: c.innerStops && c.innerStops.length ? c.innerStops.slice(0, 5).map((x) => `${x} "${labelOf(model, x)}"`) : undefined,
+      // not in view at rest: scrolling this region (a carousel, a scrolled list) brings it into view
+      shownByScrollingRegion: c.el.revealedByScrolling || undefined,
     };
     if (c.act) {
       facts.keyboard = c.act.keyboard ? { focusable: c.act.keyboard.focusable, key: c.act.keyboard.key, effect: effectOf(c.act.keyboard) } : 'not tested';

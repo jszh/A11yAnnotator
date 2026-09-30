@@ -24,6 +24,8 @@ const CONFIG = {
   viewport: { width: 1280, height: 900, deviceScaleFactor: 1 },
   navTimeoutMs: 30000,
   // after load, a page is tested once its main frame has not navigated for navQuietMs (a self-reload), at most navQuietMaxMs
+  // loadLazyContent: at most this long scrolling a page through so lazily loaded content loads
+  lazyScrollMaxMs: 20000,
   navQuietMs: 2000,
   navQuietMaxMs: 15000,
   settleFloorMs: 150,

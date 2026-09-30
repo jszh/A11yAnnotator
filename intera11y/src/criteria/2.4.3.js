@@ -61,7 +61,7 @@ module.exports = {
       // how a grid or calendar tabbed in column-major order looks; decide PASS only when the order also matches
       // plain row-major reading order, otherwise let the judge read the sequence map
       const rowMajor = rowMajorAgreement(keyboard.stops, model.doc.dir === 'rtl');
-      if (div.comparable && !div.findings.length && rowMajor && !occluded && !outsideModal && !positive.length && !odd.length && keyboard.wrapKind === 'boundary') {
+      if (div.comparable && !div.findings.length && rowMajor && !occluded && !outsideModal && !positive.length && !odd.length && keyboard.wrapKind === 'boundary' && !(keyboard.stalls || []).length) {
         return { status: 'PASS', rule: 'sequence-follows-layout', reason: `The ${keyboard.stops.length} Tab stops follow the visual reading order within each column, use no positive tabindex, include no nested or static-content stops, no stop is covered by other content, and no stop lies outside an open modal.` };
       }
       return { status: 'OPEN', rule: 'sequence-needs-judgment' };
@@ -87,6 +87,7 @@ module.exports = {
           outOfVisualOrderWithinColumn: div.findings,
           matchesRowMajorReadingOrder: rowMajorAgreement(keyboard.stops, model.doc.dir === 'rtl'), pageDirection: model.doc.dir,
           closedBy: keyboard.wrapKind,
+          tabStalls: (keyboard.stalls || []).length ? keyboard.stalls : undefined,
           nestedOrStaticStops: oddStops(keyboard.stops, model),
           positiveTabindex: keyboard.stops.filter((s) => { const e = model.get(s.xpath); return e && e.tabindex > 0; }).map((s) => `${s.index}: tabindex=${model.get(s.xpath).tabindex} ${s.xpath}`),
         },

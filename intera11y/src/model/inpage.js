@@ -107,6 +107,28 @@ function collectElements(maxElements) {
     }
     return false;
   };
+  // content brought into view by scrolling a region of the page: the element lies outside the page or outside an
+  // ancestor that clips it, and that ancestor is on the page and scrolls (its content is larger than its box and its
+  // overflow is not 'clip') far enough to contain the element — a carousel's slides, a horizontally scrolled list.
+  // Returns the scrolling ancestor, or null.
+  const scrollRegionOf = (e, r) => {
+    for (let a = e.parentElement; a && a !== document.body && a !== document.documentElement; a = a.parentElement) {
+      const s = getComputedStyle(a);
+      if (!/(hidden|auto|scroll)/.test(s.overflowX + ' ' + s.overflowY)) continue;
+      const c = a.getBoundingClientRect();
+      const inside = Math.min(r.right, c.right) - Math.max(r.left, c.left) > 0 && Math.min(r.bottom, c.bottom) - Math.max(r.top, c.top) > 0;
+      if (inside) continue;
+      const onPage = c.width > 0 && c.height > 0 && c.right + scrollX > 0 && c.left + scrollX < docW && c.bottom + scrollY > 0 && c.top + scrollY < docH;
+      const scrolls = a.scrollWidth > a.clientWidth + 1 || a.scrollHeight > a.clientHeight + 1;
+      // the element's offset from the region's content origin falls within the region's scroll extent
+      const dx = r.left - c.left + a.scrollLeft, dy = r.top - c.top + a.scrollTop;
+      const within = dx > -r.width && dy > -r.height && dx < a.scrollWidth && dy < a.scrollHeight;
+      return onPage && scrolls && within ? a : null;
+    }
+    return null;
+  };
+  // positioned off the page (the screen-reader-only technique) — unless scrolling a region brings it into view
+  const offPage = (r) => { const L = r.left + scrollX, T = r.top + scrollY; return (L + r.width <= 0) || (T + r.height <= 0) || (L >= docW) || (T >= docH); };
   const visuallyHidden = (e, r, cs) => {
     for (let a = e, d = 0; a && a !== document.body && d < 6; a = a.parentElement, d++) {
       const s = a === e ? cs : getComputedStyle(a);
@@ -116,8 +138,7 @@ function collectElements(maxElements) {
       if ((a.offsetWidth <= 1 || a.offsetHeight <= 1) && /(hidden|clip)/.test(s.overflow || '')) return true;
     }
     if (typeof e.checkVisibility === 'function' && !e.checkVisibility({ opacityProperty: true })) return true;
-    const L = r.left + scrollX, T = r.top + scrollY;
-    return (L + r.width <= 0) || (T + r.height <= 0) || (L >= docW) || (T >= docH);
+    return offPage(r) && !scrollRegionOf(e, r);
   };
   const NATIVE_FOCUSABLE = 'a[href],area[href],button,input:not([type="hidden"]),select,textarea,summary,iframe,[contenteditable=""],[contenteditable="true"]';
   // labels of inactive controls: a disabled / aria-disabled control's <label>s and aria-labelledby targets are part
@@ -171,7 +192,9 @@ function collectElements(maxElements) {
       };
       if (renders && boxed) {
         rec.visuallyHidden = visuallyHidden(e, r, cs);
-        if (!rec.visuallyHidden) rec.clippedOut = clippedOutOf(e, r);
+        if (!rec.visuallyHidden) rec.clippedOut = clippedOutOf(e, r) || offPage(r);
+        // not in view now, but scrolling its region brings it into view (the region's XPath)
+        if (rec.clippedOut) { const sr = scrollRegionOf(e, r); if (sr) rec.revealedByScrolling = xpathOf(sr); }
       }
       out.push(rec);
       if (e.shadowRoot) visit(e.shadowRoot);

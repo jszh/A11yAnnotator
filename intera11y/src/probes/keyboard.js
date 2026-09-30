@@ -6,7 +6,10 @@
 // reads at the document boundary (a single boundary read mid-ring is normal with positive tabindex). A segmented
 // input (date/time) consumes several Tabs on one element; those are not a wrap. If the page auto-focused an
 // element, the ring is rotated so it starts after the boundary. (These rules are the v3 walk's, which were
-// each learned from a measured failure.)
+// each learned from a measured failure.) A Tab that leaves focus where it was (the page cancels the key on that
+// element) is a STALL, not the ring closing: it is recorded, and the walk goes on from the next element in
+// sequential focus order, focused by script; that stop is marked reachedBy 'script-after-stall', so nothing reads
+// it as reached by Tab. Without this, one element that swallows Tab ends the walk and every later stop is unseen.
 //
 // Per stop: the element (deep active element, through shadow roots), its box, whether it is visible while
 // focused, modal context, and the FOCUS INDICATOR: the stop's neighbourhood photographed with focus on the stop
@@ -90,6 +93,31 @@ function blurActive() {
   if (a && a !== document.body) a.blur();
 }
 
+// The element after (or before) the given one in sequential focus navigation order — positive tabindex first, in
+// tabindex order, then tabindex 0 in document order; focusable, enabled, rendered, not inert — focused by script.
+// Used only to continue a walk past a stall. Elements inside shadow roots are placed by their host.
+function focusNextInOrder(xp, backward) {
+  const cur = window.__ia.resolve(xp);
+  if (!cur) return null;
+  const sel = 'a[href],area[href],button,input,select,textarea,iframe,summary,[tabindex],[contenteditable=""],[contenteditable="true"],audio[controls],video[controls]';
+  const ok = (e) => e.tabIndex >= 0 && !e.disabled && !e.closest('[inert]') && !(e.tagName === 'INPUT' && e.type === 'hidden')
+    && (typeof e.checkVisibility !== 'function' || e.checkVisibility({ visibilityProperty: true }));
+  const all = [...document.querySelectorAll(sel)].filter(ok);
+  const order = [...all.filter((e) => e.tabIndex > 0).sort((a, b) => a.tabIndex - b.tabIndex), ...all.filter((e) => e.tabIndex === 0)];
+  let host = cur; while (host.getRootNode() !== document && host.getRootNode().host) host = host.getRootNode().host;
+  let i = order.indexOf(host);
+  if (i < 0) {
+    // not itself in the list (e.g. focusable only by script): its place in document order
+    const after = order.findIndex((e) => host.compareDocumentPosition(e) & Node.DOCUMENT_POSITION_FOLLOWING);
+    i = after < 0 ? order.length : after - 0.5;
+  }
+  const j = backward ? Math.ceil(i) - 1 : Math.floor(i) + 1;
+  const next = order[j];
+  if (!next) return null;
+  next.focus();
+  return window.__ia.xpathOf(next);
+}
+
 // Give focus back to the stop, so the next Tab's keydown reaches the stop's own handlers (a trap lives there).
 function refocus(xp) {
   const a = window.__ia.resolve(xp);
@@ -141,12 +169,13 @@ async function walk(page, deadline, { backward = false, capture = true } = {}) {
   if (capture) await page.addStyleTag({ content: NO_TRANSITIONS }).catch(() => {});
   const stops = [];
   let boundaryAt = -1, boundaryStreak = 0, emptyStreak = 0, wrapped = false, lastXpath = null, segPresses = 0, framePresses = 0, revisit = null;
+  const stalls = [];
   const entry = await page.evaluate(readFocus);
   if (!entry.boundary) stops.push({ ...entry, initialFocus: true });
   let captureNext = !entry.boundary;
   const vp = page.viewport();
   for (let press = 0; press < PRESS_CAP; press++) {
-    if (deadline.remaining() < 20000) return { stops, wrapped: false, truncated: true, boundaryAt, revisit };
+    if (deadline.remaining() < 20000) return { stops, wrapped: false, truncated: true, boundaryAt, revisit, stalls };
     // photograph the stop we are on (focused, then blurred) before moving on
     if (capture && captureNext && stops.length <= CAPTURE_CAP) await captureIndicator(page, stops[stops.length - 1], vp);
     captureNext = false;
@@ -164,11 +193,25 @@ async function walk(page, deadline, { backward = false, capture = true } = {}) {
       if (f.segmented && f.xpath === lastXpath && segPresses < 10) { segPresses++; continue; }
       // focus inside a cross-origin frame reads as the frame element on every press: not a loop
       if (f.tag === 'iframe' && f.xpath === lastXpath && framePresses < 200) { framePresses++; continue; }
+      // the key left focus on the same element: a stall. Go on from the next element in order, by script.
+      if (f.xpath === lastXpath && f.tag !== 'iframe' && !f.segmented && stalls.length < 200 && !stalls.some((x) => x.xpath === f.xpath)) {
+        const nextXp = await page.evaluate(focusNextInOrder, f.xpath, backward).catch(() => null);
+        stalls.push({ xpath: f.xpath, stop: stops.length - 1, continuedAt: nextXp });
+        if (!nextXp) break;
+        await v3.awaitFocusSettle(page);
+        const g = await page.evaluate(readFocus).catch(() => ({ boundary: true }));
+        if (g.boundary || g.seen) break;
+        segPresses = 0; framePresses = 0; lastXpath = g.xpath;
+        stops.push({ ...g, reachedBy: 'script-after-stall', afterStall: true });
+        captureNext = true;
+        continue;
+      }
       // a ring that closes on itself without crossing the document boundary confines the keyboard
       wrapped = true; revisit = { from: lastXpath, to: f.xpath, crossedBoundary: boundaryAt >= 0 }; break;
     }
     segPresses = 0; framePresses = 0; lastXpath = f.xpath;
-    stops.push(f);
+    // reached by Tab, but only from a stop the walk got to by script after a stall
+    stops.push(stalls.length ? { ...f, afterStall: true } : f);
     captureNext = true;
   }
   if (capture && captureNext && stops.length <= CAPTURE_CAP) await captureIndicator(page, stops[stops.length - 1], vp);
@@ -177,7 +220,7 @@ async function walk(page, deadline, { backward = false, capture = true } = {}) {
   // read then comes from a focus-rejecting control or positive tabindex, not from the ring's start)
   let ordered = stops;
   if (!entry.boundary && boundaryAt >= 0 && boundaryAt < stops.length - 1) ordered = [...stops.slice(boundaryAt + 1), ...stops.slice(0, boundaryAt + 1)];
-  return { stops: ordered.map((s, i) => ({ ...s, index: i })), wrapped, truncated: !wrapped && stops.length > 0 && !emptyStreak, boundaryAt, revisit };
+  return { stops: ordered.map((s, i) => ({ ...s, index: i })), wrapped, truncated: !wrapped && stops.length > 0 && !emptyStreak, boundaryAt, revisit, stalls };
 }
 
 // Focused vs unfocused rendering of the stop the page is currently focused on.
@@ -189,8 +232,16 @@ async function captureIndicator(page, stop, vp) {
     const focused = await shotRegion(page, region, stop.scroll);
     await page.evaluate(blurActive);
     await frames(page);
-    const after = await page.evaluate(styleOf, stop.xpath);
-    // blur must not have scrolled; if it did the two frames are not comparable
+    let after = await page.evaluate(styleOf, stop.xpath);
+    // blurring can move the scroll position (the layout changes and the browser keeps content anchored): put it back
+    // before photographing, so the two frames show the same part of the page
+    if (after && (after.scroll.x !== stop.scroll.x || after.scroll.y !== stop.scroll.y)) {
+      stop.scrollRestoredAfterBlur = { from: after.scroll, to: stop.scroll };
+      await page.evaluate((x, y) => window.scrollTo(x, y), stop.scroll.x, stop.scroll.y);
+      await frames(page);
+      after = await page.evaluate(styleOf, stop.xpath);
+    }
+    // the two frames are comparable only at the same scroll position
     const comparable = !after || (after.scroll.x === stop.scroll.x && after.scroll.y === stop.scroll.y);
     const unfocused = await shotRegion(page, region, stop.scroll);
     const box = clampToView(grow(stop.viewportRect, 0), vp.width, vp.height);
@@ -203,8 +254,13 @@ async function captureIndicator(page, stop, vp) {
       const u = await shot(page);
       stop.refocused = await page.evaluate(refocus, stop.xpath);
       await frames(page);
+      let again = await page.evaluate(styleOf, stop.xpath);
+      if (again && (again.scroll.x !== stop.scroll.x || again.scroll.y !== stop.scroll.y)) {
+        await page.evaluate((x, y) => window.scrollTo(x, y), stop.scroll.x, stop.scroll.y);
+        await frames(page);
+        again = await page.evaluate(styleOf, stop.xpath);
+      }
       const f = await shot(page);
-      const again = await page.evaluate(styleOf, stop.xpath);
       if (!again || (again.scroll.x === stop.scroll.x && again.scroll.y === stop.scroll.y)) whole = png.diff(f, u);
     } else stop.refocused = await page.evaluate(refocus, stop.xpath);
     const styleDelta = {};
@@ -315,7 +371,7 @@ async function compositeWalk(session, stops, deadline, out) {
 }
 
 const empty = () => ({
-  stops: [], wrapped: false, sequenceMap: null, wrapKind: null, revisit: null, backward: null, composites: [], byKey: new Map(),
+  stops: [], wrapped: false, sequenceMap: null, wrapKind: null, revisit: null, stalls: [], backward: null, composites: [], byKey: new Map(),
   traps: { confirmed: [], directional: [], regionsTested: 0, error: 'not run' },
   confinement: [], confinementError: 'not run', retentionTraps: [], retentionError: 'not run', rejections: [], rejectionError: 'not run',
 });
@@ -338,7 +394,7 @@ async function run({ session, model, deadline, partial }) {
 
   // independent of the forward walk: started alongside it
   const backward = phase((p) => walk(p, deadline, { backward: true, capture: false })).then((back) => {
-    partial.backward = back.stops ? { stops: back.stops.length, wrapKind: wrapKindOf(back), revisit: back.revisit, sequence: back.stops.map((s) => s.xpath), truncated: back.truncated } : null;
+    partial.backward = back.stops ? { stops: back.stops.length, wrapKind: wrapKindOf(back), revisit: back.revisit, sequence: back.stops.map((s) => s.xpath), truncated: back.truncated, stalls: back.stalls || [] } : null;
   });
   const retention = phase((p) => v3.detectFocusRetentionTraps(p)).then((r) => {
     partial.retentionTraps = ((r && r.traps) || []).map((t) => ({ ...t, xpath: fix(t.xpath) }));
@@ -363,6 +419,8 @@ async function run({ session, model, deadline, partial }) {
     // how the ring closed: across the document boundary (normal), or by revisiting a stop without ever reaching
     // the boundary (the keyboard is confined to the cycle)
     wrapKind: wrapKindOf(ring), revisit: ring.revisit,
+    // elements on which Tab left focus in place (the walk continued after each by script)
+    stalls: ring.stalls || [],
     byKey: new Map(ring.stops.map((s) => [key(s.xpath), s])),
   });
 

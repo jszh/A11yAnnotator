@@ -63,7 +63,8 @@ async function activateOnce(session, control, mode) {
       focused = await page.evaluate((xp) => { const el = window.__ia.resolve(xp); if (!el) return false; el.focus({ preventScroll: false }); return window.__ia.deepActive() === el; }, control.xpath);
       if (!focused) return { mode, focusable: false };
     }
-    if (mode === 'pointer') await page.evaluate((xp) => { const el = window.__ia.resolve(xp); if (el) el.scrollIntoView({ block: 'center' }); }, control.xpath);
+    // instantly: a page with scroll-behavior: smooth would still be scrolling when the control is clicked
+    if (mode === 'pointer') await page.evaluate((xp) => { const el = window.__ia.resolve(xp); if (el) el.scrollIntoView({ block: 'center', behavior: 'instant' }); }, control.xpath);
     const attrsBefore = (await page.evaluate(triggerAttrsNow, control.xpath)).attrs;
     const axBefore = await axOf(page, control.xpath);
     const before = await page.evaluate(snapBefore, LIVE_SEL);

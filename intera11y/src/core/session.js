@@ -59,6 +59,25 @@ async function openPage(browser, url, viewport = CONFIG.viewport) {
   return page;
 }
 
+// Content that loads as it scrolls into view (loading="lazy" images, lazily hydrated sections, canvases drawn when
+// visible) is not there on a page that was never scrolled: its elements read as empty 0–3 px boxes. The page is
+// scrolled through once in viewport-high steps, images that started loading get a moment to finish, and the page
+// returns to the top and settles. Bounded in time and steps; used for the page the model is read from and for the
+// content probe's page (tool calls and the other probes take the page as it loads).
+async function loadLazyContent(page, { maxMs = CONFIG.lazyScrollMaxMs, maxSteps = 60 } = {}) {
+  const t0 = Date.now();
+  const vh = (page.viewport() || { height: 900 }).height;
+  const h = await page.evaluate(() => document.documentElement.scrollHeight).catch(() => 0);
+  for (let y = vh, n = 0; y < h && n < maxSteps && Date.now() - t0 < maxMs; y += vh, n++) {
+    await page.evaluate((yy) => window.scrollTo(0, yy), y).catch(() => {});
+    await new Promise((r) => setTimeout(r, 120));
+  }
+  const left = Math.max(1000, maxMs - (Date.now() - t0));
+  await bounded(page.evaluate(() => Promise.all([...document.images].filter((i) => !i.complete).map((i) => new Promise((r) => { i.addEventListener('load', r, { once: true }); i.addEventListener('error', r, { once: true }); })))).catch(() => {}), Math.min(left, 5000), null);
+  await page.evaluate(() => window.scrollTo(0, 0)).catch(() => {});
+  await awaitSettle(page, { force: true, floorMs: CONFIG.settleFloorMs });
+}
+
 async function openSession(browser, url) {
   const page = await openPage(browser, url);
   const open = new Set([page]);
@@ -78,4 +97,4 @@ async function openSession(browser, url) {
   return { url, page, freshPage, withFreshPage, close };
 }
 
-module.exports = { launchBrowser, openPage, openSession };
+module.exports = { launchBrowser, openPage, openSession, loadLazyContent };

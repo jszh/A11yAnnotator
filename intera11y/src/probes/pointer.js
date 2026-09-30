@@ -13,7 +13,7 @@
 // For revealed content: whether it overlaps other visible content (then dismissibility is required), and the
 // focusable elements inside it.
 const { LIVE_SEL, snapBefore, snapAfter, guardNavigation, settleMutations } = require('./delta.js');
-const { isPerceivableVisually } = require('../model/page-model.js');
+const { isReachableVisually } = require('../model/page-model.js');
 
 const PARALLEL = 4;
 const DWELL_MS = 6000;
@@ -45,7 +45,8 @@ function hoverTriggers() {
 
 function selectTriggers(model, cssTriggers) {
   const byX = new Map();
-  const add = (xpath, why) => { const e = model.get(xpath); if (!e || !isPerceivableVisually(e)) return; if (!byX.has(xpath)) byX.set(xpath, { xpath, why: [] }); byX.get(xpath).why.push(why); };
+  // a trigger in view, or brought into view by scrolling its region (testTrigger scrolls it into view first)
+  const add = (xpath, why) => { const e = model.get(xpath); if (!e || !isReachableVisually(e)) return; if (!byX.has(xpath)) byX.set(xpath, { xpath, why: [] }); byX.get(xpath).why.push(why); };
   for (const x of cssTriggers) add(x, 'css-hover-rule');
   for (const e of model.elements) {
     if (e.listeners && /mouseover|mouseenter|pointerenter/.test(e.listeners)) add(e.xpath, 'hover-handler');
@@ -58,13 +59,22 @@ function selectTriggers(model, cssTriggers) {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// the trigger's centre in the viewport, after scrolling it into view — instantly (a page with scroll-behavior: smooth
+// would still be animating when the box is read) and, if that left it outside the viewport, by scrolling the window
+// to it. { outOfView } when it still cannot be brought into view: the pointer is never moved to a point off screen.
 async function centre(page, xpath) {
   return page.evaluate((xp) => {
     const el = window.__ia.resolve(xp);
     if (!el) return null;
-    el.scrollIntoView({ block: 'center', inline: 'center' });
-    const r = el.getBoundingClientRect();
+    const inView = (r) => r.top >= 0 && r.left >= 0 && r.top + r.height / 2 < innerHeight && r.left + r.width / 2 < innerWidth;
+    el.scrollIntoView({ block: 'center', inline: 'center', behavior: 'instant' });
+    let r = el.getBoundingClientRect();
     if (r.width < 1 || r.height < 1) return null;
+    if (!inView(r)) {
+      window.scrollTo({ top: scrollY + r.top - innerHeight / 2 + r.height / 2, left: scrollX, behavior: 'instant' });
+      r = el.getBoundingClientRect();
+    }
+    if (!inView(r)) return { outOfView: true, box: { x: r.left, y: r.top, w: r.width, h: r.height } };
     return { x: r.left + r.width / 2, y: r.top + r.height / 2, box: { x: r.left, y: r.top, w: r.width, h: r.height } };
   }, xpath);
 }
@@ -110,6 +120,7 @@ async function hoverReveal(page, trig) {
   await page.mouse.move(2, 2);
   const c = await centre(page, trig.xpath);
   if (!c) return null;
+  if (c.outOfView) return { c, outOfView: true, after: null, revealed: [] };
   await page.evaluate(snapBefore, LIVE_SEL);
   await page.mouse.move(c.x, c.y, { steps: 4 });
   await settleMutations(page, 250, 1500);
@@ -124,6 +135,7 @@ async function testTrigger(session, trig) {
     await guardNavigation(page);
     const h = await hoverReveal(page, trig);
     if (!h) { rec.hoverable = null; rec.error = 'trigger has no box'; return; }
+    if (h.outOfView) { rec.error = 'the trigger could not be scrolled into the viewport, so it was not hovered'; return; }
     rec.revealedOnHover = h.revealed.map((r) => ({ xpath: r.xpath, text: r.text.slice(0, 160), focusables: r.focusables }));
     rec.newTextOnHover = h.after.newText.slice(0, 10).map((t) => ({ xpath: t.xpath, text: t.text.slice(0, 120) }));
     if (!h.revealed.length) return;

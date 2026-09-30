@@ -1,6 +1,6 @@
 'use strict';
 // One page: read the PageModel, then evaluate each criterion — identify → observe → assess → judge → resolve.
-const { openSession } = require('./session.js');
+const { openSession, loadLazyContent } = require('./session.js');
 const { CONFIG } = require('./config.js');
 const { buildPageModel, isRendered } = require('../model/page-model.js');
 const { makeProbeRunner } = require('../probes/index.js');
@@ -102,6 +102,7 @@ async function evaluatePage({ browser, url, scs, client, llmPool, trace, targets
   const t0 = Date.now();
   const session = await openSession(browser, url);
   try {
+    await loadLazyContent(session.page);
     const model = await buildPageModel(session.page);
     const probes = makeProbeRunner(session, model);
     const criteria = {};
