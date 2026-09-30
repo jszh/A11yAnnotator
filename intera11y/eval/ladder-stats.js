@@ -21,6 +21,7 @@ const args = Object.fromEntries(process.argv.slice(2).map((a) => { const m = /^-
 const MODELS = {
   'Gemini 3.7 Flash': {
     0: { gena11y: { act: 'gena11y-act-gem37-neutral', supp: 'supplementary585-gena11y-gem37', expert: 'gena11y-56-gemini37-high-20260823-combined' } },
+    '1a': { gena11y: { act: 'gena11y-act-gem37-unbiased', supp: 'supplementary585-gena11y-gem37-unbiased', expert: 'gena11y-56-gem37-unbiased' } },
     1: { gena11y: { act: 'gena11y-act-gem37-stance', supp: 'supplementary585-gena11y-gem37-stance', expert: 'gena11y-56-gem37-stance' } },
     2: { gena11y: { act: 'gena11y-act-gem37-rules', supp: 'supplementary585-gena11y-gem37-rules', expert: 'gena11y-56-gem37-rules' } },
     3: { test: 'ladder-gem-3b-test', expert: 'ladder-gem-3b-expert' },
@@ -28,6 +29,7 @@ const MODELS = {
   },
   'GLM 5.3 Flash': {
     0: { gena11y: { act: 'gena11y-act-glm53-neutral', supp: 'supplementary585-gena11y-glm53', expert: 'gena11y-56-glm53' } },
+    '1a': { gena11y: { act: 'gena11y-act-glm53-unbiased', supp: 'supplementary585-gena11y-glm53-unbiased', expert: 'gena11y-56-glm53-unbiased' } },
     1: { gena11y: { act: 'gena11y-act-glm53-stance', supp: 'supplementary585-gena11y-glm53-stance', expert: 'gena11y-56-glm53-stance' } },
     2: { gena11y: { act: 'gena11y-act-glm53-rules', supp: 'supplementary585-gena11y-glm53-rules', expert: 'gena11y-56-glm53-rules' } },
     3: { test: 'ladder-glm-3b-test', expert: 'ladder-glm-3b-expert' },
@@ -35,6 +37,8 @@ const MODELS = {
   },
 };
 const STEPS = ['0', '1', '2', '3', '4'];
+// supplementary step 1a (GenA11y's prompt without its bias instruction), compared with 0 and 1 outside the Holm family
+const SUPP_PAIRS = [['0', '1a'], ['1a', '1']];
 const BASE = { test: 'intera11y-test12-v1', expert: 'intera11y-expert10-v1' };   // the case set GenA11y's flags are read against
 
 // ACT truth: SC-level by default (act-sc-overrides.json: pages that pass their ACT rule but fail the SC elsewhere,
@@ -106,10 +110,10 @@ function discord(from, to) {
 
 const results = {};
 for (const [model, steps] of Object.entries(MODELS)) {
-  const flags = Object.fromEntries(STEPS.map((s) => [s, flagsOf(steps[s])]));
+  const flags = Object.fromEntries([...STEPS, '1a'].map((s) => [s, flagsOf(steps[s])]));
   const rows = [];
-  for (let i = 1; i < STEPS.length; i++) {
-    const a = STEPS[i - 1], b = STEPS[i];
+  const pairs = [...STEPS.slice(1).map((b, i) => [STEPS[i], b]), ...SUPP_PAIRS];
+  for (const [a, b] of pairs) {
     const row = { from: a, to: b, corpora: {}, pooled: { pos: { b: 0, c: 0, n: 0 }, neg: { b: 0, c: 0, n: 0 } }, missing: [] };
     for (const corpus of ['act', 'supp', 'expert']) {
       if (!flags[a][corpus] || !flags[b][corpus]) { row.missing.push(corpus); continue; }
@@ -121,7 +125,8 @@ for (const [model, steps] of Object.entries(MODELS)) {
     rows.push(row);
   }
   // Holm over the model's pooled tests (recall and FP, each transition)
-  const tests = rows.flatMap((r) => ['pos', 'neg'].map((s) => r.pooled[s]));
+  for (const r of rows) r.supplementary = SUPP_PAIRS.some(([a, b]) => r.from === a && r.to === b);
+  const tests = rows.filter((r) => !r.supplementary).flatMap((r) => ['pos', 'neg'].map((s) => r.pooled[s]));
   const order = tests.map((t, i) => [t.p, i]).sort((x, y) => x[0] - y[0]);
   let running = 0;
   order.forEach(([p, i], rank) => { running = Math.max(running, Math.min(1, p * (tests.length - rank))); tests[i].pHolm = running; });
@@ -136,7 +141,7 @@ for (const [model, rows] of Object.entries(results)) {
   console.log('|---|---|---:|---|---:|---|---|');
   for (const r of rows) {
     const pc = (s) => ['act', 'supp', 'expert'].map((c) => cell(r.corpora[c] && r.corpora[c][s])).join(' · ');
-    console.log(`| ${r.from}→${r.to} | +${r.pooled.pos.b} / −${r.pooled.pos.c} of ${r.pooled.pos.n} | ${fmtP(r.pooled.pos.p)} (${fmtP(r.pooled.pos.pHolm)}) | +${r.pooled.neg.b} / −${r.pooled.neg.c} of ${r.pooled.neg.n} | ${fmtP(r.pooled.neg.p)} (${fmtP(r.pooled.neg.pHolm)}) | ${pc('pos')} | ${pc('neg')} |${r.missing.length ? ` (missing: ${r.missing.join(', ')})` : ''}`);
+    console.log(`| ${r.from}→${r.to} | +${r.pooled.pos.b} / −${r.pooled.pos.c} of ${r.pooled.pos.n} | ${fmtP(r.pooled.pos.p)} (${r.supplementary ? 'n/a' : fmtP(r.pooled.pos.pHolm)}) | +${r.pooled.neg.b} / −${r.pooled.neg.c} of ${r.pooled.neg.n} | ${fmtP(r.pooled.neg.p)} (${r.supplementary ? 'n/a' : fmtP(r.pooled.neg.pHolm)}) | ${pc('pos')} | ${pc('neg')} |${r.missing.length ? ` (missing: ${r.missing.join(', ')})` : ''}`);
   }
 }
 if (args.json) fs.writeFileSync(path.resolve(ROOT, args.json), JSON.stringify(results, null, 1));

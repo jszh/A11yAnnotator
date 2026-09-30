@@ -46,7 +46,7 @@ _LOCK = threading.Lock()
 _LLM_SEM = threading.Semaphore(8)          # global cap on concurrent LLM calls
 _CTX = threading.local()                    # per-page (sc, file) for trace attribution
 TRACE_SINK = None                           # callable(dict) -> None, set by runner
-STANCE = 'original'                         # 'original' | 'neutral' (InterA11y's ablation ladder, step 1)
+STANCE = 'original'                         # 'original' | 'unbiased' (step 1a) | 'neutral' (InterA11y's ablation ladder, step 1)
 RULES = 'gena11y'                           # 'gena11y' | 'intera11y' (the ablation ladder's step 2)
 _INTERA11Y_RULES = None
 
@@ -101,6 +101,14 @@ SYSTEM_NEUTRAL = (
     ' "pageFindings":[{"xpath":"<xpath or null>","outerHTML":"<opening tag, or empty>","reason":"…"}]}'
 )
 
+# The ablation ladder's supplementary step 1a: GenA11y's own prompt with only its bias instruction removed ("Be precise
+# and avoid false positives — only flag clear violations, not ambiguous cases."); its verdicts, output schema and
+# 3.3.1 wording are unchanged.
+_BIAS = 'Be precise and avoid false positives — only flag clear violations, not ambiguous cases.'
+if _BIAS not in SYSTEM_MESSAGE:
+    raise RuntimeError('consts.SYSTEM_MESSAGE no longer carries the bias instruction step 1a removes')
+SYSTEM_UNBIASED = SYSTEM_MESSAGE.replace(' ' + _BIAS, '')
+
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
 GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta'
@@ -142,7 +150,7 @@ def configure(model: str = None, llm_concurrency: int = None, trace_sink=None,
             raise ValueError(f'unknown rules {rules}')
         RULES = rules
     if stance:
-        if stance not in ('original', 'neutral'):
+        if stance not in ('original', 'unbiased', 'neutral'):
             raise ValueError(f'unknown stance {stance}')
         STANCE = stance
     if model:
@@ -780,7 +788,7 @@ def _call_llm(content_blocks: list, _retries: int = 3) -> dict:
     content_blocks = _swap_rules(_shorten_long_attributes(content_blocks))
     for attempt in range(3):
         prompt_text, raw, usage, reasoning, provider = dispatch(
-            content_blocks, system=SYSTEM_NEUTRAL if STANCE == 'neutral' else SYSTEM_MESSAGE)
+            content_blocks, system={'neutral': SYSTEM_NEUTRAL, 'unbiased': SYSTEM_UNBIASED}.get(STANCE, SYSTEM_MESSAGE))
         verdict = _parse_verdict(raw) if raw else _no_verdict(
             f'{provider} transport returned no text ({usage})')
         _emit_trace(prompt_text, raw, verdict, usage, reasoning, provider, extra={'attempt': attempt})

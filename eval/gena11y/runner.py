@@ -560,8 +560,9 @@ def main():
     p.add_argument('--case-list', help='Explicit JSON case list; overrides --corpus selection.')
     p.add_argument('--model', default=CLAUDE_MODEL)
     p.add_argument('--effort', choices=['minimal', 'low', 'medium', 'high', 'xhigh', 'max'])
-    p.add_argument('--stance', choices=['original', 'neutral'], default='original',
-                   help="Prompt stance: GenA11y's own, or InterA11y's neutral per-element stance (ablation ladder step 1).")
+    p.add_argument('--stance', choices=['original', 'unbiased', 'neutral'], default='original',
+                   help="Prompt stance: GenA11y's own; GenA11y's without its bias instruction (ablation ladder step 1a); "
+                        "or InterA11y's neutral per-element stance (step 1).")
     p.add_argument('--rules', choices=['gena11y', 'intera11y'], default='gena11y',
                    help="Test rules: GenA11y's own, or InterA11y's (eval/gena11y/intera11y-rules.json; ablation ladder step 2).")
     p.add_argument('--sc', help='Restrict to one SC or a comma-separated SC list.')

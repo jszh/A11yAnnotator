@@ -3,7 +3,8 @@
 // The ablation ladder's table (DESIGN §6): each step's totals over the six SCs GenA11y covers, on the held-out
 // ACT cases, the human-annotated 585 cases and the expert study, scored by score.js. Step 0 is GenA11y's own runs
 // (its expert flags recomputed from the run, matched like InterA11y's), step 1 GenA11y's with the neutral stance, step 2
-// GenA11y's with the neutral stance and InterA11y's rules; steps 3–4 are InterA11y runs. ACT and 585 runs load the label-free page copies (eval/neutral-corpus.js); earlier
+// GenA11y's with the neutral stance and InterA11y's rules; supplementary step 1a GenA11y's own prompt with only its bias
+// instruction ("only flag clear violations") removed; steps 3–4 are InterA11y runs. ACT and 585 runs load the label-free page copies (eval/neutral-corpus.js); earlier
 // runs (test9, gena11y-act-gem37/-glm53) could read the answer from the page and are not used.
 //
 //   node intera11y/eval/ladder.js [--json=out.json]
@@ -18,12 +19,14 @@ const args = Object.fromEntries(process.argv.slice(2).map((a) => { const m = /^-
 const MODELS = {
   'Gemini 3.7 Flash': {
     gena11y: { act: 'gena11y-act-gem37-neutral', supp: 'supplementary585-gena11y-gem37', expert: 'gena11y-56-gemini37-high-20260823-combined' },
+    unbiased: { act: 'gena11y-act-gem37-unbiased', supp: 'supplementary585-gena11y-gem37-unbiased', expert: 'gena11y-56-gem37-unbiased' },
     stance: { act: 'gena11y-act-gem37-stance', supp: 'supplementary585-gena11y-gem37-stance', expert: 'gena11y-56-gem37-stance' },
     rules: { act: 'gena11y-act-gem37-rules', supp: 'supplementary585-gena11y-gem37-rules', expert: 'gena11y-56-gem37-rules' },
     steps: { 3: 'ladder-gem-3b', 4: { test: 'test12-v1', expert: 'expert10-v1' } },
   },
   'GLM 5.3 Flash': {
     gena11y: { act: 'gena11y-act-glm53-neutral', supp: 'supplementary585-gena11y-glm53', expert: 'gena11y-56-glm53' },
+    unbiased: { act: 'gena11y-act-glm53-unbiased', supp: 'supplementary585-gena11y-glm53-unbiased', expert: 'gena11y-56-glm53-unbiased' },
     stance: { act: 'gena11y-act-glm53-stance', supp: 'supplementary585-gena11y-glm53-stance', expert: 'gena11y-56-glm53-stance' },
     rules: { act: 'gena11y-act-glm53-rules', supp: 'supplementary585-gena11y-glm53-rules', expert: 'gena11y-56-glm53-rules' },
     steps: { 3: 'ladder-glm-3b', 4: 'ladder-glm-4' },
@@ -31,7 +34,7 @@ const MODELS = {
 };
 // 0–2 run in GenA11y's pipeline; 3 moves into InterA11y's, where the probes' evidence and the judge's tools (both tool
 // use) come in together; 4 adds triage
-const STEP_NAMES = { 0: 'GenA11y', 1: '+ neutral prompt stance', 2: '+ InterA11y rules', 3: '+ tool use (probe evidence, agentic judge)', 4: '+ triage (full InterA11y V1)' };
+const STEP_NAMES = { 0: 'GenA11y', '1a': '(supplementary) GenA11y without its bias instruction', 1: '+ neutral prompt stance', 2: '+ InterA11y rules', 3: '+ tool use (probe evidence, agentic judge)', 4: '+ triage (full InterA11y V1)' };
 
 // ACT truth: SC-level by default (act-sc-overrides.json: pages that pass their ACT rule but fail the SC elsewhere,
 // for every system alike); --raw-act scores the ACT labels as they are;
@@ -66,10 +69,10 @@ const stats = (x) => {
 const out = {};
 for (const [model, m] of Object.entries(MODELS)) {
   out[model] = [];   // a list: object keys like '4' would sort ahead of '3a'
-  for (const step of ['0', '1', '2', '3', '4']) {
+  for (const step of ['0', '1a', '1', '2', '3', '4']) {
     const row = {};
-    if (step === '0' || step === '1' || step === '2') {   // GenA11y's pipeline: as is, + neutral stance, + InterA11y rules
-      const g = { 0: m.gena11y, 1: m.stance, 2: m.rules }[step];
+    if (['0', '1a', '1', '2'].includes(step)) {   // GenA11y's pipeline: as is, − bias instruction, + neutral stance, + InterA11y rules
+      const g = { 0: m.gena11y, '1a': m.unbiased, 1: m.stance, 2: m.rules }[step];
       if (exists(g.act) && exists('intera11y-test12-v1')) { const r = score([`--act=intera11y-test12-v1`, `--gena11y-act=${g.act}`]); row.act = stats(ACT(r).all.GenA11y); }
       if (exists(g.supp) && exists('intera11y-test12-v1')) { const r = score([`--supp=intera11y-test12-v1`, `--gena11y-supp=${g.supp}`]); row.supp = stats(sum(r.supplementary.bySc, 'GenA11y')); }
       if (exists(g.expert) && exists('intera11y-expert8-v1')) { const r = score([`--expert=intera11y-expert8-v1`, `--gena11y-expert=${g.expert}`]); row.expert = stats(sum(r.expert.bySc, 'GenA11y')); }
