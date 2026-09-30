@@ -34,6 +34,11 @@ module.exports = {
   // screening sweep: the element kinds it reads (its test rules are the criterion's rules)
   screen: { select: S.interactive },
 
+  // 2.1.1 asks that what a pointer can operate, a keyboard can too. It does not reach content no input can operate
+  // now: inert behind an open modal dialog, pointer and keyboard are both blocked until the dialog closes
+  applies: (e) => !e.modalBlocked,
+  applicability: 'Nothing can operate this element now (it is inert behind an open modal dialog), so keyboard operability does not apply to it.',
+
   identify(model, { keyboard, activation, pointer }) {
     const stops = stopByKey(keyboard);
     const acts = new Map(((activation && activation.controls) || []).map((c) => [key(c.xpath), c]));
@@ -73,7 +78,7 @@ module.exports = {
       out.push({ xpath: t.xpath, kind: 'hover-only-content', t, stop: stops.get(key(t.xpath)) || null });
     }
     const seen = new Set();
-    return out.filter((c) => { const k = c.kind + key(c.xpath); if (seen.has(k)) return false; seen.add(k); return true; });
+    return out.filter((c) => { const k = c.kind + key(c.xpath); if (seen.has(k)) return false; seen.add(k); const e = model.get(c.xpath); return !e || module.exports.applies(e); });
   },
 
   assess(c) {

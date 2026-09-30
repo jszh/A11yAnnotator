@@ -120,6 +120,16 @@ function collectElements(maxElements) {
     return (L + r.width <= 0) || (T + r.height <= 0) || (L >= docW) || (T >= docH);
   };
   const NATIVE_FOCUSABLE = 'a[href],area[href],button,input:not([type="hidden"]),select,textarea,summary,iframe,[contenteditable=""],[contenteditable="true"]';
+  // labels of inactive controls: a disabled / aria-disabled control's <label>s and aria-labelledby targets are part
+  // of that inactive user interface component (1.4.3 exempts its text)
+  const inactiveLabels = new Set();
+  for (const c of document.querySelectorAll(':disabled, [aria-disabled="true"]')) {
+    for (const l of c.labels || []) inactiveLabels.add(l);
+    for (const id of (c.getAttribute('aria-labelledby') || '').split(/\s+/).filter(Boolean)) { const t = document.getElementById(id); if (t) inactiveLabels.add(t); }
+  }
+  // an open modal dialog makes everything outside it inert until it closes (HTML: blocked by a modal dialog)
+  let modal = null;
+  try { modal = document.querySelector(':modal'); } catch (e) { /* no :modal support */ }
   const visit = (root) => {
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
     for (let e = root.nodeType === 1 ? root : walker.nextNode(); e; e = walker.nextNode()) {
@@ -149,6 +159,9 @@ function collectElements(maxElements) {
         nativeFocusable: e.matches(NATIVE_FOCUSABLE) && !e.disabled,
         disabled: e.disabled === true || e.getAttribute('aria-disabled') === 'true',
         inert: !!e.closest('[inert]'),
+        // outside the open modal dialog (not the dialog, its content, or an ancestor of it): no input reaches it now
+        modalBlocked: !!(modal && e.getRootNode() === document && !modal.contains(e) && !e.contains(modal)),
+        labelsInactiveControl: inactiveLabels.has(e),
         ariaHiddenSelf: e.getAttribute('aria-hidden') === 'true',
         ariaHiddenAncestor: hiddenAncestor,
         listeners: e.getAttribute('data-ia-l') || null,

@@ -3,11 +3,12 @@
 const S = require('../screen/select.js');
 const { toolsOf } = require('../judge/rubric.js');
 
-// the element or an ancestor (shadow host included) is disabled or aria-disabled: its text is part of an inactive
-// user interface component, which 1.4.3 exempts (ACT afw4f7; aria-disabled applies to the element's descendants)
+// the element or an ancestor (shadow host included) is disabled or aria-disabled, or labels a control that is (its
+// <label>, or an aria-labelledby target): its text is part of an inactive user interface component, which 1.4.3
+// exempts (aria-disabled applies to the element's descendants)
 const parentOf = (x) => x.replace(/(>>)?\/[^/]*$/, '');
 function inactive(e, model) {
-  for (let x = e.xpath, d = 0; x && d < 40; x = parentOf(x), d++) { const a = model.get(x); if (a && a.disabled) return true; }
+  for (let x = e.xpath, d = 0; x && d < 40; x = parentOf(x), d++) { const a = model.get(x); if (a && (a.disabled || a.labelsInactiveControl)) return true; }
   return false;
 }
 

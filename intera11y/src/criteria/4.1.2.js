@@ -64,6 +64,10 @@ module.exports = {
     const e = c.el, ax = e.ax || {};
     if (c.kind === 'hidden-with-focusable-content') {
       if (c.reached.length) return { status: 'FAIL', rule: 'hidden-content-in-tab-order', reason: `This element is aria-hidden="true", yet the keyboard walk stopped on ${c.reached.length === 1 && c.reached[0] === e ? 'it' : `${c.reached.length} element(s) inside it`} — assistive technology is told the focused content does not exist (ACT 6cfa84).` };
+      // a complete Tab walk never rested in it: the content is focusable in the markup, but sequential navigation
+      // never leaves focus there (script moves it on, or it is skipped)
+      const kb = obs && obs.keyboard;
+      if (kb && kb.completeness === 'complete') return { status: 'PASS', rule: 'hidden-content-never-focused', reason: `This element is aria-hidden="true" and contains focusable markup, but the complete Tab sequence (${(kb.stops || []).length} stops) never rests on it or inside it.` };
       return { status: 'OPEN', rule: 'hidden-content-focusable' };
     }
     const hiddenFromAT = e.ariaHiddenSelf || e.ariaHiddenAncestor;
@@ -91,7 +95,11 @@ module.exports = {
       if (clicked && !wrapsNative) return { status: 'FAIL', rule: 'scripted-control-without-role', reason: `Operating this element changes the page (${describeEffect(c.act)}), but its computed role is "${role || 'none'}", so assistive technology does not present it as a control (F59).` };
       return { status: 'OPEN', rule: 'possible-scripted-control' };
     }
-    const explicitRole = e.role && e.role.split(/\s+/)[0];
+    // an author role the browser applied; role="none"/"presentation" on a focusable element (or one with global ARIA
+    // attributes) is ignored by ARIA's presentational-role conflict resolution — the computed role is what is exposed
+    const authored = e.role && e.role.split(/\s+/)[0];
+    const ignoredPresentational = /^(none|presentation)$/.test(authored || '') && role && !/^(none|presentation|generic)$/.test(role);
+    const explicitRole = ignoredPresentational ? null : authored;
     const missing = explicitRole && REQUIRED_STATES[explicitRole] ? REQUIRED_STATES[explicitRole].filter((a) => !new RegExp(`\\s${a}=`).test(e.openTag)) : [];
     const stateNotExposed = c.act && stateChangeWithoutExposure(c.act);
     if (missing.length || stateNotExposed || c.axe.length) return { status: 'OPEN', rule: missing.length ? 'required-state-absent' : stateNotExposed ? 'state-change-not-exposed' : 'checker-finding', missing, stateNotExposed };
