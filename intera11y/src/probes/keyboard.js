@@ -188,23 +188,28 @@ async function walk(page, deadline, { backward = false, capture = true } = {}) {
       else if (++emptyStreak >= 5) break;
       continue;
     }
+    // a stop reached right after a document-boundary read has come round the ring, not stalled
+    const afterBoundary = boundaryStreak > 0;
     boundaryStreak = 0;
     if (f.seen) {
       if (f.segmented && f.xpath === lastXpath && segPresses < 10) { segPresses++; continue; }
       // focus inside a cross-origin frame reads as the frame element on every press: not a loop
       if (f.tag === 'iframe' && f.xpath === lastXpath && framePresses < 200) { framePresses++; continue; }
       // the key left focus on the same element: a stall. Go on from the next element in order, by script.
-      if (f.xpath === lastXpath && f.tag !== 'iframe' && !f.segmented && stalls.length < 200 && !stalls.some((x) => x.xpath === f.xpath)) {
+      // (when there is no next element to go on from, the ring closes here, as it did before stalls were told apart)
+      if (f.xpath === lastXpath && !afterBoundary && f.tag !== 'iframe' && !f.segmented && stalls.length < 200 && !stalls.some((x) => x.xpath === f.xpath)) {
         const nextXp = await page.evaluate(focusNextInOrder, f.xpath, backward).catch(() => null);
-        stalls.push({ xpath: f.xpath, stop: stops.length - 1, continuedAt: nextXp });
-        if (!nextXp) break;
-        await v3.awaitFocusSettle(page);
-        const g = await page.evaluate(readFocus).catch(() => ({ boundary: true }));
-        if (g.boundary || g.seen) break;
-        segPresses = 0; framePresses = 0; lastXpath = g.xpath;
-        stops.push({ ...g, reachedBy: 'script-after-stall', afterStall: true });
-        captureNext = true;
-        continue;
+        if (nextXp) {
+          await v3.awaitFocusSettle(page);
+          const g = await page.evaluate(readFocus).catch(() => ({ boundary: true }));
+          if (!g.boundary && !g.seen) {
+            stalls.push({ xpath: f.xpath, stop: stops.length - 1, continuedAt: nextXp });
+            segPresses = 0; framePresses = 0; lastXpath = g.xpath;
+            stops.push({ ...g, reachedBy: 'script-after-stall', afterStall: true });
+            captureNext = true;
+            continue;
+          }
+        }
       }
       // a ring that closes on itself without crossing the document boundary confines the keyboard
       wrapped = true; revisit = { from: lastXpath, to: f.xpath, crossedBoundary: boundaryAt >= 0 }; break;
