@@ -75,7 +75,7 @@ for (const [model, m] of Object.entries(MODELS)) {
       const g = { 0: m.gena11y, '1a': m.unbiased, 1: m.stance, 2: m.rules }[step];
       if (exists(g.act) && exists('intera11y-test12-v1')) { const r = score([`--act=intera11y-test12-v1`, `--gena11y-act=${g.act}`]); row.act = stats(ACT(r).all.GenA11y); }
       if (exists(g.supp) && exists('intera11y-test12-v1')) { const r = score([`--supp=intera11y-test12-v1`, `--gena11y-supp=${g.supp}`]); row.supp = stats(sum(r.supplementary.bySc, 'GenA11y')); }
-      if (exists(g.expert) && exists('intera11y-expert8-v1')) { const r = score([`--expert=intera11y-expert8-v1`, `--gena11y-expert=${g.expert}`]); row.expert = stats(sum(r.expert.bySc, 'GenA11y')); }
+      if (exists(g.expert) && exists('intera11y-expert10-v1')) { const r = score([`--expert=intera11y-expert10-v1`, `--gena11y-expert=${g.expert}`]); row.expert = stats(sum(r.expert.bySc, 'GenA11y')); }
     } else {
       const s = m.steps[step];
       const test = typeof s === 'string' ? `intera11y-${s}-test` : `intera11y-${s.test}`;

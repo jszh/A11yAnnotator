@@ -185,11 +185,43 @@ if (args.expert) {
       bySc[c.sc] = bySc[c.sc] || Object.fromEntries(SYS.map((s) => [s, blank()]));
       for (const [s, f] of Object.entries(sys)) { add(m[s], f, truth); add(bySc[c.sc][s], f, truth); }
       // one entry per response (the unit every total counts), keyed participant|case
-      perCase[`${p.name}|${cid}`] = { sc: c.sc, xpath: c.xpath, page: c.page.file, truth, InterA11y: ia, GenA11y: sys.GenA11y, harness: sys['v3 harness'], flags: sys };
+      // soleSource: the one study tool whose flag alone put this element in the sample (null if several or none)
+      const flaggedBy = Object.entries(flags).filter(([, f]) => f).map(([t]) => t);
+      perCase[`${p.name}|${cid}`] = { cid, sc: c.sc, xpath: c.xpath, page: c.page.file, truth, InterA11y: ia, GenA11y: sys.GenA11y, harness: sys['v3 harness'], flags: sys, soleSource: flaggedBy.length === 1 ? flaggedBy[0] : null };
     }
   }
   const fmt = (o) => Object.fromEntries(Object.entries(o).map(([s, x]) => [s, stats(x)]));
   report.expert = { setAsideNamelessPasses: setAside, overriddenResponses: overridden, all: fmt(m), bySc: Object.fromEntries(Object.entries(bySc).sort().map(([sc, o]) => [sc, fmt(o)])), responsesMissingARun: missing, perCase };
+  report.expert.leaveOneOut = leaveOneOut(Object.values(perCase), SYS);
+}
+
+// LEAVE-ONE-RUN-OUT (pooling bias). The study's cases are elements the study's tools (GenA11y, the v3 harness, axe)
+// flagged or did not, so a tool that alone put an element in the sample is right about it by construction when the
+// expert agrees (recall) and wrong by construction when the expert disagrees (FPR) — and a system that was not a
+// source (InterA11y) has no such cases. Each system is therefore scored without the cases it alone sourced, for
+// recall and FPR alike; fprAllNegatives keeps them, for reference. Paired comparisons use the cases neither system
+// alone sourced: exact McNemar per response, and per case (the case's majority expert verdict; ties dropped), since
+// a case's responses share one element and one system flag.
+function leaveOneOut(rows, systems) {
+  const SOURCE_OF = { GenA11y: 'gena11y', 'v3 harness': 'harness', axe: 'axe' };
+  const own = (s) => (r) => SOURCE_OF[s] && r.soleSource === SOURCE_OF[s];
+  const out = { systems: {}, paired: {} };
+  for (const s of systems) {
+    const m = blank(), all = blank(), cases = new Set();
+    for (const r of rows) { add(all, r.flags[s], r.truth); if (own(s)(r)) continue; add(m, r.flags[s], r.truth); cases.add(r.cid); }
+    const st = stats(m);
+    out.systems[s] = { ...st, responses: m.TP + m.FP + m.FN + m.TN, cases: cases.size, leftOut: rows.filter(own(s)).length, fprAllNegatives: stats(all).fpr };
+  }
+  const exact = (b, n) => { if (!n) return 1; const lg = (k) => { let x = 0; for (let i = 2; i <= k; i++) x += Math.log(i); return x; }; const pm = (k) => Math.exp(lg(n) - lg(k) - lg(n - k) - n * Math.LN2); const o = pm(b); let p = 0; for (let k = 0; k <= n; k++) if (pm(k) <= o * (1 + 1e-9)) p += pm(k); return Math.min(1, p); };
+  const mcnemar = (units, a, b) => { const d = { pos: { onlyA: 0, onlyB: 0, n: 0 }, neg: { onlyA: 0, onlyB: 0, n: 0 } }; for (const u of units) { const x = u.truth ? d.pos : d.neg; x.n++; if (u.flags[a] && !u.flags[b]) x.onlyA++; if (u.flags[b] && !u.flags[a]) x.onlyB++; } for (const x of Object.values(d)) x.p = +exact(x.onlyA, x.onlyA + x.onlyB).toPrecision(3); return d; };
+  for (const other of systems.filter((s) => s !== 'InterA11y' && !s.startsWith('InterA11y'))) {
+    const shared = rows.filter((r) => !own('InterA11y')(r) && !own(other)(r));
+    const byCase = new Map();
+    for (const r of shared) { const c = byCase.get(r.cid) || { flags: r.flags, yes: 0, no: 0 }; r.truth ? c.yes++ : c.no++; byCase.set(r.cid, c); }
+    const caseUnits = [...byCase.values()].filter((c) => c.yes !== c.no).map((c) => ({ flags: c.flags, truth: c.yes > c.no }));
+    out.paired[`InterA11y vs ${other}`] = { responses: mcnemar(shared, 'InterA11y', other), cases: { ...mcnemar(caseUnits, 'InterA11y', other), tiesDropped: byCase.size - caseUnits.length } };
+  }
+  return out;
 }
 
 function table(title, r) {
@@ -205,5 +237,12 @@ if (report.actFullStarred) console.log(table('ACT, all cases (*: the 7 manually 
 if (report.actFullSharedScope) console.log(table('ACT, SCs GenA11y covers only', report.actFullSharedScope));
 if (report.supplementary) console.log(table('Supplementary 585, human-annotated cases', report.supplementary));
 if (report.supplementarySharedScope) console.log(table('Supplementary 585, human-annotated, SCs GenA11y covers only', report.supplementarySharedScope));
+if (report.expert && report.expert.leaveOneOut) {
+  const L = report.expert.leaveOneOut;
+  console.log('\n## Expert study, leave-one-run-out (each system scored without the cases it alone sourced)\n| System | Cases | Responses | Left out | Recall | FPR | F1 | FPR, all negatives |\n|---|---:|---:|---:|---:|---:|---:|---:|');
+  for (const [s, x] of Object.entries(L.systems)) console.log(`| ${s} | ${x.cases} | ${x.responses} | ${x.leftOut} | ${x.recall ?? '—'} | ${x.fpr ?? '—'} | ${x.f1 ?? '—'} | ${x.fprAllNegatives ?? '—'} |`);
+  console.log('\n| Pair (shared cases) | Unit | Violations caught: only InterA11y / only other (p) | False positives: only InterA11y / only other (p) |\n|---|---|---|---|');
+  for (const [pair, d] of Object.entries(L.paired)) for (const u of ['responses', 'cases']) console.log(`| ${pair} | ${u}${u === 'cases' ? ` (${d.cases.tiesDropped} ties dropped)` : ''} | ${d[u].pos.onlyA} / ${d[u].pos.onlyB} (${d[u].pos.p}) | ${d[u].neg.onlyA} / ${d[u].neg.onlyB} (${d[u].neg.p}) |`);
+}
 if (report.expert) console.log(table('Expert study (P2–P5 responses)', report.expert) + `\n(responses whose page has no InterA11y run: ${report.expert.responsesMissingARun}; expert passes set aside on elements the browser exposes with no name: ${report.expert.setAsideNamelessPasses}; responses overridden after manual verification: ${report.expert.overriddenResponses})`);
 if (args.json) fs.writeFileSync(path.resolve(ROOT, args.json), JSON.stringify(report, null, 1));
