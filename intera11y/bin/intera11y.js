@@ -108,6 +108,11 @@ function rowOf(c, report) {
   const nBrowsers = Math.max(1, Number(args.browsers || 2));
   const browsers = [];
   for (let i = 0; i < nBrowsers; i++) browsers.push(await launchBrowser());
+  // a run that is stopped takes its browsers with it: a killed Node process otherwise leaves every Chrome it
+  // launched running (orphaned), loading the machine that later runs are measured on
+  const killBrowsers = () => { for (const b of browsers) { try { const pr = b.process(); if (pr) pr.kill('SIGKILL'); } catch (e) { /* already gone */ } } };
+  for (const sig of ['SIGTERM', 'SIGINT', 'SIGHUP']) process.on(sig, () => { killBrowsers(); process.exit(130); });
+  process.on('exit', killBrowsers);
   const rows = [];
   let done = 0, next = 0;
   const status = () => fs.writeFileSync(path.join(OUT, 'status.json'), JSON.stringify({ corpus, total: cases.length, done, costUsd: +client.usage.costUsd.toFixed(4), llmCalls: client.usage.calls, toolCalls: client.usage.toolCalls, updatedAt: new Date().toISOString() }));
