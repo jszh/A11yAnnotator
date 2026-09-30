@@ -4,6 +4,9 @@
 //
 //   node intera11y/eval/score.js --act=<intera11y run> --supp=<intera11y run> --expert=<intera11y saved-pages run> [--json=out.json]
 //     [--gena11y-act=<gena11y run>] [--gena11y-supp=<gena11y run>] [--gena11y-expert=<gena11y saved-pages run>]  (GenA11y with another model)
+//     [--gena11y-no-partial]  GenA11y flags a case only on REPRODUCED; its PARTIAL verdict ("some elements pass and
+//                             others fail or evidence is incomplete"), which its runner counts as caught, counts as not
+//                             flagged (expert: a PARTIAL page's violations are dropped)
 //
 // ACT (validated labels): positive = expected "failed"; a system flags a case when its outcome is "caught".
 //   Headline slice = the 458 "reaches-LLM" cases (neither axe nor the v3 deterministic lane settles them), where
@@ -22,6 +25,9 @@ const { key, within } = require('../src/lib/xpath.js');
 const ROOT = path.resolve(__dirname, '..', '..');
 const args = Object.fromEntries(process.argv.slice(2).map((a) => { const m = /^--([^=]+)(?:=(.*))?$/.exec(a); return m ? [m[1], m[2] === undefined ? true : m[2]] : [a, true]; }));
 const OURS = new Set(SCS);
+// GenA11y's flag on an ACT / 585 row: its runner's outcome, or with --gena11y-no-partial only a REPRODUCED verdict
+const genPartial = (r) => !!args['gena11y-no-partial'] && !!r.gena11y && r.gena11y.verdict === 'PARTIAL';
+const genCaught = (m) => (c) => { const r = m.get(c.k); return !!r && r.outcome === 'caught' && !genPartial(r); };
 // SCs the GenA11y adapter covers (consts.COVERED_SCS) among ours — for a comparison restricted to shared scope
 const GENA11Y_COVERED = new Set(['1.1.1', '1.4.1', '1.4.3', '2.4.4', '3.3.1', '4.1.2']);
 // The 7 ACT 1.1.1 cases the v3 scorer re-labelled after manual criterion-level examination (run-fn-llm.js
@@ -84,8 +90,8 @@ if (args.act) {
   }
   const caught = (m) => (c) => { const r = m.get(c.k); return !!r && r.outcome === 'caught'; };
   const ours = withoutSweep(ia);
-  const systems458 = { ...ours, GenA11y: caught(ge), 'v3 harness': caught(ha) };
-  const systemsFull = { ...ours, GenA11y: caught(ge), 'v3 harness (settled cases counted as caught)': (c) => (c.settledBy ? true : caught(ha)(c)) };
+  const systems458 = { ...ours, GenA11y: genCaught(ge), 'v3 harness': caught(ha) };
+  const systemsFull = { ...ours, GenA11y: genCaught(ge), 'v3 harness (settled cases counted as caught)': (c) => (c.settledBy ? true : caught(ha)(c)) };
   report.act458 = scoreLabelled(cases.filter((c) => c.reachesLlm), systems458);
   report.actFull = scoreLabelled(cases, systemsFull);
   report.actFullStarred = scoreLabelled(cases.map((c) => ({ ...c, positive: c.positiveStarred })), systemsFull);
@@ -108,7 +114,7 @@ if (args.supp) {
   const ha = new Map(rowsOf('results/supplementary585-ours-gem37/results.json').map((r) => [r.testcaseId, r]));
   const cases = all.filter((c) => OURS.has(c.sc) && ia.has(idOf(c))).map((c) => ({ k: idOf(c), scs: [c.sc], positive: c.expected === 'failed', source: c.source }));
   const caught = (m) => (c) => { const r = m.get(c.k); return !!r && r.outcome === 'caught'; };
-  report.supplementary = scoreLabelled(cases, { ...withoutSweep(ia), GenA11y: caught(ge), 'v3 harness': caught(ha) });
+  report.supplementary = scoreLabelled(cases, { ...withoutSweep(ia), GenA11y: genCaught(ge), 'v3 harness': caught(ha) });
 }
 
 // ---------- Expert study ----------
@@ -152,7 +158,7 @@ if (args.expert) {
   if (args['gena11y-expert']) {
     const byPageSc = new Map();
     for (const r of readJson(`results/${args['gena11y-expert']}/results.json`)) {
-      if (!r.gena11y) continue;
+      if (!r.gena11y || genPartial(r)) continue;
       const k = `${String(r.pageFile || '').normalize('NFC')}|${r.sc}`;
       byPageSc.set(k, (r.gena11y.violations || []).map((v) => v.xpath).filter(Boolean).map(key));
     }

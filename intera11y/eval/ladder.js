@@ -34,7 +34,8 @@ const MODELS = {
 const STEP_NAMES = { 0: 'GenA11y', 1: '+ neutral prompt stance', 2: '+ InterA11y rules', 3: '+ tool use (probe evidence, agentic judge)', 4: '+ triage (full InterA11y V1)' };
 
 // ACT truth: SC-level by default (act-sc-overrides.json: pages that pass their ACT rule but fail the SC elsewhere,
-// for every system alike); --raw-act scores the ACT labels as they are
+// for every system alike); --raw-act scores the ACT labels as they are;
+// --gena11y-no-partial scores GenA11y's PARTIAL verdicts as not flagged (score.js)
 const ACT = (r) => (args['raw-act'] ? r.actFullSharedScope : r.actFullSharedScopeSc);
 // a run counts once it has finished: a partial run's missing pages would read as unflagged cases
 const exists = (run) => {
@@ -47,7 +48,7 @@ const exists = (run) => {
 };
 function score(extra) {
   const tmp = path.join(require('os').tmpdir(), `ladder-${process.pid}-${Math.random().toString(36).slice(2)}.json`);
-  execFileSync('node', [path.join(__dirname, 'score.js'), ...extra, `--json=${tmp}`], { cwd: ROOT, stdio: ['ignore', 'ignore', 'inherit'] });
+  execFileSync('node', [path.join(__dirname, 'score.js'), ...extra, ...(args['gena11y-no-partial'] ? ['--gena11y-no-partial'] : []), `--json=${tmp}`], { cwd: ROOT, stdio: ['ignore', 'ignore', 'inherit'] });
   const r = JSON.parse(fs.readFileSync(tmp, 'utf8'));
   fs.unlinkSync(tmp);
   return r;
