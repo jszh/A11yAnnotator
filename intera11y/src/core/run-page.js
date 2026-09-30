@@ -46,7 +46,9 @@ async function evaluateCriterion({ criterion, session, model, probes, client, ll
   if (targets && !targets.page) raw = raw.filter((c) => { const k = key(c.xpath); return [...targets.keys].some((t) => within(k, t)); });
   const counts = new Map();
   for (const c of raw) counts.set(c.xpath, (counts.get(c.xpath) || 0) + 1);
-  const candidates = raw.map((c) => ({ ...c, key: counts.get(c.xpath) > 1 ? `${c.xpath}#${c.kind}` : c.xpath }));
+  // a page-level candidate (no element) is keyed page#<facet>: the judge is shown this key as the candidate's path
+  // and answers with it (a null path was shown as "null" and its answer never matched)
+  const candidates = raw.map((c) => ({ ...c, key: c.xpath == null ? `page#${c.kind}` : counts.get(c.xpath) > 1 ? `${c.xpath}#${c.kind}` : c.xpath }));
   const assessed = candidates.map((c) => ({ ...c, assessment: c.kind === 'screened' ? screened.assess(c, criterion, obs, model) : criterion.assess(c, obs, model) }));
   const open = assessed.filter((c) => c.assessment.status === 'OPEN');
   let judged = { results: new Map(), pageFindings: [], usage: null };
