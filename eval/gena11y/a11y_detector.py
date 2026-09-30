@@ -726,10 +726,26 @@ def dispatch(content_blocks: list, system: str = SYSTEM_MESSAGE) -> tuple:
 
 _UNPARSEABLE = ('No JSON object in response', 'JSON parse error', 'Unbalanced JSON')
 
+# An attribute value this long is data, not something an accessibility judgement reads: SVG path coordinates,
+# embedded base64 images. GenA11y sends whole element markup and cannot split one element across chunks, so a
+# single inline map (megabytes of path data) put chunks over the model's context window and they returned no
+# verdict. Such values are shortened to their first 200 characters plus a note of the length removed.
+_LONG_ATTR = re.compile(r'(=\\?["\'])([^"\'\\]{2000,})')
+
+
+def _shorten_long_attributes(blocks: list) -> list:
+    out = []
+    for b in blocks:
+        if isinstance(b, dict) and b.get('type') == 'text' and isinstance(b.get('text'), str) and len(b['text']) > 2000:
+            b = {**b, 'text': _LONG_ATTR.sub(lambda m: f'{m.group(1)}{m.group(2)[:200]}…[{len(m.group(2)) - 200} characters omitted]', b['text'])}
+        out.append(b)
+    return out
+
 
 def _call_llm(content_blocks: list, _retries: int = 3) -> dict:
     """Route to the configured provider, record usage/trace, return a verdict dict. A reply that is not valid JSON
     is asked again (up to twice more), as InterA11y's clients do; every attempt is traced."""
+    content_blocks = _shorten_long_attributes(content_blocks)
     for attempt in range(3):
         prompt_text, raw, usage, reasoning, provider = dispatch(
             content_blocks, system=SYSTEM_NEUTRAL if STANCE == 'neutral' else SYSTEM_MESSAGE)
