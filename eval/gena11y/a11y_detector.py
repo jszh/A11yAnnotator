@@ -20,6 +20,7 @@ Changes vs. upstream:
 import asyncio
 import base64
 import json
+from pathlib import Path
 import os
 import re
 import tempfile
@@ -46,6 +47,33 @@ _LLM_SEM = threading.Semaphore(8)          # global cap on concurrent LLM calls
 _CTX = threading.local()                    # per-page (sc, file) for trace attribution
 TRACE_SINK = None                           # callable(dict) -> None, set by runner
 STANCE = 'original'                         # 'original' | 'neutral' (InterA11y's ablation ladder, step 1)
+RULES = 'gena11y'                           # 'gena11y' | 'intera11y' (the ablation ladder's step 2)
+_INTERA11Y_RULES = None
+
+# The ablation ladder's step 2 (intera11y/DESIGN.md §6): GenA11y's pipeline and neutral stance with InterA11y's test
+# rules in place of GenA11y's. The header of each detector's prompt — from "Analyze compliance with WCAG SC …" through
+# the numbered rules — is replaced by InterA11y's rules for that SC (eval/gena11y/intera11y-rules.json, written by
+# intera11y/eval/export-rules-for-gena11y.js); the lines after the rules that describe GenA11y's input, and the input
+# itself, are unchanged.
+_HEADER = re.compile(r'Analyze compliance with WCAG SC (\d+\.\d+\.\d+) \(.*?(?=\n(?:Elements prefixed|Use the screenshot|Look for form|Each element includes|-{6}))', re.S)
+
+
+def _swap_rules(blocks: list) -> list:
+    global _INTERA11Y_RULES
+    if RULES != 'intera11y':
+        return blocks
+    if _INTERA11Y_RULES is None:
+        _INTERA11Y_RULES = json.loads((Path(__file__).parent / 'intera11y-rules.json').read_text())
+    out, swapped = [], False
+    for b in blocks:
+        if not swapped and isinstance(b, dict) and b.get('type') == 'text' and 'Analyze compliance with WCAG SC' in b.get('text', ''):
+            m = _HEADER.search(b['text'])
+            if not m or m.group(1) not in _INTERA11Y_RULES:
+                raise ValueError(f'cannot swap in InterA11y rules: header not recognised ({b["text"][:120]!r})')
+            b = {**b, 'text': b['text'][:m.start()] + _INTERA11Y_RULES[m.group(1)] + b['text'][m.end():]}
+            swapped = True
+        out.append(b)
+    return out
 
 # The ablation ladder's step 1 (intera11y/DESIGN.md §6): GenA11y with only its prompt stance replaced by InterA11y's
 # judge stance (intera11y/src/judge/prompt.js) — the same extraction, screenshots, chunking and test rules. The
@@ -106,9 +134,13 @@ LLM_STATS = {
 
 
 def configure(model: str = None, llm_concurrency: int = None, trace_sink=None,
-              effort: str = None, stance: str = None) -> None:
+              effort: str = None, stance: str = None, rules: str = None) -> None:
     """Set the active model, reasoning effort, concurrency cap, trace sink, and prompt stance."""
-    global MODEL, EFFORT, _LLM_SEM, TRACE_SINK, STANCE
+    global MODEL, EFFORT, _LLM_SEM, TRACE_SINK, STANCE, RULES
+    if rules:
+        if rules not in ('gena11y', 'intera11y'):
+            raise ValueError(f'unknown rules {rules}')
+        RULES = rules
     if stance:
         if stance not in ('original', 'neutral'):
             raise ValueError(f'unknown stance {stance}')
@@ -745,7 +777,7 @@ def _shorten_long_attributes(blocks: list) -> list:
 def _call_llm(content_blocks: list, _retries: int = 3) -> dict:
     """Route to the configured provider, record usage/trace, return a verdict dict. A reply that is not valid JSON
     is asked again (up to twice more), as InterA11y's clients do; every attempt is traced."""
-    content_blocks = _shorten_long_attributes(content_blocks)
+    content_blocks = _swap_rules(_shorten_long_attributes(content_blocks))
     for attempt in range(3):
         prompt_text, raw, usage, reasoning, provider = dispatch(
             content_blocks, system=SYSTEM_NEUTRAL if STANCE == 'neutral' else SYSTEM_MESSAGE)

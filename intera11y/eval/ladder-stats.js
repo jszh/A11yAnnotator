@@ -22,22 +22,20 @@ const MODELS = {
   'Gemini 3.7 Flash': {
     0: { gena11y: { act: 'gena11y-act-gem37-neutral', supp: 'supplementary585-gena11y-gem37', expert: 'gena11y-56-gemini37-high-20260823-combined' } },
     1: { gena11y: { act: 'gena11y-act-gem37-stance', supp: 'supplementary585-gena11y-gem37-stance', expert: 'gena11y-56-gem37-stance' } },
-    2: { test: 'ladder-gem-2-test', expert: 'ladder-gem-2-expert' },
-    '3a': { test: 'ladder-gem-3a-test', expert: 'ladder-gem-3a-expert' },
-    '3b': { test: 'ladder-gem-3b-test', expert: 'ladder-gem-3b-expert' },
-    4: { test: 'test10-v1', expert: 'expert8-v1' },
+    2: { gena11y: { act: 'gena11y-act-gem37-rules', supp: 'supplementary585-gena11y-gem37-rules', expert: 'gena11y-56-gem37-rules' } },
+    3: { test: 'ladder-gem-3b-test', expert: 'ladder-gem-3b-expert' },
+    4: { test: 'test12-v1', expert: 'expert10-v1' },
   },
   'GLM 5.3 Flash': {
     0: { gena11y: { act: 'gena11y-act-glm53-neutral', supp: 'supplementary585-gena11y-glm53', expert: 'gena11y-56-glm53' } },
     1: { gena11y: { act: 'gena11y-act-glm53-stance', supp: 'supplementary585-gena11y-glm53-stance', expert: 'gena11y-56-glm53-stance' } },
-    2: { test: 'ladder-glm-2-test', expert: 'ladder-glm-2-expert' },
-    '3a': { test: 'ladder-glm-3a-test', expert: 'ladder-glm-3a-expert' },
-    '3b': { test: 'ladder-glm-3b-test', expert: 'ladder-glm-3b-expert' },
+    2: { gena11y: { act: 'gena11y-act-glm53-rules', supp: 'supplementary585-gena11y-glm53-rules', expert: 'gena11y-56-glm53-rules' } },
+    3: { test: 'ladder-glm-3b-test', expert: 'ladder-glm-3b-expert' },
     4: { test: 'ladder-glm-4-test', expert: 'ladder-glm-4-expert' },
   },
 };
-const STEPS = ['0', '1', '2', '3a', '3b', '4'];
-const BASE = { test: 'intera11y-test10-v1', expert: 'intera11y-expert8-v1' };   // the case set GenA11y's flags are read against
+const STEPS = ['0', '1', '2', '3', '4'];
+const BASE = { test: 'intera11y-test12-v1', expert: 'intera11y-expert10-v1' };   // the case set GenA11y's flags are read against
 
 // ACT truth: SC-level by default (act-sc-overrides.json: pages that pass their ACT rule but fail the SC elsewhere,
 // for every system alike); --raw-act scores the ACT labels as they are

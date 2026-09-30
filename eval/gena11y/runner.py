@@ -519,7 +519,7 @@ class Telemetry:
         f1 = (2 * prec * recall_v / (prec + recall_v)) if (prec and recall_v) else None
         out = {
             'runName': self.tel['runName'], 'model': model,
-            'effort': self.tel['config'].get('effort'), 'stance': self.tel['config'].get('stance'), 'n': len(self.results),
+            'effort': self.tel['config'].get('effort'), 'stance': self.tel['config'].get('stance'), 'rules': self.tel['config'].get('rules'), 'n': len(self.results),
             'elapsedMs': self.tel.get('elapsedMs'),
             'tally': self.tel['tally'],
             'confusion': {'tp': tp, 'fp': fp, 'tn': tn, 'fn': fn, 'error': err, 'noVerdict': nov},
@@ -562,6 +562,8 @@ def main():
     p.add_argument('--effort', choices=['minimal', 'low', 'medium', 'high', 'xhigh', 'max'])
     p.add_argument('--stance', choices=['original', 'neutral'], default='original',
                    help="Prompt stance: GenA11y's own, or InterA11y's neutral per-element stance (ablation ladder step 1).")
+    p.add_argument('--rules', choices=['gena11y', 'intera11y'], default='gena11y',
+                   help="Test rules: GenA11y's own, or InterA11y's (eval/gena11y/intera11y-rules.json; ablation ladder step 2).")
     p.add_argument('--sc', help='Restrict to one SC or a comma-separated SC list.')
     p.add_argument('--limit', type=int, help='Cap total cases.')
     p.add_argument('--pages', type=int, default=25, help='Parallel page workers.')
@@ -640,10 +642,10 @@ def main():
         trace_fh.flush()
 
     a11y_detector.configure(model=args.model, effort=args.effort,
-                            llm_concurrency=args.llm_conc, trace_sink=trace_sink, stance=args.stance)
+                            llm_concurrency=args.llm_conc, trace_sink=trace_sink, stance=args.stance, rules=args.rules)
 
     cfg = {'pages': args.pages, 'tabs': args.tabs, 'llm_conc': args.llm_conc,
-           'effort': args.effort, 'stance': args.stance}
+           'effort': args.effort, 'stance': args.stance, 'rules': args.rules}
     with open(out_dir / 'run.log', 'w') as log_fh:
         tel = Telemetry(args.out, out_dir, len(pages), args.model, cfg, log_fh)
         tel.log(f'GenA11y {args.corpus} run: {len(pages)} cases | model={args.model} | effort={args.effort} | '
