@@ -17,7 +17,8 @@ class ThreadLocalTempFolders(os.PathLike):
 
     def run(self, prefix, callback):
         """Run callback with a unique directory for the calling worker."""
-        with tempfile.TemporaryDirectory(prefix=prefix, dir=self.root) as page_tmp:
+        # cleanup is housekeeping: a file still held open (on NFS, a lingering .nfs placeholder) must not fail the page
+        with tempfile.TemporaryDirectory(prefix=prefix, dir=self.root, ignore_cleanup_errors=True) as page_tmp:
             previous = getattr(self._local, 'active', None)
             self._local.active = page_tmp
             try:

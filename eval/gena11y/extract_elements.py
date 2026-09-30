@@ -19,7 +19,7 @@ from io import BytesIO
 from bs4 import BeautifulSoup
 from PIL import Image
 from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException
+from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException, TimeoutException
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 
@@ -31,28 +31,42 @@ from xpath_utils import extract_outer_html_and_xpath, format_with_xpath, get_ele
 # Driver setup
 # ---------------------------------------------------------------------------
 
+PAGE_LOAD_TIMEOUT_S = 90   # below Selenium's 120 s command timeout, so a slow page raises TimeoutException
+
+
 def make_driver(url: str) -> webdriver.Chrome:
     opts = Options()
     opts.add_argument('--headless')
     opts.add_argument('--no-sandbox')
     opts.add_argument('--disable-dev-shm-usage')
-    # Concurrent Selenium Manager launches can occasionally race while starting
-    # ChromeDriver. Retry browser creation only; page extraction and detector
-    # execution remain single-attempt so this cannot change a verdict.
-    last_error = None
+    # Concurrent launches can race while starting ChromeDriver, and a just-started driver can drop its connection
+    # on the first command (window setup). Retry the browser's creation and setup together, before any page is
+    # loaded; page extraction and detector execution stay single-attempt, so this cannot change a verdict.
     for attempt in range(3):
+        driver = None
         try:
             driver = webdriver.Chrome(options=opts)
+            driver.maximize_window()
+            driver.set_page_load_timeout(PAGE_LOAD_TIMEOUT_S)
             break
-        except Exception as exc:
-            last_error = exc
+        except Exception:
+            if driver is not None:
+                try:
+                    driver.quit()
+                except Exception:
+                    pass
             if attempt == 2:
                 raise
             time.sleep(1 + attempt)
-    if last_error is not None and 'driver' not in locals():
-        raise last_error
-    driver.maximize_window()
-    driver.get(url)
+    # A page still loading subresources after the limit is evaluated as far as it has loaded (as InterA11y does:
+    # a navigation timeout is not a load failure), instead of failing the page.
+    try:
+        driver.get(url)
+    except TimeoutException:
+        try:
+            driver.execute_script('window.stop();')
+        except Exception:
+            pass
     _wait_for_load(driver)
     return driver
 

@@ -724,13 +724,22 @@ def dispatch(content_blocks: list, system: str = SYSTEM_MESSAGE) -> tuple:
     return prompt_text, raw, usage, reasoning, provider
 
 
+_UNPARSEABLE = ('No JSON object in response', 'JSON parse error', 'Unbalanced JSON')
+
+
 def _call_llm(content_blocks: list, _retries: int = 3) -> dict:
-    """Route to the configured provider, record usage/trace, return a verdict dict."""
-    prompt_text, raw, usage, reasoning, provider = dispatch(
-        content_blocks, system=SYSTEM_NEUTRAL if STANCE == 'neutral' else SYSTEM_MESSAGE)
-    verdict = _parse_verdict(raw) if raw else _no_verdict(
-        f'{provider} transport returned no text ({usage})')
-    _emit_trace(prompt_text, raw, verdict, usage, reasoning, provider)
+    """Route to the configured provider, record usage/trace, return a verdict dict. A reply that is not valid JSON
+    is asked again (up to twice more), as InterA11y's clients do; every attempt is traced."""
+    for attempt in range(3):
+        prompt_text, raw, usage, reasoning, provider = dispatch(
+            content_blocks, system=SYSTEM_NEUTRAL if STANCE == 'neutral' else SYSTEM_MESSAGE)
+        verdict = _parse_verdict(raw) if raw else _no_verdict(
+            f'{provider} transport returned no text ({usage})')
+        _emit_trace(prompt_text, raw, verdict, usage, reasoning, provider, extra={'attempt': attempt})
+        unparseable = verdict.get('verdict') == 'NO VERDICT' and any(
+            m in verdict.get('summary', '') for m in _UNPARSEABLE)
+        if not unparseable:
+            break
     return verdict
 
 

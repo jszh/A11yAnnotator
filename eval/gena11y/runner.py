@@ -43,6 +43,7 @@ Artifacts (results/<out>/): status.json, results.json, summary.json, run.log,
 import argparse
 import json
 import os
+import tempfile
 import sys
 import threading
 import time
@@ -81,7 +82,9 @@ _DRIVER_SEM = threading.Semaphore(25)
 # screenshot-producing page extraction its own thread-local temporary
 # subdirectory so captures remain isolated without reducing page concurrency.
 _SCREENSHOT_SC_S = {'1.4.1', '1.4.3', '1.4.10', '2.4.10', '3.3.1', '3.3.3'}
-_SCREENSHOT_TMP_ROOT = _extract_elements.TEMP_FILE_FOLDER
+# on local disk: a network file system keeps deleted-but-open files as .nfs placeholders, which break cleanup
+_SCREENSHOT_TMP_ROOT = os.path.join(tempfile.gettempdir(), f'gena11y-tmp-{os.getpid()}')
+os.makedirs(_SCREENSHOT_TMP_ROOT, exist_ok=True)
 _SCREENSHOT_TEMP_FOLDERS = ThreadLocalTempFolders(_SCREENSHOT_TMP_ROOT)
 _extract_elements.TEMP_FILE_FOLDER = _SCREENSHOT_TEMP_FOLDERS
 
@@ -569,6 +572,8 @@ def main():
                    help='saved-pages: annotator server origin the pages load from.')
     p.add_argument('--page-list', help='saved-pages: page-list JSON (default eval/56-page-baselines/page-list-56.json).')
     p.add_argument('--dry-run', action='store_true')
+    p.add_argument('--redo-failed-of', help='Run only the cases that ended in error or no verdict in results/<run>/ '
+                   '(matched on file and SC); merge back with merge_redo.py.')
     args = p.parse_args()
 
     global _DRIVER_SEM
@@ -601,6 +606,11 @@ def main():
     else:
         scs = scs_filter or sorted(COVERED_SCS)
         pages = collect_augmented(scs, None)
+    if args.redo_failed_of:
+        prior = json.loads((PROJECT_ROOT / 'results' / args.redo_failed_of / 'results.json').read_text())
+        failed = {(r['file'], r['sc']) for r in prior if r.get('outcome') in ('error', 'noVerdict')}
+        pages = [pg for pg in pages if (pg['file'], pg['sc']) in failed]
+        print(f'redo: {len(pages)} of {len(failed)} failed cases of {args.redo_failed_of}', file=sys.stderr)
     if args.limit:
         pages = pages[:args.limit]
     if not pages:
