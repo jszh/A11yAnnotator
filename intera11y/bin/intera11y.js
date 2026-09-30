@@ -13,6 +13,7 @@ const fs = require('fs');
 const path = require('path');
 const { CONFIG } = require('../src/core/config.js');
 const { launchBrowser } = require('../src/core/session.js');
+const { rowOf, fileId } = require('../src/core/rows.js');
 const { makePool, Deadline } = require('../src/core/deadline.js');
 const { evaluatePage } = require('../src/core/run-page.js');
 const { makeGeminiClient } = require('../src/judge/gemini.js');
@@ -24,7 +25,6 @@ if (!CORPORA[corpus]) { console.error(`unknown corpus ${corpus}; one of ${Object
 const OUT = path.join(CONFIG.root, 'results', args.out || `intera11y-${corpus}-${new Date().toISOString().slice(0, 10)}`);
 const PAGES_DIR = path.join(OUT, 'pages');
 fs.mkdirSync(PAGES_DIR, { recursive: true });
-const fileId = (id) => id.replace(/[^a-z0-9_.-]+/gi, '_').slice(0, 180);
 
 let cases = CORPORA[corpus]();
 if (args.sc) { const want = new Set(String(args.sc).split(',')); cases = cases.map((c) => ({ ...c, scs: c.scs.filter((s) => want.has(s)) })).filter((c) => c.scs.length); }
@@ -79,30 +79,6 @@ function codeHash() {
 }
 fs.writeFileSync(path.join(OUT, 'manifest.json'), JSON.stringify({ corpus, args, model, effort, codeHash: codeHash(), config: CONFIG, cases: cases.length, startedAt: new Date().toISOString(), node: process.version }, null, 1));
 
-// `field` = 'verdict' (with the screening sweep) or 'verdictWithoutScreen' (rule-based candidates only)
-function outcomeOf(report, scs, field = 'verdict') {
-  if (!report || report.error) return 'error';
-  const vs = scs.map((sc) => report.criteria[sc] && report.criteria[sc][field]);
-  if (vs.includes('FAIL')) return 'caught';
-  if (vs.includes('INCOMPLETE') || vs.includes(undefined)) return 'uncertain';
-  return 'missedAgree';
-}
-
-function rowOf(c, report) {
-  const outcome = outcomeOf(report, c.scs);
-  const polarity = c.expected === 'failed' ? 'recall' : c.expected ? 'specificity' : null;
-  return {
-    id: c.id, ...c.meta, scs: c.scs, expected: c.expected || null, outcome, polarity,
-    falsePositive: polarity === 'specificity' && outcome === 'caught',
-    verdicts: report && report.criteria ? Object.fromEntries(c.scs.map((sc) => [sc, report.criteria[sc] ? report.criteria[sc].verdict : null])) : null,
-    outcomeWithoutScreen: outcomeOf(report, c.scs, 'verdictWithoutScreen'),
-    verdictsWithoutScreen: report && report.criteria ? Object.fromEntries(c.scs.map((sc) => [sc, report.criteria[sc] ? report.criteria[sc].verdictWithoutScreen || null : null])) : null,
-    findings: report && report.criteria ? Object.fromEntries(c.scs.map((sc) => [sc, (report.criteria[sc] && report.criteria[sc].findings) || []])) : null,
-    costUsd: report && report.criteria ? Object.values(report.criteria).reduce((s, x) => s + (x.costUsd || 0), 0) : 0,
-    ms: report ? report.ms : null,
-    error: report && report.error ? report.error : null,
-  };
-}
 
 (async () => {
   const nBrowsers = Math.max(1, Number(args.browsers || 2));

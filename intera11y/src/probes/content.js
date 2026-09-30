@@ -53,6 +53,25 @@ function inventory() {
     if (!vis(a) && !a.getClientRects().length) continue;
     const p = a.closest('p,li,td,th,dd,dt,blockquote,figcaption');
     let context = p ? txt(p) : '';
+    // no paragraph, list item or cell: the link's sentence is still programmatically determined context (WCAG's
+    // definition: the same sentence, paragraph, list item or cell) — "<div><a>Read more</a> about the W3C WAI</div>".
+    // It counts only when the sentence has words beyond link texts (a row of links is not each other's context).
+    let sentence = null;
+    if (!p) {
+      const blk = a.closest('div,section,article,header,footer,main,aside,nav,form,figure,span,label,body');
+      if (blk) {
+        const norm = (t) => t.replace(/\s+/g, ' ');
+        const before = document.createRange(); before.setStart(blk, 0); before.setEndBefore(a);
+        const pre = norm(before.toString()), self = norm(a.textContent || ''), post = norm(blk.textContent || '').slice(pre.length + self.length);
+        const start = Math.max(pre.search(/[.!?](?=\s)[^.!?]*$/) + 1, 0);
+        const endM = post.search(/[.!?](\s|$)/);
+        const s0 = (pre.slice(start) + self + (endM >= 0 ? post.slice(0, endM + 1) : post)).trim();
+        let rest = s0;
+        for (const l of blk.querySelectorAll('a[href],[role="link"]')) { const lt = norm(l.textContent || '').trim(); if (lt) rest = rest.split(lt).join(' '); }
+        if (rest.split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w)).length >= 2) sentence = s0.slice(0, 300);
+      }
+      if (sentence) context = sentence;
+    }
     let headers = [];
     const cell = a.closest('td,th');
     if (cell) {
@@ -75,7 +94,7 @@ function inventory() {
       // whose computed name and role are the link's
       xpath: linkXpath(a), linkXpath: X(a), href: a.href || a.getAttribute('href') || null, text: txt(a).slice(0, 120),
       context: context && context !== txt(a) ? context.slice(0, 300) : null,
-      contextKind: p ? p.tagName.toLowerCase() : null,
+      contextKind: p ? p.tagName.toLowerCase() : sentence ? 'sentence' : null,
       tableHeaders: headers.filter(Boolean).slice(0, 3), describedBy: described,
       precedingHeading: heading ? txt(heading).slice(0, 120) : null,
       precedingBlock: prevBlock ? txt(prevBlock).slice(0, 160) : null,

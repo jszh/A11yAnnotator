@@ -49,6 +49,13 @@ function rewriteRefs(text) {
     .replace(new RegExp(`/WAI/content-assets/wcag-act-rules/test-assets/${SEG}`, 'g'), (m, e) => `/a/${nameOf(e)}`)
     .replace(new RegExp(`((?:\\.\\./)+)test-assets/${SEG}`, 'g'), (m, up, e) => `${up}a/${nameOf(e)}`);   // an asset's own relative links
 }
+// Navigation targets written root-absolute (/WAI/content-assets/wcag-act-rules/test-assets/<entry>/…, as served on
+// w3.org) point nowhere offline; in a page, a link's href or a script's location/open target to an entry the corpus
+// has is pointed at the local copy (../a/<hashed entry>/…), so following the link reaches the page ACT links to.
+// Embedded resources (src, data) are left unresolved: rendering stays exactly as before.
+const ROOT_NAV = /((?:\shref=|location(?:\.href)?\s*=\s*|location\.(?:assign|replace)\(\s*|window\.open\(\s*)["'])\/WAI\/content-assets\/wcag-act-rules\/test-assets\/([^/"'?#)\s]+)/g;
+const resolveNavigation = (html) => html.replace(ROOT_NAV, (m, pre, seg) => (renamed[seg] ? `${pre}../a/${renamed[seg]}` : m));
+
 const neutralTitle = (html) => html
   .replace(/<title>\s*(Passed|Failed|Inapplicable) Example \d*\s*<\/title>/gi, '<title>Example page</title>')
   .replace(/(<title>[^<]*?)\s*\((?:in)?accessible\)\s*(<\/title>)/gi, '$1$2');
@@ -81,7 +88,7 @@ for (const rule of fs.readdirSync(ACT)) {
     if (!f.endsWith('.html')) continue;
     const id = `${rule}/${f.replace(/\.html$/, '')}`;
     const src = fs.readFileSync(path.join(ACT, rule, f), 'utf8');
-    const out = neutralTitle(rewriteRefs(src));
+    const out = neutralTitle(rewriteRefs(resolveNavigation(src)));
     if (/<title>Example page<\/title>/.test(out) && !/<title>Example page<\/title>/.test(src)) titled++;
     const rel = `eval/corpus-neutral/p/${hash(id)}.html`;
     fs.writeFileSync(path.join(ROOT, rel), out);
