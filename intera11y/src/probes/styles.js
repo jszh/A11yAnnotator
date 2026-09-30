@@ -153,7 +153,7 @@ function findLabelColourGroups() {
         fieldRequired: !!(f && (f.required || f.getAttribute('aria-required') === 'true')), fieldInvalid: !!(f && f.getAttribute('aria-invalid') === 'true') });
     }
   }
-  return out.slice(0, 20);
+  return out;   // every group: the probe's time limit bounds the work, a fixed count would drop some silently
 }
 
 // siblings drawn identically except for colour, with no text telling them apart (status dots, category chips):

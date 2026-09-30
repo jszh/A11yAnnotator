@@ -20,9 +20,14 @@
 const png = require('../lib/png.js');
 const { contrastRatio } = require('../lib/v3.js');
 
-const STEP_LIMIT = 14;                 // viewport-high steps (≈ 12 600 px of page)
+// viewport-high screenshot steps: the whole page (≈ 360 000 px); the probe's time limit bounds the work, and a page
+// longer than this is marked truncated
+const STEP_LIMIT = 400;
 
 function inventory() {
+  // runs in the page: its caps are defined here; hitting one marks the probe truncated (never a silent drop)
+  const CAP = { links: 5000, texts: 20000, images: 3000 };
+  let capped = false;
   const X = window.__ia.xpathOf;
   const vis = (el) => { try { const r = el.getBoundingClientRect(); return el.checkVisibility({ visibilityProperty: true, opacityProperty: true }) && r.width > 0 && r.height > 0; } catch (e) { return false; } };
   const txt = (el) => (el ? (el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim() : '');
@@ -77,7 +82,7 @@ function inventory() {
       title: a.getAttribute('title'),
       box: box(a),
     });
-    if (links.length >= 600) break;
+    if (links.length >= CAP.links) { capped = true; break; }
   }
   // ---- text
   const parse = (c) => { const m = /rgba?\(([^)]+)\)/.exec(c || ''); if (!m) return null; const v = m[1].split(/[ ,/]+/).filter(Boolean).map(Number); return { r: v[0], g: v[1], b: v[2], a: v.length > 3 ? v[3] : 1 }; };
@@ -109,7 +114,7 @@ function inventory() {
     const size = parseFloat(cs.fontSize), weight = Number(cs.fontWeight) || (cs.fontWeight === 'bold' ? 700 : 400);
     const large = size >= 24 || (size >= 18.66 && weight >= 700);
     texts.push({ xpath: X(el), text: own.slice(0, 80), fg: [fg.r, fg.g, fg.b].map(Math.round), bg: [bg.r, bg.g, bg.b].map(Math.round), size, weight, large, complex: [...new Set(complex)], box: box(el) });
-    if (texts.length >= 3000) break;
+    if (texts.length >= CAP.texts) { capped = true; break; }
   }
   // ---- images
   const images = [];
@@ -157,7 +162,7 @@ function inventory() {
     const r = el.getBoundingClientRect();
     if (r.width < 8 || r.height < 8) continue;
     addImg(el, 'css-background');
-    if (images.length >= 400) break;
+    if (images.length >= CAP.images) { capped = true; break; }
   }
   // image-map areas have no box of their own; their alt is the hotspot's link text
   for (const ar of document.querySelectorAll('map area[href]')) {
@@ -179,7 +184,7 @@ function inventory() {
       }
     }
   }
-  return { links, texts, images: images.slice(0, 400), lookalikes, docHeight: document.documentElement.scrollHeight };
+  return { links, texts, images: images.slice(0, CAP.images), lookalikes, docHeight: document.documentElement.scrollHeight, capped };
 }
 
 // the most frequent colour in a box (the background the text sits on) and the colour farthest from it (the glyphs)
@@ -202,7 +207,8 @@ async function run({ session, deadline, partial }) {
     const vp = page.viewport();
     const steps = Math.min(STEP_LIMIT, Math.ceil(inv.docHeight / vp.height));
     const inStep = (b, y) => b.y >= y && b.y + Math.min(b.h, vp.height) <= y + vp.height;
-    let truncated = inv.docHeight > STEP_LIMIT * vp.height;
+    // a page longer than the steps, or an inventory that hit a cap, is not wholly measured
+    let truncated = inv.docHeight > STEP_LIMIT * vp.height || !!inv.capped;
     for (let i = 0; i < steps; i++) {
       if (deadline.remaining() < 30000) { truncated = true; break; }
       const y = i * vp.height;

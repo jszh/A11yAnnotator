@@ -25,7 +25,7 @@ const { toV3, fromV3, key } = require('../lib/xpath.js');
 const v3 = require('../lib/v3.js');
 
 const PRESS_CAP = 1500;
-const CAPTURE_CAP = 1000;          // stops beyond this are walked (order, traps) but not photographed
+const CAPTURE_CAP = PRESS_CAP;     // every stop the walk reaches is photographed (the probe's time limit bounds it)
 const REGION_MARGIN = 48;          // the photographed neighbourhood: the stop's box grown by this much
 const SCRIPT_WAIT_MS = 30;         // after two frames, for a focus handler that restyles on a timer
 const NO_TRANSITIONS = '*,*::before,*::after{transition-duration:0s!important;transition-delay:0s!important}';
