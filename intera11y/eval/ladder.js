@@ -29,7 +29,18 @@ const MODELS = {
 };
 const STEP_NAMES = { 0: 'GenA11y', 1: '+ neutral prompt stance', 2: '+ evidence', '3a': '+ InterA11y rules', '3b': '+ agentic judge (V1)', 4: '+ triage (full InterA11y V1)' };
 
-const exists = (run) => fs.existsSync(path.join(ROOT, 'results', run, 'results.json'));
+// ACT truth: SC-level by default (act-sc-overrides.json: pages that pass their ACT rule but fail the SC elsewhere,
+// for every system alike); --raw-act scores the ACT labels as they are
+const ACT = (r) => (args['raw-act'] ? r.actFullSharedScope : r.actFullSharedScopeSc);
+// a run counts once it has finished: a partial run's missing pages would read as unflagged cases
+const exists = (run) => {
+  const dir = path.join(ROOT, 'results', run);
+  if (!fs.existsSync(path.join(dir, 'results.json'))) return false;
+  const st = path.join(dir, 'status.json');
+  if (!fs.existsSync(st)) return true;
+  const s = JSON.parse(fs.readFileSync(st, 'utf8'));
+  return !(typeof s.done === 'number' && typeof s.total === 'number' && s.done < s.total);
+};
 function score(extra) {
   const tmp = path.join(require('os').tmpdir(), `ladder-${process.pid}-${Math.random().toString(36).slice(2)}.json`);
   execFileSync('node', [path.join(__dirname, 'score.js'), ...extra, `--json=${tmp}`], { cwd: ROOT, stdio: ['ignore', 'ignore', 'inherit'] });
@@ -54,14 +65,14 @@ for (const [model, m] of Object.entries(MODELS)) {
     const row = {};
     if (step === '0' || step === '1') {   // GenA11y's pipeline: as is (0), and with the neutral stance (1)
       const g = step === '0' ? m.gena11y : m.stance;
-      if (exists(g.act) && exists('intera11y-test10-v1')) { const r = score([`--act=intera11y-test10-v1`, `--gena11y-act=${g.act}`]); row.act = stats(r.actFullSharedScope.all.GenA11y); }
+      if (exists(g.act) && exists('intera11y-test10-v1')) { const r = score([`--act=intera11y-test10-v1`, `--gena11y-act=${g.act}`]); row.act = stats(ACT(r).all.GenA11y); }
       if (exists(g.supp) && exists('intera11y-test10-v1')) { const r = score([`--supp=intera11y-test10-v1`, `--gena11y-supp=${g.supp}`]); row.supp = stats(sum(r.supplementary.bySc, 'GenA11y')); }
       if (exists(g.expert) && exists('intera11y-expert8-v1')) { const r = score([`--expert=intera11y-expert8-v1`, `--gena11y-expert=${g.expert}`]); row.expert = stats(sum(r.expert.bySc, 'GenA11y')); }
     } else {
       const s = m.steps[step];
       const test = typeof s === 'string' ? `intera11y-${s}-test` : `intera11y-${s.test}`;
       const expert = typeof s === 'string' ? `intera11y-${s}-expert` : `intera11y-${s.expert}`;
-      if (exists(test)) { const r = score([`--act=${test}`, `--supp=${test}`]); row.act = stats(r.actFullSharedScope.all.InterA11y); row.supp = stats(sum(r.supplementary.bySc, 'InterA11y')); }
+      if (exists(test)) { const r = score([`--act=${test}`, `--supp=${test}`]); row.act = stats(ACT(r).all.InterA11y); row.supp = stats(sum(r.supplementary.bySc, 'InterA11y')); }
       if (exists(expert)) { const r = score([`--expert=${expert}`]); row.expert = stats(sum(r.expert.bySc, 'InterA11y')); }
     }
     out[model].push({ step, ...row });

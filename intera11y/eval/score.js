@@ -52,7 +52,9 @@ function scoreLabelled(cases, systems) {
   const all = Object.fromEntries(Object.keys(systems).map((s) => [s, blank()]));
   for (const c of cases) for (const [s, flag] of Object.entries(systems)) add(all[s], flag(c), c.positive);
   const fmt = (o) => Object.fromEntries(Object.entries(o).map(([s, m]) => [s, stats(m)]));
-  return { bySc: Object.fromEntries(Object.entries(out).sort().map(([sc, o]) => [sc, fmt(o)])), all: fmt(all), n: cases.length };
+  // each case's flag per system, for paired tests between runs (ladder.js)
+  const perCase = cases.map((c) => ({ k: c.k, scs: c.scs, positive: c.positive, flags: Object.fromEntries(Object.entries(systems).map(([s, flag]) => [s, !!flag(c)])) }));
+  return { bySc: Object.fromEntries(Object.entries(out).sort().map(([sc, o]) => [sc, fmt(o)])), all: fmt(all), n: cases.length, perCase };
 }
 
 const report = {};
@@ -88,6 +90,12 @@ if (args.act) {
   report.actFull = scoreLabelled(cases, systemsFull);
   report.actFullStarred = scoreLabelled(cases.map((c) => ({ ...c, positive: c.positiveStarred })), systemsFull);
   report.actFullSharedScope = scoreLabelled(cases.map((c) => ({ ...c, scs: c.scs.filter((sc) => GENA11Y_COVERED.has(sc)) })).filter((c) => c.scs.length), systemsFull);
+  // SC-level truth (act-sc-overrides.json): an ACT label is about the rule under test; a page that passes its rule
+  // but fails the SC elsewhere (verified by a blind audit) is a positive for the SC — for every system alike
+  const scOver = (JSON.parse(fs.readFileSync(path.join(__dirname, 'act-sc-overrides.json'), 'utf8')).cases) || {};
+  const scTruth = (c) => ({ ...c, positive: c.positive || !!(scOver[c.k] && c.scs.includes(scOver[c.k].sc)) });
+  report.actFullSc = scoreLabelled(cases.map(scTruth), systemsFull);
+  report.actFullSharedScopeSc = scoreLabelled(cases.map((c) => ({ ...c, scs: c.scs.filter((sc) => GENA11Y_COVERED.has(sc)) })).filter((c) => c.scs.length).map(scTruth), systemsFull);
 }
 
 // ---------- Supplementary 585 ----------
@@ -170,7 +178,8 @@ if (args.expert) {
       const sys = { InterA11y: ia, 'InterA11y (exact element only)': iaFlag(c, false, true), ...(recorded ? { 'InterA11y without sweep': iaFlag(c, true) } : {}), GenA11y: genFlag ? genFlag(c) : !!flags.gena11y, 'v3 harness': !!flags.harness, axe: !!flags.axe };
       bySc[c.sc] = bySc[c.sc] || Object.fromEntries(SYS.map((s) => [s, blank()]));
       for (const [s, f] of Object.entries(sys)) { add(m[s], f, truth); add(bySc[c.sc][s], f, truth); }
-      perCase[cid] = { sc: c.sc, xpath: c.xpath, page: c.page.file, truth, InterA11y: ia, GenA11y: sys.GenA11y, harness: sys['v3 harness'] };
+      // one entry per response (the unit every total counts), keyed participant|case
+      perCase[`${p.name}|${cid}`] = { sc: c.sc, xpath: c.xpath, page: c.page.file, truth, InterA11y: ia, GenA11y: sys.GenA11y, harness: sys['v3 harness'], flags: sys };
     }
   }
   const fmt = (o) => Object.fromEntries(Object.entries(o).map(([s, x]) => [s, stats(x)]));
