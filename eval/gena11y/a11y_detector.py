@@ -784,7 +784,9 @@ def _shorten_long_attributes(blocks: list) -> list:
 
 def _call_llm(content_blocks: list, _retries: int = 3) -> dict:
     """Route to the configured provider, record usage/trace, return a verdict dict. A reply that is not valid JSON
-    is asked again (up to twice more), as InterA11y's clients do; every attempt is traced."""
+    is asked again (up to twice more), as InterA11y's clients do; every attempt is traced. A reply cut off at the
+    output limit (after the transport's own doubled budget) is not asked again — the same prompt would be cut off
+    again — but marked `truncated`, so a chunked detector can send its elements again in halves (_call_chunk)."""
     content_blocks = _swap_rules(_shorten_long_attributes(content_blocks))
     for attempt in range(3):
         prompt_text, raw, usage, reasoning, provider = dispatch(
@@ -794,9 +796,30 @@ def _call_llm(content_blocks: list, _retries: int = 3) -> dict:
         _emit_trace(prompt_text, raw, verdict, usage, reasoning, provider, extra={'attempt': attempt})
         unparseable = verdict.get('verdict') == 'NO VERDICT' and any(
             m in verdict.get('summary', '') for m in _UNPARSEABLE)
+        if unparseable and (usage or {}).get('finishReason') in ('MAX_TOKENS', 'length'):
+            verdict['truncated'] = True
+            break
         if not unparseable:
             break
     return verdict
+
+
+def _halves(chunk):
+    if isinstance(chunk, dict):
+        items = list(chunk.items())
+        return [dict(items[:len(items) // 2]), dict(items[len(items) // 2:])]
+    return [chunk[:len(chunk) // 2], chunk[len(chunk) // 2:]]
+
+
+def _call_chunk(chunk, build) -> list:
+    """The answers for one chunk of elements (build(chunk) -> content blocks): a reply cut off at the output limit
+    is asked again as two halves of the chunk, down to single elements — as InterA11y's judge re-batches — and the
+    halves' answers are aggregated like any other chunks'. The elements, rules and prompt are unchanged."""
+    verdict = _call_llm(build(chunk))
+    if verdict.get('truncated') and len(chunk) >= 2:
+        a, b = _halves(chunk)
+        return _call_chunk(a, build) + _call_chunk(b, build)
+    return [verdict]
 
 
 def _cleanup(paths: list) -> None:
@@ -947,8 +970,7 @@ def detect_non_text_content(visual_elements_dict: dict) -> dict:
         '------------------\n'
     )
     for chunk in chunks:
-        content = base_text + '\n'.join(f'{k}: {v}' for k, v in chunk.items())
-        responses.append(_call_llm([_text_block(content)]))
+        responses.extend(_call_chunk(chunk, lambda c: [_text_block(base_text + '\n'.join(f'{k}: {v}' for k, v in c.items()))]))
     return aggregate_responses(responses) if responses else _error_verdict('No elements')
 
 
@@ -1045,8 +1067,7 @@ def detect_link_purpose(link_list: list) -> dict:
     chunks = chunk_data(link_list)
     responses = []
     for chunk in chunks:
-        content = base_text + '\n-------------\n'.join(str(e) for e in chunk)
-        responses.append(_call_llm([_text_block(content)]))
+        responses.extend(_call_chunk(chunk, lambda c: [_text_block(base_text + '\n-------------\n'.join(str(e) for e in c))]))
     return aggregate_responses(responses)
 
 
@@ -1067,7 +1088,7 @@ def detect_contrast(contrast_list: list, bg_image_dict: dict) -> dict:
     combined = text_data + img_data
     chunks = chunk_data(combined)
     responses = []
-    for chunk in chunks:
+    def build(chunk):
         blocks = [_text_block(base_text)]
         for item in chunk:
             if item['type'] == 'text':
@@ -1076,7 +1097,9 @@ def detect_contrast(contrast_list: list, bg_image_dict: dict) -> dict:
                 blocks.append(_text_block(f"{item['html']}\n"))
                 blocks.append(_b64_image_block(item['b64']))
                 blocks.append(_text_block('-------------\n'))
-        responses.append(_call_llm(blocks))
+        return blocks
+    for chunk in chunks:
+        responses.extend(_call_chunk(chunk, build))
     return aggregate_responses(responses) if responses else _error_verdict('No contrast data')
 
 
@@ -1223,10 +1246,7 @@ def detect_name_role_value(name_role_dict: dict, form_dict: list) -> dict:
     chunks = chunk_data(combined)
     responses = []
     for chunk in chunks:
-        lines = [base_text]
-        for item in chunk:
-            lines.append(f"{item['_key'].replace('_', ' ').capitalize()}:\n{item['content']}\n-------------\n")
-        responses.append(_call_llm([_text_block(''.join(lines))]))
+        responses.extend(_call_chunk(chunk, lambda c: [_text_block(base_text + ''.join(f"{item['_key'].replace('_', ' ').capitalize()}:\n{item['content']}\n-------------\n" for item in c))]))
     return aggregate_responses(responses) if responses else _error_verdict('No name/role data')
 
 
