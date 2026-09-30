@@ -983,7 +983,8 @@ async function measureTextContrastOverImage(page, args, ctx) {
       if (r.width < 2 || r.height < 2) return null;
       const cs = getComputedStyle(el);
       let bgKind = 'flat'; for (let n = el, i = 0; n && i < 6; n = n.parentElement, i++) { const c = getComputedStyle(n); if (c.backgroundImage && c.backgroundImage !== 'none') { bgKind = /gradient/i.test(c.backgroundImage) ? 'gradient' : 'image'; break; } }
-      return { x: r.left + scrollX, y: r.top + scrollY, w: r.width, h: r.height, color: cs.color, fontPx: parseFloat(cs.fontSize), fontWeight: cs.fontWeight, bgKind }; // document coordinates (the clip's)
+      // textShadow: the computed value (currentcolor already resolved), put back for the backdrop capture
+      return { x: r.left + scrollX, y: r.top + scrollY, w: r.width, h: r.height, color: cs.color, fontPx: parseFloat(cs.fontSize), fontWeight: cs.fontWeight, bgKind, textShadow: cs.textShadow }; // document coordinates (the clip's)
     }, targetXpath).catch(() => null);
     if (!meta) return { error: 'target not found / too small (<2px)' };
     const clip = { x: Math.max(0, Math.round(meta.x)), y: Math.max(0, Math.round(meta.y)), width: Math.round(meta.w), height: Math.round(meta.h) };
@@ -991,8 +992,10 @@ async function measureTextContrastOverImage(page, args, ctx) {
     // glyph MASK: paint the text a rare sentinel (magenta) with no shadow/stroke, screenshot the box.
     await live.evaluate((xp) => { const el = document.evaluate(xp, document, null, 9, null).singleNodeValue; if (el) { el.style.setProperty('color', '#ff00fe', 'important'); el.style.setProperty('text-shadow', 'none', 'important'); el.style.setProperty('-webkit-text-stroke', '0', 'important'); } }, targetXpath).catch(() => {});
     const maskB64 = await SS(live, { encoding: 'base64', clip });
-    // BACKDROP: paint the text transparent so the box shows only what is BEHIND the glyphs.
-    await live.evaluate((xp) => { const el = document.evaluate(xp, document, null, 9, null).singleNodeValue; if (el) el.style.setProperty('color', 'transparent', 'important'); }, targetXpath).catch(() => {});
+    // BACKDROP: paint the text transparent so the box shows only what is BEHIND the glyphs — including the text's own
+    // text-shadow, which is painted beneath the glyphs (a halo is part of the text's backdrop: ACT afw4f7), so the
+    // mask step's `none` is replaced by the computed shadow again (a transparent glyph still casts its shadow).
+    await live.evaluate((xp, ts) => { const el = document.evaluate(xp, document, null, 9, null).singleNodeValue; if (el) { el.style.setProperty('color', 'transparent', 'important'); el.style.setProperty('text-shadow', ts || 'none', 'important'); } }, targetXpath, meta.textShadow).catch(() => {});
     const bgB64 = await SS(live, { encoding: 'base64', clip });
     if (!maskB64 || !bgB64) return { error: 'capture failed' };
     // PIXEL COMPARE in-browser: load both PNGs as same-origin data URLs (untainted), draw to canvas, read pixels, and
@@ -1024,9 +1027,10 @@ async function measureTextContrastOverImage(page, args, ctx) {
     if (!stats.glyphPixels) return { inconclusive: 'no-glyph-pixels', note: 'could not isolate the text glyphs (sentinel mask empty — the element may have no own text, or it is occluded) — defer to the perceptual rubric', bgKind: meta.bgKind };
     return {
       bgKind: meta.bgKind, textColor: meta.color, fontPx: meta.fontPx, threshold: th, glyphPixels: stats.glyphPixels,
+      ...(meta.textShadow && meta.textShadow !== 'none' ? { textShadow: meta.textShadow } : {}),
       worstCaseRatio: +stats.worst.toFixed(2), medianRatio: +stats.median.toFixed(2), bestCaseRatio: +stats.best.toFixed(2),
       fractionBelowThreshold: +stats.fracBelow.toFixed(3), worstCasePasses: stats.worst >= th,
-      note: 'PER-PIXEL worst-case text-vs-backdrop contrast sampled UNDER the glyph footprint over a ' + meta.bgKind + ' backdrop. WCAG requires ALL text meet the threshold, so worstCaseRatio governs: worstCaseRatio < threshold (fractionBelowThreshold of the glyph area) is a 1.4.3 failure even when most of the text passes. Raw numbers, never an SC disposition.',
+      note: 'PER-PIXEL worst-case text-vs-backdrop contrast sampled UNDER the glyph footprint over a ' + meta.bgKind + ' backdrop' + (meta.textShadow && meta.textShadow !== 'none' ? ' (the backdrop includes the text\'s own text-shadow, painted beneath the glyphs)' : '') + '. WCAG requires ALL text meet the threshold, so worstCaseRatio governs: worstCaseRatio < threshold (fractionBelowThreshold of the glyph area) is a 1.4.3 failure even when most of the text passes. Raw numbers, never an SC disposition.',
     };
   } finally { try { await live.close(); } catch (e) {} }
 }
@@ -1282,11 +1286,11 @@ async function resolveDestination(page, args, opts = {}) {
 }
 
 // compare_iframe_content — READ-ONLY: for 4.1.2 (ACT 4b1c6c) — same-named iframes must serve an EQUIVALENT
-// purpose. Reads each SAME-ORIGIN iframe's RENDERED contentDocument (title/h1/firstParagraph/visibleText)
-// directly from the live page — what the iframe ACTUALLY shows (post client-side JS), not the raw src string —
-// and returns a per-iframe fingerprint + a per-field string-EQUALITY grid across the set. NO equivalent/same/
-// different verdict (that IS the 4.1.2 judgment the model is graded on). A cross-origin iframe blocks
-// contentDocument: it is reported {crossOrigin:true, src} (judge from src + crops, or PARTIAL). Touches no state.
+// purpose. Reads each iframe's RENDERED document (title/h1/firstParagraph/visibleText) from the live page — what
+// the iframe ACTUALLY shows (post client-side JS), not the raw src string — and returns a per-iframe fingerprint +
+// a per-field string-EQUALITY grid across the set. NO equivalent/same/different verdict (that IS the 4.1.2 judgment
+// the model is graded on). A frame the page's script may not read (cross-origin, incl. file:// pages) is read
+// through its frame target and reported {crossOrigin:true, readViaFrameTarget:true}. Touches no state.
 async function compareIframeContent(page, args) {
   const { iframeXpath, iframeXpaths } = args || {};
   const xpaths = (Array.isArray(iframeXpaths) && iframeXpaths.length) ? iframeXpaths : (typeof iframeXpath === 'string' && iframeXpath ? [iframeXpath] : []);
@@ -1306,10 +1310,29 @@ async function compareIframeContent(page, args) {
     });
   }, xpaths).catch(() => null);
   if (!frames) return { error: 'could not read iframes' };
-  const ok = frames.filter((f) => f && f.found && f.crossOrigin === false);
+  // a frame the page's script may not read (another origin; every file:// document is its own origin) is read through
+  // its frame target instead, as a browser's developer tools would; it stays marked crossOrigin
+  for (const f of frames) {
+    if (!f || !f.found || !f.crossOrigin) continue;
+    try {
+      const h = await page.evaluateHandle((xp) => document.evaluate(xp, document, null, 9, null).singleNodeValue, f.iframeXpath);
+      const fr = h.asElement() ? await h.asElement().contentFrame() : null;
+      await h.dispose();
+      if (!fr) continue;
+      const got = await fr.evaluate(() => {
+        const vis = (e) => { if (!e) return false; const s = getComputedStyle(e); if (s.display === 'none' || s.visibility === 'hidden') return false; const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
+        const h1 = [...document.querySelectorAll('h1')].find(vis) || document.querySelector('h1');
+        const para = [...document.querySelectorAll('p')].find(vis) || document.querySelector('p');
+        const text = ((document.body && document.body.innerText) || '').replace(/\s+/g, ' ').trim();
+        return { title: (document.title || '').slice(0, 200), h1: h1 ? (h1.textContent || '').trim().slice(0, 160) : null, firstParagraph: para ? (para.textContent || '').trim().slice(0, 160) : null, textLen: text.length, visibleText: text.slice(0, 240) };
+      });
+      Object.assign(f, got, { readViaFrameTarget: true });
+    } catch (e) { /* stays unread */ }
+  }
+  const ok = frames.filter((f) => f && f.found && (f.crossOrigin === false || f.readViaFrameTarget));
   // null (NOT false) when fewer than 2 iframes were readable — "could not compare", never read as "different".
   const eqOf = (field) => ok.length >= 2 ? ok.every((f) => f[field] === ok[0][field]) : null;
-  return { iframes: frames, comparedCount: ok.length, equality: { titleEqual: eqOf('title'), h1Equal: eqOf('h1'), firstParagraphEqual: eqOf('firstParagraph'), visibleTextEqual: eqOf('visibleText') }, note: 'each same-named iframe\'s RENDERED content read from its same-origin contentDocument + a per-field string-EQUALITY grid. Equality is string-equality only (you judge "equivalent purpose?"); a field is null when fewer than 2 iframes were readable (could NOT compare — NOT "different"). A crossOrigin iframe could not be read — judge it from src + crops or return PARTIAL.' };
+  return { iframes: frames, comparedCount: ok.length, equality: { titleEqual: eqOf('title'), h1Equal: eqOf('h1'), firstParagraphEqual: eqOf('firstParagraph'), visibleTextEqual: eqOf('visibleText') }, note: 'each same-named iframe\'s RENDERED content (read from its contentDocument, or through its frame target when the page may not read it: readViaFrameTarget) + a per-field string-EQUALITY grid. Equality is string-equality only (you judge "equivalent purpose?"); a field is null when fewer than 2 iframes were readable (could NOT compare — NOT "different"). An iframe without content fields could not be read — judge it from src + crops or return PARTIAL.' };
 }
 
 // ============================================================================================
