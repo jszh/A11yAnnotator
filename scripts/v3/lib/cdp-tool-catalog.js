@@ -56,7 +56,7 @@ const TOOL_CATALOG = Object.freeze([
     when: 'follow a SAME-ORIGIN link to its SETTLED destination (after redirects) and get a per-field byte-equality grid — for 2.4.4 when same-named links may resolve to DIFFERENT places. Raw hrefs are NOT reliable (a redirect/SPA route can diverge); this resolves the REAL destination',
     scs: ['2.4.4'], skills: [] }),
   Object.freeze({ name: 'compare_iframe_content', params: 'iframeXpath | iframeXpaths[] (the SET of same-named iframes)',
-    when: 'for 4.1.2 (ACT 4b1c6c) when two or more iframes share an accessible name with DIFFERENT srcs — read each one\'s RENDERED same-origin content (title/h1/text) + a per-field equality grid, so you judge whether they serve an EQUIVALENT purpose from CONTENT, not from the raw src string (page-one.html vs page-two.html look interchangeable but render different content)',
+    when: 'for 4.1.2 when two or more iframes share an accessible name with DIFFERENT srcs — read each one\'s RENDERED same-origin content (title/h1/text) + a per-field equality grid, so you judge whether they serve an EQUIVALENT purpose from CONTENT, not from the raw src string (page-one.html vs page-two.html look interchangeable but render different content)',
     scs: ['4.1.2'], skills: [] }), // SC-4.1.2-only (no skill key) so it does not leak onto every name-role-state SC
   // NEW (full-page capture, cdp-tools.js capture_full_page): the one gap the FN run surfaced — no below-fold view.
   Object.freeze({ name: 'capture_full_page', params: 'targetXpath? (else whole document)',

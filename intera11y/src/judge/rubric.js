@@ -14,7 +14,7 @@ function render(sc, variant, { tools = true } = {}) {
   if (variant === 'gena11y') {
     const g = require(path.join(RUBRIC_DIR, 'gena11y-original.js'))[sc];
     if (!g) throw new Error(`no GenA11y rules for SC ${sc} (GenA11y covers 1.1.1, 1.4.1, 1.4.3, 2.4.4, 3.3.1, 4.1.2)`);
-    return [g.heading, ...(g.preamble ? [g.preamble] : []), 'Test rules:', ...g.rules.map((t, i) => `${i + 1}. ${t}`)].join('\n');
+    return withoutActIds([g.heading, ...(g.preamble ? [g.preamble] : []), 'Test rules:', ...g.rules.map((t, i) => `${i + 1}. ${t}`)].join('\n'));
   }
   const r = load(sc);
   // GenA11y's text between the heading and the test rules (its pass condition, where it states one) is kept
@@ -25,7 +25,20 @@ function render(sc, variant, { tools = true } = {}) {
     if (tools) lines.push(`   Tools: ${rule.tools.join(', ')}`);
     if (variant === 'v2' && rule.rubric) lines.push(`   Rubric: ${rule.rubric}`);
   });
-  return lines.join('\n');
+  return withoutActIds(lines.join('\n'));
+}
+
+// ACT rule ids are not shown to any model: the ACT test pages are those rules' published examples, so a rule id next
+// to a page could cue a remembered verdict (the rubric files keep them, as the record of each clause's source)
+const ACT_ID = /ACT [0-9a-z]{6}/;
+function withoutActIds(text) {
+  const out = text
+    .replace(/ACT [0-9a-z]{6}, whose test target is/g, 'the element that fails is')
+    .replace(/ACT [0-9a-z]{6}; /g, '')
+    .replace(/; ACT [0-9a-z]{6}\)/g, ')')
+    .replace(/ \(ACT [0-9a-z]{6}\)/g, '');
+  if (ACT_ID.test(out)) throw new Error(`an ACT rule id is left in rendered rules: ${out.match(ACT_ID)[0]}`);
+  return out;
 }
 
 // the tools a criterion's judge is given: every tool its rules name
