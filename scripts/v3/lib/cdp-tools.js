@@ -1285,6 +1285,24 @@ async function resolveDestination(page, args, opts = {}) {
   return { fingerprints, resolvedCount: ok.length, equality: { finalUrlEqual: eqOf('finalUrl'), titleEqual: eqOf('title'), h1Equal: eqOf('h1'), mainFirstParagraphEqual: eqOf('mainFirstParagraph'), visibleTextEqual: eqOf('visibleText') }, note: 'each link resolved to a raw fingerprint (+ redirect timing) + a per-field byte-EQUALITY grid across the resolved set. Equality is string-equality only (the model judges "same purpose?"); an equality field is null when fewer than 2 links resolved (could not compare — NOT "different"). visibleText/h1 are read from the RENDERED page (post client-side JS), so two same-named links to different query branches differ here even when the static URL/title match.' };
 }
 
+// word-level diff of two strings: the words only in a, only in b (in order, runs joined), and the shared fraction
+function wordDiff(a, b) {
+  const A = String(a || '').split(/\s+/).filter(Boolean).slice(0, 800), B = String(b || '').split(/\s+/).filter(Boolean).slice(0, 800);
+  const L = Array.from({ length: A.length + 1 }, () => new Uint16Array(B.length + 1));
+  for (let i = A.length - 1; i >= 0; i--) for (let j = B.length - 1; j >= 0; j--) L[i][j] = A[i] === B[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  const onlyA = [], onlyB = [];
+  let i = 0, j = 0, ra = [], rb = [];
+  const flush = () => { if (ra.length) onlyA.push(ra.join(' ')); if (rb.length) onlyB.push(rb.join(' ')); ra = []; rb = []; };
+  while (i < A.length || j < B.length) {
+    if (i < A.length && j < B.length && A[i] === B[j]) { flush(); i++; j++; }
+    else if (j >= B.length || (i < A.length && L[i + 1][j] >= L[i][j + 1])) ra.push(A[i++]);
+    else rb.push(B[j++]);
+  }
+  flush();
+  const shared = L[0][0];
+  return { onlyInFirst: onlyA.slice(0, 12), onlyInSecond: onlyB.slice(0, 12), sharedWordFraction: +(A.length + B.length ? (2 * shared) / (A.length + B.length) : 1).toFixed(2) };
+}
+
 // compare_iframe_content — READ-ONLY: for 4.1.2 (ACT 4b1c6c) — same-named iframes must serve an EQUIVALENT
 // purpose. Reads each iframe's RENDERED document (title/h1/firstParagraph/visibleText) from the live page — what
 // the iframe ACTUALLY shows (post client-side JS), not the raw src string — and returns a per-iframe fingerprint +
@@ -1306,7 +1324,7 @@ async function compareIframeContent(page, args) {
       const h1 = [...doc.querySelectorAll('h1')].find((e) => vis(doc, e)) || doc.querySelector('h1');
       const para = [...doc.querySelectorAll('p')].find((e) => vis(doc, e)) || doc.querySelector('p');
       const text = ((doc.body && doc.body.innerText) || '').replace(/\s+/g, ' ').trim();
-      return { iframeXpath: xp, found: true, src, crossOrigin: false, title: (doc.title || '').slice(0, 200), h1: h1 ? (h1.textContent || '').trim().slice(0, 160) : null, firstParagraph: para ? (para.textContent || '').trim().slice(0, 160) : null, textLen: text.length, visibleText: text.slice(0, 240) };
+      return { iframeXpath: xp, found: true, src, crossOrigin: false, title: (doc.title || '').slice(0, 200), h1: h1 ? (h1.textContent || '').trim().slice(0, 160) : null, firstParagraph: para ? (para.textContent || '').trim().slice(0, 160) : null, textLen: text.length, visibleText: text.slice(0, 240), fullText: text.slice(0, 4000) };
     });
   }, xpaths).catch(() => null);
   if (!frames) return { error: 'could not read iframes' };
@@ -1324,7 +1342,7 @@ async function compareIframeContent(page, args) {
         const h1 = [...document.querySelectorAll('h1')].find(vis) || document.querySelector('h1');
         const para = [...document.querySelectorAll('p')].find(vis) || document.querySelector('p');
         const text = ((document.body && document.body.innerText) || '').replace(/\s+/g, ' ').trim();
-        return { title: (document.title || '').slice(0, 200), h1: h1 ? (h1.textContent || '').trim().slice(0, 160) : null, firstParagraph: para ? (para.textContent || '').trim().slice(0, 160) : null, textLen: text.length, visibleText: text.slice(0, 240) };
+        return { title: (document.title || '').slice(0, 200), h1: h1 ? (h1.textContent || '').trim().slice(0, 160) : null, firstParagraph: para ? (para.textContent || '').trim().slice(0, 160) : null, textLen: text.length, visibleText: text.slice(0, 240), fullText: text.slice(0, 4000) };
       });
       Object.assign(f, got, { readViaFrameTarget: true });
     } catch (e) { /* stays unread */ }
@@ -1332,7 +1350,16 @@ async function compareIframeContent(page, args) {
   const ok = frames.filter((f) => f && f.found && (f.crossOrigin === false || f.readViaFrameTarget));
   // null (NOT false) when fewer than 2 iframes were readable — "could not compare", never read as "different".
   const eqOf = (field) => ok.length >= 2 ? ok.every((f) => f[field] === ok[0][field]) : null;
-  return { iframes: frames, comparedCount: ok.length, equality: { titleEqual: eqOf('title'), h1Equal: eqOf('h1'), firstParagraphEqual: eqOf('firstParagraph'), visibleTextEqual: eqOf('visibleText') }, note: 'each same-named iframe\'s RENDERED content (read from its contentDocument, or through its frame target when the page may not read it: readViaFrameTarget) + a per-field string-EQUALITY grid. Equality is string-equality only (you judge "equivalent purpose?"); a field is null when fewer than 2 iframes were readable (could NOT compare — NOT "different"). An iframe without content fields could not be read — judge it from src + crops or return PARTIAL.' };
+  // for each field that is not equal, WHAT differs between the first readable iframe and each other one: the words
+  // only in either (word-level LCS diff) and the fraction of words they share — so a difference in a breadcrumb reads
+  // as that, not as "different content". Raw text differences, never an equivalence verdict.
+  const differences = {};
+  for (const [field, key] of [['title', 'title'], ['h1', 'h1'], ['firstParagraph', 'firstParagraph'], ['visibleText', 'fullText']]) {
+    if (eqOf(field) !== false) continue;
+    differences[field] = ok.slice(1).map((f) => ({ iframes: [ok[0].iframeXpath, f.iframeXpath], ...wordDiff(ok[0][key], f[key]) }));
+  }
+  for (const f of frames) if (f) delete f.fullText;
+  return { iframes: frames, comparedCount: ok.length, equality: { titleEqual: eqOf('title'), h1Equal: eqOf('h1'), firstParagraphEqual: eqOf('firstParagraph'), visibleTextEqual: eqOf('visibleText') }, ...(Object.keys(differences).length ? { differences } : {}), note: 'each same-named iframe\'s RENDERED content (read from its contentDocument, or through its frame target when the page may not read it: readViaFrameTarget) + a per-field string-EQUALITY grid; for each unequal field, `differences` lists the words only in each iframe and the fraction of words shared (visibleText compared over the first 4000 characters). Equality and differences are about strings only (you judge "equivalent purpose?"); a field is null when fewer than 2 iframes were readable (could NOT compare — NOT "different"). An iframe without content fields could not be read — judge it from src + crops or return PARTIAL.' };
 }
 
 // ============================================================================================
