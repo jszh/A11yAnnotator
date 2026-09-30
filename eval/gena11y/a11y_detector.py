@@ -459,7 +459,9 @@ def _http_gemini(prompt_text, images, system=SYSTEM_MESSAGE, max_output_tokens=N
             # flex targets 1-15 min per request and is sheddable; the 180s standard timeout would abort
             # slow-but-healthy responses and record them as failures. The 429/5xx retry above is what
             # flex's "no server-side fallback" requires.
-            _timeout = 900 if SERVICE_TIER == 'flex' else 180
+            # standard: 600 s, as InterA11y's unit limit — a high-effort answer on a large page (tens of thousands of
+            # thinking tokens) can take several minutes, and 180 s cut those off into timeouts retried to no verdict
+            _timeout = 900 if SERVICE_TIER == 'flex' else 600
             r = requests.post(url, json=body, timeout=_timeout)
             if r.status_code == 429 or r.status_code >= 500:
                 time.sleep(2 * (attempt + 1))
