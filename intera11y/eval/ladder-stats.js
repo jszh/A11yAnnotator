@@ -7,7 +7,7 @@
 // Reported per corpus (ACT, 585, expert responses) and pooled over the three (cases are distinct), with Holm's
 // correction over the pooled tests of each model.
 //
-//   node intera11y/eval/ladder-stats.js [--json=out.json]
+//   node intera11y/eval/ladder-stats.js [--rubric=v2] [--json=out.json]   (--rubric: step 4's rubric, as in ladder.js)
 const { execFileSync } = require('child_process');
 const fs = require('fs');
 const os = require('os');
@@ -18,6 +18,7 @@ const SIX = new Set(['1.1.1', '1.4.1', '1.4.3', '2.4.4', '3.3.1', '4.1.2']);
 const args = Object.fromEntries(process.argv.slice(2).map((a) => { const m = /^--([^=]+)(?:=(.*))?$/.exec(a); return m ? [m[1], m[2] === undefined ? true : m[2]] : [a, true]; }));
 
 // the same runs as ladder.js
+const RUBRIC = args.rubric || 'v1';
 const MODELS = {
   'Gemini 3.7 Flash': {
     0: { gena11y: { act: 'gena11y-act-gem37-neutral', supp: 'supplementary585-gena11y-gem37', expert: 'gena11y-56-gemini37-high-20260823-combined' } },
@@ -25,7 +26,7 @@ const MODELS = {
     1: { gena11y: { act: 'gena11y-act-gem37-stance', supp: 'supplementary585-gena11y-gem37-stance', expert: 'gena11y-56-gem37-stance' } },
     2: { gena11y: { act: 'gena11y-act-gem37-rules', supp: 'supplementary585-gena11y-gem37-rules', expert: 'gena11y-56-gem37-rules' } },
     3: { test: 'ladder-gem-3b-test', expert: 'ladder-gem-3b-expert' },
-    4: { test: 'test12-v1', expert: 'expert10-v1' },
+    4: { test: `test12-${RUBRIC}`, expert: `expert10-${RUBRIC}` },
   },
   'GLM 5.3 Flash': {
     0: { gena11y: { act: 'gena11y-act-glm53-neutral', supp: 'supplementary585-gena11y-glm53', expert: 'gena11y-56-glm53' } },

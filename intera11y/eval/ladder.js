@@ -7,7 +7,8 @@
 // instruction ("only flag clear violations") removed; steps 3–4 are InterA11y runs. ACT and 585 runs load the label-free page copies (eval/neutral-corpus.js); earlier
 // runs (test9, gena11y-act-gem37/-glm53) could read the answer from the page and are not used.
 //
-//   node intera11y/eval/ladder.js [--json=out.json]
+//   node intera11y/eval/ladder.js [--rubric=v2] [--json=out.json]
+// --rubric=v2: step 4 is full InterA11y with the V2 rubric (test12-v2 / expert10-v2); steps 0–3 are unchanged
 const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
@@ -16,13 +17,14 @@ const ROOT = path.join(__dirname, '..', '..');
 const SIX = new Set(['1.1.1', '1.4.1', '1.4.3', '2.4.4', '3.3.1', '4.1.2']);
 const args = Object.fromEntries(process.argv.slice(2).map((a) => { const m = /^--([^=]+)(?:=(.*))?$/.exec(a); return m ? [m[1], m[2] === undefined ? true : m[2]] : [a, true]; }));
 
+const RUBRIC = args.rubric || 'v1';
 const MODELS = {
   'Gemini 3.7 Flash': {
     gena11y: { act: 'gena11y-act-gem37-neutral', supp: 'supplementary585-gena11y-gem37', expert: 'gena11y-56-gemini37-high-20260823-combined' },
     unbiased: { act: 'gena11y-act-gem37-unbiased', supp: 'supplementary585-gena11y-gem37-unbiased', expert: 'gena11y-56-gem37-unbiased' },
     stance: { act: 'gena11y-act-gem37-stance', supp: 'supplementary585-gena11y-gem37-stance', expert: 'gena11y-56-gem37-stance' },
     rules: { act: 'gena11y-act-gem37-rules', supp: 'supplementary585-gena11y-gem37-rules', expert: 'gena11y-56-gem37-rules' },
-    steps: { 3: 'ladder-gem-3b', 4: { test: 'test12-v1', expert: 'expert10-v1' } },
+    steps: { 3: 'ladder-gem-3b', 4: { test: `test12-${RUBRIC}`, expert: `expert10-${RUBRIC}` } },
   },
   'GLM 5.3 Flash': {
     gena11y: { act: 'gena11y-act-glm53-neutral', supp: 'supplementary585-gena11y-glm53', expert: 'gena11y-56-glm53' },
@@ -34,7 +36,7 @@ const MODELS = {
 };
 // 0–2 run in GenA11y's pipeline; 3 moves into InterA11y's, where the probes' evidence and the judge's tools (both tool
 // use) come in together; 4 adds triage
-const STEP_NAMES = { 0: 'GenA11y', '1a': '(supplementary) GenA11y without its bias instruction', 1: '+ neutral prompt stance', 2: '+ InterA11y rules', 3: '+ tool use (probe evidence, agentic judge)', 4: '+ triage (full InterA11y V1)' };
+const STEP_NAMES = { 0: 'GenA11y', '1a': '(supplementary) GenA11y without its bias instruction', 1: '+ neutral prompt stance', 2: '+ InterA11y rules', 3: '+ tool use (probe evidence, agentic judge)', 4: `+ triage (full InterA11y ${RUBRIC.toUpperCase()})` };
 
 // ACT truth: SC-level by default (act-sc-overrides.json: pages that pass their ACT rule but fail the SC elsewhere,
 // for every system alike); --raw-act scores the ACT labels as they are;
