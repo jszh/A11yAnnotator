@@ -108,13 +108,19 @@ def load_case_list(case_list):
         fixture = PROJECT_ROOT / row['file']
         if not fixture.exists():
             raise FileNotFoundError(f"case-list fixture missing: {row['file']}")
-        out.append({
+        case = {
             'file': row['file'], 'abs_path': str(fixture.resolve()),
-            'sc': row['sc'], 'all_scs': [row['sc']],
+            'sc': row['sc'], 'all_scs': row.get('all_scs') or [row['sc']],
             'expected': row['expected'], 'reaches': False,
             'ruleId': row.get('aspect'),
-            'testcaseId': f"aug-{row['sc']}-{row.get('aspect', 'aspect')}-{row['id']}",
-        })
+            'testcaseId': row.get('testcaseId') or f"aug-{row['sc']}-{row.get('aspect', 'aspect')}-{row['id']}",
+        }
+        # InterA11y's case lists (intera11y/eval/accessguru-cases.js): the page's own URL (a label-free copy, or the
+        # saved page over http), every SC the case is about, the domain to name, and whether to locate elements
+        for k in ('url', 'domain', 'locate', 'anySc', 'pageFile'):
+            if k in row:
+                case[k] = row[k]
+        out.append(case)
     return out
 
 
@@ -138,7 +144,8 @@ def _full_page_screenshot_b64(driver):
 
 def run_page(page):
     sc = page['sc']
-    url = f"file://{page['abs_path']}"
+    url = page.get('url') or f"file://{page['abs_path']}"
+    locate = bool(page.get('locate'))
     a11y_detector.set_context(sc, page['file'])
     driver = None
     try:
@@ -157,20 +164,36 @@ def run_page(page):
             html = driver.page_source
             shot = _full_page_screenshot_b64(driver)
             axe_ids = AG.run_axe(driver)
-            try:
-                driver.quit()
-            finally:
-                driver = None
+            # element-level output (the expert pages): axe's violating elements; the driver stays open for the
+            # semantic call so the elements its snippets quote can be located in the same page
+            axe_nodes = AG.run_axe_nodes(driver) if locate else None
+            if not locate:
+                try:
+                    driver.quit()
+                finally:
+                    driver = None
         axe_sc = AG.axe_scs(axe_ids)
-        sem = AG.detect_semantic('accessibility test page', url, html, shot)
+        sem = AG.detect_semantic(page.get('domain') or 'accessibility test page', url, html, shot)
+        sem_items = None
+        if locate:
+            sem_items = AG.parse_semantic_items(sem['raw'] or '')
+            xps = AG.locate_snippets(driver, [it['snippet'] for it in sem_items])
+            for it, xp in zip(sem_items, xps):
+                it['xpath'] = xp
+                it['scs'] = sorted(AG.semantic_scs([it['name']])) if it['name'] else []
+            for n in axe_nodes:
+                n['scs'] = sorted(AG.axe_scs([n['id']]))
         sem_sc = set(sem['scs'])
-        axe_flag = sc in axe_sc
-        sem_flag = sc in sem_sc
+        # anySc: a case about several SCs (ACT rules mapped to more than one) is flagged on any of them
+        targets = page['all_scs'] if page.get('anySc') else [sc]
+        axe_flag = any(s in axe_sc for s in targets)
+        sem_flag = any(s in sem_sc for s in targets)
         flagged = axe_flag or sem_flag
         return _result(page, {
             'axe_ids': axe_ids, 'axe_scs': sorted(axe_sc),
             'sem_names': sem['violation_names'], 'sem_scs': sorted(sem_sc),
             'axe_flag': axe_flag, 'sem_flag': sem_flag, 'flagged': flagged,
+            'axe_nodes': axe_nodes, 'sem_items': sem_items,
             'raw': sem['raw'], 'reasoning': sem['reasoning'],
             'usage': sem['usage'], 'provider': sem['provider'],
         })
@@ -197,7 +220,7 @@ def _result(page, det, error=None):
     return {
         'file': page['file'], 'sc': page['sc'], 'all_scs': page['all_scs'],
         'expected': page['expected'], 'reaches': page['reaches'],
-        'ruleId': page['ruleId'], 'testcaseId': page['testcaseId'],
+        'ruleId': page['ruleId'], 'testcaseId': page['testcaseId'], 'pageFile': page.get('pageFile'),
         'polarity': 'recall' if page['expected'] == 'failed' else 'specificity',
         'outcome': outcome, 'detection': det, 'correct': correct, 'error': error,
     }
