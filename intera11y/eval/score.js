@@ -222,6 +222,19 @@ function leaveOneOut(rows, systems) {
     for (const r of shared) { const c = byCase.get(r.cid) || { flags: r.flags, yes: 0, no: 0 }; r.truth ? c.yes++ : c.no++; byCase.set(r.cid, c); }
     const caseUnits = [...byCase.values()].filter((c) => c.yes !== c.no).map((c) => ({ flags: c.flags, truth: c.yes > c.no }));
     out.paired[`InterA11y vs ${other}`] = { responses: mcnemar(shared, 'InterA11y', other), cases: { ...mcnemar(caseUnits, 'InterA11y', other), tiesDropped: byCase.size - caseUnits.length } };
+    // one subset for both systems: every negative, and the positives the other system did not alone source (its own
+    // rejected flags stay in as negatives — so FPR here counts them against it; recall is free of its sourcing)
+    const sub = rows.filter((r) => !(r.truth && own(other)(r)));
+    const subCases = new Map();
+    for (const r of sub) { const c = subCases.get(r.cid) || { flags: r.flags, yes: 0, no: 0 }; r.truth ? c.yes++ : c.no++; subCases.set(r.cid, c); }
+    const subUnits = [...subCases.values()].filter((c) => c.yes !== c.no).map((c) => ({ flags: c.flags, truth: c.yes > c.no }));
+    const sm = (sys) => { const m = blank(); for (const r of sub) add(m, r.flags[sys], r.truth); return stats(m); };
+    out.subsetAllNegatives = out.subsetAllNegatives || {};
+    out.subsetAllNegatives[`InterA11y vs ${other}`] = {
+      cases: subCases.size, responses: sub.length,
+      InterA11y: sm('InterA11y'), [other]: sm(other),
+      paired: { responses: mcnemar(sub, 'InterA11y', other), cases: { ...mcnemar(subUnits, 'InterA11y', other), tiesDropped: subCases.size - subUnits.length } },
+    };
   }
   return out;
 }
@@ -245,6 +258,15 @@ if (report.expert && report.expert.leaveOneOut) {
   for (const [s, x] of Object.entries(L.systems)) console.log(`| ${s} | ${x.cases} | ${x.responses} | ${x.leftOut} | ${x.recall ?? '—'} | ${x.fpr ?? '—'} | ${x.f1 ?? '—'} | ${x.fprAllNegatives ?? '—'} | ${x.f1AllNegatives ?? '—'} |`);
   console.log('\n| Pair (shared cases) | Unit | Violations caught: only InterA11y / only other (p) | False positives: only InterA11y / only other (p) |\n|---|---|---|---|');
   for (const [pair, d] of Object.entries(L.paired)) for (const u of ['responses', 'cases']) console.log(`| ${pair} | ${u}${u === 'cases' ? ` (${d.cases.tiesDropped} ties dropped)` : ''} | ${d[u].pos.onlyA} / ${d[u].pos.onlyB} (${d[u].pos.p}) | ${d[u].neg.onlyA} / ${d[u].neg.onlyB} (${d[u].neg.p}) |`);
+}
+if (report.expert && report.expert.leaveOneOut && report.expert.leaveOneOut.subsetAllNegatives) {
+  console.log('\n## Expert study, common subset: all negatives + positives the compared system did not alone source\n| Pair | Cases (responses) | InterA11y recall / FPR / F1 | Other recall / FPR / F1 | Caught only by InterA11y / other, cases (p) | FP only InterA11y / other, cases (p) |\n|---|---|---|---|---|---|');
+  for (const [pair, d] of Object.entries(report.expert.leaveOneOut.subsetAllNegatives)) {
+    const other = Object.keys(d).find((k) => !['cases', 'responses', 'InterA11y', 'paired'].includes(k));
+    const f = (x) => `${x.recall} / ${x.fpr} / ${x.f1}`;
+    const c = d.paired.cases;
+    console.log(`| ${pair} | ${d.cases} (${d.responses}) | ${f(d.InterA11y)} | ${f(d[other])} | ${c.pos.onlyA} / ${c.pos.onlyB} (${c.pos.p}) | ${c.neg.onlyA} / ${c.neg.onlyB} (${c.neg.p}) |`);
+  }
 }
 if (report.expert) console.log(table('Expert study (P2–P5 responses)', report.expert) + `\n(responses whose page has no InterA11y run: ${report.expert.responsesMissingARun}; expert passes set aside on elements the browser exposes with no name: ${report.expert.setAsideNamelessPasses}; responses overridden after manual verification: ${report.expert.overriddenResponses})`);
 if (args.json) fs.writeFileSync(path.resolve(ROOT, args.json), JSON.stringify(report, null, 1));
